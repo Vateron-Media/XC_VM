@@ -1,0 +1,4068 @@
+
+<!doctype html>
+<html lang="ru" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.6.1/ru/development/source-drivers/">
+      
+      
+        <link rel="prev" href="../module-extension-points/">
+      
+      
+        <link rel="next" href="../http-request-handling/">
+      
+      
+        
+          <link rel="alternate" href="../../../development/source-drivers/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Драйверы источников - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Верхний колонтитул">
+    <a href="../../" title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Драйверы источников
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Выберите язык">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../development/source-drivers/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Поиск" placeholder="Поиск" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Поиск">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Очистить" aria-label="Очистить" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Инициализация поиска
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Вкладки" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Главная
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  Руководство пользователя
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../architecture/" class="md-tabs__link">
+          
+  
+  
+  Руководство разработчика
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Навигация" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Главная
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство пользователя
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство пользователя
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Администрирование
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Администрирование
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Генерация SSL-сертификата
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обновление сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/main-lb-cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAIN и балансировщики нагрузки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Механизм обновлений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система реселлеров
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Стратегия резервного копирования
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Справочник API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Справочник API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интерактивный API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кастомизация
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Кастомизация
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Переводы интерфейса
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Диагностика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сервис диагностики
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Информация и FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Информация и FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/licensing-and-activation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Лицензирование и активация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство по миграции
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Отслеживаемая папка
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/youtube-restream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рестрим YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Архитектура
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Архитектура
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обзор архитектуры
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автозагрузка (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Контексты бутстрапа
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и регистрация ядра
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Создание модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Жизненный цикл модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Точки расширения модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Драйверы источников
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Драйверы источников
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Как это работает
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#url-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Откуда берется реальный URL-адрес потока
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Откуда берется реальный URL-адрес потока">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Шаблон A: идентификатор, который определяет ваш модуль
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-url-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Шаблон B: исходящий URL-адрес, включенный в вашу схему
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url-_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Как URL-адрес попадает в поток
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Быстрый старт
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Быстрый старт">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Расположение
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. модуль.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Класс водителя
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Класс модуля
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Двигатель
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Попробовать это
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ссылка
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ссылка">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Исходный интерфейс драйвера
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        $ctx
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url-_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        URL-адреса источников
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Контракт с продюсером
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Контракт с продюсером">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Процесс
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HLS диска (всегда)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ingest-null" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Принимать (когда ingest не равно null)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Прогресс
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Что core делает для вас
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Что core делает для вас">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отказы
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Только главный сервер
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Скрипты и секреты провайдера
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Средства массовой информации
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Диагностика
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Текущие ограничения
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Контрольный список перед отправкой
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка HTTP-запросов
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AJAX-API админки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Подсистема стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API кластера (MAIN ↔ LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster-seams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Швы кластера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система событий
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Иерархия исключений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кэширование и Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рендеринг навбара
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рабочий процесс разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Рабочий процесс разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Процесс разработки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI-инструменты и консоль
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Миграции базы данных
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Юнит-тесты
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автоматический рефакторинг (Rector)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Флаги функций
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Управление процессами
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Безопасность и доступ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Безопасность и доступ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Аутентификация и сессии
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Права и RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Валидация ввода
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка ошибок
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграции
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Интеграции
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP и гео-маршрутизация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Определение устройств и STB-блокировки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эмуляция Ministra STB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграция UCS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и релиз
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Сборка и релиз
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система сборки (MAIN и LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Чеклист перед релизом
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Как это работает
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#url-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Откуда берется реальный URL-адрес потока
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Откуда берется реальный URL-адрес потока">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Шаблон A: идентификатор, который определяет ваш модуль
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-url-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Шаблон B: исходящий URL-адрес, включенный в вашу схему
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url-_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Как URL-адрес попадает в поток
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Быстрый старт
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Быстрый старт">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Расположение
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. модуль.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Класс водителя
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Класс модуля
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Двигатель
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Попробовать это
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ссылка
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ссылка">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Исходный интерфейс драйвера
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        $ctx
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url-_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        URL-адреса источников
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Контракт с продюсером
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Контракт с продюсером">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Процесс
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HLS диска (всегда)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ingest-null" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Принимать (когда ingest не равно null)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Прогресс
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Что core делает для вас
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Что core делает для вас">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отказы
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Только главный сервер
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Скрипты и секреты провайдера
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Средства массовой информации
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Диагностика
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Текущие ограничения
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Контрольный список перед отправкой
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">Исходные драйверы<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>A <strong>исходный драйвер</strong> позволяет модулю добавлять своего рода живой исходный код, который ffmpeg не может прочитать,
+например, DASH с помощью DRM и запустите для него <strong>свой собственный двигатель</strong>. Движок использует ffmpeg-код.
+место только для этих источников. Поток остается обычным потоком XC_VM: тем же самым потоком
+идентификатор, категории, букеты, мониторинг, запуск/остановка/перезапуск, подключения, архив и
+эскизы.</p>
+<p>Поток может содержать оба вида. С основным в вашем движке и резервным на обычном HTTP,
+поток переключается между ними без использования дополнительного кода.</p>
+<div class="admonition информация о">
+<p class="admonition-title">Статусе</p>
+</div>
+<p>Интерфейс драйвера, регистрация, выбор производителя, распознавание процесса,
+проверка исходного кода и проверка с экономией времени находятся в ядре, а вкладка модуля - в потоке
+доступны форма и вид импорта модуля (<a href="../module-extension-points/#stream-form-tabs-streamformregistry">Вкладки потоковой формы</a>,
+<a href="../module-extension-points/#import-kinds-importsourceregistry">Виды импорта</a>). Выпуски HLS все еще планируются; смотрите
+<a href="#current-limitations">Текущие ограничения</a>.</p>
+<p>Основные сведения о модуле (макет, манифест, класс модуля) см. в разделе
+<a href="../module-authoring/">Разработка модуля</a>; другие хуки см. в разделе
+<a href="../module-extension-points/">Точки расширения модуля</a>.</p>
+<h2 id="_2">Как это работает<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>stream_source: ["acmedash://prov1/demo-001", "http://backup.example/live.ts"]
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                          │                                 │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>           SourceDriverRegistry::for(url)          core: ffmpeg or native remux
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>                          │                                 │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>              driver-&gt;buildArgv($ctx)          buildLive() / buildNativeLive()
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                          │                                 │
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                          └───────────── sources[] ─────────┘
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                                          │
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                     the supervisor (xc_fanout) or the PHP monitor
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                     runs one entry and fails over to the next on exit
+</code></pre></div>
+<ol>
+<li>Ваш модуль объявляет класс драйвера в <code>module.json</code>.</li>
+<li>Драйвер запрашивает одну или несколько схем URL-адресов (<code>acmedash://…</code>).</li>
+<li>Когда запускается поток, core просматривает каждый URL-адрес источника. Для URL-адреса с вашей схемой это
+запрашивает у водителя, доступен ли источник (<code>available()</code>) и работает ли двигатель
+командная строка (<code>buildArgv()</code>).</li>
+<li>Core запускает эту команду точно так же, как производитель ffmpeg, и контролирует ее,
+перезапускает его и отображает его выходные данные.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Срок</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Producer</strong></td>
+<td>Процесс, который генерирует байты прямого потока: ffmpeg, <code>xc_fanout remux</code>, прокси-сервер, рабочие команды LLOD/delay/loopback или ваш движок.</td>
+</tr>
+<tr>
+<td><strong>Source driver</strong></td>
+<td>Ваш класс: он утверждает схемы URL-адресов и создает для них команду producer.</td>
+</tr>
+<tr>
+<td><strong>Supervisor</strong></td>
+<td>Демон <code>xc_fanout</code>, который запускается, наблюдает, перезапускает и принимает производителей. Когда контроль отключен, эту работу выполняет PHP monitor (<code>console.php monitor</code>).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="url-">Откуда берется реальный URL-адрес потока<a class="headerlink" href="#url-" title="Permanent link">&para;</a></h2>
+<p>Ядро никогда не узнает исходный URL-адрес источника драйвера. Оно хранит URL-адрес оператора
+вводится в список источников потока, например, <code>acmedash://prov1/demo-001</code>, и передает, что
+строка для вашего драйвера не изменилась:</p>
+<ul>
+<li>в <code>available($streamId, $url)</code>, как <code>$url</code>;</li>
+<li>в <code>buildArgv($ctx)</code>, как <code>$ctx['url']</code>.</li>
+</ul>
+<p>Превратить его во что-то, что может извлечь ваш движок, - это полностью задача вашего модуля. Два
+шаблоны работают.</p>
+<h3 id="a">Шаблон A: идентификатор, который определяет ваш модуль<a class="headerlink" href="#a" title="Permanent link">&para;</a></h3>
+<p>URL-адрес указывает канал, а не местоположение: <code>acmedash://&lt;provider&gt;/&lt;channel-id&gt;</code>. Реальный
+URL-адрес манифеста, заголовки и ключи просматриваются <strong>когда начнется трансляция</strong>, а не сохраняются в
+ядро:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>operator / import   →  stream_source = acmedash://prov1/demo-001
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>stream start        →  core calls buildArgv(['url' =&gt; 'acmedash://prov1/demo-001', …])
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>your engine         →  runs the provider script: manifest id=demo-001
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>                    →  gets manifest_url, manifest_headers, media_headers
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>                    →  runs the provider script: cdm id=demo-001 (keys, if needed)
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>                    →  starts fetching; re-signs the URL when it expires
+</code></pre></div>
+<p>Используйте этот шаблон, когда исходный URL-адрес является недолговечным, подписан или нуждается в ключах. Ничего
+значение "секретно" или "срок действия истекает" указывается в <code>streams.stream_source</code>, в основных журналах или в <code>ps</code>. Сохраняйте
+определения провайдера (какой скрипт, какие настройки) в собственных таблицах вашего модуля с ключом
+по <code>&lt;provider&gt;</code> части URL-адреса.</p>
+<h3 id="b-url-">Шаблон B: исходящий URL-адрес, включенный в вашу схему<a class="headerlink" href="#b-url-" title="Permanent link">&para;</a></h3>
+<p>URL-адрес содержит само местоположение, и меняется только схема:
+<code>acmedash://cdn.example.com/live/ch1/manifest.mpd</code>. Ваш водитель отображает его обратно:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">$upstream = 'https://' . substr($ctx['url'], strlen('acmedash://'));</span>
+</code></pre></div>
+<p>Используйте этот шаблон, когда у оператора уже есть стабильный общедоступный URL-адрес манифеста и только
+нужен ваш движок, чтобы прочитать его. Все, что находится после <code>://</code>, принадлежит вам, включая строку запроса,
+таким образом, исходный URL-адрес остается неизменным.</p>
+<h3 id="url-_1">Как URL-адрес попадает в поток<a class="headerlink" href="#url-_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Вручную:</strong> оператор вводит его в качестве источника на обычной странице добавления/редактирования потока.
+Ядро принимает там любую схему.</li>
+<li><strong>Путем импорта:</strong> зарегистрируйте <a href="../module-extension-points/#import-kinds-importsourceregistry">тип импорта</a>
+в нем перечислены каналы вашего провайдера с вашими URL-адресами. Администратор выбирает его на странице
+Страница импорта и просмотра и импортирует каналы как обычные потоки.</li>
+<li><strong>В качестве резервной копии:</strong> укажите свой URL-адрес в любом месте списка источников. Основной/резервный порядок работает
+то же самое, что и для основных источников.</li>
+</ul>
+<h2 id="_3">Быстрый старт<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<p>В этом пошаговом руководстве создается модуль с именем <code>acme-dash</code> и схемой <code>acmedash://</code>.
+Замените оба варианта вашими собственными именами.</p>
+<h3 id="1">1. Расположение<a class="headerlink" href="#1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>src/Modules/acme-dash_9f1c0/
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>├── module.json
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>├── AcmeDashModule.php        # the module class
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>├── AcmeDashDriver.php        # the source driver
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>├── bin/
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│   └── xcvm-acmedash         # your engine, executable (chmod 755)
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>└── migrations/
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    ├── 1.0.0.up.sql
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    └── 1.0.0.down.sql
+</code></pre></div>
+<p>Загрузите движок в каталог модуля, чтобы при удалении модуля он был удален.
+Не устанавливайте его под <code>/home/xc_vm/bin/</code>, который принадлежит core.</p>
+<h3 id="2-json">2. модуль.json<a class="headerlink" href="#2-json" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"acme-dash"</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">"hash_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"9f1c0b7e4d2a6538c1e0a4b7d6f39e21"</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"DASH sources through the Acme engine"</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1.0.0"</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="nt">"requires_core"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&gt;=2.5"</span><span class="p">,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="nt">"environment"</span><span class="p">:</span><span class="w"> </span><span class="s2">"main"</span><span class="p">,</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="nt">"source_drivers"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"XcVm\\Module\\AcmeDash\\AcmeDashDriver"</span><span class="p">],</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="nt">"start_timeout"</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Ключ</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source_drivers</code></td>
+<td>Полные имена классов, реализующие <code>XcVm\Core\Module\SourceDriverInterface</code>. Модуль может объявлять несколько таких классов.</td>
+</tr>
+<tr>
+<td><code>start_timeout</code></td>
+<td>Необязательно, в секундах. Как долго core ожидает ваш первый плейлист, прежде чем посчитает запуск неудачным. Оставьте значение по умолчанию для core (20-30 секунд). Установите его, если холодный запуск включает получение ключа.</td>
+</tr>
+<tr>
+<td><code>environment</code></td>
+<td>Должно быть <code>main</code>. Ваш движок работает только на главном сервере; см. <a href="#main-server-only">Только на главном сервере</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3">3. Класс водителя<a class="headerlink" href="#3" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="cp">&lt;?php</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">namespace</span> <span class="nx">XcVm\Module\AcmeDash</span><span class="p">;</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">use</span> <span class="nx">XcVm\Core\Module\SourceDriverInterface</span><span class="p">;</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">use</span> <span class="nx">XcVm\Infrastructure\Database\DatabaseAware</span><span class="p">;</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">final</span> <span class="k">class</span> <span class="nc">AcmeDashDriver</span> <span class="k">implements</span> <span class="nx">SourceDriverInterface</span> <span class="p">{</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">use</span> <span class="nx">DatabaseAware</span><span class="p">;</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">schemes</span><span class="p">()</span><span class="o">:</span> <span class="k">array</span> <span class="p">{</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="k">return</span> <span class="p">[</span><span class="s1">'acmedash'</span><span class="p">];</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="p">}</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">binary</span><span class="p">()</span><span class="o">:</span> <span class="nx">string</span> <span class="p">{</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="k">return</span> <span class="s1">'xcvm-acmedash'</span><span class="p">;</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="p">}</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">buildArgv</span><span class="p">(</span><span class="k">array</span> <span class="nv">$ctx</span><span class="p">)</span><span class="o">:</span> <span class="k">array</span> <span class="p">{</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="nv">$argv</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>            <span class="no">__DIR__</span> <span class="o">.</span> <span class="s1">'/bin/xcvm-acmedash'</span><span class="p">,</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>            <span class="s1">'--source'</span><span class="p">,</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'url'</span><span class="p">],</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>            <span class="s1">'--config'</span><span class="p">,</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">writeConfig</span><span class="p">(</span><span class="nv">$ctx</span><span class="p">),</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>            <span class="s1">'--playlist'</span><span class="p">,</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'hls'</span><span class="p">][</span><span class="s1">'dir'</span><span class="p">]</span> <span class="o">.</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'hls'</span><span class="p">][</span><span class="s1">'playlist'</span><span class="p">],</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>            <span class="s1">'--segment'</span><span class="p">,</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'hls'</span><span class="p">][</span><span class="s1">'dir'</span><span class="p">]</span> <span class="o">.</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'hls'</span><span class="p">][</span><span class="s1">'segment_pattern'</span><span class="p">],</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>            <span class="s1">'--hls-time'</span><span class="p">,</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'hls'</span><span class="p">][</span><span class="s1">'seg_time'</span><span class="p">],</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>            <span class="s1">'--hls-list-size'</span><span class="p">,</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'hls'</span><span class="p">][</span><span class="s1">'list_size'</span><span class="p">],</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>            <span class="s1">'--hls-delete-threshold'</span><span class="p">,</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'hls'</span><span class="p">][</span><span class="s1">'delete_threshold'</span><span class="p">],</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>            <span class="s1">'--progress'</span><span class="p">,</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'progress_path'</span><span class="p">],</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>        <span class="p">];</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>        <span class="k">if</span> <span class="p">(</span><span class="nv">$ctx</span><span class="p">[</span><span class="s1">'ingest'</span><span class="p">]</span> <span class="o">!==</span> <span class="k">null</span><span class="p">)</span> <span class="p">{</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>            <span class="nb">array_push</span><span class="p">(</span><span class="nv">$argv</span><span class="p">,</span> <span class="s1">'--ingest'</span><span class="p">,</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'ingest'</span><span class="p">]);</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>        <span class="p">}</span>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>        <span class="k">return</span> <span class="nv">$argv</span><span class="p">;</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>    <span class="p">}</span>
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a>
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">available</span><span class="p">(</span><span class="nx">int</span> <span class="nv">$streamId</span><span class="p">,</span> <span class="nx">string</span> <span class="nv">$url</span><span class="p">)</span><span class="o">:</span> <span class="nx">bool</span> <span class="p">{</span>
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>        <span class="c1">// Cheap and local: is the provider known and enabled? No manifest fetch here.</span>
+<a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a>        <span class="nv">$provider</span> <span class="o">=</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span> <span class="nb">parse_url</span><span class="p">(</span><span class="nv">$url</span><span class="p">,</span> <span class="nx">PHP_URL_HOST</span><span class="p">);</span>
+<a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a>        <span class="k">return</span> <span class="p">(</span><span class="nx">bool</span><span class="p">)</span> <span class="nx">self</span><span class="o">::</span><span class="na">db</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">fetchValue</span><span class="p">(</span><span class="s1">'SELECT `enabled` FROM `acmedash_providers` WHERE `name` = ?'</span><span class="p">,</span> <span class="nv">$provider</span><span class="p">);</span>
+<a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a>    <span class="p">}</span>
+<a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a>
+<a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a>    <span class="sd">/** Network settings and credentials go to a private file, never into argv. */</span>
+<a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a>    <span class="k">private</span> <span class="k">function</span> <span class="nf">writeConfig</span><span class="p">(</span><span class="k">array</span> <span class="nv">$ctx</span><span class="p">)</span><span class="o">:</span> <span class="nx">string</span> <span class="p">{</span>
+<a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a>        <span class="nv">$dir</span> <span class="o">=</span> <span class="nx">TMP_PATH</span> <span class="o">.</span> <span class="s1">'acmedash/'</span><span class="p">;</span>
+<a id="__codelineno-5-46" name="__codelineno-5-46" href="#__codelineno-5-46"></a>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_dir</span><span class="p">(</span><span class="nv">$dir</span><span class="p">))</span> <span class="p">{</span>
+<a id="__codelineno-5-47" name="__codelineno-5-47" href="#__codelineno-5-47"></a>            <span class="nb">mkdir</span><span class="p">(</span><span class="nv">$dir</span><span class="p">,</span> <span class="mo">0700</span><span class="p">,</span> <span class="k">true</span><span class="p">);</span>
+<a id="__codelineno-5-48" name="__codelineno-5-48" href="#__codelineno-5-48"></a>        <span class="p">}</span>
+<a id="__codelineno-5-49" name="__codelineno-5-49" href="#__codelineno-5-49"></a>        <span class="nv">$path</span> <span class="o">=</span> <span class="nv">$dir</span> <span class="o">.</span> <span class="nb">intval</span><span class="p">(</span><span class="nv">$ctx</span><span class="p">[</span><span class="s1">'stream_id'</span><span class="p">])</span> <span class="o">.</span> <span class="s1">'.json'</span><span class="p">;</span>
+<a id="__codelineno-5-50" name="__codelineno-5-50" href="#__codelineno-5-50"></a>        <span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$path</span><span class="p">,</span> <span class="nb">json_encode</span><span class="p">([</span><span class="s1">'fetch'</span> <span class="o">=&gt;</span> <span class="nv">$ctx</span><span class="p">[</span><span class="s1">'fetch'</span><span class="p">]]));</span>
+<a id="__codelineno-5-51" name="__codelineno-5-51" href="#__codelineno-5-51"></a>        <span class="nb">chmod</span><span class="p">(</span><span class="nv">$path</span><span class="p">,</span> <span class="mo">0600</span><span class="p">);</span>
+<a id="__codelineno-5-52" name="__codelineno-5-52" href="#__codelineno-5-52"></a>        <span class="k">return</span> <span class="nv">$path</span><span class="p">;</span>
+<a id="__codelineno-5-53" name="__codelineno-5-53" href="#__codelineno-5-53"></a>    <span class="p">}</span>
+<a id="__codelineno-5-54" name="__codelineno-5-54" href="#__codelineno-5-54"></a><span class="p">}</span>
+</code></pre></div>
+<p>Что ожидает ядро от этого класса:</p>
+<ul>
+<li><strong>Никаких аргументов конструктора и никаких контейнерных сервисов.</strong> Ядро загружает драйверы без
+загрузочные модули, поскольку запрос зрителя может запустить поток из облегченного
+точка входа в потоковую передачу.</li>
+<li><strong>Database access only through <code>DatabaseAware</code> + <code>self::db()</code>.</strong></li>
+<li><strong><code>schemes()</code> и <code>binary()</code> должны быть мгновенными:</strong> нет сети и нет подпроцессов.</li>
+<li><strong><code>available()</code> необходимо ответить в течение нескольких секунд.</strong> Ядро вызывает его перед запуском и
+прежде чем переключиться на этот источник, вместо запуска ffprobe по URL-адресу.</li>
+<li><strong>Исключения безопасны.</strong> Если запускается какой-либо метод, ядро пропускает этот источник и записывает
+сообщение в журнал потока.</li>
+</ul>
+<h3 id="4">4. Класс модуля<a class="headerlink" href="#4" title="Permanent link">&para;</a></h3>
+<p>Сохраняйте настройки для каждого потока в своих собственных таблицах и очищайте их при запуске потоков.
+удаленный:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="cp">&lt;?php</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">namespace</span> <span class="nx">XcVm\Module\AcmeDash</span><span class="p">;</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">use</span> <span class="nx">XcVm\Core\Events\ListensTo</span><span class="p">;</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">use</span> <span class="nx">XcVm\Core\Events\Stream\StreamsDeletedEvent</span><span class="p">;</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">use</span> <span class="nx">XcVm\Core\Module\BaseModule</span><span class="p">;</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="k">use</span> <span class="nx">XcVm\Infrastructure\Database\DatabaseAware</span><span class="p">;</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="k">class</span> <span class="nc">AcmeDashModule</span> <span class="k">extends</span> <span class="nx">BaseModule</span> <span class="p">{</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="k">use</span> <span class="nx">DatabaseAware</span><span class="p">;</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">getName</span><span class="p">()</span><span class="o">:</span> <span class="nx">string</span> <span class="p">{</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        <span class="k">return</span> <span class="s1">'acme-dash'</span><span class="p">;</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="p">}</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">getVersion</span><span class="p">()</span><span class="o">:</span> <span class="nx">string</span> <span class="p">{</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>        <span class="k">return</span> <span class="s1">'1.0.0'</span><span class="p">;</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>    <span class="p">}</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>    <span class="p">#[</span><span class="nd">ListensTo</span><span class="p">(</span><span class="nx">StreamsDeletedEvent</span><span class="o">::</span><span class="na">class</span><span class="p">)]</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">onStreamsDeleted</span><span class="p">(</span><span class="nx">StreamsDeletedEvent</span> <span class="nv">$event</span><span class="p">)</span><span class="o">:</span> <span class="nx">void</span> <span class="p">{</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>        <span class="nv">$ids</span> <span class="o">=</span> <span class="nb">array_map</span><span class="p">(</span><span class="s1">'intval'</span><span class="p">,</span> <span class="nv">$event</span><span class="o">-&gt;</span><span class="na">streamIds</span><span class="p">);</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>        <span class="k">if</span> <span class="p">(</span><span class="nv">$ids</span> <span class="o">!==</span> <span class="p">[])</span> <span class="p">{</span>
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>            <span class="nx">self</span><span class="o">::</span><span class="na">db</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">delete</span><span class="p">(</span><span class="s1">'acmedash_streams'</span><span class="p">,</span> <span class="s1">'`stream_id` IN ('</span> <span class="o">.</span> <span class="nb">implode</span><span class="p">(</span><span class="s1">','</span><span class="p">,</span> <span class="nv">$ids</span><span class="p">)</span> <span class="o">.</span> <span class="s1">')'</span><span class="p">);</span>
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>        <span class="p">}</span>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>    <span class="p">}</span>
+<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Никогда не добавляйте внешний ключ к <code>streams</code>.</strong> При сохранении потока его строка перезаписывается
+(<code>REPLACE INTO</code>), так что <code>ON DELETE CASCADE</code> будет удалять ваши данные при каждой правке.</p>
+<h3 id="5">5. Двигатель<a class="headerlink" href="#5" title="Permanent link">&para;</a></h3>
+<p>Ваш движок - это обычный исполняемый файл, который следует за
+<a href="#producer-contract">контракт с продюсером</a>. Короткая версия:</p>
+<ul>
+<li>Он выполняется на переднем плане, по одному процессу на поток.</li>
+<li>Он записывает HLS на диск по указанным путям.</li>
+<li>Когда задано значение <code>--ingest</code>, он также записывает MPEG-файлы в этот unix-сокет.</li>
+<li>Он добавляет блоки прогресса.</li>
+<li>Он выживает <code>SIGKILL</code>, не оставляя после себя детей.</li>
+</ul>
+<h3 id="6">6. Попробовать это<a class="headerlink" href="#6" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Установите модуль и запустите <code>console.php status</code>. При этом будут установлены входящие в комплект модули и
+запускает ваши миграции.</li>
+<li>Создайте прямую трансляцию с источником <code>acmedash://prov1/demo-001</code>, без перекодирования,
+отложите выключение. Сохраните и запустите его.</li>
+<li>Watch the stream's log: <code>/home/xc_vm/content/streams/&lt;id&gt;.errors</code>. Every decision
+основные сведения о вашем источнике записаны там с префиксом <code>[panel]</code> (см.
+<a href="#troubleshooting">Устранение неполадок</a>).</li>
+<li>Убедитесь, что в списке потоков указан значок производителя <strong>модуль</strong>. Это означает, что ядро
+распознает ваш двигатель как работающий производитель.</li>
+<li>Остановите поток и убедитесь, что процесс запуска завершен. Затем заглушите двигатель с помощью
+<code>kill -9</code> и подтвердите, что поток перезапускается.</li>
+</ol>
+<h2 id="_4">Ссылка<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<h3 id="_5">Исходный интерфейс драйвера<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">namespace XcVm\Core\Module;</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="x">interface SourceDriverInterface {</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="x">    /** @return string[] URL schemes this driver owns, lowercase, without "://". */</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="x">    public function schemes(): array;</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="x">    /** Basename of the engine executable; stable across upgrades, unique among producers. */</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="x">    public function binary(): string;</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="x">    /**</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="x">     * The producer's argv. Element 0 is the absolute path of binary(); one element</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="x">     * must contain the full playlist path (hls.dir + hls.playlist). Core escapes</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="x">     * every element and adds the redirections and pid handling itself.</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="x">     *</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="x">     * @return string[]</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="x">     */</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="x">    public function buildArgv(array $ctx): array;</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="x">    /** Whether the source is reachable now; called instead of ffprobe on the URL. */</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="x">    public function available(int $streamId, string $url): bool;</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="x">}</span>
+</code></pre></div>
+<p>Ядро отклоняет argv, элемент которого 0 не является абсолютным путем, заканчивающимся на <code>binary()</code>, или
+при этом список воспроизведения не называется. Затем он пропускает источник и записывает причину.</p>
+<h3 id="ctx"><code>$ctx</code><a class="headerlink" href="#ctx" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Ключ</th>
+<th>Тип</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stream_id</code></td>
+<td>инт</td>
+<td>Идентификатор потока.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td>строка</td>
+<td>Исходный URL-адрес, указанный вашим водителем, не изменился.</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>строка</td>
+<td>Индекс источника в списке источников потока (<code>0</code>, <code>1</code>, ...), для журналов.</td>
+</tr>
+<tr>
+<td><code>fetch</code></td>
+<td>массив</td>
+<td>Параметры сети stream: <code>user_agent</code>, <code>proxy</code>, <code>cookie</code>, <code>headers</code>. Используются только значения, заданные оператором; значение, равное глобальному значению по умолчанию, не учитывается, поэтому оно никогда не отменяет значения, заданные вашим провайдером.</td>
+</tr>
+<tr>
+<td><code>hls.dir</code></td>
+<td>строка</td>
+<td>Каталог для HLS на диске, с завершающей косой чертой.</td>
+</tr>
+<tr>
+<td><code>hls.playlist</code></td>
+<td>строка</td>
+<td>Имя файла списка воспроизведения: <code>&lt;id&gt;_.m3u8</code>.</td>
+</tr>
+<tr>
+<td><code>hls.segment_pattern</code></td>
+<td>строка</td>
+<td>Шаблон имени файла сегмента: <code>&lt;id&gt;_%d.ts</code>.</td>
+</tr>
+<tr>
+<td><code>hls.seg_time</code></td>
+<td>инт</td>
+<td>Длительность целевого сегмента в секундах.</td>
+</tr>
+<tr>
+<td><code>hls.list_size</code></td>
+<td>инт</td>
+<td>Сегменты, перечисленные в списке воспроизведения.</td>
+</tr>
+<tr>
+<td><code>hls.delete_threshold</code></td>
+<td>инт</td>
+<td>Дополнительные фрагменты следует сохранить на диске после того, как они покинут список воспроизведения.</td>
+</tr>
+<tr>
+<td><code>ingest</code></td>
+<td>?строка</td>
+<td>Путь к сокету Unix для входа в разветвление или <code>null</code>, когда разветвление отключено или не работает.</td>
+</tr>
+<tr>
+<td><code>progress_path</code></td>
+<td>строка</td>
+<td>Куда добавлять блоки выполнения: <code>&lt;id&gt;_.progress</code>.</td>
+</tr>
+<tr>
+<td><code>errors_path</code></td>
+<td>строка</td>
+<td>Лог потока, <code>&lt;id&gt;.errors</code>. Туда будет отправлен ваш стандартный запрос.</td>
+</tr>
+<tr>
+<td><code>supervised</code></td>
+<td>тип bool</td>
+<td><code>true</code> когда супервизор <code>xc_fanout</code> запускает программу producer, <code>false</code> для монитора PHP.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="url-_2">URL-адреса источников<a class="headerlink" href="#url-_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Схема.</strong> Каждый модуль выбирает свой собственный, и один модуль может владеть несколькими.</li>
+<li>Формат - <code>[a-z][a-z0-9+.-]*</code>.</li>
+<li>Схемы чтения ядра (<code>http</code>, <code>https</code>, <code>rtmp</code>, <code>rtsp</code>, <code>udp</code>, <code>rtp</code>, <code>srt</code>, <code>file</code>, ...)
+не может быть заявлено.</li>
+<li>Схема, заявленная двумя установленными модулями, не используется ни в одном из них, и оба имени регистрируются в журнале.</li>
+<li>Предпочитайте имя, привязанное к вашему модулю (<code>acmedash</code>, а не <code>dash</code>).</li>
+<li><strong>Все, что находится после <code>://</code>, принадлежит вам.</strong> Ядро передает его драйверу без изменений. Проверьте его
+в <code>available()</code> (возврат <code>false</code>) или в <code>buildArgv()</code> (бросок).</li>
+<li><strong>URL-адрес - это идентификатор источника</strong>, например <code>acmedash://&lt;provider&gt;/&lt;channel-id&gt;</code>. Держи
+идентификатор в URL-адресе, а не в таблице для каждого потока, поскольку каждый источник резервного копирования может
+укажите на другой канал или провайдера.</li>
+<li><strong>URL-адрес должен быть доступен для печати</strong>, без пробелов или управляющих символов. Он хранится
+в <code>stream_source</code> и отображается на панели.</li>
+</ul>
+<h2 id="_6">Контракт с продюсером<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<h3 id="_7">Процесс<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Один процесс переднего плана на поток.</strong> Без демонизации, без двойной вилки: pid-ядро
+записи должны стать вашим двигателем.</li>
+<li><strong>В командной строке будет указан список воспроизведения.</strong> Остановка, уничтожение, резервное копирование pid cron и
+принятие после перезапуска супервизора найдите производителя по <code>&lt;dir&gt;/&lt;id&gt;_.m3u8</code> в его
+командная строка. Ядро применяет это к argv.</li>
+<li><strong>Stop is <code>SIGKILL</code>.</strong></li>
+<li>Супервизор уничтожает всю группу процессов; PHP-монитор уничтожает только pid.</li>
+<li>Не сохраняйте состояния, которое необходимо сбросить при выходе.</li>
+<li>Дайте каждому дочернему процессу (скриптам провайдера, помощникам) сигнал о смерти родителя, чтобы он
+умирает вместе с двигателем на обоих путях. В Go: <code>SysProcAttr{Pdeathsig: syscall.SIGKILL}</code>.</li>
+<li><strong>Коды выхода.</strong> Любой выход означает, что работа производителя завершена, и ядро перезапускает его или завершается сбоем.
+в соответствии с настройками трансляции. Не используйте:</li>
+<li><code>3</code>: зарезервировано ("не поддерживается" основным ремультиплексором);</li>
+<li><code>4</code>: зарезервировано для будущего "презентация завершена, не перезапускайте". Это обрабатывается как
+на данный момент есть любой другой выход.</li>
+<li><strong>стандартный</strong> переходит к логу потока. Пишите короткие, удобочитаемые сообщения в одну строку.</li>
+</ol>
+<h3 id="hls">HLS диска (всегда)<a class="headerlink" href="#hls" title="Permanent link">&para;</a></h3>
+<p>Архив, миниатюры, монитор, cron статистики и путь доставки без разветвления - все это
+считывает данные HLS с диска, поэтому записывает их, даже если установлено значение <code>ingest</code>.</p>
+<ul>
+<li><strong>Нумерация сегментов.</strong> Сегменты равны <code>&lt;id&gt;_&lt;N&gt;.ts</code>, где N начинается с <strong>0 на каждом
+запускает</strong> и не имеет пробелов во время выполнения, как это делает ffmpeg.</li>
+<li>Ядро удаляет <code>&lt;id&gt;_*</code> при остановке и при явном запуске.</li>
+<li>После сбоя супервизор перезапускает вашу очистку <strong>без</strong>. Переписывать
+существующие файлы; никогда не продолжайте использовать сохраненный счетчик.</li>
+<li><strong>Формат списка воспроизведения.</strong> В нем перечислены базовые имена с <code>#EXTINF</code> для каждого сегмента, и
+<code>#EXT-X-MEDIA-SEQUENCE</code> равно первому из перечисленных N.</li>
+<li><strong>Атомарные записи.</strong> Запишите каждый сегмент и список воспроизведения атомарно: запишите во временный файл
+в том же каталоге, тогда <code>rename()</code>. Сегменты являются обычными MPEG-TS; core шифрует на
+муха там, где она настроена.</li>
+<li><strong>Удержание.</strong> Сохраняйте <code>hls.delete_threshold</code> дополнительные сегменты на диске после того, как они покинут
+список воспроизведения.</li>
+<li><strong>Timing.</strong></li>
+<li>The first playlist must appear within the start timeout: <code>start_timeout</code>, or the core
+по умолчанию.</li>
+<li>После этого список воспроизведения должен меняться по крайней мере каждые <code>6 × seg_time</code> секунд, иначе
+поток считается остановленным и перезапускается.</li>
+</ul>
+<h3 id="ingest-null">Принимать (когда <code>ingest</code> не равно null)<a class="headerlink" href="#ingest-null" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Соединение.</strong> Подключитесь к сокету unix и запишите MPEG-TS, а затем повторно подключитесь, если
+соединение прерывается. При использовании супервизора сокет всегда передается, и супервизор
+подтверждает начало по поступающим на него байтам.</li>
+<li><strong>Packet format.</strong></li>
+<li>188-байтовые пакеты, выровненные по первому байту.</li>
+<li>ПЦР по ПЦР-идентификатору PMT.</li>
+<li><code>random_access_indicator</code> устанавливается для ключевых кадров видео; сегменты HLS вырезаются только там.</li>
+<li><strong>Аудио <code>stream_type</code>.</strong> Используйте стандартное значение: AAC <code>0x0F</code>/<code>0x11</code>, MP2/MP3
+<code>0x03</code>/<code>0x04</code>, AC-3 <code>0x81</code>, E-AC-3 <code>0x87</code>. Аудиосигнал передается как личные данные (<code>0x06</code>)
+отключает проверку на потерю звука.</li>
+<li><strong>Никакой проверки.</strong> Супервизор обрабатывает любые байты как оперативный сигнал и не проверяет
+ТС, так что его правильность зависит от вас.</li>
+</ul>
+<h3 id="_8">Прогресс<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Добавьте блоки в стиле ffmpeg к строкам <code>progress_path</code>: <code>key=value</code>, заканчивающимся на
+<code>progress=continue</code> или <code>progress=end</code> на чистой поверхности.</li>
+<li>Откройте файл с помощью <code>O_APPEND</code>, потому что core обрезает его между чтениями.</li>
+<li>Полезными ключами являются <code>bitrate</code> (например, <code>bitrate=4200.5kbits/s</code>), <code>speed</code> и <code>out_time_us</code>.</li>
+<li><strong>Опустить <code>fps</code></strong> если вы не декодируете кадры. Пропущенный кадр или ноль <code>fps</code> приводит к снижению частоты кадров в секунду.
+сторожевой таймер пропускает проверку. Не вводите значение-заполнитель.</li>
+</ul>
+<h2 id="core">Что core делает для вас<a class="headerlink" href="#core" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Ситуация</th>
+<th>Основное поведение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Начало трансляции</td>
+<td>Запрашивает <code>available()</code>. Когда он возвращает <code>true</code>, запускайте свой argv в качестве источника; в противном случае попробуйте следующий исходный код.</td>
+</tr>
+<tr>
+<td>Отказоустойчивость</td>
+<td>Переходит к следующему источнику в списке при завершении работы вашего движка. Этот источник может быть вашим или core.</td>
+</tr>
+<tr>
+<td>Приоритетное возвращение</td>
+<td>Каждые 5 минут запрашивает у <code>available()</code> источники с более высоким приоритетом и переключается обратно, когда кто-то отвечает. Монитор PHP вызывает его напрямую; супервизор запускает <code>console.php source:probe &lt;id&gt; &lt;base64 url&gt;</code>, который вызывает его.</td>
+</tr>
+<tr>
+<td>Проверка источников</td>
+<td>Кнопка проверки в форме потоковой передачи, проверка средствами потоковой передачи и сканер по запросу сообщают о вашем источнике как о "доступном / недоступном источнике модуля" с <code>available()</code>, поскольку в нем нет кодеков, которые можно было бы отобразить до запуска вашего движка.</td>
+</tr>
+<tr>
+<td>Сохранение потока</td>
+<td>Отклоняет прямой источник, Direct Proxy и LLOD v2 в потоке с вашим источником, а также балансировщик нагрузки, загружаемый непосредственно из источника, а не как дочерний элемент main. Те же проверки применяются к импорту и массовым правкам.</td>
+</tr>
+<tr>
+<td>Принудительный переключатель источника</td>
+<td>Запрашивает <code>available()</code> перед переключением на ваш источник.</td>
+</tr>
+<tr>
+<td>Остановка / перезапуск</td>
+<td>Завершает работу процесса, найденного с помощью pid и списка воспроизведения, а затем сбрасывает значение <code>&lt;id&gt;_*</code>.</td>
+</tr>
+<tr>
+<td>Перезапуск супервизора</td>
+<td>Повторно использует ваш запущенный движок по пути к списку воспроизведения вместо запуска второго.</td>
+</tr>
+<tr>
+<td>Статус панели</td>
+<td>В списке потоков производитель указан как <strong>модуль</strong>, с процессором и памятью из вашего процесса.</td>
+</tr>
+<tr>
+<td>Информация о кодеке</td>
+<td>Считайте из ваших выходных данных с помощью stats cron. До этого на панели будет отображаться заполнитель (h264/aac).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">Отказы<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<p>Ядро само отказывает вашему источнику, когда поток использует настройку, которую может применить только ffmpeg,
+потому что ваш двигатель бесшумно сбросил бы эту настройку:</p>
+<table>
+<thead>
+<tr>
+<th>Настройка потока</th>
+<th>Сообщение журнала</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Тип потока, отличный от прямых трансляций</td>
+<td><code>not a live channel (type …)</code></td>
+</tr>
+<tr>
+<td>Перекодирование, включая наложение логотипа</td>
+<td><code>transcoding is enabled</code></td>
+</tr>
+<tr>
+<td>Пользовательская команда ffmpeg</td>
+<td><code>the stream has a custom ffmpeg command</code></td>
+</tr>
+<tr>
+<td>Пользовательская карта треков</td>
+<td><code>the stream maps specific tracks</code></td>
+</tr>
+<tr>
+<td>Выход RTMP</td>
+<td><code>RTMP (FLV) output is enabled</code></td>
+</tr>
+<tr>
+<td>Внешний толчок</td>
+<td><code>the stream is pushed to an external server</code></td>
+</tr>
+<tr>
+<td>Аудиокодек с принудительным вводом</td>
+<td><code>an input audio codec is forced</code></td>
+</tr>
+<tr>
+<td>Задержка</td>
+<td><code>a source driver cannot feed a delayed stream</code></td>
+</tr>
+</tbody>
+</table>
+<p>Отклоненный источник пропускается, и ядро перепробует следующий. Если источника не осталось, поток
+не удается запустить. Core никогда не запускает ffmpeg по URL-адресу с вашей схемой. На узле, где ваша
+модуль не установлен, ваши исходные тексты отклоняются с сообщением "нет исходного драйвера для acmedash://
+на этом узле`.</p>
+<h2 id="_10">Только главный сервер<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
+<p>Модули установлены только на главном сервере, поэтому ваш движок работает там. Для обслуживания
+поток драйверов из подсистемы балансировки нагрузки, присвойте LB значение <strong>дочерний элемент главного сервера</strong>.
+Затем LB извлекает поток из main через loopback, как и любой другой дочерний поток, и
+никогда не видит ваш URL-адрес.</p>
+<h2 id="_11">Скрипты и секреты провайдера<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
+<p>Если ваш модуль запускает скрипты, предоставляемые оператором, это означает выполнение кода от имени пользователя <code>xc_vm</code>.</p>
+<ul>
+<li><strong>Исполнение.</strong> Запустите их как подпроцесс со списком argv и <strong>без оболочки</strong>, используя JSON в
+аут, жесткий тайм-аут и абсолютное ограничение на stdout и stderr.</li>
+<li><strong>Где живут скрипты.</strong> Храните скрипты в виде файлов на диске в каталоге вашего модуля. Пусть
+Пользовательский интерфейс выбирает из этого списка и показывает отпечаток SHA-256 каждого скрипта, а не принимает
+загружаемые файлы. Если вы добавляете загружаемые файлы, регистрируйте их без их собственного разрешения, а не
+<code>edit_stream</code>.</li>
+<li><strong>В argv нет секретов.</strong> Core записывает командную строку на диск и <code>ps</code> показывает ее пользователю.
+каждому пользователю. Передайте учетные данные и сетевые настройки через файл <code>0600</code>, поскольку
+примерный водитель делает это или загружает их в двигатель.</li>
+</ul>
+<h2 id="_12">Средства массовой информации<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Треков.</strong> Треки в вашем TS (видео, аудио, DVB субтитры) доходят до клиентов TS и HLS
+неизменившийся. VLC, Kodi и TiviMate показывают субтитры в формате DVB; браузерные проигрыватели (hls.js, video.js)
+не.</li>
+<li><strong>Выдачи.</strong> Для раздельного воспроизведения аудио и субтитров WebVTT требуется <strong>Представления о ЗОЖ</strong>,
+который ядро еще не поддерживает. Когда это произойдет, контракт с производителем получит
+выходные данные для каждого исполнения.</li>
+</ul>
+<h2 id="_13">Диагностика<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h2>
+<p>Каждое решение, которое core принимает относительно вашего источника, записывается в
+<code>/home/xc_vm/content/streams/&lt;id&gt;.errors</code> с префиксом <code>[panel]</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Сообщение</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source #N skipped: &lt;refusal&gt;</code></td>
+<td>Настройка потока отказывает драйверам; см. <a href="#refusals">Отказы</a>.</td>
+</tr>
+<tr>
+<td><code>source #N skipped: argv[0] must be the absolute path of …</code></td>
+<td><code>buildArgv()</code> элемент 0 не является <code>/…/&lt;binary()&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>source #N skipped: the command must name …_.m3u8</code></td>
+<td>Ни один элемент argv не содержит путь к списку воспроизведения.</td>
+</tr>
+<tr>
+<td><code>source driver reports &lt;url&gt; unavailable</code></td>
+<td><code>available()</code> вернул <code>false</code>.</td>
+</tr>
+<tr>
+<td><code>source &lt;url&gt; skipped: &lt;exception message&gt;</code></td>
+<td>Метод драйвера выброшен.</td>
+</tr>
+<tr>
+<td><code>no source driver for …:// on this node</code></td>
+<td>Модуль здесь не установлен или не включен, либо его схема была оспорена.</td>
+</tr>
+</tbody>
+</table>
+<p>Если схема оспаривается или недействительна, поищите в журнале ошибок PHP
+<code>SourceDriverRegistry:</code> строк. В них указаны названия задействованных модулей.</p>
+<p>Если поток продолжает перезапускаться, в то время как движок выглядит исправным, сначала проверьте это:</p>
+<ul>
+<li>путь к списку воспроизведения указан в командной строке движка;</li>
+<li>базовое имя исполняемого файла равно <code>binary()</code>;</li>
+<li>список воспроизведения меняется по крайней мере каждые <code>6 × seg_time</code> секунд.</li>
+</ul>
+<h2 id="_14">Текущие ограничения<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
+<p>Эти части планируются как отдельные пункты расширения и пока не входят в состав ядра:</p>
+<ul>
+<li>соблюдение кода выхода <code>4</code> и <code>SIGTERM</code> с отсрочкой до <code>SIGKILL</code>;</li>
+<li>Воспроизведение в формате HLS (несколько звуковых дорожек, WebVTT).</li>
+</ul>
+<h2 id="_15">Контрольный список перед отправкой<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] <code>binary()</code> равно базовому имени исполняемого файла движка и является уникальным.</li>
+<li>[ ] <code>buildArgv()</code> элемент 0 - это абсолютный путь к движку; путь к списку воспроизведения указан в argv.</li>
+<li>[ ] В argv нет учетных данных или ключей.</li>
+<li>[ ] При новом запуске сначала записывается <code>&lt;id&gt;_0.ts</code> без пробелов; плейлист заменяется атомарно.</li>
+<li>[ ] При установке <code>ingest</code> TS выравнивается и имеет значения PCR и RAI; двигатель снова подключается после закрытия разъема.</li>
+<li>[ ] После <code>kill -9 &lt;engine pid&gt;</code> ни один дочерний процесс не остается запущенным.</li>
+<li>[ ] Блоки выполнения добавляются и заканчиваются на <code>progress=</code>.</li>
+<li>[ ] <code>available()</code> является локальным и быстрым.</li>
+<li>[ ] У ваших таблиц нет внешнего ключа для <code>streams</code>; <code>StreamsDeletedEvent</code> очищает их.</li>
+<li>[ ] <code>environment</code> равно <code>main</code>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  К началу
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
