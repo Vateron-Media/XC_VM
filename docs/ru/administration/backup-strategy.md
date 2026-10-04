@@ -179,6 +179,13 @@ sudo -u xc_vm /home/xc_vm/console.php cron:backups 1  # force
 sudo /home/xc_vm/console.php tools migration /path/to/backup.sql
 ```
 
+Резервное копирование всегда выполняется в операторах `xc_vm_migrate`: `USE` и `CREATE DATABASE` в
+дамп (записанный с помощью `mysqldump --databases` / `--all-databases`) опущен, потому что
+в противном случае mysql восстановился бы в базе данных, которую они называют — live panel, когда
+это `xc_vm` — и оставьте `xc_vm_migrate` пустым. Команда завершается ошибкой, если
+`xc_vm_migrate` по-прежнему пуст после восстановления. Затем запустите
+`sudo /home/xc_vm/console.php migrate`.
+
 ### база данных инструментов - подтвердите
 
 Сброс в пустую базу данных (уничтожает все данные):

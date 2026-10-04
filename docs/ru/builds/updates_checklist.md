@@ -11,7 +11,7 @@
 ```bash
 make new                 # wipe + recreate dist/ ONCE, at the very start
 PREV_TAG=$(git describe --tags --abbrev=0)
-git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
+git log --no-merges --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
 
 > ➡️ Запустите `make new` здесь, в самом начале выпуска — он сотрет **и** и воссоздаст `dist/`. Все, что указано ниже, записывается в `dist/` (начиная с `changes.md`), поэтому `make new` должен выполнить **до** это и **никогда больше** перед сборкой — более поздний `make new` удалит `dist/changes.md`.
@@ -35,16 +35,28 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 
 Перед публикацией проверьте, работает ли сборка:
 
-**Проверка качества** (CI запускает тот же набор для тега — подтвердите, что он зеленый):
+**Проверка качества** (CI запускает один и тот же набор при каждом нажатии на `main` и при запросах на извлечение, но не для тегов — подтвердите, что он зеленый при фиксации выпуска, как только шаг 5 будет выполнен):
 
 ```bash
 make dev-tools
 make phpstan
 make cs
 make gates
+make test-db     # only without a local MariaDB: the unit tests run on MariaDB
 php tests/phpunit.phar -c tests/phpunit.xml.dist
 make dev-clean   # remove the dev tools afterwards, restoring the prod-only vendor/
 ```
+
+**Каждая новая миграция может быть отменена.** При откате версии (**Серверы → Откат версии**) изменения, отсутствующие в более старой версии, отменяются вместе с их файлами `down/` и пропускаются те, в которых их нет, оставляя изменения схемы без изменений. Перечислите изменения, добавленные с момента последней версии, в которых не было обновленного файла.:
+
+```bash
+PREV_TAG=$(git describe --tags --abbrev=0)
+for f in $(git diff --name-only --diff-filter=A "$PREV_TAG" -- src/migrations/database/up); do
+  [ -f "src/migrations/database/down/$(basename "$f")" ] || grep -q '^-- No down file' "$f" || echo "no down file: $f"
+done
+```
+
+Напишите недостающие (`src/migrations/database/down/<same name>.sql`) перед выпуском; миграция, которую действительно невозможно отменить, объясняет причину в комментарии вверху своего файла up, начиная с `-- No down file`, и приведенный выше цикл прекращает ее перечислять.
 
 > ➡ ️ Тестовая установка Docker перенесена на шаг 6 — для этого требуется встроенный `dist/XC_VM.zip`.
 
@@ -158,7 +170,7 @@ src/Core/Config/ConstantsInitializer.php
 ```
 
 Эти часто редактируемые константы равны `define()` в **верхняя часть файла** (над
-класс); `appConfig()` считывает их обратно, а `init()` пропускает уже определенные.
+class); `appConfig()` считывает их обратно, а `init()` пропускает уже определенные.
 
 **Quick commands:**
 
@@ -172,7 +184,8 @@ sed -i "s/define('XC_VM_VERSION', '[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VE
 
 ```bash
 git add src/Core/Config/ConstantsInitializer.php changelog.json src/migrations/deleted_files.txt
-git add docs/en docs/ru   # include any doc edits + the regenerated ru (step 2)
+git add src/Core/Localization/lang/   # the synced language files (step 2)
+git add docs/en docs/ru               # include any doc edits + the regenerated ru (step 2)
 git commit -m "Prepare release ${VERSION}"
 git push
 ```
@@ -221,14 +234,14 @@ bash tools/test-install/test_release.sh
 При этом создается образ, контейнер запускается с помощью systemd и автоматически запускается программа установки.
 `dist/XC_VM.zip` монтируется в контейнер как том, доступный только для чтения.
 
-> ✅ Убедитесь, что панель загружается со значением `http://localhost:8880` и логин администратора работает.
+> ✅ Убедитесь, что панель загружается при `http://localhost:8880` и работает вход в систему администратора.
 
 ---
 
 ## 7. Релиз на GitHub
 
 1. Перейти к [Релизам на GitHub](https://github.com/Vateron-Media/XC_VM/releases)
-2. Создайте новый релиз с тегом, указанным на первом шаге
+2. Создайте новый выпуск, ориентированный на `main`, с тегом `${VERSION}` из шага 3: обычный `X.Y.Z`, без префикса `v` (существующие теги `2.6.0`, `2.5.3`, ...), равны `XC_VM_VERSION`
 3. Вставьте список изменений в качестве описания выпуска
 4. Опубликовать **без прикрепления файлов** — Действия на GitHub создадут и прикрепят их
 
@@ -274,9 +287,9 @@ bash tools/test-install/test_release.sh
 
 ## Если что-то пойдет не так
 
-- **После публикации не удалось выполнить построение действий** — в релизе отсутствуют (или частично) ресурсы. Повторно запустите
+- **После публикации не удалось выполнить построение действий** — в релизе нет ресурсов (или они частично доступны). Повторно запустите
 сбой рабочего процесса на вкладке Действия; если сам тег неверен, удалите выпуск **и**, который
-пометьте (`git push --delete origin vX.Y.Z`), исправьте и пометьте повторно. Не оставляйте опубликованный релиз с
+пометьте (`git push --delete <remote> X.Y.Z`, удаленный сервер так, как его называет `git remote`), исправьте и повторно пометьте. Не оставляйте опубликованный релиз с
 отсутствующие ресурсы — панели извлекают из него `hashes.md5` / архивы.
 - **Выпущенный актив поврежден** — опубликовать выпуск исправления **заплатка** (новый тег) вместо редактирования
 опубликованный файл; клиенты прикрепляют его к тегу.
@@ -302,9 +315,10 @@ bash tools/test-install/test_release.sh
 | `make phpstan-baseline`                            |Восстановите базовую линию PHPStan|
 | `make cs`                                          |Проверка стиля кода - импорт/гигиена пространства имен (phpcs + Slevomat)|
 | `make cs-fix`                                      |Примените исправления в стиле кода на месте|
-| `make gates`                                       |Регрессионные шлюзы PSR-4 (для использования в процедурных целях, LB-архив, только для продуктов поставщика)|
+| `make gates`                                       |Регрессионные элементы: процедурное использование, LB-архив, только для продуктов поставщика, ключи настроек LB, ссылки на ядро→кластер|
 | `make dev-clean`                                   |Снова удалите инструменты разработки, восстановив только производственную версию `vendor/`.|
-| `php tests/phpunit.phar -c tests/phpunit.xml.dist` |Модульные тесты|
+| `make test-db`                                     |Одноразовый MariaDB в Docker для модульных тестов (без локального сервера)|
+| `php tests/phpunit.phar -c tests/phpunit.xml.dist` |Модульные тесты в MariaDB|
 
 **Release prep & build:**
 

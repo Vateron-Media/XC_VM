@@ -63,8 +63,8 @@ use XcVm\Domain\Billing\InvoiceService;
 |Соглашение о проекте: нет `declare(strict_types=1)`|—|
 
 Поскольку пространство имен содержит местоположение, дублируйте короткие имена в разных
-пространства имен больше не конфликтуют — `XcVm\Public\Controllers\Admin\PlexController` и
-`XcVm\Module\Plex\PlexController` различны.
+пространства имен больше не конфликтуют — `XcVm\Public\Controllers\Player\HomeController` и
+`XcVm\Public\Controllers\PlayerV2\HomeController` различны.
 
 ## Процедурные файлы и файлы третьих лиц
 

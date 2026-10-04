@@ -52,11 +52,11 @@ make dev-clean   # remove the dev tools afterwards, restoring the prod-only vend
 ```bash
 PREV_TAG=$(git describe --tags --abbrev=0)
 for f in $(git diff --name-only --diff-filter=A "$PREV_TAG" -- src/migrations/database/up); do
-  [ -f "src/migrations/database/down/$(basename "$f")" ] || echo "no down file: $f"
+  [ -f "src/migrations/database/down/$(basename "$f")" ] || grep -q '^-- No down file' "$f" || echo "no down file: $f"
 done
 ```
 
-Write the missing ones (`src/migrations/database/down/<same name>.sql`) before the release; a migration that truly cannot be reversed says so in a comment at the top of its up file.
+Write the missing ones (`src/migrations/database/down/<same name>.sql`) before the release; a migration that truly cannot be reversed says why in a comment at the top of its up file, starting with `-- No down file`, and the loop above stops listing it.
 
 > ℹ️ The Docker test install moved to step 6 — it requires a built `dist/XC_VM.zip`.
 

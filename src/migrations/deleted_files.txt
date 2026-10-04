@@ -19,6 +19,8 @@ Modules/ministra_85a7d/MinistraModule.php
 Modules/ministra_85a7d/PortalHandler.php
 Modules/ministra_85a7d/PortalHelpers.php
 Modules/ministra_85a7d/module.json
+Public/Controllers/Admin/PlexAddController.php
+Public/Controllers/Admin/SettingsPlexController.php
 Public/Controllers/Reseller/TableController.php
 Public/Views/admin/api.php
 Public/Views/admin/functions.php

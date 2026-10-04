@@ -1,6 +1,8 @@
 -- The genre -> category/bouquet mapping moved from the watch module into core
 -- (the VOD importer and Settings -> VOD Import use it). Installs that had the
 -- module keep their table and mapping; the rest get the table and its genres.
+-- No down file on purpose: the table may predate this migration (watch module),
+-- so dropping it on rollback would destroy that install's mapping.
 CREATE TABLE IF NOT EXISTS `watch_categories` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `type` int(1) DEFAULT '0',

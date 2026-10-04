@@ -32,11 +32,11 @@ LegacyInitializer::initCore()
 
 Извлекает следующее из каждого скалярного значения:
 
-| Угроза                                                     | Узор удален  | Замена                           |
-| ---------------------------------------------------------- | ------------ | -------------------------------- |
-| Ввод нулевого байта                                        | `\0` (chr 0) | удаленный                        |
-| Обход пути                                                 | `../`        | `&#46;&#46;/` (в кодировке HTML) |
-| Переопределение RTL (подмена пользовательского интерфейса) | `&#8238;`    | удаленный                        |
+|Угроза|Узор удален|Замена|
+| --- | --- | --- |
+|Ввод нулевого байта|`\0` (chr 0)|удаленный|
+|Обход пути| `../` |`&#46;&#46;/` (в кодировке HTML)|
+|Переопределение RTL (подмена пользовательского интерфейса)| `&#8238;` |удаленный|
 
 Рекурсия ограничена 10 уровнями, чтобы предотвратить исчерпание стека из-за глубоко вложенных входных данных.
 
@@ -59,14 +59,14 @@ LegacyInitializer::initCore()
 
 Выполняет очистку скалярных значений за несколько проходов:
 
-| Шаг                         | Что он делает                                                           |
-| --------------------------- | ----------------------------------------------------------------------- |
-| Неэкранированный пейзаж     | `stripslashes()` и вернуть `&#032;` в исходное положение                |
-| Нормализовать новые строки  | Преобразовать `\r\n`, `\n\r`, `\r` в `\n`                               |
-| Защита HTML-комментариев    | `<!--` становится `&#60;&#33;--`, `-->` становится `--&#62;`            |
-| Нейтрализация тегов скрипта | `<script` (без учета регистра) становится `&#60;script`                 |
-| Нормализация объекта        | Исправлены объекты с двойным кодированием и искаженные числовые объекты |
-| Отделка                     | Начальные и конечные пробелы удалены                                    |
+|Шаг|Что он делает|
+| --- | --- |
+|Неэкранированный пейзаж|`stripslashes()` и вернуть `&#032;` в исходное положение|
+|Нормализовать новые строки|Преобразовать `\r\n`, `\n\r`, `\r` в `\n`|
+|Защита HTML-комментариев|`<!--` становится `&#60;&#33;--`, `-->` становится `--&#62;`|
+|Нейтрализация тегов скрипта|`<script` (без учета регистра) становится `&#60;script`|
+|Нормализация объекта|Исправлены объекты с двойным кодированием и искаженные числовые объекты|
+|Отделка|Начальные и конечные пробелы удалены|
 
 ---
 
@@ -82,7 +82,7 @@ InputValidator::validate(string $rAction, array $rData): bool
 
 ```php
 if (!InputValidator::validate($action, $data)) {
-	// reject with validation error
+    // reject with validation error
 }
 ```
 
@@ -97,15 +97,15 @@ InputValidator::validateOrFail(string $rAction, array $rData): ?array
 ```php
 $error = InputValidator::validateOrFail($action, $data);
 if ($error !== null) {
-	// $error = ['status' => STATUS_INVALID_INPUT, 'data' => $data]
-	return $error;
+    // $error = ['status' => STATUS_INVALID_INPUT, 'data' => $data]
+    return $error;
 }
 ```
 
 ### Подтверждающие идентификаторы($ids)
 
 ```php
-InputValidator::confirmIDs($ids); // untyped params/return; yields a filtered array of positive int IDs
+InputValidator::confirmIDs($ids)   // untyped params/return; yields a filtered array of positive int IDs
 ```
 
 Фильтрует массив, чтобы он содержал только целые положительные идентификаторы. Любое значение, в котором пропущено значение `intval($id) <= 0`. Широко используется в кодовой базе (более 30 сайтов для звонков) везде, где необходимо очистить списки идентификаторов, предоставленные пользователем, перед запросами к базе данных.
@@ -125,129 +125,129 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 
 #### Потоки и каналы
 
-| Действие         | Обязательные для заполнения поля                                  | Записи                                                      |
-| ---------------- | ----------------------------------------------------------------- | ----------------------------------------------------------- |
-| `processStream`  | флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']` | Любой из трех параметров удовлетворяет требованиям проверки |
-| `processChannel` | флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']` | Те же правила, что и в processStream                        |
-| `processRadio`   | флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']` | Те же правила, что и в processStream                        |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processStream` |флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']`|Любой из трех параметров удовлетворяет требованиям проверки|
+| `processChannel` |флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']`|Те же правила, что и в processStream|
+| `processRadio` |флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']`|Те же правила, что и в processStream|
 
 #### Фильмы / VOD
 
-| Действие       | Обязательные для заполнения поля                                  | Записи                               |
-| -------------- | ----------------------------------------------------------------- | ------------------------------------ |
-| `processMovie` | флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']` | Те же правила, что и в processStream |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processMovie` |флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']`|Те же правила, что и в processStream|
 
 #### Сериалы и эпизоды
 
-| Действие         | Обязательные для заполнения поля                                                      | Записи                           |
-| ---------------- | ------------------------------------------------------------------------------------- | -------------------------------- |
-| `processSeries`  | `title`                                                                               | Требуется указать название серии |
-| `processEpisode` | `series` (непустой) И `season_num` (числовой) И (`multi` флаг ИЛИ `episode` числовой) | Сложная многопутевая проверка    |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processSeries` | `title` |Требуется указать название серии|
+| `processEpisode` |`series` (непустой) И `season_num` (числовой) И (`multi` флаг ИЛИ `episode` числовой)|Сложная многопутевая проверка|
 
 ### Организация
 
 #### Букеты
 
-| Действие         | Обязательные для заполнения поля | Записи                                |
-| ---------------- | -------------------------------- | ------------------------------------- |
-| `processBouquet` | `bouquet_name`                   | Требуемый скаляр                      |
-| `reorderBouquet` | `stream_order_array`             | Необходимо декодировать в массив JSON |
-| `sortBouquets`   | `bouquet_order_array`            | Необходимо декодировать в массив JSON |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processBouquet` | `bouquet_name` |Требуемый скаляр|
+| `reorderBouquet` | `stream_order_array` |Необходимо декодировать в массив JSON|
+| `sortBouquets` | `bouquet_order_array` |Необходимо декодировать в массив JSON|
 
 #### Категории
 
-| Действие          | Обязательные для заполнения поля | Записи                                |
-| ----------------- | -------------------------------- | ------------------------------------- |
-| `processCategory` | `category_name`, `category_type` | Оба необходимых                       |
-| `orderCategories` | `categories`                     | Необходимо декодировать в массив JSON |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processCategory` |`category_name`, `category_type`|Оба необходимых|
+| `orderCategories` | `categories` |Необходимо декодировать в массив JSON|
 
 #### Группы и коды
 
-| Действие             | Обязательные для заполнения поля | Записи                    |
-| -------------------- | -------------------------------- | ------------------------- |
-| `processGroup`       | `group_name`                     | Требуемый скаляр          |
-| `processGroupLegacy` | `group_name`                     | То же, что и processGroup |
-| `processCode`        | `code`                           | Требуемый скаляр          |
-| `processPackage`     | `package_name`                   | Требуемый скаляр          |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processGroup` | `group_name` |Требуемый скаляр|
+| `processGroupLegacy` | `group_name` |То же, что и processGroup|
+| `processCode` | `code` |Требуемый скаляр|
+| `processPackage` | `package_name` |Требуемый скаляр|
 
-### EPG
+### ЭПГ
 
-| Действие     | Обязательные для заполнения поля | Записи          |
-| ------------ | -------------------------------- | --------------- |
-| `processEPG` | `epg_name`, `epg_file`           | Оба необходимых |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processEPG` |`epg_name`, `epg_file`|Оба необходимых|
 
 ### Устройства и линии
 
-| Действие          | Обязательные для заполнения поля | Записи                                |
-| ----------------- | -------------------------------- | ------------------------------------- |
-| `processMAG`      | `mac`                            | Требуется MAC-адрес                   |
-| `processEnigma`   | `mac`                            | Требуется MAC-адрес                   |
-| `setChannelOrder` | `stream_order_array`             | Необходимо декодировать в массив JSON |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processMAG` | `mac` |Требуется MAC-адрес|
+| `processEnigma` | `mac` |Требуется MAC-адрес|
+| `setChannelOrder` | `stream_order_array` |Необходимо декодировать в массив JSON|
 
 ### Профили
 
-| Действие         | Обязательные для заполнения поля | Записи           |
-| ---------------- | -------------------------------- | ---------------- |
-| `processProfile` | `profile_name`                   | Требуемый скаляр |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processProfile` | `profile_name` |Требуемый скаляр|
 
 ### Поставщики услуг
 
-| Действие          | Обязательные для заполнения поля             | Записи               |
-| ----------------- | -------------------------------------------- | -------------------- |
-| `processProvider` | `ip`, `port`, `username`, `password`, `name` | Все пять необходимых |
-| `processISP`      | `isp`                                        | Требуемый скаляр     |
-| `processUA`       | `user_agent`                                 | Требуемый скаляр     |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processProvider` |`ip`, `port`, `username`, `password`, `name`|Все пять необходимых|
+| `processISP` | `isp` |Требуемый скаляр|
+| `processUA` | `user_agent` |Требуемый скаляр|
 
 ### Безопасность
 
-| Действие        | Обязательные для заполнения поля | Записи             |
-| --------------- | -------------------------------- | ------------------ |
-| `blockIP`       | `ip`                             | Требуется IP-адрес |
-| `processRTMPIP` | `ip`                             | Требуется IP-адрес |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `blockIP` | `ip` |Требуется IP-адрес|
+| `processRTMPIP` | `ip` |Требуется IP-адрес|
 
 ### Управление сервером
 
-| Действие        | Обязательные для заполнения поля                      | Записи                                |
-| --------------- | ----------------------------------------------------- | ------------------------------------- |
-| `processServer` | `server_name`, `server_ip`                            | Оба необходимых                       |
-| `processProxy`  | `server_name`, `server_ip`                            | То же, что и processServer            |
-| `installServer` | `ssh_port`, `root_password`                           | Оба необходимых                       |
-| `moveStreams`   | `content_type`, `source_server`, `replacement_server` | Все три необходимых                   |
-| `replaceDNS`    | `old_dns`, `new_dns`                                  | Оба необходимых                       |
-| `orderServers`  | `server_order`                                        | Необходимо декодировать в массив JSON |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `processServer` |`server_name`, `server_ip`|Оба необходимых|
+| `processProxy` |`server_name`, `server_ip`|То же, что и processServer|
+| `installServer` |`ssh_port`, `root_password`|Оба необходимых|
+| `moveStreams` |`content_type`, `source_server`, `replacement_server`|Все три необходимых|
+| `replaceDNS` |`old_dns`, `new_dns`|Оба необходимых|
+| `orderServers` | `server_order` |Необходимо декодировать в массив JSON|
 
 ### Папки с записями и просмотром
 
-| Действие             | Обязательные для заполнения поля            | Записи              |
-| -------------------- | ------------------------------------------- | ------------------- |
-| `scheduleRecording`  | `title`, `source_id`                        | Оба необходимых     |
-| `processWatchFolder` | `folder_type`, `selected_path`, `server_id` | Все три необходимых |
+|Действие|Обязательные для заполнения поля|Записи|
+| --- | --- | --- |
+| `scheduleRecording` |`title`, `source_id`|Оба необходимых|
+| `processWatchFolder` |`folder_type`, `selected_path`, `server_id`|Все три необходимых|
 
 ### Массовые операции (полезная нагрузка в виде массива JSON)
 
 Для всех массовых операций в указанном поле требуется массив в кодировке JSON. Поле должно быть преобразовано в допустимый массив PHP.
 
-| Действие             | Поле JSON          |
-| -------------------- | ------------------ |
-| `massEditEpisodes`   | `streams`          |
-| `massEditMovies`     | `streams`          |
-| `massEditRadios`     | `streams`          |
-| `massEditStreams`    | `streams`          |
-| `massEditChannels`   | `streams`          |
-| `massDeleteStreams`  | `streams`          |
-| `massEditSeries`     | `series`           |
-| `massDeleteSeries`   | `series`           |
-| `massEditLines`      | `users_selected`   |
-| `massEditUsers`      | `users_selected`   |
-| `massEditMags`       | `devices_selected` |
-| `massEditEnigmas`    | `devices_selected` |
-| `massDeleteMovies`   | `movies`           |
-| `massDeleteLines`    | `lines`            |
-| `massDeleteUsers`    | `users`            |
-| `massDeleteStations` | `radios`           |
-| `massDeleteMags`     | `mags`             |
-| `massDeleteEnigmas`  | `enigmas`          |
-| `massDeleteEpisodes` | `episodes`         |
+|Действие|Поле JSON|
+| --- | --- |
+| `massEditEpisodes` | `streams` |
+| `massEditMovies` | `streams` |
+| `massEditRadios` | `streams` |
+| `massEditStreams` | `streams` |
+| `massEditChannels` | `streams` |
+| `massDeleteStreams` | `streams` |
+| `massEditSeries` | `series` |
+| `massDeleteSeries` | `series` |
+| `massEditLines` | `users_selected` |
+| `massEditUsers` | `users_selected` |
+| `massEditMags` | `devices_selected` |
+| `massEditEnigmas` | `devices_selected` |
+| `massDeleteMovies` | `movies` |
+| `massDeleteLines` | `lines` |
+| `massDeleteUsers` | `users` |
+| `massDeleteStations` | `radios` |
+| `massDeleteMags` | `mags` |
+| `massDeleteEnigmas` | `enigmas` |
+| `massDeleteEpisodes` | `episodes` |
 
 ---
 
@@ -280,14 +280,14 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 
 Метод `validate()` последовательно использует небольшой набор шаблонов:
 
-| Шаблон                                               | Цель                                                                  | Пример                                                                                   |
-| ---------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `!empty($rData['field'])`                            | Обязательное скалярное поле (ненулевое, непустое, ненулевое значение) | `!empty($rData['bouquet_name'])`                                                         |
-| `is_numeric($rData['field'] ?? null)`                | Числовая проверка с резервным копированием, безопасным для null       | `is_numeric($rData['season_num'] ?? null)`                                               |
-| `is_array(json_decode($rData['field'] ?? '', true))` | Строка JSON, которую необходимо декодировать в массив                 | `is_array(json_decode($rData['streams'] ?? '', true))`                                   |
-| `isset($rData['field'])`                             | Проверка наличия поля (значение может быть пустым/ложным)             | `isset($rData['review'])`                                                                |
-| `isset($_FILES['field'])`                            | Проверка наличия загружаемого файла                                   | `isset($_FILES['m3u_file'])`                                                             |
-| ИЛИ условия                                          | Многопутевая проверка (удовлетворяет любой из путей)                  | `!пусто($rData['имя_потока']) \|\|isset($rData['обзор']) \|\|isset($_FILES['m3u_file'])` |
+|Шаблон|Цель|Пример|
+| --- | --- | --- |
+| `!empty($rData['field'])` |Обязательное скалярное поле (ненулевое, непустое, ненулевое значение)| `!empty($rData['bouquet_name'])` |
+| `is_numeric($rData['field'] ?? null)` |Числовая проверка с резервным копированием, безопасным для null| `is_numeric($rData['season_num'] ?? null)` |
+| `is_array(json_decode($rData['field'] ?? '', true))` |Строка JSON, которую необходимо декодировать в массив| `is_array(json_decode($rData['streams'] ?? '', true))` |
+| `isset($rData['field'])` |Проверка наличия поля (значение может быть пустым/ложным)| `isset($rData['review'])` |
+| `isset($_FILES['field'])` |Проверка наличия загружаемого файла| `isset($_FILES['m3u_file'])` |
+|ИЛИ условия|Многопутевая проверка (удовлетворяет любой из путей)|`!пусто($rData['имя_потока']) \|\|isset($rData['обзор']) \|\|isset($_FILES['m3u_file'])`|
 
 ---
 
@@ -312,9 +312,9 @@ case 'myNewAction':
 
 ## Связанные файлы
 
-| Файл                                     | Цель                                                                                 |
-| ---------------------------------------- | ------------------------------------------------------------------------------------ |
-| `src/Core/Validation/InputValidator.php` | Вся логика санитарной обработки и проверки                                           |
-| `src/Core/Init/LegacyInitializer.php`    | Вызывающий элемент Bootstrap, запускающий очистку с помощью `initCore()`             |
-| `src/Core/Http/RequestManager.php`       | Хранит обработанные, объединенные данные GET+POST                                    |
-| `src/Public/Controllers/`                | Контроллеры, которые вызывают `validate()` / `validateOrFail()` перед бизнес-логикой |
+|Файл|Цель|
+| --- | --- |
+| `src/Core/Validation/InputValidator.php` |Вся логика санитарной обработки и проверки|
+| `src/Core/Init/LegacyInitializer.php` |Вызывающий элемент Bootstrap, запускающий очистку с помощью `initCore()`|
+| `src/Core/Http/RequestManager.php` |Хранит обработанные, объединенные данные GET+POST|
+| `src/Public/Controllers/` |Контроллеры, которые вызывают `validate()` / `validateOrFail()` перед бизнес-логикой|
