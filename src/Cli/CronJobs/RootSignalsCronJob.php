@@ -699,7 +699,9 @@ class RootSignalsCronJob implements CommandInterface {
 		// required — it installs into bin/ and chowns. With fanout off, the
 		// agent alone.
 		$rFanoutStamp = CRONS_TMP_PATH . 'fanout_binary_check';
-		if (!file_exists($rFanoutStamp) || time() - intval(@file_get_contents($rFanoutStamp) ?: 0) > 3600) {
+		// Ten minutes while the daemon is wanted and not there yet (fanout just switched on, or a download that failed).
+		$rFanoutWait = $rFanoutEnabled && !is_executable(MAIN_HOME . 'bin/xc_fanout/xc_fanout') ? 600 : 3600;
+		if (!file_exists($rFanoutStamp) || time() - intval(@file_get_contents($rFanoutStamp) ?: 0) > $rFanoutWait) {
 			file_put_contents($rFanoutStamp, time());
 			ProcessRunner::start($rFanoutEnabled ? [PHP_BIN, MAIN_HOME . 'console.php', 'fanout_binary'] : [PHP_BIN, MAIN_HOME . 'console.php', 'fanout_binary', 'agent']);
 		}

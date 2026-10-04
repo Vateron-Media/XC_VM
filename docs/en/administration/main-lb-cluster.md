@@ -120,6 +120,10 @@ Leave the other settings at their defaults. You can come back to them later:
 2. Fill in the server name, its IP address, and SSH login (user, password, port), as before.
 3. Optionally, paste the server's **SSH host key fingerprint**. The panel then refuses to install
    if it sees a different server (protection against a fake server).
+   The key seen at a server's first install is saved, and every later install must match it. If you
+   reinstalled the server's operating system, it has a new key: on the reinstall form, switch on
+   **Forget the Saved SSH Host Key** (or paste the new fingerprint). That install then trusts the
+   key the server presents and saves it.
 4. Start the install and follow its progress on the **Server View** page.
 
 At the end of the install, the new load balancer installs its agent from GitHub, creates its own
