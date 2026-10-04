@@ -208,7 +208,7 @@ final class RelayAuthTest extends TestCase {
 	 * playlist whose segment URLs carry the password.
 	 */
 	public function testTheParentEndpointsUseTheGuard(): void {
-		$rDir = dirname(__DIR__, 2) . '/src/Public/admin/';
+		$rDir = MAIN_HOME . 'Public/admin/';
 		foreach (['live', 'vod', 'timeshift', 'thumb'] as $rName) {
 			$rCode = (string) file_get_contents($rDir . $rName . '.php');
 			$this->assertStringContainsString('RelayGuard::admit(', $rCode, $rName);

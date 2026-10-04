@@ -137,17 +137,6 @@ final class StreamRuntimeReadersTest extends TestCase {
 		foreach (['streams', 'streams_servers', 'recordings', 'profiles', 'streams_types', 'streams_arguments', 'streams_options', 'lines_live'] as $rTable) {
 			$rDb->exec(InstallSchema::table($rTable));
 		}
-		if ($rDb->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-			$rDb->pdo->sqliteCreateFunction('UNIX_TIMESTAMP', static fn (): int => time(), 0);
-			$rDb->pdo->sqliteCreateFunction('JSON_CONTAINS', static function (?string $rTarget, ?string $rCandidate): ?int {
-				$rT = json_decode((string) $rTarget, true);
-				$rC = json_decode((string) $rCandidate, true);
-				if (!is_array($rT) || !is_array($rC)) {
-					return null;
-				}
-				return count(array_filter($rC, static fn (mixed $rV): bool => !in_array($rV, $rT, true))) === 0 ? 1 : 0;
-			}, 2);
-		}
 		$s = $this->rSid;
 		$o = $this->rOther;
 		$rNow = time();
@@ -609,7 +598,7 @@ final class StreamRuntimeReadersTest extends TestCase {
 	 * streaming endpoints keep theirs for mode 0 and ask the replica first.
 	 */
 	public function testTheReadersNoLongerQueryTheJoinedRowThemselves(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		foreach ([
 			'Cli/Commands/MonitorCommand.php', 'Cli/Commands/ProxyCommand.php', 'Cli/Commands/DelayCommand.php', 'Cli/Commands/ArchiveCommand.php',
 			'Cli/Commands/ThumbnailCommand.php', 'Cli/Commands/CreatedCommand.php', 'Cli/CronJobs/StreamsCronJob.php', 'Cli/CronJobs/VodCronJob.php',

@@ -343,7 +343,7 @@ CREATE TABLE IF NOT EXISTS `cluster_nonces` (
 
 CREATE TABLE IF NOT EXISTS `cluster_reservations` (
   `id` char(32) COLLATE utf8_unicode_ci NOT NULL,
-  `identity` varchar(96) COLLATE utf8_unicode_ci NOT NULL,
+  `identity` varchar(267) COLLATE utf8_unicode_ci NOT NULL,
   `server_id` int(11) NOT NULL,
   `stream_id` int(11) DEFAULT NULL,
   `created_at` int(11) NOT NULL,

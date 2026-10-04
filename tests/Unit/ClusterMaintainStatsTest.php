@@ -11,8 +11,11 @@ use XcVm\Cli\CronJobs\CleanupCronJob;
 final class ClusterMaintainStatsTest extends TestCase {
 	public function testThePruneDeletesInBatchesAndStopsAtItsDeadline(): void {
 		$rDb = new TestDb();
-		$rDb->exec('CREATE TABLE `servers_stats` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int, `time` int)');
-		$rDb->exec('WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 25003) INSERT INTO `servers_stats` (`server_id`, `time`) SELECT i % 7, 100 FROM n');
+		$rDb->exec('CREATE TABLE `servers_stats` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int, `time` int)');
+		// Batches, not a recursive CTE: MariaDB stops one at max_recursive_iterations (1000) without an error.
+		foreach (array_chunk(range(1, 25003), 1000) as $rChunk) {
+			$rDb->exec('INSERT INTO `servers_stats` (`server_id`, `time`) VALUES ' . implode(', ', array_map(static fn(int $i): string => '(' . ($i % 7) . ', 100)', $rChunk)));
+		}
 		$rDb->exec('INSERT INTO `servers_stats` (`server_id`, `time`) VALUES (1, 900), (2, 900)');
 
 		$this->assertSame(10000, CleanupCronJob::prune($rDb, 'servers_stats', 500, 0.0), 'past its deadline: one batch, the next run goes on');
@@ -37,7 +40,7 @@ final class ClusterMaintainStatsTest extends TestCase {
 	}
 
 	/**
-	 * MySQL's SHOW INDEX, which SQLite has not got.
+	 * A scripted SHOW INDEX: the index states a test needs.
 	 *
 	 * @param list<array{0: string, 1: int, 2: string}>|null $rIndexes [Key_name, Seq_in_index, Column_name]; null fails
 	 */

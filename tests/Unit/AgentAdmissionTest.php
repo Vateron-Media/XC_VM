@@ -36,7 +36,7 @@ final class AgentAdmissionTest extends TestCase {
 		NodeFlows::usePath($this->rDir . '/flows.json');
 		AgentClient::useSocket($this->rDir . '/agent.sock');
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` text, `user_id` int, `stream_id` int, `server_id` int, `user_ip` text, `hls_end` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` text, `user_id` int, `stream_id` int, `server_id` int, `user_ip` text, `hls_end` int DEFAULT 0)');
 		DatabaseFactory::set($this->rDb);
 	}
 
@@ -169,7 +169,7 @@ PHP);
 		$this->assertFalse($this->open($this->record(md5('18'), ['user_agent' => '', 'container' => 'rtmp']), ['user_info' => ['max_connections' => 2]]));
 		$this->assertSame('EXPIRED', ConnectionTracker::refusedAdmission());
 
-		$rRtmp = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/stream/rtmp.php');
+		$rRtmp = (string) file_get_contents(MAIN_HOME . 'Public/stream/rtmp.php');
 		$this->assertStringContainsString("['user_info' => ['max_connections' => (int) \$rUserInfo['max_connections']]], intval(\$rServers[SERVER_ID]['time_offset']));", $rRtmp);
 		$this->assertStringContainsString("StreamAuth::admissionRefusal(\$rRefused)[0], \$rIP, 'admission: ' . \$rRefused);", $rRtmp);
 		$this->assertLessThan(strpos($rRtmp, "'LINE_CREATE_FAIL'"), strpos($rRtmp, 'ConnectionTracker::refusedAdmission()'), 'a refusal is told apart before a failed register');
@@ -278,7 +278,7 @@ PHP);
 	}
 
 	public function testTheStreamEndpointsAreWiredForAdmission(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/Public/stream/';
+		$rRoot = MAIN_HOME . 'Public/stream/';
 		$rLive = (string) file_get_contents($rRoot . 'live.php');
 		$rKeep = strpos($rLive, '$rTokenData["adm_uuid"] = $rTokenData["uuid"]');
 		$rKey = strpos($rLive, '$rTokenData["uuid"] = ConnectionTracker::hlsConnectionKey');

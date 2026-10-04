@@ -25,7 +25,7 @@ final class ClusterLicenceLapsedEventTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int NOT NULL, `server_id` int, `actor` varchar(64), `event` varchar(64) NOT NULL, `detail` text, `ip` varchar(45))');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int NOT NULL, `server_id` int, `actor` varchar(64), `event` varchar(64) NOT NULL, `detail` text, `ip` varchar(45))');
 		DatabaseFactory::set($this->rDb);
 		SettingsManager::set(['lb_partition_tolerance_h' => 6]);
 		ClusterClock::fix(1_800_000_000_000);

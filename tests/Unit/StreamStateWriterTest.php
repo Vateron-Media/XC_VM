@@ -60,7 +60,7 @@ final class StreamStateWriterTest extends TestCase {
 	}
 
 	public function testRuntimeWritersUseTheSeam(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		foreach ([
 			'Domain/Stream/StreamProcess.php', 'Cli/Commands/MonitorCommand.php', 'Cli/CronJobs/StreamsCronJob.php',
 			'Cli/CronJobs/VodCronJob.php', 'Cli/CronJobs/CleanupCronJob.php', 'Cli/Commands/CreatedCommand.php',

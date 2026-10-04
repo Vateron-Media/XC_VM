@@ -59,18 +59,18 @@ final class ClusterTelemetryTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec((string) preg_replace(['/^--.*$/m', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['', '', '', ');'], (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql')));
+		$this->rDb->exec((string) (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql'));
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `features` varchar(255) DEFAULT NULL'); // 041
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `status` int NOT NULL DEFAULT 0, `watchdog_data` text, `last_check_ago` int DEFAULT 0, `requests_per_second` int DEFAULT 0, `php_pids` text, `connections` int DEFAULT 0, `users` int DEFAULT 0, `network_interface` varchar(32) DEFAULT NULL)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `status` int NOT NULL DEFAULT 0, `watchdog_data` mediumtext, `last_check_ago` int DEFAULT 0, `requests_per_second` int DEFAULT 0, `php_pids` text, `connections` int DEFAULT 0, `users` int DEFAULT 0, `network_interface` varchar(32) DEFAULT NULL)');
 		$this->rDb->exec("INSERT INTO `servers` (`id`, `status`, `watchdog_data`, `network_interface`) VALUES (5, 1, '{\"cpu_average_array\":[10,20]}', 'auto')");
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY, `user_id` int, `server_id` int, `hls_end` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `user_id` int, `server_id` int, `hls_end` int DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `lines_live` (`user_id`, `server_id`, `hls_end`) VALUES (1, 5, 0), (1, 5, 0), (2, 5, 0), (3, 5, 1), (4, 6, 0)');
-		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY, `type` int)');
+		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `type` int)');
 		$this->rDb->exec('CREATE TABLE `streams_servers` (`stream_id` int, `server_id` int, `pid` int)');
 		$this->rDb->exec('INSERT INTO `streams` (`id`, `type`) VALUES (1, 1), (2, 1), (3, 2)');
 		$this->rDb->exec('INSERT INTO `streams_servers` VALUES (1, 5, 10), (2, 5, 0), (3, 5, 11)');
-		$this->rDb->exec('CREATE TABLE `servers_stats` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int, `connections` int, `total_users` int, `users` int, `streams` int, `cpu` float, `cpu_cores` int, `cpu_avg` float, `total_mem` int, `total_mem_free` int, `total_mem_used` int, `total_mem_used_percent` float, `total_disk_space` bigint, `uptime` varchar(255), `total_running_streams` int, `bytes_sent` bigint, `bytes_received` bigint, `bytes_sent_total` bigint, `bytes_received_total` bigint, `cpu_load_average` float, `gpu_info` text, `iostat_info` text, `time` int)');
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `servers_stats` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int, `connections` int, `total_users` int, `users` int, `streams` int, `cpu` float, `cpu_cores` int, `cpu_avg` float, `total_mem` int, `total_mem_free` int, `total_mem_used` int, `total_mem_used_percent` float, `total_disk_space` bigint, `uptime` varchar(255), `total_running_streams` int, `bytes_sent` bigint, `bytes_received` bigint, `bytes_sent_total` bigint, `bytes_received_total` bigint, `cpu_load_average` float, `gpu_info` text, `iostat_info` text, `time` int)');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		DatabaseFactory::set($this->rDb);
 		SettingsManager::set(['redis_handler' => 0, 'total_users' => 9]);
 		ClusterClock::fix($this->rT0);
@@ -382,7 +382,7 @@ final class ClusterTelemetryTest extends TestCase {
 		$rBounded = new ReflectionMethod(SystemInfo::class, 'bounded');
 		$this->assertSame('nvidia-smi -x -q', $rBounded->invoke(null, 'nvidia-smi -x -q', 0));
 		$this->assertSame('timeout -k 1 5 nvidia-smi -x -q', $rBounded->invoke(null, 'nvidia-smi -x -q', LocalTelemetry::PROBE_TIMEOUT));
-		$rWatchdog = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/WatchdogCommand.php');
+		$rWatchdog = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/WatchdogCommand.php');
 		$this->assertStringContainsString('LocalTelemetry::refresh(', $rWatchdog);
 		$this->assertStringContainsString('SystemInfo::getDevices(LocalTelemetry::PROBE_TIMEOUT)', $rWatchdog);
 	}

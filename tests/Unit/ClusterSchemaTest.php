@@ -13,7 +13,7 @@ final class ClusterSchemaTest extends TestCase {
 	private const MIGRATIONS = ['028_add_cluster_settings', '029_create_cluster_nodes', '030_create_cluster_commands', '031_create_cluster_enrolment', '032_create_cluster_audit', '033_add_crontab_role', '034_create_cluster_changes', '035_add_cluster_epoch_eph', '036_add_cluster_enrol_request_eph', '037_enable_cluster_cron', '038_add_cluster_endpoint_settings', '039_add_cluster_node_root_ready', '040_add_cluster_db_allowlist', '041_add_cluster_node_features', '042_crontab_cleanup_role_all', '043_crontab_main_roles', '045_add_cluster_node_audit', '047_add_cluster_stream_ver_holders'];
 
 	private function src(string $rPath): string {
-		return (string) file_get_contents(dirname(__DIR__, 2) . '/src/' . $rPath);
+		return (string) file_get_contents(MAIN_HOME . $rPath);
 	}
 
 	/** @return array<string, string> table => column block */
@@ -31,7 +31,7 @@ final class ClusterSchemaTest extends TestCase {
 	 */
 	private function migrations(): array {
 		$rNames = self::MIGRATIONS;
-		foreach (glob(dirname(__DIR__, 2) . '/src/migrations/database/up/*.sql') ?: [] as $rFile) {
+		foreach (glob(MAIN_HOME . 'migrations/database/up/*.sql') ?: [] as $rFile) {
 			if ((int) basename($rFile) >= 28) {
 				$rNames[] = basename($rFile, '.sql');
 			}
@@ -41,8 +41,8 @@ final class ClusterSchemaTest extends TestCase {
 
 	public function testEveryMigrationHasADownFile(): void {
 		foreach (self::MIGRATIONS as $rName) {
-			$this->assertFileExists(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			$this->assertFileExists(dirname(__DIR__, 2) . '/src/migrations/database/down/' . $rName . '.sql');
+			$this->assertFileExists(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql');
+			$this->assertFileExists(MAIN_HOME . 'migrations/database/down/' . $rName . '.sql');
 		}
 	}
 
@@ -53,11 +53,18 @@ final class ClusterSchemaTest extends TestCase {
 		$rAdded = [];
 		// And keys (047 adds `cluster_stream_ver.stream_id`).
 		$rKeys = [];
+		// And column definitions (063 widens `cluster_reservations.identity`).
+		$rModified = [];
 		foreach ($this->migrations() as $rName) {
 			$rUp = $this->src('migrations/database/up/' . $rName . '.sql');
 			if (preg_match_all('/ALTER TABLE `([a-z_]+)` ADD COLUMN IF NOT EXISTS `([a-z0-9_]+)`/', $rUp, $rM, PREG_SET_ORDER)) {
 				foreach ($rM as [, $rTable, $rColumn]) {
 					$rAdded[$rTable][] = $rColumn;
+				}
+			}
+			if (preg_match_all('/ALTER TABLE `([a-z_]+)`\s+MODIFY `([a-z0-9_]+)` ([^;]+);/', $rUp, $rM, PREG_SET_ORDER)) {
+				foreach ($rM as [, $rTable, $rColumn, $rDefinition]) {
+					$rModified[$rTable][$rColumn] = trim($rDefinition);
 				}
 			}
 			if (preg_match_all('/ALTER TABLE `([a-z_]+)` ADD KEY IF NOT EXISTS `([a-z_]+)` (\([^)]*\))/', $rUp, $rM, PREG_SET_ORDER)) {
@@ -84,6 +91,9 @@ final class ClusterSchemaTest extends TestCase {
 		$rCount = 0;
 		foreach (self::MIGRATIONS as $rName) {
 			foreach ($this->tables($this->src('migrations/database/up/' . $rName . '.sql')) as $rTable => $rBody) {
+				foreach ($rModified[$rTable] ?? [] as $rColumn => $rDefinition) {
+					$rBody = (string) preg_replace_callback('/^(\s*`' . $rColumn . '` )[^\n]*?(,?)$/m', static fn(array $rLine): string => $rLine[1] . $rDefinition . $rLine[2], $rBody);
+				}
 				$this->assertArrayHasKey($rTable, $rInstall, $rTable . ' missing from database.sql');
 				$this->assertSame($rBody, $rInstall[$rTable], $rTable);
 				$rCount++;
@@ -113,7 +123,7 @@ final class ClusterSchemaTest extends TestCase {
 		$rSettings = $this->tables($this->src('bin/install/database.sql'))['settings'];
 		// Less what a later migration dropped (058: the binaries rollout's width).
 		$rDropped = [];
-		foreach (glob(dirname(__DIR__, 2) . '/src/migrations/database/up/*.sql') ?: [] as $rFile) {
+		foreach (glob(MAIN_HOME . 'migrations/database/up/*.sql') ?: [] as $rFile) {
 			if (preg_match_all('/ALTER TABLE `settings` DROP COLUMN IF EXISTS `([a-z_]+)`/', (string) file_get_contents($rFile), $rD)) {
 				array_push($rDropped, ...$rD[1]);
 			}
@@ -147,7 +157,7 @@ final class ClusterSchemaTest extends TestCase {
 		$this->assertMatchesRegularExpression("/\\(\\d+, 'cleanup', '[^']*', 1, 'all'\\)/", $rSql);
 		$this->assertStringContainsString("SET `role` = 'all' WHERE `filename` = 'cleanup'", $this->src('migrations/database/up/042_crontab_cleanup_role_all.sql'));
 		$this->assertStringContainsString("(30, 'cluster', '* * * * *', 1, 'main')", $rSql, 'cron:cluster runs on MAIN');
-		$this->assertFileExists(dirname(__DIR__, 2) . '/src/Cli/CronJobs/ClusterCronJob.php');
+		$this->assertFileExists(MAIN_HOME . 'Cli/CronJobs/ClusterCronJob.php');
 		// cron:users reaps MAIN's own lines_live and Redis: the one `legacy`
 		// role, so a node in mode 2 (whose agent reaps for itself) never gets it.
 		$this->assertMatchesRegularExpression("/\\(\\d+, 'users', '[^']*', 1, 'legacy'\\)/", $rSql);

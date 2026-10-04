@@ -48,12 +48,12 @@ final class ReplicaSectionsTest extends TestCase {
 		mkdir($this->rDir, 0777, true);
 		$this->rDb = new TestDb();
 		$this->rDb->exec(InstallSchema::serversTable());
-		$this->rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY, `reseller_dns` text, `status` int)');
+		$this->rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `reseller_dns` text, `status` int)');
 		$this->rDb->exec(InstallSchema::migration('029_create_cluster_nodes'));
 		$this->rDb->exec(InstallSchema::migration('030_create_cluster_commands'));
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `root_ready` tinyint(1) NOT NULL DEFAULT 0');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `features` varchar(255) DEFAULT NULL');
-		$this->rDb->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `filename` varchar(255), `time` varchar(128), `enabled` int, `role` varchar(8))');
+		$this->rDb->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `filename` varchar(255), `time` varchar(128), `enabled` int, `role` varchar(8))');
 		$this->rDb->exec('CREATE TABLE `settings` (`id` int, `cloudflare` tinyint, `mag_legacy_redirect` tinyint, `api_pass` text, `live_streaming_pass` text, `redis_password` text, `license` text, `seg_time` int)');
 		$this->rDb->exec(InstallSchema::table('bouquets'));
 		$this->rDb->exec(InstallSchema::table('streams_categories'));
@@ -217,8 +217,9 @@ final class ReplicaSectionsTest extends TestCase {
 		$this->assertSame(['jobs' => [['filename' => 'streams', 'time' => '* * * * *']]], ReplicaBuilder::crontabData(2));
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testAnInstallsCrontabKeepsEveryJobANodeRuns(): void {
-		preg_match('/INSERT INTO `crontab` [^;]*;/s', (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/install/database.sql'), $rInsert);
+		preg_match('/INSERT INTO `crontab` [^;]*;/s', (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql'), $rInsert);
 		$this->rDb->exec($rInsert[0]);
 		foreach ([1, 2] as $rMode) {
 			$rJobs = array_column(ReplicaBuilder::crontabData($rMode)['jobs'], 'filename');

@@ -44,7 +44,7 @@ final class ProcessRunnerTest extends TestCase {
 	 */
 	private function child(string $rCode, string $rStdin = ''): array {
 		$rScript = $this->rDir . 'child.php';
-		file_put_contents($rScript, "<?php\nrequire " . var_export(dirname(__DIR__, 2) . '/src/vendor/autoload.php', true) . ";\nuse XcVm\\Core\\Process\\ProcessRunner;\n" . $rCode . "\n");
+		file_put_contents($rScript, "<?php\nrequire " . var_export(MAIN_HOME . 'vendor/autoload.php', true) . ";\nuse XcVm\\Core\\Process\\ProcessRunner;\n" . $rCode . "\n");
 		$rProc = proc_open(['timeout', '30', PHP_BINARY, $rScript], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);
 		$this->assertIsResource($rProc);
 		fwrite($rPipes[0], $rStdin);

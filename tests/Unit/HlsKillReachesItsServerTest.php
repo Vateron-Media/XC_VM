@@ -29,8 +29,8 @@ final class HlsKillReachesItsServerTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY, `uuid` TEXT, `container` TEXT, `server_id` INTEGER, `stream_id` INTEGER, `hls_end` INTEGER, `pid` INTEGER);'
-			. ' CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY, `pid` INTEGER, `server_id` INTEGER, `rtmp` INTEGER, `time` INTEGER, `custom_data` TEXT, `cache` INTEGER);');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` TEXT, `container` TEXT, `server_id` INTEGER, `stream_id` INTEGER, `hls_end` INTEGER, `pid` INTEGER);'
+			. ' CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `pid` INTEGER, `server_id` INTEGER, `rtmp` INTEGER, `time` INTEGER, `custom_data` TEXT, `cache` INTEGER);');
 		DatabaseFactory::set($this->rDb);
 		SignalDispatcher::useSink(null);
 		$this->rGlobals = [$GLOBALS['rSettings'] ?? null, $GLOBALS['rServers'] ?? null];

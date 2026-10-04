@@ -39,7 +39,7 @@ final class CronLockIdStableTest extends TestCase {
 	}
 
 	public function testNoCronLockIsDerivedFromTheStreamingSecret(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		foreach (['Cli/CronTrait.php', 'Cli/CronJobs/RootSignalsCronJob.php', 'Cli/Commands/ServerDiagnoseCommand.php'] as $rFile) {
 			$rSource = (string) file_get_contents($rRoot . $rFile);
 			$this->assertStringContainsString('ProcessManager::cronLockPath(', $rSource, $rFile);

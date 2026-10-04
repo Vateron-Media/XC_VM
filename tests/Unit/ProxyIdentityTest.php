@@ -41,7 +41,7 @@ final class ProxyIdentityTest extends TestCase {
 	}
 
 	public function testProxyApiNoLongerWritesWhitelistIps(): void {
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/admin/proxy_api.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Public/admin/proxy_api.php');
 		$this->assertStringNotContainsString('`whitelist_ips` = ?', $rSource);
 		$this->assertStringNotContainsString("intval(\$_POST['server_id'])", $rSource);
 		$this->assertStringContainsString('ProxyIdentity::resolve(', $rSource);

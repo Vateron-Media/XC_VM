@@ -24,7 +24,7 @@ final class ServerSyncOpensslExtraCommandTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->db = new TestDb();
-		$this->db->exec('CREATE TABLE signals (signal_id INTEGER PRIMARY KEY, server_id INTEGER, `time` INTEGER, custom_data TEXT);');
+		$this->db->exec('CREATE TABLE signals (signal_id INTEGER PRIMARY KEY AUTO_INCREMENT, server_id INTEGER, `time` INTEGER, custom_data TEXT);');
 		ServerSyncOpensslExtraCommand::setDb($this->db);
 		$this->rFile = sys_get_temp_dir() . '/xcvm_sync_openssl_extra_' . uniqid();
 		file_put_contents($this->rFile, 'main-extra-on-disk');

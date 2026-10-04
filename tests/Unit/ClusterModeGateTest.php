@@ -93,7 +93,7 @@ final class ClusterModeGateTest extends TestCase {
 	}
 
 	public function testEveryRefusalHasItsString(): void {
-		$rEn = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Localization/lang/en.ini');
+		$rEn = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 
 		foreach ([
 			'cluster_mode_done', 'cluster_mode_unknown', 'cluster_mode_needs_config', 'cluster_mode_needs_flows', 'cluster_mode_needs_root',

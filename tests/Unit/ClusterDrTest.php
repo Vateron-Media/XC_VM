@@ -25,7 +25,7 @@ final class ClusterDrTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec((string) preg_replace(['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'], (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql') . file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/032_create_cluster_audit.sql')));
+		$this->rDb->exec((string) (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql') . file_get_contents(MAIN_HOME . 'migrations/database/up/032_create_cluster_audit.sql'));
 		DatabaseFactory::set($this->rDb);
 		$this->rDir = sys_get_temp_dir() . '/xcvm-dr-' . bin2hex(random_bytes(4));
 		mkdir($this->rDir, 0700);

@@ -21,9 +21,9 @@ use PHPUnit\Framework\TestCase;
 #[Group('skip-on-panel')]
 final class ArchitectureTest extends TestCase {
 
-    private const MODULES_DIR = __DIR__ . '/../../src/Modules';
+    private const MODULES_DIR = MAIN_HOME . 'Modules';
 
-    private const SRC_DIR = __DIR__ . '/../../src';
+    private const SRC_DIR = MAIN_HOME . '.';
 
     protected function setUp(): void {
         // Static source guard: scans the repo's src/Modules tree. A flat panel

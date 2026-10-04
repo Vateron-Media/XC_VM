@@ -7,6 +7,7 @@ use XcVm\Domain\Cluster\ConnectionIngest;
 use XcVm\Domain\Cluster\ConnectionLimits;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Tests\Support\InstallSchema;
 
 /**
  * Admission at token mint (cluster plan, Phase 6): for a viewer bound for a
@@ -34,9 +35,12 @@ final class ConnectionAdmissionTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		$this->rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` int, `state` varchar(16), `mode` int, `flows` int)');
-		$this->rDb->exec('CREATE TABLE `cluster_reservations` (`id` char(32) PRIMARY KEY, `identity` varchar(96) NOT NULL, `server_id` int NOT NULL, `stream_id` int, `created_at` int NOT NULL, `exp` int NOT NULL)');
+		$this->rDb->exec(InstallSchema::table('cluster_reservations'));
 		$this->rDb->exec("INSERT INTO `cluster_nodes` VALUES (5, 'active', 1, 74), (6, 'active', 1, 10), (7, 'quarantined', 1, 74), (8, 'active', 0, 74)");
 		DatabaseFactory::set($this->rDb);
+		// The store is down unless a test wires its own Redis (redis()): with the
+		// real xcvm_core loaded the default connector would reach the host's.
+		RedisManager::useConnector(static fn() => null);
 		ConnectionAdmission::useEnforcer(function (?int $rLine, int $rRoom, ?int $rHMAC, string $rIdentifier, ?string $rIP = null, ?string $rUA = null, ?string $rUUID = null): void {
 			$this->rCuts[] = [$rLine, $rRoom, $rHMAC, $rIdentifier];
 			$this->rCutUUIDs[] = $rUUID;
@@ -49,6 +53,7 @@ final class ConnectionAdmissionTest extends TestCase {
 		SettingsManager::set([]);
 		DatabaseFactory::reset();
 		(new \ReflectionProperty(RedisManager::class, 'instance'))->setValue(null, null);
+		RedisManager::useConnector(null);
 	}
 
 	public static function tearDownAfterClass(): void {
@@ -94,8 +99,8 @@ final class ConnectionAdmissionTest extends TestCase {
 		@mkdir(LOGS_TMP_PATH, 0777, true);
 		@unlink(LOGS_TMP_PATH . 'activity');
 		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 1]);
-		$this->rDb->exec('CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int, `time` int, `custom_data` text, `cache` tinyint DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` text, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` text, `user_ip` text, `container` text, `date_start` int, `hls_last_read` int, `hls_end` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int, `time` int, `custom_data` text, `cache` tinyint DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` text, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` text, `user_ip` text, `container` text, `date_start` int, `hls_last_read` int, `hls_end` int DEFAULT 0)');
 		$rKey = \XcVm\Domain\Stream\ConnectionTracker::hlsConnectionKey(null, '', 42, 100, '10.0.0.1', 'VLC');
 		$rOther = \XcVm\Domain\Stream\ConnectionTracker::hlsConnectionKey(null, '', 42, 101, '10.0.0.1', 'VLC');
 		$rRow = static fn(string $rUUID, int $rServer, int $rEnd): string => "('" . $rUUID . "', 42, 100, " . $rServer . ", 0, 'VLC', '10.0.0.1', 'hls', 1700000000, 1700000040, " . $rEnd . ')';
@@ -179,9 +184,9 @@ final class ConnectionAdmissionTest extends TestCase {
 	}
 
 	public function testIngestReleasesTheReservation(): void {
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/install/database.sql');
+		$rSql = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		preg_match('/CREATE TABLE IF NOT EXISTS `lines_live` \(.*?\) ENGINE=[^;]*;/s', $rSql, $rM);
-		$this->rDb->exec((string) preg_replace(['/`activity_id` int\(11\) NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`activity_id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)( USING BTREE)?/', '/ COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'], $rM[0]));
+		$this->rDb->exec((string) $rM[0]);
 		SettingsManager::set(['redis_handler' => 0]);
 		$rUUID = str_repeat('a', 32);
 		$this->admit($this->token($rUUID, 5));
@@ -205,16 +210,16 @@ final class ConnectionAdmissionTest extends TestCase {
 	}
 
 	public function testEveryViewerMintSiteMintsTheClaim(): void {
-		$rAuth = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/stream/auth.php');
+		$rAuth = (string) file_get_contents(MAIN_HOME . 'Public/stream/auth.php');
 		$this->assertSame(6, substr_count($rAuth, '$rTokenData = ConnectionAdmission::admitToken($rSettings, $rTokenData, $rIP, $rUserAgent);'));
 		$this->assertStringNotContainsString('ConnectionAdmission::admit(', $rAuth, 'a token minted after admission carries its claim');
 	}
 
 	/** MAIN's side of conn_admit: `lines`, `hmac_keys`, the table store and the limits queue. */
 	private function mainTables(): string {
-		$this->rDb->exec('CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY, `max_connections` int, `pair_id` int, `enabled` int, `admin_enabled` int, `exp_date` int)');
-		$this->rDb->exec('CREATE TABLE `hmac_keys` (`id` INTEGER PRIMARY KEY, `enabled` int)');
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` text, `server_id` int, `user_id` int, `hmac_id` int, `hmac_identifier` text, `hls_end` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `max_connections` int, `pair_id` int, `enabled` int, `admin_enabled` int, `exp_date` int)');
+		$this->rDb->exec('CREATE TABLE `hmac_keys` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `enabled` int)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` text, `server_id` int, `user_id` int, `hmac_id` int, `hmac_identifier` text, `hls_end` int DEFAULT 0)');
 		$this->rDb->query('INSERT INTO `lines` VALUES (42, 2, 43, 1, 1, NULL), (44, 0, NULL, 1, 1, NULL), (50, 1, NULL, 1, 0, NULL), (51, 1, NULL, 0, 1, NULL), (52, 1, NULL, 1, 1, ?), (53, 1, NULL, 0, 0, ?)', self::T, self::T);
 		$this->rDb->query('INSERT INTO `hmac_keys` VALUES (3, 1), (4, 0)');
 		SettingsManager::set(['redis_handler' => 0]);
@@ -234,10 +239,10 @@ final class ConnectionAdmissionTest extends TestCase {
 
 	/** `lines_live` as the install creates it, for ConnectionIngest. */
 	private function ingestTable(): void {
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/install/database.sql');
+		$rSql = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		preg_match('/CREATE TABLE IF NOT EXISTS `lines_live` \(.*?\) ENGINE=[^;]*;/s', $rSql, $rM);
 		$this->rDb->exec('DROP TABLE IF EXISTS `lines_live`');
-		$this->rDb->exec((string) preg_replace(['/`activity_id` int\(11\) NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`activity_id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)( USING BTREE)?/', '/ COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'], $rM[0]));
+		$this->rDb->exec((string) $rM[0]);
 	}
 
 	public function testConnAdmitReadsTheLineOnMainNeverTheNodesLimit(): void {

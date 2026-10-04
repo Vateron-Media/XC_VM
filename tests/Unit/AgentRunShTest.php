@@ -33,7 +33,7 @@ final class AgentRunShTest extends TestCase {
 
 	/** @return list<string> which binary ran, in order */
 	private function supervise(int $rReachSec = 300): array {
-		$rCmd = 'XCVM_AGENT_HOME=' . escapeshellarg(rtrim($this->rHome, '/')) . ' XCVM_AGENT_REACH_SEC=' . $rReachSec . ' timeout 60 bash ' . escapeshellarg(dirname(__DIR__, 2) . '/src/bin/xc_agent/run.sh') . ' 2>/dev/null';
+		$rCmd = 'XCVM_AGENT_HOME=' . escapeshellarg(rtrim($this->rHome, '/')) . ' XCVM_AGENT_REACH_SEC=' . $rReachSec . ' timeout 60 bash ' . escapeshellarg(MAIN_HOME . 'bin/xc_agent/run.sh') . ' 2>/dev/null';
 		exec($rCmd);
 		return file($this->rHome . 'runs', FILE_IGNORE_NEW_LINES) ?: [];
 	}

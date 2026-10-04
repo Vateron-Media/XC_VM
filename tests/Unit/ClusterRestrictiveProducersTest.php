@@ -36,14 +36,9 @@ final class ClusterRestrictiveProducersTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '030_create_cluster_commands'] as $rName) {
-			$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			$this->rDb->exec((string) preg_replace(
-				['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-				['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-				$rSql
-			));
+			$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql');
+			$this->rDb->exec((string) $rSql);
 		}
-		$this->rDb->exec('CREATE UNIQUE INDEX `server_seq` ON `cluster_commands` (`server_id`, `seq`)');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `root_ready` tinyint(1) NOT NULL DEFAULT 0');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(1800000000000);
@@ -214,18 +209,18 @@ final class ClusterRestrictiveProducersTest extends TestCase {
 
 	/** A live TS request past the drain ends at its next segment, by the verdict or by the agent's drop. */
 	public function testLiveTsHonoursTheFenceAndTheDrop(): void {
-		$rLive = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/stream/live.php');
+		$rLive = (string) file_get_contents(MAIN_HOME . 'Public/stream/live.php');
 		$this->assertMatchesRegularExpression('/while \(true\) \{.*?NodeLease::refusesEverything\(\$rSettings\).*?exit\(\);/s', $rLive);
 		$this->assertMatchesRegularExpression('/\(\$rSignalData\["type"\] \?\? \'\'\) == "drop"\) \{\s*@unlink\(SIGNALS_PATH \. \$rTokenData\["uuid"\]\);\s*exit\(\);/', $rLive);
 	}
 
 	public function testTheOperatorHasTheButtonsAndTheStrings(): void {
-		$rAdmin = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Domain/Cluster/ClusterAdmin.php');
+		$rAdmin = (string) file_get_contents(MAIN_HOME . 'Domain/Cluster/ClusterAdmin.php');
 		foreach (['fence', 'unfence', 'quarantine', 'resync', 'trust'] as $rAction) {
 			$this->assertStringContainsString("case '" . $rAction . "':", $rAdmin);
 		}
-		$rView = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/Views/admin/cluster_nodes.php');
-		$rEn = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Localization/lang/en.ini');
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/cluster_nodes.php');
+		$rEn = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 		foreach (['fence', 'unfence', 'quarantine', 'resync', 'trust'] as $rAction) {
 			$this->assertStringContainsString('value="' . $rAction . '"', $rView);
 			$this->assertStringContainsString('cluster_' . $rAction . '_done = ', $rEn);
@@ -234,7 +229,7 @@ final class ClusterRestrictiveProducersTest extends TestCase {
 		foreach (['cluster_command_failed', 'cluster_trust_not_quarantined', 'cluster_fence_confirm', 'cluster_quarantine_confirm'] as $rKey) {
 			$this->assertStringContainsString($rKey . ' = ', $rEn);
 		}
-		$rCron = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/ClusterCronJob.php');
+		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/ClusterCronJob.php');
 		$this->assertStringContainsString('ClusterRoute::licenceFences(', $rCron, 'the lease-fence path runs every minute');
 	}
 }

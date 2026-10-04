@@ -29,7 +29,7 @@ final class StreamTokenCallSitesTest extends TestCase {
 		// Source-wide guard: scans the repo's src/ tree. On a flat deployment
 		// (/home/xc_vm) there is no such directory and the app root is mixed with
 		// runtime/test files, so this static guard only runs in the repo layout.
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		if (!is_dir($rRoot)) {
 			$this->markTestSkipped('source-tree guard runs only in the repo layout');
 		}

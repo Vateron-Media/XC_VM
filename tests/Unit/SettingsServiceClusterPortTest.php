@@ -28,10 +28,8 @@ if (!defined('STATUS_INVALID_DATA')) {
  * the new port, SettingsService::edit() refuses the whole save: the stored
  * port and `cluster_policy_ver` stay, so no node is sent to it.
  *
- * Runs edit() on the TestDb. Under SQLite, QueryHelper::verifyPostTable()'s
- * `information_schema.columns` is an attached table, with DATABASE() as a
- * function; on MariaDB (XCVM_TEST_DB_DSN) it is the real one. nginx and the
- * port checks are ClusterNginxConfig's fakes.
+ * Runs edit() on the TestDb, whose information_schema QueryHelper::verifyPostTable()
+ * reads. nginx and the port checks are ClusterNginxConfig's fakes.
  */
 final class SettingsServiceClusterPortTest extends TestCase {
 	private TestDb $rDb;
@@ -69,26 +67,17 @@ final class SettingsServiceClusterPortTest extends TestCase {
 		mkdir($this->rDir . 'bin/nginx/conf/ports', 0777, true);
 		mkdir($this->rDir . 'cache', 0777, true);
 		file_put_contents($this->rDir . 'bin/nginx/conf/ports/http.conf', 'listen 25461;');
-		copy(dirname(__DIR__, 2) . '/src/bin/nginx/conf/nginx.conf', $this->rDir . 'bin/nginx/conf/nginx.conf');
+		copy(MAIN_HOME . 'bin/nginx/conf/nginx.conf', $this->rDir . 'bin/nginx/conf/nginx.conf');
 
 		$this->rDb = new TestDb();
 		$rDdl = [];
 		foreach (self::COLUMNS as $rName => [$rType, $rDefault]) {
 			$rDdl[] = '`' . $rName . '` ' . ($rType === 'int' ? 'int' : 'varchar(255)') . " DEFAULT '" . $rDefault . "'";
 		}
-		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY, ' . implode(', ', $rDdl) . ')');
+		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, ' . implode(', ', $rDdl) . ')');
 		$this->rDb->exec('INSERT INTO `settings` (`id`, `cluster_api_enabled`) VALUES (1, 1)');
 		$this->rDb->exec('CREATE TABLE `streams_arguments` (`argument_key` varchar(64), `argument_default_value` varchar(255))');
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		if ($this->rDb->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-			$this->rDb->pdo->exec("ATTACH DATABASE ':memory:' AS `information_schema`");
-			$this->rDb->pdo->exec('CREATE TABLE `information_schema`.`columns` (`table_schema` text, `table_name` text, `column_name` text, `column_default` text, `is_nullable` text, `data_type` text, `ordinal_position` int)');
-			$this->rDb->pdo->sqliteCreateFunction('DATABASE', static fn(): string => 'xc_vm', 0);
-			$rPosition = 0;
-			foreach (self::COLUMNS as $rName => [$rType, $rDefault]) {
-				$this->rDb->query('INSERT INTO `information_schema`.`columns` VALUES (?, ?, ?, ?, ?, ?, ?)', 'xc_vm', 'settings', $rName, "'" . $rDefault . "'", 'NO', $rType, ++$rPosition);
-			}
-		}
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		DatabaseFactory::set($this->rDb);
 		// QueryHelper::verifyPostTable() reads the global handler.
 		$GLOBALS['db'] = $this->rDb;
@@ -100,7 +89,7 @@ final class SettingsServiceClusterPortTest extends TestCase {
 		$this->rDb->query('SELECT * FROM `settings`');
 		SettingsManager::set($this->rDb->get_row());
 		unset($_COOKIE['lang']);
-		Translator::init(dirname(__DIR__, 2) . '/src/Core/Localization/lang');
+		Translator::init(MAIN_HOME . 'Core/Localization/lang');
 
 		ClusterClock::fix(1800000000 * 1000);
 		ClusterNginxConfig::useBase($this->rDir, (string) (posix_getpwuid(posix_geteuid())['name'] ?? ''));

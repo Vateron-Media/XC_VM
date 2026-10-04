@@ -48,7 +48,7 @@ final class ConnectionTrackerBatchTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `stream_id` int, `server_id` int, `hls_end` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `hls_end` int DEFAULT 0)');
 		$this->rDb->exec('CREATE TABLE `streams_servers` (`stream_id` int, `server_id` int, `parent_id` int, `pid` int, `monitor_pid` int)');
 		DatabaseFactory::set($this->rDb);
 	}

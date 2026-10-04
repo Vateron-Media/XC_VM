@@ -163,13 +163,8 @@ final class RecordingFinalizer {
 	 */
 	private static function defaults(string $rTable): array {
 		$rOut = [];
-		try {
-			self::db()->query('SELECT `column_name`, `column_default`, `is_nullable`, `data_type` FROM `information_schema`.`columns` WHERE `table_schema` = (SELECT DATABASE()) AND `table_name` = ? ORDER BY `ordinal_position`;', $rTable);
-			$rRows = self::db()->get_rows();
-		} catch (\Throwable) {
-			return $rOut; // no information_schema (tests on SQLite): explicit columns only
-		}
-		foreach ($rRows as $rRow) {
+		self::db()->query('SELECT `column_name`, `column_default`, `is_nullable`, `data_type` FROM `information_schema`.`columns` WHERE `table_schema` = (SELECT DATABASE()) AND `table_name` = ? ORDER BY `ordinal_position`;', $rTable);
+		foreach (self::db()->get_rows() as $rRow) {
 			$rRow = array_change_key_case($rRow, CASE_LOWER);
 			$rDefault = $rRow['column_default'] === 'NULL' ? null : $rRow['column_default'];
 			if ($rRow['is_nullable'] === 'NO' && !$rDefault) {

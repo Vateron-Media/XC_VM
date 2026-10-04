@@ -34,12 +34,8 @@ final class RotateSignKeyTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '030_create_cluster_commands'] as $rName) {
-			$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			foreach (array_filter(array_map('trim', explode(';', (string) preg_replace(
-				['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-				['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-				$rSql
-			)))) as $rStatement) {
+			$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql');
+			foreach (array_filter(array_map('trim', explode(';', (string) $rSql))) as $rStatement) {
 				$this->rDb->exec($rStatement);
 			}
 		}
@@ -118,7 +114,7 @@ final class RotateSignKeyTest extends TestCase {
 			RootPin::rotate(['new_pub' => bin2hex(random_bytes(32)), 'pin_blob' => base64_encode('blob')]);
 			$this->fail('re-pinned without the extension pin');
 		} catch (\RuntimeException $rE) {
-			$this->assertStringContainsString('extension pin', $rE->getMessage());
+			$this->assertMatchesRegularExpression('/the extension (pin cannot be replaced|refused the pin blob)/', $rE->getMessage(), 'no extension here, or the real one refuses a bogus blob');
 		}
 		$this->assertSame($rWas, RootPin::read());
 	}
@@ -126,6 +122,6 @@ final class RotateSignKeyTest extends TestCase {
 	public function testTheActionIsCatalogued(): void {
 		$this->assertContains('rotate_sign_key', NodeActions::ROOT_ACTIONS);
 		$this->assertContains('rotate_sign_key', NodeActions::CLUSTER_ONLY);
-		$this->assertStringContainsString("case 'rotate_sign_key':", (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/RootSignalsCronJob.php'));
+		$this->assertStringContainsString("case 'rotate_sign_key':", (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php'));
 	}
 }

@@ -98,8 +98,9 @@ final class SignalDispatcherParityTest extends TestCase {
 		$this->assertCount(1, $rDb->rQueries, 'nothing to write, no query');
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testNoCodeWritesSignalsDirectlyAnyMore(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		$rIt = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($rRoot, FilesystemIterator::SKIP_DOTS));
 		$rOffenders = [];
 		foreach ($rIt as $rFile) {

@@ -52,9 +52,14 @@ final class ConnectAuditTest extends TestCase {
 		ConnectAudit::guard($rKind);
 	}
 
+	/** This file as ConnectAudit names a site: relative to MAIN_HOME, which holds tests/ in a deploy root. */
+	private static function file(): string {
+		return str_starts_with(__FILE__, MAIN_HOME) ? substr(__FILE__, strlen(MAIN_HOME)) : __FILE__;
+	}
+
 	/** The site connect() records. */
 	private function site(string $rKind = ConnectAudit::SQL): string {
-		return $rKind . ' ' . __FILE__ . ':' . ((new ReflectionMethod($this, 'connect'))->getStartLine() + 1);
+		return $rKind . ' ' . self::file() . ':' . ((new ReflectionMethod($this, 'connect'))->getStartLine() + 1);
 	}
 
 	/** @return array<string, mixed>|null */
@@ -96,11 +101,11 @@ final class ConnectAuditTest extends TestCase {
 		ConnectAudit::guard(ConnectAudit::SQL); $rLine2 = __LINE__;
 		$rDay = $this->day();
 		$this->assertSame([2, 1], [$rDay['sql'], $rDay['redis']]);
-		$this->assertSame(1, $rDay['sites']['sql ' . __FILE__ . ':' . $rLine], 'the caller, not ConnectAudit itself');
-		$this->assertSame(1, $rDay['sites']['sql ' . __FILE__ . ':' . $rLine2]);
+		$this->assertSame(1, $rDay['sites']['sql ' . self::file() . ':' . $rLine], 'the caller, not ConnectAudit itself');
+		$this->assertSame(1, $rDay['sites']['sql ' . self::file() . ':' . $rLine2]);
 		$rLog = $this->log();
 		$this->assertCount(3, $rLog);
-		$this->assertSame(['t' => self::NOW, 'k' => 'sql', 's' => __FILE__ . ':' . $rLine, 'p' => getmypid()], $rLog[0], 'not refused: no `r`');
+		$this->assertSame(['t' => self::NOW, 'k' => 'sql', 's' => self::file() . ':' . $rLine, 'p' => getmypid()], $rLog[0], 'not refused: no `r`');
 		$this->assertEquals(['sql' => 2, 'redis' => 1, 'sites' => $rDay['sites']], ConnectAudit::summary(7, self::NOW), 'the same, ranked');
 	}
 
@@ -117,7 +122,7 @@ final class ConnectAuditTest extends TestCase {
 	}
 
 	public function testEveryConnectPathPassesTheGuard(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		$this->assertStringContainsString('ConnectAudit::guard(ConnectAudit::SQL);', (string) file_get_contents($rRoot . 'Core/Database/Database.php'));
 		$this->assertStringContainsString('ConnectAudit::guard(ConnectAudit::REDIS);', (string) file_get_contents($rRoot . 'Infrastructure/Redis/RedisManager.php'));
 	}
@@ -187,7 +192,7 @@ final class ConnectAuditTest extends TestCase {
 		touch($this->rDir . 'cluster/audit.json', self::NOW + 10);
 		ConnectAudit::guard(ConnectAudit::REDIS); $rLine = __LINE__;
 		$this->assertSame([2, 1], [$this->published()['sql_connects'], $this->published()['redis_connects']], 'a new site: at once');
-		$this->assertSame(1, $this->published()['sites']['redis ' . __FILE__ . ':' . $rLine]);
+		$this->assertSame(1, $this->published()['sites']['redis ' . self::file() . ':' . $rLine]);
 		touch($this->rDir . 'cluster/audit.json', self::NOW + 10);
 		ConnectAudit::useClock(self::NOW + 10 + ConnectAudit::PUBLISH_EVERY);
 		$this->connect(ConnectAudit::SQL);

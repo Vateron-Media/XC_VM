@@ -49,7 +49,7 @@ final class LegacyModuleArchiveTest extends TestCase {
 		$this->assertSame('a malformed size or SHA-256', ModuleInstallCommand::announced($rFile, ['size' => $rSize, 'sha256' => strtoupper($rSha)]));
 		$this->assertSame('size or SHA-256 mismatch', ModuleInstallCommand::announced($this->rRoot . 'gone.zip', ['size' => $rSize, 'sha256' => $rSha]));
 
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/ModuleInstallCommand.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ModuleInstallCommand.php');
 		$this->assertStringContainsString('$rWrong = self::announced($rTmp, $rPayload);', $rSource, 'the getFile download is checked');
 	}
 }

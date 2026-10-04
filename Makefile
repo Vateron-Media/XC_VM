@@ -138,7 +138,7 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 	lb_delete_files_list generate_deleted_files \
 	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive check-lb-settings-keys \
 	check-core-cluster-refs gates \
-	check-vendor-prod-only dev-tools dev-clean rector rector-fix
+	check-vendor-prod-only dev-tools dev-php dev-clean rector rector-fix
 
 # ─── Dev tooling ────────────────────────────────────────────────
 # The committed src/vendor/ is PRODUCTION-ONLY (composer install --no-dev). The
@@ -148,6 +148,25 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 # committed vendor stays prod-only — see tools/ci/check-vendor-prod-only.sh).
 dev-tools:
 	@cd src && composer install --no-interaction
+
+# System PHP 8.1 + the extensions the code, PHPStan and the test suite need
+# (Ubuntu/Debian). Adds packages.sury.org when the distro has no php8.1-* (the
+# ondrej PPA dropped new Ubuntu releases). Only versioned php8.1-* packages:
+# unversioned ones (php-pcov, composer) pull the newest PHP and take over /usr/bin/php.
+DEV_PHP_PACKAGES := cli mysql mbstring curl xml intl zip gd gmp bcmath redis igbinary pcov
+SUDO := $(if $(filter 0,$(shell id -u)),,sudo)
+
+dev-php:
+	@if ! apt-cache show php8.1-cli >/dev/null 2>&1; then \
+		$(SUDO) curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb && \
+		$(SUDO) dpkg -i /tmp/debsuryorg-archive-keyring.deb && \
+		echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ $$(. /etc/os-release && echo $$VERSION_CODENAME) main" \
+			| $(SUDO) tee /etc/apt/sources.list.d/php.list >/dev/null && \
+		$(SUDO) apt-get update; \
+	fi
+	$(SUDO) apt-get install -y $(addprefix php8.1-,$(DEV_PHP_PACKAGES))
+	$(SUDO) update-alternatives --set php /usr/bin/php8.1
+	@php -v | head -1
 
 # Inverse of dev-tools: once you no longer need the checks, remove the installed
 # dev libraries (PHPStan, phpcs + transitive deps) and restore the
@@ -159,6 +178,24 @@ dev-clean:
 	@# reference (HEAD sha), so they churn after every commit even though the prod
 	@# package set is identical — restore the committed copies to keep vendor clean.
 	@git checkout -- src/vendor/composer/installed.php src/vendor/composer/installed.json 2>/dev/null || true
+
+# ─── Test database ──────────────────────────────────────────────
+# The unit tests run on MariaDB, as production does (tests/Support/TestDb.php).
+# A machine without a local server gets a throwaway one in Docker, the version CI
+# runs, on 127.0.0.1:3306 only; TestDb connects there when no local socket exists.
+# Its data lives in tmpfs: schemas are created and dropped per test, and on disk
+# every DDL waits for an fsync.
+TEST_DB_CONTAINER := xcvm-test-db
+.PHONY: test-db test-db-stop
+test-db:
+	@docker start $(TEST_DB_CONTAINER) >/dev/null 2>&1 || docker run -d --name $(TEST_DB_CONTAINER) \
+		-p 127.0.0.1:3306:3306 --tmpfs /var/lib/mysql:rw,size=2g -e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1 \
+		mariadb:11.4 --max-connections=1000 >/dev/null
+	@until docker exec $(TEST_DB_CONTAINER) healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1; do sleep 1; done
+	@echo "test-db: MariaDB on 127.0.0.1:3306 (root, no password)"
+
+test-db-stop:
+	@docker rm -f $(TEST_DB_CONTAINER) >/dev/null 2>&1 || true
 
 # ─── Static analysis (PHPStan) ──────────────────────────────────
 PHPSTAN := src/vendor/bin/phpstan

@@ -49,16 +49,12 @@ final class ApiModeInstallTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql');
-		foreach (array_filter(array_map('trim', explode(';', (string) preg_replace(
-			['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-			['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-			$rSql
-		)))) as $rStatement) {
+		$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql');
+		foreach (array_filter(array_map('trim', explode(';', (string) $rSql))) as $rStatement) {
 			$this->rDb->exec($rStatement);
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_node_epochs` ADD COLUMN `agent_eph_pub` binary(32) DEFAULT NULL');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `status` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `status` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `servers` (`id`, `status`) VALUES (9, 0)');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(null);
@@ -99,10 +95,10 @@ final class ApiModeInstallTest extends TestCase {
 		$this->assertSame([[], [['lb_new_node_mode', 'cluster_error_api_mode_extension']]], ClusterSettings::normalize(['lb_new_node_mode' => 'api'], $rMain, [], ['api_mode_allowed' => true, 'credential_free_config' => false]));
 		$this->assertSame([['lb_new_node_mode' => 'api'], []], ClusterSettings::normalize(['lb_new_node_mode' => 'api'], $rMain, [], ['api_mode_allowed' => true, 'credential_free_config' => true]));
 
-		$rService = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Domain/Server/SettingsService.php');
+		$rService = (string) file_get_contents(MAIN_HOME . 'Domain/Server/SettingsService.php');
 		$this->assertStringContainsString("'api_mode_allowed' => false,", $rService, 'not flipped here');
 		$this->assertStringContainsString("'credential_free_config' => CredentialFreeConfig::supported(),", $rService);
-		$this->assertStringContainsString('cluster_error_api_mode_extension = ', (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Localization/lang/en.ini'));
+		$this->assertStringContainsString('cluster_error_api_mode_extension = ', (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini'));
 	}
 
 	public function testApiModeIsOnlyWithTheClusterApi(): void {
@@ -166,9 +162,9 @@ final class ApiModeInstallTest extends TestCase {
 
 	/** No DB grant for an API-mode load balancer, at creation or at the end of its install; and no silent legacy fallback. */
 	public function testAnApiModeNodeGetsNoGrantAndNoLegacyFallback(): void {
-		$rService = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Domain/Server/ServerService.php');
+		$rService = (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerService.php');
 		$this->assertMatchesRegularExpression('/if \(\$rArray\[\'server_type\'\] == 0 && !ClusterSettings::newNodesInApiMode\(SettingsManager::getAll\(\)\)\) \{\s*BackupService::grantPrivileges/', $rService);
-		$rInstall = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/ServerInstallCommand.php');
+		$rInstall = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertStringContainsString('$rApiMode = $rType == 2 && LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID);', $rInstall);
 		$this->assertStringContainsString('$this->finalizeHostAfterRuntime($rConn, $rRunSSH, $rHost, !$rApiMode);', $rInstall);
 		$this->assertStringContainsString('provisionConfig($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, $rApiMode)', $rInstall);
@@ -237,7 +233,7 @@ final class ApiModeInstallTest extends TestCase {
 		$this->rDb->exec('UPDATE `servers` SET `server_type` = 1 WHERE `id` = 9');
 		$this->assertFalse(DbCredentials::credentialFreeHost('203.0.113.9'), 'only load balancers are cluster nodes');
 
-		$rTools = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/ToolsCommand.php');
+		$rTools = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ToolsCommand.php');
 		$this->assertStringContainsString('if (!BackupService::grantPrivileges($rServer[\'server_ip\'])) {', $rTools);
 	}
 }

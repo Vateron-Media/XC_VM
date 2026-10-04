@@ -44,12 +44,12 @@ repo `CLAUDE.md`.
   (`src/Modules/<name>/migrations/<semver>.up.sql`/`.down.sql`). Do **not** add
   module tables to `src/bin/install/database.sql`, and core must not touch
   module-owned tables directly — dispatch an event and let the module clean up.
-- **Bundled binaries are regular Git objects (not Git LFS).** The
-  `ffmpeg`/`ffprobe`, `redis-server`, `yt-dlp`, MaxMind DBs, `login-bg.mp4`,
-  etc. are committed as plain binary blobs (marked `-text -diff` in
-  `.gitattributes`) — a normal `git clone` fetches them whole, no `git lfs pull`
-  needed. A `verify_no_lfs_pointers` build gate still guards against stray legacy
-  LFS pointer stubs.
+- **Bundled binaries are regular Git objects (not Git LFS).** `redis-server`,
+  `yt-dlp`, MaxMind DBs, `login-bg.mp4`, etc. are committed as plain binary
+  blobs — a normal `git clone` fetches them whole, no `git lfs pull` needed.
+  `ffmpeg`/`ffprobe` are not in the repository: every node fetches its
+  distribution's builds from the XC_VM_FFMPEG release. A `verify_no_lfs_pointers`
+  build gate still guards against stray legacy LFS pointer stubs.
 - Outbound HTTPS from PHP must use **cURL** — `file_get_contents()` over https
   does not work in this environment.
 
@@ -202,23 +202,29 @@ reports). Key points:
 
 ## 🧪 Tests
 
-**Unit tests** (PHPUnit 10.5, config `tests/phpunit.xml.dist`, suite "Unit"):
+**Unit tests** (PHPUnit 10.5 on PHP 8.1, config `tests/phpunit.xml.dist`). They run
+on MariaDB/MySQL, as production does: PHP needs `pdo_mysql`, and a machine without a
+server gets one from `make test-db` (Docker, `127.0.0.1:3306`).
 
 ```sh
+make test-db                                                        # once per boot, if you have no MariaDB
 php tests/phpunit.phar -c tests/phpunit.xml.dist                    # all
 php tests/phpunit.phar -c tests/phpunit.xml.dist --filter SomeTest  # one
 ```
 
-> On an installed server, use the bundled interpreter instead of system PHP:
-> `/home/xc_vm/bin/php/bin/php tests/phpunit.phar ...` (see
-> `docs/en/guides/phpunit-phar.md`). On a dev machine, plain `php` is fine.
+> On an installed server, run the bundled interpreter from a copy of the deploy root,
+> never from `/home/xc_vm` itself, and add `--exclude-group skip-on-panel` (see
+> `docs/en/guides/phpunit-phar.md`).
 
-Guidelines:
+Guidelines (the full set is in `docs/en/guides/phpunit-phar.md`, "Writing tests"):
 
 - Add PHP tests under `tests/Unit/`, named after the class under test
   (e.g. `GitHubReleasesTest.php`).
 - Prefer focused tests for the file you changed over broad project-wide mocks.
 - Cover valid inputs, invalid inputs, edge cases, and side effects.
+- Build tables from production DDL (`InstallSchema::table()`, `::migration()`); write
+  any other DDL in MySQL syntax. There is no SQLite.
+- Reach code through `MAIN_HOME`, start child PHP as `PHP_BINARY`.
 - If code writes to stdout, capture it in the test so PHPUnit output stays clean.
 
 **End-to-end tests** (Playwright, in `tests/e2e/`) exercise the running panel UI:

@@ -13,6 +13,12 @@ final class VodItemImporterMatchTest extends TestCase {
 
     protected function setUp(): void {
         \XcVm\Infrastructure\Tmdb\TmdbApiService::requireLibrary();
+        // The importer reports its progress on stdout for the CLI run: not this test's output.
+        ob_start();
+    }
+
+    protected function tearDown(): void {
+        ob_end_clean();
     }
 
     private function threadData(array $rOverrides = array()): array {

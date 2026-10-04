@@ -20,8 +20,8 @@ final class NodeRelayTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `relay_down_since` int DEFAULT NULL, `relay_error` varchar(255) DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `relay_down_since` int DEFAULT NULL, `relay_error` varchar(255) DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `cluster_nodes` (`server_id`) VALUES (5)');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(self::NOW_MS);
@@ -86,6 +86,7 @@ final class NodeRelayTest extends TestCase {
 		$this->assertSame([], $this->events());
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testTheHeartbeatKeepsItAndTheSchemaHasIt(): void {
 		$rRoot = dirname(__DIR__, 2);
 		$this->assertStringContainsString("NodeRelay::record(\$rNode, \$rP['relay'] ?? null, \$rNowMs, HeartbeatService::nodeClockMs(\$rP, (int) \$rH['ts_ms']) - \$rNowMs);", (string) file_get_contents($rRoot . '/src/Domain/Cluster/ClusterApi.php'), 'since_ms is on the node\'s own clock');

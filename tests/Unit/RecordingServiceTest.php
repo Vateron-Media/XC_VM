@@ -8,9 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * RecordingService on the TestDb: scheduling validates and stores a recording,
- * deleting removes it, and both tell the recorded stream's node (R2). Under
- * SQLite, QueryHelper::verifyPostTable()'s `information_schema.columns` is an
- * attached table.
+ * deleting removes it, and both tell the recorded stream's node (R2).
  */
 final class RecordingServiceTest extends TestCase {
 
@@ -28,21 +26,11 @@ final class RecordingServiceTest extends TestCase {
 			}
 		}
 		$this->db = new TestDb();
-		if ($this->db->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite') {
-			$this->markTestSkipped('Builds its own information_schema; SQLite only.');
-		}
 		$rColumns = [];
-		foreach (array_keys(self::COLUMNS) as $rName) {
-			$rColumns[] = '`' . $rName . '` TEXT';
-		}
-		$this->db->exec('CREATE TABLE recordings (id INTEGER PRIMARY KEY AUTOINCREMENT, ' . implode(', ', $rColumns) . ');');
-		$this->db->pdo->exec("ATTACH DATABASE ':memory:' AS `information_schema`");
-		$this->db->pdo->exec('CREATE TABLE `information_schema`.`columns` (`table_schema` text, `table_name` text, `column_name` text, `column_default` text, `is_nullable` text, `data_type` text, `ordinal_position` int)');
-		$this->db->pdo->sqliteCreateFunction('DATABASE', static fn(): string => 'xc_vm', 0);
-		$rPosition = 0;
 		foreach (self::COLUMNS as $rName => $rType) {
-			$this->db->query('INSERT INTO `information_schema`.`columns` VALUES (?, ?, ?, ?, ?, ?, ?)', 'xc_vm', 'recordings', $rName, 'NULL', 'YES', $rType, ++$rPosition);
+			$rColumns[] = '`' . $rName . '` ' . ($rType === 'varchar' ? 'varchar(255)' : $rType) . ' NULL';
 		}
+		$this->db->exec('CREATE TABLE recordings (id INTEGER PRIMARY KEY AUTO_INCREMENT, ' . implode(', ', $rColumns) . ');');
 
 		RecordingService::setDb($this->db);
 		$this->globalDbBefore = $GLOBALS['db'] ?? null;

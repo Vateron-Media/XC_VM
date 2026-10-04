@@ -90,10 +90,27 @@ if (!function_exists('igbinary_unserialize')) {
 	}
 }
 
+// Child PHP processes that fake \XC_VM in an auto_prepend_file cannot start with
+// the real xcvm_core loaded (the class would already exist). On a host whose
+// php.ini loads it (the bundled PHP) hand them a copy of that ini without it;
+// elsewhere (CI) the plain binary.
+if (!function_exists('xcvm_test_child_php')) {
+	/** @return list<string> */
+	function xcvm_test_child_php(): array {
+		$ini = php_ini_loaded_file();
+		if ($ini === false || !extension_loaded('xcvm_core')) {
+			return array(PHP_BINARY);
+		}
+		$copy = __DIR__ . '/.tmp/php-no-xcvm_core.ini';
+		file_put_contents($copy, preg_replace('/^\s*(zend_)?extension\s*=.*xcvm_core.*$/m', '', (string) file_get_contents($ini)));
+		return array(PHP_BINARY, '-c', $copy);
+	}
+}
+
 require_once MAIN_HOME . 'vendor/autoload.php';
 require_once __DIR__ . '/Unit/M3uParser/ExtCustomTag.php';
 
-// Test support: in-memory SQLite harness for DB-touching repositories/services.
+// Test support: the MariaDB/MySQL harness (TestDb) for DB-touching repositories/services.
 require_once __DIR__ . '/Support/TestDb.php';
 require_once __DIR__ . '/Support/ClusterReference.php';
 require_once __DIR__ . '/Support/FakeClusterCrypto.php';
@@ -135,6 +152,10 @@ register_shutdown_function(static function () use ($ingestLockDir): void {
 // in STORAGE_PATH, which some tests define as a shared path: off for the
 // suite; a test that checks it gives it its own directory.
 \XcVm\Core\Cluster\ConnectAudit::useDir(false);
+
+// cluster:exec writes each refusal to STDERR for the agent's log, which PHPUnit
+// does not capture: the refusals the negative tests provoke go to a buffer instead.
+\XcVm\Cli\Commands\ClusterExecCommand::useErrors(fopen('php://memory', 'w+'));
 
 // The node's own store of its streams' runtime state (StreamRuntime) defaults
 // to the deploy's config/cluster/runtime/, and every stream state write with

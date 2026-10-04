@@ -14,6 +14,7 @@ XC_VM is an open-source, Xtream-Codes-style IPTV management panel (PHP 8.1+, AGP
 Everything is driven from the **repo root via the `Makefile`**. Static-analysis/style tools are `require-dev` packages and are NOT in the committed `vendor/`; install them first.
 
 ```bash
+make dev-php          # apt: system PHP 8.1 + needed extensions (adds packages.sury.org if the distro lacks php8.1); sudo
 make dev-tools        # composer install in src/ — adds PHPStan + phpcs (Slevomat) to src/vendor (do this first)
 make phpstan          # static analysis (phpstan.dist.neon, --memory-limit=2G)
 make cs               # code-style check (dry-run, fails on diff)
@@ -21,14 +22,17 @@ make cs-fix           # apply style fixes in place
 make gates            # fast PSR-4 regression gates (see below)
 make dev-clean        # prune src/vendor back to production-only (composer install --no-dev)
 
-# Tests — PHPUnit 10.5, config in tests/phpunit.xml.dist (suite "Unit", bootstrap tests/bootstrap.php)
+# Tests — PHPUnit 10.5, config in tests/phpunit.xml.dist (suite "Unit", bootstrap tests/bootstrap.php).
+# They need MariaDB/MySQL (no SQLite): XCVM_TEST_DB_DSN/_USER/_PASS, default root over /run/mysqld/mysqld.sock,
+# else 127.0.0.1:3306 — `make test-db` starts a throwaway MariaDB there in Docker.
+# On a panel host add --exclude-group skip-on-panel (docs/en/guides/phpunit-phar.md).
 php tests/phpunit.phar -c tests/phpunit.xml.dist
 php tests/phpunit.phar -c tests/phpunit.xml.dist --filter SomeTestName   # single test
 
 php -l path/to/File.php   # quick syntax check (used constantly; no DB needed)
 ```
 
-`make gates` runs three CI blockers: `check-procedural-use` (every procedural/view file must `use`-import the classes it references at the top of the file — PHP `use` is positional), `verify-lb-archive` (the load-balancer build must contain no privileged code), and `check-vendor-prod-only` (the committed `vendor/` must stay production-only).
+`make gates` runs five CI blockers: `check-procedural-use` (every procedural/view file must `use`-import the classes it references at the top of the file — PHP `use` is positional), `verify-lb-archive` (the load-balancer build must contain no privileged code), `check-vendor-prod-only` (the committed `vendor/` must stay production-only), `check-lb-settings-keys` (a node replica's settings carry only what the LB build reads, never a secret) and `check-core-cluster-refs` (every reference from `src/Core/` to `XcVm\Domain\Cluster` sits behind a `class_exists()` guard: Core ships to LBs, the cluster domain does not).
 
 ### Build / release (Makefile)
 
@@ -39,7 +43,7 @@ php -l path/to/File.php   # quick syntax check (used constantly; no DB needed)
 ## Critical constraints
 
 - **`vendor/` is committed and PRODUCTION-ONLY.** Never run `composer install` on a deploy path. To change autoload, run `composer dump-autoload` from `src/`. After changing deps, re-commit a `composer install --no-dev` vendor (and `composer.lock`).
-- **Git LFS:** `src/bin/install/database.sql`, `redis-server`, `yt-dlp`, fonts/videos, etc. are LFS objects. `ffmpeg`/`ffprobe` are not in the repo: every node fetches its distribution's builds from the XC_VM_FFMPEG release (`console.php ffmpeg`, at install and daily). Editing an LFS file is transparent (the clean filter re-stages it as an LFS object on `git add`; `git push` uploads it). A checkout without LFS materialised ships 130-byte pointer stubs — the build's `verify_no_lfs_pointers` guards against this.
+- **No Git LFS:** every file, `src/bin/install/database.sql` and the bundled binaries (`redis-server`, `yt-dlp`, MaxMind DBs, `guess`, `login-bg.mp4`) included, is a plain Git object; a normal clone fetches it whole. `ffmpeg`/`ffprobe` are not in the repo: every node fetches its distribution's builds from the XC_VM_FFMPEG release (`console.php ffmpeg`, at install and daily). The build's `verify_no_lfs_pointers` still guards against a stray legacy LFS pointer stub.
 - **Commit only when asked; never `git push`.** Leave changes uncommitted until the user asks for a commit (then Conventional Commits, English messages, grouped logically). Pushing to remote is the user's call — do not push unless explicitly told to.
 - PHP runs with **`short_open_tag=1`** (view templates use `<?`/`<?=`). The phpcs code-style ruleset **excludes** view templates, so no short-tag handling is needed there.
 

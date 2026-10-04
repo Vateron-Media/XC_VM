@@ -96,7 +96,7 @@ class ClusterExecCommand implements CommandInterface {
 		$rIn = json_decode((string) stream_get_contents(STDIN), true);
 		$rCmd = self::verify(is_array($rIn) ? $rIn : [], AgentPaths::readState(), time());
 		if (is_string($rCmd)) {
-			fwrite(STDERR, 'cluster:exec: ' . $rCmd . "\n");
+			self::fail($rCmd);
 			return 2;
 		}
 		if (($rCmd['type'] ?? '') === 'node.root') {
@@ -127,13 +127,13 @@ class ClusterExecCommand implements CommandInterface {
 	public static function handToRoot(array $rIn, int $rSeq, int $rWait = self::ROOT_WAIT): int {
 		$rInbox = RootPin::inbox();
 		if ($rSeq <= 0 || !is_dir($rInbox)) {
-			fwrite(STDERR, "cluster:exec: no root inbox (the node's root pin is not in place)\n");
+			self::fail("no root inbox (the node's root pin is not in place)");
 			return 2;
 		}
 		$rDone = $rInbox . $rSeq . '.done';
 		@unlink($rDone);
 		if (!AtomicFile::write($rInbox . $rSeq . '.json', (string) json_encode(['doc' => $rIn['doc'], 'sig' => $rIn['sig']]))) {
-			fwrite(STDERR, "cluster:exec: cannot write the root inbox\n");
+			self::fail("cannot write the root inbox");
 			return 2;
 		}
 		$rDeadline = microtime(true) + $rWait;
@@ -144,7 +144,7 @@ class ClusterExecCommand implements CommandInterface {
 				$rResult = is_array($rOut) ? (string) ($rOut['result'] ?? '') : '';
 				echo $rResult;
 				if (!is_array($rOut) || empty($rOut['ok'])) {
-					fwrite(STDERR, 'cluster:exec: ' . ($rResult !== '' ? $rResult : 'root\'s result is unreadable') . "\n");
+					self::fail($rResult !== '' ? $rResult : 'root\'s result is unreadable');
 					return 1;
 				}
 				return 0;
@@ -182,6 +182,19 @@ class ClusterExecCommand implements CommandInterface {
 	/** Tests: run stops through this instead of StreamProcess; null restores it. */
 	public static function useStopper(?callable $rStopper): void {
 		self::$rStopper = $rStopper;
+	}
+
+	/** @var resource|null where refusals go; null is STDERR */
+	private static $rErrors = null;
+
+	/** Tests: write refusals to this stream instead of STDERR; null restores it. */
+	public static function useErrors($rStream): void {
+		self::$rErrors = $rStream;
+	}
+
+	/** A refusal, for the agent's log: `cluster:exec: <why>`. */
+	private static function fail(string $rWhy): void {
+		fwrite(self::$rErrors ?? STDERR, 'cluster:exec: ' . $rWhy . "\n");
 	}
 
 	/** A typed stop or start of one stream, as `node.rpc`'s stream and vod actions ran it. */
@@ -269,7 +282,7 @@ class ClusterExecCommand implements CommandInterface {
 				// among the arguments as well would be a second answer to what runs.
 				$rAction = $rCmd['action'] ?? null;
 				if (!in_array($rAction, NodeRpc::ACTIONS, true) || array_key_exists('action', $rArgs)) {
-					fwrite(STDERR, "cluster:exec: unknown action\n");
+					self::fail("unknown action");
 					return 2;
 				}
 				(new InternalApiController())->runCommand(['action' => $rAction] + $rArgs);
@@ -304,7 +317,7 @@ class ClusterExecCommand implements CommandInterface {
 			case 'node.purge':
 				$rJobs = self::cacheJobs($rArgs['jobs'] ?? null, $rCmd['type'] === 'node.purge');
 				if ($rJobs === null) {
-					fwrite(STDERR, "cluster:exec: bad cache jobs\n");
+					self::fail("bad cache jobs");
 					return 2;
 				}
 				CacheJobs::run($rJobs);
@@ -317,7 +330,7 @@ class ClusterExecCommand implements CommandInterface {
 			case 'vod.start':
 				$rStreamID = $rArgs['stream_id'] ?? null;
 				if (!is_int($rStreamID) || $rStreamID <= 0) {
-					fwrite(STDERR, "cluster:exec: bad stream id\n");
+					self::fail("bad stream id");
 					return 2;
 				}
 				self::stopStream($rCmd['type'], $rStreamID, ($rArgs['force'] ?? false) === true);
@@ -329,7 +342,7 @@ class ClusterExecCommand implements CommandInterface {
 				$rSet = $rArgs['set'] ?? [];
 				$rFill = $rArgs['fill'] ?? [];
 				if (!self::assignable($rIDs, $rSet, $rFill)) {
-					fwrite(STDERR, "cluster:exec: bad stream assignment\n");
+					self::fail("bad stream assignment");
 					return 2;
 				}
 				echo json_encode(['result' => true, 'kept' => StreamRuntime::assign($rIDs, $rSet, $rFill)]);
@@ -347,13 +360,13 @@ class ClusterExecCommand implements CommandInterface {
 			case ArtefactStage::TYPE_FETCH:
 				$rPlaced = ArtefactStage::placeOffAir($rCmd);
 				if (is_string($rPlaced)) {
-					fwrite(STDERR, 'cluster:exec: ' . $rPlaced . "\n");
+					self::fail($rPlaced);
 					return 1;
 				}
 				echo json_encode($rPlaced);
 				return 0;
 		}
-		fwrite(STDERR, "cluster:exec: unknown command type\n");
+		self::fail("unknown command type");
 		return 2;
 	}
 }

@@ -88,6 +88,9 @@ final class ConstantsInitializerTest extends TestCase {
 	 * Only constants NOT already defined by tests/bootstrap.php are asserted
 	 * (BIN_PATH/PHP_BIN/VOD_PATH are pre-defined there and stay guarded).
 	 */
+	// skip-on-panel: PHPUnit feeds an isolated test to its child PHP on stdin, and the
+	// panel's PHP (ionCube Loader + opcache.enable_cli) segfaults on a script read from stdin.
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	#[RunInSeparateProcess]
 	public function testInitDefinesConstantsFromRoot(): void {
 		ConstantsInitializer::init('/opt/xcvm/');
@@ -99,6 +102,9 @@ final class ConstantsInitializerTest extends TestCase {
 	}
 
 	/** Isolated: STATUS_* are process-global one-shot constants. */
+	// skip-on-panel: PHPUnit feeds an isolated test to its child PHP on stdin, and the
+	// panel's PHP (ionCube Loader + opcache.enable_cli) segfaults on a script read from stdin.
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	#[RunInSeparateProcess]
 	public function testInitStatusDefinesStatusConstants(): void {
 		ConstantsInitializer::initStatus();

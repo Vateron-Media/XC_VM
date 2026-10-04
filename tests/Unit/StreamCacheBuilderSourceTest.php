@@ -84,7 +84,7 @@ final class StreamCacheBuilderSourceTest extends TestCase {
 	}
 
 	public function testNoNodeSideCodeQueriesStreamOptionsDirectly(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		foreach (['Domain/Stream/StreamProcess.php', 'Public/stream/live.php', 'Cli/Commands/ProxyCommand.php', 'Cli/Commands/MonitorCommand.php', 'Cli/Commands/ScannerCommand.php'] as $rFile) {
 			$this->assertStringNotContainsString('`streams_options` t1', (string) file_get_contents($rRoot . $rFile), $rFile);
 		}

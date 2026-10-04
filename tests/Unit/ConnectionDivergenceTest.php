@@ -17,8 +17,7 @@ use XcVm\Infrastructure\Redis\RedisManager;
 
 /**
  * The legacy writers' database: every statement is recorded, and a SELECT
- * starting with a key of $rAnswers gets those rows (MySQL's ON DUPLICATE KEY
- * is not SQLite's).
+ * starting with a key of $rAnswers gets those rows.
  */
 final class DivergenceWriterDb extends DatabaseHandler {
 	/** @var list<string> */
@@ -115,13 +114,13 @@ final class ConnectionDivergenceTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec((string) preg_replace(['/^--.*$/m', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['', '', '', ');'], (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql')));
+		$this->rDb->exec((string) (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql'));
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `features` varchar(255) DEFAULT NULL');
-		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY, `stream_id` int, `server_id` int, `bitrate` int)');
-		$this->rDb->exec('CREATE TABLE `lines_divergence` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` varchar(32) UNIQUE, `divergence` float)');
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/install/database.sql');
+		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `bitrate` int)');
+		$this->rDb->exec('CREATE TABLE `lines_divergence` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` varchar(32) UNIQUE, `divergence` float)');
+		$rSql = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		preg_match('/CREATE TABLE IF NOT EXISTS `lines_live` \(.*?\) ENGINE=[^;]*;/s', $rSql, $rM);
-		$this->rDb->exec((string) preg_replace(['/`activity_id` int\(11\) NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`activity_id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)( USING BTREE)?/', '/ COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'], $rM[0]));
+		$this->rDb->exec((string) $rM[0]);
 		// Stream 100 runs at 1000 kbps on node 5 (115 KiB/s expected) and 4000 on node 6.
 		$this->rDb->query('INSERT INTO `streams_servers` (`stream_id`, `server_id`, `bitrate`) VALUES (100, 5, 1000), (101, 5, NULL), (100, 6, 4000)');
 		DatabaseFactory::set($this->rDb);

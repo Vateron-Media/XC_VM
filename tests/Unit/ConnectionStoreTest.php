@@ -57,9 +57,9 @@ final class ConnectionStoreTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/install/database.sql');
+		$rSql = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		preg_match('/CREATE TABLE IF NOT EXISTS `lines_live` \(.*?\) ENGINE=[^;]*;/s', $rSql, $rM);
-		$rDdl = (string) preg_replace(['/`activity_id` int\(11\) NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`activity_id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)( USING BTREE)?/', '/ COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'], $rM[0]);
+		$rDdl = (string) $rM[0];
 		$this->rDb->exec($rDdl);
 		DatabaseFactory::set($this->rDb);
 	}
@@ -260,7 +260,7 @@ final class ConnectionStoreTest extends TestCase {
 		@mkdir(LOGS_TMP_PATH, 0777, true);
 		@unlink(LOGS_TMP_PATH . 'activity');
 		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 1]);
-		$this->rDb->exec('CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int, `time` int, `custom_data` text, `cache` tinyint DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int, `time` int, `custom_data` text, `cache` tinyint DEFAULT 0)');
 		$rRec = ['user_id' => 7, 'stream_id' => 100, 'user_ip' => '10.0.0.9', 'container' => 'hls', 'pid' => null, 'uuid' => 'mmmm', 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 1];
 		$this->assertTrue(ConnectionIngest::upsert(5, $rRec));
 		$rEnded = $this->row('mmmm');
@@ -355,8 +355,8 @@ final class ConnectionStoreTest extends TestCase {
 		// The same values again change nothing and are no failure: the row is there.
 		$this->assertTrue(ConnectionIngest::upsert(5, ['hls_end' => 0] + $rRec, true));
 
-		// MariaDB counts changed rows, so the same values again report none (SQLite
-		// counts matched ones): the row is then looked for, found, and the event stands.
+		// MariaDB counts changed rows, so the same values again report none: the row
+		// is then looked for, found, and the event stands.
 		$rUnchanged = new class ($this->rDb) extends DatabaseHandler {
 			private bool $rAfterUpdate = false;
 

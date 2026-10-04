@@ -15,7 +15,7 @@ use XcVm\Tests\Support\FakeClusterCrypto;
  * Phase 9), so the node's extension judges its lease itself.
  *
  * The node's root (NodeCorePin, `node.root pin_core`) against a fake
- * extension; MAIN (CorePins) against SQLite: which nodes are offered, when,
+ * extension; MAIN (CorePins) against the TestDb: which nodes are offered, when,
  * with the pin or the question for the install_id, and what an ack records.
  */
 final class CorePinTest extends TestCase {
@@ -71,10 +71,10 @@ final class CorePinTest extends TestCase {
 		}, $this->rDir);
 
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		$this->rDb->exec('CREATE TABLE `cluster_meta` (`name` varchar(64) PRIMARY KEY, `value` text, `updated_at` int)');
 		$this->rDb->exec('CREATE TABLE `cluster_commands` (`server_id` int, `cmd_id` char(32), `type` varchar(32), `payload` text)');
-		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `node_uuid` char(36), `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 1, `flows` int NOT NULL DEFAULT 0, `root_ready` int NOT NULL DEFAULT 1, `gen` int NOT NULL DEFAULT 1, `install_id` varchar(64) DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
+		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `node_uuid` char(36), `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 1, `flows` int NOT NULL DEFAULT 0, `root_ready` int NOT NULL DEFAULT 1, `gen` int NOT NULL DEFAULT 1, `install_id` varchar(64) DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
 		foreach ([7, 8] as $rSid) {
 			$this->rDb->query('INSERT INTO `cluster_nodes` (`server_id`, `node_uuid`, `flows`) VALUES (?, ?, ?)', $rSid, sprintf('0f8fad5b-d9cb-469f-a165-70867728950%d', $rSid), 2);
 		}
@@ -115,7 +115,7 @@ final class CorePinTest extends TestCase {
 	public function testTheActionIsCataloguedClusterOnlyAndRunByRoot(): void {
 		$this->assertContains(NodeCorePin::ACTION, NodeActions::ROOT_ACTIONS);
 		$this->assertContains(NodeCorePin::ACTION, NodeActions::CLUSTER_ONLY);
-		$rSrc = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/RootSignalsCronJob.php');
+		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		$this->assertStringContainsString("case 'pin_core':", $rSrc);
 		$this->assertStringContainsString('NodeCorePin::run($rData, RootPin::read())', $rSrc);
 	}

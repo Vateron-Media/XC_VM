@@ -43,7 +43,7 @@ final class ClusterEnrolCodeTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '031_create_cluster_enrolment', '032_create_cluster_audit'] as $rName) {
-			$this->rDb->exec($this->ddl((string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql')));
+			$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql'));
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_node_epochs` ADD COLUMN `agent_eph_pub` binary(32) DEFAULT NULL');
 		$this->rDb->exec('ALTER TABLE `cluster_enrol_requests` ADD COLUMN `agent_eph_pub` binary(32) DEFAULT NULL');
@@ -64,14 +64,6 @@ final class ClusterEnrolCodeTest extends TestCase {
 		SettingsManager::set([]);
 	}
 
-	private function ddl(string $rSql): string {
-		$rSql = (string) preg_replace('/^--.*$/m', '', $rSql);
-		$rSql = (string) preg_replace('/`id` (bigint\(20\) unsigned|int\(11\)) NOT NULL AUTO_INCREMENT/', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', $rSql);
-		$rSql = (string) preg_replace('/,\s*PRIMARY KEY \(`id`\)/', '', $rSql);
-		$rSql = (string) preg_replace('/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '', $rSql);
-		$rSql = (string) preg_replace('/ unsigned| COLLATE \w+/', '', $rSql);
-		return (string) preg_replace('/\) ENGINE=[^;]*;/', ');', $rSql);
-	}
 
 	// ── The test node ────────────────────────────────────────────────────
 

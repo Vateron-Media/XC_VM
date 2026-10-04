@@ -96,7 +96,7 @@ final class InstallCredentialsTest extends TestCase {
 	}
 
 	public function testNothingWritesThePasswordToMetadataOrArgv(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		foreach (['Cli/Commands/LbInstallFlow.php', 'Cli/Commands/ProxyInstallFlow.php'] as $rFile) {
 			$this->assertStringNotContainsString("'root_password' =>", (string) file_get_contents($rRoot . $rFile), $rFile);
 		}

@@ -30,7 +30,7 @@ final class ClusterLockdownTest extends TestCase {
 		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` int, `mode` int, `state` varchar(16) DEFAULT 'active')");
 		$this->rDb->exec("CREATE TABLE `settings` (`cluster_db_allowlist` int DEFAULT 0, `cluster_db_allowlist_extra` varchar(1024) DEFAULT '')");
 		$this->rDb->exec('CREATE TABLE `cluster_meta` (`name` varchar(64) PRIMARY KEY, `value` text, `updated_at` int)');
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		$this->rDb->exec("INSERT INTO `settings` VALUES (0, '')");
 		$this->rDb->exec("INSERT INTO `servers` (`id`, `server_type`, `is_main`, `server_ip`, `private_ip`) VALUES (1, 0, 1, '203.0.113.1', '10.0.0.1'), (2, 0, 0, '203.0.113.2', ''), (3, 0, 0, '203.0.113.3', '')");
 		$this->rDb->exec("INSERT INTO `cluster_nodes` (`server_id`, `mode`) VALUES (2, 1), (3, 2)");
@@ -154,8 +154,9 @@ final class ClusterLockdownTest extends TestCase {
 	}
 
 	/** Manual only: no cron, daemon or request path runs it. */
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testNothingButTheOperatorRunsIt(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src/';
+		$rSrc = MAIN_HOME;
 		$rHits = [];
 		foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($rSrc, \FilesystemIterator::SKIP_DOTS)) as $rFile) {
 			if (!str_ends_with($rFile->getPathname(), '.php') || str_contains($rFile->getPathname(), '/vendor/')) {

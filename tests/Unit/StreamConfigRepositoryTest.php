@@ -4,7 +4,7 @@ use XcVm\Domain\Stream\StreamConfigRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Sample of the SQLite test harness: exercises a real repository against an
+ * Sample of the TestDb harness: exercises a real repository against an
  * in-memory database injected via setDb().
  *
  * @covers StreamConfigRepository
@@ -16,10 +16,10 @@ final class StreamConfigRepositoryTest extends TestCase {
 	protected function setUp(): void {
 		$this->db = new TestDb();
 		$this->db->exec(
-			'CREATE TABLE profiles (profile_id INTEGER PRIMARY KEY, profile_name TEXT);
-			 CREATE TABLE streams (id INTEGER PRIMARY KEY, transcode_profile_id INTEGER DEFAULT 0);
-			 CREATE TABLE watch_folders (id INTEGER PRIMARY KEY, transcode_profile_id INTEGER DEFAULT 0);
-			 CREATE TABLE streams_arguments (id INTEGER PRIMARY KEY, argument_key TEXT, argument_cmd TEXT);
+			'CREATE TABLE profiles (profile_id INTEGER PRIMARY KEY AUTO_INCREMENT, profile_name TEXT);
+			 CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, transcode_profile_id INTEGER DEFAULT 0);
+			 CREATE TABLE watch_folders (id INTEGER PRIMARY KEY AUTO_INCREMENT, transcode_profile_id INTEGER DEFAULT 0);
+			 CREATE TABLE streams_arguments (id INTEGER PRIMARY KEY AUTO_INCREMENT, argument_key TEXT, argument_cmd TEXT);
 
 			 INSERT INTO profiles (profile_id, profile_name) VALUES (1, "CPU"), (2, "GPU");
 			 INSERT INTO streams (id, transcode_profile_id) VALUES (10, 2), (11, 1);

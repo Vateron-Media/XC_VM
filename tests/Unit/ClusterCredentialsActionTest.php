@@ -25,9 +25,9 @@ final class ClusterCredentialsActionTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		$this->rDb->exec('CREATE TABLE `cluster_meta` (`name` varchar(64) PRIMARY KEY, `value` text, `updated_at` int)');
-		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `node_uuid` char(36), `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 2, `flows` int NOT NULL DEFAULT 2, `root_ready` int NOT NULL DEFAULT 1, `gen` int NOT NULL DEFAULT 1, `install_id` varchar(64) DEFAULT NULL, `db_revoked_at` int DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
+		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `node_uuid` char(36), `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 2, `flows` int NOT NULL DEFAULT 2, `root_ready` int NOT NULL DEFAULT 1, `gen` int NOT NULL DEFAULT 1, `install_id` varchar(64) DEFAULT NULL, `db_revoked_at` int DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
 		$this->rDb->exec("INSERT INTO `cluster_nodes` (`server_id`, `node_uuid`) VALUES (7, '0f8fad5b-d9cb-469f-a165-70867728950e')");
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(1800000000000);
@@ -66,8 +66,12 @@ final class ClusterCredentialsActionTest extends TestCase {
 		$this->rDb->exec('UPDATE `cluster_nodes` SET `mode` = 2');
 		$this->assertSame(['type' => 'warning', 'message' => 'cluster_strip_not_queued'], $this->act('strip_credentials'));
 		$this->assertSame(['node.strip_credentials admin:3'], $this->audit());
-		$this->rDb->query('SELECT COUNT(*) AS `n` FROM `sqlite_master` WHERE `name` = ?', 'signals');
-		$this->assertSame(0, (int) $this->rDb->get_row()['n'], 'no signals row: the table was never needed');
+		try {
+			$this->rDb->query('SELECT 1 FROM `signals`');
+			$this->fail('no signals row: the table was never needed');
+		} catch (\PDOException $rE) {
+			$this->assertStringContainsStringIgnoringCase('signals', $rE->getMessage());
+		}
 	}
 
 	public function testThePagePinsTheCoreOnlyForARootReadyNode(): void {
@@ -126,7 +130,7 @@ final class ClusterCredentialsActionTest extends TestCase {
 	}
 
 	public function testThePageHasTheButtonsTheConfirmationAndTheStrings(): void {
-		$rView = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/Views/admin/cluster_nodes.php');
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/cluster_nodes.php');
 		$this->assertStringContainsString('value="strip_credentials"', $rView);
 		$this->assertStringContainsString('js-cluster-strip', $rView);
 		$this->assertStringContainsString("cluster_strip_credentials_confirm", $rView, 'the page asks first');
@@ -136,12 +140,12 @@ final class ClusterCredentialsActionTest extends TestCase {
 			'cluster_db_revoked', 'cluster_db_revoked_help', 'cluster_config_needs_install_id', 'cluster_config_no_extension', 'cluster_config_not_queued'];
 		// en.ini only: the other languages are generated from it (make lang-translate),
 		// and a key they miss falls back to English.
-		$rIni = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Localization/lang/en.ini');
+		$rIni = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 		foreach ($rKeys as $rKey) {
 			$this->assertMatchesRegularExpression('/^' . $rKey . ' = "[^"]+"$/m', $rIni, 'en.ini: ' . $rKey);
 		}
 		foreach (ClusterStripCredentialsCommand::MESSAGES as $rKey => $rText) {
-			$this->assertMatchesRegularExpression('/^' . $rKey . ' = /m', (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Localization/lang/en.ini'), $rKey);
+			$this->assertMatchesRegularExpression('/^' . $rKey . ' = /m', (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini'), $rKey);
 		}
 	}
 }

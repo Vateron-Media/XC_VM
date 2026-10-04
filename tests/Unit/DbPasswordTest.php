@@ -42,9 +42,9 @@ final class DbPasswordTest extends TestCase {
 			define('SERVER_ID', 1);
 		}
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `server_name` varchar(255), `server_ip` varchar(255), `server_type` int DEFAULT 0, `is_main` int DEFAULT 0)');
-		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `node_uuid` char(36), `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 1, `flows` int NOT NULL DEFAULT 2, `root_ready` int NOT NULL DEFAULT 1, `gen` int NOT NULL DEFAULT 1, `node_box_pub` varbinary(32) DEFAULT 'box-pub', `install_id` varchar(64) DEFAULT NULL, `db_revoked_at` int DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_name` varchar(255), `server_ip` varchar(255), `server_type` int DEFAULT 0, `is_main` int DEFAULT 0)');
+		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `node_uuid` char(36), `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 1, `flows` int NOT NULL DEFAULT 2, `root_ready` int NOT NULL DEFAULT 1, `gen` int NOT NULL DEFAULT 1, `node_box_pub` varbinary(32) DEFAULT 'box-pub', `install_id` varchar(64) DEFAULT NULL, `db_revoked_at` int DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
 		$this->rDb->query("INSERT INTO `servers` (`id`, `server_name`, `server_ip`, `is_main`) VALUES (?, 'main', '10.0.0.1', 1)", (int) SERVER_ID);
 		foreach ([11 => 'sealed', 12 => 'mode2', 13 => 'revoked', 14 => 'no-root', 15 => 'no-box', 16 => 'legacy'] as $rSid => $rName) {
 			$this->rDb->query('INSERT INTO `servers` (`id`, `server_name`, `server_ip`) VALUES (?, ?, ?)', $rSid, $rName, '10.0.0.' . $rSid);
@@ -265,6 +265,7 @@ final class DbPasswordTest extends TestCase {
 		$this->assertSame([], $rCalls);
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testOnlyTheNodeCommandShipsOnALoadBalancer(): void {
 		$rRoot = dirname(__DIR__, 2);
 		$rMake = (string) file_get_contents($rRoot . '/Makefile');

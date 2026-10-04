@@ -40,7 +40,7 @@ final class ServerRepositoryPhpPidsTest extends TestCase {
 
 		$this->db = new TestDb();
 		$this->db->exec(
-			'CREATE TABLE servers (id INTEGER PRIMARY KEY, server_type INTEGER, is_main INTEGER, enabled INTEGER, status INTEGER, last_check_ago INTEGER, parent_id TEXT, domain_name TEXT, server_ip TEXT, private_ip TEXT, enable_https INTEGER, http_broadcast_port INTEGER, https_broadcast_port INTEGER, rtmp_port INTEGER, geoip_countries TEXT, isp_names TEXT, watchdog_data TEXT, php_pids TEXT, `order` INTEGER);'
+			'CREATE TABLE servers (id INTEGER PRIMARY KEY AUTO_INCREMENT, server_type INTEGER, is_main INTEGER, enabled INTEGER, status INTEGER, last_check_ago INTEGER, parent_id TEXT, domain_name TEXT, server_ip TEXT, private_ip TEXT, enable_https INTEGER, http_broadcast_port INTEGER, https_broadcast_port INTEGER, rtmp_port INTEGER, geoip_countries TEXT, isp_names TEXT, watchdog_data TEXT, php_pids TEXT, `order` INTEGER);'
 		);
 		$this->db->query(
 			'INSERT INTO servers (id, server_type, is_main, enabled, status, last_check_ago, parent_id, domain_name, server_ip, private_ip, enable_https, http_broadcast_port, https_broadcast_port, rtmp_port, geoip_countries, isp_names, watchdog_data, php_pids, `order`) VALUES

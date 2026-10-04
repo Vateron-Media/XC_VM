@@ -21,7 +21,7 @@ final class DaemonLoopTest extends TestCase {
 	public function testNoDaemonLoopEndsWithAnUnconditionalBreak(): void {
 		$rChecked = 0;
 
-		foreach (glob(dirname(__DIR__, 2) . '/src/Cli/Commands/*Command.php') ?: [] as $rFile) {
+		foreach (glob(MAIN_HOME . 'Cli/Commands/*Command.php') ?: [] as $rFile) {
 			$rLines = file($rFile) ?: [];
 			if (!str_contains(implode('', $rLines), 'restartDaemon(')) {
 				continue;

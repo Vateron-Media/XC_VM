@@ -26,7 +26,7 @@ final class DbAllowlistTest extends TestCase {
 		$this->rDb->exec('CREATE TABLE `servers` (`id` int, `server_type` int, `is_main` int, `server_ip` varchar(255), `private_ip` varchar(255), `proxy_signed` int DEFAULT 0)');
 		$this->rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` int, `mode` int)');
 		$this->rDb->exec("CREATE TABLE `settings` (`cluster_db_allowlist` int DEFAULT 0, `cluster_db_allowlist_extra` varchar(1024) DEFAULT '')");
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		$this->rDb->exec("INSERT INTO `settings` VALUES (0, '')");
 		$this->rDb->exec("INSERT INTO `servers` (`id`, `server_type`, `is_main`, `server_ip`, `private_ip`) VALUES (1, 0, 1, '203.0.113.1', '10.0.0.1'), (2, 0, 0, '203.0.113.2', ''), (3, 0, 0, '203.0.113.3', '10.0.0.3'), (4, 1, 0, '2001:db8::4', NULL), (5, 0, 0, 'lb5.example', '')");
 		$this->rDb->exec('INSERT INTO `cluster_nodes` VALUES (2, 1), (3, 2)');
@@ -151,7 +151,7 @@ final class DbAllowlistTest extends TestCase {
 			$this->markTestSkipped('XCVM_TEST_NETNS=1 runs this against the real iptables in a network namespace');
 		}
 		$rScript = tempnam(sys_get_temp_dir(), 'netns') . '.php';
-		file_put_contents($rScript, '<?php require ' . var_export(dirname(__DIR__, 2) . '/src/vendor/autoload.php', true) . ';
+		file_put_contents($rScript, '<?php require ' . var_export(MAIN_HOME . 'vendor/autoload.php', true) . ';
 use XcVm\Domain\Cluster\DbAllowlist;
 $a = new DbAllowlist();
 $w = [4 => ["10.0.0.0/8", "203.0.113.2/32"], 6 => ["2001:db8::4/128"]];

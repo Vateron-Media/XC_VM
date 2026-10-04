@@ -21,7 +21,7 @@ final class CategoryTemplateApplyCustomDataTest extends TestCase {
 		$this->db = new TestDb();
 		$this->db->exec(
 			'CREATE TABLE `category_template_items` (
-				`id` INTEGER PRIMARY KEY,
+				`id` INTEGER PRIMARY KEY AUTO_INCREMENT,
 				`template_id` INTEGER,
 				`category_type` TEXT,
 				`category_id` INTEGER,

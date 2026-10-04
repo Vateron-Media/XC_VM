@@ -6,8 +6,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * The TMDb genre → category/bouquet mapping (`watch_categories`), on the
  * TestDb: read per type, saved from the Settings → VOD Import form, and
- * cleared when its category is deleted. JSON_CONTAINS is a PHP function
- * under SQLite.
+ * cleared when its category is deleted.
  */
 final class CategoryServiceGenreMapTest extends TestCase {
 
@@ -15,11 +14,7 @@ final class CategoryServiceGenreMapTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->db = new TestDb();
-		if ($this->db->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite') {
-			$this->markTestSkipped('Defines JSON_CONTAINS itself; SQLite only.');
-		}
-		$this->db->pdo->sqliteCreateFunction('JSON_CONTAINS', static fn($rJson, $rValue): int => in_array((int) $rValue, (array) json_decode((string) $rJson, true)) ? 1 : 0, -1);
-		$this->db->exec('CREATE TABLE watch_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, type INTEGER, genre_id INTEGER, genre TEXT, category_id INTEGER, bouquets TEXT);');
+		$this->db->exec('CREATE TABLE watch_categories (id INTEGER PRIMARY KEY AUTO_INCREMENT, type INTEGER, genre_id INTEGER, genre TEXT, category_id INTEGER, bouquets TEXT);');
 		$this->db->exec("INSERT INTO watch_categories (id, type, genre_id, genre, category_id, bouquets) VALUES (1, 1, 28, 'Action', 0, '[]'), (2, 2, 28, 'Action', 0, '[]'), (3, 1, 35, 'Comedy', 0, '[]'), (4, 3, 28, 'Plex Action', 0, '[]');");
 		CategoryService::setDb($this->db);
 	}
@@ -45,10 +40,10 @@ final class CategoryServiceGenreMapTest extends TestCase {
 	}
 
 	public function testDeletingACategoryClearsTheGenresMappedToIt(): void {
-		$this->db->exec('CREATE TABLE streams_categories (id INTEGER PRIMARY KEY, category_name TEXT);');
-		$this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY, category_id TEXT);');
-		$this->db->exec('CREATE TABLE streams_series (id INTEGER PRIMARY KEY, category_id TEXT);');
-		$this->db->exec('CREATE TABLE watch_folders (id INTEGER PRIMARY KEY, category_id INTEGER, fb_category_id INTEGER);');
+		$this->db->exec('CREATE TABLE streams_categories (id INTEGER PRIMARY KEY AUTO_INCREMENT, category_name TEXT);');
+		$this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, category_id TEXT);');
+		$this->db->exec('CREATE TABLE streams_series (id INTEGER PRIMARY KEY AUTO_INCREMENT, category_id TEXT);');
+		$this->db->exec('CREATE TABLE watch_folders (id INTEGER PRIMARY KEY AUTO_INCREMENT, category_id INTEGER, fb_category_id INTEGER);');
 		$this->db->exec("INSERT INTO streams_categories (id, category_name) VALUES (5, 'Action'), (6, 'Comedy');");
 		$this->db->exec('UPDATE watch_categories SET category_id = 5 WHERE id IN (1, 2);');
 		$this->db->exec('UPDATE watch_categories SET category_id = 6 WHERE id = 3;');

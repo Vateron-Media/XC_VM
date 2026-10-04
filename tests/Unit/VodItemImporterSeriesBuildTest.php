@@ -21,8 +21,8 @@ final class VodItemImporterSeriesBuildTest extends TestCase {
 
     protected function setUp(): void {
         $this->db = new TestDb();
-        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTOINCREMENT, `order` INTEGER);');
-        $this->db->exec('CREATE TABLE streams_series (id INTEGER PRIMARY KEY AUTOINCREMENT, tmdb_id INTEGER, title TEXT, category_id TEXT, episode_run_time INTEGER, cover TEXT, cover_big TEXT, genre TEXT, plot TEXT, cast TEXT, rating REAL, director TEXT, release_date TEXT, last_modified INTEGER, seasons TEXT, backdrop_path TEXT, youtube_trailer TEXT, year INTEGER, tmdb_language TEXT);');
+        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, `order` INTEGER);');
+        $this->db->exec('CREATE TABLE streams_series (id INTEGER PRIMARY KEY AUTO_INCREMENT, tmdb_id INTEGER, title TEXT, category_id TEXT, episode_run_time INTEGER, cover TEXT, cover_big TEXT, genre TEXT, plot TEXT, cast TEXT, rating REAL, director TEXT, release_date TEXT, last_modified INTEGER, seasons TEXT, backdrop_path TEXT, youtube_trailer TEXT, year INTEGER, tmdb_language TEXT);');
         if (!defined('SERVER_ID')) {
             define('SERVER_ID', 1);
         }

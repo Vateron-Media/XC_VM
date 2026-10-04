@@ -16,15 +16,18 @@ final class VodItemImporterUpgradeTest extends TestCase {
 
     protected function setUp(): void {
         $this->db = new TestDb();
-        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_source TEXT, target_container TEXT);');
+        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, stream_source TEXT, target_container TEXT);');
         $this->db->exec('CREATE TABLE streams_servers (stream_id INTEGER, server_id INTEGER, bitrate INTEGER, current_source TEXT, to_analyze INTEGER, pid INTEGER, stream_started INTEGER, stream_info TEXT, compatible INTEGER, video_codec TEXT, audio_codec TEXT, resolution TEXT, stream_status INTEGER);');
         if (!defined('SERVER_ID')) {
             define('SERVER_ID', 1);
         }
         VodItemImporter::setDb($this->db);
+        // The importer reports its progress on stdout for the CLI run: not this test's output.
+        ob_start();
     }
 
     protected function tearDown(): void {
+        ob_end_clean();
         foreach ($this->tmpFiles as $rPath) {
             @unlink($rPath);
         }

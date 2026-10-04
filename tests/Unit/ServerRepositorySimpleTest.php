@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
  * $rPermissions global is still null. A strict `array $rPermissions` hint made
  * that a fatal TypeError at boot; the parameter must accept null (the methods
  * only read it via isset()). Also covers the online filter and reseller name
- * masking. Driven against the SQLite TestDb via setDb().
+ * masking. Driven against the TestDb via setDb().
  */
 final class ServerRepositorySimpleTest extends TestCase {
 
@@ -21,7 +21,7 @@ final class ServerRepositorySimpleTest extends TestCase {
 		$this->db = new TestDb();
 		$now = time();
 		$this->db->exec(
-			'CREATE TABLE servers (id INTEGER PRIMARY KEY, server_type INTEGER, status INTEGER, last_check_ago INTEGER, is_main INTEGER, `order` INTEGER, server_name TEXT);'
+			'CREATE TABLE servers (id INTEGER PRIMARY KEY AUTO_INCREMENT, server_type INTEGER, status INTEGER, last_check_ago INTEGER, is_main INTEGER, `order` INTEGER, server_name TEXT);'
 		);
 		$this->db->query(
 			'INSERT INTO servers (id, server_type, status, last_check_ago, is_main, `order`, server_name) VALUES

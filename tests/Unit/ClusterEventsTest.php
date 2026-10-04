@@ -29,11 +29,11 @@ final class ClusterEventsTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec((string) preg_replace(['/^--.*$/m', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['', '', '', ');'], (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql')));
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY, `stream_id` int, `server_id` int, `pid` int, `stream_status` int, `current_source` text, `on_demand` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `streams_logs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `stream_id` int, `server_id` int, `action` varchar(500), `source` varchar(1024), `date` int)');
-		$this->rDb->exec('CREATE TABLE `lines_logs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `stream_id` int, `user_id` int, `client_status` varchar(255), `query_string` text, `user_agent` text, `ip` varchar(64), `extra_data` text, `date` int)');
+		$this->rDb->exec((string) (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql'));
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `pid` int, `stream_status` int, `current_source` text, `on_demand` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `streams_logs` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `action` varchar(500), `source` varchar(1024), `date` int)');
+		$this->rDb->exec('CREATE TABLE `lines_logs` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `user_id` int, `client_status` varchar(255), `query_string` text, `user_agent` text, `ip` varchar(64), `extra_data` text, `date` int)');
 		$this->rDb->query('INSERT INTO `streams_servers` (`server_stream_id`, `stream_id`, `server_id`, `pid`, `stream_status`) VALUES (11, 100, 5, 0, 0), (12, 100, 6, 0, 0)');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(1800000000000);
@@ -188,7 +188,7 @@ final class ClusterEventsTest extends TestCase {
 		if (!defined('SERVER_ID')) {
 			define('SERVER_ID', 5);
 		}
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `governor` text)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `governor` text)');
 		$this->rDb->query('INSERT INTO `servers` (`id`, `governor`) VALUES (?, ?)', SERVER_ID, 'old');
 		$this->modeTwo(255, EventSpool::STALE_AFTER + 30);
 		$this->assertFalse(NodeStateSink::state(['governor' => 'new'], $this->rDb), 'the agent stopped');
@@ -261,7 +261,7 @@ final class ClusterEventsTest extends TestCase {
 	 * newest date is cron:root_mysql's watermark), redacted.
 	 */
 	public function testMainKeepsASystemLogLineAsRootsOnTheNode(): void {
-		$this->rDb->exec('CREATE TABLE `mysql_syslog` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `type` varchar(50), `error` text, `username` varchar(64), `ip` varchar(64), `database` varchar(64), `date` int, `server_id` int DEFAULT 1)');
+		$this->rDb->exec('CREATE TABLE `mysql_syslog` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `type` varchar(50), `error` text, `username` varchar(64), `ip` varchar(64), `database` varchar(64), `date` int, `server_id` int DEFAULT 1)');
 		$rLine = static fn(array $rRow): array => ['type' => 'log.syslog', 'd' => ['rows' => [$rRow]]];
 		$rOut = EventIngest::ingest($this->node(), 'p1', 1, [
 			$rLine(['server_id' => 99, 'type' => 'REBOOT', 'error' => 'System rebooted on request.', 'username' => 'root', 'ip' => 'localhost', 'database' => null, 'date' => 1799999000]),
@@ -335,8 +335,8 @@ final class ClusterEventsTest extends TestCase {
 	}
 
 	public function testMainRecordsABlockButNeverOneOfTheClustersOwn(): void {
-		$this->rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `ip` varchar(39) UNIQUE, `notes` text, `date` int)');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `server_ip` varchar(64), `private_ip` varchar(64), `whitelist_ips` text)');
+		$this->rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(39) UNIQUE, `notes` text, `date` int)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_ip` varchar(64), `private_ip` varchar(64), `whitelist_ips` text)');
 		$this->rDb->exec("INSERT INTO `servers` VALUES (1, '198.51.100.1', '10.0.0.1', '[\"192.0.2.7\"]'), (5, '198.51.100.5', NULL, NULL)");
 		SettingsManager::set(['allowed_ips_admin' => '192.0.2.50, 192.0.2.51']);
 		NodeRegistry::update(5, ['flows' => NodeRegistry::FLOW_CONFIG]);
@@ -377,7 +377,7 @@ final class ClusterEventsTest extends TestCase {
 	 * an install state MAIN set is never the node's to leave.
 	 */
 	public function testANodeReportsItsUpdateInItsOwnStatusOnly(): void {
-		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `status` int DEFAULT 1, `certbot_ssl` text)");
+		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `status` int DEFAULT 1, `certbot_ssl` text)");
 		$this->rDb->exec("INSERT INTO `servers` (`id`, `status`) VALUES (5, 1), (6, 1)");
 		NodeRegistry::update(5, ['flows' => NodeRegistry::FLOW_TELEMETRY]);
 		$rStatus = fn(): array => array_map('intval', array_column($this->rows('SELECT `status` FROM `servers` ORDER BY `id`'), 'status'));
@@ -399,13 +399,13 @@ final class ClusterEventsTest extends TestCase {
 		$this->assertSame([['node.state', ['fields' => ['status' => 5]]]], array_map(static fn($e) => [$e['type'], $e['d']], $this->spooled('p0')));
 
 		// The update reports through it, so a node in mode 2 can be updated.
-		$rUpdate = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/UpdateCommand.php');
+		$rUpdate = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/UpdateCommand.php');
 		$this->assertStringNotContainsString('SET `status`', $rUpdate);
 		$this->assertSame(3, substr_count($rUpdate, 'NodeStateSink::status('));
 	}
 
 	public function testMainWritesOnlyTheNodesOwnRowAndItsColumns(): void {
-		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `server_ip` varchar(64), `status` int DEFAULT 1, `whitelist_ips` text, `certbot_ssl` text, `governor` text, `sysctl` text, `ping` int DEFAULT 0, `xc_vm_version` varchar(50), `interfaces` text, `time_offset` int DEFAULT 0)");
+		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_ip` varchar(64), `status` int DEFAULT 1, `whitelist_ips` text, `certbot_ssl` text, `governor` text, `sysctl` text, `ping` int DEFAULT 0, `xc_vm_version` varchar(50), `interfaces` text, `time_offset` int DEFAULT 0)");
 		$this->rDb->exec("INSERT INTO `servers` (`id`, `server_ip`) VALUES (5, '198.51.100.5'), (6, '198.51.100.6')");
 		NodeRegistry::update(5, ['flows' => NodeRegistry::FLOW_TELEMETRY, 'clock_offset_ms' => -2600]);
 		$rOut = EventIngest::ingest($this->node(), 'p0', 1, [

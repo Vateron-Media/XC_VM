@@ -105,7 +105,7 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 		$this->rFixture->node($rSettings);
 		$rNode = json_decode((string) file_get_contents($this->rFixture->dir() . 'node.json'), true)['data'];
 		$this->rFixture->whole('node', ['enable_https' => 1, 'domain_name' => 'node.example,192.0.2.5'] + $rNode);
-		[$rCode, $rOut] = $this->child(['cluster:apply', '--from-disk'], dirname(__DIR__, 2) . '/src/console.php');
+		[$rCode, $rOut] = $this->child(['cluster:apply', '--from-disk'], MAIN_HOME . 'console.php');
 		$this->assertSame(0, $rCode, $rOut);
 		@unlink($this->rHome . 'commands.log');
 	}
@@ -141,8 +141,8 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 		@unlink($this->rHome . 'connects.log');
 		$rIn = $this->rHome . 'stdin';
 		file_put_contents($rIn, $rStdin ?? '');
-		$rCommand = array_merge([PHP_BINARY, '-d', 'auto_prepend_file=' . $rPrepend, $rScript ?? $this->scenarios()], $rArgs);
-		$rProc = proc_open($rCommand, [0 => ['file', $rIn, 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes, $this->rHome, ['XCVM_TEST_HOME' => $this->rHome, 'XCVM_TEST_SRC' => dirname(__DIR__, 2) . '/src/', 'PATH' => $this->rHome . 'stub:' . getenv('PATH')]);
+		$rCommand = array_merge([...xcvm_test_child_php(), '-d', 'auto_prepend_file=' . $rPrepend, $rScript ?? $this->scenarios()], $rArgs);
+		$rProc = proc_open($rCommand, [0 => ['file', $rIn, 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes, $this->rHome, ['XCVM_TEST_HOME' => $this->rHome, 'XCVM_TEST_SRC' => MAIN_HOME, 'PATH' => $this->rHome . 'stub:' . getenv('PATH')]);
 		$this->assertIsResource($rProc);
 		$rOut = (string) stream_get_contents($rPipes[1]);
 		$rErr = (string) stream_get_contents($rPipes[2]);
@@ -306,6 +306,19 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 		return is_file($this->rHome . 'commands.log') ? file($this->rHome . 'commands.log', FILE_IGNORE_NEW_LINES) : [];
 	}
 
+	/**
+	 * The commands once one matches $rPattern: a command started in the
+	 * background (`&`) writes its line after the child that started it exits.
+	 *
+	 * @return list<string>
+	 */
+	private function commandsOnce(string $rPattern): array {
+		for ($i = 0; preg_grep($rPattern, $rCommands = $this->commands()) === [] && $i < 250; $i++) {
+			usleep(20000);
+		}
+		return $rCommands;
+	}
+
 	/** @return list<array<string, mixed>> the spooled events of a lane, in file order */
 	private function spooled(string $rLane): array {
 		$rFiles = glob($this->rHome . 'config/cluster/spool/' . $rLane . '/*.ndjson') ?: [];
@@ -417,7 +430,7 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 			['type' => 'drop_con', 'uuid' => 'no-fanout-here'],
 			['id' => 10, 'type' => 'delete_vod'],
 		]);
-		[$rCode, $rOut] = $this->child(['cluster:exec'], dirname(__DIR__, 2) . '/src/console.php', $rIn);
+		[$rCode, $rOut] = $this->child(['cluster:exec'], MAIN_HOME . 'console.php', $rIn);
 		$this->assertSame(0, $rCode, $rOut);
 		$this->assertSame(['result' => true, 'jobs' => 5], json_decode(trim($rOut), true), $rOut);
 		$this->assertNoConnect();
@@ -438,7 +451,7 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 			'a path for a uuid' => [['type' => 'delete_vod', 'id' => 7], ['type' => 'delete_con', 'uuid' => '../x']],
 			'too many targets' => [['type' => 'delete_vod', 'id' => 7], ['type' => 'delete_vods', 'id' => range(1, \XcVm\Core\Cluster\CacheJobs::MAX)]],
 		] as $rWhy => $rJobs) {
-			[$rCode, $rOut] = $this->child(['cluster:exec'], dirname(__DIR__, 2) . '/src/console.php', $this->cacheCommand($rJobs));
+			[$rCode, $rOut] = $this->child(['cluster:exec'], MAIN_HOME . 'console.php', $this->cacheCommand($rJobs));
 			$this->assertSame(2, $rCode, $rWhy . ': ' . $rOut);
 			$this->assertSame('cluster:exec: bad cache jobs', trim($rOut), $rWhy);
 			$this->assertFileExists($this->rHome . 'content/vod/7.mp4', $rWhy . ': nothing ran');
@@ -614,7 +627,7 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 		$this->assertSame(['0E'], array_column($this->reportedCertificates(), 'serial'));
 		$this->assertSame('0E', json_decode((string) $this->kept()['certbot_ssl'], true)['serial']);
 		$this->assertTrue(json_decode((string) file_get_contents($this->rHome . 'bin/certbot/logs/xc_vm.log'), true)['status']);
-		$this->assertCount(1, preg_grep('/^php .*console\.php cron:certbot 1$/', $this->commands()), 'and it checks the result as before');
+		$this->assertCount(1, preg_grep('/^php .*console\.php cron:certbot 1$/', $this->commandsOnce('/cron:certbot 1$/')), 'and it checks the result as before');
 
 		file_put_contents($this->rHome . 'bin/nginx/conf/ssl.conf', "ssl_certificate server.crt;\n");
 		[, $rOut, $rResult] = $this->child(['certbot']);

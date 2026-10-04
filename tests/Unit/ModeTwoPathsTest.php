@@ -140,8 +140,8 @@ final class ModeTwoPathsTest extends TestCase {
 			}
 			PHP);
 		@unlink($this->rHome . 'connects.log');
-		$rCommand = array_merge([PHP_BINARY, '-d', 'auto_prepend_file=' . $rPrepend, $rScript ?? $this->scenarios()], $rArgs);
-		$rProc = proc_open($rCommand, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes, $this->rHome, $rEnv + ['XCVM_TEST_HOME' => $this->rHome, 'XCVM_TEST_SRC' => dirname(__DIR__, 2) . '/src/', 'PATH' => $this->rHome . 'stub:' . getenv('PATH')]);
+		$rCommand = array_merge([...xcvm_test_child_php(), '-d', 'auto_prepend_file=' . $rPrepend, $rScript ?? $this->scenarios()], $rArgs);
+		$rProc = proc_open($rCommand, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes, $this->rHome, $rEnv + ['XCVM_TEST_HOME' => $this->rHome, 'XCVM_TEST_SRC' => MAIN_HOME, 'PATH' => $this->rHome . 'stub:' . getenv('PATH')]);
 		$this->assertIsResource($rProc);
 		$rOut = (string) stream_get_contents($rPipes[1]) . (string) stream_get_contents($rPipes[2]);
 		fclose($rPipes[1]);
@@ -353,7 +353,7 @@ final class ModeTwoPathsTest extends TestCase {
 	 * does after it stored a section.
 	 */
 	private function apply(): void {
-		[$rCode, $rOut] = $this->child(['cluster:apply', '--from-disk'], dirname(__DIR__, 2) . '/src/console.php');
+		[$rCode, $rOut] = $this->child(['cluster:apply', '--from-disk'], MAIN_HOME . 'console.php');
 		$this->assertSame(0, $rCode, $rOut);
 	}
 
@@ -810,7 +810,7 @@ final class ModeTwoPathsTest extends TestCase {
 		$this->streams();
 		$this->node(['redis_handler' => '0', 'kill_rogue_ffmpeg' => '0', 'lb_lease_fence' => '1', 'lb_fence_drain_min' => '0']);
 		// The producer: a process whose command line names the stream's playlist.
-		$rProducer = proc_open(['php', '-r', 'sleep(60);', $this->rHome . 'content/streams/7_.m3u8'], [], $rPipes);
+		$rProducer = proc_open([PHP_BINARY, '-r', 'sleep(60);', $this->rHome . 'content/streams/7_.m3u8'], [], $rPipes);
 		$rPid = (int) proc_get_status($rProducer)['pid'];
 		// Its thumbnail worker: a PHP process titled as ThumbnailCommand titles it.
 		$rThumb = proc_open([PHP_BINARY, '-r', 'cli_set_process_title("Thumbnail[7]"); sleep(60);'], [], $rPipes);
@@ -910,7 +910,7 @@ final class ModeTwoPathsTest extends TestCase {
 	 */
 	public function testTheShadowApplyOfAModeTwoNodeComparesNothingWithMain(): void {
 		$this->node([], NodeFlows::CONFIG);
-		[$rCode, $rOut] = $this->child(['cluster:apply'], dirname(__DIR__, 2) . '/src/console.php');
+		[$rCode, $rOut] = $this->child(['cluster:apply'], MAIN_HOME . 'console.php');
 		$this->assertSame(0, $rCode, $rOut);
 		$this->assertNoConnect();
 		$rReport = json_decode($rOut, true);
@@ -957,7 +957,7 @@ final class ModeTwoPathsTest extends TestCase {
 			$this->flows($rMode);
 			$this->assertSame($rChecks, $rSeam->invoke(new CleanupCronJob()), 'mode ' . var_export($rMode, true));
 		}
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/CleanupCronJob.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/CleanupCronJob.php');
 		$this->assertLessThan(strpos($rSource, '$db->query('), strpos($rSource, 'if (!$this->streamChecks())'), 'the seam comes before the first query');
 	}
 
@@ -967,7 +967,7 @@ final class ModeTwoPathsTest extends TestCase {
 	 * node writes MAIN's database (MAIN, mode 0, mode 1 with LOGS off).
 	 */
 	public function testEveryRootSyslogLineIsHandedToTheAgentFirst(): void {
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/RootSignalsCronJob.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		$rInserts = substr_count($rSource, 'INSERT INTO `mysql_syslog`');
 		$this->assertGreaterThanOrEqual(15, $rInserts);
 		preg_match_all('/if \(!LogSink::syslog\(\'([A-Z_-]+)\',[^\n]*\) \{\n\t+\$db->query\("INSERT INTO `mysql_syslog`\(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`\) VALUES\(\?, \'([A-Z_-]+)\', /', $rSource, $rGuarded, PREG_SET_ORDER);

@@ -49,7 +49,7 @@ final class SignalsLoopQueryRateTest extends TestCase {
 
 	/** @dataProvider daemons */
 	public function testDaemonsUseTheTimer(string $rFile): void {
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/' . $rFile);
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/' . $rFile);
 		$this->assertStringContainsString('$this->serversRefreshDue()', $rSource);
 		$this->assertStringNotContainsString('ServerRepository::getAll(true)', $rSource);
 	}

@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
  * MigrationRunner::rollback() — reversing migrations on a version downgrade.
  *
  * Runs the real diff/down-file/tracking-row logic against a throwaway
- * migrations directory and an in-memory SQLite handle (mirrors
+ * migrations directory and a TestDb handle (mirrors
  * ModuleMigratorTest's approach for the module-side equivalent).
  */
 final class MigrationRunnerRollbackTest extends TestCase {
@@ -49,7 +49,7 @@ final class MigrationRunnerRollbackTest extends TestCase {
 	/** Mark $names as already-applied in the migrations tracking table. */
 	private function markApplied(array $names): void {
 		$this->db->query("CREATE TABLE IF NOT EXISTS `migrations` (
-			`id` INTEGER PRIMARY KEY AUTOINCREMENT,
+			`id` INTEGER PRIMARY KEY AUTO_INCREMENT,
 			`migration` VARCHAR(255) NOT NULL UNIQUE,
 			`applied_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);");
@@ -65,7 +65,7 @@ final class MigrationRunnerRollbackTest extends TestCase {
 
 	public function testRollbackReversesMigrationsMissingFromTargetInDescendingOrder(): void {
 		$this->markApplied(['001_a.sql', '002_b.sql', '003_c.sql']);
-		$this->db->query('CREATE TABLE probe (id INTEGER PRIMARY KEY, tag TEXT);');
+		$this->db->query('CREATE TABLE probe (id INTEGER PRIMARY KEY AUTO_INCREMENT, tag TEXT);');
 		$this->writeDown('002_b.sql', "INSERT INTO probe (tag) VALUES ('down-002');");
 		$this->writeDown('003_c.sql', "INSERT INTO probe (tag) VALUES ('down-003');");
 

@@ -19,6 +19,7 @@ use XcVm\Core\Cluster\NodeRole;
  * nginx.conf neither includes the switch nor guards `/api`, and the cron
  * does not write the file there, whatever a stray flows.json says.
  */
+#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 final class LbNginxApiLegacyTest extends TestCase {
 	private string $rRoot;
 

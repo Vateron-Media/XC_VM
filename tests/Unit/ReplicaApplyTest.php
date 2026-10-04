@@ -105,7 +105,7 @@ final class ReplicaApplyTest extends TestCase {
 		FileCache::setCache('blocked_isp', []);
 		// RTMP publishers, which an LB reads from MAIN's database.
 		$rDb = new TestDb();
-		$rDb->exec('CREATE TABLE `rtmp_ips` (`id` INTEGER PRIMARY KEY, `ip` varchar(255), `password` varchar(128), `push` int, `pull` int)');
+		$rDb->exec('CREATE TABLE `rtmp_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(255), `password` varchar(128), `push` int, `pull` int)');
 		$rDb->exec("INSERT INTO `rtmp_ips` VALUES (1, '198.51.100.9', 'old', 1, 0)");
 		DatabaseFactory::set($rDb);
 		$this->replica(self::DATA);
@@ -139,7 +139,7 @@ final class ReplicaApplyTest extends TestCase {
 
 	public function testIptablesFollowsTheReplicaAndNeverAMissingOne(): void {
 		$rDb = new TestDb();
-		$rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY, `ip` varchar(39))');
+		$rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(39))');
 		$rDb->exec("INSERT INTO `blocked_ips` VALUES (1, '203.0.113.7')");
 		$this->assertSame(['203.0.113.7'], RootSignalsCronJob::blockedIPs($rDb), 'CONFIG off: MAIN\'s table');
 
@@ -460,11 +460,11 @@ final class ReplicaApplyTest extends TestCase {
 		(new \ReflectionProperty(ServerRepository::class, 'db'))->setValue(null, null);
 		$rDb = new TestDb();
 		$rDb->exec(InstallSchema::serversTable());
-		$rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY, `reseller_dns` text, `status` int)');
+		$rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `reseller_dns` text, `status` int)');
 		$rDb->exec('CREATE TABLE `settings` (`id` int, `cloudflare` int, `mag_legacy_redirect` int)');
 		$rDb->exec('INSERT INTO `settings` VALUES (1, 1, 0)');
 		$rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` int, `gen` int, `state` varchar(16), `node_sign_pub` blob)');
-		$rDb->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `filename` varchar(255), `time` varchar(128), `enabled` int, `role` varchar(8))');
+		$rDb->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `filename` varchar(255), `time` varchar(128), `enabled` int, `role` varchar(8))');
 		$rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('streams', '* * * * *', 1, 'all'), ('tmdb', '0 * * * *', 1, 'main'), ('cache', '* * * * *', 1, 'all')");
 		foreach ([SERVER_ID => ['limit_requests' => 30, 'total_services' => 6, 'governor' => '["performance"]'], SERVER_ID + 100 => ['is_main' => 1, 'limit_requests' => 99, 'domain_name' => 'main.example.com', 'enable_https' => 1], SERVER_ID + 200 => ['enabled' => 0]] as $rID => $rFields) {
 			$rRow = $rFields + [

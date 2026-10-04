@@ -67,17 +67,13 @@ final class ClusterArtefactTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '030_create_cluster_commands', '032_create_cluster_audit'] as $rName) {
-			$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			$this->rDb->exec((string) preg_replace(
-				['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-				['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-				$rSql
-			));
+			$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql');
+			$this->rDb->exec((string) $rSql);
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_node_epochs` ADD COLUMN `agent_eph_pub` binary(32) DEFAULT NULL');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `root_ready` tinyint(1) NOT NULL DEFAULT 0');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `features` varchar(255) DEFAULT NULL');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `status` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `status` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `servers` (`id`, `status`) VALUES (5, 0)');
 		DatabaseFactory::set($this->rDb);
 		$this->rCrypto = new FakeClusterCrypto();
@@ -306,7 +302,7 @@ final class ClusterArtefactTest extends TestCase {
 	/** A node's refusal reaches MAIN's system log as root's line on that node (type ARTEFACT). */
 	public function testMainKeepsANodesArtefactRefusalInItsSystemLog(): void {
 		$this->activeNode();
-		$this->rDb->exec('CREATE TABLE `mysql_syslog` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `type` varchar(50), `error` text, `username` varchar(64), `ip` varchar(64), `database` varchar(64), `date` int, `server_id` int DEFAULT 1)');
+		$this->rDb->exec('CREATE TABLE `mysql_syslog` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `type` varchar(50), `error` text, `username` varchar(64), `ip` varchar(64), `database` varchar(64), `date` int, `server_id` int DEFAULT 1)');
 		NodeRegistry::update(self::SID, ['flows' => NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_LOGS]);
 		$rOut = EventIngest::ingest((array) NodeRegistry::byServer(self::SID), 'p1', 1, [['type' => 'log.syslog', 'd' => ['rows' => [
 			['server_id' => 5, 'type' => 'ARTEFACT', 'error' => 'Refused artefact agent/amd64 (xc_agent-linux-amd64) for command ' . str_repeat('a', 32) . ': sha256 mismatch', 'username' => 'root', 'ip' => 'localhost', 'database' => null, 'date' => 1799999000],

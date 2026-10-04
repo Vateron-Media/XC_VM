@@ -15,7 +15,7 @@ if (!defined('STATUS_SUCCESS')) {
  * Rector pass rewrote (empty-else inversions across the server-tree, transcode
  * and flag handling). massEdit has no verifyPostTable/exit() and
  * StreamProcess::updateStreams is a no-op while enable_cache is off, so it runs
- * end-to-end against the TestDb (SQLite locally, MariaDB on the panel).
+ * end-to-end against the TestDb.
  */
 final class ChannelServiceTest extends TestCase {
 
@@ -24,9 +24,9 @@ final class ChannelServiceTest extends TestCase {
 	protected function setUp(): void {
 		$this->db = new TestDb();
 		$this->db->exec(
-			'CREATE TABLE streams (id INTEGER PRIMARY KEY, category_id TEXT, transcode_profile_id INTEGER DEFAULT 0, enable_transcode INTEGER DEFAULT 0, allow_record INTEGER DEFAULT 0, rtmp_output INTEGER DEFAULT 0, `order` INTEGER DEFAULT 0);
-			 CREATE TABLE streams_servers (server_stream_id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER, server_id INTEGER, parent_id INTEGER, on_demand INTEGER);
-			 CREATE TABLE bouquets (id INTEGER PRIMARY KEY AUTOINCREMENT, bouquet_name TEXT, bouquet_channels TEXT, bouquet_movies TEXT, bouquet_series TEXT, bouquet_radios TEXT, bouquet_order INTEGER DEFAULT 0);'
+			'CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, category_id TEXT, transcode_profile_id INTEGER DEFAULT 0, enable_transcode INTEGER DEFAULT 0, allow_record INTEGER DEFAULT 0, rtmp_output INTEGER DEFAULT 0, `order` INTEGER DEFAULT 0);
+			 CREATE TABLE streams_servers (server_stream_id INTEGER PRIMARY KEY AUTO_INCREMENT, stream_id INTEGER, server_id INTEGER, parent_id INTEGER, on_demand INTEGER);
+			 CREATE TABLE bouquets (id INTEGER PRIMARY KEY AUTO_INCREMENT, bouquet_name TEXT, bouquet_channels TEXT, bouquet_movies TEXT, bouquet_series TEXT, bouquet_radios TEXT, bouquet_order INTEGER DEFAULT 0);'
 		);
 		DatabaseFactory::set($this->db);
 		BouquetService::setDb($this->db);

@@ -59,11 +59,11 @@ final class ConnectionTouchTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec((string) preg_replace(['/^--.*$/m', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['', '', '', ');'], (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql')));
+		$this->rDb->exec((string) (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql'));
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `features` varchar(255) DEFAULT NULL');
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/install/database.sql');
+		$rSql = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		preg_match('/CREATE TABLE IF NOT EXISTS `lines_live` \(.*?\) ENGINE=[^;]*;/s', $rSql, $rM);
-		$this->rDb->exec((string) preg_replace(['/`activity_id` int\(11\) NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`activity_id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)( USING BTREE)?/', '/ COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'], $rM[0]));
+		$this->rDb->exec((string) $rM[0]);
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(self::T);
 		NodeRegistry::startEnrolment(5, '11111111-1111-4111-a111-111111111111', random_bytes(32), random_bytes(32), 1);
@@ -299,18 +299,16 @@ final class ConnectionTouchTest extends TestCase {
 		}
 	}
 
-	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
-	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 	public function testWithoutRedisTheTouchesAreNotAnsweredAsApplied(): void {
-		if (!class_exists('XC_VM', false)) {
-			eval('final class XC_VM { public static function redis_connect() { return null; } }'); // Redis unreachable
-		}
 		SettingsManager::set(['redis_handler' => 1]);
-		if (RedisManager::instance() !== null) {
-			$this->markTestSkipped('a Redis answers here');
-		}
+		RedisManager::closeInstance();
+		RedisManager::useConnector(static fn() => null); // Redis unreachable
 		$this->expectExceptionMessage('redis unavailable');
-		EventIngest::ingest($this->node(), 'p2', 0, [$this->touch('aaaa', self::T, 150)]);
+		try {
+			EventIngest::ingest($this->node(), 'p2', 0, [$this->touch('aaaa', self::T, 150)]);
+		} finally {
+			RedisManager::useConnector(null);
+		}
 	}
 
 	public function testAnOlderAgentsTouchAsAP0UpsertStillLands(): void {

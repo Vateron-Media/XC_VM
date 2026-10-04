@@ -31,12 +31,12 @@ final class ClusterContentTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec((string) preg_replace(['/^--.*$/m', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['', '', '', ');'], (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql')));
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `type` int, `stream_display_name` text, `stream_source` text, `target_container` text, `year` text, `movie_properties` text, `rating` int, `read_native` int, `movie_symlink` int, `remove_subtitles` int, `transcode_profile_id` int, `order` int, `added` int, `category_id` text, `tv_archive_server_id` int, `tv_archive_pid` int, `vframes_server_id` int, `vframes_pid` int)');
-		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY, `stream_id` int, `server_id` int, `parent_id` int, `pid` int, `to_analyze` int, `stream_status` int, `progress_info` text, `monitor_pid` int, `current_source` text, `stream_started` int, `stream_info` text, `audio_codec` text, `video_codec` text, `resolution` int, `bitrate` int, `compatible` int)');
-		$this->rDb->exec('CREATE TABLE `recordings` (`id` INTEGER PRIMARY KEY, `stream_id` int, `created_id` int, `category_id` text, `bouquets` text, `title` text, `description` text, `stream_icon` text, `start` int, `end` int, `source_id` int, `archive` int, `status` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `bouquets` (`id` INTEGER PRIMARY KEY, `bouquet_movies` text)');
+		$this->rDb->exec((string) (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql'));
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `type` int, `stream_display_name` text, `stream_source` text, `target_container` text, `year` text, `movie_properties` text, `rating` int, `read_native` int, `movie_symlink` int, `remove_subtitles` int, `transcode_profile_id` int, `order` int, `added` int, `category_id` text, `tv_archive_server_id` int, `tv_archive_pid` int, `vframes_server_id` int, `vframes_pid` int)');
+		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `parent_id` int, `pid` int, `to_analyze` int, `stream_status` int, `progress_info` text, `monitor_pid` int, `current_source` text, `stream_started` int, `stream_info` text, `audio_codec` text, `video_codec` text, `resolution` int, `bitrate` int, `compatible` int)');
+		$this->rDb->exec('CREATE TABLE `recordings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `created_id` int, `category_id` text, `bouquets` text, `title` text, `description` text, `stream_icon` text, `start` int, `end` int, `source_id` int, `archive` int, `status` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `bouquets` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `bouquet_movies` text)');
 		$this->rDb->query('INSERT INTO `recordings` (`id`, `stream_id`, `category_id`, `bouquets`, `title`, `description`, `start`, `end`, `source_id`, `status`) VALUES (1, 100, \'[3]\', \'[9]\', \'Match\', \'Final\', 1800000000, 1800003600, 5, 1), (2, 100, \'[]\', \'[]\', \'Other\', \'\', 1800000000, 1800003600, 6, 1)');
 		$this->rDb->query('INSERT INTO `bouquets` (`id`, `bouquet_movies`) VALUES (9, \'[1]\')');
 		$this->rDb->query('INSERT INTO `streams` (`id`, `type`, `movie_properties`, `tv_archive_server_id`, `vframes_server_id`, `order`) VALUES (100, 1, NULL, 5, 6, 7), (200, 2, \'{"name":"Film","duration_secs":1}\', NULL, NULL, 8), (300, 2, \'{"name":"Theirs"}\', NULL, NULL, 9)');
@@ -221,6 +221,9 @@ final class ClusterContentTest extends TestCase {
 		$this->assertSame(1, $this->ingest(['type' => 'stream.monitor', 'd' => ['stream_id' => 100, 'state' => $rState]])['dropped']);
 	}
 
+	// skip-on-panel: PHPUnit feeds an isolated test to its child PHP on stdin, and the
+	// panel's PHP (ionCube Loader + opcache.enable_cli) segfaults on a script read from stdin.
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
 	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 	public function testTheNodesReconcileLeavesTheStateToTheAgentsFeed(): void {

@@ -41,21 +41,21 @@ final class EventIngestFailedWriteTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec((string) preg_replace(['/^--.*$/m', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['', '', '', ');'], (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql')));
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/install/database.sql');
+		$this->rDb->exec((string) (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql'));
+		$rSql = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		preg_match('/CREATE TABLE IF NOT EXISTS `lines_live` \(.*?\) ENGINE=[^;]*;/s', $rSql, $rM);
-		$this->rDb->exec((string) preg_replace(['/`activity_id` int\(11\) NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`activity_id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)( USING BTREE)?/', '/ COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'], $rM[0]));
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY, `type` int, `movie_properties` text, `tv_archive_server_id` int, `tv_archive_pid` int, `vframes_server_id` int, `vframes_pid` int)');
-		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY, `stream_id` int, `server_id` int, `parent_id` int, `pid` int, `to_analyze` int, `stream_status` int, `bitrate` int)');
-		$this->rDb->exec('CREATE TABLE `recordings` (`id` INTEGER PRIMARY KEY, `stream_id` int, `created_id` int, `source_id` int, `status` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `ip` varchar(39) UNIQUE, `notes` text, `date` int)');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `server_ip` varchar(64), `private_ip` varchar(64), `whitelist_ips` text, `governor` text, `ping` int DEFAULT 0, `time_offset` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `streams_logs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `stream_id` int, `server_id` int, `action` varchar(500), `source` varchar(1024), `date` int)');
-		$this->rDb->exec('CREATE TABLE `lines_divergence` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` varchar(32) UNIQUE, `divergence` float)');
-		$this->rDb->exec('CREATE TABLE `lines_activity` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` varchar(255), `user_ip` varchar(39), `container` varchar(50), `date_start` int, `date_end` int, `geoip_country_code` varchar(22), `isp` varchar(255), `external_device` varchar(255), `divergence` float DEFAULT 0, `hmac_id` int, `hmac_identifier` varchar(255))');
-		$this->rDb->exec('CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY, `last_ip` varchar(39), `last_activity` int, `last_activity_array` text, `updated` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `cluster_changes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `section` varchar(32), `op` varchar(8), `kind` varchar(16), `value` varchar(255), `time` int)');
+		$this->rDb->exec((string) $rM[0]);
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `type` int, `movie_properties` text, `tv_archive_server_id` int, `tv_archive_pid` int, `vframes_server_id` int, `vframes_pid` int)');
+		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `parent_id` int, `pid` int, `to_analyze` int, `stream_status` int, `bitrate` int)');
+		$this->rDb->exec('CREATE TABLE `recordings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `created_id` int, `source_id` int, `status` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(39) UNIQUE, `notes` text, `date` int)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_ip` varchar(64), `private_ip` varchar(64), `whitelist_ips` text, `governor` text, `ping` int DEFAULT 0, `time_offset` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `streams_logs` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `action` varchar(500), `source` varchar(1024), `date` int)');
+		$this->rDb->exec('CREATE TABLE `lines_divergence` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` varchar(32) UNIQUE, `divergence` float)');
+		$this->rDb->exec('CREATE TABLE `lines_activity` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` varchar(255), `user_ip` varchar(39), `container` varchar(50), `date_start` int, `date_end` int, `geoip_country_code` varchar(22), `isp` varchar(255), `external_device` varchar(255), `divergence` float DEFAULT 0, `hmac_id` int, `hmac_identifier` varchar(255))');
+		$this->rDb->exec('CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `last_ip` varchar(39), `last_activity` int, `last_activity_array` text, `updated` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `cluster_changes` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `section` varchar(32), `op` varchar(8), `kind` varchar(16), `value` varchar(255), `time` int)');
 		$this->rDb->query('INSERT INTO `streams` (`id`, `type`, `movie_properties`, `tv_archive_server_id`) VALUES (100, 1, NULL, 5), (200, 2, \'{"name":"Film"}\', NULL), (300, 2, NULL, NULL)');
 		$this->rDb->query('INSERT INTO `streams_servers` (`server_stream_id`, `stream_id`, `server_id`, `pid`, `bitrate`) VALUES (11, 100, 5, 0, 8000), (20, 200, 5, 1, 0)');
 		$this->rDb->query('INSERT INTO `recordings` (`id`, `stream_id`, `created_id`, `source_id`, `status`) VALUES (1, 100, NULL, 5, 1), (2, 100, 300, 5, 1)');

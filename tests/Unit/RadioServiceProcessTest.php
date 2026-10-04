@@ -22,9 +22,7 @@ if (!defined('STATUS_INVALID_INPUT')) {
  * RadioService::process() — characterization of the OUTER GUARD control flow,
  * the part being flattened into guard clauses.
  *
- * The success path can't run under the SQLite TestDb (QueryHelper::verifyPostTable
- * queries MySQL information_schema) and the auth-fail path exit()s, so those are
- * out of scope here; the success-path internals are covered by the extracted
+ * The success path and the auth-fail path (which exit()s) are out of scope here; the success-path internals are covered by the extracted
  * helpers in RadioServiceTest. These two branches — invalid input, and no source
  * — are exactly the guards the flattening restructures, so they guard the change.
  */
@@ -34,7 +32,7 @@ final class RadioServiceProcessTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->db = new TestDb();
-		$this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY, stream_display_name TEXT, stream_icon TEXT);');
+		$this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, stream_display_name TEXT, stream_icon TEXT);');
 		$this->db->query('INSERT INTO streams (id, stream_display_name, stream_icon) VALUES (5, "old", "");');
 		// Resolve every DatabaseAware class (RadioService, StreamRepository, ...) to the test db.
 		DatabaseFactory::set($this->db);

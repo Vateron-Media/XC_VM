@@ -332,7 +332,9 @@ final class RedisConnectionCloseTest extends TestCase {
 
 			$this->manager(null);
 			RedisManager::useConnector(fn() => null);
+			ob_start();
 			$rDeletions->invoke(new UsersCronJob(), $rBatch);
+			$this->assertStringContainsString('connection cleanup postponed', (string) ob_get_clean(), 'and the run says so');
 			$this->assertSame($rBefore, $this->activityRows(), 'not removed: dropped');
 			RedisManager::useConnector(null);
 			$this->manager($this->rRedis);

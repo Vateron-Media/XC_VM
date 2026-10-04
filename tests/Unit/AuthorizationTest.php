@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
  *
  * Reads the current identity from the $rUserInfo / $rPermissions / $db globals,
  * so each test seeds those and tearDown clears them. The 'user' and 'line'
- * checks scope by the report tree via a real (SQLite) query; the 'adv' check is
+ * checks scope by the report tree via a real query; the 'adv' check is
  * pure permission logic; and everything short-circuits to false when the
  * identity globals are missing.
  */
@@ -19,8 +19,8 @@ final class AuthorizationTest extends TestCase {
 	protected function setUp(): void {
 		$this->db = new TestDb();
 		$this->db->exec(
-			'CREATE TABLE users (id INTEGER PRIMARY KEY, owner_id INTEGER);
-			 CREATE TABLE `lines` (id INTEGER PRIMARY KEY, member_id INTEGER);
+			'CREATE TABLE users (id INTEGER PRIMARY KEY AUTO_INCREMENT, owner_id INTEGER);
+			 CREATE TABLE `lines` (id INTEGER PRIMARY KEY AUTO_INCREMENT, member_id INTEGER);
 			 INSERT INTO users (id, owner_id) VALUES (100, 10), (200, 20), (300, 99);
 			 INSERT INTO `lines` (id, member_id) VALUES (5, 10), (6, 99);'
 		);

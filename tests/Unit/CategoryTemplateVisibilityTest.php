@@ -23,7 +23,7 @@ final class CategoryTemplateVisibilityTest extends TestCase {
 		$this->db = new TestDb();
 		$this->db->exec(
 			'CREATE TABLE `users` (
-				`id` INTEGER PRIMARY KEY,
+				`id` INTEGER PRIMARY KEY AUTO_INCREMENT,
 				`username` TEXT,
 				`owner_id` INTEGER,
 				`member_group_id` INTEGER
@@ -34,7 +34,7 @@ final class CategoryTemplateVisibilityTest extends TestCase {
 				(4,"me",3,3),
 				(99,"stranger",1,3);
 			CREATE TABLE `category_templates` (
-				`id` INTEGER PRIMARY KEY,
+				`id` INTEGER PRIMARY KEY AUTO_INCREMENT,
 				`owner_id` INTEGER,
 				`name` TEXT,
 				`is_system` INTEGER DEFAULT 0,
@@ -47,7 +47,7 @@ final class CategoryTemplateVisibilityTest extends TestCase {
 				(11,4,"Mine",0,0),
 				(12,99,"Stranger Shared",0,1);
 			CREATE TABLE `lines` (
-				`id` INTEGER PRIMARY KEY,
+				`id` INTEGER PRIMARY KEY AUTO_INCREMENT,
 				`custom_data` TEXT
 			);'
 		);

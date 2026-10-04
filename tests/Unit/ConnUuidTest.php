@@ -23,8 +23,9 @@ final class ConnUuidTest extends TestCase {
 		$this->assertSame('/^' . AgentConnections::CONN_UUID_CHARS . '\z/', AgentConnections::CONN_UUID);
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testNoOtherCopyOfTheRuleInTheApplication(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		$rCopies = [];
 		$rFiles = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($rRoot, \FilesystemIterator::SKIP_DOTS));
 		foreach ($rFiles as $rFile) {

@@ -9,7 +9,7 @@ use XcVm\Infrastructure\Redis\RedisConfigHardening;
  */
 final class RedisConfigHardeningTest extends TestCase {
 	public function testTheShippedTemplateAlreadyDisablesEveryCommand(): void {
-		$rTemplate = file_get_contents(__DIR__ . '/../../src/bin/redis/redis.conf');
+		$rTemplate = file_get_contents(MAIN_HOME . 'bin/redis/redis.conf');
 		[$rConfig, $rAdded] = RedisConfigHardening::apply($rTemplate);
 		$this->assertSame([], $rAdded);
 		$this->assertSame($rTemplate, $rConfig);

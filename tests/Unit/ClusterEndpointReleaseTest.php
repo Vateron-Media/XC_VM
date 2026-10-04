@@ -35,13 +35,13 @@ final class ClusterEndpointReleaseTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec("CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY, `cluster_api_enabled` int DEFAULT 0, `cluster_api_port` int DEFAULT 0, `cluster_transport` varchar(16) DEFAULT 'auto', `cluster_main_host` varchar(255) DEFAULT '', `cluster_policy_ver` int DEFAULT 1, `cluster_legacy_ports` varchar(255) DEFAULT '', `cluster_legacy_urls` text, `cluster_offline_after_sec` int DEFAULT 30)");
+		$this->rDb->exec("CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `cluster_api_enabled` int DEFAULT 0, `cluster_api_port` int DEFAULT 0, `cluster_transport` varchar(16) DEFAULT 'auto', `cluster_main_host` varchar(255) DEFAULT '', `cluster_policy_ver` int DEFAULT 1, `cluster_legacy_ports` varchar(255) DEFAULT '', `cluster_legacy_urls` text, `cluster_offline_after_sec` int DEFAULT 30)");
 		$this->rDb->exec('INSERT INTO `settings` (`id`) VALUES (1)');
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `state` varchar(16) NOT NULL DEFAULT 'enrolling', `mode` int NOT NULL DEFAULT 1, `enrol_deadline` int DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `policy_ver` int NOT NULL DEFAULT 0, `main_port` int DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY)');
-		$this->rDb->exec('CREATE TABLE `cluster_enrol_codes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int NOT NULL, `created_at` int NOT NULL DEFAULT 0, `exp` int NOT NULL, `used_at` int DEFAULT NULL)');
-		$this->rDb->exec("CREATE TABLE `cluster_enrol_requests` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int NOT NULL, `state` varchar(20) NOT NULL DEFAULT 'pending_approval', `created_at` int NOT NULL)");
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `state` varchar(16) NOT NULL DEFAULT 'enrolling', `mode` int NOT NULL DEFAULT 1, `enrol_deadline` int DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `policy_ver` int NOT NULL DEFAULT 0, `main_port` int DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT)');
+		$this->rDb->exec('CREATE TABLE `cluster_enrol_codes` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int NOT NULL, `created_at` int NOT NULL DEFAULT 0, `exp` int NOT NULL, `used_at` int DEFAULT NULL)');
+		$this->rDb->exec("CREATE TABLE `cluster_enrol_requests` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int NOT NULL, `state` varchar(20) NOT NULL DEFAULT 'pending_approval', `created_at` int NOT NULL)");
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix($this->rNow * 1000);
 		$this->rSettingsBefore = SettingsManager::getAll();
@@ -334,7 +334,7 @@ final class ClusterEndpointReleaseTest extends TestCase {
 	 * source port (REMOTE_PORT), which would never name a kept port.
 	 */
 	public function testThePortComesFromNginx(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src/';
+		$rSrc = MAIN_HOME;
 		$this->assertStringContainsString("'port' => (int) (\$_SERVER['SERVER_PORT'] ?? 0),", (string) file_get_contents($rSrc . 'Public/cluster/index.php'));
 		$this->assertMatchesRegularExpression('/^fastcgi_param\s+SERVER_PORT\s+\$server_port;$/m', (string) file_get_contents($rSrc . 'bin/nginx/conf/fastcgi_params'));
 		$this->assertStringContainsString("    include fastcgi_params;\n", ClusterNginxConfig::locations(), 'the cluster API location passes it');
@@ -438,7 +438,7 @@ final class ClusterEndpointReleaseTest extends TestCase {
 
 	/** Migration 046 adds the port a node last reached MAIN on; database.sql has it for fresh installs. */
 	public function testTheSchema(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src/';
+		$rSrc = MAIN_HOME;
 		$rUp = (string) file_get_contents($rSrc . 'migrations/database/up/046_add_cluster_node_main_port.sql');
 		$this->assertStringContainsString("ALTER TABLE `cluster_nodes` ADD COLUMN IF NOT EXISTS `main_port` smallint(5) unsigned DEFAULT NULL AFTER `policy_ver`;", $rUp);
 		$this->assertStringContainsString('ALTER TABLE `cluster_nodes` DROP COLUMN IF EXISTS `main_port`;', (string) file_get_contents($rSrc . 'migrations/database/down/046_add_cluster_node_main_port.sql'));

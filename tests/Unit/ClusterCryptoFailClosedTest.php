@@ -45,7 +45,7 @@ final class ClusterCryptoFailClosedTest extends TestCase {
 	}
 
 	public function testNoReferenceCryptoShips(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src/';
+		$rSrc = MAIN_HOME;
 		foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($rSrc . 'Core/Cluster', FilesystemIterator::SKIP_DOTS)) as $rFile) {
 			$rCode = (string) file_get_contents($rFile->getPathname());
 			$this->assertStringNotContainsString('sodium_crypto_sign_seed_keypair', $rCode, $rFile->getPathname() . ' must not sign as the panel');

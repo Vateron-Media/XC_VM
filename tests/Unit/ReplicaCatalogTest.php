@@ -42,10 +42,6 @@ final class ReplicaCatalogTest extends TestCase {
 		$this->rDb = new TestDb();
 		$this->rDb->exec(InstallSchema::table('bouquets'));
 		$this->rDb->exec(InstallSchema::table('streams_categories'));
-		if ($this->rDb->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-			// BouquetService's MySQL IF().
-			$this->rDb->pdo->sqliteCreateFunction('IF', static fn(mixed $rIf, mixed $rThen, mixed $rElse): mixed => $rIf ? $rThen : $rElse, 3);
-		}
 		$this->rDb->exec("INSERT INTO `bouquets` (`id`, `bouquet_name`, `bouquet_channels`, `bouquet_movies`, `bouquet_radios`, `bouquet_series`, `bouquet_order`) VALUES
 			(1, 'Sports', '[1,2]', '[3]', '[]', '[7]', 2),
 			(2, 'News', '[\"4\"]', NULL, '[5]', NULL, 0),
