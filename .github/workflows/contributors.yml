@@ -1,15 +1,14 @@
 name: Update contributors list
 
-# Regenerates the avatar table between the `readme: contributors` markers in
-# CONTRIBUTORS.md from the GitHub contributors API (Bot-type accounts are
-# filtered out by the action itself).
+# Regenerates the avatar table between the `contributors:start/end` markers in
+# CONTRIBUTORS.md from the GitHub contributors API (bots and `claude` are
+# skipped). GitHub strips `style` from Markdown HTML, so avatars are cropped
+# to circles by the images.weserv.nl proxy instead of CSS.
 #
-# main is protected (required reviews + status checks). With the default
-# GITHUB_TOKEN the action falls back to opening a PR, and PRs created by
-# GITHUB_TOKEN do not trigger workflows, so the required checks never run.
-# Set the CONTRIBUTORS_TOKEN secret to a PAT of a repo admin (fine-grained,
-# Contents: read & write on this repo): admins are not bound by the
-# protection rules (enforce_admins is off), so the action commits directly.
+# main is protected (required reviews + status checks). The push uses the
+# CONTRIBUTORS_TOKEN secret: a PAT of a repo admin (fine-grained, Contents:
+# read & write on this repo); admins are not bound by the protection rules
+# (enforce_admins is off), so the commit lands directly.
 
 on:
   schedule:
@@ -17,8 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: contributors
@@ -30,15 +28,49 @@ jobs:
     if: github.repository == 'Vateron-Media/XC_VM'
     runs-on: ubuntu-latest
     steps:
-      # Pinned to a commit SHA: this third-party action receives an admin PAT
-      # that bypasses branch protection, so a moved tag must not change the code.
-      - uses: akhilmhdh/contributors-readme-action@83ea0b4f1ac928fbfe88b9e8460a932a528eb79f # v2.3.11
+      - uses: actions/checkout@v7
         with:
-          readme_path: CONTRIBUTORS.md
-          use_username: true
-          image_size: 80
-          columns_per_row: 7
-          commit_message: 'docs(contributors): update contributors list'
-          auto_detect_branch_protection: ${{ secrets.CONTRIBUTORS_TOKEN == '' }}
+          token: ${{ secrets.CONTRIBUTORS_TOKEN }}
+
+      - name: Regenerate the avatar table
         env:
-          GITHUB_TOKEN: ${{ secrets.CONTRIBUTORS_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/contributors?per_page=100" \
+            --jq '.[] | select(.type == "User" and .login != "claude") | [.login, .avatar_url] | @tsv' \
+            > "$RUNNER_TEMP/contributors.tsv"
+          python3 - "$RUNNER_TEMP/contributors.tsv" <<'PY'
+          import html, re, sys, urllib.parse
+
+          COLUMNS = 7
+          cells = []
+          for line in open(sys.argv[1]).read().splitlines():
+              login, avatar = line.split('\t')
+              src = 'https://images.weserv.nl/?' + urllib.parse.urlencode(
+                  {'url': avatar, 'w': 160, 'h': 160, 'fit': 'cover', 'mask': 'circle', 'maxage': '7d'})
+              cells.append(
+                  '    <td align="center">\n'
+                  f'      <a href="https://github.com/{login}">\n'
+                  f'        <img src="{html.escape(src)}" width="80" alt="{login}"/>\n'
+                  '        <br />\n'
+                  f'        <sub><b>{login}</b></sub>\n'
+                  '      </a>\n'
+                  '    </td>')
+          rows = ['  <tr>\n' + '\n'.join(cells[i:i + COLUMNS]) + '\n  </tr>' for i in range(0, len(cells), COLUMNS)]
+          table = '<table>\n<tbody>\n' + '\n'.join(rows) + '\n</tbody>\n</table>'
+
+          text = open('CONTRIBUTORS.md').read()
+          new, n = re.subn(r'(<!-- contributors:start -->\n).*?(\n<!-- contributors:end -->)',
+                           lambda m: m[1] + table + m[2], text, flags=re.S)
+          if n != 1:
+              sys.exit('contributors markers not found in CONTRIBUTORS.md')
+          open('CONTRIBUTORS.md', 'w').write(new)
+          PY
+
+      - name: Commit
+        run: |
+          git diff --quiet && exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898283+github-actions[bot]@users.noreply.github.com'
+          git commit -am 'docs(contributors): update contributors list'
+          git push
