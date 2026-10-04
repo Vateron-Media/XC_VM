@@ -47,8 +47,8 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          # Matches phpVersion (80300) the analysis targets.
-          php-version: '8.3'
+          # Matches phpVersion (80100) the analysis targets: the minimum PHP.
+          php-version: '8.1'
           coverage: none
           tools: composer:v2
 
@@ -71,7 +71,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.1'
           coverage: none
           tools: composer:v2
 
@@ -97,7 +97,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.1'
           coverage: none
 
       # check-procedural-use: procedural/view files must import every migrated

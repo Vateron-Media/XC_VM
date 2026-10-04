@@ -3,7 +3,7 @@ parameters:
     # Every increment surfaces a new class of issues; fix or baseline, then bump.
     level: 5
 
-    phpVersion: 80300
+    phpVersion: 80100
 
     # Entry points to analyze. Add/remove dirs as the audit progresses.
     paths:
