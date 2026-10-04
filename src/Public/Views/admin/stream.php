@@ -193,6 +193,7 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                         <div class="col-md-6"><label class="form-label" for="fps_threshold">FPS Threshold %</label><input type="text" inputmode="numeric" class="form-control" id="fps_threshold" name="fps_threshold" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['fps_threshold'], ENT_QUOTES) : '90'; ?>"></div>
                     </div>
                     <div class="mb-6"><label class="form-label" for="custom_sid">Custom Channel SID</label><input type="text" class="form-control" id="custom_sid" name="custom_sid" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['custom_sid'], ENT_QUOTES) : ''; ?>"></div>
+                    <div class="mb-6"><label class="form-label" for="custom_ffmpeg"><?= $language::get('custom_ffmpeg_command'); ?></label><input type="text" class="form-control" id="custom_ffmpeg" name="custom_ffmpeg" placeholder="-i {STREAM_SOURCE} -c:v libx264 -c:a aac" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['custom_ffmpeg'], ENT_QUOTES) : ''; ?>"></div>
                     <div class="row mb-6">
                         <div class="col-md-6"><label class="form-label" for="probesize_ondemand">On Demand Probesize</label><input type="text" inputmode="numeric" class="form-control" id="probesize_ondemand" name="probesize_ondemand" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['probesize_ondemand'], ENT_QUOTES) : htmlspecialchars((string) ($rSettings['probesize_ondemand'] ?? ''), ENT_QUOTES); ?>"></div>
                         <div class="col-md-6"><label class="form-label" for="delay_minutes">Minute Delay</label><input type="text" inputmode="numeric" class="form-control" id="delay_minutes" name="delay_minutes" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['delay_minutes'], ENT_QUOTES) : '0'; ?>"></div>
@@ -967,7 +968,7 @@ LayoutRenderer::renderFooter('admin');
             });
 
         // ---- direct source / proxy enable-disable ----
-        var dsFields = ['llod', 'fps_restart', 'fps_threshold', 'adaptive_link', 'custom_sid', 'read_native', 'gen_timestamps', 'stream_all', 'allow_record', 'rtmp_output', 'delay_minutes', 'custom_map', 'probesize_ondemand', 'transcode_profile_id', 'days_to_restart', 'time_to_restart', 'on_demand', 'tv_archive_duration', 'tv_archive_server_id', 'vframes_server_id', 'restart_on_edit'];
+        var dsFields = ['llod', 'fps_restart', 'fps_threshold', 'adaptive_link', 'custom_sid', 'custom_ffmpeg', 'read_native', 'gen_timestamps', 'stream_all', 'allow_record', 'rtmp_output', 'delay_minutes', 'custom_map', 'probesize_ondemand', 'transcode_profile_id', 'days_to_restart', 'time_to_restart', 'on_demand', 'tv_archive_duration', 'tv_archive_server_id', 'vframes_server_id', 'restart_on_edit'];
 
         function setDis(id, off) {
             var el = document.getElementById(id);
