@@ -23,7 +23,7 @@ final class ClusterFlowSwitchTest extends TestCase {
 	}
 
 	public function testTheNodesPageHasOneFlowColumnPerSwitchableFlow(): void {
-		$rView = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/Views/admin/cluster_nodes.php');
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/cluster_nodes.php');
 
 		$this->assertSame(
 			count(ClusterAdmin::FLOW_BITS),
@@ -54,23 +54,23 @@ final class ClusterFlowSwitchTest extends TestCase {
 	 * the list must survive the API being off (or its tables not existing yet).
 	 */
 	public function testTheServersListBadgesItsClusterNodes(): void {
-		$rView = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/Views/admin/servers.php');
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/servers.php');
 		$this->assertStringContainsString("\$rClusterNodes[(int) \$rServer['id']] ?? null", $rView);
 		$this->assertStringContainsString('cluster_node_badge_help', $rView);
 
-		$rController = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/Controllers/Admin/ServerListController.php');
+		$rController = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/ServerListController.php');
 		$this->assertStringContainsString("'rClusterNodes' => self::clusterNodes(\$rServers)", $rController);
 		// The API off, or its tables not created yet, costs the list nothing.
 		$this->assertStringContainsString("if (empty(SettingsManager::get('cluster_api_enabled'))) {", $rController);
 		$this->assertStringContainsString('} catch (\Throwable) {', $rController);
 		$this->assertSame(2, substr_count($rController, 'return [];'), 'both the off switch and the failure answer with no nodes');
 
-		$rEn = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Localization/lang/en.ini');
+		$rEn = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 		$this->assertStringContainsString('cluster_node_badge_help = ', $rEn);
 	}
 
 	public function testEveryFlowHasItsStrings(): void {
-		$rEn = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Localization/lang/en.ini');
+		$rEn = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 
 		foreach (array_keys(ClusterAdmin::FLOW_BITS) as $rName) {
 			foreach (['_flow = ', '_help = ', '_on_done = ', '_off_done = '] as $rSuffix) {

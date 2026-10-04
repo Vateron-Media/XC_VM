@@ -804,7 +804,7 @@ final class ArtefactHashRefusalTest extends TestCase {
 		$this->download($rOne['cmd'], $rTampered);
 		$rScript = $this->rBase . 'exec.php';
 		file_put_contents($rScript, "<?php\n"
-			. 'require ' . var_export(dirname(__DIR__, 2) . '/src/vendor/autoload.php', true) . ";\n"
+			. 'require ' . var_export(MAIN_HOME . 'vendor/autoload.php', true) . ";\n"
 			. '\XcVm\Core\Cluster\RootPin::useDirs(' . var_export($this->rBase . 'etc/', true) . ', ' . var_export($this->rBase . 'config/cluster/root-inbox/', true) . ");\n"
 			. 'exit(\XcVm\Cli\Commands\ClusterExecCommand::handToRoot(' . var_export($rOne['wire'], true) . ", 11, 30));\n");
 		$rProc = proc_open([PHP_BINARY, $rScript], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);

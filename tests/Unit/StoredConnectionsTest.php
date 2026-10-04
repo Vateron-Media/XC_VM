@@ -52,7 +52,7 @@ final class StoredConnectionsTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` text, `user_ip` text, `container` text, `pid` int, `date_start` int, `geoip_country_code` text, `isp` text, `external_device` text, `hls_last_read` int, `hls_end` int DEFAULT 0, `hmac_id` int, `hmac_identifier` text, `uuid` text, `divergence` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` text, `user_ip` text, `container` text, `pid` int, `date_start` int, `geoip_country_code` text, `isp` text, `external_device` text, `hls_last_read` int, `hls_end` int DEFAULT 0, `hmac_id` int, `hmac_identifier` text, `uuid` text, `divergence` int DEFAULT 0)');
 		DatabaseFactory::set($this->rDb);
 		SettingsManager::set(['redis_handler' => 0]);
 	}
@@ -88,6 +88,7 @@ final class StoredConnectionsTest extends TestCase {
 		$this->assertSame('7', StoredConnections::identity(['user_id' => 7, 'hmac_id' => 3, 'hmac_identifier' => 'dev']));
 		$this->assertSame('7', StoredConnections::identity(['user_id' => '7']));
 		$this->assertSame('3_dev', StoredConnections::identity(['user_id' => null, 'hmac_id' => 3, 'hmac_identifier' => 'dev']));
+		$this->assertSame('3_' . str_repeat('i', 255), StoredConnections::identity(['hmac_id' => 3, 'hmac_identifier' => str_repeat('i', 300)]), 'the identifier cut to 255 bytes, as a token\'s and a node\'s request both give it');
 		$this->assertSame('3_dev', StoredConnections::identity(['user_id' => '0', 'hmac_id' => '3', 'hmac_identifier' => 'dev']), 'a line id of 0 is no line');
 		$this->assertSame('3_', StoredConnections::identity(['hmac_id' => 3]));
 		$this->assertSame('0_', StoredConnections::identity([]));
@@ -145,18 +146,16 @@ final class StoredConnectionsTest extends TestCase {
 		StoredConnections::ofServer(5, false);
 	}
 
-	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
-	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 	public function testWithoutRedisTheReaderThrows(): void {
-		if (!class_exists('XC_VM', false)) {
-			eval('final class XC_VM { public static function redis_connect() { return null; } }'); // Redis unreachable
-		}
 		SettingsManager::set(['redis_handler' => 1]);
-		if (RedisManager::instance() !== null) {
-			$this->markTestSkipped('a Redis answers here');
-		}
+		RedisManager::closeInstance();
+		RedisManager::useConnector(static fn() => null); // Redis unreachable
 		$this->expectExceptionMessage('redis unavailable');
-		ConnectionDigest::stored(5);
+		try {
+			ConnectionDigest::stored(5);
+		} finally {
+			RedisManager::useConnector(null);
+		}
 	}
 
 	public function testTheRedisReaderTakesTheNodesRecordsAsStored(): void {

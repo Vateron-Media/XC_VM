@@ -9,7 +9,7 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  * Streaming endpoints get a LazyDatabaseHandler: no MySQL connection to MAIN
  * until the first query, so a request answered from cache or Redis opens none.
  * The real connect goes through the xcvm_core extension; here it is replaced
- * by an in-memory SQLite PDO that counts how often it is opened.
+ * by a connection to the test server that counts how often it is opened.
  */
 final class LazyDatabaseHandlerTest extends TestCase {
 
@@ -19,8 +19,7 @@ final class LazyDatabaseHandlerTest extends TestCase {
 
 			public function db_connect(bool $migrate = false, ?bool $graceful = null) {
 				$this->rOpens++;
-				$this->dbh = new \PDO('sqlite::memory:');
-				$this->dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+				$this->dbh = \TestDb::connect();
 				$this->connected = true;
 				return true;
 			}
@@ -85,7 +84,7 @@ final class LazyDatabaseHandlerTest extends TestCase {
 	}
 
 	public function testStreamingEndpointsUseTheLazyHandler(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		foreach (['Public/stream/live.php', 'Public/stream/vod.php', 'Public/stream/timeshift.php', 'Streaming/Lifecycle/ShutdownHandler.php'] as $rFile) {
 			$rSource = (string) file_get_contents($rRoot . $rFile);
 			$this->assertStringContainsString('DatabaseFactory::connectLazy();', $rSource, $rFile);

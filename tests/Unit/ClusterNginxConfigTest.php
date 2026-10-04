@@ -54,11 +54,11 @@ final class ClusterNginxConfigTest extends TestCase {
 		mkdir($this->rBase . 'bin/nginx/conf/ports', 0777, true);
 		file_put_contents($this->rBase . 'bin/nginx/conf/ports/http.conf', 'listen 25461;');
 		file_put_contents($this->rBase . 'bin/nginx/conf/ports/https.conf', 'listen 25463 ssl;');
-		copy(dirname(__DIR__, 2) . '/src/bin/nginx/conf/nginx.conf', $this->rBase . 'bin/nginx/conf/nginx.conf');
+		copy(MAIN_HOME . 'bin/nginx/conf/nginx.conf', $this->rBase . 'bin/nginx/conf/nginx.conf');
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		// What apply() without settings renders from: the stored values.
-		$this->rDb->exec("CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY, `cluster_api_enabled` int DEFAULT 0, `cluster_api_port` int DEFAULT 0, `cluster_policy_ver` int DEFAULT 1, `cluster_legacy_ports` varchar(255) DEFAULT '', `cluster_legacy_urls` text)");
+		$this->rDb->exec("CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `cluster_api_enabled` int DEFAULT 0, `cluster_api_port` int DEFAULT 0, `cluster_policy_ver` int DEFAULT 1, `cluster_legacy_ports` varchar(255) DEFAULT '', `cluster_legacy_urls` text)");
 		$this->rDb->exec('INSERT INTO `settings` (`id`) VALUES (1)');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix($this->rNow * 1000);
@@ -151,9 +151,10 @@ final class ClusterNginxConfigTest extends TestCase {
 
 	/** The shipped file is what the renderer writes, so an update and the next render agree. */
 	public function testTheShippedLocationsFileIsTheRendering(): void {
-		$this->assertSame(ClusterNginxConfig::locations(), (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/nginx/conf/' . ClusterNginxConfig::LOCATIONS));
+		$this->assertSame(ClusterNginxConfig::locations(), (string) file_get_contents(MAIN_HOME . 'bin/nginx/conf/' . ClusterNginxConfig::LOCATIONS));
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testNginxConfIncludesTheRenderedFiles(): void {
 		$rRoot = dirname(__DIR__, 2);
 		$rConf = (string) file_get_contents($rRoot . '/src/bin/nginx/conf/nginx.conf');
@@ -316,7 +317,7 @@ final class ClusterNginxConfigTest extends TestCase {
 		$this->assertSame('cluster_error_nginx', $rStage['refused'] ?? null, 'the settings save is refused');
 		$this->assertStringContainsString('predates', (string) $rStage['error']);
 
-		copy(dirname(__DIR__, 2) . '/src/bin/nginx/conf/nginx.conf', $this->rBase . 'bin/nginx/conf/nginx.conf');
+		copy(MAIN_HOME . 'bin/nginx/conf/nginx.conf', $this->rBase . 'bin/nginx/conf/nginx.conf');
 		$this->assertTrue(ClusterNginxConfig::apply(['cluster_api_port' => 0])['ok']);
 		$this->assertFileDoesNotExist($rRetired);
 	}
@@ -335,8 +336,9 @@ final class ClusterNginxConfigTest extends TestCase {
 	 * set_port handler, cron:cluster when an old port expires, and a settings
 	 * save that changes cluster_api_port; always as xc_vm.
 	 */
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testTheCallSitesRenderAsXcVm(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src/';
+		$rSrc = MAIN_HOME;
 
 		$rStatus = (string) file_get_contents($rSrc . 'Cli/Commands/StatusCommand.php');
 		$this->assertMatchesRegularExpression('#if \(\$rServers\[SERVER_ID\]\[.is_main.\]\) \{[^}]*\$this->ensureClusterNginx\(\);#', $rStatus, 'MAIN only');
@@ -678,11 +680,11 @@ final class ClusterNginxConfigTest extends TestCase {
 	 * serving it in the same pass.
 	 */
 	public function testCronReleasesAnOldPortOnceEveryNodeUsesTheNewUrl(): void {
-		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 1, `enrol_deadline` int DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `policy_ver` int NOT NULL DEFAULT 0, `main_port` int DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY)');
+		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 1, `enrol_deadline` int DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `policy_ver` int NOT NULL DEFAULT 0, `main_port` int DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT)');
 		$this->rDb->exec('INSERT INTO `servers` (`id`) VALUES (2)');
-		$this->rDb->exec('CREATE TABLE `cluster_enrol_codes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `exp` int NOT NULL)');
-		$this->rDb->exec('CREATE TABLE `cluster_enrol_requests` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `state` varchar(20) NOT NULL, `created_at` int NOT NULL)');
+		$this->rDb->exec('CREATE TABLE `cluster_enrol_codes` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `exp` int NOT NULL)');
+		$this->rDb->exec('CREATE TABLE `cluster_enrol_requests` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `state` varchar(20) NOT NULL, `created_at` int NOT NULL)');
 		$this->store('cluster_policy_ver', 2);
 		$this->store('cluster_legacy_ports', (string) json_encode([8080 => $this->rNow + ClusterEndpoint::GRACE]));
 		$this->rDb->query('INSERT INTO `cluster_nodes` (`server_id`, `last_seen_at`, `policy_ver`, `main_port`) VALUES (2, ?, 1, 8080)', $this->rNow * 1000 - 1000);
@@ -745,7 +747,7 @@ final class ClusterNginxConfigTest extends TestCase {
 			$this->markTestSkipped('no nginx (set XCVM_TEST_NGINX)');
 		}
 		ClusterNginxConfig::useRunner(null);
-		exec('cp -r ' . escapeshellarg(dirname(__DIR__, 2) . '/src/bin/nginx/conf/.') . ' ' . escapeshellarg($this->rBase . 'bin/nginx/conf/'));
+		exec('cp -r ' . escapeshellarg(MAIN_HOME . 'bin/nginx/conf/.') . ' ' . escapeshellarg($this->rBase . 'bin/nginx/conf/'));
 		file_put_contents($this->rBase . 'bin/nginx/conf/ports/http.conf', 'listen 25461;');
 		file_put_contents($this->rBase . 'bin/nginx/conf/ports/https.conf', 'listen 25463 ssl;');
 		unlink($this->rBase . 'bin/nginx/conf/' . ClusterNginxConfig::LOCATIONS);

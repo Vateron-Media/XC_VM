@@ -9,7 +9,7 @@ use XcVm\Cli\Commands\StartupCommand;
  * becomes TLS 1.2/1.3; what anyone else wrote is left alone.
  */
 final class StartupTlsTest extends TestCase {
-	private const CONF = __DIR__ . '/../../src/bin/nginx/conf/';
+	private const CONF = MAIN_HOME . 'bin/nginx/conf/';
 
 	private string $dir;
 

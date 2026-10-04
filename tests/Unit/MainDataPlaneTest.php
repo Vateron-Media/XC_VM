@@ -56,17 +56,13 @@ final class MainDataPlaneTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql');
-		foreach (array_filter(array_map('trim', explode(';', (string) preg_replace(
-			['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-			['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-			$rSql
-		)))) as $rStatement) {
+		$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql');
+		foreach (array_filter(array_map('trim', explode(';', (string) $rSql))) as $rStatement) {
 			$this->rDb->exec($rStatement);
 		}
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `is_main` int DEFAULT 0, `server_type` int DEFAULT 0, `server_name` varchar(64), `server_ip` varchar(64), `private_ip` varchar(64), `http_broadcast_port` int DEFAULT 80, `enabled` int DEFAULT 1)');
-		$this->rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY, `reseller_dns` text, `status` int)');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `is_main` int DEFAULT 0, `server_type` int DEFAULT 0, `server_name` varchar(64), `server_ip` varchar(64), `private_ip` varchar(64), `http_broadcast_port` int DEFAULT 80, `enabled` int DEFAULT 1)');
+		$this->rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `reseller_dns` text, `status` int)');
 		$this->rDb->exec("INSERT INTO `servers` (`id`, `is_main`, `server_name`, `server_ip`) VALUES (1, 1, 'main', '203.0.113.1'), (5, 0, 'node', '203.0.113.5'), (6, 0, 'legacy', '203.0.113.6')");
 		foreach (['streams_servers' => '`stream_id` int, `server_id` int', 'streams' => '`id` int, `tv_archive_server_id` int, `vframes_server_id` int', 'recordings' => '`stream_id` int, `source_id` int'] as $rTable => $rCols) {
 			$this->rDb->exec('CREATE TABLE `' . $rTable . '` (' . $rCols . ')');
@@ -257,12 +253,12 @@ final class MainDataPlaneTest extends TestCase {
 
 	/** Where MAIN reads another server's file: its agent while on, getFile with the server's IP otherwise. */
 	public function testTheSourceProbeAndTheCertbotLogUseTheAgent(): void {
-		$rSrc = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Domain/Server/ServerRepository.php');
+		$rSrc = (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerRepository.php');
 		$this->assertStringContainsString('$rAPI = self::fileUrl($rServers, $rServerID, $rFilename);', $rSrc);
 		$this->assertStringContainsString("\$rAPI = self::fileUrl(\$rServers, intval(\$rServerID), BIN_PATH . 'certbot/logs/xc_vm.log');", $rSrc);
 		$this->assertStringNotContainsString("['api_url_ip'] . '&action=getFile", str_replace("(\$rServers[\$rServerID]['api_url_ip'] ?? '') . '&action=getFile", '', $rSrc), 'no other getFile URL');
 
-		$rDp = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Cluster/DataPlane.php');
+		$rDp = (string) file_get_contents(MAIN_HOME . 'Core/Cluster/DataPlane.php');
 		$this->assertStringContainsString('return NodeFlows::on(NodeFlows::DATAPLANE) || (DataPlaneTrust::main() && MainAgentFiles::on());', $rDp);
 		$this->assertStringContainsString('MainDataPlane::ensureFile($rOwnerID, (string) $rPath)', $rDp);
 		$this->assertStringContainsString('MainDataPlane::ensureRelay((int) $rParentID, (int) $rStreamID)', $rDp);
@@ -314,6 +310,7 @@ final class MainDataPlaneTest extends TestCase {
 	}
 
 	/** The command is MAIN's only; the files it meets the agent in are the agent's. */
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testTheCommandAndTheSupervisor(): void {
 		$rRoot = dirname(__DIR__, 2);
 		$this->assertStringContainsString('Cli/Commands/ClusterMainDataplaneCommand.php', (string) file_get_contents($rRoot . '/Makefile'));

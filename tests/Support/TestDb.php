@@ -2,48 +2,38 @@
 
 use XcVm\Core\Database\DatabaseHandler;
 /**
- * TestDb — SQLite/MariaDB test double for the XC_VM Database wrapper.
+ * TestDb — MariaDB/MySQL test double for the XC_VM Database wrapper.
  *
  * Mirrors the subset of Database's public API used by repositories/services
  * (query / get_rows / get_row / get_col / get_column / num_rows /
- * last_insert_id / escape). By default it is backed by `sqlite::memory:` so
- * DB-touching code can be unit-tested without a server; set the environment
- * variables below to run the SAME tests against a real MariaDB (e.g. on the
- * panel host, where SQLite is unavailable). Inject via the service's setDb()
- * (the DI seam present on every domain repository/service).
+ * last_insert_id / escape), over the database engine production runs.
+ * Inject via the service's setDb() (the DI seam present on every domain
+ * repository/service) or DatabaseFactory::set().
  *
- * Backend selection (constructor, when no PDO is injected):
- *   - XCVM_TEST_DB_DSN set  -> connect with that PDO DSN (MariaDB/MySQL),
- *     XCVM_TEST_DB_USER / XCVM_TEST_DB_PASS for credentials.
- *   - otherwise              -> sqlite::memory:
+ * Connection: XCVM_TEST_DB_DSN (a PDO MySQL DSN), XCVM_TEST_DB_USER and
+ * XCVM_TEST_DB_PASS; unset, root over the local server's socket (a panel
+ * host), or without one over 127.0.0.1:3306 (`make test-db`). CI sets its own.
  *
- * Tests keep writing plain SQLite DDL. When the backend is MySQL/MariaDB the
- * DDL is translated on the fly (see translate()): `AUTOINCREMENT` becomes
- * `AUTO_INCREMENT`, a bare `INTEGER PRIMARY KEY` gains `AUTO_INCREMENT` so the
- * implicit-rowid behaviour matches, and every `CREATE TABLE x` is preceded by
- * `DROP TABLE IF EXISTS x` (a MariaDB schema persists across the per-test
- * connections that `:memory:` would otherwise start empty).
- *
- * Usage:
- *   $db = new TestDb();
- *   $db->exec('CREATE TABLE ...; INSERT INTO ...;');
- *   SomeRepository::setDb($db);
- *
- * Caveat: reserved-word identifiers must be back-quoted in the test DDL
- * (e.g. `key`, `order`, `lines`) so both engines accept them.
+ * Every TestDb gets an empty database of its own: a throwaway schema
+ * (`xcvm_t<pid>_<n>`), dropped with the instance. The session runs the
+ * sql_mode the installer configures (install: NO_ENGINE_SUBSTITUTION), so
+ * tests see the coercions and truncations a live panel sees.
  *
  * Extends DatabaseHandler so it satisfies the setDb(DatabaseHandler) DI seam
- * as a real subtype; the parent constructor (which connects to MySQL) is
- * deliberately not invoked — our own constructor wires the backend instead.
+ * as a real subtype; the parent constructor is deliberately not invoked —
+ * our own constructor wires the connection instead.
  *
  * @package XC_VM_Tests_Support
  */
 final class TestDb extends DatabaseHandler {
 
-	public PDO $pdo;
+	/** sql_mode of a live panel: the installer writes it to mariadb.cnf. */
+	public const SQL_MODE = 'NO_ENGINE_SUBSTITUTION';
 
-	/** @var string PDO driver name ('sqlite' or 'mysql'). */
-	private string $driver;
+	/** Without the variables: root over the local server's socket (a panel host), else `make test-db`'s port. */
+	private const SOCKET = '/run/mysqld/mysqld.sock';
+
+	public PDO $pdo;
 
 	/** @var array<int,array<string,mixed>> Buffered rows from the last SELECT. */
 	private array $rows = [];
@@ -53,72 +43,70 @@ final class TestDb extends DatabaseHandler {
 
 	private int $lastInsertId = 0;
 
-	public function __construct(?PDO $pdo = null) {
-		$this->pdo = $pdo ?? self::connect();
-		$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$this->driver = (string) $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+	/** This instance's throwaway schema. */
+	private string $schema;
 
-		if ($this->driver === 'mysql') {
-			// Relax to match SQLite's leniency the tests were written against:
-			// disabling ANSI_QUOTES lets double-quoted string literals work, and
-			// dropping STRICT avoids type-coercion errors on the simplified DDL.
-			$this->pdo->exec("SET SESSION sql_mode = ''");
+	private static int $schemas = 0;
+
+	public function __construct() {
+		$this->pdo = self::connect();
+		if (self::$schemas === 0) {
+			self::dropOrphanSchemas($this->pdo);
 		}
+		$this->schema = 'xcvm_t' . getmypid() . '_' . ++self::$schemas;
+		$this->pdo->exec('CREATE DATABASE `' . $this->schema . '`');
+		$this->pdo->exec('USE `' . $this->schema . '`');
+	}
+
+	public function __destruct() {
+		$this->pdo->exec('DROP DATABASE IF EXISTS `' . $this->schema . '`');
+	}
+
+	/** A new connection to the test server, in production's sql_mode; $rSchema selects a database. */
+	public static function connect(?string $rSchema = null): PDO {
+		['XCVM_TEST_DB_DSN' => $rDsn, 'XCVM_TEST_DB_USER' => $rUser] = self::env();
+		if ($rSchema !== null) {
+			$rDsn = preg_replace('/;?dbname=[^;]*/', '', $rDsn) . ';dbname=' . $rSchema;
+		}
+		// An explicit connect timeout: a boot under test (AdminGlobalsStage) can leave
+		// default_socket_timeout at 0, which mysqlnd takes for a TCP connect's.
+		$rPdo = new PDO($rDsn, $rUser, self::env()['XCVM_TEST_DB_PASS'] ?? null, [PDO::ATTR_TIMEOUT => 10]);
+		$rPdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		$rPdo->exec("SET SESSION sql_mode = '" . self::SQL_MODE . "'");
+		return $rPdo;
 	}
 
 	/**
-	 * Build the backing PDO from the environment: a MariaDB/MySQL DSN when
-	 * XCVM_TEST_DB_DSN is set, otherwise an in-memory SQLite database.
+	 * The connection variables, defaults filled in: also for a child process
+	 * started with an environment of its own (proc_open's $env replaces the parent's).
+	 *
+	 * @return array{XCVM_TEST_DB_DSN: string, XCVM_TEST_DB_USER: string, XCVM_TEST_DB_PASS?: string}
 	 */
-	private static function connect(): PDO {
-		$dsn = getenv('XCVM_TEST_DB_DSN');
-		if ($dsn !== false && $dsn !== '') {
-			$user = getenv('XCVM_TEST_DB_USER');
-			$pass = getenv('XCVM_TEST_DB_PASS');
-			return new PDO($dsn, $user === false ? null : $user, $pass === false ? null : $pass);
+	public static function env(): array {
+		$rOut = ['XCVM_TEST_DB_DSN' => file_exists(self::SOCKET) ? 'mysql:unix_socket=' . self::SOCKET : 'mysql:host=127.0.0.1;port=3306', 'XCVM_TEST_DB_USER' => 'root'];
+		foreach (['XCVM_TEST_DB_DSN', 'XCVM_TEST_DB_USER', 'XCVM_TEST_DB_PASS'] as $rName) {
+			if (($rValue = getenv($rName)) !== false && $rValue !== '') {
+				$rOut[$rName] = $rValue;
+			}
 		}
-		return new PDO('sqlite::memory:');
+		return $rOut;
 	}
 
-	/**
-	 * Translate SQLite test DDL to the active backend. No-op for SQLite.
-	 */
-	private function translate(string $sql): string {
-		if ($this->driver !== 'mysql') {
-			// SQLite doesn't understand MySQL table-option clauses (real
-			// production DDL, e.g. MigrationRunner's CREATE TABLE, carries
-			// `ENGINE=InnoDB DEFAULT CHARSET=utf8[mb4] [COLLATE=...]`) — strip
-			// them so such DDL can run unmodified against the default backend.
-			return preg_replace(
-				'/\s*ENGINE\s*=\s*\w+(\s+DEFAULT)?(\s+CHARSET\s*=\s*\w+)?(\s+COLLATE\s*=?\s*\w+)?/i',
-				'',
-				$sql
-			);
-		}
-
-		// SQLite `AUTOINCREMENT` -> MySQL `AUTO_INCREMENT`.
-		$sql = preg_replace('/\bAUTOINCREMENT\b/i', 'AUTO_INCREMENT', $sql);
-
-		// A bare `INTEGER PRIMARY KEY` auto-increments in SQLite but not in
-		// MySQL; add AUTO_INCREMENT so INSERTs without an id behave the same.
-		$sql = preg_replace(
-			'/\bINTEGER\s+PRIMARY\s+KEY\b(?!\s+AUTO_INCREMENT)/i',
-			'INTEGER PRIMARY KEY AUTO_INCREMENT',
-			$sql
-		);
-
-		// MariaDB keeps a table between the per-test connections, so make each
-		// CREATE idempotent by dropping first.
-		$sql = preg_replace_callback(
-			'/\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(`?)(\w+)\1/i',
-			static fn(array $m): string => 'DROP TABLE IF EXISTS ' . $m[1] . $m[2] . $m[1] . '; ' . $m[0],
-			$sql
-		);
-
-		return $sql;
+	/** This instance's schema, for a child process that opens its own connection to it (connect()). */
+	public function schema(): string {
+		return $this->schema;
 	}
 
-	/** True when the statement is schema DDL (needs the multi-statement exec path). */
+	/** Schemas a run left behind when its process died (a segfault skips __destruct). */
+	private static function dropOrphanSchemas(PDO $pdo): void {
+		foreach ($pdo->query("SHOW DATABASES LIKE 'xcvm\\_t%'")->fetchAll(PDO::FETCH_COLUMN) as $name) {
+			if (preg_match('/^xcvm_t(\d+)_\d+$/', $name, $m) && !posix_kill((int) $m[1], 0)) {
+				$pdo->exec('DROP DATABASE IF EXISTS `' . $name . '`');
+			}
+		}
+	}
+
+	/** True when the statement is schema DDL (a test may send several in one string). */
 	private static function isDdl(string $sql): bool {
 		return (bool) preg_match('/^\s*(CREATE|ALTER|DROP)\s+TABLE/i', $sql);
 	}
@@ -127,18 +115,16 @@ final class TestDb extends DatabaseHandler {
 	 * Execute raw schema/seed SQL (one or more `;`-separated statements).
 	 */
 	public function exec(string $sql): void {
-		$this->pdo->exec($this->translate($sql));
+		$this->pdo->exec($sql);
 	}
 
 	/**
 	 * Run a prepared query. Bind values follow $query (as in Database::query()).
-	 * SELECT/PRAGMA/WITH results are buffered for get_rows()/get_row()/num_rows().
+	 * SELECT/WITH/SHOW results are buffered for get_rows()/get_row()/num_rows().
 	 */
 	public function query($query, ...$args): bool {
-		// DDL cannot be run through prepare()/execute() on MySQL (the DROP+CREATE
-		// pair is multi-statement); route it through exec() on both backends.
 		if (self::isDdl($query)) {
-			$this->pdo->exec($this->translate($query));
+			$this->pdo->exec($query);
 			$this->rows = array();
 			$this->count = 0;
 			return true;
@@ -150,16 +136,10 @@ final class TestDb extends DatabaseHandler {
 			$binds[] = (is_string($a) && strtolower($a) === 'null') ? null : $a;
 		}
 
-		if ($this->driver !== 'mysql') {
-			// SQLite has no row locks and no such clause: a locking read is a plain one there.
-			$query = preg_replace('/\s+FOR UPDATE\s*;?\s*$/i', '', (string) $query);
-			// Nor MariaDB's per-statement variables: the statement itself runs.
-			$query = preg_replace('/^\s*SET STATEMENT\s+\S+\s+FOR\s+/i', '', (string) $query);
-		}
 		$stmt = $this->pdo->prepare($query);
 		$stmt->execute($binds);
 
-		if (preg_match('/^\s*(SELECT|PRAGMA|WITH)/i', $query)) {
+		if (preg_match('/^\s*(SELECT|WITH|SHOW)/i', $query)) {
 			$this->rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: array();
 			$this->count = count($this->rows);
 		} else {
@@ -242,7 +222,7 @@ final class TestDb extends DatabaseHandler {
 		return true;
 	}
 
-	/** The in-memory connection is always up (DatabaseFactory::connectLazy() asks). */
+	/** The test connection is always up (DatabaseFactory::connectLazy() asks). */
 	public function ping(): bool {
 		return true;
 	}
@@ -260,7 +240,7 @@ final class TestDb extends DatabaseHandler {
 	/**
 	 * Transactions over the backing PDO, with DatabaseHandler's semantics: one
 	 * at a time (a nested begin is refused, false), commit and rollback false
-	 * outside one. SQLite and MariaDB both roll back what ran inside.
+	 * outside one.
 	 */
 	public function beginTransaction() {
 		if ($this->inTransaction) {

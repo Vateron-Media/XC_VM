@@ -183,7 +183,7 @@ final class NodeLeaseTest extends TestCase {
 	}
 
 	public function testTheThreeEndpointsAskAndTheSwitchShipsOff(): void {
-		$rSrc = static fn(string $rPath): string => (string) file_get_contents(dirname(__DIR__, 2) . '/src/' . $rPath);
+		$rSrc = static fn(string $rPath): string => (string) file_get_contents(MAIN_HOME . $rPath);
 
 		// A new viewer is refused where the node already refuses one whose cache is
 		// not built: at the top of the stream auth entry, before any of its work.
@@ -208,7 +208,7 @@ final class NodeLeaseTest extends TestCase {
 		$this->assertStringContainsString("`lb_lease_fence` tinyint(1) DEFAULT '0'", $rSrc('migrations/database/up/051_add_lease_fence_switch.sql'));
 		$this->assertStringContainsString("['lb_lease_fence', 'switch'", $rSrc('Public/Views/admin/settings.php'));
 		$this->assertStringContainsString('lb_lease_fence = "', $rSrc('Core/Localization/lang/en.ini'));
-		$rAllowed = require dirname(__DIR__, 2) . '/src/Core/Cluster/lb_settings_keys.php';
+		$rAllowed = require MAIN_HOME . 'Core/Cluster/lb_settings_keys.php';
 		foreach (['lb_lease_fence', 'lb_fence_drain_min'] as $rKey) {
 			$this->assertContains($rKey, $rAllowed['keys'], $rKey . ' must reach a node');
 		}

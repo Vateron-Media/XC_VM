@@ -18,10 +18,10 @@ final class RadioServiceTest extends TestCase {
 	protected function setUp(): void {
 		$this->db = new TestDb();
 		$this->db->exec(
-			'CREATE TABLE bouquets (id INTEGER PRIMARY KEY AUTOINCREMENT, bouquet_name TEXT, bouquet_channels TEXT, bouquet_movies TEXT, bouquet_series TEXT, bouquet_radios TEXT, bouquet_order INTEGER DEFAULT 0);
-			 CREATE TABLE streams_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, category_type TEXT, category_name TEXT, parent_id INTEGER, cat_order INTEGER, is_adult INTEGER);
-			 CREATE TABLE streams_options (id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER, argument_id INTEGER, value TEXT);
-			 CREATE TABLE streams_servers (server_stream_id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER, server_id INTEGER, parent_id INTEGER, on_demand INTEGER);'
+			'CREATE TABLE bouquets (id INTEGER PRIMARY KEY AUTO_INCREMENT, bouquet_name TEXT, bouquet_channels TEXT, bouquet_movies TEXT, bouquet_series TEXT, bouquet_radios TEXT, bouquet_order INTEGER DEFAULT 0);
+			 CREATE TABLE streams_categories (id INTEGER PRIMARY KEY AUTO_INCREMENT, category_type TEXT, category_name TEXT, parent_id INTEGER, cat_order INTEGER, is_adult INTEGER);
+			 CREATE TABLE streams_options (id INTEGER PRIMARY KEY AUTO_INCREMENT, stream_id INTEGER, argument_id INTEGER, value TEXT);
+			 CREATE TABLE streams_servers (server_stream_id INTEGER PRIMARY KEY AUTO_INCREMENT, stream_id INTEGER, server_id INTEGER, parent_id INTEGER, on_demand INTEGER);'
 		);
 	}
 

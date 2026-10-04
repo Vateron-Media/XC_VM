@@ -90,7 +90,7 @@ final class ClusterBusTest extends TestCase {
 	public function testAWakeFromAnotherProcessEndsTheWait(): void {
 		$this->bus();
 		$rScript = tempnam(sys_get_temp_dir(), 'wake') . '.php';
-		file_put_contents($rScript, '<?php require ' . var_export(dirname(__DIR__, 2) . '/src/vendor/autoload.php', true) . ';
+		file_put_contents($rScript, '<?php require ' . var_export(MAIN_HOME . 'vendor/autoload.php', true) . ';
 usleep(300000);
 XcVm\Domain\Cluster\ClusterBus::useSocket(' . var_export(self::$rDir . '/cluster.sock', true) . ');
 XcVm\Domain\Cluster\ClusterBus::wakeAck(' . var_export(str_repeat('c', 32), true) . ');');

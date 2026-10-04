@@ -51,7 +51,7 @@ final class CacheJobsRunTest extends TestCase {
 			\XcVm\Core\Cluster\CacheJobs::run(json_decode((string) file_get_contents(MAIN_HOME . 'jobs.json'), true));
 			echo "done\n";
 			PHP);
-		$rProc = proc_open(['timeout', '60', PHP_BINARY, $rScript], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes, $this->rHome, ['XCVM_TEST_HOME' => $this->rHome, 'XCVM_TEST_SRC' => dirname(__DIR__, 2) . '/src/', 'PATH' => (string) getenv('PATH')]);
+		$rProc = proc_open(['timeout', '60', PHP_BINARY, $rScript], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes, $this->rHome, ['XCVM_TEST_HOME' => $this->rHome, 'XCVM_TEST_SRC' => MAIN_HOME, 'PATH' => (string) getenv('PATH')]);
 		$this->assertIsResource($rProc);
 		$rOut = (string) stream_get_contents($rPipes[1]);
 		$rErr = (string) stream_get_contents($rPipes[2]);

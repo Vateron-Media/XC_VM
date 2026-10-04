@@ -37,8 +37,7 @@ if (!defined('STATUS_INVALID_DATA')) {
  * lists as read.
  *
  * The saves go through SettingsService::edit(), the admin's save path, on
- * the TestDb (`information_schema.columns` attached under SQLite, as in
- * SettingsServiceClusterPortTest).
+ * the TestDb.
  */
 final class ClusterEndpointSettingsTest extends TestCase {
 	/** The settings columns: name => [data_type, default]. */
@@ -80,7 +79,7 @@ final class ClusterEndpointSettingsTest extends TestCase {
 		mkdir($this->rDir . 'bin/nginx/conf/ports', 0777, true);
 		mkdir($this->rDir . 'cache', 0777, true);
 		file_put_contents($this->rDir . 'bin/nginx/conf/ports/http.conf', 'listen 25461;');
-		copy(dirname(__DIR__, 2) . '/src/bin/nginx/conf/nginx.conf', $this->rDir . 'bin/nginx/conf/nginx.conf');
+		copy(MAIN_HOME . 'bin/nginx/conf/nginx.conf', $this->rDir . 'bin/nginx/conf/nginx.conf');
 		if (!defined('CACHE_TMP_PATH')) {
 			define('CACHE_TMP_PATH', $this->rDir . 'cache/');
 		}
@@ -94,23 +93,14 @@ final class ClusterEndpointSettingsTest extends TestCase {
 				default => "varchar(255) DEFAULT '" . $rDefault . "'",
 			};
 		}
-		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY, ' . implode(', ', $rDdl) . ')');
+		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, ' . implode(', ', $rDdl) . ')');
 		$this->rDb->exec('INSERT INTO `settings` (`id`, `cluster_api_enabled`) VALUES (1, 1)');
-		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `is_main` int NOT NULL DEFAULT 0, `server_ip` varchar(255) DEFAULT '', `private_ip` varchar(255) DEFAULT '', `domain_name` varchar(255) DEFAULT '', `enable_https` int NOT NULL DEFAULT 0, `http_broadcast_port` int DEFAULT NULL, `https_broadcast_port` int DEFAULT NULL, `http_ports_add` varchar(255) DEFAULT '', `https_ports_add` varchar(255) DEFAULT '')");
-		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `state` varchar(16) NOT NULL DEFAULT 'enrolling', `mode` int NOT NULL DEFAULT 1, `enrol_deadline` int DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `policy_ver` int NOT NULL DEFAULT 0, `main_port` int DEFAULT NULL, `features` varchar(255) DEFAULT NULL)");
-		$this->rDb->exec('CREATE TABLE `cluster_enrol_codes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int NOT NULL, `created_at` int NOT NULL DEFAULT 0, `exp` int NOT NULL, `used_at` int DEFAULT NULL)');
-		$this->rDb->exec("CREATE TABLE `cluster_enrol_requests` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int NOT NULL, `state` varchar(20) NOT NULL DEFAULT 'pending_approval', `created_at` int NOT NULL)");
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `is_main` int NOT NULL DEFAULT 0, `server_ip` varchar(255) DEFAULT '', `private_ip` varchar(255) DEFAULT '', `domain_name` varchar(255) DEFAULT '', `enable_https` int NOT NULL DEFAULT 0, `http_broadcast_port` int DEFAULT NULL, `https_broadcast_port` int DEFAULT NULL, `http_ports_add` varchar(255) DEFAULT '', `https_ports_add` varchar(255) DEFAULT '')");
+		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `state` varchar(16) NOT NULL DEFAULT 'enrolling', `mode` int NOT NULL DEFAULT 1, `enrol_deadline` int DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `policy_ver` int NOT NULL DEFAULT 0, `main_port` int DEFAULT NULL, `features` varchar(255) DEFAULT NULL)");
+		$this->rDb->exec('CREATE TABLE `cluster_enrol_codes` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int NOT NULL, `created_at` int NOT NULL DEFAULT 0, `exp` int NOT NULL, `used_at` int DEFAULT NULL)');
+		$this->rDb->exec("CREATE TABLE `cluster_enrol_requests` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int NOT NULL, `state` varchar(20) NOT NULL DEFAULT 'pending_approval', `created_at` int NOT NULL)");
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		$this->rDb->exec('CREATE TABLE `streams_arguments` (`argument_key` varchar(64), `argument_default_value` varchar(255))');
-		if ($this->rDb->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-			$this->rDb->pdo->exec("ATTACH DATABASE ':memory:' AS `information_schema`");
-			$this->rDb->pdo->exec('CREATE TABLE `information_schema`.`columns` (`table_schema` text, `table_name` text, `column_name` text, `column_default` text, `is_nullable` text, `data_type` text, `ordinal_position` int)');
-			$this->rDb->pdo->sqliteCreateFunction('DATABASE', static fn(): string => 'xc_vm', 0);
-			$rPosition = 0;
-			foreach (self::COLUMNS as $rName => [$rType, $rDefault]) {
-				$this->rDb->query('INSERT INTO `information_schema`.`columns` VALUES (?, ?, ?, ?, ?, ?, ?)', 'xc_vm', 'settings', $rName, "'" . $rDefault . "'", 'NO', $rType, ++$rPosition);
-			}
-		}
 		DatabaseFactory::set($this->rDb);
 		// QueryHelper::verifyPostTable() reads the global handler.
 		$GLOBALS['db'] = $this->rDb;
@@ -119,7 +109,7 @@ final class ClusterEndpointSettingsTest extends TestCase {
 		$this->rSettingsBefore = SettingsManager::getAll();
 		SettingsManager::set($this->settings());
 		unset($_COOKIE['lang']);
-		Translator::init(dirname(__DIR__, 2) . '/src/Core/Localization/lang');
+		Translator::init(MAIN_HOME . 'Core/Localization/lang');
 
 		ClusterClock::fix($this->rNow * 1000);
 		ClusterSettings::useHttpsProbe(static fn(array $rMain): array => ['ok' => true, 'reason' => 'OK', 'host' => 'panel.example.com', 'days_left' => 80]);
@@ -747,6 +737,7 @@ final class ClusterEndpointSettingsTest extends TestCase {
 	 * of a host, at once: for an old name MAIN gives up. The policy version
 	 * goes up and it is audited. The command is MAIN's alone.
 	 */
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testTheAdminDropsAKeptNameAtOnce(): void {
 		$rRun = static function (array $rArgs): array {
 			ob_start();
@@ -816,7 +807,7 @@ final class ClusterEndpointSettingsTest extends TestCase {
 	 * only.
 	 */
 	public function testTheCallSite(): void {
-		$rSrc = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Domain/Server/SettingsService.php');
+		$rSrc = (string) file_get_contents(MAIN_HOME . 'Domain/Server/SettingsService.php');
 		$this->assertSame(1, substr_count($rSrc, 'ClusterEndpoint::storeSettings($rPrepare[\'update\'], $rPrepare[\'data\'], $rArray, self::mainServer())'));
 		$this->assertStringContainsString('if (array_intersect_key($rArray, array_flip(self::CLUSTER_POLICY)) !== [] && class_exists(ClusterEndpoint::class)) {', $rSrc, 'Domain\Cluster is not in the LB build');
 		$this->assertStringContainsString("private const CLUSTER_POLICY = ['cluster_transport', 'cluster_main_host'];", $rSrc);

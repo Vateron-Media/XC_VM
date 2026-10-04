@@ -87,17 +87,17 @@ final class ClusterApiTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		foreach (['029_create_cluster_nodes', '030_create_cluster_commands', '032_create_cluster_audit'] as $rName) {
-			$this->rDb->exec($this->ddl((string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql')));
+		foreach (['029_create_cluster_nodes', '030_create_cluster_commands', '032_create_cluster_audit', '063_widen_cluster_reservation_identity'] as $rName) {
+			$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql'));
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_node_epochs` ADD COLUMN `agent_eph_pub` binary(32) DEFAULT NULL');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `root_ready` tinyint(1) NOT NULL DEFAULT 0');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `features` varchar(255) DEFAULT NULL');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `audit` text DEFAULT NULL');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `arch` varchar(8) DEFAULT NULL');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `status` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `status` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `servers` (`id`, `status`) VALUES (5, 0)');
-		$this->rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY, `reseller_dns` text, `status` int)');
+		$this->rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `reseller_dns` text, `status` int)');
 		DatabaseFactory::set($this->rDb);
 		$this->rSettings = ['cluster_api_enabled' => 1, 'lb_token_rotation_min' => 60, 'lb_revocation_mode' => 'graceful', 'lb_new_node_mode' => 'legacy'];
 		SettingsManager::set($this->rSettings);
@@ -165,18 +165,6 @@ final class ClusterApiTest extends TestCase {
 		self::$rBus = null;
 	}
 
-	/** The migrations' MariaDB DDL, reduced to what SQLite accepts. */
-	private function ddl(string $rSql): string {
-		if (getenv('XCVM_TEST_DB_DSN')) {
-			return $rSql;
-		}
-		$rSql = (string) preg_replace('/^--.*$/m', '', $rSql);
-		$rSql = (string) preg_replace('/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', $rSql);
-		$rSql = (string) preg_replace('/,\s*PRIMARY KEY \(`id`\)/', '', $rSql);
-		$rSql = (string) preg_replace('/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '', $rSql);
-		$rSql = (string) preg_replace('/ unsigned| COLLATE \w+/', '', $rSql);
-		return (string) preg_replace('/\) ENGINE=[^;]*;/', ');', $rSql);
-	}
 
 	// ── The test agent ───────────────────────────────────────────────────
 
@@ -801,7 +789,7 @@ final class ClusterApiTest extends TestCase {
 		$this->assertSame(2, $this->denial($rRes, 403, 'NODE_REVOKED', $rReq)['revoked_gen']);
 		$this->assertFalse(NodeRegistry::serverDeleted(self::SID, $this->rCrypto), 'already revoked: nothing to do');
 		$this->assertFalse(NodeRegistry::serverDeleted(99, $this->rCrypto), 'a server without a node');
-		$this->assertStringContainsString("NodeRegistry::serverDeleted(\$rID);", (string) file_get_contents(dirname(__DIR__, 2) . '/src/Domain/Server/ServerRepository.php'), 'deleteById revokes it');
+		$this->assertStringContainsString("NodeRegistry::serverDeleted(\$rID);", (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerRepository.php'), 'deleteById revokes it');
 	}
 
 	public function testRevokedNodeIsRefusedEvenWithItsRowRestored(): void {
@@ -1146,6 +1134,9 @@ final class ClusterApiTest extends TestCase {
 	 * row of its own) keep the rows their signals daemon reads. Run alone:
 	 * MAIN's SERVER_ID is 1 here, whatever another test defined.
 	 */
+	// skip-on-panel: PHPUnit feeds an isolated test to its child PHP on stdin, and the
+	// panel's PHP (ionCube Loader + opcache.enable_cli) segfaults on a script read from stdin.
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
 	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 	public function testCacheJobsForAModeTwoNodeBecomeCommands(): void {
@@ -1289,6 +1280,9 @@ final class ClusterApiTest extends TestCase {
 	 * sends none, nor does a run where the cluster API is off or on a node.
 	 * Run alone: MAIN's SERVER_ID is 1 here.
 	 */
+	// skip-on-panel: PHPUnit feeds an isolated test to its child PHP on stdin, and the
+	// panel's PHP (ionCube Loader + opcache.enable_cli) segfaults on a script read from stdin.
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
 	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 	public function testMainsDailyCronCertbotSendsTheRenewals(): void {
@@ -1363,6 +1357,9 @@ final class ClusterApiTest extends TestCase {
 		}
 	}
 
+	// skip-on-panel: PHPUnit feeds an isolated test to its child PHP on stdin, and the
+	// panel's PHP (ionCube Loader + opcache.enable_cli) segfaults on a script read from stdin.
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
 	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 	public function testTheLimitersCloseReachesTheNodeThatHoldsTheViewer(): void {
@@ -1373,7 +1370,7 @@ final class ClusterApiTest extends TestCase {
 		$this->active();
 		SettingsManager::set($this->rSettings);
 		NodeRegistry::update(self::SID, ['flows' => NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONNECTIONS]);
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY, `hls_end` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `hls_end` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `lines_live` (`activity_id`) VALUES (7)');
 		$GLOBALS['db'] = $this->rDb;
 		$GLOBALS['rSettings'] = ['redis_handler' => 0, 'save_closed_connection' => 0];
@@ -1391,7 +1388,7 @@ final class ClusterApiTest extends TestCase {
 	}
 
 	public function testADriftedNodeIsAskedForItsSnapshotAndItIsApplied(): void {
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` text, `user_ip` text, `container` text, `pid` int, `date_start` int, `geoip_country_code` text, `isp` text, `external_device` text, `hls_last_read` int, `hls_end` int DEFAULT 0, `hmac_id` int, `hmac_identifier` text, `uuid` text)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` text, `user_ip` text, `container` text, `pid` int, `date_start` int, `geoip_country_code` text, `isp` text, `external_device` text, `hls_last_read` int, `hls_end` int DEFAULT 0, `hmac_id` int, `hmac_identifier` text, `uuid` text)');
 		$this->rDb->query("INSERT INTO `lines_live` (`uuid`, `server_id`, `user_id`) VALUES ('ghost', 5, 7)");
 		$rDir = sys_get_temp_dir() . '/xcvm-api-snap-' . bin2hex(random_bytes(4));
 		\XcVm\Domain\Cluster\ConnectionDigest::useState($rDir . '/d/', 0);
@@ -1428,7 +1425,7 @@ final class ClusterApiTest extends TestCase {
 	}
 
 	public function testEventsAreAppliedInOrderAndHelloReturnsTheCursors(): void {
-		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY, `stream_id` int, `server_id` int, `pid` int)');
+		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `pid` int)');
 		$this->rDb->exec('INSERT INTO `streams_servers` (`server_stream_id`, `stream_id`, `server_id`, `pid`) VALUES (11, 100, 5, 0)');
 		$rKeys = $this->active();
 		NodeRegistry::update(self::SID, ['mode' => 1, 'flows' => NodeRegistry::FLOW_STREAMS]);
@@ -1454,7 +1451,7 @@ final class ClusterApiTest extends TestCase {
 	public function testAP0BatchThatGoesBackQuarantines(): void {
 		$rPrevious = EventIngest::useLockDir(sys_get_temp_dir() . '/xcvm-ingest-' . bin2hex(random_bytes(4)) . '/');
 		try {
-			$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY, `stream_id` int, `server_id` int, `pid` int)');
+			$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `pid` int)');
 			$this->rDb->exec('INSERT INTO `streams_servers` (`server_stream_id`, `stream_id`, `server_id`, `pid`) VALUES (11, 100, 5, 0)');
 			$rKeys = $this->active();
 			$this->peer(6, ReplicaBuilder::FEATURE_CONFIG_CHANGED);
@@ -1481,7 +1478,7 @@ final class ClusterApiTest extends TestCase {
 	}
 
 	public function testP2TakesTouchesWithoutANumberAndHelloAndHeartbeatSaySo(): void {
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY, `uuid` varchar(32), `server_id` int, `hls_last_read` int, `hls_end` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` varchar(32), `server_id` int, `hls_last_read` int, `hls_end` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec("INSERT INTO `lines_live` (`uuid`, `server_id`, `hls_last_read`) VALUES ('aaaa', 5, 100)");
 		$rKeys = $this->active();
 		NodeRegistry::update(self::SID, ['mode' => 1, 'flows' => NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONNECTIONS]);
@@ -1534,8 +1531,8 @@ final class ClusterApiTest extends TestCase {
 	}
 
 	public function testRecordingCompleteCreatesTheVodOnceForTheNodesRecording(): void {
-		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `type` int, `stream_display_name` text, `stream_source` text, `target_container` text, `year` text, `movie_properties` text, `rating` int, `read_native` int, `movie_symlink` int, `remove_subtitles` int, `transcode_profile_id` int, `order` int, `added` int, `category_id` text)');
-		$this->rDb->exec('CREATE TABLE `recordings` (`id` INTEGER PRIMARY KEY, `created_id` int, `category_id` text, `bouquets` text, `title` text, `description` text, `start` int, `end` int, `source_id` int, `status` int)');
+		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `type` int, `stream_display_name` text, `stream_source` text, `target_container` text, `year` text, `movie_properties` text, `rating` int, `read_native` int, `movie_symlink` int, `remove_subtitles` int, `transcode_profile_id` int, `order` int, `added` int, `category_id` text)');
+		$this->rDb->exec('CREATE TABLE `recordings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `created_id` int, `category_id` text, `bouquets` text, `title` text, `description` text, `start` int, `end` int, `source_id` int, `status` int)');
 		$this->rDb->exec("INSERT INTO `recordings` VALUES (1, NULL, '[]', '[]', 'Match', '', 1800000000, 1800003600, 5, 1), (2, NULL, '[]', '[]', 'Theirs', '', 1800000000, 1800003600, 6, 1)");
 		$rKeys = $this->active();
 
@@ -1585,12 +1582,12 @@ final class ClusterApiTest extends TestCase {
 	}
 
 	private function blocklistTables(): void {
-		$this->rDb->exec($this->ddl((string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/034_create_cluster_changes.sql')));
-		$this->rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `ip` varchar(39), `notes` text, `date` int)');
-		$this->rDb->exec('CREATE TABLE `blocked_uas` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `user_agent` varchar(255), `exact_match` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `blocked_isps` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `isp` text, `blocked` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `blocked_asns` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `asn` int, `blocked` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `rtmp_ips` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `ip` varchar(255), `password` varchar(128), `push` int, `pull` int)');
+		$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/up/034_create_cluster_changes.sql'));
+		$this->rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(39), `notes` text, `date` int)');
+		$this->rDb->exec('CREATE TABLE `blocked_uas` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `user_agent` varchar(255), `exact_match` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `blocked_isps` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `isp` text, `blocked` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `blocked_asns` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `asn` int, `blocked` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `rtmp_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(255), `password` varchar(128), `push` int, `pull` int)');
 	}
 
 	private function block(string $rIP, bool $rOn = true): void {
@@ -1707,12 +1704,9 @@ final class ClusterApiTest extends TestCase {
 	}
 
 	public function testConnAdmitAdmitsForTheAuthenticatedNodeFromMainsOwnLine(): void {
-		$this->rDb->exec('CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY, `max_connections` int, `pair_id` int, `enabled` int, `admin_enabled` int, `exp_date` int)');
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` text, `server_id` int, `user_id` int, `hmac_id` int, `hmac_identifier` text, `hls_end` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `max_connections` int, `pair_id` int, `enabled` int, `admin_enabled` int, `exp_date` int)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` text, `server_id` int, `user_id` int, `hmac_id` int, `hmac_identifier` text, `hls_end` int DEFAULT 0)');
 		$this->rDb->query('INSERT INTO `lines` VALUES (42, 1, NULL, 1, 1, NULL), (50, 1, NULL, 1, 0, NULL)');
-		// The reservations' primary key (the test DDL drops it) is what makes a retry refresh one row.
-		$this->rDb->exec('DROP TABLE `cluster_reservations`');
-		$this->rDb->exec('CREATE TABLE `cluster_reservations` (`id` char(32) PRIMARY KEY, `identity` varchar(96) NOT NULL, `server_id` int NOT NULL, `stream_id` int, `created_at` int NOT NULL, `exp` int NOT NULL)');
 		$rDir = sys_get_temp_dir() . '/xcvm-api-admit-' . bin2hex(random_bytes(4)) . '/';
 		\XcVm\Domain\Cluster\ConnectionLimits::useQueue($rDir);
 		$rCuts = [];
@@ -1820,7 +1814,7 @@ final class ClusterApiTest extends TestCase {
 		$this->blocklistTables();
 		$this->rDb->exec('CREATE TABLE `settings` (`id` int, `server_name` text, `api_pass` text, `cloudflare` int, `mag_legacy_redirect` int)');
 		$this->rDb->exec("INSERT INTO `settings` VALUES (1, 'XC', 'secret', 1, 0)");
-		$this->rDb->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `filename` varchar(255), `time` varchar(128), `enabled` int, `role` varchar(8))');
+		$this->rDb->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `filename` varchar(255), `time` varchar(128), `enabled` int, `role` varchar(8))');
 		$this->rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('streams', '* * * * *', 1, 'all'), ('tmdb', '0 * * * *', 1, 'main')");
 		$this->rDb->exec('ALTER TABLE `servers` ADD COLUMN `server_ip` varchar(255)');
 		$this->rDb->exec('ALTER TABLE `servers` ADD COLUMN `http_broadcast_port` int');
@@ -1930,7 +1924,7 @@ final class ClusterApiTest extends TestCase {
 
 		// An agent that names neither catalogue section predates `too_large`: a
 		// section past the bound is left out for it, as before.
-		$this->rDb->exec('CREATE TABLE `settings` (`id` int, `server_name` text)');
+		$this->rDb->exec('CREATE TABLE `settings` (`id` int, `server_name` mediumtext)');
 		$this->rDb->query('INSERT INTO `settings` VALUES (1, ?)', str_repeat('x', 3500000));
 		[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => 0, 'have' => ['settings' => '']], 1, $rKeys);
 		$rOut = $this->reply($rRes, $rCtx, $rKeys);
@@ -2004,8 +1998,18 @@ final class ClusterApiTest extends TestCase {
 		$this->rDb->exec(InstallSchema::table('streams_categories'));
 		// Each section under the bound, together past the agent's 8 MiB, with a blocklist section to send too.
 		$this->rDb->query("INSERT INTO `bouquets` (`id`, `bouquet_name`, `bouquet_order`) VALUES (1, ?, 1)", str_repeat('b', 2900000));
-		$this->rDb->query("INSERT INTO `streams_categories` (`id`, `category_type`, `category_name`, `parent_id`, `cat_order`, `is_adult`) VALUES (4, 'live', ?, 0, 1, 0)", str_repeat('c', 2900000));
-		$this->rDb->query('INSERT INTO `blocked_uas` (`user_agent`) VALUES (?)', str_repeat('u', 700000));
+		// Category names and user agents are varchar(255) in production: a section this big is many rows.
+		$rFill = function (string $rTable, string $rColumns, callable $rRow, int $rBytes): void {
+			for ($i = 1; ; $i += 500) {
+				$this->rDb->query('SELECT * FROM `' . $rTable . '`');
+				if (strlen((string) json_encode($this->rDb->get_rows())) >= $rBytes) {
+					return;
+				}
+				$this->rDb->exec('INSERT INTO `' . $rTable . '` (' . $rColumns . ') VALUES ' . implode(', ', array_map($rRow, range($i, $i + 499))));
+			}
+		};
+		$rFill('streams_categories', '`id`, `category_type`, `category_name`, `parent_id`, `cat_order`, `is_adult`', static fn(int $n): string => "({$n}, 'live', '" . str_repeat('c', 250) . "', 0, {$n}, 0)", 2900000);
+		$rFill('blocked_uas', '`user_agent`', static fn(int $n): string => "('" . str_pad((string) $n, 250, 'u') . "')", 700000);
 		BlocklistChanges::set('ua', [1]);
 		$rKeys = $this->active();
 		$rNew = [ReplicaSections::BOUQUETS => '', ReplicaSections::CATEGORIES => ''];
@@ -2116,7 +2120,7 @@ final class ClusterApiTest extends TestCase {
 			DatabaseFactory::set($this->rDb);
 		}
 		$this->assertSame(1, $rDown->rOpens);
-		$rIndex = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/cluster/index.php');
+		$rIndex = (string) file_get_contents(MAIN_HOME . 'Public/cluster/index.php');
 		$this->assertStringContainsString('$db = new LazyDatabaseHandler(true);', $rIndex, 'the entry point opens nothing an op does not query');
 	}
 
@@ -2151,7 +2155,7 @@ final class ClusterApiTest extends TestCase {
 		foreach (['streams', 'streams_servers', 'recordings', 'profiles', 'streams_types', 'streams_arguments', 'streams_options'] as $rTable) {
 			$this->rDb->exec(InstallSchema::table($rTable));
 		}
-		$this->rDb->exec($this->ddl((string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/034_create_cluster_changes.sql')));
+		$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/up/034_create_cluster_changes.sql'));
 		$this->rDb->exec("INSERT INTO `streams_types` VALUES (1, 'Live Streams', 'live', 'live', 1), (2, 'Movies', 'movie', 'movie', 0)");
 		$this->rDb->exec("INSERT INTO `profiles` VALUES (7, 'hd', '{\"3\":{\"cmd\":\"-b:v 4M\"}}')");
 		$this->rDb->exec("INSERT INTO `streams_arguments` VALUES (1, 'fetch', 'User Agent', 'shown in the form', 'http', 'user_agent', '-user_agent \"%s\"', 'text', 'VLC')");
@@ -2563,7 +2567,7 @@ final class ClusterApiTest extends TestCase {
 	 * and that entry point never runs ContainerPopulateStage.
 	 */
 	public function testTheClusterEntryPointStampsTheVersionsOfWhatItsOpsChange(): void {
-		$rIndex = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/cluster/index.php');
+		$rIndex = (string) file_get_contents(MAIN_HOME . 'Public/cluster/index.php');
 		$rSubscribe = strpos($rIndex, "\n\tEventDispatcher::subscribe(StreamVersions::class);\n");
 		$rHandle = strpos($rIndex, '$rEmit(ClusterApi::serve($rCrypto, $rReq, $rSettings, $rMain));');
 		$this->assertNotFalse($rSubscribe);
@@ -2734,7 +2738,7 @@ final class ClusterApiTest extends TestCase {
 
 	public function testP0EventsKeepTheirReserveWhileBulkHoldsTheRest(): void {
 		$rRedis = $this->bus();
-		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY, `stream_id` int, `server_id` int, `pid` int)');
+		$this->rDb->exec('CREATE TABLE `streams_servers` (`server_stream_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_id` int, `server_id` int, `pid` int)');
 		$this->rDb->exec('INSERT INTO `streams_servers` (`server_stream_id`, `stream_id`, `server_id`, `pid`) VALUES (11, 100, 5, 0)');
 		$rKeys = $this->active();
 		NodeRegistry::update(self::SID, ['mode' => 1, 'flows' => NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_LOGS | NodeRegistry::FLOW_CONTENT | NodeRegistry::FLOW_CONNECTIONS]);
@@ -3051,7 +3055,7 @@ final class ClusterApiTest extends TestCase {
 			$this->assertFalse(ClusterApi::readsMain(Canonical::PATH_PREFIX . $rOp), $rOp);
 		}
 		// No handler of those is given MAIN's row.
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Domain/Cluster/ClusterApi.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Domain/Cluster/ClusterApi.php');
 		preg_match_all("/^\\s*'(\\w+)' => self::\\w+\\((.*)\\),$/m", $rSource, $rArms, PREG_SET_ORDER);
 		$this->assertNotEmpty($rArms);
 		foreach ($rArms as [, $rOp, $rArgs]) {
@@ -3220,7 +3224,7 @@ final class ClusterApiTest extends TestCase {
 			\XcVm\Core\Logging\FileLogger::setLogFile(null);
 			@unlink($rLogFile);
 		}
-		$rIndex = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/cluster/index.php');
+		$rIndex = (string) file_get_contents(MAIN_HOME . 'Public/cluster/index.php');
 		$this->assertStringNotContainsString('ClusterApi::handle(', $rIndex, 'the entry point serves every op through serve()');
 		$this->assertStringContainsString('$rEmit(ClusterApi::failed($rReq[\'path\'], $rE));', $rIndex, 'and answers what throws around it by failed()');
 	}

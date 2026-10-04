@@ -18,10 +18,13 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  * lost mid-apply leaves the store exactly as it was.
  *
  * MySQL mode, against `lines_live` as install/database.sql creates it (with
- * its uuid and server_id keys, so 20k upserts stay fast on SQLite too). Each
+ * its uuid and server_id keys, so 20k upserts stay fast). Each
  * test runs in its own process: MAIN holds the whole registry while it
  * applies it, and that peak stays out of the suite's.
  */
+// skip-on-panel: PHPUnit feeds an isolated test to its child PHP on stdin, and the
+// panel's PHP (ionCube Loader + opcache.enable_cli) segfaults on a script read from stdin.
+#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 #[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
 #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class LargeSnapshotChunkingTest extends TestCase {
@@ -35,12 +38,10 @@ final class LargeSnapshotChunkingTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/install/database.sql');
+		$rSql = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		preg_match('/CREATE TABLE IF NOT EXISTS `lines_live` \(.*?\) ENGINE=[^;]*;/s', $rSql, $rM);
-		$rDdl = (string) preg_replace(['/`activity_id` int\(11\) NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`activity_id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)( USING BTREE)?/', '/ COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'], $rM[0]);
+		$rDdl = (string) $rM[0];
 		$this->rDb->exec($rDdl);
-		$this->rDb->exec('CREATE INDEX `lines_live_uuid` ON `lines_live` (`uuid`)');
-		$this->rDb->exec('CREATE INDEX `lines_live_server_id` ON `lines_live` (`server_id`)');
 		DatabaseFactory::set($this->rDb);
 		SettingsManager::set(['redis_handler' => 0]);
 		$this->rDir = sys_get_temp_dir() . '/xcvm-bigsnap-' . bin2hex(random_bytes(4));

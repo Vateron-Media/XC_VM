@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
  * the bundle.
  */
 final class BinariesUpdateKeepsCoreTest extends TestCase {
-	private const ROOT = __DIR__ . '/../../src/';
+	private const ROOT = MAIN_HOME;
 
 	private string $rDir = '';
 

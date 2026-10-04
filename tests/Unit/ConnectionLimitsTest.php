@@ -25,8 +25,8 @@ final class ConnectionLimitsTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY, `max_connections` int, `pair_id` int, `is_restreamer` int)');
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` text, `server_id` int, `user_id` int, `hmac_id` int, `hmac_identifier` text, `hls_end` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `max_connections` int, `pair_id` int, `is_restreamer` int)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` text, `server_id` int, `user_id` int, `hmac_id` int, `hmac_identifier` text, `hls_end` int DEFAULT 0)');
 		$this->rDb->query('INSERT INTO `lines` VALUES (7, 1, 9, 0), (8, 0, NULL, 0)');
 		$this->rDb->query("INSERT INTO `lines_live` (`uuid`, `server_id`, `user_id`, `hmac_id`, `hmac_identifier`) VALUES ('mine', 5, 7, NULL, NULL), ('theirs', 6, 7, NULL, NULL), ('free', 5, 8, NULL, NULL), ('hm', 5, NULL, 3, 'dev')");
 		DatabaseFactory::set($this->rDb);

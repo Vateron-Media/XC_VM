@@ -11,7 +11,7 @@ use XcVm\Domain\Server\SettingsService;
  */
 final class SettingsCheckboxesTest extends TestCase {
 	public function testEveryCheckboxOnTheSettingsPageIsOneAFullSaveTurnsOff(): void {
-		$rView = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/Views/admin/settings.php');
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/settings.php');
 		preg_match_all('/<input[^>]*name="([a-z0-9_]+)"[^>]*type="checkbox"|<input[^>]*type="checkbox"[^>]*name="([a-z0-9_]+)"/', $rView, $rStatic);
 		preg_match_all("/\\['([a-z0-9_]+)', 'switch'/", $rView, $rCluster);
 		$rBoxes = array_filter(array_merge($rStatic[1], $rStatic[2], $rCluster[1]));

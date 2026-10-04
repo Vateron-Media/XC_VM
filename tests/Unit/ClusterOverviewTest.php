@@ -33,7 +33,7 @@ final class ClusterOverviewTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '030_create_cluster_commands', '032_create_cluster_audit'] as $rName) {
-			$this->rDb->exec($this->ddl((string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql')));
+			$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql'));
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `root_ready` tinyint(1) NOT NULL DEFAULT 0');
 		DatabaseFactory::set($this->rDb);
@@ -53,17 +53,6 @@ final class ClusterOverviewTest extends TestCase {
 		SettingsManager::set([]);
 	}
 
-	private function ddl(string $rSql): string {
-		if (getenv('XCVM_TEST_DB_DSN')) {
-			return $rSql;
-		}
-		$rSql = (string) preg_replace('/^--.*$/m', '', $rSql);
-		$rSql = (string) preg_replace('/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', $rSql);
-		$rSql = (string) preg_replace('/,\s*PRIMARY KEY \(`id`\)/', '', $rSql);
-		$rSql = (string) preg_replace('/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '', $rSql);
-		$rSql = (string) preg_replace('/ unsigned| COLLATE \w+/', '', $rSql);
-		return (string) preg_replace('/\) ENGINE=[^;]*;/', ');', $rSql);
-	}
 
 	private function node(int $rServerID, string $rState, int $rFlows, int $rTokenExp = self::NOW + 3600): void {
 		$this->rDb->query(
@@ -328,7 +317,7 @@ final class ClusterOverviewTest extends TestCase {
 		// The ajax action ends the request, so its source: a key other than the
 		// one on disk, once the extension accepts it, sends every active node
 		// token.rotate_now (another key gives the chain another base).
-		$rSrc = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/Controllers/Admin/Ajax/MiscAjaxController.php');
+		$rSrc = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/Ajax/MiscAjaxController.php');
 		$rBody = substr($rSrc, (int) strpos($rSrc, 'function saveActivationKey'), 3000);
 		$this->assertMatchesRegularExpression('/\$rOld = .*file_put_contents\(\$rPath.*LicenseGate::licensed\(\).*\$rOld !== \$rKey \? ClusterOverview::rotateAll\(null\) : null;/s', $rBody);
 	}
@@ -350,7 +339,7 @@ final class ClusterOverviewTest extends TestCase {
 	// ── The pages ───────────────────────────────────────────────────────
 
 	public function testThePagesCarryTheActionsAndEveryStringExists(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		$rView = (string) file_get_contents($rRoot . 'Public/Views/admin/cluster_nodes.php');
 		$rServers = (string) file_get_contents($rRoot . 'Public/Views/admin/servers.php');
 		$this->assertStringContainsString('value="rotate_all"', $rView);

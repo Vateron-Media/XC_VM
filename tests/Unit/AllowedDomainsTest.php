@@ -19,9 +19,9 @@ final class AllowedDomainsTest extends TestCase {
 		mkdir($this->rDir, 0777, true);
 		(new \ReflectionProperty(FileCache::class, 'defaultInstance'))->setValue(null, new FileCache($this->rDir));
 		$rDb = new TestDb();
-		$rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `server_ip` text, `private_ip` text, `domain_name` text, `enabled` int)');
+		$rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_ip` text, `private_ip` text, `domain_name` text, `enabled` int)');
 		$rDb->exec("INSERT INTO `servers` VALUES (1, '203.0.113.1', '10.0.0.1', 'panel.example.com,tv.example.com', 1), (5, '203.0.113.5', '', '', 1), (6, '203.0.113.6', '', 'off.example.com', 0)");
-		$rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY, `reseller_dns` text, `status` int)');
+		$rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `reseller_dns` text, `status` int)');
 		$rDb->exec("INSERT INTO `users` VALUES (1, 'reseller.example.net', 1), (2, 'gone.example.net', 0), (3, '', 1)");
 		DatabaseFactory::set($rDb);
 		(new \ReflectionProperty(ServerRepository::class, 'db'))->setValue(null, null);
@@ -39,7 +39,7 @@ final class AllowedDomainsTest extends TestCase {
 		$this->assertEqualsCanonicalizing($rWant, array_values(ServerRepository::getAllowedDomains(true)), 'enabled servers and active resellers only');
 		$this->assertEqualsCanonicalizing($rWant, array_values((array) FileCache::getCache('allowed_domains')), 'the cache HostVerificationStage reads');
 
-		$rCron = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/CacheCronJob.php');
+		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/CacheCronJob.php');
 		$this->assertStringContainsString('ServerRepository::getAllowedDomains(true);', $rCron, 'cron:cache writes it every minute');
 		$this->assertStringContainsString("FileCache::delCache('allowed_domains');", $rCron, 'a node in mode 2 keeps none');
 		$this->assertStringContainsString('if (!ReplicaApply::owns(ReplicaSections::SERVERS)) {', $rCron, 'unless its replica owns the servers: the replica writes the list');

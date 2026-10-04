@@ -50,7 +50,7 @@ final class SearchAjaxControllerTest extends TestCase {
 	protected function tearDown(): void {
 		unset($GLOBALS['db'], $GLOBALS['rUserInfo'], $GLOBALS['rPermissions'], $GLOBALS['rServers']);
 		SettingsManager::set([]);
-		Translator::init(dirname(__DIR__, 2) . '/src/Core/Localization/lang');
+		Translator::init(MAIN_HOME . 'Core/Localization/lang');
 		array_map('unlink', glob($this->langDir . '/*') ?: []);
 		@rmdir($this->langDir);
 	}

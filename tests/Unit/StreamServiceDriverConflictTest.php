@@ -82,7 +82,7 @@ final class StreamServiceDriverConflictTest extends TestCase {
 
 	public function testMassEditChecksTheStreamsAsTheyWillBe(): void {
 		$rDb = new TestDb();
-		$rDb->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY, stream_source TEXT, direct_source INTEGER, direct_proxy INTEGER, llod INTEGER)');
+		$rDb->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, stream_source TEXT, direct_source INTEGER, direct_proxy INTEGER, llod INTEGER)');
 		$rDb->query('INSERT INTO streams VALUES (1, ?, 0, 0, 0), (2, ?, 1, 0, 0)', json_encode(['acmedash://p/c']), json_encode(['http://a/b.ts']));
 		DatabaseFactory::set($rDb);
 

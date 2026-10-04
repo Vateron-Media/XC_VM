@@ -108,17 +108,13 @@ final class HttpsRequiredRecoveryTest extends TestCase {
 
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '030_create_cluster_commands', '032_create_cluster_audit'] as $rName) {
-			$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			$this->rDb->exec((string) preg_replace(
-				['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-				['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-				$rSql
-			));
+			$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql');
+			$this->rDb->exec((string) $rSql);
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_node_epochs` ADD COLUMN `agent_eph_pub` binary(32) DEFAULT NULL');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `root_ready` tinyint(1) NOT NULL DEFAULT 0');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `features` varchar(255) DEFAULT NULL');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `status` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `status` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `servers` (`id`, `status`) VALUES (5, 0)');
 		$this->rDb->exec('CREATE TABLE `streams_arguments` (`argument_key` varchar(64), `argument_default_value` varchar(255))');
 
@@ -127,17 +123,8 @@ final class HttpsRequiredRecoveryTest extends TestCase {
 		foreach (self::COLUMNS as $rName => [$rType, $rDefault]) {
 			$rDdl[] = '`' . $rName . '` ' . ($rType === 'int' ? 'int' : 'varchar(255)') . " DEFAULT '" . $rDefault . "'";
 		}
-		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY, ' . implode(', ', $rDdl) . ')');
+		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, ' . implode(', ', $rDdl) . ')');
 		$this->rDb->exec('INSERT INTO `settings` (`id`, `cluster_api_enabled`) VALUES (1, 1)');
-		if ($this->rDb->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-			$this->rDb->pdo->exec("ATTACH DATABASE ':memory:' AS `information_schema`");
-			$this->rDb->pdo->exec('CREATE TABLE `information_schema`.`columns` (`table_schema` text, `table_name` text, `column_name` text, `column_default` text, `is_nullable` text, `data_type` text, `ordinal_position` int)');
-			$this->rDb->pdo->sqliteCreateFunction('DATABASE', static fn(): string => 'xc_vm', 0);
-			$rPosition = 0;
-			foreach (self::COLUMNS as $rName => [$rType, $rDefault]) {
-				$this->rDb->query('INSERT INTO `information_schema`.`columns` VALUES (?, ?, ?, ?, ?, ?, ?)', 'xc_vm', 'settings', $rName, "'" . $rDefault . "'", 'NO', $rType, ++$rPosition);
-			}
-		}
 		DatabaseFactory::set($this->rDb);
 		$GLOBALS['db'] = $this->rDb;
 		(new \ReflectionProperty(FileCache::class, 'defaultInstance'))->setValue(null, new FileCache($this->rDir . 'cache/'));
@@ -145,7 +132,7 @@ final class HttpsRequiredRecoveryTest extends TestCase {
 		$this->rSettingsBefore = SettingsManager::getAll();
 		SettingsManager::set($this->settings());
 		unset($_COOKIE['lang']);
-		Translator::init(dirname(__DIR__, 2) . '/src/Core/Localization/lang');
+		Translator::init(MAIN_HOME . 'Core/Localization/lang');
 
 		$this->rCrypto = new FakeClusterCrypto();
 		ClusterClock::fix(1800000000000);
@@ -345,7 +332,7 @@ final class HttpsRequiredRecoveryTest extends TestCase {
 	public function testMainLearnsTheTransportFromNginx(): void {
 		// The only way ClusterApi learns a request came over TLS: nginx's
 		// HTTPS param, which the front controller turns into the 'https' flag.
-		$rSrc = dirname(__DIR__, 2) . '/src/';
+		$rSrc = MAIN_HOME;
 		$this->assertMatchesRegularExpression('#\'https\' => !empty\(\$_SERVER\[\'HTTPS\'\]\) && strtolower\(\(string\) \$_SERVER\[\'HTTPS\'\]\) !== \'off\',#', (string) file_get_contents($rSrc . 'Public/cluster/index.php'));
 		$this->assertMatchesRegularExpression('#^fastcgi_param\s+HTTPS\s+\$https if_not_empty;$#m', (string) file_get_contents($rSrc . 'bin/nginx/conf/fastcgi_params'));
 		$this->assertStringContainsString("    include fastcgi_params;\n", ClusterNginxConfig::locations(), 'the cluster API location passes it');

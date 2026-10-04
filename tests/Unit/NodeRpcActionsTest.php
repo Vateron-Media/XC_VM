@@ -82,7 +82,7 @@ final class NodeRpcActionsTest extends TestCase {
 		foreach ([null, '', '2.6', 'v2.6.0', '2.6.0; rm -rf /', '2.6.0-beta', 260, ['2.6.0']] as $rBad) {
 			$this->assertNull(UpdateCommand::pinned($rBad), var_export($rBad, true));
 		}
-		$rUpdate = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/UpdateCommand.php');
+		$rUpdate = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/UpdateCommand.php');
 		$this->assertStringContainsString("\$gitRelease->getVersionFile('lb_update', \$rPinned)", $rUpdate, 'that release exactly, not the newest');
 		$this->assertStringContainsString("version_compare(\$rPinned, XC_VM_VERSION, '<=')", $rUpdate, 'never down to it: that is a rollback');
 	}
@@ -94,7 +94,7 @@ final class NodeRpcActionsTest extends TestCase {
 	}
 
 	public function testEveryCataloguedRootActionHasAHandler(): void {
-		$rHandler = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/RootSignalsCronJob.php');
+		$rHandler = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		foreach (NodeActions::ROOT_ACTIONS as $rAction) {
 			if ($rAction === 'flush') {
 				// The legacy row is matched by its exact payload; a node.root flush runs as a case.
@@ -108,8 +108,9 @@ final class NodeRpcActionsTest extends TestCase {
 		}
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testCallSitesUseCataloguedRpcActionsOnly(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		$rUsed = [];
 		foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($rRoot, FilesystemIterator::SKIP_DOTS)) as $rFile) {
 			$rPath = $rFile->getPathname();

@@ -198,7 +198,7 @@ final class ClusterDiagnosisTest extends TestCase {
 	}
 
 	public function testTheCommandReportsTheClusterFromBothSides(): void {
-		$rSrc = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/ServerDiagnoseCommand.php');
+		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerDiagnoseCommand.php');
 		$this->assertStringContainsString('ClusterDiagnosis::agent(AgentClient::status()', $rSrc, 'the node asks its agent');
 		$this->assertStringContainsString('ClusterDiagnosis::node($rNode, $this->commandQueue($rServerID)', $rSrc, 'MAIN reads the node\'s row and queue');
 		$this->assertStringContainsString('NodeLease::verdict(', $rSrc, 'the node shows the verdict its PHP acts on');

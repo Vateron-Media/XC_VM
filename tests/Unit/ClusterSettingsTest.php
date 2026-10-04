@@ -88,7 +88,7 @@ final class ClusterSettingsTest extends TestCase {
 	}
 
 	public function testEveryKeyHasATranslationInEveryLanguage(): void {
-		$rDir = dirname(__DIR__, 2) . '/src/Core/Localization/lang/';
+		$rDir = MAIN_HOME . 'Core/Localization/lang/';
 		foreach (glob($rDir . '*.ini') as $rFile) {
 			$rStrings = parse_ini_file($rFile, false, INI_SCANNER_RAW);
 			foreach (array_merge(ClusterSettings::keys(), ['cluster', 'cluster_error_port_taken', 'cluster_error_https_probe', 'cluster_error_extension']) as $rKey) {

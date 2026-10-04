@@ -26,16 +26,9 @@ final class CommandBusDedupeTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '030_create_cluster_commands'] as $rName) {
-			$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			$this->rDb->exec((string) preg_replace(
-				['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-				['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-				$rSql
-			));
+			$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql');
+			$this->rDb->exec((string) $rSql);
 		}
-		// The keys the DDL above drops, as MariaDB has them.
-		$this->rDb->exec('CREATE UNIQUE INDEX `server_dedupe` ON `cluster_commands` (`server_id`, `dedupe_key`)');
-		$this->rDb->exec('CREATE UNIQUE INDEX `server_seq` ON `cluster_commands` (`server_id`, `seq`)');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(1800000000000);
 		ClusterBus::useSocket(sys_get_temp_dir() . '/no-such-bus-' . bin2hex(random_bytes(4)) . '/cluster.sock');

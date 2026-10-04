@@ -77,7 +77,7 @@ final class ClusterRootCommandTest extends TestCase {
 		} finally {
 			NodeFlows::usePath(null);
 		}
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/RootSignalsCronJob.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		$rReads = strpos($rSource, '$rReads = self::readsMainDatabase();');
 		$rGate = strpos($rSource, 'if ($rReads && !self::rootCommandsFromMain()) {');
 		$rRead = strpos($rSource, "SELECT `signal_id` FROM `signals` WHERE `server_id` = ? AND `custom_data` = '{");

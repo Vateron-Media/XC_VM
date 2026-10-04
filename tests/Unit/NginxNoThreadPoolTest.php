@@ -13,6 +13,7 @@ use PHPUnit\Framework\TestCase;
  * in eleven on the test MAIN (a core shows the two stacks). The pool did no
  * work anyway: max_queue=0 refused every task.
  */
+#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 final class NginxNoThreadPoolTest extends TestCase {
 	public function testNoThreadPoolOrThreadedAio(): void {
 		$rRoot = dirname(__DIR__, 2);

@@ -27,7 +27,7 @@ final class TicketVisibilityTest extends TestCase {
 		$this->db = new TestDb();
 		$this->db->exec(
 			'CREATE TABLE `users` (
-				`id` INTEGER PRIMARY KEY,
+				`id` INTEGER PRIMARY KEY AUTO_INCREMENT,
 				`username` TEXT,
 				`owner_id` INTEGER,
 				`member_group_id` INTEGER
@@ -40,7 +40,7 @@ final class TicketVisibilityTest extends TestCase {
 				(90,"strangeradmin",1,3),
 				(91,"strangerreseller",90,4);
 			CREATE TABLE `tickets` (
-				`id` INTEGER PRIMARY KEY,
+				`id` INTEGER PRIMARY KEY AUTO_INCREMENT,
 				`member_id` INTEGER,
 				`title` TEXT,
 				`status` INTEGER DEFAULT 1,
@@ -53,7 +53,7 @@ final class TicketVisibilityTest extends TestCase {
 				(12,4,"from subreseller"),
 				(13,91,"from stranger branch");
 			CREATE TABLE `tickets_replies` (
-				`id` INTEGER PRIMARY KEY,
+				`id` INTEGER PRIMARY KEY AUTO_INCREMENT,
 				`ticket_id` INTEGER,
 				`date` INTEGER,
 				`admin_reply` INTEGER DEFAULT 0,

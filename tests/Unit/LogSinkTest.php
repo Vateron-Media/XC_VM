@@ -78,8 +78,9 @@ final class LogSinkTest extends TestCase {
 		$this->assertSame([['client', [['stream_id' => 1]]]], $rSeen);
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testEveryLogWriterGoesThroughTheSink(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		foreach (['streams_logs', 'lines_logs', 'streams_errors', 'panel_logs', 'detect_restream_logs'] as $rTable) {
 			foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($rRoot, FilesystemIterator::SKIP_DOTS)) as $rFile) {
 				if ($rFile->getExtension() !== 'php' || str_contains($rFile->getPathname(), '/vendor/') || str_ends_with($rFile->getPathname(), 'Cluster/LogSink.php')) {

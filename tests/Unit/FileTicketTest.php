@@ -196,6 +196,7 @@ final class FileTicketTest extends TestCase {
 		$this->assertSame('', $rOut['body']);
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testTheRouteShipsToEveryServer(): void {
 		$rRoot = dirname(__DIR__, 2);
 		foreach (['src/bin/nginx/conf/nginx.conf', 'lb_configs/nginx.conf'] as $rConf) {

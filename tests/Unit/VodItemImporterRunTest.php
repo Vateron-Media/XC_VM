@@ -10,8 +10,7 @@ use PHPUnit\Framework\TestCase;
  * VodItemImporter::run() end to end for the Series → Import (M3U) path: the
  * thread data SeriesService::import() hands to `vod_import_item`, a fake TMDb
  * client, and an existing series row (a brand-new series would fetch its
- * trailer over HTTP). Under SQLite, QueryHelper::verifyPostTable()'s
- * `information_schema.columns` is an attached table.
+ * trailer over HTTP).
  */
 final class VodItemImporterRunTest extends TestCase {
 
@@ -36,26 +35,16 @@ final class VodItemImporterRunTest extends TestCase {
         \XcVm\Infrastructure\Tmdb\TmdbApiService::requireLibrary();
 
         $this->db = new TestDb();
-        if ($this->db->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite') {
-            $this->markTestSkipped('Builds its own information_schema; SQLite only.');
-        }
         $rColumns = array();
-        foreach (array_keys(self::STREAM_COLUMNS) as $rName) {
-            $rColumns[] = '`' . $rName . '` TEXT';
+        foreach (self::STREAM_COLUMNS as $rName => $rType) {
+            $rColumns[] = '`' . $rName . '` ' . ($rType === 'varchar' ? 'varchar(255)' : $rType) . ' NULL';
         }
-        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTOINCREMENT, ' . implode(', ', $rColumns) . ');');
+        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, ' . implode(', ', $rColumns) . ');');
         $this->db->exec('CREATE TABLE streams_servers (stream_id INTEGER, server_id INTEGER, parent_id INTEGER);');
         $this->db->exec('CREATE TABLE streams_episodes (season_num INTEGER, series_id INTEGER, stream_id INTEGER, episode_num INTEGER);');
-        $this->db->exec('CREATE TABLE streams_series (id INTEGER PRIMARY KEY AUTOINCREMENT, tmdb_id INTEGER, title TEXT, seasons TEXT);');
+        $this->db->exec('CREATE TABLE streams_series (id INTEGER PRIMARY KEY AUTO_INCREMENT, tmdb_id INTEGER, title TEXT, seasons TEXT);');
         $this->db->exec("INSERT INTO streams_series (id, tmdb_id, title, seasons) VALUES (5, 1399, 'Les Psys', '[]');");
 
-        $this->db->pdo->exec("ATTACH DATABASE ':memory:' AS `information_schema`");
-        $this->db->pdo->exec('CREATE TABLE `information_schema`.`columns` (`table_schema` text, `table_name` text, `column_name` text, `column_default` text, `is_nullable` text, `data_type` text, `ordinal_position` int)');
-        $this->db->pdo->sqliteCreateFunction('DATABASE', static fn(): string => 'xc_vm', 0);
-        $rPosition = 0;
-        foreach (self::STREAM_COLUMNS as $rName => $rType) {
-            $this->db->query('INSERT INTO `information_schema`.`columns` VALUES (?, ?, ?, ?, ?, ?, ?)', 'xc_vm', 'streams', $rName, 'NULL', 'YES', $rType, ++$rPosition);
-        }
 
         VodItemImporter::setDb($this->db);
         $this->globalDbBefore = $GLOBALS['db'] ?? null;

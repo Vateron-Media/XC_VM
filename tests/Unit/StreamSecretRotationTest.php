@@ -32,21 +32,17 @@ final class StreamSecretRotationTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '030_create_cluster_commands'] as $rName) {
-			$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			foreach (array_filter(array_map('trim', explode(';', (string) preg_replace(
-				['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-				['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-				$rSql
-			)))) as $rStatement) {
+			$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql');
+			foreach (array_filter(array_map('trim', explode(';', (string) $rSql))) as $rStatement) {
 				$this->rDb->exec($rStatement);
 			}
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `root_ready` tinyint(1) NOT NULL DEFAULT 0');
-		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY, `live_streaming_pass` varchar(512))');
+		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `live_streaming_pass` varchar(512))');
 		$this->rDb->exec("INSERT INTO `settings` VALUES (1, '" . self::OLD . "')");
-		$this->rDb->exec('CREATE TABLE `hmac_keys` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `key` varchar(255), `enabled` tinyint DEFAULT 1)');
-		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `stream_icon` text, `movie_properties` text)');
-		$this->rDb->exec('CREATE TABLE `streams_series` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `cover` text, `cover_big` text, `backdrop_path` text, `seasons` text)');
+		$this->rDb->exec('CREATE TABLE `hmac_keys` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `key` varchar(255), `enabled` tinyint DEFAULT 1)');
+		$this->rDb->exec('CREATE TABLE `streams` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `stream_icon` text, `movie_properties` text)');
+		$this->rDb->exec('CREATE TABLE `streams_series` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `cover` text, `cover_big` text, `backdrop_path` text, `seasons` text)');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(1800000000000);
 		ClusterBus::useSocket(sys_get_temp_dir() . '/no-such-bus-' . bin2hex(random_bytes(4)) . '/cluster.sock');
@@ -188,10 +184,11 @@ final class StreamSecretRotationTest extends TestCase {
 
 	/** An HMAC link minted under the old secret keeps validating while a row is still the old value's. */
 	public function testValidateHmacTriesThePreviousSecretInItsWindow(): void {
-		$rSrc = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Auth/AuthService.php');
+		$rSrc = (string) file_get_contents(MAIN_HOME . 'Core/Auth/AuthService.php');
 		$this->assertMatchesRegularExpression('/\$rPrevious = StreamSecret::previous\(\);\s*foreach \(array_filter\(\[\$rSettings\[\'live_streaming_pass\'\], \$rPrevious\]/', $rSrc);
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testTheCommandIsMainOnly(): void {
 		$rMake = (string) file_get_contents(dirname(__DIR__, 2) . '/Makefile');
 		$this->assertStringContainsString('Cli/Commands/ClusterRotateStreamSecretCommand.php', $rMake);

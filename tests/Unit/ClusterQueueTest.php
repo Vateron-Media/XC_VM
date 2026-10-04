@@ -148,8 +148,9 @@ final class ClusterQueueTest extends TestCase {
 		$this->assertSame([], $rDb->rQueries);
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testTheQueueTableHasNoWriterLeftOutsideTheSeam(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		// The seam itself, and the two admin surfaces that queue or cancel work
 		// on any server: they run on MAIN, which owns the table. NodeQueue, the
 		// seam's MAIN half, runs QueueSink's statements and writes none itself.

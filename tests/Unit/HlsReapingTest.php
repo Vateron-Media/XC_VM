@@ -257,7 +257,7 @@ final class HlsReapingTest extends TestCase {
 
 	public function testThePurgeDropsOnlyThatNodesRowsFromTheStore(): void {
 		\XcVm\Core\Config\SettingsManager::set(['redis_handler' => 0]);
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` text, `server_id` int, `container` text)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` text, `server_id` int, `container` text)');
 		$this->rDb->exec("INSERT INTO `lines_live` (`uuid`, `server_id`, `container`) VALUES ('a', 2, 'ts'), ('b', 2, 'hls'), ('c', 3, 'ts')");
 		$this->assertSame(2, \XcVm\Domain\Cluster\ConnectionIngest::purgeNode(2));
 		$this->assertSame(0, \XcVm\Domain\Cluster\ConnectionIngest::purgeNode(2));

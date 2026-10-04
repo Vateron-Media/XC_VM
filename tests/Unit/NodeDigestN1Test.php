@@ -17,7 +17,7 @@ final class NodeDigestN1Test extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `digest_n1` varchar(255) DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `digest_n1` varchar(255) DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `cluster_nodes` (`server_id`) VALUES (5)');
 		DatabaseFactory::set($this->rDb);
 	}

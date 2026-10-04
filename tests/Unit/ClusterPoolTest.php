@@ -123,10 +123,10 @@ final class ClusterPoolTest extends TestCase {
 		$this->rBase = sys_get_temp_dir() . '/xcvm-pool-' . bin2hex(random_bytes(4)) . '/';
 		mkdir($this->rBase . 'tmp', 0777, true);
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `is_main` int NOT NULL DEFAULT 0, `server_type` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `is_main` int NOT NULL DEFAULT 0, `server_type` int NOT NULL DEFAULT 0)');
 		// MAIN, two LBs and a proxy: two nodes.
 		$this->rDb->exec('INSERT INTO `servers` (`id`, `is_main`, `server_type`) VALUES (1, 1, 0), (2, 0, 0), (3, 0, 0), (4, 0, 1)');
-		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY, `cluster_ingest_concurrency` int DEFAULT 6)');
+		$this->rDb->exec('CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `cluster_ingest_concurrency` int DEFAULT 6)');
 		$this->rDb->exec('INSERT INTO `settings` (`id`) VALUES (1)');
 		$this->rDb->exec('CREATE TABLE `cluster_meta` (`name` varchar(64) PRIMARY KEY, `value` text, `updated_at` int)');
 		DatabaseFactory::set($this->rDb);
@@ -203,8 +203,8 @@ final class ClusterPoolTest extends TestCase {
 	}
 
 	public function testSizesComeFromTheServersAndSettings(): void {
-		// SQLite has no max_connections; against MariaDB (XCVM_TEST_DB_DSN) its own caps the pool.
-		$rMax = $this->rDb->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? (int) $this->rDb->pdo->query('SELECT @@GLOBAL.max_connections')->fetchColumn() : null;
+		// The test server's max_connections caps the pool, as MAIN's own does.
+		$rMax = (int) $this->rDb->pdo->query('SELECT @@GLOBAL.max_connections')->fetchColumn();
 		$this->assertSame(['cluster_ctl' => 28, 'cluster_ingest' => ClusterPool::ingestChildren(6, $rMax)], ClusterPool::sizes(), 'two LBs; the proxy and MAIN do not count');
 		$this->rDb->exec('UPDATE `settings` SET `cluster_ingest_concurrency` = 10');
 		$this->rDb->exec('INSERT INTO `servers` (`id`, `is_main`, `server_type`) VALUES (5, 0, 0)');
@@ -354,7 +354,7 @@ final class ClusterPoolTest extends TestCase {
 		$this->assertSame('cluster_ctl', ClusterPool::poolFor('no_such_op'), 'refused on the control pool');
 
 		// The location is rendered (ClusterNginxConfig) into the file the public server includes.
-		$rLocations = (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/nginx/conf/cluster_locations.conf');
+		$rLocations = (string) file_get_contents(MAIN_HOME . 'bin/nginx/conf/cluster_locations.conf');
 		$this->assertMatchesRegularExpression('#location \^~ /cluster/v1/ \{[^}]*fastcgi_pass cluster_ctl;#', $rLocations);
 		$this->assertMatchesRegularExpression('#location ~ \^/cluster/v1/\(([a-z_|]+)\)\$ \{\s*fastcgi_pass cluster_ingest;#', $rLocations);
 		preg_match('#location ~ \^/cluster/v1/\(([a-z_|]+)\)\$ \{#', $rLocations, $rMatch);
@@ -364,7 +364,7 @@ final class ClusterPoolTest extends TestCase {
 		sort($rIngest);
 		$this->assertSame($rIngest, $rRouted, "the ingest location lists INGEST_OPS");
 
-		$rConf = (string) file_get_contents(dirname(__DIR__, 2) . '/src/bin/nginx/conf/nginx.conf');
+		$rConf = (string) file_get_contents(MAIN_HOME . 'bin/nginx/conf/nginx.conf');
 
 		foreach (array_keys(ClusterPool::POOLS) as $rPool) {
 			$this->assertMatchesRegularExpression('#upstream ' . $rPool . ' \{\s*server unix:' . preg_quote(ClusterPool::socket($rPool, '/home/xc_vm/'), '#') . ' max_fails=0;\s*server unix:/home/xc_vm/bin/php/sockets/1\.sock backup;\s*\}#', $rConf, $rPool . ': its own socket, never taken out of rotation; the panel pool for a request that cannot reach it');
@@ -377,7 +377,7 @@ final class ClusterPoolTest extends TestCase {
 	 * who runs ensure(), as whom.
 	 */
 	public function testTheCallSitesKeepTheApiStartingUntilThePoolsAnswer(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src/';
+		$rSrc = MAIN_HOME;
 
 		$this->assertMatchesRegularExpression('#^boot\(\) \{[^}]*^  rm -f \$SCRIPT/tmp/cluster_ready$[^}]*console\.php startup$#m', (string) file_get_contents($rSrc . 'service'), 'boot() removes the marker before startup runs status');
 		$this->assertMatchesRegularExpression('#ACTIONS = \[\'start\' => \'boot\'.*?ProcessRunner::passThrough\(\[\'/bin/sh\', \$rScript, \$rAction\]\)#s', (string) file_get_contents($rSrc . 'Cli/Commands/ServiceCommand.php'), 'and the service command runs that same boot(), rather than a second copy of it');

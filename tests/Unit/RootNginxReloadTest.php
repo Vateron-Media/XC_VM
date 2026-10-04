@@ -54,9 +54,9 @@ final class RootNginxReloadTest extends TestCase {
 	}
 
 	public function testNoActionReloadsNginxByItself(): void {
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/RootSignalsCronJob.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		$this->assertDoesNotMatchRegularExpression('/-s reload/', $rSource, 'every reload goes through reloadAsked()');
-		$rRoot = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/ClusterRootCommand.php');
+		$rRoot = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ClusterRootCommand.php');
 		$this->assertMatchesRegularExpression('/self::drain\([^;]+;\s*RootSignalsCronJob::reloadAsked\(\);/', $rRoot, 'cluster:root reloads once per drain');
 	}
 }

@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
  * ModuleMigrator — file-based module schema (install/update/uninstall).
  *
  * Runs the real statement splitter and version selection against a throwaway
- * module directory and an in-memory SQLite handle: master schema on install,
+ * module directory and a TestDb handle: master schema on install,
  * the delta-only fallback, forward (from, to] ranges on update, teardown, the
  * has()/discover semver rules, comment stripping, and failure propagation.
  */
@@ -47,7 +47,7 @@ final class ModuleMigratorTest extends TestCase {
 	public function testInstallRunsMasterSchemaWhenPresent(): void {
 		file_put_contents(
 			$this->root . '/database.sql',
-			"CREATE TABLE mod_items (id INTEGER PRIMARY KEY, name TEXT);\nINSERT INTO mod_items (id, name) VALUES (1, 'seed');"
+			"CREATE TABLE mod_items (id INTEGER PRIMARY KEY AUTO_INCREMENT, name TEXT);\nINSERT INTO mod_items (id, name) VALUES (1, 'seed');"
 		);
 
 		$ran = ModuleMigrator::install($this->root, $this->db, '2.0.0');
@@ -58,9 +58,9 @@ final class ModuleMigratorTest extends TestCase {
 	}
 
 	public function testInstallFallsBackToReplayingDeltasWhenNoMaster(): void {
-		$this->writeMigration('1.0.0', 'CREATE TABLE mod_a (id INTEGER PRIMARY KEY);');
-		$this->writeMigration('1.5.0', 'CREATE TABLE mod_b (id INTEGER PRIMARY KEY);');
-		$this->writeMigration('3.0.0', 'CREATE TABLE mod_too_new (id INTEGER PRIMARY KEY);');
+		$this->writeMigration('1.0.0', 'CREATE TABLE mod_a (id INTEGER PRIMARY KEY AUTO_INCREMENT);');
+		$this->writeMigration('1.5.0', 'CREATE TABLE mod_b (id INTEGER PRIMARY KEY AUTO_INCREMENT);');
+		$this->writeMigration('3.0.0', 'CREATE TABLE mod_too_new (id INTEGER PRIMARY KEY AUTO_INCREMENT);');
 
 		$ran = ModuleMigrator::install($this->root, $this->db, '2.0.0');
 
@@ -68,9 +68,9 @@ final class ModuleMigratorTest extends TestCase {
 	}
 
 	public function testUpAppliesOnlyDeltasInRange(): void {
-		$this->writeMigration('1.0.0', 'CREATE TABLE mod_a (id INTEGER PRIMARY KEY);');
-		$this->writeMigration('1.1.0', 'CREATE TABLE mod_b (id INTEGER PRIMARY KEY);');
-		$this->writeMigration('2.0.0', 'CREATE TABLE mod_c (id INTEGER PRIMARY KEY);');
+		$this->writeMigration('1.0.0', 'CREATE TABLE mod_a (id INTEGER PRIMARY KEY AUTO_INCREMENT);');
+		$this->writeMigration('1.1.0', 'CREATE TABLE mod_b (id INTEGER PRIMARY KEY AUTO_INCREMENT);');
+		$this->writeMigration('2.0.0', 'CREATE TABLE mod_c (id INTEGER PRIMARY KEY AUTO_INCREMENT);');
 
 		$ran = ModuleMigrator::up($this->root, $this->db, '1.0.0', '2.0.0');
 
@@ -93,7 +93,7 @@ final class ModuleMigratorTest extends TestCase {
 	public function testDiscoverIgnoresNonSemverAndStripsComments(): void {
 		// Non-semver file must be ignored (else it would run and fail here).
 		file_put_contents($this->root . '/migrations/notes.sql', 'this is not valid sql at all');
-		$this->writeMigration('1.0.0', "-- create the table\nCREATE TABLE mod_c (id INTEGER PRIMARY KEY);\n-- trailing comment");
+		$this->writeMigration('1.0.0', "-- create the table\nCREATE TABLE mod_c (id INTEGER PRIMARY KEY AUTO_INCREMENT);\n-- trailing comment");
 
 		$ran = ModuleMigrator::install($this->root, $this->db, '1.0.0');
 

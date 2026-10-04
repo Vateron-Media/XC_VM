@@ -21,7 +21,7 @@ final class BouquetServiceTest extends TestCase {
 	protected function setUp(): void {
 		$this->db = new TestDb();
 		$this->db->exec(
-			'CREATE TABLE bouquets (id INTEGER PRIMARY KEY, bouquet_channels TEXT, bouquet_movies TEXT, bouquet_radios TEXT, bouquet_series TEXT);'
+			'CREATE TABLE bouquets (id INTEGER PRIMARY KEY AUTO_INCREMENT, bouquet_channels TEXT, bouquet_movies TEXT, bouquet_radios TEXT, bouquet_series TEXT);'
 		);
 		$this->db->query(
 			'INSERT INTO bouquets (id, bouquet_channels, bouquet_movies, bouquet_radios, bouquet_series) VALUES (1, ?, ?, "[]", "[]");',

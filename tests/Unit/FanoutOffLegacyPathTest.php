@@ -144,7 +144,7 @@ final class FanoutOffLegacyPathTest extends TestCase {
 
 	/** live.php decides through the helpers above, and starts a proxy before any monitor. */
 	public function testLivePhpRoutesThroughTheSwitch(): void {
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/stream/live.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Public/stream/live.php');
 		$this->assertStringContainsString('FanoutMode::startFor($rLegacy,', $rSource);
 		$this->assertStringContainsString('FanoutMode::tsDelivery($rLegacy,', $rSource);
 		$this->assertStringContainsString('FanoutMode::hlsDelivery($rLegacy,', $rSource);

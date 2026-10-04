@@ -41,7 +41,7 @@ final class LbInstallFlowRootWritesTest extends TestCase {
 	}
 
 	public function testNoSshFlowRedirectsASudoEcho(): void {
-		$rRoot = dirname(__DIR__, 2) . '/src/Cli/Commands/';
+		$rRoot = MAIN_HOME . 'Cli/Commands/';
 		foreach (['LbInstallFlow.php', 'ProxyInstallFlow.php', 'ServerInstallCommand.php'] as $rFile) {
 			$rSource = (string) file_get_contents($rRoot . $rFile);
 			$this->assertDoesNotMatchRegularExpression('/sudo echo[^\n]*>/', $rSource, $rFile);
@@ -58,6 +58,6 @@ final class LbInstallFlowRootWritesTest extends TestCase {
 
 		$this->assertArrayNotHasKey('port', $rParams, 'config_pack() packs its default DB port, 3306 (ADR-001), and refuses 0');
 		$this->assertSame(['hostname' => '10.0.0.1', 'database' => 'xc_vm', 'server_id' => 7, 'is_lb' => 1], $rParams);
-		$this->assertStringNotContainsString('ConfigReader::', (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/LbInstallFlow.php'));
+		$this->assertStringNotContainsString('ConfigReader::', (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php'));
 	}
 }

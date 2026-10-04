@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * SettingsRepository::getAll — loads the single settings row and normalises its
  * JSON/CSV fields. Driven with force = true (bypassing the read cache) against a
- * SQLite settings table; CACHE_TMP_PATH is pointed at a temp dir so the trailing
+ * TestDb settings table; CACHE_TMP_PATH is pointed at a temp dir so the trailing
  * FileCache write has somewhere to go.
  */
 final class SettingsRepositoryTest extends TestCase {
@@ -22,7 +22,7 @@ final class SettingsRepositoryTest extends TestCase {
 		@mkdir(CACHE_TMP_PATH, 0755, true);
 
 		$this->db = new TestDb();
-		$this->db->exec('CREATE TABLE settings (id INTEGER PRIMARY KEY, allow_countries TEXT, allowed_stb_types TEXT, stalker_lock_images TEXT, bouquet_name TEXT, api_ips TEXT, shared_mount_prefixes TEXT);');
+		$this->db->exec('CREATE TABLE settings (id INTEGER PRIMARY KEY AUTO_INCREMENT, allow_countries TEXT, allowed_stb_types TEXT, stalker_lock_images TEXT, bouquet_name TEXT, api_ips TEXT, shared_mount_prefixes TEXT);');
 		$GLOBALS['db'] = $this->db;
 	}
 

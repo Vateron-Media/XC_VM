@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class SourceTestCitationsTest extends TestCase {
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testEveryCitedTestExists(): void {
 		$rRoot = dirname(__DIR__, 2);
 		$rTests = [];

@@ -24,7 +24,7 @@ final class VodItemImporterPersistTest extends TestCase {
 
     protected function setUp(): void {
         $this->db = new TestDb();
-        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id TEXT, series_no INTEGER, movie_subtitles TEXT, added INTEGER, stream_display_name TEXT);');
+        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, category_id TEXT, series_no INTEGER, movie_subtitles TEXT, added INTEGER, stream_display_name TEXT);');
         $this->db->exec('CREATE TABLE streams_servers (stream_id INTEGER, server_id INTEGER, parent_id INTEGER);');
         $this->db->exec('CREATE TABLE streams_episodes (season_num INTEGER, series_id INTEGER, stream_id INTEGER, episode_num INTEGER);');
         if (!defined('SERVER_ID')) {
@@ -84,7 +84,7 @@ final class VodItemImporterPersistTest extends TestCase {
     public function testMovieInsertsIntoStreamsAndLinksTheServerAndBouquet(): void {
         // import=true routes addToBouquet() through BouquetService (DB write)
         // instead of queuing a .bouquet file for checkBouquets() to pick up.
-        $this->db->exec('CREATE TABLE bouquets (id INTEGER PRIMARY KEY, bouquet_movies TEXT, bouquet_series TEXT);');
+        $this->db->exec('CREATE TABLE bouquets (id INTEGER PRIMARY KEY AUTO_INCREMENT, bouquet_movies TEXT, bouquet_series TEXT);');
         $this->db->query("INSERT INTO bouquets (id, bouquet_movies, bouquet_series) VALUES (1, '[]', '[]');");
 
         try {

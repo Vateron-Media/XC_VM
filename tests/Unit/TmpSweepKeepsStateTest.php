@@ -11,7 +11,7 @@ use XcVm\Cli\CronJobs\TmpCronJob;
  */
 final class TmpSweepKeepsStateTest extends TestCase {
 	public function testEveryStampOfTheRootCronOutlivesItsPeriod(): void {
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/RootSignalsCronJob.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		// A stamp, and the longest period the lines right after it compare its age with.
 		preg_match_all("/CRONS_TMP_PATH \. '(\w+)';\n(?:[^\n]*\n){0,2}?[^\n]*\b(86400|3600)\b/", $rSource, $rStamps, PREG_SET_ORDER);
 		$rFound = array_column($rStamps, 2, 1);

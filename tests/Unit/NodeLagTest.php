@@ -22,8 +22,8 @@ final class NodeLagTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `p0_lag_since` int DEFAULT NULL, `p1_lag_since` int DEFAULT NULL, `unreachable_urls` varchar(1024) DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `p0_lag_since` int DEFAULT NULL, `p1_lag_since` int DEFAULT NULL, `unreachable_urls` varchar(1024) DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `cluster_nodes` (`server_id`) VALUES (5)');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(self::NOW_MS);
@@ -103,6 +103,7 @@ final class NodeLagTest extends TestCase {
 		}
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testTheHeartbeatKeepsItAndTheSchemaHasIt(): void {
 		$rRoot = dirname(__DIR__, 2);
 		$this->assertStringContainsString('NodeLag::record($rNode, $rP, $rNowMs);', (string) file_get_contents($rRoot . '/src/Domain/Cluster/ClusterApi.php'));

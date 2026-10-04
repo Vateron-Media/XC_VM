@@ -98,7 +98,7 @@ final class DataPlaneUrlsTest extends TestCase {
 		$this->assertStringStartsWith('http://127.0.0.1:31290/xfile/', $rSource);
 
 		// No builder writes the relay or getFile URL itself any more.
-		$rRoot = dirname(__DIR__, 2) . '/src/';
+		$rRoot = MAIN_HOME;
 		foreach (['Domain/Stream/StreamProcess.php', 'Cli/Commands/LoopbackCommand.php', 'Cli/Commands/MonitorCommand.php'] as $rFile) {
 			$rCode = (string) file_get_contents($rRoot . $rFile);
 			$this->assertStringNotContainsString("'admin/live?stream='", $rCode, $rFile);

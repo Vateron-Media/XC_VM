@@ -13,7 +13,7 @@ use XcVm\Domain\Cluster\CommandBus;
 final class ClusterRotateNowTest extends TestCase {
 
 	private function src(string $rPath): string {
-		return (string) file_get_contents(dirname(__DIR__, 2) . '/src/' . $rPath);
+		return (string) file_get_contents(MAIN_HOME . $rPath);
 	}
 
 	public function testTheTypeIsOneMainMaySendAndIsRestrictive(): void {
@@ -38,7 +38,7 @@ final class ClusterRotateNowTest extends TestCase {
 	}
 
 	public function testEveryOutcomeHasItsString(): void {
-		$rEn = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Core/Localization/lang/en.ini');
+		$rEn = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 
 		foreach (['cluster_rotate_now', 'cluster_rotate_now_help', 'cluster_rotate_done', 'cluster_rotate_failed', 'cluster_rotate_no_commands'] as $rKey) {
 			$this->assertStringContainsString($rKey . ' = ', $rEn, $rKey);

@@ -18,7 +18,7 @@ final class VodItemImporterMovieBuildTest extends TestCase {
 
     protected function setUp(): void {
         $this->db = new TestDb();
-        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTOINCREMENT, `order` INTEGER);');
+        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, `order` INTEGER);');
         VodItemImporter::setDb($this->db);
         \XcVm\Infrastructure\Tmdb\TmdbApiService::requireLibrary();
     }

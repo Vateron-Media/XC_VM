@@ -114,7 +114,7 @@ final class LineDropDisabledTest extends TestCase {
 	}
 
 	public function testEveryLineWriterGoesThroughTheSignalThatDrops(): void {
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Domain/Line/LineService.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Domain/Line/LineService.php');
 
 		// The two signals every writer calls, and the delete path, all drop.
 		$this->assertSame(2, preg_match_all('/self::dropDisabled\(/', $rSource));

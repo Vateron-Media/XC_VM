@@ -49,7 +49,7 @@ final class ClusterApiPreflightTest extends TestCase {
 		// The code ops: 64 KiB. At it, the request passes on to the code, which
 		// an empty database does not hold.
 		$rDb = new TestDb();
-		$rDb->exec('CREATE TABLE `cluster_enrol_codes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` INTEGER NOT NULL, `exp` INTEGER NOT NULL)');
+		$rDb->exec('CREATE TABLE `cluster_enrol_codes` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` INTEGER NOT NULL, `exp` INTEGER NOT NULL)');
 		$rDb->exec('CREATE TABLE `cluster_enrol_requests` (`server_id` INTEGER NOT NULL, `code_id` INTEGER NOT NULL)');
 		DatabaseFactory::set($rDb);
 		foreach (['enrol_code', 'enrol_code_status'] as $rOp) {

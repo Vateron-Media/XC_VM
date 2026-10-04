@@ -38,12 +38,15 @@ use XcVm\Tests\Support\ReplicaFixture;
  *
  * The boots themselves run in a child PHP (the real console.php and
  * bootstrap), in a throwaway deploy root, with an xcvm_core stand-in whose
- * MAIN database never answers (or is an SQLite file) and logs each connect.
+ * MAIN database never answers (or is a schema on the test server) and logs each connect.
  */
 final class ReplicaBootTest extends TestCase {
 	private string $rHome;
 
 	private ReplicaFixture $rFixture;
+
+	/** MAIN's database, while a test holds one (mainDb()). */
+	private ?\TestDb $rMainDb = null;
 
 	/** The CLI profile of a mode 0 or 1 node, as before ReplicaStage. */
 	private const LEGACY_CLI = [
@@ -217,7 +220,7 @@ final class ReplicaBootTest extends TestCase {
 
 	/**
 	 * Run the real console.php (or $rScript) in the throwaway deploy root.
-	 * MAIN's database never answers, or with $rMainDb it is that SQLite file.
+	 * MAIN's database never answers, or with $rMainDb it is that schema on the test server.
 	 *
 	 * @param list<string> $rArgs
 	 * @return array{0: int, 1: string, 2: list<string>} exit code, stdout, the connects to MAIN's database
@@ -227,7 +230,7 @@ final class ReplicaBootTest extends TestCase {
 		file_put_contents($rPrepend, <<<'PHP'
 			<?php
 			// A throwaway deploy root, and an xcvm_core whose MAIN database never
-			// answers (or is XCVM_TEST_MAIN_DB, an SQLite file).
+			// answers (or is XCVM_TEST_MAIN_DB, a schema on the test server).
 			define('MAIN_HOME', getenv('XCVM_TEST_HOME'));
 			final class XC_VM {
 				public static function config_server(): array {
@@ -239,46 +242,18 @@ final class ReplicaBootTest extends TestCase {
 					if (!getenv('XCVM_TEST_MAIN_DB')) {
 						return false;
 					}
-					$rPdo = new PDO('sqlite:' . getenv('XCVM_TEST_MAIN_DB'));
-					$rPdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, [MainDbStatement::class, []]);
-					return $rPdo;
+					$rDsn = preg_replace('/;?dbname=[^;]*/', '', (string) getenv('XCVM_TEST_DB_DSN')) . ';dbname=' . getenv('XCVM_TEST_MAIN_DB');
+					return new PDO($rDsn, getenv('XCVM_TEST_DB_USER') ?: null, getenv('XCVM_TEST_DB_PASS') ?: null);
 				}
 			}
 
-			/** SQLite counts no SELECT's rows (rowCount), which Database reads as MySQL's: buffer them. */
-			class MainDbStatement extends PDOStatement {
-				private ?array $rRows = null;
-
-				protected function __construct() {
-				}
-
-				public function execute(?array $params = null): bool {
-					$rOk = parent::execute($params);
-					$this->rRows = $rOk && $this->columnCount() > 0 ? parent::fetchAll(PDO::FETCH_ASSOC) : null;
-					return $rOk;
-				}
-
-				public function rowCount(): int {
-					return $this->rRows === null ? parent::rowCount() : count($this->rRows);
-				}
-
-				public function fetch(int $mode = PDO::FETCH_DEFAULT, int $cursorOrientation = PDO::FETCH_ORI_NEXT, int $cursorOffset = 0): mixed {
-					return $this->rRows === null || $this->rRows === [] ? false : array_shift($this->rRows);
-				}
-
-				public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array {
-					$rRows = $this->rRows ?? [];
-					$this->rRows = [];
-					return $rRows;
-				}
-			}
 			PHP);
 		@unlink($this->rHome . 'connects.log');
-		$rEnv = ['XCVM_TEST_HOME' => $this->rHome, 'XCVM_TEST_SRC' => dirname(__DIR__, 2) . '/src/', 'PATH' => $this->rHome . 'stub:' . getenv('PATH')];
+		$rEnv = ['XCVM_TEST_HOME' => $this->rHome, 'XCVM_TEST_SRC' => MAIN_HOME, 'PATH' => $this->rHome . 'stub:' . getenv('PATH')];
 		if ($rMainDb !== null) {
-			$rEnv['XCVM_TEST_MAIN_DB'] = $rMainDb;
+			$rEnv += ['XCVM_TEST_MAIN_DB' => $rMainDb] + \TestDb::env();
 		}
-		$rCommand = array_merge([PHP_BINARY, '-d', 'auto_prepend_file=' . $rPrepend, $rScript ?? dirname(__DIR__, 2) . '/src/console.php'], $rArgs);
+		$rCommand = array_merge([...xcvm_test_child_php(), '-d', 'auto_prepend_file=' . $rPrepend, $rScript ?? MAIN_HOME . 'console.php'], $rArgs);
 		$rProc = proc_open($rCommand, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['file', '/dev/null', 'w']], $rPipes, $this->rHome, $rEnv);
 		$this->assertIsResource($rProc);
 		$rOut = (string) stream_get_contents($rPipes[1]);
@@ -465,22 +440,22 @@ final class ReplicaBootTest extends TestCase {
 	}
 
 	/**
-	 * MAIN's database as an SQLite file: a `crontab` table holding $rJobs, its
+	 * MAIN's database, a schema on the test server: a `crontab` table holding $rJobs, its
 	 * settings row (`MAIN-DB`) and one server (7), neither what the replica has.
 	 *
 	 * @param array<string, string> $rJobs
 	 */
 	private function mainDb(array $rJobs): string {
-		$rFile = $this->rHome . 'main.sqlite';
-		$rPdo = new PDO('sqlite:' . $rFile);
-		$rPdo->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY, `filename` TEXT, `time` TEXT, `enabled` INTEGER)');
+		$this->rMainDb = new \TestDb();
+		$rPdo = $this->rMainDb->pdo;
+		$rPdo->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `filename` TEXT, `time` TEXT, `enabled` INTEGER)');
 		foreach ($rJobs as $rName => $rTime) {
 			$rPdo->prepare('INSERT INTO `crontab` (`filename`, `time`, `enabled`) VALUES (?, ?, 1)')->execute([$rName, $rTime]);
 		}
 		$rPdo->exec("CREATE TABLE `settings` (`server_name` TEXT, `live_streaming_pass` TEXT, `default_timezone` TEXT); INSERT INTO `settings` VALUES ('MAIN-DB', 'main-pass', 'UTC')");
 		$rPdo->exec('CREATE TABLE `servers` (`id` INTEGER, `server_type` INTEGER, `is_main` INTEGER, `enabled` INTEGER, `status` INTEGER, `last_check_ago` INTEGER, `server_ip` TEXT, `private_ip` TEXT, `domain_name` TEXT, `enable_https` INTEGER, `http_broadcast_port` INTEGER, `https_broadcast_port` INTEGER, `rtmp_port` INTEGER, `geoip_countries` TEXT, `isp_names` TEXT, `parent_id` TEXT, `watchdog_data` TEXT)');
 		$rPdo->exec("INSERT INTO `servers` VALUES (7, 0, 0, 1, 1, 0, '192.0.2.7', NULL, '', 0, 80, 443, 8880, '[]', '[]', NULL, NULL)");
-		return $rFile;
+		return $this->rMainDb->schema();
 	}
 
 	public function testAModeOneNodeBootsFromItsReplicaOnceAnApplyBuiltIt(): void {
@@ -589,7 +564,7 @@ final class ReplicaBootTest extends TestCase {
 		$this->assertSame(['settings', 'servers'], array_keys($this->cache('replica_owned')));
 		$this->clearAudit();
 
-		[$rCode, $rOut, $rConnects] = $this->child(['--list'], null, $this->rHome . 'main.sqlite');
+		[$rCode, $rOut, $rConnects] = $this->child(['--list'], null, $this->rMainDb->schema());
 		$this->assertSame(0, $rCode, $rOut);
 		$this->assertSame(['sql'], $rConnects, 'MAIN\'s crontab table, on first use');
 		$this->assertStringContainsString('console.php cron:servers # XC_VM', (string) @file_get_contents($this->rHome . 'crontab.log'));
@@ -601,7 +576,7 @@ final class ReplicaBootTest extends TestCase {
 		@unlink($this->rHome . 'tmp/crontab');
 		@unlink($this->rHome . 'crontab.log');
 		$this->flows(2);
-		[$rCode, $rOut, $rConnects] = $this->child(['--list'], null, $this->rHome . 'main.sqlite');
+		[$rCode, $rOut, $rConnects] = $this->child(['--list'], null, $this->rMainDb->schema());
 		$this->assertSame(0, $rCode, $rOut);
 		$this->assertSame([], $rConnects);
 		$this->assertFileDoesNotExist($this->rHome . 'crontab.log');
@@ -660,7 +635,7 @@ final class ReplicaBootTest extends TestCase {
 		// Mode 2: the boot opens nothing either, and the query is refused.
 		$this->flows(2);
 		$this->clearAudit();
-		[, $rOut, $rConnects] = $this->child([], $rScript, $this->rHome . 'main.sqlite');
+		[, $rOut, $rConnects] = $this->child([], $rScript, $this->rMainDb->schema());
 		$this->assertSame([], $rConnects);
 		$this->assertStringContainsString('"opened":false', $rOut);
 		$this->assertStringNotContainsString('queried', $rOut, 'refused');

@@ -48,22 +48,18 @@ final class CredentialRotationTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '030_create_cluster_commands'] as $rName) {
-			$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			foreach (array_filter(array_map('trim', explode(';', (string) preg_replace(
-				['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-				['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-				$rSql
-			)))) as $rStatement) {
+			$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql');
+			foreach (array_filter(array_map('trim', explode(';', (string) $rSql))) as $rStatement) {
 				$this->rDb->exec($rStatement);
 			}
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `root_ready` tinyint(1) NOT NULL DEFAULT 0');
-		$this->rDb->exec("CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY, `redis_password` varchar(512))");
+		$this->rDb->exec("CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `redis_password` varchar(512))");
 		$this->rDb->exec("INSERT INTO `settings` VALUES (1, 'old-redis-password')");
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `is_main` tinyint, `server_type` tinyint, `server_ip` varchar(64), `private_ip` varchar(64))');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `is_main` tinyint, `server_type` tinyint, `server_ip` varchar(64), `private_ip` varchar(64))');
 		$this->rDb->exec("INSERT INTO `servers` VALUES (1, 1, 0, '203.0.113.1', '10.0.0.1'), (21, 0, 0, '203.0.113.21', NULL), (22, 0, 0, '203.0.113.22', NULL), (23, 0, 0, '203.0.113.23', NULL), (30, 0, 1, '203.0.113.30', NULL)");
 		$this->rDb->exec('ALTER TABLE `servers` ADD COLUMN `server_name` varchar(255)');
-		$this->rDb->exec('CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int, `time` int, `custom_data` text, `cache` tinyint DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int, `time` int, `custom_data` text, `cache` tinyint DEFAULT 0)');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix(1800000000000);
 		ClusterBus::useSocket(sys_get_temp_dir() . '/no-such-bus-' . bin2hex(random_bytes(4)) . '/cluster.sock');
@@ -240,7 +236,7 @@ final class CredentialRotationTest extends TestCase {
 		$this->assertContains('rotate_db', NodeActions::ROOT_ACTIONS);
 		$this->assertContains('rotate_db', NodeActions::CLUSTER_ONLY, 'a password only travels sealed');
 		$this->assertNotContains('rotate_redis', NodeActions::CLUSTER_ONLY, 'a legacy node answers it from MAIN\'s settings');
-		$rCron = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/RootSignalsCronJob.php');
+		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		$this->assertStringContainsString("case 'rotate_redis':", $rCron);
 		$this->assertStringContainsString("case 'rotate_db':", $rCron);
 		$this->expectExceptionMessage('only a signed root command');

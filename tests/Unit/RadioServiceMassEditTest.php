@@ -18,7 +18,7 @@ if (!defined('STATUS_INVALID_INPUT')) {
  * server_tree extraction / flattening that follows.
  *
  * massEdit has no verifyPostTable/exit(), and StreamProcess::updateStreams is a
- * no-op while enable_cache is off, so the whole method runs against the SQLite
+ * no-op while enable_cache is off, so the whole method runs against the
  * TestDb. These lock the outer flow (invalid input) and the server-tree ADD path
  * (a new streams_servers row via the batch insert).
  */
@@ -29,9 +29,9 @@ final class RadioServiceMassEditTest extends TestCase {
 	protected function setUp(): void {
 		$this->db = new TestDb();
 		$this->db->exec(
-			'CREATE TABLE streams (id INTEGER PRIMARY KEY, category_id TEXT);
-			 CREATE TABLE streams_servers (server_stream_id INTEGER PRIMARY KEY AUTOINCREMENT, stream_id INTEGER, server_id INTEGER, parent_id INTEGER, on_demand INTEGER);
-			 CREATE TABLE bouquets (id INTEGER PRIMARY KEY AUTOINCREMENT, bouquet_name TEXT, bouquet_channels TEXT, bouquet_movies TEXT, bouquet_series TEXT, bouquet_radios TEXT, bouquet_order INTEGER DEFAULT 0);'
+			'CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, category_id TEXT);
+			 CREATE TABLE streams_servers (server_stream_id INTEGER PRIMARY KEY AUTO_INCREMENT, stream_id INTEGER, server_id INTEGER, parent_id INTEGER, on_demand INTEGER);
+			 CREATE TABLE bouquets (id INTEGER PRIMARY KEY AUTO_INCREMENT, bouquet_name TEXT, bouquet_channels TEXT, bouquet_movies TEXT, bouquet_series TEXT, bouquet_radios TEXT, bouquet_order INTEGER DEFAULT 0);'
 		);
 		DatabaseFactory::set($this->db);
 		// BouquetService may carry an injected db from another test; override it.

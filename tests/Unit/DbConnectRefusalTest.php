@@ -153,7 +153,7 @@ final class DbConnectRefusalTest extends TestCase {
 	/**
 	 * Run $rCode after the real bootstrap's autoloader, in a throwaway deploy
 	 * root whose xcvm_core logs each connect it is asked for (and answers it
-	 * with an SQLite handle when $rEnv sets XCVM_TEST_PDO=1).
+	 * with a connection to the test server when $rEnv sets XCVM_TEST_PDO=1).
 	 *
 	 * @return array{0: int, 1: string, 2: list<string>} exit code, output, the connects xcvm_core saw
 	 */
@@ -169,7 +169,7 @@ final class DbConnectRefusalTest extends TestCase {
 
 				public static function db_connect(bool $rMigrate = false) {
 					file_put_contents(MAIN_HOME . 'connects.log', "sql\n", FILE_APPEND);
-					return getenv('XCVM_TEST_PDO') === '1' ? new PDO('sqlite::memory:') : false;
+					return getenv('XCVM_TEST_PDO') === '1' ? new PDO(getenv('XCVM_TEST_DB_DSN'), getenv('XCVM_TEST_DB_USER') ?: null, getenv('XCVM_TEST_DB_PASS') ?: null) : false;
 				}
 
 				public static function redis_connect() {
@@ -181,7 +181,7 @@ final class DbConnectRefusalTest extends TestCase {
 		$rScript = $this->rDir . 'child.php';
 		file_put_contents($rScript, $rCode);
 		@unlink($this->rDir . 'connects.log');
-		$rProc = proc_open(array_merge([PHP_BINARY, '-d', 'auto_prepend_file=' . $rPrepend, $rScript], $rArgs), [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes, $this->rDir, $rEnv + ['XCVM_TEST_HOME' => $this->rDir, 'XCVM_TEST_SRC' => dirname(__DIR__, 2) . '/src/', 'PATH' => (string) getenv('PATH')]);
+		$rProc = proc_open(array_merge([...xcvm_test_child_php(), '-d', 'auto_prepend_file=' . $rPrepend, $rScript], $rArgs), [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes, $this->rDir, $rEnv + ['XCVM_TEST_HOME' => $this->rDir, 'XCVM_TEST_SRC' => MAIN_HOME, 'PATH' => (string) getenv('PATH')]);
 		$this->assertIsResource($rProc);
 		$rOut = (string) stream_get_contents($rPipes[1]) . (string) stream_get_contents($rPipes[2]);
 		fclose($rPipes[1]);
@@ -276,7 +276,7 @@ final class DbConnectRefusalTest extends TestCase {
 			require getenv('XCVM_TEST_SRC') . 'vendor/autoload.php';
 			$rDb = DatabaseFactory::open();
 			echo json_encode([$rDb === DatabaseFactory::get(), $rDb->query('SELECT 1')]);
-			PHP, [], ['XCVM_TEST_PDO' => '1']);
+			PHP, [], ['XCVM_TEST_PDO' => '1'] + \TestDb::env());
 		$this->assertSame(0, $rCode, $rOut);
 		$this->assertSame(['sql'], $rConnects);
 		$this->assertSame([true, true], json_decode($rOut, true));

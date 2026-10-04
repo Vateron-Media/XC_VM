@@ -190,12 +190,7 @@ final class ClusterExtensionIntegrationTest extends TestCase {
 		$rPub = $rCrypto->init()['panel_sign_pub'];
 		$rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '030_create_cluster_commands'] as $rName) {
-			$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			$rDb->exec((string) preg_replace(
-				['/^--.*$/m', '/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '/,\s*PRIMARY KEY \(`id`\)/', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'],
-				['', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', '', '', '', ');'],
-				$rSql
-			));
+			$rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql'));
 		}
 		$rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `root_ready` tinyint(1) NOT NULL DEFAULT 0');
 		DatabaseFactory::set($rDb);
@@ -218,6 +213,8 @@ final class ClusterExtensionIntegrationTest extends TestCase {
 			$this->assertSame([true, true], ClusterRoute::cache($rSid, [['type' => 'update_stream', 'id' => 7]]), 'a rebuild goes as node.cache');
 			$this->assertTrue(ClusterRoute::stop($rSid, 'stream.stop', [7])[0]);
 			$this->assertTrue(ClusterRoute::stop($rSid, 'vod.stop', [8])[0]);
+			$this->assertTrue(ClusterRoute::start($rSid, 'stream.start', [7])[0]);
+			$this->assertTrue(ClusterRoute::start($rSid, 'vod.start', [8])[0]);
 			$this->assertSame([true, true], ClusterRoute::fence($rSid, 'test', 1));
 			$this->assertSame([true, true], ClusterRoute::resync($rSid));
 			CommandBus::enqueue($rCrypto, $rSid, 'policy.update', [], 'policy.update'); // no producer: the policy rides the heartbeat
@@ -227,7 +224,7 @@ final class ClusterExtensionIntegrationTest extends TestCase {
 			// Last: a quarantined node is handed restrictive commands only.
 			$this->assertSame([true, true], ClusterRoute::quarantine($rSid, 'test'));
 			$rDb->query('SELECT `type`, `class`, `payload`, `sig` FROM `cluster_commands` WHERE `server_id` = ? ORDER BY `seq`', $rSid);
-			$rRows = $rDb->get_rows();
+			$rRows = $rDb->get_raw_rows(); // raw, as CommandBus reads them: the cleaning would rewrite the binary sig
 			$this->assertEqualsCanonicalizing(CommandBus::TYPES, array_column($rRows, 'type'));
 			foreach ($rRows as $rRow) {
 				$this->assertTrue(PanelSig::verify($rPub, 'cmd', (string) $rRow['payload'], (string) $rRow['sig']), $rRow['type']);

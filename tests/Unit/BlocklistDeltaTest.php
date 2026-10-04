@@ -17,12 +17,12 @@ final class BlocklistDeltaTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `cluster_changes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `section` varchar(32), `op` varchar(8), `kind` varchar(16), `value` varchar(255), `time` int)');
-		$this->rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `ip` varchar(39) UNIQUE, `notes` text, `date` int)');
-		$this->rDb->exec('CREATE TABLE `blocked_uas` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `user_agent` varchar(255), `exact_match` int DEFAULT 0, `attempts_blocked` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `blocked_isps` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `isp` text, `blocked` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `blocked_asns` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `asn` int, `blocked` int DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `rtmp_ips` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `ip` varchar(255), `password` varchar(128), `notes` text, `push` int, `pull` int)');
+		$this->rDb->exec('CREATE TABLE `cluster_changes` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `section` varchar(32), `op` varchar(8), `kind` varchar(16), `value` varchar(255), `time` int)');
+		$this->rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(39) UNIQUE, `notes` text, `date` int)');
+		$this->rDb->exec('CREATE TABLE `blocked_uas` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `user_agent` varchar(255), `exact_match` int DEFAULT 0, `attempts_blocked` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `blocked_isps` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `isp` text, `blocked` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `blocked_asns` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `asn` int, `blocked` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `rtmp_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(255), `password` varchar(128), `notes` text, `push` int, `pull` int)');
 		DatabaseFactory::set($this->rDb);
 	}
 
@@ -142,8 +142,9 @@ final class BlocklistDeltaTest extends TestCase {
 	 * Every file that writes a blocklist table logs the change. A new path
 	 * fails here until it calls BlocklistChanges (or is listed with why not).
 	 */
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testEveryWriterOfTheBlocklistLogsIt(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src';
+		$rSrc = rtrim(MAIN_HOME, '/');
 		$rExempt = [
 			// Upserts reference columns and prunes unblocked ASNs: blocked ones never change.
 			'Core/GeoIP/AsnCatalogSync.php',

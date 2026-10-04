@@ -33,10 +33,10 @@ final class ClusterEndpointTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec("CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY, `cluster_api_enabled` int DEFAULT 0, `cluster_api_port` int DEFAULT 0, `cluster_transport` varchar(16) DEFAULT 'auto', `cluster_main_host` varchar(255) DEFAULT '', `cluster_policy_ver` int DEFAULT 1, `cluster_legacy_ports` varchar(255) DEFAULT '', `cluster_legacy_urls` text)");
+		$this->rDb->exec("CREATE TABLE `settings` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `cluster_api_enabled` int DEFAULT 0, `cluster_api_port` int DEFAULT 0, `cluster_transport` varchar(16) DEFAULT 'auto', `cluster_main_host` varchar(255) DEFAULT '', `cluster_policy_ver` int DEFAULT 1, `cluster_legacy_ports` varchar(255) DEFAULT '', `cluster_legacy_urls` text)");
 		$this->rDb->exec('INSERT INTO `settings` (`id`) VALUES (1)');
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY, `state` varchar(16) NOT NULL DEFAULT 'enrolling', `mode` int NOT NULL DEFAULT 1)");
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `state` varchar(16) NOT NULL DEFAULT 'enrolling', `mode` int NOT NULL DEFAULT 1)");
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix($this->rNow * 1000);
 		$this->rSettingsBefore = SettingsManager::getAll();
@@ -305,7 +305,7 @@ final class ClusterEndpointTest extends TestCase {
 
 	/** cron:root_signals rewrites MAIN's server_ip from its interface: the same announcement. */
 	public function testTheAutomaticServerIpRewriteIsAnnounced(): void {
-		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `server_ip` varchar(255) DEFAULT '')");
+		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_ip` varchar(255) DEFAULT '')");
 		$this->rDb->query('INSERT INTO `servers` (`id`, `server_ip`) VALUES (1, ?)', '10.0.0.1');
 		$this->node(2, 'active');
 		SettingsManager::set($this->live());
@@ -503,7 +503,7 @@ final class ClusterEndpointTest extends TestCase {
 
 	/** The call sites: the admin's save of MAIN's row, and cron:root_signals' rewrite. */
 	public function testTheCallSites(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src/';
+		$rSrc = MAIN_HOME;
 		$rServer = (string) file_get_contents($rSrc . 'Domain/Server/ServerService.php');
 		$rUpdate = strpos($rServer, "\$rQuery = 'UPDATE `servers` SET '");
 		$rAnnounce = strpos($rServer, 'self::announceMainEndpoints($rServer, $rArray);');
@@ -530,7 +530,7 @@ final class ClusterEndpointTest extends TestCase {
 	 * URLs are kept.
 	 */
 	public function testTwoChangesOfMainsRowAtOnceKeepBoth(): void {
-		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `is_main` int NOT NULL DEFAULT 0, `server_ip` varchar(255) DEFAULT '', `private_ip` varchar(255) DEFAULT '', `domain_name` varchar(255) DEFAULT '', `enable_https` int NOT NULL DEFAULT 0, `http_broadcast_port` int DEFAULT NULL, `https_broadcast_port` int DEFAULT NULL)");
+		$this->rDb->exec("CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `is_main` int NOT NULL DEFAULT 0, `server_ip` varchar(255) DEFAULT '', `private_ip` varchar(255) DEFAULT '', `domain_name` varchar(255) DEFAULT '', `enable_https` int NOT NULL DEFAULT 0, `http_broadcast_port` int DEFAULT NULL, `https_broadcast_port` int DEFAULT NULL)");
 		$this->rDb->query('INSERT INTO `servers` (`id`, `is_main`, `server_ip`, `private_ip`, `domain_name`, `enable_https`, `http_broadcast_port`, `https_broadcast_port`) VALUES (1, 1, ?, ?, ?, 1, 25461, 25463)', '10.0.0.1', '192.168.0.1', 'panel.example.com');
 		$this->node(2, 'active');
 		SettingsManager::set($this->live());
@@ -617,7 +617,7 @@ final class ClusterEndpointTest extends TestCase {
 
 	/** Migration 044 adds the kept URLs; database.sql has the column for fresh installs. */
 	public function testTheSchema(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src/';
+		$rSrc = MAIN_HOME;
 		$rUp = (string) file_get_contents($rSrc . 'migrations/database/up/044_add_cluster_legacy_urls.sql');
 		$this->assertStringContainsString('ALTER TABLE `settings` ADD COLUMN IF NOT EXISTS `cluster_legacy_urls` mediumtext COLLATE utf8_unicode_ci;', $rUp);
 		$this->assertStringContainsString('ALTER TABLE `settings` DROP COLUMN IF EXISTS `cluster_legacy_urls`;', (string) file_get_contents($rSrc . 'migrations/database/down/044_add_cluster_legacy_urls.sql'));

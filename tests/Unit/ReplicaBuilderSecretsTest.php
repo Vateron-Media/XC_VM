@@ -64,10 +64,10 @@ final class ReplicaBuilderSecretsTest extends TestCase {
 	private function mainDb(): TestDb {
 		$rDb = new TestDb();
 		$rDb->exec(InstallSchema::serversTable());
-		$rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY, `reseller_dns` text, `status` int)');
+		$rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `reseller_dns` text, `status` int)');
 		$rDb->exec(InstallSchema::migration('029_create_cluster_nodes'));
 		$rDb->exec(InstallSchema::migration('034_create_cluster_changes'));
-		$rDb->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `filename` varchar(255), `time` varchar(128), `enabled` int, `role` varchar(8))');
+		$rDb->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `filename` varchar(255), `time` varchar(128), `enabled` int, `role` varchar(8))');
 		$rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('streams', '* * * * *', 1, 'all')");
 		$rDb->exec(InstallSchema::table('bouquets'));
 		$rDb->exec(InstallSchema::table('streams_categories'));
@@ -82,11 +82,11 @@ final class ReplicaBuilderSecretsTest extends TestCase {
 			str_repeat('s', 32),
 			str_repeat('b', 32)
 		);
-		$rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `ip` varchar(39), `notes` text, `date` int)');
-		$rDb->exec('CREATE TABLE `blocked_uas` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `user_agent` varchar(255), `exact_match` int DEFAULT 0)');
-		$rDb->exec('CREATE TABLE `blocked_isps` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `isp` text, `blocked` int DEFAULT 0)');
-		$rDb->exec('CREATE TABLE `blocked_asns` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `asn` int, `blocked` int DEFAULT 0)');
-		$rDb->exec('CREATE TABLE `rtmp_ips` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `ip` varchar(255), `password` varchar(128), `push` int, `pull` int)');
+		$rDb->exec('CREATE TABLE `blocked_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(39), `notes` text, `date` int)');
+		$rDb->exec('CREATE TABLE `blocked_uas` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `user_agent` varchar(255), `exact_match` int DEFAULT 0)');
+		$rDb->exec('CREATE TABLE `blocked_isps` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `isp` text, `blocked` int DEFAULT 0)');
+		$rDb->exec('CREATE TABLE `blocked_asns` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `asn` int, `blocked` int DEFAULT 0)');
+		$rDb->exec('CREATE TABLE `rtmp_ips` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `ip` varchar(255), `password` varchar(128), `push` int, `pull` int)');
 		$rDb->exec("INSERT INTO `blocked_ips` (`ip`) VALUES ('203.0.113.1')");
 		DatabaseFactory::set($rDb);
 		return $rDb;
@@ -97,7 +97,7 @@ final class ReplicaBuilderSecretsTest extends TestCase {
 		$this->assertGreaterThan(100, count($rKeys));
 		$rSuspect = array_values(array_filter($rKeys, static fn(string $rKey): bool => (bool) preg_match('/pass|secret|token|licen|_key$|password|salt|private/', $rKey) && !in_array($rKey, self::NOT_SECRET, true)));
 		$this->assertSame([], $rSuspect, 'a settings key that looks secret: withhold it (tools/ci/lb_settings_keys.php SECRETS) or vet it here');
-		$rList = require dirname(__DIR__, 2) . '/src/Core/Cluster/lb_settings_keys.php';
+		$rList = require MAIN_HOME . 'Core/Cluster/lb_settings_keys.php';
 		foreach (['api_pass', 'license', 'live_streaming_pass', 'redis_password', 'tmdb_api_key', 'recaptcha_v2_secret_key'] as $rSecret) {
 			$this->assertNotContains($rSecret, $rKeys);
 		}

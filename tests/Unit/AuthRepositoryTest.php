@@ -5,8 +5,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * AuthRepository — access-code and HMAC-key reads/deletes. Covers the
- * SQLite-compatible query methods against an in-memory database injected via
- * the $db global. (getGroupPermissions uses MySQL JSON_CONTAINS and deleteCode
+ * query methods against the TestDb injected via the $db global. (getGroupPermissions uses MySQL JSON_CONTAINS and deleteCode
  * regenerates nginx configs, so both are left to integration tests.)
  */
 final class AuthRepositoryTest extends TestCase {
@@ -18,8 +17,8 @@ final class AuthRepositoryTest extends TestCase {
 		$this->serverBackup = $_SERVER;
 		$this->db = new TestDb();
 		$this->db->exec(
-			'CREATE TABLE access_codes (id INTEGER PRIMARY KEY, type INTEGER, code TEXT);
-			 CREATE TABLE hmac_keys (id INTEGER PRIMARY KEY, `key` TEXT);
+			'CREATE TABLE access_codes (id INTEGER PRIMARY KEY AUTO_INCREMENT, type INTEGER, code TEXT);
+			 CREATE TABLE hmac_keys (id INTEGER PRIMARY KEY AUTO_INCREMENT, `key` TEXT);
 			 INSERT INTO access_codes (id, type, code) VALUES (1, 0, "alpha"), (2, 1, "beta"), (3, 0, "gamma");
 			 INSERT INTO hmac_keys (id, `key`) VALUES (7, "k7"), (8, "k8");'
 		);

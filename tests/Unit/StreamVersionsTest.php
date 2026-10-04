@@ -136,18 +136,11 @@ final class StreamVersionsTest extends TestCase {
 
 	/**
 	 * Run migration 047 one way, statement by statement as MigrationRunner
-	 * does; on SQLite, its MariaDB-only syntax translated (the key aside).
+	 * does.
 	 */
 	private function migrate047(string $rWay): void {
-		$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/' . $rWay . '/047_add_cluster_stream_ver_holders.sql');
-		$rSqlite = $this->rDb->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
+		$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/' . $rWay . '/047_add_cluster_stream_ver_holders.sql');
 		foreach (array_filter(array_map('trim', explode(';', (string) preg_replace('/^--.*$/m', '', $rSql)))) as $rStatement) {
-			if ($rSqlite) {
-				if (str_starts_with($rStatement, 'ALTER TABLE')) {
-					continue;
-				}
-				$rStatement = strtr($rStatement, ['INSERT IGNORE' => 'INSERT OR IGNORE', 'UNIX_TIMESTAMP()' => "CAST(strftime('%s', 'now') AS INTEGER)", 'GREATEST(' => 'MAX(', "'stream\\_ver\\_floor.%'" => "'stream\\_ver\\_floor.%' ESCAPE '\\'"]);
-			}
 			$this->rDb->exec($rStatement);
 		}
 	}
@@ -286,9 +279,9 @@ final class StreamVersionsTest extends TestCase {
 	public function testMainsWritersDispatchTheirChange(): void {
 		$this->catalogue();
 		$this->rDb->exec("INSERT INTO `profiles` (`profile_id`, `profile_name`, `profile_options`) VALUES (7, 'hd', '{}')");
-		$this->rDb->exec('CREATE TABLE `watch_folders` (`id` INTEGER PRIMARY KEY, `transcode_profile_id` int)');
-		$this->rDb->exec('CREATE TABLE `epg` (`id` INTEGER PRIMARY KEY, `epg_name` text)');
-		$this->rDb->exec('CREATE TABLE `epg_channels` (`id` INTEGER PRIMARY KEY, `epg_id` int)');
+		$this->rDb->exec('CREATE TABLE `watch_folders` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `transcode_profile_id` int)');
+		$this->rDb->exec('CREATE TABLE `epg` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `epg_name` text)');
+		$this->rDb->exec('CREATE TABLE `epg_channels` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `epg_id` int)');
 		$this->rDb->exec("INSERT INTO `epg` VALUES (3, 'guide')");
 		$this->seed();
 		EventDispatcher::subscribe(StreamVersions::class);
@@ -355,7 +348,7 @@ final class StreamVersionsTest extends TestCase {
 
 	public function testAMassEditDispatchesItsChange(): void {
 		$this->catalogue();
-		$this->rDb->exec('CREATE TABLE `bouquets` (`id` INTEGER PRIMARY KEY, `bouquet_order` int)');
+		$this->rDb->exec('CREATE TABLE `bouquets` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `bouquet_order` int)');
 		(new \ReflectionProperty(BouquetService::class, 'db'))->setValue(null, null);
 		$this->seed();
 		EventDispatcher::subscribe(StreamVersions::class);
@@ -374,8 +367,9 @@ final class StreamVersionsTest extends TestCase {
 	 * STREAM_LOCAL and STREAM_SERVER_LOCAL) needs none. A new path fails
 	 * here until it dispatches, or is listed with why not.
 	 */
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
 	public function testEveryWriterOfAStreamsConfigurationDispatchesIt(): void {
-		$rSrc = dirname(__DIR__, 2) . '/src';
+		$rSrc = rtrim(MAIN_HOME, '/');
 		$rExempt = [
 			// What the node reports: its recordings' status, its VOD analysis, workers' pids, its stream row.
 			'Domain/Stream/ContentSink.php::recordingState', 'Domain/Stream/ContentSink.php::movieProperties', 'Domain/Stream/ContentSink.php::workerPid',

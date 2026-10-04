@@ -72,7 +72,7 @@ final class NodeRoleTest extends TestCase {
 	 * @dataProvider mainOnlyCrons
 	 */
 	public function testClusterWideCronsAreGated(string $rFile, string $rGuarded): void {
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/' . $rFile);
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/' . $rFile);
 		$rGate = strpos($rSource, 'NodeRole::isMain()');
 		$this->assertNotFalse($rGate, "$rFile must ask NodeRole::isMain()");
 		$this->assertLessThan(strpos($rSource, $rGuarded), $rGate, "$rFile must gate before: $rGuarded");
@@ -86,7 +86,7 @@ final class NodeRoleTest extends TestCase {
 	 * a node in mode 2 refuses: the connect audit stays bounded there too.
 	 */
 	public function testCleanupKeepsEachNodesAuditsBeforeItsMainGate(): void {
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/CleanupCronJob.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/CleanupCronJob.php');
 		$rGate = strpos($rSource, 'if (!NodeRole::isMain())');
 		$rQuery = strpos($rSource, '$db->query(');
 		$this->assertNotFalse($rGate);

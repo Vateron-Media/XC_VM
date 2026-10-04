@@ -28,8 +28,8 @@ final class ClusterLivenessTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec((string) preg_replace(['/^--.*$/m', '/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '/ unsigned| COLLATE \w+/', '/\) ENGINE=[^;]*;/'], ['', '', '', ');'], (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/029_create_cluster_nodes.sql')));
-		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
+		$this->rDb->exec((string) (string) file_get_contents(MAIN_HOME . 'migrations/database/up/029_create_cluster_nodes.sql'));
+		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		DatabaseFactory::set($this->rDb);
 		ClusterClock::fix($this->rT0);
 		\XcVm\Domain\Cluster\ClusterMeta::set('ready_at', (string) ($this->rT0 - 600000));
@@ -129,7 +129,7 @@ final class ClusterLivenessTest extends TestCase {
 		$this->assertSame([5 => ['ok', 'suspended']], $this->at(1000), 'an hour left, or no token: judged as ever');
 		$this->assertSame('suspended', ClusterHealth::state(5), 'read back as published');
 		$this->assertContains('suspended', ClusterHealth::NO_ROUTING);
-		$this->assertStringContainsString('ClusterHealth::NO_ROUTING', (string) file_get_contents(dirname(__DIR__, 2) . '/src/Domain/Server/ServerRepository.php'), 'routing reads it');
+		$this->assertStringContainsString('ClusterHealth::NO_ROUTING', (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerRepository.php'), 'routing reads it');
 
 		$this->rDb->query('UPDATE `cluster_nodes` SET `token_exp` = ? WHERE `server_id` = 5', $rNow + 3600);
 		$this->beat(2000);
@@ -487,7 +487,7 @@ final class ClusterLivenessTest extends TestCase {
 	public function testTheClusterNodesPageAlertsPerReason(): void {
 		$this->assertMatchesRegularExpression(
 			'#foreach \(ClusterHealth::read\(\)\[.reasons.\] as \$rReason\): \?>\s*<div[^>]*>.*?\$language::get\(\$rReason === ClusterHealth::GUARD_CTL_QUEUE \? .cluster_ctl_queue. : .cluster_fleet_silence.\).*?endforeach;#s',
-			(string) file_get_contents(dirname(__DIR__, 2) . '/src/Public/Views/admin/cluster_nodes.php')
+			(string) file_get_contents(MAIN_HOME . 'Public/Views/admin/cluster_nodes.php')
 		);
 	}
 }

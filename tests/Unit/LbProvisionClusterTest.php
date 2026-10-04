@@ -52,19 +52,11 @@ final class LbProvisionClusterTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		foreach (['029_create_cluster_nodes', '032_create_cluster_audit'] as $rName) {
-			$rSql = (string) file_get_contents(dirname(__DIR__, 2) . '/src/migrations/database/up/' . $rName . '.sql');
-			if (!getenv('XCVM_TEST_DB_DSN')) {
-				$rSql = (string) preg_replace('/^--.*$/m', '', $rSql);
-				$rSql = (string) preg_replace('/`id` bigint\(20\) unsigned NOT NULL AUTO_INCREMENT/', '`id` INTEGER PRIMARY KEY AUTOINCREMENT', $rSql);
-				$rSql = (string) preg_replace('/,\s*PRIMARY KEY \(`id`\)/', '', $rSql);
-				$rSql = (string) preg_replace('/,\s*(UNIQUE )?KEY `\w+` \([^)]*\)/', '', $rSql);
-				$rSql = (string) preg_replace('/ unsigned| COLLATE \w+/', '', $rSql);
-				$rSql = (string) preg_replace('/\) ENGINE=[^;]*;/', ');', $rSql);
-			}
+			$rSql = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql');
 			$this->rDb->exec($rSql);
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_node_epochs` ADD COLUMN `agent_eph_pub` binary(32) DEFAULT NULL');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `status` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `status` int NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `servers` (`id`, `status`) VALUES (9, 0)');
 		DatabaseFactory::set($this->rDb);
 		SettingsManager::set(['cluster_api_enabled' => 1, 'lb_token_rotation_min' => 60, 'lb_new_node_mode' => 'legacy']);
@@ -394,7 +386,8 @@ final class LbProvisionClusterTest extends TestCase {
 				if (str_contains($rCmd, 'chown') || str_contains($rCmd, 'run.sh')) {
 					$rCmd = (string) preg_replace('/(chown|chmod) [^&;]*(&&|;|$)/', 'true $2', $rCmd);
 					if (str_contains($rCmd, 'run.sh')) {
-						return ['output' => '', 'error' => ''];
+						// The daemon is not this test's: seen running, as provisionCluster() checks.
+						return ['output' => "STARTED\n", 'error' => ''];
 					}
 				}
 				exec($rCmd . ' 2>&1', $rOut);

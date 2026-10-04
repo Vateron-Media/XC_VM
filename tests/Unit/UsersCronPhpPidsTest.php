@@ -29,7 +29,7 @@ final class UsersCronPhpPidsTest extends TestCase {
 		$this->rDbBackup = $GLOBALS['db'] ?? null;
 
 		$rDb = new TestDb();
-		$rDb->exec('CREATE TABLE servers (id INTEGER PRIMARY KEY, php_pids TEXT);');
+		$rDb->exec('CREATE TABLE servers (id INTEGER PRIMARY KEY AUTO_INCREMENT, php_pids TEXT);');
 		$rDb->exec('INSERT INTO servers (id, php_pids) VALUES (1, \'[11,12]\'), (2, NULL), (3, \'not json\'), (4, \'["13"]\'), (5, \'[]\'), (6, \'null\');');
 		$GLOBALS['db'] = $rDb;
 	}
@@ -144,7 +144,7 @@ final class UsersCronPhpPidsTest extends TestCase {
 		$this->assertFalse($this->invoke('lineExpired', [['uuid' => 'r'], null, $rNow]), 'no date: never');
 		$this->assertTrue($this->invoke('lineExpired', [['exp_date' => $rNow - 1], null, $rNow]), 'a lines_live row: its own');
 		$this->assertFalse($this->invoke('lineExpired', [['exp_date' => null], null, $rNow]), 'an unlimited line');
-		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/UsersCronJob.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/UsersCronJob.php');
 		$this->assertStringContainsString('self::lineExpired($rConnection, $rExpDateArray[$rUserID] ?? null, $rStartTime)', $rSource, 'the reaper judges expiry through the helper');
 	}
 }
