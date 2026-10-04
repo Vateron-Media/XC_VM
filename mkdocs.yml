@@ -110,6 +110,7 @@ plugins:
             Migration Guide: Руководство по миграции
             Watch Folder: Отслеживаемая папка
             Restreaming YouTube: Рестрим YouTube
+            Custom FFmpeg Commands: Свои команды FFmpeg
             Developer Guide: Руководство разработчика
             Architecture: Архитектура
             Architecture Overview: Обзор архитектуры
@@ -175,6 +176,7 @@ nav:
           - Migration Guide: en/info/migration_guide.md
           - Watch Folder: en/info/watch_folder.md
           - Restreaming YouTube: en/info/youtube-restream.md
+          - Custom FFmpeg Commands: en/info/custom-ffmpeg-command.md
   - Developer Guide:
       - Architecture:
           - Architecture Overview: en/development/architecture.md
