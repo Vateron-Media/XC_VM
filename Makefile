@@ -159,20 +159,23 @@ SUDO := $(if $(filter 0,$(shell id -u)),,sudo)
 
 dev-php:
 	@if ! apt-cache show php8.1-cli >/dev/null 2>&1; then \
-		$(SUDO) curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb && \
-		$(SUDO) dpkg -i /tmp/debsuryorg-archive-keyring.deb && \
+		d=$$(mktemp -d) && \
+		curl -sSLo $$d/keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb && \
+		$(SUDO) dpkg -i $$d/keyring.deb && \
 		echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ $$(. /etc/os-release && echo $$VERSION_CODENAME) main" \
 			| $(SUDO) tee /etc/apt/sources.list.d/php.list >/dev/null && \
 		$(SUDO) apt-get update; \
+		rc=$$?; rm -rf "$$d"; [ $$rc -eq 0 ] || exit $$rc; \
 	fi
 	$(SUDO) apt-get install -y $(addprefix php8.1-,$(DEV_PHP_PACKAGES))
 	$(SUDO) update-alternatives --set php /usr/bin/php8.1
 	@php -v | head -1
 	@command -v composer >/dev/null 2>&1 || { \
-		curl -sSLo /tmp/composer-setup.php https://getcomposer.org/installer && \
-		echo "$$(curl -sSL https://composer.github.io/installer.sig)  /tmp/composer-setup.php" | sha384sum -c --quiet && \
-		$(SUDO) php /tmp/composer-setup.php --quiet --install-dir=/usr/local/bin --filename=composer; \
-		rc=$$?; rm -f /tmp/composer-setup.php; exit $$rc; }
+		d=$$(mktemp -d) && \
+		curl -sSLo $$d/composer-setup.php https://getcomposer.org/installer && \
+		echo "$$(curl -sSL https://composer.github.io/installer.sig)  $$d/composer-setup.php" | sha384sum -c --quiet && \
+		$(SUDO) php $$d/composer-setup.php --quiet --install-dir=/usr/local/bin --filename=composer; \
+		rc=$$?; rm -rf "$$d"; exit $$rc; }
 	@composer --version
 
 # Inverse of dev-tools: once you no longer need the checks, remove the installed
