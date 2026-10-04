@@ -15,8 +15,10 @@ use XcVm\Core\Updates\GitHubReleases;
  *
  * Sources:
  *   - bundled  : files ship with the panel → the on-disk manifest version is authoritative
- *   - git      : GitHub releases of `update.repository` (reuses GitHubReleases)
- *   - url      : a `version.json` (`{"version":"…"}`) at `update.url` (https only)
+ *   - git      : the newest GitHub release of `update.repository` whose module.json
+ *                `requires_core` this core meets (reuses GitHubReleases)
+ *   - url      : a `version.json` (`{"version":"…", "requires_core":"…"}`) at
+ *                `update.url` (https only); skipped when `requires_core` rules this core out
  *   - platform : the SaaS store via the xcvm_core extension (best-effort; skipped if absent)
  *
  * @package XC_VM_Core_Module
@@ -26,6 +28,9 @@ use XcVm\Core\Updates\GitHubReleases;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class ModuleUpdateChecker {
+	/** Release manifests read per check before giving up on finding a compatible one. */
+	private const MAX_MANIFEST_CHECKS = 10;
+
 	/** Why the last latestAvailable() call could not check its source (null = checked fine). */
 	private ?string $lastError = null;
 
@@ -72,13 +77,48 @@ class ModuleUpdateChecker {
 			? 'beta'
 			: 'stable';
 		try {
-			$gh = new GitHubReleases($m[1], $m[2], $channel);
-			return $gh->getLatestVersion($installed !== '' ? $installed : '0.0.0');
+			$tags = $this->releaseTags($m[1], $m[2], $channel);
 		} catch (\Throwable $e) {
 			$this->lastError = $e->getMessage();
 			error_log('ModuleUpdateChecker(git): ' . $e->getMessage());
 			return null;
 		}
+		return $this->newestCompatibleTag($m[1], $m[2], $tags, $installed !== '' ? $installed : '0.0.0');
+	}
+
+	/**
+	 * Release tags of OWNER/REPO on the channel, newest first.
+	 *
+	 * @return string[]
+	 */
+	protected function releaseTags(string $owner, string $repo, string $channel): array {
+		return (new GitHubReleases($owner, $repo, $channel))->getReleases();
+	}
+
+	/**
+	 * The newest tag above $installed whose module.json (at the repository root,
+	 * read from raw.githubusercontent.com) lets this core run it. A manifest that
+	 * can't be read doesn't rule its tag out: installing it re-checks the archive.
+	 * Null when no release among the newest MAX_MANIFEST_CHECKS fits this core.
+	 *
+	 * @param string[] $tags Newest first.
+	 */
+	private function newestCompatibleTag(string $owner, string $repo, array $tags, string $installed): ?string {
+		foreach (array_slice($tags, 0, self::MAX_MANIFEST_CHECKS) as $tag) {
+			if (version_compare($tag, $installed, '<=')) {
+				break;
+			}
+			if ($this->releaseFitsCore($owner, $repo, $tag)) {
+				return $tag;
+			}
+		}
+		return null;
+	}
+
+	/** Whether the release's module.json lets this core run it (an unreadable one does). */
+	private function releaseFitsCore(string $owner, string $repo, string $tag): bool {
+		$meta = json_decode($this->httpGet("https://raw.githubusercontent.com/{$owner}/{$repo}/{$tag}/module.json"), true);
+		return !is_array($meta) || ModuleLoader::coreRequirementError((string) ($meta['requires_core'] ?? '')) === null;
 	}
 
 	/** version.json at a self-hosted https URL: {"version":"1.2.3"}. */
@@ -94,7 +134,12 @@ class ModuleUpdateChecker {
 			$this->lastError = 'no valid version.json at ' . $url;
 			return null;
 		}
-		return $ver;
+		return self::offeredVersion($ver, $data);
+	}
+
+	/** $ver, unless version.json's `requires_core` rules this core out (then nothing is offered). */
+	private static function offeredVersion(string $ver, array $data): ?string {
+		return ModuleLoader::coreRequirementError((string) ($data['requires_core'] ?? '')) === null ? $ver : null;
 	}
 
 	/** SaaS store latest version — best-effort; skipped if the extension has no such API. */
@@ -112,7 +157,7 @@ class ModuleUpdateChecker {
 	}
 
 	/** cURL GET (file_get_contents over https does not work under PHP-FPM here). */
-	private function httpGet(string $url): string {
+	protected function httpGet(string $url): string {
 		$ch = curl_init($url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);

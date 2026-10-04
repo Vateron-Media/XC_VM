@@ -26,6 +26,20 @@ final class ModuleLoaderTest extends TestCase {
 		$this->assertTrue($loader->isLoaded('healthy-beta'));
 	}
 
+	public function testLoadAllSkipsAModuleForAnotherCoreAndItsDependents(): void {
+		$root = $this->createModulesRoot();
+		$this->createModule($root, 'future-core', ['requires_core' => '>=99.0']);
+		$this->createModule($root, 'needs-future', ['dependencies' => ['future-core']]);
+		$this->createModule($root, 'today-core');
+
+		$loader = new ModuleLoader();
+		$loader->loadAll($root);
+
+		$this->assertFalse($loader->isLoaded('future-core'));
+		$this->assertFalse($loader->isLoaded('needs-future'));
+		$this->assertTrue($loader->isLoaded('today-core'));
+	}
+
 	// ── update-source manifest block (P2) ─────────────────────────────────
 
 	public function testNormalizeUpdateBlockDefaultsToBundled(): void {
