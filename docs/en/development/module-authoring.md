@@ -97,7 +97,7 @@ Rules:
 | `hash_id` | `string` | generated | **Permanent** module identity — random 32-hex, generated ONCE and never changed on a version bump or rename. Its first 5 chars form the `{name}_{hash5}` directory suffix. Do not hand-edit. |
 | `description` | `string` | `""` | Human-readable description |
 | `version` | `string` | — | Semver version (`1.0.0`) |
-| `requires_core` | `string` | — | Minimum core version (`>=2.0`) |
+| `requires_core` | `string` | `""` | Core versions the module runs on (`>=2.6.1`); see [Core compatibility](#core-compatibility) |
 | `environment` | `string` | `"main"` | `main`, `lb`, or `any` |
 | `priority` | `int` | `0` | Load priority — higher loads earlier |
 | `dependencies` | `array` | `[]` | Hard dependencies; if unavailable, the dependent is skipped (see below) |
@@ -151,6 +151,32 @@ The block is normalized by `ModuleLoader` and exposed via `ModuleManager::listMo
 For `git`/`url` the fetched `module.json` **`hash_id` must equal the installed one** (identity pinning — a repo/URL can't impersonate another module), then: backup → replace files → migrate → **roll back on any failure** → distribute to LB.
 
 **Standard set & provisioning.** The modules the panel installs by default are listed in `config/bundled_modules.php`, keyed by `hash_id` (stable across renames). Today all are `bundled` (their files are in the panel archive). When a module is extracted into its own repository, flip its entry to a `git`/`url`/`platform` source — `syncBundledModules()` then fetches + installs it automatically via `provisionStandardSet()` (a no-op while everything is bundled on-disk). `ModuleManager::findModuleByHashId()` resolves a module by its stable id regardless of directory/name.
+
+### Core compatibility
+
+`requires_core` is one or more conditions, all of which must hold, separated by spaces
+or commas: `>=`, `>`, `<=`, `<`, `=` (or `==`) or `!=` followed by a version. A bare
+version means `>=`. Examples: `>=2.6.1`, `>=2.6 <3.0`. Empty means any core. Anything
+else (`^`, `~`, `*`, ranges with `-`) cannot be read and rules the module out.
+
+A module whose `requires_core` this core does not meet:
+
+- **is not loaded** — skipped with a logged warning, and its dependents with it (a
+  module copied in by hand, or left behind by a core rollback). The Modules page shows
+  it with an *Issue* badge that gives the reason;
+- **is not installed or updated** — a zip upload, a git/url or platform update and an
+  LB fan-out are refused before the installed copy is touched. A load balancer whose
+  core lags behind MAIN refuses the module on its own; MAIN's install is not affected;
+- **is not offered as an update** — for a `git` source the update check reads
+  `module.json` at the **repository root** of each newer release tag (newest first, up
+  to 10) and offers the newest one this core can run; for a `url` source, a
+  `requires_core` in `version.json` is checked the same way.
+
+A nightly core (`2.6.1-dev.N`) is built from main as the upcoming release, so it
+counts as `2.6.1`.
+
+Bump `requires_core` whenever the module starts using a core API that older cores
+lack.
 
 ---
 

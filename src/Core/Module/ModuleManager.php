@@ -187,6 +187,8 @@ class ModuleManager {
 	 */
 	private function placeModuleFiles(string $moduleDir): string {
 		$name = $this->sanitizeModuleName($this->manifestNameFromDir($moduleDir));
+		// Before anything is replaced: an installed copy stays as it is.
+		$this->assertCoreCompatible($moduleDir, $name);
 		// Guarantee a hash_id (generating + persisting one when the upload lacks it)
 		// so the module is always placed in a `{name}_{hash5}` directory, never bare.
 		$targetDir = $this->modulesPath . '/' . $this->moduleDirName($name, $this->ensureHashId($moduleDir));
@@ -204,6 +206,65 @@ class ModuleManager {
 			$this->copyDirectory($moduleDir, $targetDir);
 		}
 		return $name;
+	}
+
+	/**
+	 * Refuse a module whose `requires_core` rules out this core. A refused copy
+	 * that already sits in modulesPath (the platform extension extracts there)
+	 * is removed, so it is not left beside the installed one.
+	 *
+	 * @param string $moduleDir Directory holding the new module.json.
+	 * @param string $name      Module name, for the message.
+	 * @throws \RuntimeException When the module needs another core.
+	 */
+	private function assertCoreCompatible(string $moduleDir, string $name): void {
+		$meta  = json_decode((string) @file_get_contents($moduleDir . '/module.json'), true);
+		$error = ModuleLoader::coreRequirementError((string) (is_array($meta) ? ($meta['requires_core'] ?? '') : ''));
+		if ($error === null) {
+			return;
+		}
+		if ($this->isInsideModulesPath($moduleDir)) {
+			$this->deleteDirectory($moduleDir);
+		}
+		throw new \RuntimeException("Module '{$name}' {$error}.");
+	}
+
+	/**
+	 * The fetched module must be the SAME module (identity pinning: a repo/URL
+	 * can't impersonate another module) and run on this core.
+	 *
+	 * @param string $moduleDir Extracted update.
+	 * @param array  $manifest  The installed module.json.
+	 * @param string $name
+	 * @throws \RuntimeException
+	 */
+	private function assertSameModuleForThisCore(string $moduleDir, array $manifest, string $name): void {
+		$newMeta = json_decode((string) @file_get_contents($moduleDir . '/module.json'), true);
+		$newHash = is_array($newMeta) ? (string) ($newMeta['hash_id'] ?? '') : '';
+		$ownHash = (string) ($manifest['hash_id'] ?? '');
+		if ($ownHash !== '' && $newHash !== '' && !hash_equals($ownHash, $newHash)) {
+			throw new \RuntimeException("hash_id mismatch — refusing to overwrite '{$name}' with a different module.");
+		}
+		$this->assertCoreCompatible($moduleDir, $name);
+	}
+
+	/**
+	 * The Modules table's warning for a module built for another core (the
+	 * loader skips it, ModuleLoader::discoverModules()).
+	 *
+	 * @param array $meta module.json
+	 * @return string[]
+	 */
+	private static function coreWarnings(array $meta): array {
+		$error = ModuleLoader::coreRequirementError((string) ($meta['requires_core'] ?? ''));
+		return $error === null ? [] : ["Not loaded: it {$error}."];
+	}
+
+	/** Whether $dir lies inside modulesPath. */
+	private function isInsideModulesPath(string $dir): bool {
+		$realModules = realpath($this->modulesPath);
+		$realDir     = realpath($dir);
+		return $realModules !== false && $realDir !== false && str_starts_with($realDir, $realModules . '/');
 	}
 
 	/** Remove every on-disk copy of $name except $keep — one install per name. */
@@ -711,8 +772,9 @@ class ModuleManager {
 			// Flag a module that is nominally Enabled but won't actually load:
 			// ModuleLoader skips it when a required dependency is missing or not
 			// loadable (e.g. plex is Enabled but watch is Failed/Disabled). Mirrors
-			// ModuleLoader::pruneUnsatisfiableModules().
-			$dependencyWarnings = [];
+			// ModuleLoader::pruneUnsatisfiableModules(). A module built for another
+			// core is skipped the same way (ModuleLoader::discoverModules()).
+			$dependencyWarnings = self::coreWarnings($meta);
 			foreach ($dependencies as $dep) {
 				if (!isset($stateByName[$dep])) {
 					$dependencyWarnings[] = "Required dependency '{$dep}' is missing.";
@@ -1197,13 +1259,7 @@ class ModuleManager {
 			$this->extractArchive($archive, $tempBase);
 			$moduleDir = $this->resolveExtractedModuleDir($tempBase);
 
-			// Identity pinning — the fetched module must be the SAME module.
-			$newMeta = json_decode((string) @file_get_contents($moduleDir . '/module.json'), true);
-			$newHash = is_array($newMeta) ? (string) ($newMeta['hash_id'] ?? '') : '';
-			$ownHash = (string) ($manifest['hash_id'] ?? '');
-			if ($ownHash !== '' && $newHash !== '' && !hash_equals($ownHash, $newHash)) {
-				throw new \RuntimeException("hash_id mismatch — refusing to overwrite '{$name}' with a different module.");
-			}
+			$this->assertSameModuleForThisCore($moduleDir, $manifest, $name);
 
 			$targetDir = $this->modulePathFor($name);
 			$backupDir = $this->backupModuleDir($name, $targetDir);

@@ -471,6 +471,84 @@ final class ModuleManagerMigrationsTest extends TestCase {
         $this->assertSame('1.0.0', $this->readOverrides()['upl-mod']['installed_version'] ?? null);
     }
 
+    // ── requires_core ─────────────────────────────────────────────────────
+
+    public function testUploadRefusesAModuleForAnotherCoreAndKeepsTheInstalledCopy(): void {
+        $this->createModule('core-mod', '1.0.0');
+
+        try {
+            $this->manager()->uploadAndInstall($this->makeModuleTar('core-mod', '2.0.0', str_repeat('cd34', 8), '>=99.0'));
+            $this->fail('An upload for another core must be refused.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('needs core >=99.0', $e->getMessage());
+        }
+
+        $this->assertDirectoryExists($this->modulesPath . '/core-mod');
+        $this->assertSame('1.0.0', json_decode((string) file_get_contents($this->modulesPath . '/core-mod/module.json'), true)['version']);
+        $this->assertDirectoryDoesNotExist($this->modulesPath . '/core-mod_cd34c');
+    }
+
+    public function testARefusedCopyInsideTheModulesDirectoryIsRemoved(): void {
+        // The platform extension extracts straight into the modules directory.
+        $pulled = $this->modulesPath . '/pulled-mod';
+        mkdir($pulled, 0775, true);
+        file_put_contents($pulled . '/module.json', json_encode(['name' => 'pulled-mod', 'version' => '2.0.0', 'requires_core' => '>=99.0']));
+
+        $place = new ReflectionMethod(ModuleManager::class, 'placeModuleFiles');
+        try {
+            $place->invoke($this->manager(), $pulled);
+            $this->fail('A module for another core must be refused.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('needs core', $e->getMessage());
+        }
+
+        $this->assertDirectoryDoesNotExist($pulled);
+    }
+
+    public function testAGitUpdateMustBeTheSameModuleAndFitThisCore(): void {
+        $check  = new ReflectionMethod(ModuleManager::class, 'assertSameModuleForThisCore');
+        $update = $this->workDir . '/update';
+        mkdir($update, 0775, true);
+        $write = function (array $meta) use ($update): void {
+            file_put_contents($update . '/module.json', json_encode($meta));
+        };
+        $installed = array('name' => 'git-mod', 'hash_id' => str_repeat('a', 32));
+
+        $write(array('name' => 'git-mod', 'hash_id' => str_repeat('a', 32), 'requires_core' => '>=2.0'));
+        $check->invoke($this->manager(), $update, $installed, 'git-mod');
+
+        $write(array('name' => 'git-mod', 'hash_id' => str_repeat('b', 32), 'requires_core' => '>=2.0'));
+        try {
+            $check->invoke($this->manager(), $update, $installed, 'git-mod');
+            $this->fail('Another module must be refused.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('hash_id mismatch', $e->getMessage());
+        }
+
+        $write(array('name' => 'git-mod', 'hash_id' => str_repeat('a', 32), 'requires_core' => '>=99.0'));
+        try {
+            $check->invoke($this->manager(), $update, $installed, 'git-mod');
+            $this->fail('A release for another core must be refused.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('needs core >=99.0', $e->getMessage());
+        }
+        $this->assertDirectoryExists($update, 'an update outside the modules directory is left to its caller');
+    }
+
+    public function testListModulesFlagsAModuleForAnotherCore(): void {
+        $this->createModule('core-ok', '1.0.0');
+        $this->createModule('core-ahead', '1.0.0');
+        $manifest = json_decode((string) file_get_contents($this->modulesPath . '/core-ahead/module.json'), true);
+        $manifest['requires_core'] = '>=99.0';
+        file_put_contents($this->modulesPath . '/core-ahead/module.json', json_encode($manifest));
+
+        $byName = $this->modulesByName();
+
+        $this->assertSame([], $byName['core-ok']['dependency_warnings']);
+        $this->assertCount(1, $byName['core-ahead']['dependency_warnings']);
+        $this->assertStringContainsString('needs core >=99.0', $byName['core-ahead']['dependency_warnings'][0]);
+    }
+
     public function testListModulesShowsOneRowWhenBareAndHashedCopiesCoexist(): void {
         // The platform flow used to extract into a bare `{name}` dir beside the
         // canonical `{name}_{hash5}` one; the table then listed the module twice.
@@ -544,10 +622,11 @@ final class ModuleManagerMigrationsTest extends TestCase {
     }
 
     /** Build a .tar holding one module under a `{name}/` prefix; returns its path. */
-    private function makeModuleTar(string $name, string $version, string $hashId): string {
+    private function makeModuleTar(string $name, string $version, string $hashId, string $requiresCore = '>=2.0'): string {
         $pascal   = $this->pascal($name);
         $manifest = $this->manifest($name, $version);
         $manifest['hash_id'] = $hashId;
+        $manifest['requires_core'] = $requiresCore;
 
         $tarPath = $this->workDir . '/' . $name . '.tar';
         @unlink($tarPath);

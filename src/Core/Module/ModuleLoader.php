@@ -460,8 +460,7 @@ class ModuleLoader {
 				throw new ModuleManifestException("ModuleLoader: invalid environment in module.json for module {$name}");
 			}
 
-			// Filter by environment: skip if module is for different environment (skip lb-only on main, etc)
-			if ($manifest['environment'] !== 'any' && $manifest['environment'] !== $currentEnvironment->value) {
+			if (!$this->runsHere($name, $manifest, $currentEnvironment)) {
 				continue;
 			}
 
@@ -472,6 +471,29 @@ class ModuleLoader {
 		}
 
 		return $discovered;
+	}
+
+	/**
+	 * Whether a module is meant for this server: its environment (lb-only is
+	 * skipped on main, …) and its core. A module built for another core (copied
+	 * in by hand, or left behind by a core rollback) is skipped with a log line;
+	 * its dependents go with it.
+	 *
+	 * @param string            $name
+	 * @param array             $manifest
+	 * @param ServerEnvironment $currentEnvironment
+	 * @return bool
+	 */
+	private function runsHere(string $name, array $manifest, ServerEnvironment $currentEnvironment): bool {
+		if ($manifest['environment'] !== 'any' && $manifest['environment'] !== $currentEnvironment->value) {
+			return false;
+		}
+		$rCoreError = self::coreRequirementError((string) $manifest['requires_core']);
+		if ($rCoreError !== null) {
+			error_log("ModuleLoader: skipping module '{$name}' — {$rCoreError}");
+			return false;
+		}
+		return true;
 	}
 
 	/**
@@ -606,6 +628,65 @@ class ModuleLoader {
 	 */
 	public static function filterCoreProvidedDependencies(array $dependencies): array {
 		return array_values(array_diff($dependencies, self::CORE_PROVIDED_MODULES));
+	}
+
+	/**
+	 * Why a module's `requires_core` rules out this core, or null when it runs here.
+	 *
+	 * The constraint is one or more conditions, all of which must hold, separated
+	 * by spaces or commas: `>=`, `>`, `<=`, `<`, `=`/`==` or `!=` followed by a
+	 * version; a bare version means `>=`. Empty means any core. Anything else
+	 * (`^`, `~`, `*`, ranges) is unreadable and rules the module out.
+	 *
+	 * A nightly (`2.6.1-dev.N`) is built from main as the upcoming `2.6.1`, so it
+	 * counts as `2.6.1`; otherwise version_compare() would put it below `2.6.1`.
+	 *
+	 * @param string      $requiresCore The manifest's `requires_core`.
+	 * @param string|null $coreVersion  Core version to check against (default: XC_VM_VERSION).
+	 * @return string|null The reason, or null when compatible.
+	 */
+	public static function coreRequirementError(string $requiresCore, ?string $coreVersion = null): ?string {
+		$rConstraint = trim($requiresCore);
+		if ($rConstraint === '') {
+			return null;
+		}
+		$rCore = self::comparableCoreVersion($coreVersion);
+		return match (self::constraintHolds($rConstraint, $rCore)) {
+			true  => null,
+			false => "needs core {$rConstraint}; this panel runs {$rCore}",
+			null  => "has an unreadable requires_core '{$rConstraint}'",
+		};
+	}
+
+	/** Whether every condition holds; null when any of them can't be read. */
+	private static function constraintHolds(string $rConstraint, string $rCore): ?bool {
+		$rAll = true;
+		foreach (preg_split('/[\s,]+/', $rConstraint) as $rCondition) {
+			$rHolds = self::conditionHolds($rCondition, $rCore);
+			if ($rHolds === null) {
+				return null;
+			}
+			$rAll = $rAll && $rHolds;
+		}
+		return $rAll;
+	}
+
+	/** The core version to compare, nightly suffix stripped. */
+	private static function comparableCoreVersion(?string $coreVersion): string {
+		if ($coreVersion === null) {
+			class_exists(\XcVm\Core\Config\ConstantsInitializer::class); // defines XC_VM_VERSION
+			$coreVersion = defined('XC_VM_VERSION') ? (string) XC_VM_VERSION : '0';
+		}
+		return (string) preg_replace('/-dev\.\d+$/', '', $coreVersion);
+	}
+
+	/** Whether one `requires_core` condition holds; null when it can't be read. */
+	private static function conditionHolds(string $rCondition, string $rCore): ?bool {
+		if (!preg_match('/^(>=|<=|==|!=|>|<|=)?(\d+(?:\.\d+)*)$/', $rCondition, $rMatch)) {
+			return null;
+		}
+		$rOperator = ['' => '>=', '=' => '=='][$rMatch[1]] ?? $rMatch[1];
+		return version_compare($rCore, $rMatch[2], $rOperator);
 	}
 
 	/**

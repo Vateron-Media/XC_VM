@@ -173,7 +173,7 @@ LayoutRenderer::renderFooter('admin');
             if (row.warnings && row.warnings.length) {
                 html += ' <span class="badge bg-label-warning" title="' + escapeHtml(row.warnings.join(' ')) + '">' +
                     '<i class="icon-base ti tabler-alert-triangle me-1"></i>' +
-                    escapeHtml(row.warnings.length === 1 ? 'Dependency issue' : 'Dependency issues') + '</span>';
+                    escapeHtml(row.warnings.length === 1 ? 'Issue' : 'Issues') + '</span>';
             }
             return html;
         }
