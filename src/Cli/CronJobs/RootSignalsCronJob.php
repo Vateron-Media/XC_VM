@@ -195,16 +195,25 @@ class RootSignalsCronJob implements CommandInterface {
 		}
 
 		$data = json_decode($output, true);
-		if (empty($data[0]['addr_info'])) {
-			return null;
-		}
+		return self::pickInterfaceIP($data[0]['addr_info'] ?? []);
+	}
 
-		foreach ($data[0]['addr_info'] as $addr) {
-			if (($addr['family'] ?? null) === 'inet') {
-				return $addr['local'] ?? null;
+	/**
+	 * The interface's first usable IPv4 address from `ip -j addr` addr_info.
+	 * Loopback and other reserved ranges are skipped: on OpenVZ/Virtuozzo
+	 * venet0 carries 127.0.0.1 first and the public address only on the
+	 * venet0:0 alias, so taking the first inet entry rewrote server_ip to
+	 * 127.0.0.1 every minute.
+	 *
+	 * @param list<array<string, mixed>> $rAddrInfo
+	 */
+	public static function pickInterfaceIP(array $rAddrInfo): ?string {
+		foreach ($rAddrInfo as $rAddr) {
+			$rIP = $rAddr['local'] ?? null;
+			if (($rAddr['family'] ?? null) === 'inet' && filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_RES_RANGE)) {
+				return $rIP;
 			}
 		}
-
 		return null;
 	}
 
