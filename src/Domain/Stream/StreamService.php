@@ -574,7 +574,7 @@ class StreamService {
 			$rArray['enable_transcode'] = (int) (0 < $rArray['transcode_profile_id']);
 		}
 
-		$rStreamIDs = json_decode($rData['streams'], true);
+		$rStreamIDs = AdminHelpers::confirmIDs(json_decode($rData['streams'], true));
 
 		$rConflict = self::massEditDriverConflict((array) $rStreamIDs, $rArray, self::postedServerTree($rData, true), self::mainServerIDs(...));
 		if ($rConflict !== null) {

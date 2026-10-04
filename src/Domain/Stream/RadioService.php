@@ -440,7 +440,7 @@ class RadioService {
 				$rArray['custom_sid'] = $rData['custom_sid'];
 			}
 
-			$rStreamIDs = json_decode($rData['streams'], true);
+			$rStreamIDs = AdminHelpers::confirmIDs(json_decode($rData['streams'], true));
 
 			if (0 < count($rStreamIDs)) {
 				$rCategoryMap = [];

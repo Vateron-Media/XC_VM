@@ -70,4 +70,20 @@ final class RadioServiceMassEditTest extends TestCase {
 		$this->assertNull($rRows[0]['parent_id'], "'source' parent stored as NULL");
 		$this->assertSame(0, (int) $rRows[0]['on_demand']);
 	}
+
+	/** #156: an empty id in the selection must not become a (0, server_id) row. */
+	public function testEmptySelectedIdIsDropped(): void {
+		$rResult = RadioService::massEdit([
+			'streams'          => json_encode(['', 100, '0']),
+			'c_server_tree'    => '1',
+			'server_type'      => 'ADD',
+			'server_tree_data' => json_encode([['id' => '2', 'parent' => 'source']]),
+			'on_demand'        => [],
+		]);
+
+		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+
+		$this->db->query('SELECT `stream_id` FROM `streams_servers`;');
+		$this->assertSame([100], array_map('intval', array_column($this->db->get_rows(), 'stream_id')));
+	}
 }
