@@ -12,9 +12,10 @@ use PHPUnit\Framework\TestCase;
 final class VodItemImporterMatchTest extends TestCase {
 
     protected function setUp(): void {
-        \XcVm\Infrastructure\Tmdb\TmdbApiService::requireLibrary();
+        // First, before anything that can throw: tearDown() closes this buffer, never PHPUnit's.
         // The importer reports its progress on stdout for the CLI run: not this test's output.
         ob_start();
+        \XcVm\Infrastructure\Tmdb\TmdbApiService::requireLibrary();
     }
 
     protected function tearDown(): void {
