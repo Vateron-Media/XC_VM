@@ -65,7 +65,9 @@ class ScannerCommand implements CommandInterface {
 		// log events and its due list comes from the replica.
 		$rApi = NodeRole::refusesConnects();
 
-		while ($rApi || $db->ping()) {
+		// Not past a move into or out of mode 2: its next generation decides again
+		// whether it reads MAIN's database (DaemonTrait::modeChanged()).
+		while (!$this->modeChanged() && ($rApi || $db->ping())) {
 			if (!$this->shouldRefreshSettings()) {
 				// skip
 			} else {

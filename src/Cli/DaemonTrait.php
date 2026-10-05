@@ -3,6 +3,8 @@
 namespace XcVm\Cli;
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Cluster\SettingsAudit;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Server\ServerRepository;
@@ -24,6 +26,9 @@ use XcVm\Infrastructure\Redis\RedisManager;
 trait DaemonTrait {
 	/** @var string MD5 файла команды при запуске */
 	protected $rDaemonMD5;
+
+	/** @var bool|null Did this daemon start on a node that reads no database of MAIN's (mode 2)? modeChanged() */
+	protected $rStartedApi;
 
 	/** @var int|null Последний тайм-штамп обновления настроек */
 	protected $rLastCheck;
@@ -66,6 +71,18 @@ trait DaemonTrait {
 	 */
 	protected function initDaemonMD5(): void {
 		$this->rDaemonMD5 = md5_file((new \ReflectionClass($this))->getFileName());
+		$this->rStartedApi = NodeRole::refusesConnects();
+	}
+
+	/**
+	 * Has the node moved into or out of mode 2 since this daemon started? A
+	 * daemon decides once, at its start, whether it reads MAIN's database, and
+	 * keeps the connection it opened: after a move to mode 2 it would go on
+	 * reading MAIN's MySQL and Redis over it, and after a move back it would
+	 * read nothing. It leaves its loop, and its next generation decides again.
+	 */
+	protected function modeChanged(): bool {
+		return $this->rStartedApi !== null && $this->rStartedApi !== NodeRole::refusesConnects();
 	}
 
 	/**
@@ -114,6 +131,16 @@ trait DaemonTrait {
 	 * @return bool true = всё ОК, false = нужен break (файл изменился или nginx не работает)
 	 */
 	protected function refreshOrBreak(): bool {
+		// Every pass, not with the settings: a daemon that started reading MAIN's
+		// database stops within a pass of the node entering mode 2.
+		if ($this->modeChanged()) {
+			echo "Mode changed! Break.\n";
+			// The node's report follows the move at once: its connect counts, and
+			// whether it reads its streams on itself (MAIN shows both).
+			SettingsAudit::republish();
+			return false;
+		}
+
 		if (!$this->shouldRefreshSettings()) {
 			return true;
 		}

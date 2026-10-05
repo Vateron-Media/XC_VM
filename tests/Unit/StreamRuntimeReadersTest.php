@@ -3,6 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\AgentClient;
+use XcVm\Core\Cluster\ConnectAudit;
 use XcVm\Core\Cluster\EventSpool;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
@@ -10,6 +11,7 @@ use XcVm\Core\Cluster\Redactor;
 use XcVm\Core\Cluster\ReplicaApply;
 use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Cluster\ReplicaStreamCache;
+use XcVm\Core\Cluster\SettingsAudit;
 use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Cluster\SignalSink;
 use XcVm\Core\Cluster\StreamRecords;
@@ -103,6 +105,8 @@ final class StreamRuntimeReadersTest extends TestCase {
 		SettingsManager::set([]);
 		NodeRole::useMainBuild(null);
 		NodeFlows::usePath(null);
+		SettingsAudit::useDir(false);
+		ConnectAudit::useDir(false);
 		(new \ReflectionProperty(FileCache::class, 'defaultInstance'))->setValue(null, null);
 		exec('rm -rf ' . escapeshellarg($this->rDir));
 	}
@@ -332,6 +336,55 @@ final class StreamRuntimeReadersTest extends TestCase {
 		$this->assertSame('http://***@src.example/a', $rReplica['node'][10]['current_source']);
 		$this->assertSame('[{"finish":100}]', $rReplica['server'][13]['cc_info'], 'a created channel restarted at its position');
 		$this->assertEquals(5010, $rReplica['archive'][10]['tv_archive_pid']);
+	}
+
+	/**
+	 * The node says in its audit report whether it reads its streams on
+	 * itself: what MAIN asks before it moves the node to mode 2 past the
+	 * connect audit (ClusterAdmin::modeGate), where it could not read them
+	 * from MAIN any more.
+	 */
+	public function testTheAuditReportSaysWhetherTheStreamsAreReadHere(): void {
+		SettingsAudit::useDir($this->rDir . 'misses/', $this->rDir . 'cluster/');
+		ConnectAudit::useDir($this->rDir . 'sql_audit/');
+		$rSays = function (): mixed {
+			$this->assertTrue(SettingsAudit::publish());
+			$rDoc = json_decode((string) file_get_contents($this->rDir . 'cluster/audit.json'), true);
+			return array_key_exists('streams_local', $rDoc) ? $rDoc['streams_local'] : 'not said';
+		};
+
+		$this->flows(NodeFlows::CONFIG);
+		$this->assertSame('not said', $rSays(), 'without the STREAMS flow the node keeps no store');
+		$this->flows(NodeFlows::STREAMS | NodeFlows::CONTENT);
+		$this->assertFalse($rSays(), 'the flow is on, the replica and the store are not there yet');
+
+		$this->replica();
+		$this->assertTrue(StreamRuntime::seededFor($this->rSid));
+		$this->assertFalse(StreamRuntime::seededFor($this->rOther), 'a store copied from another server is not this one\'s');
+		$this->assertFalse($rSays(), 'its streams are local, but it still boots from MAIN\'s database');
+		// An apply built its settings and servers too: it boots from the replica (ReplicaBoot::ready()).
+		FileCache::setCache(ReplicaApply::OWNED_CACHE, (array) FileCache::getCache(ReplicaApply::OWNED_CACHE) + ['settings' => 'e', 'servers' => 'e/e']);
+		$this->assertTrue($rSays());
+
+		// A write the store did not keep: no longer whole, and the node says so at once, unasked.
+		$rRead = fn(): mixed => json_decode((string) file_get_contents($this->rDir . 'cluster/audit.json'), true)['streams_local'];
+		StreamRuntime::lapse();
+		$this->assertFalse($rRead());
+		// And that it is whole again, as soon as it is seeded: in mode 2 it would
+		// otherwise not report for an hour.
+		$this->assertTrue(StreamRuntime::seed($this->rDb));
+		$this->assertTrue($rRead());
+		// So when a section is no longer the replica's, and when it is again.
+		ReplicaApply::disownStreams();
+		$this->assertFalse($rRead());
+		unlink($this->rDir . 'cluster/audit.json');
+		ReplicaApply::run(false, 1800000000, $this->rSid, false);
+		$this->assertTrue(ReplicaStreamCache::owned());
+		// Said again, unasked (the file is back). This apply ran with CONFIG off, which
+		// hands the settings and servers back to MAIN's database: the node boots from MAIN.
+		$this->assertFalse($rRead());
+		FileCache::setCache(ReplicaApply::OWNED_CACHE, (array) FileCache::getCache(ReplicaApply::OWNED_CACHE) + ['settings' => 'e', 'servers' => 'e/e']);
+		$this->assertTrue($rSays());
 	}
 
 	public function testTheReadersFollowWhatTheNodeWritesSince(): void {

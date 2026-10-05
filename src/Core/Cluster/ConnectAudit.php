@@ -9,9 +9,10 @@ namespace XcVm\Core\Cluster;
  * first (Database::db_connect, RedisManager::connect; the plan's section 10,
  * step 1). On a node in mode 1 or 2 it is counted, with its site, and in
  * mode 2 it is refused (LbDatabaseAccessException) before anything opens.
- * The cluster API plan moves a node to mode 2 only after seven days with
- * none (the cutover gate), and the per-site counts show which code paths
- * still connect. MAIN and mode 0 nodes count nothing and refuse nothing
+ * The per-site counts show which code paths still connect. A node in mode 1
+ * connects by design, so the counts say little there; when it enters mode 2
+ * the window starts again (follow()), and what it then shows is what mode 2
+ * turned away. MAIN and mode 0 nodes count nothing and refuse nothing
  * (NodeRole).
  *
  * ```text
@@ -130,6 +131,7 @@ final class ConnectAudit {
 				if (!AuditDays::makeDir($rDir)) {
 					return false;
 				}
+				self::follow($rDir);
 				$rDay = $rDir . gmdate('Ymd', $rNow);
 				$rKey = self::siteKey($rKind, $rSite);
 				$rNew = self::count($rDay . '.json', $rKind, $rKey);
@@ -206,6 +208,7 @@ final class ConnectAudit {
 		if (self::dir() === null) {
 			return [];
 		}
+		self::follow((string) self::dir());
 		$rSince = self::since($rNow);
 		$rSum = self::days(self::WINDOW_DAYS, $rNow, $rSince ?? 0);
 		if ($rSum === null) {
@@ -216,13 +219,39 @@ final class ConnectAudit {
 	}
 
 	/**
+	 * The window starts again when the node begins to refuse (mode 2). What it
+	 * counted before were connects mode 1 is meant to make, tens of thousands
+	 * a day, and they would bury the ones mode 2 turns away, which are what
+	 * the operator has to see after the move. Leaving mode 2 keeps the
+	 * window: those refusals are why it was left. Whether the window was
+	 * counted while refusing is kept beside `since`; a release that finds no
+	 * such note takes the window as it is.
+	 */
+	private static function follow(string $rDir): void {
+		$rFile = $rDir . 'refusing';
+		$rNow = NodeRole::refusesConnects() ? '1' : '0';
+		$rWas = @file_get_contents($rFile);
+		if ($rWas === $rNow) {
+			return;
+		}
+		if ($rWas === '0' && $rNow === '1') {
+			self::forget();
+		}
+		@file_put_contents($rFile, $rNow);
+	}
+
+	/**
 	 * Mode 0: the audit is over. Its start goes, and the days it counted with
 	 * it, so a later audit starts from nothing. Days a manual trace counted
 	 * without an audit (no `since`) stay.
 	 */
 	public static function forget(): void {
 		$rDir = self::dir();
-		if ($rDir === null || !@unlink($rDir . 'since')) {
+		if ($rDir === null) {
+			return;
+		}
+		@unlink($rDir . 'refusing'); // follow()'s note is the window's
+		if (!@unlink($rDir . 'since')) {
 			return;
 		}
 		foreach (array_keys(AuditDays::files($rDir, self::DAY_FILES)) as $rFile) {

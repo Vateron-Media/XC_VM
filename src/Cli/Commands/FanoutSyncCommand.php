@@ -78,7 +78,12 @@ class FanoutSyncCommand implements CommandInterface {
 		$this->killStaleProcesses('console.php fanout_sync');
 		$this->killStaleProcesses('XC_VM\\[FanoutSync\\]');
 		$this->initDaemonMD5();
-		$this->initRedisIfEnabled();
+		// A node in mode 2 may not open MAIN's Redis: with the Redis handler on,
+		// a generation started there died at this line, and only `service`
+		// starts this daemon again.
+		if (!NodeRole::refusesConnects()) {
+			$this->initRedisIfEnabled();
+		}
 
 		while (true) {
 			// Refresh settings periodically and exit (to be respawned) if nginx

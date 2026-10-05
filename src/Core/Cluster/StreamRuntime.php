@@ -301,8 +301,13 @@ final class StreamRuntime {
 
 	/** Is the store whole: seeded for this server, and nothing written past it since? */
 	public static function seeded(): bool {
+		return defined('SERVER_ID') && self::seededFor((int) SERVER_ID);
+	}
+
+	/** seeded(), for a process that reports it before its boot defined SERVER_ID (SettingsAudit::publish). */
+	public static function seededFor(int $rServerID): bool {
 		$rDoc = self::read(self::dir() . self::SEEDED);
-		return is_array($rDoc) && defined('SERVER_ID') && ($rDoc['server_id'] ?? null) === (int) SERVER_ID;
+		return is_array($rDoc) && ($rDoc['server_id'] ?? null) === $rServerID;
 	}
 
 	/**
@@ -374,7 +379,7 @@ final class StreamRuntime {
 			error_log('XC_VM: stream state not seeded on this node: ' . count($rRows) . ' streams with state, more than ' . $rMax);
 			return false;
 		}
-		return self::locked(static function () use ($rRows, $rServerID, $rGeneration): bool {
+		$rSeeded = self::locked(static function () use ($rRows, $rServerID, $rGeneration): bool {
 			if (self::seeded()) {
 				return true;
 			}
@@ -397,6 +402,11 @@ final class StreamRuntime {
 			ProcessRunner::run(['sync', '-f', rtrim($rDir, '/')], true);
 			return self::put($rDir . self::SEEDED, ['at' => time(), 'server_id' => $rServerID, 'streams' => count($rRows)]);
 		}, self::SEED_WAIT);
+		if ($rSeeded) {
+			// The node reads its streams on itself again, and says so (as lapse() says it does not).
+			SettingsAudit::republish();
+		}
+		return $rSeeded;
 	}
 
 	/**
@@ -414,6 +424,7 @@ final class StreamRuntime {
 			return;
 		}
 		$rFile = self::dir() . self::SEEDED;
+		$rWas = is_file($rFile);
 		$rDone = self::locked(static function () use ($rFile): bool {
 			self::bump();
 			@unlink($rFile);
@@ -422,6 +433,10 @@ final class StreamRuntime {
 		// Out of the lock's reach (root could not switch): never left marked whole.
 		if (!$rDone) {
 			@unlink($rFile);
+		}
+		if ($rWas) {
+			// The node no longer reads its streams on itself, and says so at once.
+			SettingsAudit::republish();
 		}
 	}
 

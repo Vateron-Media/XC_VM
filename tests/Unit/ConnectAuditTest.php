@@ -256,6 +256,59 @@ final class ConnectAuditTest extends TestCase {
 	}
 
 	/**
+	 * A node in mode 1 connects by design, tens of thousands of times a day.
+	 * When it begins to refuse (mode 2) the window starts again, so what its
+	 * report then shows is what mode 2 turned away. Leaving mode 2 keeps the
+	 * window: those refusals are why it was left.
+	 */
+	public function testTheWindowStartsAgainWhenTheNodeBeginsToRefuse(): void {
+		NodeRole::useMainBuild(false); // a load balancer's build: only it refuses
+		try {
+			$rSays = function (int $rAt): array {
+				$this->assertTrue(SettingsAudit::publish(null, $rAt));
+				$rDoc = $this->published();
+				return [$rDoc['sql_connects'], $rDoc['connects_since'], array_keys($rDoc['sites'])];
+			};
+			ConnectAudit::record(ConnectAudit::SQL, 'Cron.php:1');
+			ConnectAudit::record(ConnectAudit::SQL, 'Cron.php:1');
+			$this->assertSame([2, self::NOW, ['sql Cron.php:1']], $rSays(self::NOW));
+
+			$this->mode(2);
+			$this->assertTrue(NodeRole::refusesConnects());
+			ConnectAudit::useClock(self::NOW + 600);
+			ConnectAudit::record(ConnectAudit::SQL, 'Left.php:9', true);
+			$this->assertSame([1, self::NOW + 600, ['sql Left.php:9']], $rSays(self::NOW + 600), 'mode 1\'s connects went: this one was turned away');
+
+			$this->mode(1);
+			ConnectAudit::useClock(self::NOW + 1200);
+			ConnectAudit::record(ConnectAudit::SQL, 'Cron.php:1');
+			$this->assertSame([2, self::NOW + 600, ['sql Cron.php:1', 'sql Left.php:9']], $rSays(self::NOW + 1200), 'back down: what was refused stays to be read');
+
+			// Up again, and the report comes before any connect: zeros since the move.
+			$this->mode(2);
+			$this->assertSame([0, self::NOW + 1800, []], $rSays(self::NOW + 1800));
+		} finally {
+			NodeRole::useMainBuild(null);
+		}
+	}
+
+	/** A node already in mode 2 when this release arrives has no note of it: its window is taken as it is. */
+	public function testANodeAlreadyRefusingKeepsItsWindow(): void {
+		NodeRole::useMainBuild(false);
+		try {
+			ConnectAudit::record(ConnectAudit::SQL, 'Boot.php:3');
+			@unlink($this->rDir . 'sql_audit/refusing'); // as an earlier release left the directory
+			$this->mode(2);
+			ConnectAudit::record(ConnectAudit::SQL, 'Boot.php:3', true);
+			$this->assertTrue(SettingsAudit::publish(null, self::NOW + 60));
+			$this->assertSame([2, self::NOW], [$this->published()['sql_connects'], $this->published()['connects_since']]);
+			$this->assertSame('1', file_get_contents($this->rDir . 'sql_audit/refusing'));
+		} finally {
+			NodeRole::useMainBuild(null);
+		}
+	}
+
+	/**
 	 * A count rewrites its day file in place, under its lock: a report read
 	 * at the same time (another process's publish) waits for it rather than
 	 * seeing a day emptied, so the counts it reports never go down.

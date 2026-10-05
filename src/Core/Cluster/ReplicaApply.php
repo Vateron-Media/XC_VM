@@ -232,6 +232,10 @@ final class ReplicaApply {
 			FileCache::delCache(self::OWNED_CACHE);
 		}
 		FileCache::delCache(self::CRON_CACHE);
+		if (is_array($rOwned) && array_diff_key($rOwned, [ReplicaSections::STREAMS => true]) !== []) {
+			// The node no longer boots from the replica, and says so at once.
+			SettingsAudit::republish();
+		}
 	}
 
 	/**
@@ -250,12 +254,19 @@ final class ReplicaApply {
 		if (($rOwned[$rSection] ?? null) === $rTag) {
 			return;
 		}
+		$rWas = isset($rOwned[$rSection]);
 		if ($rTag === null) {
 			unset($rOwned[$rSection]);
 		} else {
 			$rOwned[$rSection] = $rTag;
 		}
 		FileCache::setCache(self::OWNED_CACHE, $rOwned);
+		if ($rWas !== ($rTag !== null)) {
+			// A section became the replica's, or no longer is: what the node says
+			// of itself changes with it, either way (a node in mode 2 has no other
+			// reason to report for an hour). Not for a new tag alone.
+			SettingsAudit::republish();
+		}
 	}
 
 	/**
