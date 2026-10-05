@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\StreamProcess;
 
 /**
@@ -95,6 +96,31 @@ final class StreamProcessSubtitleTest extends TestCase {
 		$this->assertStringContainsString('http://node2/api?key=abc', $import);
 		$this->assertStringContainsString('action=getFile', $import);
 		$this->assertStringContainsString('filename=', $import);
+	}
+
+	/** #167: a remote subtitle under a shared mount prefix is read from the mount, not over HTTP. */
+	public function testRemoteSubtitleOnSharedMountIsReadLocally(): void {
+		$rMount = sys_get_temp_dir() . '/xcvm_shared_' . getmypid() . '/';
+		@mkdir($rMount);
+		file_put_contents($rMount . 'en.srt', '');
+		SettingsManager::set(['shared_mount_prefixes' => [$rMount]]);
+		try {
+			$servers = [2 => ['api_url' => 'http://node2/api?key=abc']];
+			$json = json_encode([
+				'location' => 2,
+				'files'    => [$rMount . 'en.srt', '/elsewhere/fr.srt'],
+				'charset'  => ['UTF-8', 'UTF-8'],
+				'names'    => ['English', 'French'],
+			]);
+			[$import] = $this->build($json, $servers);
+
+			$this->assertStringContainsString('-i ' . escapeshellarg($rMount . 'en.srt'), $import);
+			$this->assertSame(1, substr_count($import, 'action=getFile'), 'only the file outside the mount goes over HTTP');
+		} finally {
+			SettingsManager::set([]);
+			@unlink($rMount . 'en.srt');
+			@rmdir($rMount);
+		}
 	}
 
 	/**

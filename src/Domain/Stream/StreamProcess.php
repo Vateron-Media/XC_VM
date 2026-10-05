@@ -361,7 +361,7 @@ class StreamProcess {
 			$rCount = count($rSubtitles['files']);
 			for ($i = 0; $i < $rCount; $i++) {
 				$rInputCharset = escapeshellarg($rSubtitles['charset'][$i]);
-				if ($rSubtitles['location'] == SERVER_ID) {
+				if ($rSubtitles['location'] == SERVER_ID || self::isLocallyMountedPath((string) $rSubtitles['files'][$i])) {
 					$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i ' . escapeshellarg($rSubtitles['files'][$i]) . ' ';
 				} else {
 					// URL-encode the raw path, then quote the whole URL for the shell.
