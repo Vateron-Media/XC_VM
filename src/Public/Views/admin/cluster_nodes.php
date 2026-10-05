@@ -113,7 +113,7 @@ $rWhen = static fn(?int $rTs): string => $rTs ? gmdate('Y-m-d H:i:s', $rTs) . ' 
                     <th><?= $language::get('cluster_last_seen'); ?></th>
                     <th><?= $language::get('cluster_agent'); ?></th>
                     <th title="<?= $language::get('cluster_settings_misses_help'); ?>"><?= $language::get('cluster_settings_misses'); ?></th>
-                    <th title="<?= $language::get('cluster_main_connects_help'); ?>"><?= $language::get('cluster_main_connects'); ?></th>
+                    <th title="<?= htmlspecialchars($language::get('cluster_main_connects_tip'), ENT_QUOTES); ?>"><?= $language::get('cluster_main_connects'); ?></th>
                     <th><?= $language::get('actions'); ?></th>
                 </tr>
             </thead>
@@ -135,17 +135,24 @@ $rWhen = static fn(?int $rTs): string => $rTs ? gmdate('Y-m-d H:i:s', $rTs) . ' 
                         </td>
                         <td>
                             <?= (int) $rNode['mode']; ?>
+                            <?php if ((int) $rNode['mode'] === 2 && $rNode['streams_local'] === false): ?>
+                                <span class="badge bg-label-danger" title="<?= htmlspecialchars($language::get('cluster_streams_not_local_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_streams_not_local'); ?></span>
+                            <?php endif; ?>
                             <?php if (in_array($rNode['state'], ['active', 'quarantined'], true)): ?>
                                 <?php if ((int) $rNode['mode'] < 2): ?>
-                                    <form method="POST" class="d-inline">
+                                    <?php $rToTwo = (int) $rNode['mode'] === 1; // the move that ends the node's use of MAIN's database: asked first ?>
+                                    <form method="POST" class="d-inline<?= $rToTwo ? ' js-cluster-confirm' : ''; ?>"<?php if ($rToTwo): ?> data-confirm="<?= htmlspecialchars($language::get('cluster_mode_two_warning'), ENT_QUOTES); ?>"<?php endif; ?>>
                                         <input type="hidden" name="server_id" value="<?= (int) $rNode['server_id']; ?>">
-                                        <button type="submit" name="cluster_action" value="mode_up" class="btn btn-sm btn-label-secondary" title="<?= $language::get('cluster_mode_up_help'); ?>">+</button>
+                                        <input type="hidden" name="mode" value="<?= (int) $rNode['mode']; ?>">
+                                        <button type="submit" name="cluster_action" value="mode_up" class="btn btn-sm btn-label-<?= $rToTwo ? 'warning' : 'secondary'; ?>" title="<?= htmlspecialchars($language::get('cluster_mode_up_tip'), ENT_QUOTES); ?>">+</button>
                                     </form>
                                 <?php endif; ?>
                                 <?php if ((int) $rNode['mode'] > 0): ?>
-                                    <form method="POST" class="d-inline">
+                                    <?php $rNoDb = $rNode['db_revoked_at'] !== null; // its credentials are gone: mode 1 would have no database ?>
+                                    <form method="POST" class="d-inline<?= $rNoDb ? ' js-cluster-confirm' : ''; ?>"<?php if ($rNoDb): ?> data-confirm="<?= htmlspecialchars($language::get('cluster_mode_down_revoked_confirm'), ENT_QUOTES); ?>"<?php endif; ?>>
                                         <input type="hidden" name="server_id" value="<?= (int) $rNode['server_id']; ?>">
-                                        <button type="submit" name="cluster_action" value="mode_down" class="btn btn-sm btn-label-secondary" title="<?= $language::get('cluster_mode_down_help'); ?>">&minus;</button>
+                                        <input type="hidden" name="mode" value="<?= (int) $rNode['mode']; ?>">
+                                        <button type="submit" name="cluster_action" value="mode_down" class="btn btn-sm btn-label-secondary" title="<?= htmlspecialchars($language::get('cluster_mode_down_help'), ENT_QUOTES); ?>">&minus;</button>
                                     </form>
                                 <?php endif; ?>
                             <?php endif; ?>

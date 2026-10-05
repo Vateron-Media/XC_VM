@@ -15,8 +15,8 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  *
  * Stripping and revoking is the point of no return for a node (plan, section
  * 12), so strip() sends the command only to a node already in mode 2 — one that
- * reaches MAIN through the cluster API alone and has passed the connect audit
- * to get there. The revoke waits for the node's own word: the command's ack,
+ * reaches MAIN through the cluster API alone, and has done so for
+ * ClusterAdmin::CUTOVER_CLEAN_DAYS. The revoke waits for the node's own word: the command's ack,
  * whose result carries the extension's report of the config afterwards
  * (NodeCredentials::outcome()). A config that still holds credentials, an ack
  * that only says root queued it, or a failed command revokes nothing.
@@ -46,8 +46,17 @@ final class DbCredentials {
 	 * page's action, `cluster:strip-credentials`). Null when the signed
 	 * command was queued, else the message key of why nothing was sent:
 	 * `cluster_not_enrolled`, `cluster_strip_needs_mode2`,
-	 * `cluster_strip_not_active`, `cluster_strip_not_queued`. Audited either
+	 * `cluster_strip_not_active`, `cluster_strip_too_soon`,
+	 * `cluster_strip_not_local`, `cluster_strip_not_queued`. Audited either
 	 * way it reached the node's row (`node.strip_credentials`).
+	 *
+	 * This is the step with no way back, so the days stand here: a node moved
+	 * to mode 2 by the page (ClusterAdmin::act() records when) has spent
+	 * ClusterAdmin::CUTOVER_CLEAN_DAYS there, in which whatever on it still
+	 * asked for MAIN's database was refused and shown. One that says it does
+	 * not read its streams on itself is not asked either: mode_down is how it
+	 * heals, and that needs these credentials. A node with no such record
+	 * (born in mode 2, or moved before the record was kept) passes as before.
 	 */
 	public static function strip(int $rServerID, string $rActor = 'admin'): ?string {
 		self::db()->query('SELECT `mode`, `state` FROM `cluster_nodes` WHERE `server_id` = ?;', $rServerID);
@@ -60,6 +69,13 @@ final class DbCredentials {
 		}
 		if ($rNode['state'] !== 'active') {
 			return 'cluster_strip_not_active';
+		}
+		$rSince = (int) ClusterMeta::get(ClusterAdmin::MODE2_AT . $rServerID);
+		if ($rSince > 0 && ClusterClock::now() - $rSince < ClusterAdmin::CUTOVER_CLEAN_DAYS * 86400) {
+			return 'cluster_strip_too_soon';
+		}
+		if (NodeAudit::streamsLocal(NodeAudit::reports()[$rServerID] ?? null) === false) {
+			return 'cluster_strip_not_local';
 		}
 		$rQueued = NodeActions::stripDbCredentials($rServerID);
 		ClusterAudit::log('node.strip_credentials', $rServerID, ['queued' => $rQueued], $rActor);
