@@ -269,8 +269,13 @@ class ServerInstallCommand implements CommandInterface {
 
 		if ($rType == 2) {
 			LbInstallFlow::runStartup($rConn, $rRunSSH);
+			$rGenBefore = LbInstallFlow::nodeGen($rServerID);
 			if (!LbInstallFlow::provisionCluster($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, null, true, $rApiMode)) {
 				return 1;
+			}
+			$rFlows = LbInstallFlow::flowsOn($rServerID, $rGenBefore);
+			if ($rFlows !== '') {
+				echo $rFlows . "\n";
 			}
 		} else {
 			ProxyInstallFlow::runStartup($rConn, $rRunSSH);

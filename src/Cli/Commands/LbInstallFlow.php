@@ -13,12 +13,15 @@ use XcVm\Core\Process\PhpFpmPools;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\ReleaseAsset;
 use XcVm\Core\Updates\UpdateChannels;
+use XcVm\Domain\Cluster\ClusterAdmin;
+use XcVm\Domain\Cluster\ClusterAudit;
 use XcVm\Domain\Cluster\ClusterCli;
 use XcVm\Domain\Cluster\ClusterPolicy;
 use XcVm\Domain\Cluster\CorePins;
 use XcVm\Domain\Cluster\DbCredentials;
 use XcVm\Domain\Cluster\EnrolmentService;
 use XcVm\Domain\Cluster\LeaseService;
+use XcVm\Domain\Cluster\NodeRegistry;
 
 class LbInstallFlow {
 	// Per-distribution package lists, mirrored from the MAIN installer (install -> PACKAGES),
@@ -804,6 +807,64 @@ class LbInstallFlow {
 		}
 		echo 'Node enrolled (uuid ' . $rUuid . ', SAS ' . $rSas . "); it finishes with enrol_complete within 30 minutes\n";
 		return true;
+	}
+
+	/** The generation of a server's node row, 0 when it has none: asked before an install enrols it (flowsOn()). */
+	public static function nodeGen(int $rServerID): int {
+		return (int) (NodeRegistry::byServer($rServerID)['gen'] ?? 0);
+	}
+
+	/**
+	 * Switch a freshly installed node's flows on, as the Cluster Nodes page
+	 * does one at a time: every flow once the node is active, the data plane
+	 * only for an agent that says `relay` at its hello (the page's own
+	 * condition, ClusterAdmin::relayAdvertised). Only a fresh install does
+	 * this. Its node was stopped first, so it has no viewer for CONNECTIONS
+	 * to lose and no relay for DATAPLANE to refuse; a live node that enrols
+	 * (server:enrol, cluster:reenrol, a code) may have both, and keeps the
+	 * operator's order. Never fatal: a node that is not active in time keeps
+	 * its flows off, for the page.
+	 *
+	 * @param int $rGenBefore The node's generation before this install enrolled it (nodeGen(); 0 with no row).
+	 *                        A row the install did not replace is an earlier enrolment's, whose agent
+	 *                        the install has stopped: it is left alone.
+	 * @param (callable(): void)|null $rPause Between two looks at the node's row (tests).
+	 * @return string The install log's line; '' when nothing was to switch (no row of this install's, or all on already).
+	 */
+	public static function flowsOn(int $rServerID, int $rGenBefore, ?callable $rPause = null): string {
+		$rPause ??= static function (): void {
+			sleep(2);
+		};
+		// A minute for enrol_complete, then a few looks for the hello that
+		// says what the agent does (an older agent says nothing).
+		$rActive = 0;
+		for ($rLooks = 0; $rLooks < 30; $rLooks++) {
+			$rNode = NodeRegistry::byServer($rServerID);
+			if ($rNode === null || (int) $rNode['gen'] <= $rGenBefore || ((int) $rNode['flows'] & ClusterAdmin::MODE2_FLOWS) === ClusterAdmin::MODE2_FLOWS) {
+				return '';
+			}
+			if ($rNode['state'] === 'active' && ($rNode['features'] !== null || ++$rActive > 5)) {
+				break;
+			}
+			$rPause();
+		}
+		if ($rNode['state'] !== 'active') {
+			return "The node's cluster flows stay off: it has not completed its enrolment yet. Switch them on from Cluster Nodes.";
+		}
+		$rRelay = ClusterAdmin::relayAdvertised($rNode);
+		$rWas = (int) $rNode['flows'];
+		$rFlows = $rWas | ($rRelay ? ClusterAdmin::MODE2_FLOWS : ClusterAdmin::MODE2_FLOWS & ~NodeRegistry::FLOW_DATAPLANE);
+		if ($rFlows === $rWas) {
+			return '';
+		}
+		// Only the row that was read: not a re-enrolment's, nor one revoked meanwhile.
+		if (!NodeRegistry::update($rServerID, ['flows' => $rFlows], ['state' => 'active', 'gen' => (int) $rNode['gen']])) {
+			return "The node's cluster flows stay off: its row changed meanwhile. Switch them on from Cluster Nodes.";
+		}
+		ClusterAudit::log('node.flows', $rServerID, ['flows' => $rFlows, 'was' => $rWas], 'install');
+		return $rRelay
+			? "The node's cluster flows are on (all eight)"
+			: "The node's cluster flows are on, but for the data plane: its agent does not say `relay`. Switch it on from Cluster Nodes once it does.";
 	}
 
 	/**
