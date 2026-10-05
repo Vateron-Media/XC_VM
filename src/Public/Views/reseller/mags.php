@@ -153,7 +153,7 @@ LayoutRenderer::renderFooter('reseller');
 ?>
 <script>
     (function() {
-        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+        var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
         var sq = function(cls, title) { return '<i class="icon-base ti tabler-square-filled ' + cls + '" title="' + esc(title || '') + '"></i>'; };
         var canConvert = <?= $rCanConvert ? 'true' : 'false'; ?>, canKill = <?= $rCanKill ? 'true' : 'false'; ?>;
         var lang = {

@@ -342,7 +342,7 @@ LayoutRenderer::renderFooter('reseller');
 ?>
 <script>
     (function() {
-        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+        var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
         var canDownload = <?= $rCanDownload ? 'true' : 'false'; ?>, canLive = <?= $rCanLive ? 'true' : 'false'; ?>, redis = <?= $rRedis ? 'true' : 'false'; ?>;
         var siteUrl = <?= json_encode($rSiteUrl); ?> || window.location.origin;
         var lang = {

@@ -352,11 +352,7 @@ LayoutRenderer::renderFooter('admin');
 ?>
 <script>
     (function() {
-        var esc = function(s) {
-            var d = document.createElement('div');
-            d.textContent = (s == null ? '' : String(s));
-            return d.innerHTML;
-        };
+        var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
         var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>,
             canLive = <?= $rCanLive ? 'true' : 'false'; ?>,
             canFinger = <?= $rCanFinger ? 'true' : 'false'; ?>,
