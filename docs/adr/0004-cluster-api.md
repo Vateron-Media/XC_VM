@@ -5497,3 +5497,52 @@ The design is `docs/superpowers/specs/2026-10-01-per-node-viewer-keys-design.md`
   - the secret is made once and never replaced.
 - `ProxyInstallKeyTest`: the install writes the key of a new generation and leaves no copy.
 - `ClusterLockdownTest` and `DbAllowlistTest`: a signing proxy is no blocker and leaves the allowlist.
+
+### The move to mode 2 without the connect audit (2026-10-05)
+
+**Problem.** The cutover gate asked for seven days with no connect to MAIN before a node could
+move from mode 1 to mode 2. A node in mode 1 never shows that: its crons, its signals daemon,
+`cron:root_signals` and viewer authentication read MAIN's database by design (the known limit
+above: "a real mode 1 node does not reach the zero yet"). The zero could only come in mode 2, so
+no node could be moved from the page.
+
+**Decision.**
+- **The gate asks what a node needs to run in mode 2, now.** `ClusterAdmin::modeGate()` keeps
+  every flow (the data plane included; the "every flow but the data plane" wording of earlier
+  increments is superseded) and root's pin, and adds: state `active`, heard within
+  `NodeHealth::SUSPECT_AFTER_MS`, and the node's own word that it runs from its own copy. The
+  connect counters and the seven days leave the gate.
+- **The node says so in `audit.json`.** `streams_local` is true when it boots from its replica
+  (`ReplicaBoot::ready()`), the replica owns its stream definitions and its store of their state
+  is seeded (`StreamRuntime::seededFor()`). It publishes again at once when that stops being true
+  (`StreamRuntime::lapse()`, `ReplicaApply::disown()` and `own()`), and MAIN forgets the member
+  at every mode change. An older release sends none and is refused.
+- **The seven days move to the step with no way back.** `DbCredentials::strip()` refuses until
+  the node has been in mode 2 for `CUTOVER_CLEAN_DAYS`, counted by MAIN's own record
+  (`cluster_meta`, `mode2_at.<server id>`), and while the node reports `streams_local` false. It
+  does not ask for zero refused connects: a settled mode 2 node still shows some (requests to the
+  viewer APIs it no longer serves boot through `DatabaseStage`).
+- **The node really stops.** New connects were refused already. The daemons that keep a
+  connection (signals, queue, fanout_sync, scanner, on-demand) now leave their loop within a pass
+  of the mode crossing 2, in either direction, so `mode_down` is a whole way back. `fanout_sync`
+  opens no Redis of MAIN's on a node that refuses.
+- **The count starts again on entering mode 2** (`ConnectAudit::follow()`), so the page shows
+  what mode 2 turned away, not mode 1's history. Leaving mode 2 keeps the window.
+- **Not with the Redis connection handler.** `act()` refuses the move while `redis_handler` is
+  on: `live.php`, `vod.php`, `timeshift.php` and `rtmp.php` open MAIN's Redis for every viewer.
+
+**Not built.**
+- MAIN moving a node back to mode 1 by itself. The page shows a badge on a mode 2 node that
+  reports `streams_local` false, and the operator presses mode down.
+- Mode 2 with the Redis connection handler, and a fallback for a viewer request when the node's
+  agent does not answer (mode 1 falls back to MAIN's store; mode 2 is refused there).
+- New nodes born in mode 2 (`api_mode_allowed` stays false): such a node cannot seed its store.
+
+**Tests.**
+- `ClusterModeGateTest`, `ClusterModeActionTest`: the gate and the page's action, the record of
+  when a node entered mode 2, the Redis handler refusal.
+- `ClusterCredentialsActionTest`: the strip waits seven days and for local streams.
+- `StreamRuntimeReadersTest`: what the node says, and that it says it again unasked.
+- `ConnectAuditTest`: the window restarts on entering refusal, stays on leaving, and is adopted
+  by a release that finds no note.
+- `DaemonModeChangeTest`: each daemon asks every pass.
