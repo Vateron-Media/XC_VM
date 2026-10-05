@@ -605,16 +605,6 @@ class TableController extends BaseAdminController {
 						} elseif ($rRow["exp_date"] && $rRow["exp_date"] < time()) {
 							$rStatus = "expired";
 						}
-						$rNotes = "";
-						if (!empty($rRow['admin_notes'])) {
-							$rNotes .= $rRow['admin_notes'];
-						}
-						if (!empty($rRow['reseller_notes'])) {
-							if ($rNotes !== '') {
-								$rNotes .= "\n";
-							}
-							$rNotes .= $rRow['reseller_notes'];
-						}
 						if ($rRow["exp_date"]) {
 							$rExpStr = date($rSettings["date_format"], $rRow["exp_date"]) . " " . date("H:i:s", $rRow["exp_date"]);
 						} else {
@@ -639,7 +629,7 @@ class TableController extends BaseAdminController {
 							"stream_display_name" => $rRow["stream_display_name"] ?? null,
 							"last_active" => !empty($rRow["last_active"]) ? (int) $rRow["last_active"] : null,
 							"last_str" => $rLastStr,
-							"notes" => $rNotes,
+							"notes" => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], 'strlen')),
 							"admin_enabled" => (bool) $rRow["admin_enabled"],
 							"enabled" => (bool) $rRow["enabled"],
 							"contact" => $rRow["contact"],
@@ -785,7 +775,6 @@ class TableController extends BaseAdminController {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
 						// Clean JSON for the Bootstrap 5 mags page (connection/last-activity gathering above unchanged).
-						$rNotes = trim(($rRow["admin_notes"] ?? "") . "\n" . ($rRow["reseller_notes"] ?? ""));
 						$rReturn["data"][] = [
 							"mag_id"              => (int) $rRow["mag_id"],
 							"line_id"             => $rRow["id"] ? (int) $rRow["id"] : null,
@@ -803,7 +792,7 @@ class TableController extends BaseAdminController {
 							"stream_id"           => $rRow["stream_id"] ? (int) $rRow["stream_id"] : null,
 							"stream_display_name" => $rRow["stream_display_name"] ?? null,
 							"last_active"         => $rRow["last_active"] ? (int) $rRow["last_active"] : null,
-							"notes"               => $rNotes !== "" ? $rNotes : null,
+							"notes"               => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], 'strlen')),
 						];
 					}
 				}
@@ -945,7 +934,6 @@ class TableController extends BaseAdminController {
 					if ($rIsAPI) {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
-						$rNotes = trim(($rRow["admin_notes"] ?? "") . "\n" . ($rRow["reseller_notes"] ?? ""));
 						$rReturn["data"][] = [
 							"device_id"           => (int) $rRow["device_id"],
 							"line_id"             => $rRow["id"] ? (int) $rRow["id"] : null,
@@ -963,7 +951,7 @@ class TableController extends BaseAdminController {
 							"stream_id"           => $rRow["stream_id"] ? (int) $rRow["stream_id"] : null,
 							"stream_display_name" => $rRow["stream_display_name"] ?? null,
 							"last_active"         => $rRow["last_active"] ? (int) $rRow["last_active"] : null,
-							"notes"               => $rNotes !== "" ? $rNotes : null,
+							"notes"               => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], 'strlen')),
 						];
 					}
 				}

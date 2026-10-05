@@ -196,7 +196,7 @@ LayoutRenderer::renderFooter('reseller');
             columns: [
                 { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
                 { data: 'mag_id', className: 'text-center', render: function(d) { return '<a href="mag?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>'; } },
-                { data: 'username', responsivePriority: 1 },
+                { data: 'username', responsivePriority: 1, render: function(d, t, row) { return esc(d) + (row.notes ? '<small class="text-body-secondary d-block text-truncate" style="max-width:14rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</small>' : ''); } },
                 { data: 'mac', className: 'text-nowrap', render: function(d, t, row) { return '<a href="mag?id=' + encodeURIComponent(row.mag_id) + '" class="text-body">' + esc(d) + '</a>'; } },
                 { data: 'stb_type', className: 'text-center' },
                 { data: 'owner_name', render: function(d, t, row) { if (!d) { return ''; } var body = row.member_id > 0 ? '<a href="user?id=' + encodeURIComponent(row.member_id) + '" class="text-body">' + esc(d) + '</a>' : esc(d); return row.indirect ? body + '<br><small class="text-body-secondary">(indirect)</small>' : body; } },
@@ -219,7 +219,6 @@ LayoutRenderer::renderFooter('reseller');
                     className: 'text-center',
                     render: function(d, t, row) {
                         var items = '';
-                        if (row.notes) { items += '<h6 class="dropdown-header text-wrap" style="max-width:18rem">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>'; }
                         items += '<a class="dropdown-item js-event" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '" data-mac="' + esc(row.mac) + '">' + esc(lang.event) + '</a>';
                         items += '<a class="dropdown-item" href="mag?id=' + encodeURIComponent(row.mag_id) + '">' + esc(lang.edit) + '</a>';
                         if (canConvert) { items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="convert" data-id="' + esc(row.mag_id) + '">' + esc(lang.convert) + '</a>'; }

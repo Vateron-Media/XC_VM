@@ -175,7 +175,7 @@ LayoutRenderer::renderFooter('reseller');
             columns: [
                 { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
                 { data: 'device_id', className: 'text-center', render: function(d) { return '<a href="enigma?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>'; } },
-                { data: 'username', responsivePriority: 1 },
+                { data: 'username', responsivePriority: 1, render: function(d, t, row) { return esc(d) + (row.notes ? '<small class="text-body-secondary d-block text-truncate" style="max-width:14rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</small>' : ''); } },
                 { data: 'mac', className: 'text-nowrap', render: function(d, t, row) { return '<a href="enigma?id=' + encodeURIComponent(row.device_id) + '" class="text-body">' + esc(d) + '</a>'; } },
                 { data: 'public_ip', className: 'text-nowrap', render: function(d) { if (isLocal(d)) { return '<span class="text-body-secondary">' + esc(d || '') + '</span>'; } return '<a href="javascript:void(0);" class="text-body js-whois" data-ip="' + esc(d) + '">' + esc(d) + '</a>'; } },
                 { data: 'owner_name', render: function(d, t, row) { if (!d) { return ''; } var body = row.member_id > 0 ? '<a href="user?id=' + encodeURIComponent(row.member_id) + '" class="text-body">' + esc(d) + '</a>' : esc(d); return row.indirect ? body + '<br><small class="text-body-secondary">(indirect)</small>' : body; } },
@@ -198,7 +198,6 @@ LayoutRenderer::renderFooter('reseller');
                     className: 'text-center',
                     render: function(d, t, row) {
                         var items = '';
-                        if (row.notes) { items += '<h6 class="dropdown-header text-wrap" style="max-width:18rem">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>'; }
                         items += '<a class="dropdown-item" href="enigma?id=' + encodeURIComponent(row.device_id) + '">' + esc(lang.edit) + '</a>';
                         if (canConvert) { items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="convert" data-id="' + esc(row.device_id) + '">' + esc(lang.convert) + '</a>'; }
                         if (row.is_isplock) { items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="reset_isp" data-id="' + esc(row.device_id) + '">' + esc(lang.resetIsp) + '</a>'; }

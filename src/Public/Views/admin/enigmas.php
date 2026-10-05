@@ -226,7 +226,10 @@ LayoutRenderer::renderFooter('admin');
                 },
                 {
                     data: 'username',
-                    responsivePriority: 1
+                    responsivePriority: 1,
+                    render: function(d, t, row) {
+                        return esc(d) + (row.notes || []).map(function(n) { return '<small class="text-body-secondary d-block text-truncate" style="max-width:14rem" title="' + esc(n) + '">' + esc(n) + '</small>'; }).join('');
+                    }
                 },
                 {
                     data: 'mac',

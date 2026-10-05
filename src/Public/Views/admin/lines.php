@@ -486,7 +486,7 @@ LayoutRenderer::renderFooter('admin');
                     data: 'username',
                     responsivePriority: 1,
                     render: function(d, t, row) {
-                        return '<a href="line?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>';
+                        return '<a href="line?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>' + (row.notes || []).map(function(n) { return '<small class="text-body-secondary d-block text-truncate" style="max-width:14rem" title="' + esc(n) + '">' + esc(n) + '</small>'; }).join('');
                     }
                 },
                 {
@@ -577,9 +577,6 @@ LayoutRenderer::renderFooter('admin');
                     className: 'text-center',
                     render: function(d, t, row) {
                         var items = '';
-                        if (row.notes) {
-                            items += '<h6 class="dropdown-header text-wrap" style="max-width:18rem">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>';
-                        }
                         if (canEdit) {
                             items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-user="' + esc(row.username) + '">' + esc(lang.edit) + '</a>';
                         }

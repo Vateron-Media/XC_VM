@@ -385,7 +385,7 @@ LayoutRenderer::renderFooter('reseller');
             columns: [
                 { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
                 { data: 'id', className: 'text-center', render: function(d) { return '<a href="line?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>'; } },
-                { data: 'username', responsivePriority: 1, render: function(d, t, row) { return '<a href="line?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>'; } },
+                { data: 'username', responsivePriority: 1, render: function(d, t, row) { return '<a href="line?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>' + (row.notes ? '<small class="text-body-secondary d-block text-truncate" style="max-width:14rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</small>' : ''); } },
                 { data: 'password', render: esc },
                 { data: 'owner_name', render: function(d, t, row) { var body = row.member_id > 0 ? '<a href="user?id=' + encodeURIComponent(row.member_id) + '" class="text-body">' + esc(d || '') + '</a>' : esc(d || ''); return row.indirect ? body + '<br><small class="text-body-secondary">(indirect)</small>' : body; } },
                 { data: 'status', className: 'text-center', render: function(d) { var s = STATUS[d] || ['secondary', d]; return '<span class="badge bg-label-' + s[0] + '">' + esc(s[1]) + '</span>'; } },
@@ -430,7 +430,6 @@ LayoutRenderer::renderFooter('reseller');
                     className: 'text-center',
                     render: function(d, t, row) {
                         var items = '';
-                        if (row.notes) { items += '<h6 class="dropdown-header text-wrap" style="max-width:18rem">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>'; }
                         items += '<a class="dropdown-item" href="line?id=' + encodeURIComponent(row.id) + '">' + esc(lang.edit) + '</a>';
                         if (canDownload) { items += '<a class="dropdown-item js-download" href="javascript:void(0);" data-user="' + esc(row.username) + '" data-pass="' + esc(row.password) + '">' + esc(lang.download) + '</a>'; }
                         items += '<a class="dropdown-item js-whatsapp" href="javascript:void(0);" data-user="' + esc(row.username) + '" data-contact="' + esc(row.contact || '') + '" data-expunix="' + esc(row.exp_unix || '') + '"><i class="icon-base ti tabler-brand-whatsapp text-success me-1"></i>' + esc(lang.whatsapp) + '</a>';
