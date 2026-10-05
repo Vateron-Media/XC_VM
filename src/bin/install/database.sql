@@ -1479,6 +1479,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `legacy_mag_auth` tinyint(4) DEFAULT '0',
   `ignore_invalid_users` tinyint(4) DEFAULT '0',
   `on_demand_instant_off` tinyint(4) DEFAULT '0',
+  `on_demand_instant_off_grace` int(11) DEFAULT '30',
   `on_demand_failure_exit` tinyint(4) DEFAULT '0',
   `on_demand_wait_time` tinyint(4) DEFAULT '20',
   `playlist_from_mysql` tinyint(4) DEFAULT '0',

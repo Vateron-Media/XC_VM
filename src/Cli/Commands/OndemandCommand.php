@@ -122,6 +122,11 @@ class OndemandCommand implements CommandInterface {
 				$rOnline = ConnectionTracker::onlineClientCounts($rStreamIDs, SERVER_ID);
 			}
 
+			// A freshly started stream is kept this long before it may be stopped for
+			// having no viewers: the window before its first viewer is counted. At
+			// least 3 s, so a stream is never stopped before anyone could attach.
+			$rGrace = max(3, min(300, SettingsManager::getInt('on_demand_instant_off_grace', 30)));
+
 			$rRows = [];
 			foreach ($rStreamIDs as $rStreamID) {
 				$rRows[] = [
@@ -163,7 +168,7 @@ class OndemandCommand implements CommandInterface {
 				$rPidMtime = @filemtime($pidFile);
 				$rStreamAge = ($rPidMtime === false) ? 0 : time() - $rPidMtime;
 
-				if ($rQueue > 0 || $rAdminQueue > 0 || $rStreamAge < 30) {
+				if ($rQueue > 0 || $rAdminQueue > 0 || $rStreamAge < $rGrace) {
 					continue;
 				}
 

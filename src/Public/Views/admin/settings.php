@@ -1828,6 +1828,17 @@ use XcVm\Domain\Server\ServerRepository;
 							</div>
 
 							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="on_demand_instant_off_grace">
+									<?= $language::get('instant_off_grace') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('instant_off_grace_tooltip') ?>"></i>
+								</label>
+
+								<div class="col-md-2">
+									<input type="text" inputmode="numeric" class="form-control text-center" id="on_demand_instant_off_grace" name="on_demand_instant_off_grace" value="<?= htmlspecialchars((string) ($rSettings["on_demand_instant_off_grace"] ?? 30)) ?>">
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="on_demand_wait_time">
 									<?= $language::get('wait_timeout') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('how_long_should_the_client_tooltip') ?>"></i>
@@ -3192,7 +3203,7 @@ LayoutRenderer::renderFooter('admin');
 		}
 
 		// numeric-only inputs
-		['log_clear', 'vod_bitrate_plus', 'vod_limit_perc', 'user_auto_kick_hours', 'flood_limit', 'flood_seconds', 'auth_flood_seconds', 'auth_flood_limit', 'auth_flood_sleep', 'bruteforce_mac_attempts', 'bruteforce_username_attempts', 'bruteforce_frequency', 'login_flood', 'client_prebuffer', 'restreamer_prebuffer', 'fanout_hls_window', 'fanout_grace_sec', 'fanout_write_timeout_sec', 'fanout_chunk_bytes', 'fanout_max_gop_bytes', 'fanout_default_prebuffer_sec', 'fanout_idle_buffer_grace_sec', 'read_buffer_size', 'stream_max_analyze', 'probesize', 'stream_start_delay', 'online_capacity_interval', 'on_demand_wait_time', 'seg_time', 'stream_fail_sleep', 'probe_extra_wait', 'seg_list_size', 'cpu_limit', 'mem_limit', 'playback_limit', 'connection_loop_per', 'connection_loop_count', 'max_simultaneous_downloads', 'cache_playlists', 'seg_delete_threshold', 'fails_per_time', 'create_expiration', 'max_encode_movies', 'max_encode_cc', 'queue_loop', 'player_blur', 'player_opacity', 'disallow_2nd_ip_max', 'probesize_ondemand', 'segment_wait_time', 'on_demand_scan_time', 'on_demand_max_probe', 'on_demand_scan_keep', 'stop_failures', 'mysql_sleep_kill', 'threshold_cpu', 'threshold_mem', 'threshold_disk', 'threshold_network', 'threshold_clients'].forEach(function(id) {
+		['log_clear', 'on_demand_instant_off_grace', 'vod_bitrate_plus', 'vod_limit_perc', 'user_auto_kick_hours', 'flood_limit', 'flood_seconds', 'auth_flood_seconds', 'auth_flood_limit', 'auth_flood_sleep', 'bruteforce_mac_attempts', 'bruteforce_username_attempts', 'bruteforce_frequency', 'login_flood', 'client_prebuffer', 'restreamer_prebuffer', 'fanout_hls_window', 'fanout_grace_sec', 'fanout_write_timeout_sec', 'fanout_chunk_bytes', 'fanout_max_gop_bytes', 'fanout_default_prebuffer_sec', 'fanout_idle_buffer_grace_sec', 'read_buffer_size', 'stream_max_analyze', 'probesize', 'stream_start_delay', 'online_capacity_interval', 'on_demand_wait_time', 'seg_time', 'stream_fail_sleep', 'probe_extra_wait', 'seg_list_size', 'cpu_limit', 'mem_limit', 'playback_limit', 'connection_loop_per', 'connection_loop_count', 'max_simultaneous_downloads', 'cache_playlists', 'seg_delete_threshold', 'fails_per_time', 'create_expiration', 'max_encode_movies', 'max_encode_cc', 'queue_loop', 'player_blur', 'player_opacity', 'disallow_2nd_ip_max', 'probesize_ondemand', 'segment_wait_time', 'on_demand_scan_time', 'on_demand_max_probe', 'on_demand_scan_keep', 'stop_failures', 'mysql_sleep_kill', 'threshold_cpu', 'threshold_mem', 'threshold_disk', 'threshold_network', 'threshold_clients'].forEach(function(id) {
 			var el = document.getElementById(id);
 			if (el) {
 				el.addEventListener('input', function() {

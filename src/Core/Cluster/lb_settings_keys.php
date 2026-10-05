@@ -132,6 +132,7 @@ return [
 		'on_demand_checker',
 		'on_demand_failure_exit',
 		'on_demand_instant_off',
+		'on_demand_instant_off_grace',
 		'on_demand_max_probe',
 		'on_demand_scan_keep',
 		'on_demand_scan_time',
