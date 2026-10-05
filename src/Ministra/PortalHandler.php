@@ -1816,9 +1816,14 @@ class PortalHandler {
 		if ($rReqType == "stb" && $rReqAction == "get_profile") {
 			BruteforceGuard::checkBruteforce($ctx["ip"], $ctx["mac"]);
 			BruteforceGuard::checkFlood();
+			exit();
 		}
 
-		exit();
+		// A missing or stale token (e.g. replaced by a newer handshake of the same
+		// MAC) gets the canonical Stalker middleware answer: Stalker clients take
+		// this exact plain-text body as the cue to handshake again, while an empty
+		// reply left them stuck on an "unknown error".
+		exit('Authorization failed.');
 	}
 
 	/**
