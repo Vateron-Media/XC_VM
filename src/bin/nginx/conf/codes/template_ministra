@@ -11,6 +11,23 @@ location ^~ /#CODE#/assets/ {
     add_header Cache-Control "no-cache";
 }
 
+# Stalker firmware sends its portal API calls to <portal>/server/load.php.
+# Answer them with portal.php directly: the panel's fallback would 302 every
+# call to portal.php, a second round trip per request.
+location = /#CODE#/server/load.php {
+    #WHITELIST#
+    limit_req zone=one burst=#BURST# nodelay;
+    fastcgi_pass php;
+    include fastcgi_params;
+    fastcgi_buffering on;
+    fastcgi_buffers 96 32k;
+    fastcgi_buffer_size 32k;
+    fastcgi_max_temp_file_size 0;
+    fastcgi_keep_conn on;
+    fastcgi_param SCRIPT_FILENAME /home/xc_vm/#ALIAS#/portal.php;
+    fastcgi_param SCRIPT_NAME /#CODE#/portal.php;
+}
+
 location ^~ /#CODE#/ {
     alias /home/xc_vm/#ALIAS#/;
     try_files $uri $uri.html $uri/ @fc_#CODE#;
