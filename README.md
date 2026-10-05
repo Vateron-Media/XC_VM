@@ -267,6 +267,26 @@ HD bitrate = 4 Mbps
 | RAM              | 50–100 MB       |
 | CPU (transcoded) | ~1 core         |
 
+#### Fanout RAM
+
+With fanout delivery on, each online channel keeps one ring buffer that serves both the TS prebuffer and the HLS window, and all its viewers read from it, so RAM scales with channels, not clients:
+
+- **Ring seconds** = max(Fanout HLS Window × Segment Time, Client Prebuffer + Segment Time), capped at 120 (defaults: max(6 × 6, 30 + 6) = 36 s)
+- **Fanout RAM** ≈ Inbound (MB/s) × Ring seconds × 3
+- The ×3 is the daemon's real overhead over raw stream data (Go heap headroom, GOP buffer capacity, recycled buffers), measured on a production LB
+- A channel with no viewers for 30 s shrinks to ~50% of its ring (`Fanout Idle Buffer Grace` / `Fanout Idle Buffer Ratio`)
+- Each client adds only socket/nginx buffers (a few MB at most for a slow viewer)
+
+```text
+Rule of thumb (default settings): ~15 GB of RAM per 1 Gbps of inbound channels
+
+Measured: 352 channels, ~2 Gbps inbound, 36 s ring
+→ 250 MB/s × 36 s × 3 ≈ 27 GB  (xc_fanout RSS: 29.2 GiB, ~85 MiB per channel)
+→ the same with 10 or 1000 viewers
+```
+
+> To shrink it, lower the ring: the larger of `Fanout HLS Window × Segment Time` and `Client Prebuffer + Segment Time` sets it, so lowering only one of them may change nothing.
+
 ---
 
 ## ✅ Features
