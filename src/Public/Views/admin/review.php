@@ -9,7 +9,6 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Domain\Stream\StreamService;
-use XcVm\Domain\Vod\MovieService;
 
 if (RequestManager::has('type')) {
     $rType = intval(RequestManager::get('type'));
@@ -21,75 +20,7 @@ if (RequestManager::has('type')) {
     }
 }
 
-if (RequestManager::has('post_data')) {
-    $rPostData = json_decode(base64_decode(RequestManager::get('post_data')), true);
-    $rPostData['review'] = array();
-    $rPostData['notes'] = '';
-    $rPostData['custom_sid'] = $rPostData['notes'];
-    $rCategoryIDs = array();
-
-    foreach (CategoryService::getAllByType(array(1 => 'live', 2 => 'movie')[intval($rType)]) as $rCategory) {
-        $rCategoryIDs[] = $rCategory['id'];
-    }
-    $rNewCategories = array();
-
-    foreach (RequestManager::get('category_selection') as $rCategory) {
-        if (in_array($rCategory, $rCategoryIDs) || is_numeric($rCategory)) {
-        } else {
-            $rReturn = CategoryService::process(array('category_type' => array(1 => 'live', 2 => 'movie')[intval($rType)], 'category_name' => $rCategory));
-            $rNewCategories[$rCategory] = $rReturn['data']['insert_id'];
-        }
-    }
-
-    foreach (RequestManager::getAll() as $rKey => $rValue) {
-        if (substr($rKey, 0, 7) != 'import_') {
-        } else {
-            $rID = intval(explode('import_', $rKey)[1]);
-
-            if (!RequestManager::get('import_' . $rID)) {
-            } else {
-                $rCategories = array();
-
-                foreach (json_decode(RequestManager::get('category_id_' . $rID), true) as $rCategory) {
-                    if (!is_numeric($rCategory) && isset($rNewCategories[$rCategory])) {
-                        $rCategories[] = intval($rNewCategories[$rCategory]);
-                    } else {
-                        if (!is_numeric($rCategory)) {
-                        } else {
-                            $rCategories[] = intval($rCategory);
-                        }
-                    }
-                }
-
-                if ($rType == 1) {
-                    $rPostData['review'][] = array('stream_source' => array(RequestManager::get('url_' . $rID)), 'stream_icon' => RequestManager::get('icon_' . $rID), 'stream_display_name' => RequestManager::get('name_' . $rID), 'epg_lang' => null, 'channel_id' => (!empty(RequestManager::get('channel_id_' . $rID)) ? RequestManager::get('channel_id_' . $rID) : null), 'epg_api' => (!empty(RequestManager::get('epg_type_' . $rID)) ? RequestManager::get('epg_type_' . $rID) : 0), 'epg_id' => (!empty(RequestManager::get('epg_id_' . $rID)) ? RequestManager::get('epg_id_' . $rID) : 0), 'bouquets' => json_decode(RequestManager::get('bouquets_' . $rID), true), 'category_id' => $rCategories);
-                } else {
-                    $rPostData['review'][] = array('stream_source' => array(RequestManager::get('url_' . $rID)), 'stream_display_name' => RequestManager::get('name_' . $rID), 'tmdb_id' => (!empty(RequestManager::get('tmdb_id_' . $rID)) ? RequestManager::get('tmdb_id_' . $rID) : null), 'bouquets' => json_decode(RequestManager::get('bouquets_' . $rID), true), 'category_id' => $rCategories);
-                }
-            }
-        }
-    }
-
-    if ($rType == 1) {
-        $rReturn = StreamService::process($rPostData);
-        $_STATUS = $rReturn['status'];
-
-        if ($_STATUS != STATUS_SUCCESS) {
-        } else {
-            header('Location: ./streams?status=' . STATUS_SUCCESS);
-            exit();
-        }
-    } else {
-        $rReturn = MovieService::process($rPostData);
-        $_STATUS = $rReturn['status'];
-
-        if ($_STATUS != STATUS_SUCCESS) {
-        } else {
-            header('Location: ./movies?status=' . STATUS_SUCCESS);
-            exit();
-        }
-    }
-} else {
+if (!RequestManager::has('post_data')) {
     // A module import kind (live streams) lists its channels instead of an M3U file.
     $rImportKind = $rType == 1 ? (string) RequestManager::get('import_kind') : '';
     $rImportKind = isset(ImportSourceRegistry::kinds()[$rImportKind]) ? $rImportKind : '';
@@ -214,6 +145,11 @@ $rBackHref   = $rType == 1 ? 'streams' : 'movies';
     <?php elseif (isset($_STATUS) && $_STATUS == STATUS_NO_SOURCES): ?>
         <div class="alert alert-danger alert-dismissible" role="alert">
             <?= $language::get('no_sources_found') ?: 'No results were found in the playlist.'; ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php elseif (isset($_STATUS) && $_STATUS != STATUS_SUCCESS): ?>
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <?= $language::get('generic_fail'); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     <?php elseif (!isset($rImport)): ?>
