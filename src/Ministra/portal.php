@@ -2318,6 +2318,15 @@ function getStreams(
 		$rPosition = 0;
 	}
 
+	// Ministra returns channel fields as the strings its DB yields. Native Stalker
+	// clients (C firmware such as GX STBs) read them as strings, so an int field
+	// comes back empty and the client drops every channel.
+	array_walk_recursive($rDatas, static function (&$rValue) {
+		if (is_int($rValue)) {
+			$rValue = (string) $rValue;
+		}
+	});
+
 	$rOutput = [
 		"js" => [
 			"total_items" => intval($rStreams["count"]),

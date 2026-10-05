@@ -1004,9 +1004,9 @@ class PortalHandler {
 							"id" => $rCategory["id"],
 							"title" => $rCategory["category_name"],
 							"modified" => "",
-							"number" => $rNumber++,
+							"number" => (string) $rNumber++,
 							"alias" => strtolower($rCategory["category_name"]),
-							"censored" => intval($rCategory["is_adult"]),
+							"censored" => (string) intval($rCategory["is_adult"]),
 						];
 					}
 				}
