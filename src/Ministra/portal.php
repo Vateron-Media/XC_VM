@@ -1988,9 +1988,8 @@ function sortArrayStreamName($a, $b) {
 	return strcmp($a[$rColumn], $b[$rColumn]);
 }
 
-function getStations($rCategoryID = null, $rFav = null, $rOrderBy = null) {
+function getStations(string $rPlayer, $rCategoryID = null, $rFav = null, $rOrderBy = null) {
 	global $rDevice;
-	global $rPlayer;
 	global $rPageItems;
 	global $rRequest;
 	global $rSettings;
@@ -2089,6 +2088,7 @@ function getStations($rCategoryID = null, $rFav = null, $rOrderBy = null) {
 }
 
 function getStreams(
+	string $rPlayer,
 	$rCategoryID = null,
 	$rAll = false,
 	$rFav = null,
@@ -2096,7 +2096,6 @@ function getStreams(
 	$rSearchBy = null,
 ) {
 	global $rDevice;
-	global $rPlayer;
 	global $rPageItems;
 	global $rRequest;
 	global $rSettings;

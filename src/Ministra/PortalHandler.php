@@ -877,7 +877,7 @@ class PortalHandler {
 					? null
 					: intval($rRequest["genre"]);
 
-				exit(getStreams($rGenre, true));
+				exit(getStreams($ctx["player"], $rGenre, true));
 
 			case "get_ordered_list":
 				$rFav = !empty($rRequest["fav"]) ? 1 : null;
@@ -888,7 +888,7 @@ class PortalHandler {
 					: intval($rRequest["genre"]);
 				$rSearch = !empty($rRequest["search"]) ? $rRequest["search"] : null;
 
-				exit(getStreams($rGenre, false, $rFav, $rSortBy, $rSearch));
+				exit(getStreams($ctx["player"], $rGenre, false, $rFav, $rSortBy, $rSearch));
 
 			case "get_all_fav_channels":
 				$rGenre =
@@ -896,7 +896,7 @@ class PortalHandler {
 					? null
 					: intval($rRequest["genre"]);
 
-				exit(getStreams($rGenre, true, 1));
+				exit(getStreams($ctx["player"], $rGenre, true, 1));
 
 			case "get_epg_info":
 				exit(json_encode(["js" => ["data" => []]], JSON_PARTIAL_OUTPUT_ON_ERROR));
@@ -1418,10 +1418,10 @@ class PortalHandler {
 				$rFav = !empty($rRequest["fav"]) ? 1 : null;
 				$rSortBy = !empty($rRequest["sortby"]) ? $rRequest["sortby"] : "added";
 
-				exit(getStations(null, $rFav, $rSortBy));
+				exit(getStations($ctx["player"], null, $rFav, $rSortBy));
 
 			case "get_all_fav_radio":
-				exit(getStations(null, 1));
+				exit(getStations($ctx["player"], null, 1));
 
 			case "set_fav":
 				$f3f9f9fa3c58c22b = empty($rRequest["fav_radio"]) ? "" : $rRequest["fav_radio"];
