@@ -221,21 +221,23 @@ final class SettingsAuditTest extends TestCase {
 		}
 		$this->assertSame(0750, fileperms($this->rDir . 'storage') & 0777);
 
-		// xc_vm's hourly publish (cron:cleanup) reads root's misses and keeps them.
+		// xc_vm's hourly publish (cron:cleanup) reads root's misses and keeps them. That
+		// process has a load balancer's build (no MAIN_HOME), which also says whether
+		// it reads its streams on itself: STREAMS is on here, and nothing is built.
 		$this->assertTrue($this->publishAsNobody());
-		$this->assertSame(['settings_misses' => ['update_channel_x' => 1]], $this->published());
+		$this->assertSame(['settings_misses' => ['update_channel_x' => 1], 'streams_local' => false], $this->published());
 
 		// A level it cannot search: no report from days it cannot read, the one there stays.
 		chown($this->rDir . 'storage/cluster', 0);
 		chmod($this->rDir . 'storage/cluster', 0700);
 		$this->assertFalse($this->publishAsNobody());
-		$this->assertSame(['settings_misses' => ['update_channel_x' => 1]], $this->published());
+		$this->assertSame(['settings_misses' => ['update_channel_x' => 1], 'streams_local' => false], $this->published());
 		// Nor a day file it cannot read.
 		chown($this->rDir . 'storage/cluster', 65534);
 		chown($rDay, 0);
 		chmod($rDay, 0600);
 		$this->assertFalse($this->publishAsNobody());
-		$this->assertSame(['settings_misses' => ['update_channel_x' => 1]], $this->published());
+		$this->assertSame(['settings_misses' => ['update_channel_x' => 1], 'streams_local' => false], $this->published());
 	}
 
 	/**

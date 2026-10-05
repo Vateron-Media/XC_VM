@@ -42,6 +42,7 @@ class ClusterNodesController extends BaseAdminController {
 					'server_id' => $this->input('server_id', 0),
 					'sas' => $this->input('sas', ''),
 					'url' => $this->input('url', ''),
+					'mode' => $this->input('mode', null),
 				], $rServers, (int) SERVER_ID, $rSettings, isset($GLOBALS['rUserInfo']['id']) ? (int) $GLOBALS['rUserInfo']['id'] : null);
 			}
 		}

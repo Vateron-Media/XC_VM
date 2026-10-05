@@ -2,6 +2,7 @@
 
 namespace XcVm\Core\Cluster;
 
+use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Util\AtomicFile;
 
 /**
@@ -203,8 +204,40 @@ final class SettingsAudit {
 			if ($rSum === null || $rConnects === null) {
 				return false;
 			}
-			return AtomicFile::write($rAgentDir . 'audit.json', (string) json_encode(['settings_misses' => (object) self::top($rSum)] + $rConnects, JSON_UNESCAPED_SLASHES));
+			$rDoc = ['settings_misses' => (object) self::top($rSum)] + $rConnects;
+			// A load balancer's build only: MAIN's would ask the servers whether it
+			// is MAIN, at a connect that has no database yet.
+			if (!NodeRole::mainBuild() && StreamRuntime::keeps()) {
+				// Does the node run from its own copy: it boots from the replica (its
+				// settings and servers built), the replica owns its streams'
+				// definitions, and its own store of their state is whole? MAIN asks it
+				// before it moves the node to mode 2 (ClusterAdmin::modeGate), where it
+				// can read none of that from MAIN, nor seed the store.
+				$rDoc['streams_local'] = ReplicaBoot::ready() && ReplicaStreamCache::owned() && StreamRuntime::seededFor(self::serverID());
+			}
+			return AtomicFile::write($rAgentDir . 'audit.json', (string) json_encode($rDoc, JSON_UNESCAPED_SLASHES));
 		}, $rAgentDir);
+	}
+
+	/**
+	 * Publish again because what `streams_local` says may have stopped being
+	 * true (the store lapsed, a section is no longer the replica's): MAIN then
+	 * hears it with the node's next heartbeat, not a minute later. Never throws.
+	 */
+	public static function republish(): void {
+		try {
+			self::publish();
+		} catch (\Throwable) {
+			// The next counted connect or the hourly cron publishes it.
+		}
+	}
+
+	/** This node's server id: a process may publish at its first connect, before its boot defined SERVER_ID. */
+	private static function serverID(): int {
+		if (defined('SERVER_ID')) {
+			return (int) SERVER_ID;
+		}
+		return class_exists(\XC_VM::class, false) ? (int) ConfigReader::get('server_id', 0) : 0;
 	}
 
 	/**

@@ -74,6 +74,35 @@ final class ClusterCredentialsActionTest extends TestCase {
 		}
 	}
 
+	/**
+	 * The one step with no way back waits: for seven days in mode 2, counted
+	 * from when the page moved the node there (the move itself no longer
+	 * waits), and for a node that says it reads its streams on itself, since
+	 * mode down is how that heals and it needs these credentials. A node MAIN
+	 * holds no such record for (born in mode 2) is asked as before.
+	 */
+	public function testAStripWaitsForSevenDaysInModeTwoAndForLocalStreams(): void {
+		(new \ReflectionProperty(\XcVm\Domain\Cluster\NodeAudit::class, 'db'))->setValue(null, null);
+		ClusterMeta::set(ClusterAdmin::MODE2_AT . 7, (string) (ClusterClock::now() - 7 * 86400 + 60));
+		$this->assertSame(['type' => 'warning', 'message' => 'cluster_strip_too_soon'], $this->act('strip_credentials'));
+		[$rCode, $rOut] = $this->cli(['7', '--yes']);
+		$this->assertSame(1, $rCode);
+		$this->assertStringContainsString('not been in mode 2 for seven days', $rOut);
+		$this->assertSame([], $this->audit(), 'nothing was asked of the node');
+
+		ClusterMeta::set(ClusterAdmin::MODE2_AT . 7, (string) (ClusterClock::now() - 7 * 86400));
+		$this->assertSame(['type' => 'warning', 'message' => 'cluster_strip_not_queued'], $this->act('strip_credentials'), 'seven days: asked (no signed channel here)');
+
+		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `audit` text');
+		$this->rDb->exec('UPDATE `cluster_nodes` SET `audit` = \'{"settings_misses":{},"streams_local":false}\'');
+		$this->assertSame(['type' => 'warning', 'message' => 'cluster_strip_not_local'], $this->act('strip_credentials'));
+		[$rCode, $rOut] = $this->cli(['7', '--yes']);
+		$this->assertStringContainsString('does not read its streams on itself', $rOut);
+		$this->rDb->exec('UPDATE `cluster_nodes` SET `audit` = \'{"settings_misses":{},"streams_local":true}\'');
+		$this->assertSame(['type' => 'warning', 'message' => 'cluster_strip_not_queued'], $this->act('strip_credentials'));
+		$this->assertSame(['node.strip_credentials admin:3', 'node.strip_credentials admin:3'], $this->audit());
+	}
+
 	public function testThePagePinsTheCoreOnlyForARootReadyNode(): void {
 		$this->rDb->exec('UPDATE `cluster_nodes` SET `root_ready` = 0');
 		$this->assertSame(['type' => 'warning', 'message' => 'cluster_pin_core_no_root'], $this->act('pin_core'));

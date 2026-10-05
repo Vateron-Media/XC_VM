@@ -163,6 +163,12 @@ use XcVm\Domain\Stream\CategoryService;
 LayoutRenderer::renderFooter('admin');
 ?>
 <script>
+    // listings.js hangs its engine on this object and needs it there when it
+    // loads: without it the script stopped at its first assignment and the
+    // guide stayed empty.
+    window.XC_VM = window.XC_VM || {};
+    window.XC_VM.Listings = window.XC_VM.Listings || {};
+
     function selectChannel(rID) {
         window.location.href = "stream_view?id=" + rID;
     }

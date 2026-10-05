@@ -113,9 +113,30 @@ moves one part of its work to the agent and stands the legacy path down.
 | 2 | api | every connect to MAIN's MariaDB or Redis is refused in code (`LbDatabaseAccessException`) |
 
 Moving a node up is gated (`ClusterAdmin::modeGate()`): mode 1 needs CONFIG; mode 2 needs
-every flow, the data plane included, **and** the node's own connect audit clean — zero MySQL and
-zero Redis connects for seven days. Moving down is always allowed, because it is the way
-back. A crontab row whose role is `legacy` (today `cron:users`) is not sent to a node in
+every flow, the data plane included, root's pin, and a node that can run that way now: state
+`active`, heard within `NodeHealth::SUSPECT_AFTER_MS`, and `streams_local` true in its last
+audit report. The node says that itself (`SettingsAudit::publish()`): it boots from its replica
+(`ReplicaBoot::ready()`), the replica owns its stream definitions, and its own store of their
+state is seeded. It says it again at once whenever that stops being true (`StreamRuntime::lapse()`,
+`ReplicaApply`), because in mode 2 it can neither seed the store nor read from MAIN. `act()` also
+refuses the move while `redis_handler` is on: the node's stream entry opens MAIN's Redis at every
+viewer, which mode 2 refuses.
+
+The connect audit is **not** part of the gate. A node in mode 1 reads MAIN's database by design
+(its crons, its signals daemon, viewer authentication), so the zero the gate once waited seven
+days for could only come in mode 2. The move takes nothing from the node, so `mode_down` undoes
+it, and it is always allowed. The seven days (`ClusterAdmin::CUTOVER_CLEAN_DAYS`) stand before the
+step with no way back: `DbCredentials::strip()` refuses until the node has been in mode 2 that
+long (MAIN notes when in `cluster_meta`, `mode2_at.<server id>`), and while it reports
+`streams_local` false.
+
+On the node, a move into or out of mode 2 is followed within a pass: the signals, queue and
+fanout_sync daemons (`DaemonTrait::refreshOrBreak()`), the scanner and the on-demand daemon leave
+their loop when `NodeRole::refusesConnects()` is no longer what it was at their start, so none
+keeps the connection it opened. The connect audit's window starts again when the node begins to
+refuse (`ConnectAudit::follow()`): what the Cluster Nodes page shows after the move is what mode 2
+turned away.
+A crontab row whose role is `legacy` (today `cron:users`) is not sent to a node in
 mode 2 at all.
 
 ## The node replica
@@ -234,8 +255,8 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
 7. DATAPLANE, once the node's parents and the servers whose files it reads are MAIN or
    active nodes, and its agent runs the relay proxy (the page refuses the switch
    otherwise): relays and file reads go through its agent from each stream's next start.
-8. Leave it for a week. When the node's connect audit shows zero MySQL and zero Redis
-   connects for seven days, `mode_up` to 2.
+8. `mode_up` to 2 once the node says `streams_local`, a minute or two after its flows are on.
+   Watch its *MAIN DB connects* box (counted afresh from the move) and its streams afterwards.
 9. `cluster:db-allowlist apply` once every node is in mode 2.
 10. *Drop DB credentials* on the node (or `cluster:strip-credentials`): the node's
     `config.enc` loses MAIN's DB and Redis credentials, then MAIN revokes its grant. There is

@@ -86,7 +86,7 @@ class CleanupCronJob implements CommandInterface {
 
 		// First, and without a database: everything after streamChecks()
 		// reads MAIN's database, which a node in mode 2 skips.
-		// This node's connect audit: the cutover gate reads seven days of it.
+		// This node's connect audit: its report covers seven days.
 		ConnectAudit::prune(8);
 		// Its settings misses: the days that left the report's window drop out
 		// of the audit.json its agent sends.

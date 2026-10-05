@@ -9,6 +9,7 @@ use XcVm\Core\Cluster\HlsReaping;
 use XcVm\Core\Cluster\LogSink;
 use XcVm\Core\Cluster\NodeStateSink;
 use XcVm\Core\Cluster\Redactor;
+use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
@@ -95,8 +96,8 @@ final class EventIngest {
 
 	/**
 	 * What runs when an event changed a stream's routing state (tests; by
-	 * default StreamProcess::updateStream, the cache signal the node used to
-	 * write itself). Null restores the default.
+	 * default the stream's cache job is queued for MAIN, the signal the node
+	 * used to write itself). Null restores the default.
 	 *
 	 * @param (callable(int): mixed)|null $rHook
 	 */
@@ -648,7 +649,13 @@ final class EventIngest {
 				(self::$rOnStreamChanged)($rStreamID);
 				return;
 			}
-			StreamProcess::updateStream($rStreamID);
+			// Not StreamProcess::updateStream(): it finds MAIN in the server
+			// list, which the API's bootstrap does not load, and queued the job
+			// for server 0, whose signals nobody reads. MAIN's cache then kept
+			// the stream's old state until the next full rebuild.
+			if (SettingsManager::get('enable_cache')) {
+				SignalDispatcher::cache(MainDataPlane::mainId(), ['type' => 'update_stream', 'id' => $rStreamID], true, false, self::db());
+			}
 		});
 	}
 

@@ -4,6 +4,7 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Cluster\AgentConnections;
+use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
@@ -78,9 +79,12 @@ class OndemandCommand implements CommandInterface {
 		$rLastCheck = null;
 		$rInterval = 60;
 		$rMD5 = md5_file(__FILE__);
+		// Left when the node moves into or out of mode 2: this loop pings the
+		// connection it opened, which would keep it open on MAIN for good.
+		$rRefuses = NodeRole::refusesConnects();
 
 		while (true) {
-			if (!$db || !$db->ping() || (SettingsManager::get('redis_handler') && !$rAgentViewers && RedisManager::instance() && !RedisManager::instance()->ping())) {
+			if ($rRefuses !== NodeRole::refusesConnects() || !$db || !$db->ping() || (SettingsManager::get('redis_handler') && !$rAgentViewers && RedisManager::instance() && !RedisManager::instance()->ping())) {
 				break;
 			}
 

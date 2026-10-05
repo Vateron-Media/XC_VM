@@ -144,10 +144,19 @@ appears there as **active**.
 
 ### Step 3: move work to the cluster, one feature at a time
 
-A new load balancer joins in **mode 1** with every feature switched off. It is connected and
-reporting, but it still works the old way. You then switch its features (**flows**) on, one by
-one, on the **Cluster Nodes** page. Each switch moves one kind of work from "the LB uses MAIN's
-database" to "the agent does it through the secure channel".
+A new load balancer joins in **mode 1**. Its features are called **flows**: each one moves one
+kind of work from "the LB uses MAIN's database" to "the agent does it through the secure channel".
+
+A load balancer you **install from the panel** gets its flows switched on by the install itself,
+as soon as its agent has connected. The machine was stopped for the install, so it has no viewers
+or streams to move over carefully. The install log says what was switched. If the node's agent
+cannot relay, **Data plane** alone stays off, and you switch it on from **Cluster Nodes** later.
+If the agent has not connected within about a minute, the install leaves every flow off and says
+so in its log: switch them on from **Cluster Nodes**, as below.
+
+A load balancer that **was already running** and joined with an enrol code starts with every flow
+off. It is connected and reporting, but it still works the old way. You then switch its flows on,
+one by one, on the **Cluster Nodes** page.
 
 Switch them on in this order. After each one, watch the LB for a while (its streams, its viewers,
 the warnings on Cluster Nodes) before going on:
@@ -173,15 +182,50 @@ sudo -u xc_vm /home/xc_vm/console.php cluster:seed-connections <server id>
 
 ### Step 4: full cluster mode (mode 2)
 
-**Mode 2** means the load balancer no longer touches MAIN's database at all. The page only lets you
-press **Mode up** when it is safe:
+**Mode 2** means the load balancer no longer touches MAIN's database at all. Press **Mode up**
+(the **+** next to the mode) on a load balancer in mode 1. The page moves it only when it can run
+that way right now:
 
 - every flow is on, Data plane included;
 - the *Root pin* badge is shown, so updates and restarts can reach the LB as signed commands;
-- the LB has reported **seven days in a row** with no connection to MAIN's MySQL or Redis. The
-  *MAIN DB connects* box on Cluster Nodes shows what still connects, if anything.
+- the LB is **active** (not quarantined) and MAIN heard it in the last ten seconds;
+- the LB itself says that it runs from its own copy: it starts from its local settings and reads
+  its streams by itself. That takes a minute or two after the flows are switched on. If it is not
+  there yet, the page tells you so: try again shortly;
+- the panel does not use the **Redis connection handler**. With it, a load balancer in mode 2
+  would turn every viewer away, so the page refuses the move.
 
-**Mode down** is always allowed. It is your way back if something misbehaves.
+The page asks you to confirm first. From its next heartbeat (about two seconds) the load balancer
+opens no connection to MAIN's MySQL or Redis, and its background services restart within a minute
+so that none keeps an old one. The *MAIN DB connects* box starts counting again at that moment:
+whatever it shows from then on was refused, with the file and line that asked. That is something
+on the load balancer that still needs MAIN's database. Watch that box and the node's streams for a
+while after the move. A red **Streams not local** badge next to the mode means the load balancer
+cannot read its streams any more: press **Mode down**, wait a minute or two, then **Mode up** again.
+
+!!! warning "What can and cannot be undone"
+    The move to mode 2 takes nothing away from the load balancer: it keeps its database
+    credentials, so **Mode down** brings everything back, at any time.
+
+    It stops being undoable in these cases:
+
+    - after **Drop DB credentials** (Step 5). There is then no way back from the panel. The page
+      warns you if you press **Mode down** on such a load balancer: in mode 1 it would have no
+      database at all;
+    - after a database or Redis **password change** made while the load balancer was in mode 2.
+      The new password does not reach it, so after **Mode down** it cannot connect. For the
+      database password, set it on the load balancer (`console.php cluster:set-db-password`).
+      For the Redis password, run the Redis rotation on MAIN again after **Mode down**: it then
+      reaches this load balancer too;
+    - after a **reinstall** of the load balancer while it is in mode 2: the install gives it no
+      database credentials, and the page cannot tell, so **Mode down** does not warn you;
+    - while MAIN is locked down (`cluster:lockdown`): undo the lockdown first.
+
+    With the **DB Allowlist** on (Step 5), MAIN's firewall lets the load balancer back in up to a
+    minute after **Mode down**. Its services may fail and restart once during that minute.
+
+    Do not switch the **Redis connection handler** on while a load balancer is in mode 2. The
+    Cache page refuses it.
 
 ### Step 5 (optional): lock everything down
 
@@ -189,7 +233,10 @@ Only when every load balancer is in mode 2:
 
 1. **Drop DB credentials** (Cluster Nodes, per LB) removes MAIN's database and Redis passwords
    from the load balancer, and MAIN cancels its database access. This step cannot be undone from
-   the panel.
+   the panel, so the page allows it only after the load balancer has spent **seven days in mode
+   2**, and not while it shows **Streams not local**. Use those days: if the *MAIN DB connects*
+   box of that load balancer keeps showing refused connections, something on it still needs
+   MAIN's database.
 2. **DB Allowlist** (Settings → Cluster) firewalls MAIN's MySQL and Redis so that only MAIN, and
    servers that still need them, can connect.
 3. **Proxies:** reinstall each proxy from **Servers → Manage Proxies**, so it gets its own key and

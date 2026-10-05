@@ -200,7 +200,7 @@ LayoutRenderer::renderFooter('admin');
                                 location.reload();
                             } else {
                                 btn.disabled = false;
-                                toast(errText, 'error');
+                                toast((d && d.message) || errText, 'error');
                             }
                         })
                         .catch(function() {

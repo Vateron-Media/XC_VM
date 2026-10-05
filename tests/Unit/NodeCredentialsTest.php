@@ -28,6 +28,8 @@ final class NodeCredentialsTest extends TestCase {
 		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 2, `db_revoked_at` int DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
 		$this->rDb->exec('CREATE TABLE `cluster_commands` (`server_id` int, `cmd_id` char(32), `type` varchar(32), `payload` text)');
+		// When the page moved a node to mode 2 (DbCredentials::strip counts its days from it); none here.
+		$this->rDb->exec('CREATE TABLE `cluster_meta` (`name` varchar(64) PRIMARY KEY, `value` text, `updated_at` int)');
 		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_ip` varchar(255))');
 		$this->rDb->exec("INSERT INTO `servers` (`id`, `server_ip`) VALUES (7, '10.0.0.7')");
 		$this->rDb->exec('INSERT INTO `cluster_nodes` (`server_id`) VALUES (7)');

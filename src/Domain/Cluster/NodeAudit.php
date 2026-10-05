@@ -50,9 +50,11 @@ final class NodeAudit {
 	 * (the stored report stays). Entries that are not a settings name (or a
 	 * site) and a count are dropped; past SettingsAudit::MAX_KEYS names (or
 	 * ConnectAudit::MAX_SITES sites), the least count under "*". The connect
-	 * counters are kept only when all three are well formed.
+	 * counters are kept only when all three are well formed, and
+	 * `streams_local` (does the node read its streams on itself:
+	 * SettingsAudit::publish) only as the boolean it is.
 	 *
-	 * @return array{settings_misses: array<string, int>, sql_connects?: int, redis_connects?: int, sites?: array<string, int>, connects_since?: int}|null
+	 * @return array{settings_misses: array<string, int>, sql_connects?: int, redis_connects?: int, sites?: array<string, int>, connects_since?: int, streams_local?: bool}|null
 	 */
 	public static function normalise(mixed $rAudit): ?array {
 		if (!is_array($rAudit) || !is_array($rAudit['settings_misses'] ?? null) || strlen((string) json_encode($rAudit, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR)) > self::MAX_BYTES) {
@@ -65,7 +67,8 @@ final class NodeAudit {
 				$rMisses[$rKey] = $rCount;
 			}
 		}
-		return ['settings_misses' => SettingsAudit::top($rMisses)] + self::connects($rAudit);
+		return ['settings_misses' => SettingsAudit::top($rMisses)] + self::connects($rAudit)
+			+ (is_bool($rAudit['streams_local'] ?? null) ? ['streams_local' => $rAudit['streams_local']] : []);
 	}
 
 	/**
@@ -80,7 +83,43 @@ final class NodeAudit {
 				$rDoc['connects_since'] = $rAudit['connects_since'];
 			}
 		}
+		if (isset($rAudit['streams_local'])) {
+			$rDoc['streams_local'] = (bool) $rAudit['streams_local'];
+		}
 		return (string) json_encode($rDoc, JSON_UNESCAPED_SLASHES);
+	}
+
+	/**
+	 * Does the node read its streams on itself (its replica owns their
+	 * definitions and its own store of their state is whole), by its last
+	 * report? Null when the report does not say: none yet, or a node whose
+	 * release predates the member. The move to mode 2 asks it
+	 * (ClusterAdmin::modeGate).
+	 *
+	 * @param array<string, mixed>|null $rReport one of reports()
+	 */
+	public static function streamsLocal(?array $rReport): ?bool {
+		return is_bool($rReport['streams_local'] ?? null) ? $rReport['streams_local'] : null;
+	}
+
+	/**
+	 * Drop what a node said of its streams: it said it in the mode it has just
+	 * left (ClusterAdmin::act()), and says it again in its next report. A
+	 * report it has not rewritten since comes back with its next heartbeat,
+	 * as true as it was: the node rewrites it whenever the answer changes
+	 * (StreamRuntime::lapse, ReplicaApply) and removes it in mode 0.
+	 */
+	public static function forgetStreamsLocal(int $rServerID): void {
+		$rReport = self::reports()[$rServerID] ?? null;
+		if ($rReport === null || !array_key_exists('streams_local', $rReport)) {
+			return;
+		}
+		unset($rReport['streams_local']);
+		try {
+			NodeRegistry::update($rServerID, ['audit' => self::encode($rReport)]);
+		} catch (\Throwable) {
+			// The gate still asks that the node was heard a moment ago.
+		}
 	}
 
 	/**

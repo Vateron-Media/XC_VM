@@ -55,8 +55,16 @@ final class ClusterAdmin {
 		| NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONTENT | NodeRegistry::FLOW_CONFIG | NodeRegistry::FLOW_CONNECTIONS
 		| NodeRegistry::FLOW_DATAPLANE;
 
-	/** Days of zero MySQL and Redis connects a node must report before mode 2 (plan, section 11: the cutover gate). */
+	/**
+	 * Days a node spends in mode 2 before it may give up MAIN's credentials
+	 * (DbCredentials::strip): the step that cannot be undone. They stood
+	 * before the move to mode 2 (plan, section 11), as days of no connect to
+	 * MAIN, which a node in mode 1 never shows (modeGate()).
+	 */
 	public const CUTOVER_CLEAN_DAYS = 7;
+
+	/** cluster_meta: when a node entered mode 2, by MAIN's clock (`mode2_at.<server id>`); gone when it leaves. */
+	public const MODE2_AT = 'mode2_at.';
 
 	/**
 	 * May this node move to $rMode? Pure, so the gate is tested without a request.
@@ -65,15 +73,25 @@ final class ClusterAdmin {
 	 * Going up to 1 needs the config replica, because that is what a node boots
 	 * from. Going up to 2 stops the node reaching MAIN's database at all, so it
 	 * needs every flow, the data plane included, root's pin in place (`root_ready`:
-	 * root actions then reach it only as node.root commands), and the node's own
-	 * connect audit must show it has not opened MySQL or Redis for CUTOVER_CLEAN_DAYS.
+	 * root actions then reach it only as node.root commands), and a node that
+	 * can run that way now: active (a quarantined node takes no command), heard
+	 * by MAIN a moment ago, and saying by itself that it boots and reads its
+	 * streams from its own copy ($rStreamsLocal). In mode 2 it can neither seed
+	 * that store nor read them from MAIN.
 	 *
-	 * @param array<string, mixed>  $rNode     cluster_nodes row.
-	 * @param array<string, mixed>|null $rConnects NodeAudit::connectsOf() of its last report.
-	 * @param int $rNow Unix seconds.
+	 * The node's connect audit is not asked. A node in mode 1 reads MAIN's
+	 * database by design (its crons, its signals daemon, viewer authentication),
+	 * so the zero this gate used to wait seven days for could only come in mode
+	 * 2, and no node could be moved. The move takes nothing from the node: its
+	 * credentials and MAIN's grant stay, so mode_down undoes it. The days are
+	 * asked where there is no way back (DbCredentials::strip, CUTOVER_CLEAN_DAYS).
+	 *
+	 * @param array<string, mixed> $rNode cluster_nodes row.
+	 * @param bool $rHeard Was the node heard within NodeHealth::SUSPECT_AFTER_MS (act())?
+	 * @param bool|null $rStreamsLocal NodeAudit::streamsLocal() of its last report; null when it does not say.
 	 * @return array{0: bool, 1: string} [allowed, message key]
 	 */
-	public static function modeGate(array $rNode, ?array $rConnects, int $rMode, int $rNow): array {
+	public static function modeGate(array $rNode, int $rMode, bool $rHeard = false, ?bool $rStreamsLocal = null): array {
 		if ($rMode < 0 || $rMode > 2) {
 			return [false, 'cluster_mode_unknown'];
 		}
@@ -93,23 +111,37 @@ final class ClusterAdmin {
 			// ADR 0004, Mode 2: without root's pin no root action reaches a node that no longer polls MAIN's signals table.
 			return [false, 'cluster_mode_needs_root'];
 		}
-		if ($rConnects === null) {
-			return [false, 'cluster_mode_no_audit'];
+		if (($rNode['state'] ?? null) !== 'active') {
+			return [false, 'cluster_mode_needs_active'];
 		}
-		if ((int) $rConnects['sql_connects'] !== 0 || (int) $rConnects['redis_connects'] !== 0) {
-			return [false, 'cluster_mode_still_connects'];
+		if (!$rHeard) {
+			// Its last report is only as old as its last heartbeat.
+			return [false, 'cluster_mode_not_heard'];
 		}
-		$rSince = (int) ($rConnects['connects_since'] ?? 0);
-		if ($rSince <= 0 || $rNow - $rSince < self::CUTOVER_CLEAN_DAYS * 86400) {
-			return [false, 'cluster_mode_too_soon'];
+		if ($rStreamsLocal !== true) {
+			return [false, 'cluster_mode_needs_streams'];
 		}
 		return [true, 'cluster_mode_done'];
 	}
 
 	/**
+	 * Is a node in mode 2? While one is, the Redis connection handler stays
+	 * off (the Cache page asks): that node may not open MAIN's Redis, which
+	 * its stream entry does for every viewer with the handler on. The other
+	 * order is act()'s: no move to mode 2 while the handler is on.
+	 */
+	public static function anyInModeTwo(): bool {
+		try {
+			return self::db()->query("SELECT 1 FROM `cluster_nodes` WHERE `mode` = 2 AND `state` IN ('active', 'quarantined') LIMIT 1;") && self::db()->num_rows() > 0;
+		} catch (\Throwable) {
+			return false; // no cluster tables: no nodes
+		}
+	}
+
+	/**
 	 * @param array<int, array<string, mixed>> $rServers ServerRepository::getAll(true)
 	 * @return list<array<string, mixed>> One row per enrolled node, with `server_name`, `health`,
-	 *                                    `settings_misses` and `connects` (NodeAudit; null when not reported),
+	 *                                    `settings_misses`, `connects` and `streams_local` (NodeAudit; null when not reported),
 	 *                                    `relay` (its agent runs the relay proxy), `relay_down_since` and
 	 *                                    `relay_error` (NodeRelay; null and '' while it holds its port),
 	 *                                    `core_pinned` (CorePins) and `db_revoked_at` (null: never).
@@ -145,6 +177,7 @@ final class ClusterAdmin {
 			$rRow['health'] = $rRow['state'] === 'active' ? NodeHealth::state($rLastSeen, $rReady, $rNow, $rOfflineAfterSec) : (string) $rRow['state'];
 			$rRow['settings_misses'] = $rReports[(int) $rRow['server_id']]['settings_misses'] ?? null;
 			$rRow['connects'] = NodeAudit::connectsOf($rReports[(int) $rRow['server_id']] ?? null);
+			$rRow['streams_local'] = NodeAudit::streamsLocal($rReports[(int) $rRow['server_id']] ?? null);
 			$rRow['relay'] = self::relayAdvertised($rRow);
 			$rOut[] = $rRow;
 		}
@@ -284,11 +317,35 @@ final class ClusterAdmin {
 					if ($rWanted < 0 || $rWanted > 2) {
 						return ['type' => 'info', 'message' => 'cluster_mode_unknown'];
 					}
-					[$rAllowed, $rWhy] = self::modeGate($rNode, NodeAudit::connectsOf(NodeAudit::reports()[$rServerID] ?? null), $rWanted, time());
+					// The step is relative, so the form says which mode it was drawn for:
+					// a page reloaded after a move (the browser posts it again), or left
+					// open while someone else moved the node, moves nothing. The step to
+					// mode 2 is never taken without it: only the form that asks first sends it.
+					$rShown = $rInput['mode'] ?? null;
+					if ($rShown !== null && $rShown !== '' ? (int) $rShown !== (int) $rNode['mode'] : $rWanted === 2) {
+						return ['type' => 'info', 'message' => 'cluster_mode_moved'];
+					}
+					if ($rWanted === 2 && $rAction === 'mode_up' && !empty($rSettings['redis_handler'])) {
+						// With the Redis connection handler the node's stream entry opens
+						// MAIN's Redis at every viewer (live.php, vod.php, timeshift.php),
+						// which mode 2 refuses: every one of them would be turned away.
+						return ['type' => 'warning', 'message' => 'cluster_mode_redis_handler'];
+					}
+					// As nodes() reads it: MySQL's copy may be a flush behind the bus's.
+					$rLastSeen = HeartbeatService::freshest($rNode['last_seen_at'] ?? null, HeartbeatService::lastSeen()[$rServerID] ?? null);
+					$rHeard = $rLastSeen !== null && ClusterClock::nowMs() - $rLastSeen <= NodeHealth::SUSPECT_AFTER_MS;
+					[$rAllowed, $rWhy] = self::modeGate($rNode, $rWanted, $rHeard, NodeAudit::streamsLocal(NodeAudit::reports()[$rServerID] ?? null));
 					if (!$rAllowed) {
 						return ['type' => 'warning', 'message' => $rWhy];
 					}
 					NodeRegistry::update($rServerID, ['mode' => $rWanted]);
+					if ($rWanted === 2) {
+						ClusterMeta::set(self::MODE2_AT . $rServerID, (string) ClusterClock::now());
+					} elseif ((int) $rNode['mode'] === 2) {
+						ClusterMeta::delete(self::MODE2_AT . $rServerID);
+					}
+					// What it said of its streams, it said in the mode it leaves: it says it again.
+					NodeAudit::forgetStreamsLocal($rServerID);
 					ClusterAudit::log('node.mode', $rServerID, ['mode' => $rWanted, 'was' => (int) $rNode['mode']], $rUserID === null ? 'admin' : 'admin:' . $rUserID);
 					return ['type' => 'success', 'message' => 'cluster_mode_done'];
 
