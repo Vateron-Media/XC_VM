@@ -331,8 +331,9 @@ class ServerDiagnoseCommand implements CommandInterface {
 			$rProblems[] = 'The system cron service is not running — the xc_vm crontab (including cron:servers) never fires, so a dead watchdog stays dead. `sudo systemctl start cron`.';
 		}
 
-		// 6c. A hung cron:servers holds its lock and blocks every relaunch for up
-		// to 30 min (ProcessManager::acquireCronLock stale timeout is 1800s).
+		// 6c. A hung cron:servers holds its lock and blocks every relaunch until
+		// its process is ended (ProcessManager::acquireCronLock keeps a live
+		// holder's lock).
 		$rLock = ProcessManager::cronLockPath(ServersCronJob::class);
 		if (file_exists($rLock)) {
 			$rLockPID = intval(trim((string) @file_get_contents($rLock)));
@@ -340,7 +341,7 @@ class ServerDiagnoseCommand implements CommandInterface {
 			$rHung    = $rLockPID > 0 && file_exists('/proc/' . $rLockPID) && $rLockAge > 120;
 			$this->line('servers cron lock', "held by PID {$rLockPID} for {$rLockAge}s", !$rHung);
 			if ($rHung) {
-				$rProblems[] = "A cron:servers instance (PID {$rLockPID}) has been holding its cron lock for {$rLockAge}s — it is hung (likely since the same DB/network blip that killed the watchdog) and blocks every babysitter run for up to 30 minutes. Kill it: `sudo kill -9 {$rLockPID}`; the next cron minute will relaunch the watchdog.";
+				$rProblems[] = "A cron:servers instance (PID {$rLockPID}) has been holding its cron lock for {$rLockAge}s — it is hung (likely since the same DB/network blip that killed the watchdog) and blocks every babysitter run until it is ended. Kill it: `sudo kill -9 {$rLockPID}`; the next cron minute will relaunch the watchdog.";
 			}
 		}
 

@@ -58,8 +58,11 @@ trait CronTrait {
 	 */
 	protected function acquireCronLock(): void {
 		ProcessManager::exitIfCronLockHeld(ProcessManager::legacyCronLockPath(static::class, SettingsManager::get('live_streaming_pass')));
-		$this->rIdentifier = ProcessManager::cronLockPath(static::class);
-		ProcessManager::acquireCronLock($this->rIdentifier);
+		// The lock is this run's to remove (registerShutdown) only once it has
+		// it: a run turned away here exits and leaves the holder's lock alone.
+		$rIdentifier = ProcessManager::cronLockPath(static::class);
+		ProcessManager::acquireCronLock($rIdentifier);
+		$this->rIdentifier = $rIdentifier;
 	}
 
 	/**

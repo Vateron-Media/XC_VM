@@ -2,6 +2,8 @@
 
 namespace XcVm\Core\Process;
 
+use XcVm\Core\Cluster\SettingsAudit;
+use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Module\SourceDriverRegistry;
 use XcVm\Core\Util\Encryption;
 
@@ -28,7 +30,7 @@ use XcVm\Core\Util\Encryption;
  *   ProcessManager::kill($pid, SIGTERM); // graceful
  *
  *   // Cron locking
- *   ProcessManager::acquireCronLock('/tmp/cron_streams.pid', 1800);
+ *   ProcessManager::acquireCronLock('/tmp/cron_streams.pid');
  *   // ... do work ...
  *   // Lock file cleaned up automatically on exit
  *
@@ -408,59 +410,99 @@ class ProcessManager {
 	}
 
 	/**
-	 * Exit like acquireCronLock() when $lockFile is held by a live, fresh
-	 * process; never takes or writes the lock.
+	 * The pid that holds $lockFile, 0 when nobody does (no lock, or its
+	 * process is gone).
+	 *
+	 * A lock carries "pid starttime", the start time as /proc/PID/stat gives
+	 * it, and is held for as long as that very process lives: a pid the system
+	 * has handed to another process since is not the holder, nor is a process
+	 * that has ended and only waits for its parent to collect it. A lock of the
+	 * previous release carries the pid alone and is judged as that release
+	 * judged it, by the pid and for thirty minutes; with $rPinned it has no
+	 * holder.
+	 *
+	 * @param bool $rPinned Count only a lock that names its holder's start time.
 	 */
-	public static function exitIfCronLockHeld(string $lockFile, int $timeout = 1800): void {
+	public static function cronLockHolder(string $lockFile, bool $rPinned = false): int {
+		// The file may be removed at any moment by a competing run: no warning.
 		$contents = @file_get_contents($lockFile);
-		$mtime = @filemtime($lockFile);
-		if ($contents === false || $mtime === false) {
+		if ($contents === false) {
+			return 0;
+		}
+
+		$rParts = explode(' ', trim($contents));
+		$pid = (int) $rParts[0];
+		if ($pid <= 0 || !self::procExists($pid)) {
+			return 0;
+		}
+
+		if (!isset($rParts[1])) {
+			$mtime = @filemtime($lockFile);
+			return (!$rPinned && $mtime !== false && time() - $mtime < 1800) ? $pid : 0;
+		}
+
+		// Ended, and still in /proc until its parent collects it (state Z, the
+		// field after the name): it holds nothing.
+		$rStat = (string) @file_get_contents('/proc/' . $pid . '/stat');
+		if (substr($rStat, (int) strrpos($rStat, ')') + 1, 2) === ' Z') {
+			return 0;
+		}
+
+		// An unreadable stat says nothing about who the process is: by its pid.
+		$rSample = self::resourceSample($pid);
+		return ($rSample === null || $rSample['start'] === (int) $rParts[1]) ? $pid : 0;
+	}
+
+	/**
+	 * Exit like acquireCronLock() when $lockFile is held; never takes or
+	 * writes the lock.
+	 *
+	 * The holder is never ended here, however long it has run: a backup or a
+	 * clean-up may take hours. So a cron that hangs keeps its lock, and no new
+	 * run of it starts, until someone ends that process; each run that finds a
+	 * holder over an hour old says so in the panel's log. A root cron writes
+	 * that line as the owner of the logs directory (SettingsAudit::asAgentUser):
+	 * the directory is xc_vm's, where root neither creates a file of its own
+	 * nor follows a link. PHP's error_log (the cron's stderr) only when root
+	 * cannot switch.
+	 */
+	public static function exitIfCronLockHeld(string $lockFile): void {
+		$pid = self::cronLockHolder($lockFile);
+		if ($pid === 0) {
 			return;
 		}
-		if (self::procExists((int) trim($contents)) && time() - $mtime < $timeout) {
-			exit('Running...');
+
+		$mtime = @filemtime($lockFile);
+		if ($mtime !== false && time() - $mtime >= 3600) {
+			// The same text for every run: cron:errors folds the runs of one pass into one row.
+			$rName = trim(str_replace("\0", ' ', (string) @file_get_contents('/proc/' . $pid . '/cmdline')));
+			$rLine = ($rName !== '' ? $rName : 'A cron') . ' (pid ' . $pid . ') has held its cron lock since ' . date('Y-m-d H:i:s', $mtime) . ': no new run starts while it lives, and nothing ends it. If it hangs, kill it';
+			$rKept = SettingsAudit::asAgentUser(static function () use ($rLine, $lockFile): bool {
+				FileLogger::log('cron', $rLine, $lockFile);
+				return true;
+			}, dirname(FileLogger::getLogFile()));
+			if (!$rKept) {
+				error_log('XC_VM ' . $rLine);
+			}
 		}
+
+		exit('Running...');
 	}
 
 	/**
 	 * Acquire a cron lock (PID file)
 	 *
-	 * If a lock file exists with a running process, exits with 'Running...'.
-	 * If the process is stale (older than $timeout), kills it and takes over.
-	 * Creates a new lock file with the current PID.
+	 * If the lock is held (cronLockHolder()), exits with 'Running...'; the
+	 * holder is left alone. Otherwise writes the lock with the current PID and
+	 * its start time.
 	 *
 	 * This replaces CoreUtilities::checkCron().
 	 *
 	 * @param string $lockFile Path to PID lock file
-	 * @param int $timeout Maximum age in seconds before considering stale (default: 1800 = 30min)
 	 * @return bool Always returns true (exits on conflict)
 	 */
-	public static function acquireCronLock(string $lockFile, int $timeout = 1800) {
-		if (file_exists($lockFile)) {
-			// Read content + mtime up front. A competing cron can remove the lock
-			// file between the exists() check and these reads (TOCTOU), which would
-			// otherwise emit "failed to open stream" / "stat failed" warnings. If it
-			// vanished, fall through and take the lock ourselves.
-			$contents = @file_get_contents($lockFile);
-			$mtime = @filemtime($lockFile);
-
-			if ($contents !== false && $mtime !== false) {
-				$pid = (int) trim($contents);
-
-				if (self::procExists($pid)) {
-					// Process is running — check if it's stale
-					if (time() - $mtime >= $timeout) {
-						// Stale — kill and take over
-						if ($pid > 0) {
-							posix_kill($pid, 9);
-						}
-					} else {
-						// Still fresh — another instance is running
-						exit('Running...');
-					}
-				}
-			}
-		}
+	public static function acquireCronLock(string $lockFile) {
+		self::exitIfCronLockHeld($lockFile);
 
 		// Write our PID
 		$lockDir = dirname($lockFile);
@@ -485,7 +527,10 @@ class ProcessManager {
 			}
 		}
 
-		file_put_contents($lockFile, getmypid());
+		// Without a readable start time the lock carries the pid alone, and is
+		// judged like one of the previous release.
+		$rSample = self::resourceSample(getmypid());
+		file_put_contents($lockFile, getmypid() . ($rSample !== null ? ' ' . $rSample['start'] : ''));
 
 		return true;
 	}

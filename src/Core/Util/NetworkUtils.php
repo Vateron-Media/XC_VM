@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Util;
 
-use XcVm\Core\Process\ProcessManager;
-
 /**
  * Network Utilities
  *
@@ -253,42 +251,51 @@ class NetworkUtils {
 	}
 
 	/**
-	 * Register a download against a user's concurrent-download flood limit.
+	 * The slot file this request holds for its download, by download type.
 	 *
-	 * Prunes finished PIDs and allows the new download only if the limit is not
-	 * reached. Restreamers and a zero limit are always allowed.
+	 * @var array<string, array{0: string, 1: resource}>
+	 */
+	private static array $rDownloadSlots = [];
+
+	/**
+	 * Admit a download under a user's limit of concurrent downloads of its type.
+	 *
+	 * A running download is an exclusive lock on one of the user's slot files of
+	 * that type, as many as the limit, held by the request that serves it. The
+	 * lock ends with the request however it ends, so a download that is over
+	 * never holds a slot. Restreamers and a zero limit are always allowed.
 	 *
 	 * @param string $rType        Download type ('epg' or 'playlist').
 	 * @param array  $rUser        User row.
-	 * @param int    $rDownloadPID PID of this download.
+	 * @param int    $rDownloadPID Not used: the download is the lock, not the process.
 	 * @param int    $rFloodLimit  Max concurrent downloads (0 = unlimited).
 	 * @return bool True if the download is allowed.
 	 */
 	public static function startDownload(string $rType, array $rUser, int $rDownloadPID, int $rFloodLimit) {
 		if ($rFloodLimit != 0) {
 			if (!$rUser['is_restreamer']) {
-				$rFile = FLOOD_TMP_PATH . $rUser['id'] . '_downloads';
-				$rFloodRow = ['epg' => [], 'playlist' => []];
-				if (file_exists($rFile) && time() - filemtime($rFile) < 10) {
-					$rExisting = json_decode(file_get_contents($rFile), true);
-					if (is_array($rExisting)) {
-						$rFloodRow = array_merge($rFloodRow, $rExisting);
+				// A process serves one download of a type at a time.
+				self::stopDownload($rType, $rUser, $rDownloadPID, $rFloodLimit);
+				for ($rSlot = 0; $rSlot < $rFloodLimit; $rSlot++) {
+					$rFile = FLOOD_TMP_PATH . $rUser['id'] . '_downloads_' . $rType . '_' . $rSlot;
+					$rHandle = @fopen($rFile, 'c');
+					if ($rHandle === false) {
+						// No slot can be kept (tmp/ is full or missing): nobody is refused for that.
+						return true;
 					}
-					$rActive = [];
-					foreach (($rFloodRow[$rType] ?? []) as $rPID) {
-						if (ProcessManager::isRunning($rPID, 'php-fpm') && $rPID != $rDownloadPID) {
-							$rActive[] = $rPID;
-						}
+					if (flock($rHandle, LOCK_EX | LOCK_NB, $rBusy)) {
+						// cron:tmp removes a file of this directory ten minutes after its last
+						// change: dated a day ahead, the slot stays for as long as a download runs.
+						@touch($rFile, time() + 86400);
+						self::$rDownloadSlots[$rType] = [$rFile, $rHandle];
+						return true;
 					}
-					$rFloodRow[$rType] = $rActive;
+					fclose($rHandle);
+					if (!$rBusy) {
+						return true;
+					}
 				}
-				$rAllow = false;
-				if (count($rFloodRow[$rType]) < $rFloodLimit) {
-					$rFloodRow[$rType][] = $rDownloadPID;
-					$rAllow = true;
-				}
-				file_put_contents($rFile, json_encode($rFloodRow), LOCK_EX);
-				return $rAllow;
+				return false;
 			}
 			return true;
 		}
@@ -296,34 +303,24 @@ class NetworkUtils {
 	}
 
 	/**
-	 * Remove a finished download from the user's flood-limit tracking file.
+	 * Give back the slot of this request's download of the type, if it holds one.
 	 *
 	 * @param string $rType        Download type ('epg' or 'playlist').
 	 * @param array  $rUser        User row.
-	 * @param int    $rDownloadPID PID of the download to remove.
-	 * @param int    $rFloodLimit  Configured flood limit (0 = no tracking).
+	 * @param int    $rDownloadPID Not used.
+	 * @param int    $rFloodLimit  Not used: a slot taken is given back whatever the limit is now.
 	 * @return void
 	 */
 	public static function stopDownload(string $rType, array $rUser, int $rDownloadPID, int $rFloodLimit) {
-		if ($rFloodLimit != 0) {
-			if (!$rUser['is_restreamer']) {
-				$rFile = FLOOD_TMP_PATH . $rUser['id'] . '_downloads';
-				if (file_exists($rFile)) {
-					$rFloodRow[$rType] = [];
-					foreach (json_decode(file_get_contents($rFile), true)[$rType] as $rPID) {
-						if (ProcessManager::isRunning($rPID, 'php-fpm') && $rPID != $rDownloadPID) {
-							$rFloodRow[$rType][] = $rPID;
-						}
-					}
-				} else {
-					$rFloodRow = ['epg' => [], 'playlist' => []];
-				}
-				file_put_contents($rFile, json_encode($rFloodRow), LOCK_EX);
-			} else {
-				return;
-			}
-		} else {
+		if (!isset(self::$rDownloadSlots[$rType])) {
 			return;
 		}
+		[$rFile, $rHandle] = self::$rDownloadSlots[$rType];
+		unset(self::$rDownloadSlots[$rType]);
+		// Dated now again: cron:tmp removes the file ten minutes after the slot was last used.
+		@touch($rFile);
+		// Unlocked, not only closed: a process started during the download may hold a copy of the handle.
+		flock($rHandle, LOCK_UN);
+		fclose($rHandle);
 	}
 }

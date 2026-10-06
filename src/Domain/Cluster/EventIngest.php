@@ -718,8 +718,8 @@ final class EventIngest {
 
 	/**
 	 * A `log.syslog` row as MAIN keeps it: what root did on the sending node
-	 * (LogSink::syslog), so one of LogSink::SYSLOG_TYPES (never `AUTH`, whose
-	 * addresses cron:root_mysql blocks), as `root` from `localhost` with no
+	 * (LogSink::syslog), so one of LogSink::SYSLOG_TYPES (never `AUTH`, which
+	 * no node writes), as `root` from `localhost` with no
 	 * database, dated no later than MAIN's clock: the newest date is
 	 * cron:root_mysql's watermark for MySQL's own log. Null: refused.
 	 *

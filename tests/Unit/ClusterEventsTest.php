@@ -256,7 +256,7 @@ final class ClusterEventsTest extends TestCase {
 
 	/**
 	 * A `log.syslog` row is root's on the sending node: one of the types
-	 * root writes (never `AUTH`, whose addresses cron:root_mysql blocks),
+	 * root writes (never `AUTH`, which no node writes),
 	 * as `root` from `localhost`, dated no later than MAIN's clock (the
 	 * newest date is cron:root_mysql's watermark), redacted.
 	 */
