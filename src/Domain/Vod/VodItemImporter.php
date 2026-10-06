@@ -239,13 +239,14 @@ class VodItemImporter {
 	/**
 	 * Report a file's processing outcome.
 	 *
+	 * @param array $rThreadData Its `title` (an M3U import's entry name) goes in the event.
 	 * @param int $rThreadType
 	 * @param string $rFile
 	 * @param int $rStatus VodImportResultEvent::STATUS_*
 	 * @param int $rStreamID
 	 */
-	private static function reportResult($rThreadType, $rFile, $rStatus, $rStreamID = 0) {
-		EventDispatcher::dispatch(new VodImportResultEvent((int) $rThreadType, (int) SERVER_ID, (string) $rFile, (int) $rStatus, (int) $rStreamID));
+	private static function reportResult($rThreadData, $rThreadType, $rFile, $rStatus, $rStreamID = 0) {
+		EventDispatcher::dispatch(new VodImportResultEvent((int) $rThreadType, (int) SERVER_ID, (string) $rFile, (int) $rStatus, (int) $rStreamID, (string) ($rThreadData['title'] ?? '')));
 	}
 
 	/**
@@ -285,7 +286,7 @@ class VodItemImporter {
 		if ($rThreadData['auto_encode']) {
 			StreamProcess::queueMovie($rUpgradeData['id']);
 		}
-		self::reportResult($rThreadType, $rFile, VodImportResultEvent::STATUS_UPGRADED);
+		self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_UPGRADED);
 		$rWriteCache($rUpgradeData);
 		throw new VodItemImportHalt();
 	}
@@ -746,7 +747,7 @@ class VodItemImporter {
 				} else {
 					flock($rFileLock, LOCK_UN);
 					unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
-					self::reportResult($rThreadType, $rFile, VodImportResultEvent::STATUS_NO_CATEGORY);
+					self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_CATEGORY);
 					throw new VodItemImportHalt();
 				}
 			} else {
@@ -830,14 +831,14 @@ class VodItemImporter {
 			}
 			$rImportArray['category_id'] = '[' . implode(',', array_map('intval', $rCategoryIDs)) . ']';
 			if (count($rCategoryIDs) == 0) {
-				self::reportResult($rThreadType, $rFile, VodImportResultEvent::STATUS_NO_CATEGORY);
+				self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_CATEGORY);
 				throw new VodItemImportHalt();
 			}
 		} else {
 			if ($rSeries) {
 				$rImportArray['series_no'] = $rSeries['id'];
 			} else {
-				self::reportResult($rThreadType, $rFile, VodImportResultEvent::STATUS_NO_MATCH);
+				self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_MATCH);
 				throw new VodItemImportHalt();
 			}
 		}
@@ -877,11 +878,11 @@ class VodItemImporter {
 				}
 			}
 			echo 'Success!' . "\n";
-			self::reportResult($rThreadType, $rFile, VodImportResultEvent::STATUS_IMPORTED, $rInsertID);
+			self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_IMPORTED, $rInsertID);
 			throw new VodItemImportHalt();
 		} else {
 			echo 'Insert failed!' . "\n";
-			self::reportResult($rThreadType, $rFile, VodImportResultEvent::STATUS_INSERT_FAILED);
+			self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_INSERT_FAILED);
 			throw new VodItemImportHalt();
 		}
 	}
@@ -1149,14 +1150,14 @@ class VodItemImporter {
 								break 2;
 							}
 						} else {
-							self::reportResult($rThreadType, $rFile, VodImportResultEvent::STATUS_NO_MATCH);
+							self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_MATCH);
 							return;
 						}
 					}
 				}
 				if (!$rMatch && !$rThreadData['ignore_no_match']) {
 					echo 'No match!' . "\n";
-					self::reportResult($rThreadType, $rFile, VodImportResultEvent::STATUS_NO_MATCH);
+					self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_MATCH);
 					return;
 				}
 				$rBouquetIDs = [];
@@ -1213,7 +1214,7 @@ class VodItemImporter {
 				}
 			} else {
 				echo 'File is broken!' . "\n";
-				self::reportResult($rThreadType, $rFile, VodImportResultEvent::STATUS_BROKEN_FILE);
+				self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_BROKEN_FILE);
 				return;
 			}
 		} else {
