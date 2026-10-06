@@ -4,6 +4,7 @@ namespace XcVm\Core\Util;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Stream\StreamSorter;
 
@@ -444,11 +445,20 @@ class AdminHelpers {
 	 */
 	public static function parserelease(string $rRelease) {
 		if (SettingsManager::get('parse_type') == 'guessit') {
-			$rCommand = MAIN_HOME . 'bin/guess ' . escapeshellarg(pathinfo($rRelease)['filename'] . '.mkv');
-		} else {
-			$rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'bin/python/release.py ' . escapeshellarg(pathinfo(str_replace('-', '_', $rRelease))['filename']);
+			return self::runReleaseParser('guessit', pathinfo($rRelease)['filename'] . '.mkv');
 		}
+		return self::runReleaseParser('ptn', pathinfo(str_replace('-', '_', $rRelease))['filename']);
+	}
 
-		return json_decode(shell_exec($rCommand), true);
+	/**
+	 * Run a release parser, bin/guess (guessit) or bin/python/release.py (any
+	 * other type), on one argument: a release name, or a JSON object of them.
+	 * The argument is one argv element, never passed through a shell.
+	 *
+	 * @return mixed its decoded JSON answer; null when it printed none (it failed or cannot run)
+	 */
+	public static function runReleaseParser(string $rType, string $rArgument): mixed {
+		$rArgv = $rType === 'guessit' ? [MAIN_HOME . 'bin/guess', $rArgument] : ['/usr/bin/python3', MAIN_HOME . 'bin/python/release.py', $rArgument];
+		return json_decode(ProcessRunner::capture($rArgv, 1 << 20)[1], true);
 	}
 }
