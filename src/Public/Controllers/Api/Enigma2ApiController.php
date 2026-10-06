@@ -79,11 +79,27 @@ class Enigma2ApiController {
 		}
 
 		$this->deny = false;
+
+		// Only an active line is served, as on the playlist and EPG APIs.
+		if (!is_null($this->userInfo['exp_date']) && $this->userInfo['exp_date'] <= time()) {
+			generateError('EXPIRED');
+		}
+
+		if (!$this->userInfo['admin_enabled']) {
+			generateError('BANNED');
+		}
+
+		if (!$this->userInfo['enabled']) {
+			generateError('DISABLED');
+		}
+
 		$db = DatabaseFactory::open();
 		BruteforceGuard::checkAuthFlood($this->userInfo);
-		$this->liveCategories = CategoryService::getFromDatabase('live');
-		$this->vodCategories = CategoryService::getFromDatabase('movie');
-		$this->seriesCategories = CategoryService::getFromDatabase('series');
+		// Only the categories the line's bouquets reach, as in the player API.
+		$rOwn = fn(array $rCategory): bool => in_array($rCategory['id'], $this->userInfo['category_ids']);
+		$this->liveCategories = array_filter(CategoryService::getFromDatabase('live'), $rOwn);
+		$this->vodCategories = array_filter(CategoryService::getFromDatabase('movie'), $rOwn);
+		$this->seriesCategories = array_filter(CategoryService::getFromDatabase('series'), $rOwn);
 
 		if ($rSettings['enable_cache']) {
 			$rChannels = $this->userInfo['channel_ids'];
@@ -283,7 +299,8 @@ class Enigma2ApiController {
 	private function getSeasons(?int $rSeriesID) {
 		global $db;
 
-		if (!isset($rSeriesID)) {
+		// Only a series the line's bouquets include (and so never a missing id).
+		if (!in_array($rSeriesID, $this->userInfo['series_ids'] ?? [], true)) {
 			return;
 		}
 
@@ -313,7 +330,8 @@ class Enigma2ApiController {
 	private function getSeriesStreams(?int $rSeriesID, ?int $rSeason, ?int $rCatID) {
 		global $db;
 
-		if (!isset($rSeriesID) || !isset($rSeason)) {
+		// Only a series the line's bouquets include (and so never a missing id).
+		if (!isset($rSeason) || !in_array($rSeriesID, $this->userInfo['series_ids'] ?? [], true)) {
 			return;
 		}
 
