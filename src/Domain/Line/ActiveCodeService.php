@@ -87,9 +87,9 @@ class ActiveCodeService {
 		// A reseller's codes follow its lines: official from a package that sells
 		// subscriptions unless trial codes are asked for, and trial codes only
 		// from a package that gives trials. A package that does neither sells none.
-		// The reseller's is_trial is read as a switch: sent as false it asks for none.
+		// Either one's is_trial is read as a switch: sent as false it asks for none.
 		$isTrial = $isAdmin
-			? (!empty($package['is_trial']) || !empty($data['is_trial']))
+			? (!empty($package['is_trial']) || filter_var($data['is_trial'] ?? false, FILTER_VALIDATE_BOOLEAN))
 			: (filter_var($data['is_trial'] ?? false, FILTER_VALIDATE_BOOLEAN) || empty($package['is_official']));
 		if ($isTrial && !$isAdmin && empty($package['is_trial'])) {
 			return ['status' => 'ERROR', 'message' => 'Invalid package selected.'];

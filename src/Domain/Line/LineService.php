@@ -161,7 +161,10 @@ class LineService {
 
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_user')) {
-					$rLine = UserRepository::getLineById($rData['edit']);
+					// The edit starts from the line as stored: the row cleaner's
+					// escaping would be written back into every field not sent.
+					$db->query('SELECT * FROM `lines` WHERE `id` = ?;', intval($rData['edit']));
+					$rLine = $db->get_raw_row();
 					$rArray = AdminHelpers::overwriteData($rLine, $rData);
 				} else {
 					exit();
@@ -194,10 +197,12 @@ class LineService {
 				return ['status' => STATUS_INVALID_PASSWORD, 'data' => $rData];
 			}
 
+			// A new line starts at 1; an edit keeps the line's own value unless
+			// the request sends one (the form has no enabled or admin_enabled).
 			foreach (['max_connections', 'enabled', 'admin_enabled'] as $rSelection) {
 				if (isset($rData[$rSelection])) {
 					$rArray[$rSelection] = intval($rData[$rSelection]);
-				} else {
+				} elseif (!$rLine) {
 					$rArray[$rSelection] = 1;
 				}
 			}
@@ -231,7 +236,9 @@ class LineService {
 				$rArray['exp_date'] = null;
 			}
 
-			if (!$rArray['member_id']) {
+			// A new line without an owner is the saving user's; a line whose
+			// owner was deleted keeps none until the request names one.
+			if (!$rArray['member_id'] && !($rLine && is_null($rArray['member_id']))) {
 				$rArray['member_id'] = $GLOBALS['rAdminUserInfo']['id'];
 			}
 
