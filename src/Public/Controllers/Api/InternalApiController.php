@@ -566,7 +566,7 @@ class InternalApiController {
 		$rFetchArguments = [];
 
 		if (!empty($rRequest['user_agent'])) {
-			$rFetchArguments[] = sprintf("-user_agent '%s'", escapeshellcmd($rRequest['user_agent']));
+			$rFetchArguments[] = '-user_agent ' . escapeshellarg($rRequest['user_agent']);
 		}
 
 		if ($rProxy !== '') {
@@ -574,7 +574,7 @@ class InternalApiController {
 		}
 
 		if (!empty($rRequest['cookies'])) {
-			$rFetchArguments[] = sprintf("-cookies '%s'", escapeshellcmd($rRequest['cookies']));
+			$rFetchArguments[] = '-cookies ' . escapeshellarg($rRequest['cookies']);
 		}
 
 		$rHeaders = !empty($rRequest['headers']) ? rtrim($rRequest['headers'], "\r\n") . "\r\n" : '';

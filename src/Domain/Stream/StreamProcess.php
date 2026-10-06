@@ -266,6 +266,10 @@ class StreamProcess {
 	 * also emitted as a plain ffmpeg flag. Shared by createChannelItem, startMovie
 	 * and startStream, which previously inlined this block verbatim.
 	 *
+	 * Attribute 16 without a logo path is a profile saved by an earlier version
+	 * that deinterlaces and scales with no logo: attribute 9 then becomes the one
+	 * `-vf` chain of both, as ProfileService stores it now.
+	 *
 	 * @param array $rTranscodeAttributes Transcode attributes (attr 16 unset in place).
 	 * @param bool  $rLoopback            Loopback streams never overlay a logo.
 	 * @return string `-i <logo> -filter_complex "..."`, or '' when no logo applies.
@@ -275,7 +279,7 @@ class StreamProcess {
 			return '';
 		}
 		$rAttr = $rTranscodeAttributes;
-		$rLogoPath = $rAttr[16]['val'];
+		$rLogoPath = (string) ($rAttr[16]['val'] ?? '');
 		$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
 
 		$rChain = [];
@@ -288,6 +292,19 @@ class StreamProcess {
 			$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
 		}
 
+		// A profile saved by an earlier version that deinterlaces and scales
+		// without a logo stores attribute 16 too, with no path. There is no
+		// second input then: the two filters are one chain on the source, a
+		// plain video filter of every output.
+		if ($rLogoPath === '') {
+			unset($rTranscodeAttributes[16]);
+			if ($rVideoFilters !== []) {
+				unset($rTranscodeAttributes[17]);
+				$rTranscodeAttributes[9] = '-vf "' . addcslashes(implode(',', $rVideoFilters), '"$`\\') . '"';
+			}
+			return '';
+		}
+
 		if ($rVideoFilters !== []) {
 			$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
 			$rBase = '[bg]';
@@ -297,7 +314,8 @@ class StreamProcess {
 		$rChain[] = $rBase . '[logo]overlay=' . $rPos;
 
 		unset($rTranscodeAttributes[16]);
-		return '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
+		// The scaling and the position are the profile's own text: escaped for the quotes they sit in.
+		return '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . addcslashes(implode('; ', $rChain), '"$`\\') . '"';
 	}
 
 	/**
@@ -571,7 +589,7 @@ class StreamProcess {
 	 * two identical FLV output lines in startStream.
 	 *
 	 * @param string $rFLVOptions Leading option placeholders ({MAP} {AAC_FILTER}).
-	 * @param string $rTarget     The rtmp:// URL or escaped push URL.
+	 * @param string $rTarget     The rtmp:// URL, or the token a push URL takes.
 	 * @return string The `… -f flv … <target> ` output fragment.
 	 */
 	private static function buildFlvOutput(string $rFLVOptions, string $rTarget) {
@@ -1002,10 +1020,21 @@ class StreamProcess {
 			$rOutputs['flv'][] = self::buildFlvOutput($rFLVOptions, 'rtmp://127.0.0.1:' . intval($rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID));
 		}
 
+		// A push URL is a value, not template text: it takes a token of its own.
+		$rPushTargets = [];
 		if (!empty($rExternalPush[SERVER_ID])) {
 			foreach ($rExternalPush[SERVER_ID] as $rPushURL) {
-				$rOutputs['flv'][] = self::buildFlvOutput($rFLVOptions, escapeshellarg($rPushURL));
+				$rToken = '{PUSH_' . count($rPushTargets) . '}';
+				$rPushTargets[$rToken] = escapeshellarg($rPushURL);
+				$rOutputs['flv'][] = self::buildFlvOutput($rFLVOptions, $rToken);
 			}
+		}
+
+		// The tee output ends at its closing quote, where the plain HLS output
+		// ends with a space: the options of an output after it need one. A tee
+		// output with nothing after it stays as it is.
+		if (isset($rOutputs['flv']) && substr($rOutputs['mpegts'][0], -1) !== ' ') {
+			$rOutputs['mpegts'][0] .= ' ';
 		}
 
 		$rLogoOptions = self::buildLogoFilterOptions($rStream['stream_info']['transcode_attributes'], $rLoopback);
@@ -1031,12 +1060,12 @@ class StreamProcess {
 						$rFFMPEG .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
 					}
 
-					$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
+					$rFFMPEG .= '{TRANSCODE} ';
 					$rFFMPEG .= $rOutputCommand;
 				}
 			}
 		} else {
-			$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
+			$rFFMPEG .= '{TRANSCODE} ';
 			$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
 		}
 
@@ -1052,23 +1081,23 @@ class StreamProcess {
 
 		$audioCodec = (isset($rFFProbeOutput['codecs']['audio']['codec_name']) && is_array($rFFProbeOutput['codecs']['audio'])) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : '';
 
-		return str_replace(
-			['{FETCH_OPTIONS}', '{GEN_PTS}', '{STREAM_SOURCE}', '{MAP}', '{READ_NATIVE}', '{CONCAT}', '{AAC_FILTER}', '{GPU}', '{INPUT_CODEC}', '{LOGO}', '{LLOD}'],
-			[
-				empty($rStream['stream_info']['custom_ffmpeg']) ? $rFetchOptions : '',
-				empty($rStream['stream_info']['custom_ffmpeg']) ? $rGenPTS : '',
-				escapeshellarg($rStreamSource),
-				empty($rStream['stream_info']['custom_ffmpeg']) ? $rMap : '',
-				empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : '',
-				($rStream['stream_info']['type_key'] == 'created_live' && empty($rStream['server_info']['parent_id']) ? '-safe 0 -f concat' : ''),
-				self::aacBitstreamFilter($ffprobeContainer, $audioCodec, $rStream['stream_info']['transcode_attributes']['-acodec'] ?? ''),
-				$rGPUOptions,
-				$rInputCodec,
-				$rLogoOptions,
-				$rLLODOptions
-			],
-			$rFFMPEG
-		);
+		// One pass over the template: what takes a token's place is a value, and
+		// is not read for tokens itself. A profile's GPU options name the place
+		// of the input decoder themselves, so that one is filled in them first.
+		return strtr($rFFMPEG, [
+			'{FETCH_OPTIONS}' => empty($rStream['stream_info']['custom_ffmpeg']) ? $rFetchOptions : '',
+			'{GEN_PTS}' => empty($rStream['stream_info']['custom_ffmpeg']) ? $rGenPTS : '',
+			'{STREAM_SOURCE}' => escapeshellarg($rStreamSource),
+			'{MAP}' => empty($rStream['stream_info']['custom_ffmpeg']) ? $rMap : '',
+			'{READ_NATIVE}' => empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : '',
+			'{CONCAT}' => ($rStream['stream_info']['type_key'] == 'created_live' && empty($rStream['server_info']['parent_id']) ? '-safe 0 -f concat' : ''),
+			'{AAC_FILTER}' => self::aacBitstreamFilter($ffprobeContainer, $audioCodec, $rStream['stream_info']['transcode_attributes']['-acodec'] ?? ''),
+			'{GPU}' => strtr((string) $rGPUOptions, ['{INPUT_CODEC}' => $rInputCodec]),
+			'{INPUT_CODEC}' => $rInputCodec,
+			'{LOGO}' => $rLogoOptions,
+			'{LLOD}' => $rLLODOptions,
+			'{TRANSCODE}' => implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])),
+		] + $rPushTargets);
 	}
 
 	// ── Fanout supervision + native remuxer ─────────────────────────────────
@@ -1828,7 +1857,8 @@ class StreamProcess {
 	 *
 	 * @param array|null $rStates FanoutClient::monitorStates(), or null to fetch it.
 	 * @return int[]|null Ids supervised after the pass; null when the daemon is
-	 *                    unreachable (unknown — never "none").
+	 *                    unreachable or the rows could not be read (unknown —
+	 *                    never "none").
 	 */
 	public static function reconcileSupervised(?array $rStates = null): ?array {
 		if ($rStates === null) {
@@ -1855,7 +1885,10 @@ class StreamProcess {
 				}
 			}
 		} else {
-			$db->query('SELECT `' . implode('`, `', $rColumns) . '` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . implode(',', $rIDs) . ')', SERVER_ID);
+			// Not read is not none: every stream no row names is released below.
+			if (!$db->query('SELECT `' . implode('`, `', $rColumns) . '` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . implode(',', $rIDs) . ')', SERVER_ID)) {
+				return null;
+			}
 			foreach ($db->get_rows() as $rRow) {
 				$rRows[intval($rRow['stream_id'])] = $rRow;
 			}
@@ -2036,10 +2069,17 @@ class StreamProcess {
 					if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
 						$rCommand .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
 					}
-					$rCommand .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
+					$rCommand .= '{TRANSCODE} ';
 					$rCommand .= '-strict -2 -mpegts_flags +initial_discontinuity -f mpegts "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.ts"';
 					$rCommand .= ' >/dev/null 2>"' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.errors" & echo $! > "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid"';
-					$rCommand = str_replace(['{GPU}', '{INPUT_CODEC}', '{LOGO}', '{STREAM_SOURCE}'], [$rGPUOptions, $rInputCodec, $rLogoOptions, escapeshellarg($rSourcePath)], $rCommand);
+					// One pass, as in buildLive(): a value is not read for tokens itself.
+					$rCommand = strtr($rCommand, [
+						'{GPU}' => strtr((string) $rGPUOptions, ['{INPUT_CODEC}' => $rInputCodec]),
+						'{INPUT_CODEC}' => $rInputCodec,
+						'{LOGO}' => $rLogoOptions,
+						'{STREAM_SOURCE}' => escapeshellarg($rSourcePath),
+						'{TRANSCODE}' => implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])),
+					]);
 				}
 
 				shell_exec($rCommand);
@@ -2260,18 +2300,28 @@ class StreamProcess {
 					$rLogoOptions = self::buildLogoFilterOptions($rStream['stream_info']['transcode_attributes'], $rLoopback);
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 					$rInputCodec = self::resolveGpuInputCodec($rGPUOptions, $rMoviePath);
-					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} {FETCH_OPTIONS} -fflags +genpts -async 1 {READ_NATIVE} -i {STREAM_SOURCE} {LOGO} ' . $rSubtitlesImport;
+					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} {FETCH_OPTIONS} -fflags +genpts -async 1 {READ_NATIVE} -i {STREAM_SOURCE} {LOGO} {SUBTITLES}';
 					$rMap = self::resolveOutputMap($rStream['stream_info']['custom_map'], $rStream['stream_info']['remove_subtitles']);
 					self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
 					$rStream['stream_info']['transcode_attributes']['-scodec'] = self::subtitleCodecForContainer($rStream['stream_info']['target_container']);
 					$rOutputs = [];
 					$rOutputs[$rStream['stream_info']['target_container']] = '-movflags +faststart -dn ' . $rMap . ' -ignore_unknown ' . $rSubtitlesMetadata . ' ' . VOD_PATH . intval($rStreamID) . '.' . escapeshellcmd($rStream['stream_info']['target_container']);
 					foreach ($rOutputs as $rOutputCommand) {
-						$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
+						$rFFMPEG .= '{TRANSCODE} ';
 						$rFFMPEG .= $rOutputCommand;
 					}
 					$rFFMPEG .= ' >/dev/null 2>' . VOD_PATH . intval($rStreamID) . '.errors & echo $! > ' . VOD_PATH . intval($rStreamID) . '_.pid';
-					$rFFMPEG = str_replace(['{GPU}', '{INPUT_CODEC}', '{LOGO}', '{FETCH_OPTIONS}', '{STREAM_SOURCE}', '{READ_NATIVE}'], [$rGPUOptions, $rInputCodec, $rLogoOptions, (empty($rFetchOptions) ? '' : $rFetchOptions), escapeshellarg($rMoviePath), (empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : '')], $rFFMPEG);
+					// One pass, as in buildLive(): a value is not read for tokens itself.
+					$rFFMPEG = strtr($rFFMPEG, [
+						'{GPU}' => strtr((string) $rGPUOptions, ['{INPUT_CODEC}' => $rInputCodec]),
+						'{INPUT_CODEC}' => $rInputCodec,
+						'{LOGO}' => $rLogoOptions,
+						'{FETCH_OPTIONS}' => (empty($rFetchOptions) ? '' : $rFetchOptions),
+						'{STREAM_SOURCE}' => escapeshellarg($rMoviePath),
+						'{READ_NATIVE}' => (empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : ''),
+						'{SUBTITLES}' => $rSubtitlesImport,
+						'{TRANSCODE}' => implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])),
+					]);
 				}
 
 				shell_exec($rFFMPEG);
@@ -2564,7 +2614,8 @@ class StreamProcess {
 							}
 						}
 
-						$rProbeCmd = str_replace(['{FETCH_OPTIONS}', '{CONCAT}', '{STREAM_SOURCE}'], [$rProbeOptions, ($rStream['stream_info']['type_key'] == 'created_live' && !$rStream['server_info']['parent_id'] ? '-safe 0 -f concat' : ''), escapeshellarg($rStreamSource)], $rFFProbee);
+						// One pass, as in buildLive(): a value is not read for tokens itself.
+						$rProbeCmd = strtr($rFFProbee, ['{FETCH_OPTIONS}' => $rProbeOptions, '{CONCAT}' => ($rStream['stream_info']['type_key'] == 'created_live' && !$rStream['server_info']['parent_id'] ? '-safe 0 -f concat' : ''), '{STREAM_SOURCE}' => escapeshellarg($rStreamSource)]);
 						$rFFProbeOutput = json_decode(shell_exec($rProbeCmd), true);
 
 						if ($rFFProbeOutput && isset($rFFProbeOutput['streams'])) {

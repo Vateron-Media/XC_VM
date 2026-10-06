@@ -82,13 +82,47 @@ class StreamUtils {
 					$rArgument['value'] = self::proxyURL((string) $rArgument['value']);
 				}
 				if ($rArgument['argument_type'] == 'text') {
-					$rReturn[] = sprintf($rArgument['argument_cmd'], $rArgument['value']);
+					$rReturn[] = sprintf($rArgument['argument_cmd'], self::quoteForTemplate((string) $rArgument['argument_cmd'], (string) $rArgument['value']));
 				} else {
 					$rReturn[] = $rArgument['argument_cmd'];
 				}
 			}
 		}
 		return $rReturn;
+	}
+
+	/**
+	 * Quote a text argument's value for the place its %s takes in the command
+	 * template, so the shell that runs the line hands the program the value
+	 * exactly as stored, as one argument: inside '...', inside "...", or
+	 * wrapped in "..." where the template leaves it unquoted. A template
+	 * without %s (%d) formats the number itself.
+	 *
+	 * @param string $rTemplate argument_cmd, e.g. `-user_agent "%s"`.
+	 * @param string $rValue    The stored value.
+	 * @return string
+	 */
+	private static function quoteForTemplate(string $rTemplate, string $rValue): string {
+		$rPosition = strpos($rTemplate, '%s');
+		if ($rPosition === false) {
+			return $rValue;
+		}
+		$rQuote = '';
+		for ($i = 0; $i < $rPosition; $i++) {
+			if ($rQuote === '') {
+				$rQuote = in_array($rTemplate[$i], ['"', "'"]) ? $rTemplate[$i] : '';
+			} elseif ($rTemplate[$i] === $rQuote) {
+				$rQuote = '';
+			}
+		}
+		if ($rQuote === "'") {
+			return str_replace("'", "'\\''", $rValue);
+		}
+		// Double quotes also where the template has none: parseTranscode() looks
+		// for -filter_complex "..." in the text, and a value escaped for them
+		// cannot hold one.
+		$rValue = addcslashes($rValue, '"$`\\');
+		return $rQuote === '"' ? $rValue : '"' . $rValue . '"';
 	}
 
 	/**
@@ -107,7 +141,8 @@ class StreamUtils {
 				if (isset($rArgument['cmd'])) {
 					$rArgs[$rKey] = $rArgument = $rArgument['cmd'];
 				}
-				if (preg_match('/-filter_complex "(.*?)"/', $rArgument, $rMatches)) {
+				// A clause runs to its closing quote: a quote escaped for the shell (\") is part of it.
+				if (preg_match('/-filter_complex "((?:[^"\\\\\n]|\\\\[^\n])*+)"/', $rArgument, $rMatches)) {
 					$rArgs[$rKey] = trim(str_replace($rMatches[0], '', $rArgs[$rKey]));
 					$rFitlerComplex[] = $rMatches[1];
 				}
