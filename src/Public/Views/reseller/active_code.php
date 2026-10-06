@@ -25,7 +25,9 @@ $packagePrices = [];
 $override = json_decode((string)($rUserInfo['override_packages'] ?? ''), true) ?: [];
 foreach ($rPackages as $pkg) {
     $pkgId = (int)$pkg['id'];
-    $isTrial = !empty($pkg['is_trial']);
+    // A package that sells subscriptions sells official codes; one that gives
+    // trials as well is offered a second time, as trial codes at the trial price.
+    $isTrial = !empty($pkg['is_trial']) && empty($pkg['is_official']);
     if ($isTrial) {
         $cost = floatval($pkg['trial_credits'] ?? 0);
     } else {
@@ -38,6 +40,7 @@ foreach ($rPackages as $pkg) {
     $packagePrices[$pkgId] = [
         'cost' => $cost,
         'is_trial' => $isTrial,
+        'trial_cost' => (!$isTrial && !empty($pkg['is_trial'])) ? floatval($pkg['trial_credits'] ?? 0) : null,
         'name' => (string)$pkg['package_name'],
         'duration' => (int)($isTrial ? $pkg['trial_duration'] : $pkg['official_duration']),
         'duration_in' => (string)($isTrial ? $pkg['trial_duration_in'] : $pkg['official_duration_in']),
@@ -180,6 +183,13 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                                     (<?= $packagePrices[(int)$pkg['id']]['cost']; ?> <?= $language::get('ac_credits') ?>)
                                     <?= $packagePrices[(int)$pkg['id']]['is_trial'] ? ' - [' . $language::get('trial') . ']' : ''; ?>
                                 </option>
+                                <?php if ($packagePrices[(int)$pkg['id']]['trial_cost'] !== null): ?>
+                                    <option value="<?= (int)$pkg['id']; ?>" data-cost="<?= $packagePrices[(int)$pkg['id']]['trial_cost']; ?>" data-trial="1"<?= !$canGenerateTrials ? ' disabled' : ''; ?>>
+                                        <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?>
+                                        (<?= $packagePrices[(int)$pkg['id']]['trial_cost']; ?> <?= $language::get('ac_credits') ?>)
+                                        - [<?= $language::get('trial') ?>]
+                                    </option>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -528,7 +538,8 @@ LayoutRenderer::renderFooter('reseller');
                 let costPerCode = 0;
 
                 if (pkgId && packagePrices[pkgId]) {
-                    costPerCode = packagePrices[pkgId].cost;
+                    // The option picked carries its price: a package can be offered twice.
+                    costPerCode = parseFloat(jQuery('#package_id option:selected').attr('data-cost')) || 0;
                 }
 
                 const totalCost = qty * costPerCode;
@@ -695,6 +706,10 @@ LayoutRenderer::renderFooter('reseller');
                         postData[item.name] = item.value;
                     }
                 });
+                // Trial codes are asked for: the option picked says which kind it is.
+                if (jQuery('#package_id option:selected').attr('data-trial') === '1') {
+                    postData.is_trial = 1;
+                }
 
                 jQuery.post('./api', postData, function(res) {
                     btn.prop('disabled', false).html(origText);

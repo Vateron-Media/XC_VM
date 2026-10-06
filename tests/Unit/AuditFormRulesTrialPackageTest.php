@@ -16,8 +16,8 @@ use XcVm\Tests\Support\InstallSchema;
  * reseller buys no subscription from it, new or for a line it has, as the
  * reseller forms offer none. A trial therefore stays a trial, counted by the
  * trial allowance, until a package that sells subscriptions is bought for
- * it. Every other package of the group sells as before: one marked standard,
- * one marked both, and one marked neither.
+ * it. A package marked standard, or both, sells as before; one marked neither
+ * sells nothing (AuditDecisionPackagesOfficialTest).
  */
 final class AuditFormRulesTrialPackageTest extends TestCase {
 	private const RESELLER = 5;
@@ -25,7 +25,6 @@ final class AuditFormRulesTrialPackageTest extends TestCase {
 	/** Trial only, as the package form leaves the standard part: no price, no term. */
 	private const TRIAL_ONLY = 1;
 	private const STANDARD = 2;
-	private const UNMARKED = 3;
 	private const BOTH = 4;
 
 	private const PRICE = 10;
@@ -126,7 +125,7 @@ final class AuditFormRulesTrialPackageTest extends TestCase {
 	public static function kindsAndSellingPackages(): array {
 		$rCases = [];
 		foreach (self::kinds() as $rName => [$rKind]) {
-			foreach (['marked standard' => self::STANDARD, 'marked neither' => self::UNMARKED, 'marked both' => self::BOTH] as $rMark => $rPackage) {
+			foreach (['marked standard' => self::STANDARD, 'marked both' => self::BOTH] as $rMark => $rPackage) {
 				$rCases[$rName . ', a package ' . $rMark] = [$rKind, $rPackage];
 			}
 		}

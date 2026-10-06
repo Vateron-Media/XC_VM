@@ -84,7 +84,16 @@ class ActiveCodeService {
 		// Calculate credit cost per code. Only an admin may issue trial codes from a
 		// package that is not a trial one: a reseller sending is_trial=1 used to pay
 		// the trial price (usually 0) for official codes.
-		$isTrial = !empty($package['is_trial']) || ($isAdmin && !empty($data['is_trial']));
+		// A reseller's codes follow its lines: official from a package that sells
+		// subscriptions unless trial codes are asked for, and trial codes only
+		// from a package that gives trials. A package that does neither sells none.
+		// The reseller's is_trial is read as a switch: sent as false it asks for none.
+		$isTrial = $isAdmin
+			? (!empty($package['is_trial']) || !empty($data['is_trial']))
+			: (filter_var($data['is_trial'] ?? false, FILTER_VALIDATE_BOOLEAN) || empty($package['is_official']));
+		if ($isTrial && !$isAdmin && empty($package['is_trial'])) {
+			return ['status' => 'ERROR', 'message' => 'Invalid package selected.'];
+		}
 		// A reseller's trial codes come out of its group's trial allowance, as
 		// its trial lines do.
 		if ($isTrial && !$isAdmin && !LineService::canGenerateTrials((int) $user['id'], $qty)) {
@@ -595,8 +604,8 @@ class ActiveCodeService {
 
 	/**
 	 * Whether a reseller may issue codes on a package: a line package offered to
-	 * the reseller's group — the list PackageService::getAll(group, 'line') gives
-	 * the reseller's code pages.
+	 * the reseller's group. Whether it sells codes at all, and of which kind, is
+	 * decided by its switches in generateCodes().
 	 *
 	 * @param array $package Package row.
 	 * @param array $user    Reseller row (member_group_id).

@@ -383,7 +383,7 @@ LayoutRenderer::renderFooter('reseller');
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var statusMessages = <?= json_encode($rStatusMessages); ?>;
 
-        var ownerCredits = <?= (int) $rUserInfo['credits']; ?>;
+        var ownerCredits = <?= (float) $rUserInfo['credits']; ?>;
         var allowChangeBouquets = <?= $rAllowChange ? 'true' : 'false'; ?>;
         var userPackage = <?= $rIsEdit ? (intval($rLine['package_id']) ?: 'null') : 'null'; ?>;
         var userBouquet = <?= $rIsEdit ? json_encode(array_map('intval', json_decode((string) $rLine['bouquet'], true) ?: [])) : '[]'; ?>;

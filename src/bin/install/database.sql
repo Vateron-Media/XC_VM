@@ -2074,7 +2074,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `lang` varchar(50) COLLATE utf8_unicode_ci DEFAULT 'en',
   PRIMARY KEY (`id`),
   KEY `member_group_id` (`member_group_id`),
-  KEY `username` (`username`),
+  UNIQUE KEY `username` (`username`),
   KEY `password` (`password`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -2153,8 +2153,8 @@ CREATE TABLE IF NOT EXISTS `users_logs` (
   `action` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `log_id` int(11) DEFAULT NULL,
   `package_id` int(11) DEFAULT NULL,
-  `cost` int(16) DEFAULT NULL,
-  `credits_after` int(16) DEFAULT NULL,
+  `cost` double DEFAULT NULL,
+  `credits_after` double DEFAULT NULL,
   `date` int(30) DEFAULT NULL,
   `deleted_info` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
   PRIMARY KEY (`id`)

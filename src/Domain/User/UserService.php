@@ -218,7 +218,7 @@ class UserService {
 						$rPrepare['data'][] = $rUser['id'];
 					} else {
 						$rPrepare = QueryHelper::prepareArray($rArray);
-						$rQuery = 'REPLACE INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+						$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 					}
 
 					if ($db->query($rQuery, ...$rPrepare['data'])) {

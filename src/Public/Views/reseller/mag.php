@@ -381,7 +381,7 @@ LayoutRenderer::renderFooter('reseller');
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var statusMessages = <?= json_encode($rStatusMessages); ?>;
 
-        var ownerCredits = <?= (int) $rUserInfo['credits']; ?>;
+        var ownerCredits = <?= (float) $rUserInfo['credits']; ?>;
         var allowChangeBouquets = <?= $rAllowChange ? 'true' : 'false'; ?>;
         var userPackage = <?= isset($rLine) ? (intval($rLine['package_id']) ?: 'null') : 'null'; ?>;
         var userBouquet = <?= isset($rLine) ? json_encode(array_map('intval', json_decode((string) $rLine['bouquet'], true) ?: [])) : '[]'; ?>;

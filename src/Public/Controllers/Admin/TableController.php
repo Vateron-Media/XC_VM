@@ -20,6 +20,7 @@ use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\User\ResellerAPI;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
 use XcVm\Infrastructure\Redis\RedisManager;
@@ -3211,8 +3212,8 @@ class TableController extends BaseAdminController {
 					"line_label"    => $rLineLabel,
 					"line_url"      => $rLineUrl,
 					"text"          => $rText,
-					"cost"          => (int) $rRow["cost"],
-					"credits_after" => (int) $rRow["credits_after"],
+					"cost"          => ResellerAPI::amount($rRow["cost"]),
+					"credits_after" => ResellerAPI::amount($rRow["credits_after"]),
 					"date"          => (int) $rRow["date"],
 				];
 				$rReturn["data"][] = $rIsAPI

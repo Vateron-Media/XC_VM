@@ -234,12 +234,12 @@ class ResellerAPI {
 						$rCompatible = true;
 					}
 
-					// A trial is made from a package that offers trials, and a package
-					// that offers only trials sells no subscription.
-					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? (!$rPackage['is_trial'] || $rPackage['is_official']) : $rPackage['is_trial'])) {
+					// A trial is made from a package that offers trials, and a subscription
+					// is bought from a package that sells them.
+					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
 						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
-								$rCost = intval($rPackage['trial_credits']);
+								$rCost = self::amount($rPackage['trial_credits']);
 							} else {
 								return ['status' => STATUS_NO_TRIALS, 'data' => $rData];
 							}
@@ -247,13 +247,13 @@ class ResellerAPI {
 							$rOverride = json_decode(self::$rUserInfo['override_packages'], true);
 
 							if (isset($rOverride[$rPackage['id']]['official_credits']) && (string) $rOverride[$rPackage['id']]['official_credits'] !== '') {
-								$rCost = intval($rOverride[$rPackage['id']]['official_credits']);
+								$rCost = self::amount($rOverride[$rPackage['id']]['official_credits']);
 							} else {
-								$rCost = intval($rPackage['official_credits']);
+								$rCost = self::amount($rPackage['official_credits']);
 							}
 						}
 
-						if ($rCost <= intval(self::$rUserInfo['credits'])) {
+						if ($rCost <= self::amount(self::$rUserInfo['credits'])) {
 							if (!empty($rData['trial'])) {
 								$rUserArray['exp_date'] = strtotime('+' . intval($rPackage['trial_duration']) . ' ' . $rPackage['trial_duration_in']);
 								$rUserArray['is_trial'] = 1;
@@ -438,7 +438,7 @@ class ResellerAPI {
 							SignalDispatcher::cache(intval(SERVER_ID), ['type' => 'update_line', 'id' => $rArray['user_id']], false, false, $db);
 
 							if (isset($rPackage)) {
-								$rNewCredits = intval(UserCredits::balance(self::$rUserInfo['id']));
+								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
 								if (isset($rArray['id'])) {
 									if ($rUserArray['package_id']) {
@@ -537,12 +537,12 @@ class ResellerAPI {
 						$rCompatible = true;
 					}
 
-					// A trial is made from a package that offers trials, and a package
-					// that offers only trials sells no subscription.
-					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? (!$rPackage['is_trial'] || $rPackage['is_official']) : $rPackage['is_trial'])) {
+					// A trial is made from a package that offers trials, and a subscription
+					// is bought from a package that sells them.
+					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
 						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
-								$rCost = intval($rPackage['trial_credits']);
+								$rCost = self::amount($rPackage['trial_credits']);
 							} else {
 								return ['status' => STATUS_NO_TRIALS, 'data' => $rData];
 							}
@@ -550,13 +550,13 @@ class ResellerAPI {
 							$rOverride = json_decode(self::$rUserInfo['override_packages'], true);
 
 							if (isset($rOverride[$rPackage['id']]['official_credits']) && (string) $rOverride[$rPackage['id']]['official_credits'] !== '') {
-								$rCost = intval($rOverride[$rPackage['id']]['official_credits']);
+								$rCost = self::amount($rOverride[$rPackage['id']]['official_credits']);
 							} else {
-								$rCost = intval($rPackage['official_credits']);
+								$rCost = self::amount($rPackage['official_credits']);
 							}
 						}
 
-						if ($rCost <= intval(self::$rUserInfo['credits'])) {
+						if ($rCost <= self::amount(self::$rUserInfo['credits'])) {
 							if (!empty($rData['trial'])) {
 								$rUserArray['exp_date'] = strtotime('+' . intval($rPackage['trial_duration']) . ' ' . $rPackage['trial_duration_in']);
 								$rUserArray['is_trial'] = 1;
@@ -727,7 +727,7 @@ class ResellerAPI {
 							SignalDispatcher::cache(intval(SERVER_ID), ['type' => 'update_line', 'id' => $rArray['user_id']], false, false, $db);
 
 							if (isset($rPackage)) {
-								$rNewCredits = intval(UserCredits::balance(self::$rUserInfo['id']));
+								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
 								if (isset($rArray['id'])) {
 									if ($rArray['package_id']) {
@@ -856,7 +856,7 @@ class ResellerAPI {
 						}
 
 						if (!isset($rData['edit'])) {
-							$rCost = intval(self::$rPermissions['create_sub_resellers_price']);
+							$rCost = self::amount(self::$rPermissions['create_sub_resellers_price']);
 							if (self::$rUserInfo['credits'] - $rCost < 0) {
 								return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
 							}
@@ -890,7 +890,7 @@ class ResellerAPI {
 							$rPrepare['data'][] = $rArray['id'];
 						} else {
 							$rPrepare = QueryHelper::prepareArray($rArray);
-							$rQuery = 'REPLACE INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+							$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 						}
 
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
@@ -898,7 +898,7 @@ class ResellerAPI {
 							$rData = UserRepository::getRegisteredUserById($rInsertID);
 
 							if (isset($rCost)) {
-								$rNewCredits = intval(UserCredits::balance(self::$rUserInfo['id']));
+								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'new', $rInsertID, $rCost, $rNewCredits, time(), json_encode($rData));
 							} else {
 								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
@@ -1046,12 +1046,12 @@ class ResellerAPI {
 						$rCompatible = true;
 					}
 
-					// A trial is made from a package that offers trials, and a package
-					// that offers only trials sells no subscription.
-					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? (!$rPackage['is_trial'] || $rPackage['is_official']) : $rPackage['is_trial'])) {
+					// A trial is made from a package that offers trials, and a subscription
+					// is bought from a package that sells them.
+					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
 						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
-								$rCost = intval($rPackage['trial_credits']);
+								$rCost = self::amount($rPackage['trial_credits']);
 							} else {
 								return ['status' => STATUS_NO_TRIALS, 'data' => $rData];
 							}
@@ -1059,13 +1059,13 @@ class ResellerAPI {
 							$rOverride = json_decode(self::$rUserInfo['override_packages'], true);
 
 							if (isset($rOverride[$rPackage['id']]['official_credits']) && (string) $rOverride[$rPackage['id']]['official_credits'] !== '') {
-								$rCost = intval($rOverride[$rPackage['id']]['official_credits']);
+								$rCost = self::amount($rOverride[$rPackage['id']]['official_credits']);
 							} else {
-								$rCost = intval($rPackage['official_credits']);
+								$rCost = self::amount($rPackage['official_credits']);
 							}
 						}
 
-						if ($rCost <= intval(self::$rUserInfo['credits'])) {
+						if ($rCost <= self::amount(self::$rUserInfo['credits'])) {
 							if (!empty($rData['trial'])) {
 								$rArray['exp_date'] = strtotime('+' . intval($rPackage['trial_duration']) . ' ' . $rPackage['trial_duration_in']);
 								$rArray['is_trial'] = 1;
@@ -1287,7 +1287,7 @@ class ResellerAPI {
 					$rInsertID = ($rArray['id'] ?? $db->last_insert_id());
 					MagService::syncLineDevices($rInsertID);
 					if (isset($rPackage)) {
-						$rNewCredits = intval(UserCredits::balance(self::$rUserInfo['id']));
+						$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
 						if (isset($rArray['id'])) {
 							if ($rArray['package_id']) {
@@ -1320,6 +1320,20 @@ class ResellerAPI {
 		}
 
 		return false;
+	}
+
+	/**
+	 * An amount of credits as it is charged and logged: a price or a balance
+	 * at the four decimals a balance is kept at (UserCredits). A whole amount
+	 * is the integer it has always been.
+	 *
+	 * @param mixed $rStored The amount as a column or a stored override gives it.
+	 * @return int|float
+	 */
+	public static function amount(mixed $rStored): int|float {
+		$rAmount = round(floatval($rStored), 4);
+
+		return ($rAmount == intval($rAmount) ? intval($rAmount) : $rAmount);
 	}
 
 	/**

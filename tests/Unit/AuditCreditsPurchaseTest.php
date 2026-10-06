@@ -362,7 +362,7 @@ PHP;
 	#[DataProvider('kinds')]
 	public function testAPurchaseThatCannotBeStoredCostsNothing(string $rKind): void {
 		$rLog = new QueryLogDb($this->rDb);
-		$rLog->rRefuse = $rKind === 'user' ? '/^REPLACE INTO `users`/' : '/^REPLACE INTO `lines`/';
+		$rLog->rRefuse = $rKind === 'user' ? '/^INSERT INTO `users`/' : '/^REPLACE INTO `lines`/';
 		$this->use($rLog);
 
 		$this->assertSame(STATUS_FAILURE, $this->buy($rKind));

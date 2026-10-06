@@ -116,10 +116,15 @@ class ResellerAPIWrapper {
 		$rPackages = [];
 		$rOverride = json_decode($rUserInfo['override_packages'], true);
 		foreach (PackageService::getAll($rUserInfo['member_group_id']) as $rPackage) {
+			// A package that neither sells subscriptions nor gives trials sells
+			// a reseller nothing.
+			if (!$rPackage['is_official'] && !$rPackage['is_trial']) {
+				continue;
+			}
 			if (isset($rOverride[$rPackage['id']]['official_credits']) && (string) $rOverride[$rPackage['id']]['official_credits'] !== '') {
-				$rPackage['official_credits'] = intval($rOverride[$rPackage['id']]['official_credits']);
+				$rPackage['official_credits'] = ResellerAPI::amount($rOverride[$rPackage['id']]['official_credits']);
 			} else {
-				$rPackage['official_credits'] = intval($rPackage['official_credits']);
+				$rPackage['official_credits'] = ResellerAPI::amount($rPackage['official_credits']);
 			}
 			$rPackages[] = $rPackage;
 		}
