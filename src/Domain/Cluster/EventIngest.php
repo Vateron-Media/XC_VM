@@ -513,7 +513,10 @@ final class EventIngest {
 	/**
 	 * A node's own `status` from its node.state (NodeStateSink::status): only
 	 * updating or back (STATUSES), and only over one of them, so an install
-	 * state MAIN set (3, 4) is never the node's to leave.
+	 * state MAIN set (3, 4) is never the node's to leave. MAIN notes when it
+	 * took a 5, in the batch (HeartbeatService::UPDATING): the agent's
+	 * heartbeats go on until the update stops it, and leave the 5 alone for
+	 * HeartbeatService::UPDATING_HOLD_SEC. A 1 drops the note.
 	 *
 	 * @param array<string, mixed> $rData
 	 */
@@ -523,6 +526,13 @@ final class EventIngest {
 			return false;
 		}
 		self::run('UPDATE `servers` SET `status` = ? WHERE `id` = ? AND `status` IN (' . implode(', ', NodeStateSink::STATUSES) . ');', $rStatus, $rServerID);
+		// One statement each: a delete and an insert would take the gap's lock
+		// first, and two nodes reporting at once would deadlock on it.
+		if ($rStatus === 5) {
+			self::run('INSERT INTO `cluster_meta` (`name`, `value`, `updated_at`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `updated_at` = VALUES(`updated_at`);', HeartbeatService::UPDATING . $rServerID, '5', ClusterClock::now());
+		} else {
+			self::run('DELETE FROM `cluster_meta` WHERE `name` = ?;', HeartbeatService::UPDATING . $rServerID);
+		}
 		return true;
 	}
 
