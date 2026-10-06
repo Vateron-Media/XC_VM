@@ -26,8 +26,9 @@ final class AuditRootCronCrontabTest extends TestCase {
 		}
 		$rRoot = escapeshellarg($this->rDir . 'root.crontab');
 		$rXcVm = escapeshellarg($this->rDir . 'xc_vm.crontab');
-		// `crontab`: -l lists, -r removes, a file name installs it (or is
-		// refused, with REFUSE set); -u xc_vm is the xc_vm user's crontab.
+		// `crontab`: -l lists, -r removes, a file name installs it and `-`
+		// what is on its standard input, as `cat` reads either (or is refused,
+		// with REFUSE set); -u xc_vm is the xc_vm user's crontab.
 		file_put_contents($this->rDir . 'bin/crontab', "#!/bin/sh\necho \"crontab \$*\" >&2\nfile=$rRoot\nif [ \"\$1\" = -u ]; then file=$rXcVm; shift 2; fi\ncase \"\$1\" in\n\t-l) [ -f \"\$file\" ] || exit 1; cat \"\$file\";;\n\t-r) rm -f \"\$file\";;\n\t*) [ -z \"\$REFUSE\" ] || exit 1; cat \"\$1\" > \"\$file\";;\nesac\n");
 		file_put_contents($this->rDir . 'bin/sudo', "#!/bin/sh\n[ \"\$1\" = crontab ] && exec \"\$@\"\necho \"\$*\" >&2\n");
 		chmod($this->rDir . 'bin/crontab', 0755);
@@ -97,7 +98,7 @@ final class AuditRootCronCrontabTest extends TestCase {
 		$this->assertSame(array_values(array_unique($rLines)), $rLines, 'no line twice');
 		$this->assertStringContainsString('Crontab installed', $rOut);
 		$this->assertSame([], preg_grep('/^crontab -r/', $rAsked), 'root\'s crontab is replaced, never removed first');
-		$this->assertCount(1, preg_grep('/^crontab [^-]/', $rAsked), 'installed once');
+		$this->assertSame(['crontab -l', 'crontab -'], array_values(preg_grep('/^crontab /', $rAsked)), 'read, then installed once, from the standard input');
 		$this->assertSame([], array_merge(glob($this->rDir . 'tmp/*') ?: [], glob($this->rDir . 'systmp/*') ?: []), 'the list\'s temporary file is removed, and was never in tmp/');
 	}
 

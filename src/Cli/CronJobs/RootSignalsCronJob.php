@@ -160,9 +160,11 @@ class RootSignalsCronJob implements CommandInterface {
 	public function unblockAll(): void {
 		foreach (['iptables', 'ip6tables'] as $rTool) {
 			$rRules = [];
-			// $rTool is one of the two names of the list above.
-			// nosemgrep: php.lang.security.exec-use.exec-use
-			exec('sudo ' . $rTool . ' -S INPUT', $rRules);
+			if ($rTool === 'iptables') {
+				exec('sudo iptables -S INPUT', $rRules);
+			} else {
+				exec('sudo ip6tables -S INPUT', $rRules);
+			}
 			$rIPs = self::ownBlocks($rRules);
 			if ($rIPs && !$this->unblockTogether($rTool, $rIPs)) {
 				foreach ($rIPs as $rIP) {
@@ -170,9 +172,10 @@ class RootSignalsCronJob implements CommandInterface {
 				}
 			}
 		}
-		// The panel's own directory, a constant, quoted; the pattern is a literal.
-		// nosemgrep: php.lang.security.exec-use.exec-use
-		shell_exec('sudo rm -f ' . escapeshellarg(FLOOD_TMP_PATH) . 'block_*');
+		// Root runs this (this cron, cluster:root, `tools flush`): no file is another user's to keep.
+		foreach (glob(FLOOD_TMP_PATH . 'block_*') ?: [] as $rFile) {
+			@unlink($rFile);
+		}
 	}
 
 	/**
@@ -183,9 +186,7 @@ class RootSignalsCronJob implements CommandInterface {
 	 * @param list<string> $rIPs from ownBlocks()
 	 */
 	private function unblockTogether(string $rTool, array $rIPs): bool {
-		// Called by unblockAll() alone, with one of its two tool names.
-		// nosemgrep: php.lang.security.exec-use.exec-use
-		$rPipe = popen('sudo ' . $rTool . '-restore --noflush', 'w');
+		$rPipe = $rTool === 'iptables' ? popen('sudo iptables-restore --noflush', 'w') : popen('sudo ip6tables-restore --noflush', 'w');
 		if (!is_resource($rPipe)) {
 			return false;
 		}

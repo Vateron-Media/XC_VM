@@ -94,6 +94,7 @@ final class AuditRootCronFirewallFlushTest extends TestCase {
 		foreach (['203.0.113.7', '198.51.100.9'] as $rIP) {
 			@unlink(FLOOD_TMP_PATH . 'block_' . $rIP);
 		}
+		@unlink(FLOOD_TMP_PATH . '203.0.113.7');
 		exec('rm -rf ' . escapeshellarg($this->rDir));
 	}
 
@@ -114,6 +115,8 @@ final class AuditRootCronFirewallFlushTest extends TestCase {
 
 	public function testTheRootActionRemovesThePanelsBlocksAndNoOtherRule(): void {
 		touch(FLOOD_TMP_PATH . 'block_203.0.113.7');
+		// The guard's count of that address's requests: not a block.
+		touch(FLOOD_TMP_PATH . '203.0.113.7');
 		putenv('PATH=' . $this->rDir . 'bin:' . $this->rPath);
 		$rJob = new RootSignalsCronJob();
 		$rFlush = new ReflectionMethod($rJob, 'flushIPs');
@@ -122,8 +125,8 @@ final class AuditRootCronFirewallFlushTest extends TestCase {
 
 		$this->assertSame([], preg_grep('/ -F\b/', $this->firewallCommands()), 'no chain of the host is flushed');
 		$this->assertSame(self::REMOVED, $this->firewallCommands());
-		// The shell hands `rm` every block file of the directory: this test's is one of them.
-		$this->assertNotEmpty(preg_grep('#^rm -f (.* )?' . preg_quote(FLOOD_TMP_PATH . 'block_203.0.113.7', '#') . '( |$)#', (array) file($this->rDir . 'sudo.log', FILE_IGNORE_NEW_LINES)), 'the flood guard\'s block files go too');
+		$this->assertFileDoesNotExist(FLOOD_TMP_PATH . 'block_203.0.113.7', 'the flood guard\'s block files go too');
+		$this->assertFileExists(FLOOD_TMP_PATH . '203.0.113.7', 'and no other file of the guard\'s');
 	}
 
 	public function testWhereTheListIsRefusedTheBlocksAreRemovedOneByOne(): void {
