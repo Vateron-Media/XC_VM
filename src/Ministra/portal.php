@@ -120,10 +120,15 @@ if (!$rSettings["disable_ministra"]) {
 					$rDevice = [];
 				}
 
-				if (!isset($rDevice["token"]) || $rDevice["token"] != $rVerify["token"]) {
-					$rDevice = [];
-				} else {
-					$rDevice["authenticated"] = true;
+				if (!isset($rDevice["token"]) || $rDevice["token"] !== $rVerify["token"]) {
+					// Not the device's token. A handshake's token is put to get_profile below,
+					// with the device as the panel has it now; whatever get_profile says of that
+					// box, the device keeps the token and the entry it has until it is verified.
+					$rDevice = $rReqType == "stb" && $rReqAction == "get_profile"
+						? PortalHandler::handshakeDevice($rVerify["id"], $rVerify["token"])
+						: [];
+				} elseif (!empty($rDevice["authenticated"])) {
+					// The token names the device; only get_profile below verifies it.
 					updatecache();
 				}
 			} else {
@@ -217,7 +222,13 @@ if (!$rSettings["disable_ministra"]) {
 				$rVerified = true;
 			}
 
+			// The device's own token, or a handshake's that is not the device's yet.
+			$rOwnToken = ($rDevice["token"] ?? null) === $rVerify["token"];
+
 			if ($rVerified) {
+				if (!$rOwnToken) {
+					PortalHandler::adoptToken($rVerify["token"]);
+				}
 				$rDevice["ip"] = $rIP;
 				$rDevice["stb_type"] = $rSTBType;
 				$rDevice["sn"] = $rSerialNumber;
@@ -245,10 +256,14 @@ if (!$rSettings["disable_ministra"]) {
 				);
 				updatecache();
 			} else {
-				if (!empty($rDevice["id"])
-					&& file_exists(MINISTRA_TMP_PATH . "ministra_" . $rDevice["id"])
+				// Entries are named by device number, as updateCache() writes them. The
+				// entry goes with the box that held the device's token: a box refused with
+				// a handshake's token ends no session but its own.
+				if ($rOwnToken
+					&& !empty($rDevice["mag_id"])
+					&& file_exists(MINISTRA_TMP_PATH . "ministra_" . intval($rDevice["mag_id"]))
 				) {
-					unlink(MINISTRA_TMP_PATH . "ministra_" . $rDevice["id"]);
+					unlink(MINISTRA_TMP_PATH . "ministra_" . intval($rDevice["mag_id"]));
 				}
 				$rDevice = [];
 			}
@@ -953,7 +968,7 @@ if (!$rSettings["disable_ministra"]) {
 		if ($rAuthenticated) {
 			PortalHandler::handleAuthenticated($rReqType, $rReqAction, $ctx);
 		} else {
-			// Phase 6: Unauthenticated — bruteforce check
+			// Phase 6: Unauthenticated
 			PortalHandler::handleUnauthenticated($rReqType, $rReqAction, $ctx);
 		}
 	} else {
@@ -1348,11 +1363,12 @@ function getDevice($rID = null, $rMAC = null) {
 			: null;
 
 	if ((!$rDevice && $rMAC) || ($rDevice && 600 < time() - $rDevice["generated"])) {
+		$rAnswered = false;
 		if ($rMAC) {
 			$db->query("SELECT * FROM `mag_devices` WHERE `mac` = ? LIMIT 1", $rMAC);
 		} else {
 			if ($rDevice) {
-				$db->query(
+				$rAnswered = $db->query(
 					"SELECT * FROM `mag_devices` WHERE `mac` = ? LIMIT 1",
 					$rDevice["get_profile_vars"]["mac"],
 				);
@@ -1360,7 +1376,16 @@ function getDevice($rID = null, $rMAC = null) {
 		}
 
 		if (0 >= $db->num_rows()) {
+			// The panel no longer has the device this entry was cached for: the entry
+			// goes and the device is unknown again. A lookup that failed says nothing
+			// about the device, so then the entry stays.
+			if ($rAnswered) {
+				@unlink(MINISTRA_TMP_PATH . "ministra_" . $rID);
+				$rDevice = null;
+			}
 		} else {
+			// A verified device stays verified across the rebuild only under the token it was verified with.
+			$rVerifiedToken = !empty($rDevice["authenticated"]) ? ($rDevice["token"] ?? null) : null;
 			$rDevice = $db->get_row();
 			$rUserInfo = UserRepository::getStreamingUserInfo(
 				$rSettings,
@@ -1490,6 +1515,7 @@ function getDevice($rID = null, $rMAC = null) {
 			];
 			$rDevice["mac"] = base64_encode($rDevice["mac"]);
 			$rDevice["generated"] = time();
+			$rDevice["authenticated"] = $rVerifiedToken !== null && $rDevice["token"] === $rVerifiedToken;
 		}
 	} else {
 		if ($rDevice) {

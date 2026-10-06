@@ -530,7 +530,7 @@ final class ClusterApi {
 		if (!empty($rNode['instance_id']) && ($rInstance === null || !hash_equals((string) $rNode['instance_id'], $rInstance))) {
 			// Authenticated evidence of a clone, as in hello: the admin decides.
 			NodeRegistry::update((int) $rNode['server_id'], ['state' => 'quarantined', 'quarantine_reason' => 'instance_id changed (re-key)']);
-			ClusterAudit::log('node.quarantine', (int) $rNode['server_id'], ['reason' => 'rekey attest', 'was' => $rNode['instance_id'], 'now' => $rInstance], 'node');
+			ClusterAudit::log('node.quarantine', (int) $rNode['server_id'], ['reason' => 'rekey attest', 'was' => $rNode['instance_id'], 'now' => $rInstance] + CommandBus::endGranting((int) $rNode['server_id']), 'node');
 			// No longer active in the node list: its peers stop trusting it at once.
 			ReplicaBuilder::nodesChanged($rCrypto, (int) $rNode['server_id']);
 			return self::notActive($rCrypto, $rH, 'quarantined');
@@ -651,13 +651,14 @@ final class ClusterApi {
 			$rState = 'quarantined';
 			$rFields['state'] = $rState;
 			$rFields['quarantine_reason'] = 'instance_id changed';
-			ClusterAudit::log('node.quarantine', (int) $rNode['server_id'], ['reason' => 'instance_id', 'was' => $rNode['instance_id'], 'now' => $rInstance], 'node');
 		} elseif (empty($rNode['instance_id'])) {
 			$rFields['instance_id'] = $rInstance;
 		}
 		NodeRegistry::update((int) $rNode['server_id'], $rFields);
 		if ($rState !== (string) $rNode['state']) {
-			// Quarantined: no longer active in the node list, so its peers stop trusting it at once.
+			// Quarantined, which ends what grants (CommandBus::endGranting()) once the state is written.
+			ClusterAudit::log('node.quarantine', (int) $rNode['server_id'], ['reason' => 'instance_id', 'was' => $rNode['instance_id'], 'now' => $rInstance] + CommandBus::endGranting((int) $rNode['server_id']), 'node');
+			// No longer active in the node list, so its peers stop trusting it at once.
 			ReplicaBuilder::nodesChanged($rCrypto, (int) $rNode['server_id']);
 		}
 		return ClusterReply::boxed($rKeys, $rCtx, [
@@ -757,7 +758,8 @@ final class ClusterApi {
 	 * (`cmd`) each. Held up to `wait_ms` while there are none, so a command
 	 * reaches the node within a poll step of being queued. A quarantined node
 	 * gets the restrictive ones only (its node.quarantine, kills, stops, a
-	 * fence): what grants waits until an admin trusts it again.
+	 * fence). What granted was ended by the quarantine
+	 * (CommandBus::endGranting()) and is not handed out after Trust again.
 	 */
 	private static function commands(array $rNode, SessionKeys $rKeys, string $rCtx, array $rP): array {
 		$rAfter = max(0, (int) ($rP['after_seq'] ?? 0));
@@ -875,7 +877,7 @@ final class ClusterApi {
 			// Authenticated evidence of a clone, as in hello: another install
 			// numbering P0 from where this node was. The admin decides.
 			NodeRegistry::update((int) $rNode['server_id'], ['state' => 'quarantined', 'quarantine_reason' => 'P0 sequence went backwards']);
-			ClusterAudit::log('node.quarantine', (int) $rNode['server_id'], ['reason' => 'p0 backwards', 'first_useq' => $rFirst, 'count' => count($rEvents), 'cursor' => $rOut['useq']], 'node');
+			ClusterAudit::log('node.quarantine', (int) $rNode['server_id'], ['reason' => 'p0 backwards', 'first_useq' => $rFirst, 'count' => count($rEvents), 'cursor' => $rOut['useq']] + CommandBus::endGranting((int) $rNode['server_id']), 'node');
 			// No longer active in the node list: its peers stop trusting it at once.
 			ReplicaBuilder::nodesChanged($rCrypto, (int) $rNode['server_id']);
 			return self::notActive($rCrypto, $rH, 'quarantined');

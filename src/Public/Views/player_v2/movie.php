@@ -93,7 +93,7 @@ $heroBackdrop = $backdropUrl ?: $posterUrl;
       <div class="col-12 col-md-5 col-lg-4 col-xl-3">
         <div class="movie-poster-wrap">
           <img
-            src="<?= $posterUrl ?: $baseUrl . 'assets/img/pages/profile-banner.png' ?>"
+            src="<?= htmlspecialchars($posterUrl ?: $baseUrl . 'assets/img/pages/profile-banner.png') ?>"
             alt="<?= htmlspecialchars($title) ?>"
             class="movie-poster-img"
             onerror="this.src='<?= $baseUrl ?>assets/img/pages/profile-banner.png';" />

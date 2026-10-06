@@ -34,7 +34,9 @@ class ClusterStripCredentialsCommand implements CommandInterface {
 		'cluster_strip_needs_mode2' => 'Only a node in mode 2 gives up MAIN\'s credentials: it must already run without MAIN\'s database.',
 		'cluster_strip_not_active' => 'The node is not active; it gives up MAIN\'s credentials only while it is.',
 		'cluster_strip_too_soon' => 'The node has not been in mode 2 for seven days yet. This step cannot be undone: until then mode down is its way back.',
-		'cluster_strip_not_local' => 'The node says it does not read its streams on itself. Move it down a mode until it does (it needs these credentials for that), then up again.',
+		'cluster_mode_needs_flows' => 'The node does not have every flow on, which mode 2 needs. Switch its flows on first.',
+		'cluster_strip_not_heard' => 'MAIN has not heard the node in the last ten seconds. It is asked only while it answers: check its agent, then try again.',
+		'cluster_strip_not_local' => 'The node says it does not read its streams on itself, or says nothing of them. Move it down a mode until it does (it needs these credentials for that), then up again.',
 		'cluster_strip_not_queued' => 'The command could not be queued (the node takes no root commands, or the extension refused); see the cluster log.',
 	];
 

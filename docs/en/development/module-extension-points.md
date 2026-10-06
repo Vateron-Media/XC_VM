@@ -126,7 +126,7 @@ gated by core, so a module only needs to emit the id:
 
 | `id="…"` | Effect |
 | --- | --- |
-| `btn-export-csv` / `btn-export-json` | Report export — only rendered on a core-listed log/report page **and** with the `backups` permission. |
+| `btn-export-csv` / `btn-export-json` | Report export — only rendered on a log/report page (core's list, or a page the module marks with `TopbarRegistry::markExportPage($page)`) **and** with the `database` permission, the one the export itself asks for. |
 | `btn-clear-logs` | Clear-logs modal — the log type comes from core's `LOG_TYPES` map for the page. |
 
 Re-registering the same `(page, label)` overrides the earlier entry
@@ -342,10 +342,31 @@ class MyModuleModule extends BaseModule implements MigratableInterface {
 }
 ```
 
-`ModuleManager::updateModule()` reads `installed_version` from the override store, filters
-the map to only the entries `> fromVersion && <= toVersion`, sorts by semver, and runs each
-callable in its own DB transaction. `installModule()` records `installed_version` after
-a successful install; `uninstallModule()` clears it.
+`ModuleManager::updateModule()` reads `installed_version` from the override store (or
+`schema_version`, while the schema is ahead of the files — see
+[Module Lifecycle](module-lifecycle.md#enable-disable-modules)), filters the map to only the
+entries `> fromVersion && <= toVersion`, sorts by semver, and runs each callable in its own
+DB transaction. A store update and an archive uploaded over an installed module run the same
+entries from `installModule()`, before the master schema and `install()`. `installModule()`
+records `installed_version` after a successful install; `uninstallModule()` clears it.
+
+**Where the steps run.** PHP keeps the class it loaded first, so a request that has already
+loaded a module cannot run the code of the version that replaces it. When an enabled module
+is updated (store, an archive uploaded over it, git/url), the new version's `getMigrations()`
+steps therefore run in a separate `console.php module:migrate` process, as the panel's user,
+before the new version's `boot()`. So does `install()` on a store update and on an archive
+uploaded over the installed copy; a git/url update does not call `install()`, unless the
+module has no recorded `installed_version` and is installed in full. A module that is
+disabled, or that the running process has not loaded, has them run in that process. Write
+the steps for both:
+
+- They must work from the CLI: there is no admin session and there are no admin globals, and
+  Redis is not connected unless the step calls `RedisManager::ensureConnected()`.
+- They must not rely on anything the module's `boot()` registers: the module is not booted
+  in that process, and the modules that require it are not loaded there.
+- What a step prints is dropped when the steps succeed. When one fails, the admin sees its
+  exception message followed by the last 4 KiB of what the steps printed. Do not write to
+  `STDOUT` directly or flush output from a step.
 
 **Key rules:**
 
@@ -371,6 +392,9 @@ the interface, the producer contract and a full example.
 A module can add its own tab to the admin Add/Edit Stream page and store what the tab
 posts in its own tables. Register the tab from `boot()`. `bootAll()` resets the registry
 on every boot, so a tab exists only while its module is loaded.
+
+The renderer receives the stream row as stored (or `null` for a new stream): its text is not
+escaped, so escape every value the tab prints (`htmlspecialchars($value, ENT_QUOTES)`).
 
 ```php
 use XcVm\Core\Container\ServiceContainer;
@@ -404,7 +428,11 @@ public function onStreamSaved(StreamSavedEvent $event): void {
 - **Inputs** must be named `module[<id>][<field>]`, for example
   `<input name="module[acme-dash][provider]">`. Core hands exactly that sub-array
   back. A module field never reaches a `streams` column, and core drops fields of
-  tabs the admin may not see.
+  tabs the admin may not see. A tab registered with a permission receives its
+  `module[<id>]` fields, and runs its validator, only for an administrator or an
+  admin API key that holds that permission (group 1 and an administrator group with
+  an empty permission list hold every permission); for anyone else the save goes
+  through without them.
 - **`render`** returns the pane's HTML. `$stream` is the stream row when editing and
   `null` when adding. The tab is not shown on the import form, and mass edit has no
   module tabs.

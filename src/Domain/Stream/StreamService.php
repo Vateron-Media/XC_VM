@@ -47,7 +47,10 @@ class StreamService {
 
 		if (isset($rData['edit'])) {
 			if (Authorization::check('adv', 'edit_stream')) {
-				$rArray = AdminHelpers::overwriteData(StreamRepository::getById($rData['edit']), $rData);
+				// The edit starts from the stream as stored: the row cleaner's
+				// escaping would be written back into every field not sent.
+				$db->query('SELECT * FROM `streams` WHERE `id` = ?;', intval($rData['edit']));
+				$rArray = AdminHelpers::overwriteData($db->get_raw_row(), $rData);
 			} else {
 				exit();
 			}
@@ -89,6 +92,7 @@ class StreamService {
 
 		$rReview = false;
 		$rImportStreams = [];
+		$rBackupSources = [];
 
 		if (isset($rData['review'])) {
 			$rReview = true;
@@ -120,7 +124,7 @@ class StreamService {
 							$db->query('SELECT `id`, `stream_display_name`, `stream_source`, `channel_id` FROM `streams` WHERE `type` = 1;');
 
 							foreach ($db->get_rows() as $rRow) {
-								$rName = preg_replace('/[^A-Za-z0-9 ]/', '', strtolower($rRow['stream_display_name']));
+								$rName = self::nameKey($rRow['stream_display_name']);
 
 								if (!empty($rName)) {
 									$rStreamDatabase[$rName] = $rRow['id'];
@@ -203,7 +207,7 @@ class StreamService {
 										$rExistsID = $rSourceDatabase[$rSourceID];
 									}
 
-									$rName = preg_replace('/[^A-Za-z0-9 ]/', '', strtolower($rImportArray['stream_display_name']));
+									$rName = self::nameKey($rImportArray['stream_display_name']);
 
 									if (!empty($rName) && isset($rStreamDatabase[$rName])) {
 										$rBackupID = $rStreamDatabase[$rName];
@@ -214,15 +218,9 @@ class StreamService {
 									}
 
 									if ($rBackupID && !$rExistsID && isset($rData['add_source_as_backup'])) {
-										$db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?;', $rBackupID);
-
-										if ($db->num_rows() > 0) {
-											$rSources = (json_decode($db->get_row()['stream_source'], true) ?: []);
-											$rSources[] = $rURL;
-											$db->query('UPDATE `streams` SET `stream_source` = ? WHERE `id` = ?;', json_encode($rSources), $rBackupID);
-											EventDispatcher::dispatch(new StreamsChangedEvent([(int) $rBackupID]));
-											$rImportStreams[] = ['update' => true, 'id' => $rBackupID];
-										}
+										// Its source is written once the import is known not to be refused (below).
+										$rBackupSources[] = [$rBackupID, $rURL];
+										$rImportStreams[] = ['update' => true, 'id' => $rBackupID];
 									} else {
 										if ($rExistsID && isset($rData['update_existing'])) {
 											$rImportArray['id'] = $rExistsID;
@@ -265,6 +263,18 @@ class StreamService {
 		$rRefusal = self::saveRefusal($rImportStreams, $rArray, $rData, $rModuleFields);
 		if ($rRefusal !== null) {
 			return ['status' => STATUS_INVALID_INPUT, 'data' => $rRefusal];
+		}
+
+		// The backup sources an import gives existing streams, in the playlist's order.
+		foreach ($rBackupSources as [$rBackupID, $rURL]) {
+			$db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?;', $rBackupID);
+
+			if ($db->num_rows() > 0) {
+				$rSources = (json_decode($db->get_row()['stream_source'], true) ?: []);
+				$rSources[] = $rURL;
+				$db->query('UPDATE `streams` SET `stream_source` = ? WHERE `id` = ?;', json_encode($rSources), $rBackupID);
+				EventDispatcher::dispatch(new StreamsChangedEvent([(int) $rBackupID]));
+			}
 		}
 
 		if (0 < count($rImportStreams)) {
@@ -467,6 +477,20 @@ class StreamService {
 			return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rInsertID]];
 		}
 		return ['status' => STATUS_NO_SOURCES, 'data' => $rData];
+	}
+
+	/**
+	 * The key an imported channel is matched to an existing one by: the
+	 * letters, digits and spaces of its name, lower-cased, in any script.
+	 * Empty for a name with no letter or digit, which is matched to nothing.
+	 *
+	 * @param string|null $rName Channel name.
+	 * @return string
+	 */
+	private static function nameKey(?string $rName): string {
+		$rKey = (string) preg_replace('/[^\p{L}\p{M}\p{N} ]/u', '', mb_strtolower((string) $rName, 'UTF-8'));
+
+		return trim($rKey) === '' ? '' : $rKey;
 	}
 
 	/**

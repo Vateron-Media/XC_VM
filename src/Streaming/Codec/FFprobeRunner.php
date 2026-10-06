@@ -21,7 +21,7 @@ class FFprobeRunner {
 		if (!is_array($rFetchArguments)) {
 			$rFetchArguments = !empty($rFetchArguments) ? [$rFetchArguments] : [];
 		}
-		$rCommand = $rPrepend . 'timeout ' . $rTimeout . ' ' . $rFFPROBE . ' -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' ' . implode(' ', $rFetchArguments) . ' -i "' . $rSourceURL . '" -v quiet -print_format json -show_streams -show_format';
+		$rCommand = $rPrepend . 'timeout ' . $rTimeout . ' ' . $rFFPROBE . ' -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' ' . implode(' ', $rFetchArguments) . ' -i ' . escapeshellarg((string) $rSourceURL) . ' -v quiet -print_format json -show_streams -show_format';
 		exec($rCommand, $rReturn);
 		$result = implode("\n", $rReturn);
 		if ($rParse) {

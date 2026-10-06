@@ -24,6 +24,15 @@ namespace XcVm\Core\Util;
  */
 
 class ImageResizeService {
+	/** Longest side of an output image, in pixels, whatever the request asks for. */
+	private const MAX_SIDE = 1920;
+
+	/** Largest remote body taken, in bytes. */
+	private const MAX_BODY_BYTES = 16 * 1024 * 1024;
+
+	/** Most pixels a remote source may have to be decoded (a 4K frame is 8.3 million). */
+	private const MAX_SOURCE_PIXELS = 12000000;
+
 	/**
 	 * Process resize request and send image response.
 	 *
@@ -99,6 +108,13 @@ class ImageResizeService {
 			$rMaxH = 900;
 		}
 
+		// The canvas and the cache file name follow these sizes: cap every side.
+		$rMaxW = min($rMaxW, self::MAX_SIDE);
+		$rMaxH = min($rMaxH, self::MAX_SIDE);
+		if ($rImageSize !== null) {
+			$rImageSize = ['width' => min($rImageSize['width'], self::MAX_SIDE), 'height' => min($rImageSize['height'], self::MAX_SIDE)];
+		}
+
 		// Resolve server-prefixed URL (s:<id>:<path>) only when needed. A URL
 		// resolved from the admin-configured server list is trusted (it may point
 		// at a private LB address); a raw user-supplied URL is not (SSRF risk).
@@ -153,7 +169,12 @@ class ImageResizeService {
 					// takes over, so neither needs a branch of its own.
 					$rawImageData = self::fetchRemoteImage($rActURL, $rTrustedSource);
 					if (!empty($rawImageData)) {
-						$rImage = @imagecreatefromstring($rawImageData);
+						// Decoding takes memory by the pixel, however small the file is:
+						// decode only a source whose size is known and within the limit.
+						$rSourceSize = @getimagesizefromstring($rawImageData);
+						if ($rSourceSize && $rSourceSize[0] > 0 && $rSourceSize[1] > 0 && $rSourceSize[0] * $rSourceSize[1] <= self::MAX_SOURCE_PIXELS) {
+							$rImage = @imagecreatefromstring($rawImageData);
+						}
 					}
 				} else {
 					if (file_exists($rActURL)) {
@@ -282,13 +303,7 @@ class ImageResizeService {
 		}
 
 		foreach ($ips as $ip) {
-			if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-				return null;
-			}
-			// filter_var misses CGNAT shared space (RFC 6598, 100.64.0.0/10).
-			if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false
-				&& (ip2long($ip) & 0xffc00000) === (ip2long('100.64.0.0') & 0xffc00000)
-			) {
+			if (!PublicAddress::isPublic($ip)) {
 				return null;
 			}
 		}
@@ -322,6 +337,9 @@ class ImageResizeService {
 			CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
 			CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 			CURLOPT_HTTPHEADER     => ['Accept: image/jpeg,image/png,image/*;q=0.5'],
+			// Give up on a body over MAX_BODY_BYTES, announced or already received.
+			CURLOPT_NOPROGRESS       => false,
+			CURLOPT_PROGRESSFUNCTION => static fn($ch, $dlTotal, $dlNow): int => (int) (max($dlTotal, $dlNow) > self::MAX_BODY_BYTES),
 		];
 
 		if ($trusted) {

@@ -4,7 +4,7 @@ namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Line\PackageService;
-use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\UserCredits;
 
 /**
  * Контроллер редактирования пользователя (admin/user.php)
@@ -24,10 +24,22 @@ class UserController extends BaseAdminController {
 
 		global $db;
 
-		$rUser = RequestManager::has('id') ? UserRepository::getRegisteredUserById(RequestManager::get('id')) : null;
+		// The user as stored: the form escapes what it prints and posts it back,
+		// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+		$rUser = null;
+		if (RequestManager::has('id')) {
+			$db->query('SELECT * FROM `users` WHERE `id` = ?;', intval(RequestManager::get('id')));
+			$rUser = ($rStored = $db->get_raw_row()) ? UserCredits::amounts($rStored) : null;
+		}
 		if ($rUser === false) {
 			$this->redirect('users');
 			return;
+		}
+
+		// The form shows the balance, and posts it back as `credits_shown`, as it is
+		// stored: SELECT * reads a FLOAT at six significant digits (1234567 as 1234570).
+		if ($rUser) {
+			$rUser['credits'] = UserCredits::balance((int) $rUser['id']);
 		}
 
 		$rPackages = $rUser ? PackageService::getAll($rUser['member_group_id']) : [];

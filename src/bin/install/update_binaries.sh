@@ -198,7 +198,8 @@ if [[ -n "$EXPECTED_HASH" ]]; then
     fi
     echo "MD5 verification passed for ${ASSET_NAME}"
 else
-    echo "Warning: hashes.md5 entry not found for ${ASSET_NAME}, skipping MD5 check"
+    echo "No hashes.md5 entry for ${ASSET_NAME} in release ${RELEASE_TAG} (or the file could not be fetched): the archive is not installed unverified" >&2
+    exit 1
 fi
 
 echo "Extracting archive"

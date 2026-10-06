@@ -4,7 +4,6 @@ namespace XcVm\Public\Controllers\Player;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Line\LineService;
 
@@ -29,9 +28,16 @@ class PlayerProfileController extends BasePlayerController {
 					$rBouquetNames[$rBouquet['id']] = $rBouquet['bouquet_name'];
 				}
 			}
-			if (RequestManager::has('bouquet_order')) {
+			// An external-server session carries a placeholder id, not a line of this panel.
+			// The order is saved only from a POST: a GET (a link from another site
+			// comes with the player's cookie) only shows the page.
+			if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && RequestManager::has('bouquet_order') && empty($rUserInfo['is_external_xc'])) {
 				$rBouquetOrder = json_decode(RequestManager::get('bouquet_order'), true);
-				$rUserInfo['bouquet'] = array_map('intval', AdminHelpers::sortArrayByArray($rUserInfo['bouquet'], $rBouquetOrder));
+				// The order only rearranges the bouquets stored for the line: the ones it
+				// names come first, every other one stays behind them, and none is added.
+				$db->query('SELECT `bouquet` FROM `lines` WHERE `id` = ?;', $rUserInfo['id']);
+				$rStored = array_map('intval', json_decode((string) ($db->get_row()['bouquet'] ?? ''), true) ?: []);
+				$rUserInfo['bouquet'] = array_values(array_unique(array_merge(array_intersect(array_map('intval', $rBouquetOrder), $rStored), $rStored)));
 				$db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rUserInfo['bouquet']) . ']', $rUserInfo['id']);
 				if (SettingsManager::get('enable_cache')) {
 					LineService::updateLineSignal($rUserInfo['id']);

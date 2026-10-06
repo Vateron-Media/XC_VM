@@ -342,11 +342,7 @@ LayoutRenderer::renderFooter('reseller');
         }
         poll();
 
-        var esc = function(s) {
-            var d = document.createElement('div');
-            d.textContent = (s == null ? '' : String(s));
-            return d.innerHTML;
-        };
+        var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
         var pad = function(n) {
             return (n < 10 ? '0' : '') + n;
         };
@@ -604,14 +600,17 @@ LayoutRenderer::renderFooter('reseller');
                     },
                     {
                         data: 'stream_name',
-                        responsivePriority: 3
+                        responsivePriority: 3,
+                        render: esc
                     },
                     {
-                        data: 'player'
+                        data: 'player',
+                        render: esc
                     },
                     {
                         data: 'isp',
-                        visible: false
+                        visible: false,
+                        render: esc
                     },
                     {
                         data: 'user_ip',
@@ -631,7 +630,8 @@ LayoutRenderer::renderFooter('reseller');
                     {
                         data: 'container',
                         className: 'text-center',
-                        visible: false
+                        visible: false,
+                        render: esc
                     },
                     {
                         data: 'is_restreamer',

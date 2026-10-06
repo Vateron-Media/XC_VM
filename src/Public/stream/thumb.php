@@ -47,12 +47,13 @@ if (!isset($rRequest['token'])) {
 } else {
 	$rTokenData = json_decode((string) Encryption::readToken($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, empty($rSettings['secure_stream_tokens'])), true);
 
-	if (is_array($rTokenData) && !(isset($rTokenData['expires']) && $rTokenData['expires'] < time() - intval($rServers[SERVER_ID]['time_offset']))) {
+	// A thumbnail link names when it expires: one that does not is another endpoint's.
+	if (is_array($rTokenData) && isset($rTokenData['expires']) && $rTokenData['expires'] >= time() - intval($rServers[SERVER_ID]['time_offset'])) {
 	} else {
 		generateError('TOKEN_EXPIRED');
 	}
 
-	$rStreamID = $rTokenData['stream'];
+	$rStreamID = intval($rTokenData['stream'] ?? 0);
 }
 
 if ($rStreamID && file_exists(STREAMS_PATH . $rStreamID . '_.jpg') && time() - filemtime(STREAMS_PATH . $rStreamID . '_.jpg') < 60) {

@@ -63,12 +63,7 @@ class CertbotCommand implements CommandInterface {
 					unlink(BIN_PATH . 'certbot/' . $rPath . '/.certbot.lock');
 				}
 			}
-			$rActiveDomains = [];
-			foreach ($rData['domain'] as $rDomain) {
-				if (!empty($rDomain) && !filter_var($rDomain, FILTER_VALIDATE_IP)) {
-					$rActiveDomains[] = $rDomain;
-				}
-			}
+			$rActiveDomains = self::hostNames($rData['domain'] ?? null);
 			$rError = null;
 			$rOutput = [];
 			$rResult = false;
@@ -84,7 +79,7 @@ class CertbotCommand implements CommandInterface {
 						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --standalone';
 					}
 					foreach ($rActiveDomains as $rDomain) {
-						$rCommand .= ' -d ' . basename($rDomain);
+						$rCommand .= ' -d ' . escapeshellarg($rDomain);
 					}
 					$rCommand .= ' 2>&1';
 					$rOutput = [];
@@ -199,6 +194,26 @@ class CertbotCommand implements CommandInterface {
 		}
 
 		return 0;
+	}
+
+	/**
+	 * The names certbot is asked a certificate for: the host names of the
+	 * list. An entry stored as a URL, or with blanks around it, counts as the
+	 * host name it ends with. An address, or anything else the list holds, is
+	 * left out.
+	 *
+	 * @param mixed $rDomains The request's `domain` list.
+	 * @return list<string>
+	 */
+	private static function hostNames(mixed $rDomains): array {
+		$rNames = [];
+		foreach ((is_array($rDomains) ? $rDomains : []) as $rDomain) {
+			$rDomain = is_string($rDomain) ? basename(trim($rDomain)) : '';
+			if (!empty($rDomain) && !filter_var($rDomain, FILTER_VALIDATE_IP) && filter_var($rDomain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false) {
+				$rNames[] = $rDomain;
+			}
+		}
+		return $rNames;
 	}
 
 	private function buildSslConfig($rCertificate, $rPrivateKey, $rChain): string {

@@ -2,8 +2,6 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\ProviderService;
-
 /**
  * ProviderEditController — add/edit stream provider.
  *
@@ -25,7 +23,10 @@ class ProviderEditController extends BaseAdminController {
 		$rProvider = null;
 		$id = $this->input('id');
 		if ($id !== null) {
-			$rProvider = ProviderService::getById($id);
+			// The provider as stored: the form escapes what it prints and posts it back,
+			// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+			$GLOBALS['db']->query('SELECT * FROM `providers` WHERE `id` = ?;', intval($id));
+			$rProvider = $GLOBALS['db']->get_raw_row();
 			if (!$rProvider) {
 				exit();
 			}

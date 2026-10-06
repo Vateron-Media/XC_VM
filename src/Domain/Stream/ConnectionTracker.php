@@ -924,7 +924,6 @@ class ConnectionTracker {
 	public static function openRecord(array $rSettings, array $rRecord, array $rDbRow, ?array $rToken = null, int $rTimeOffset = 0) {
 		self::$rRefused = null;
 		if (AgentConnections::enabled()) {
-			$rAdmission = $rToken === null ? null : AgentConnections::admission($rToken, $rRecord, time() - $rTimeOffset);
 			// An HLS viewer is recorded under its playlist key, not the token's
 			// uuid MAIN reserved at mint: name the reservation, so MAIN releases
 			// it with the viewer (ConnectionIngest).
@@ -932,6 +931,15 @@ class ConnectionTracker {
 			if (is_array($rToken['adm'] ?? null) && $rReserved !== '' && $rReserved !== (string) $rRecord['uuid']) {
 				$rRecord['adm_uuid'] = $rReserved;
 			}
+			// MAIN's proof that it minted the token for this viewer (`prf`), kept
+			// in the record as `mint` for the record's life: the agent mirrors it
+			// to MAIN, which stores a new record only with it under
+			// cluster_conn_binding = enforce. It names the token's uuid.
+			$rProof = $rToken['prf'] ?? null;
+			if (is_array($rProof) && is_int($rProof['iat'] ?? null) && $rProof['iat'] > 0 && is_string($rProof['p'] ?? null) && preg_match('/^[0-9a-f]{32}\z/', $rProof['p']) && preg_match(AgentConnections::CONN_UUID, $rReserved)) {
+				$rRecord['mint'] = $rReserved . '.' . $rProof['iat'] . '.' . $rProof['p'];
+			}
+			$rAdmission = $rToken === null ? null : AgentConnections::admission($rToken, $rRecord, time() - $rTimeOffset);
 			$rOut = AgentConnections::register((string) $rRecord['uuid'], $rRecord, $rAdmission);
 			if ($rOut === true) {
 				return true; // the node's agent holds it and tells MAIN
@@ -940,7 +948,7 @@ class ConnectionTracker {
 				self::$rRefused = $rOut;
 				return false;
 			}
-			unset($rRecord['adm_uuid']);
+			unset($rRecord['adm_uuid'], $rRecord['mint']);
 		}
 		if ($rSettings['redis_handler']) {
 			return self::createConnection($rRecord);
@@ -1124,7 +1132,7 @@ class ConnectionTracker {
 		}
 
 		$db = self::db();
-		$rCols = $rWithPid ? "`activity_id`, `pid`, `user_ip`" : "`activity_id`, `user_ip`";
+		$rCols = $rWithPid ? "`activity_id`, `pid`, `user_ip`, `hls_end`" : "`activity_id`, `user_ip`";
 		$rOpen = $rOpenOnly ? " AND `hls_end` = 0" : "";
 
 		if ($rAllowAdaptive && !empty($rCtx["adaptive"])) {

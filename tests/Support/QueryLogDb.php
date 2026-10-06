@@ -22,6 +22,9 @@ final class QueryLogDb extends DatabaseHandler {
 	 */
 	public ?\Closure $rBefore = null;
 
+	/** A statement MySQL refuses returns false, as Database::query() answers it, instead of throwing. */
+	public bool $rFailLikeThePanel = false;
+
 	public function __construct(private DatabaseHandler $rInner) {
 		$this->dbh = true;
 	}
@@ -34,7 +37,14 @@ final class QueryLogDb extends DatabaseHandler {
 		if ($this->rRefuse !== null && preg_match($this->rRefuse, (string) $query)) {
 			return false;
 		}
-		return $this->rInner->query($query, ...$args);
+		try {
+			return $this->rInner->query($query, ...$args);
+		} catch (\PDOException $e) {
+			if ($this->rFailLikeThePanel) {
+				return false;
+			}
+			throw $e;
+		}
 	}
 
 	/** @return list<string> the statements that change something */
@@ -56,6 +66,14 @@ final class QueryLogDb extends DatabaseHandler {
 
 	public function get_raw_row(): ?array {
 		return $this->rInner->get_raw_row();
+	}
+
+	public function get_col() {
+		return $this->rInner->get_col();
+	}
+
+	public function get_column() {
+		return $this->rInner->get_column();
 	}
 
 	public function num_rows() {

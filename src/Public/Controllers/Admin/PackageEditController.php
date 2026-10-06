@@ -3,7 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\User\UserCredits;
 
 /**
  * PackageEditController — add/edit package.
@@ -26,7 +26,11 @@ class PackageEditController extends BaseAdminController {
 		$rPackage = null;
 		$id = $this->input('id');
 		if ($id !== null) {
-			$rPackage = PackageService::getById($id);
+			// The package as stored: the form escapes what it prints and posts it back,
+			// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+			$db = $GLOBALS['db'];
+			$db->query('SELECT * FROM `users_packages` WHERE `id` = ?;', intval($id));
+			$rPackage = ($rStored = $db->get_raw_row()) ? UserCredits::amounts($rStored) : null;
 			if (!$rPackage) {
 				AdminHelpers::goHome();
 				return;

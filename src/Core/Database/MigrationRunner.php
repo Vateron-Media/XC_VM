@@ -174,6 +174,9 @@ class MigrationRunner {
 				continue;
 			}
 			if (!$db->query($rStatement . ';')) {
+				// The panel log leaves out some messages (duplicate entries,
+				// timeouts): the output of the update is where the operator reads why.
+				echo '  [ERR]  ' . $db->error() . "\n";
 				$rFailed = true;
 			}
 		}

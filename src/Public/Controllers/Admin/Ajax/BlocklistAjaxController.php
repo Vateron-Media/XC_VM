@@ -48,7 +48,10 @@ class BlocklistAjaxController extends BaseAjaxController {
 		$this->fail();
 	}
 
-	/** action=mysql_syslog — block a brute-forcing IP surfaced by the MySQL syslog. */
+	/**
+	 * action=mysql_syslog — block an IP from a log page (System, Login or Restream Logs).
+	 * The block keeps the note the admin gave, as the Block IP form does, or `Manual block`.
+	 */
 	public function mysqlSyslog(): never {
 		$this->requireXhr();
 		$this->gate('adv', 'block_ips');
@@ -56,7 +59,8 @@ class BlocklistAjaxController extends BaseAjaxController {
 		global $db;
 
 		if (RequestManager::get('sub') == 'block' && filter_var(RequestManager::get('ip'), FILTER_VALIDATE_IP)) {
-			$db->query("INSERT INTO `blocked_ips`(`ip`, `notes`, `date`) VALUES(?, 'MySQL Bruteforce', ?);", RequestManager::get('ip'), time());
+			$rNotes = is_string(RequestManager::get('notes')) ? trim(RequestManager::get('notes')) : '';
+			$db->query('INSERT INTO `blocked_ips`(`ip`, `notes`, `date`) VALUES(?, ?, ?);', RequestManager::get('ip'), $rNotes !== '' ? $rNotes : 'Manual block', time());
 			BlocklistChanges::set('ip', [RequestManager::get('ip')], $db);
 			touch(FLOOD_TMP_PATH . 'block_' . RequestManager::get('ip'));
 			$this->ok();

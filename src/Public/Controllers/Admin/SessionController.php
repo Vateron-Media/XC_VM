@@ -2,6 +2,8 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
+use XcVm\Core\Bootstrap\Stage\SessionStage;
+
 /**
  * SessionController — JSON endpoint проверки статуса сессии.
  *
@@ -21,7 +23,7 @@ class SessionController extends BaseAdminController {
 		}
 
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-			session_start();
+			SessionStage::startSession();
 		}
 
 		if (isset($_SESSION['hash'], $_SESSION['last_activity'])
@@ -29,9 +31,6 @@ class SessionController extends BaseAdminController {
 		) {
 			foreach (['hash', 'ip', 'code', 'verify', 'last_activity'] as $rKey) {
 				unset($_SESSION[$rKey]);
-			}
-			if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-				session_start();
 			}
 		}
 

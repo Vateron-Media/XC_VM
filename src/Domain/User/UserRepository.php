@@ -388,7 +388,7 @@ class UserRepository {
 
 			if (0 < $db->num_rows()) {
 				foreach ($db->get_rows() as $rRow) {
-					$rReturn[intval($rRow['id'])] = $rRow;
+					$rReturn[intval($rRow['id'])] = UserCredits::amounts($rRow);
 				}
 			}
 		}
@@ -493,7 +493,7 @@ class UserRepository {
 		$db->query('SELECT * FROM `users` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() == 1) {
-			return $db->get_row();
+			return UserCredits::amounts($db->get_row());
 		}
 		return null;
 	}
@@ -523,7 +523,7 @@ class UserRepository {
 		if (0 < $db->num_rows()) {
 			foreach ($db->get_rows() as $rRow) {
 				if (!$rOwner || $rRow['owner_id'] == $rOwner || $rRow['id'] == $rOwner && $rIncludeSelf) {
-					$rReturn[intval($rRow['id'])] = $rRow;
+					$rReturn[intval($rRow['id'])] = UserCredits::amounts($rRow);
 				}
 			}
 		}

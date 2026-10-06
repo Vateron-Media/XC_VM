@@ -58,7 +58,11 @@ class ClusterEnrolApproveCommand implements CommandInterface {
 		try {
 			$rResult = EnrolCodeService::approve($rCrypto, $rServerID, $rSas, SettingsManager::getAll(), $rServers[SERVER_ID] ?? []);
 		} catch (ClusterRefusedException $rE) {
-			echo ($rE->reason() === 'LICENCE' ? 'CLUSTER_LICENCE_REQUIRED' : 'Cluster token refused: ' . $rE->reason()) . ". The request stays pending.\n";
+			echo match ($rE->reason()) {
+				'LICENCE' => 'CLUSTER_LICENCE_REQUIRED',
+				'REDIS_HANDLER' => 'This node enrols in mode 2, which is not available while the Redis connection handler is on: switch the handler off first',
+				default => 'Cluster token refused: ' . $rE->reason(),
+			} . ". The request stays pending.\n";
 			return 1;
 		}
 		echo match ($rResult) {

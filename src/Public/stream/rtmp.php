@@ -27,7 +27,17 @@ use XcVm\Streaming\Protection\ConnectionLimiter;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
+// nginx-rtmp says who the client is (addr, clientid), what it asks for (call)
+// and which stream (name). The stream's own arguments share the query string,
+// so these four are read from it here, and each has one value.
+$rNotify = StreamAuth::notifyArguments($_SERVER['QUERY_STRING'] ?? '');
+if ($rNotify === null) {
+	http_response_code(404);
+
+	exit();
+}
+
+if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 	register_shutdown_function('shutdown');
 	set_time_limit(0);
 	error_reporting(0);
@@ -40,8 +50,8 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 		generate404();
 	}
 
-	$rIP = $rRequest['addr'];
-	$rStreamID = intval($rRequest['name']);
+	$rIP = $rNotify['addr'];
+	$rStreamID = intval($rNotify['name']);
 	$rRestreamDetect = false;
 
 	foreach (getallheaders() as $rKey => $rValue) {
@@ -51,8 +61,8 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 		}
 	}
 
-	if ($rRequest['call'] != 'publish') {
-		if ($rRequest['call'] != 'play_done') {
+	if ($rNotify['call'] != 'publish') {
+		if ($rNotify['call'] != 'play_done') {
 			if (!(ViewerKey::passMatches($rSettings['live_streaming_pass'] ?? null, $rRequest['password'] ?? null) || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['pull'] && (!$rAllowed[$rIP]['password'] || AuthService::secretMatches($rAllowed[$rIP]['password'], $rRequest['password'] ?? null)))) {
 				if (isset($rRequest['tcurl']) && isset($rRequest['app'])) {
 					// A load balancer is not shipped the line lookup (Domain/User): it
@@ -77,6 +87,14 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 					} else {
 						$rUsername = $rRequest['username'];
 						$rPassword = $rRequest['password'];
+
+						// A line's name and password are plain values: one sent as a list is no line's.
+						if (is_array($rUsername) || is_array($rPassword)) {
+							http_response_code(404);
+
+							exit();
+						}
+
 						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, true, false, $rIP);
 					}
 
@@ -140,13 +158,13 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 																			RedisManager::ensureConnected();
 																		}
 																		$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
-																		$rConnectionData = ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rRequest['clientid'], 'date_start' => $rLastRead, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => $rChannelInfo['on_demand'], 'identity' => $rUserInfo['id'], 'uuid' => ConnectionTracker::rtmpUuid($rRequest['clientid'])];
+																		$rConnectionData = ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'date_start' => $rLastRead, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => $rChannelInfo['on_demand'], 'identity' => $rUserInfo['id'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid'])];
 																		// The table path keeps its own date_start (the node's clock), as it always did.
 																		// No stream token, so no claim: a limited line is admitted by the agent asking MAIN (conn_admit).
-																		$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rRequest['clientid'], 'uuid' => ConnectionTracker::rtmpUuid($rRequest['clientid']), 'date_start' => time(), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_last_read' => $rLastRead], ['user_info' => ['max_connections' => (int) $rUserInfo['max_connections']]], intval($rServers[SERVER_ID]['time_offset']));
+																		$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid']), 'date_start' => time(), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_last_read' => $rLastRead], ['user_info' => ['max_connections' => (int) $rUserInfo['max_connections']]], intval($rServers[SERVER_ID]['time_offset']));
 
 																		if ($rResult) {
-																			StreamAuth::validateConnections($rUserInfo, false, '', $rIP, null);
+																			StreamAuth::validateConnections($rUserInfo, false, '', $rIP, null, ConnectionTracker::rtmpUuid($rNotify['clientid']));
 																			http_response_code(200);
 
 																			exit();
@@ -239,7 +257,7 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 					} else {
 						if (!isset($rUsername)) {
 						} else {
-							BruteforceGuard::checkBruteforce($rIP, null, $rUsername);
+							BruteforceGuard::checkBruteforce($rIP, null, $rUsername, false, $rPassword ?? null);
 						}
 
 						DatabaseLogger::clientLog($rStreamID, 0, 'AUTH_FAILED', $rIP);
@@ -293,7 +311,7 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 		$rDeny = false;
 
 		// Both stores: the record is removed and its activity written.
-		ConnectionLimiter::closeRTMP($rRequest['clientid']);
+		ConnectionLimiter::closeRTMP($rNotify['clientid']);
 
 		http_response_code(200);
 

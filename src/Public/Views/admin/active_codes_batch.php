@@ -1,4 +1,5 @@
 <?php
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Util\LayoutRenderer;
 
 
@@ -16,6 +17,11 @@ $totalBatches = count($batches);
 $totalCodes = array_sum(array_column($batches, 'total_codes'));
 $totalStock = array_sum(array_column($batches, 'stock_count'));
 $totalActive = array_sum(array_column($batches, 'active_count'));
+
+// Enabling, disabling and deleting a batch change its codes
+// (ActiveCodeAjaxController::batchAction): a group that may only list them is
+// not offered what it would be refused.
+$rCanEdit = Authorization::check('adv', 'edit_user') || Authorization::check('adv', 'mass_edit_lines');
 
 ?>
 
@@ -79,9 +85,11 @@ $totalActive = array_sum(array_column($batches, 'active_count'));
     <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
         <h5 class="card-title mb-0"><i class="ti tabler-folders text-primary me-2"></i><?= $language::get('ac_voucher_batches_all_resellers') ?></h5>
         <div class="d-flex gap-2">
-            <a href="active_code" class="btn btn-sm btn-primary">
-                <i class="ti tabler-plus me-1"></i><?= $language::get('ac_new_batch') ?>
-            </a>
+            <?php if (Authorization::check('adv', 'add_user')): ?>
+                <a href="active_code" class="btn btn-sm btn-primary">
+                    <i class="ti tabler-plus me-1"></i><?= $language::get('ac_new_batch') ?>
+                </a>
+            <?php endif; ?>
             <a href="active_codes" class="btn btn-sm btn-label-secondary">
                 <i class="ti tabler-list me-1"></i><?= $language::get('ac_all_codes') ?>
             </a>
@@ -130,6 +138,7 @@ $totalActive = array_sum(array_column($batches, 'active_count'));
                             <a href="./api?action=active_codes_export_txt&batch_name=<?= urlencode($bName); ?>" class="btn btn-sm btn-icon btn-label-primary me-1" title="<?= $language::get('ac_export_scratch_cards_txt') ?>">
                                 <i class="ti tabler-printer"></i>
                             </a>
+                            <?php if ($rCanEdit): ?>
                             <button type="button" class="btn btn-sm btn-icon btn-label-success js-batch-enable me-1" data-batch="<?= htmlspecialchars($bName, ENT_QUOTES); ?>" title="<?= $language::get('ac_enable_batch') ?>">
                                 <i class="ti tabler-check"></i>
                             </button>
@@ -139,6 +148,7 @@ $totalActive = array_sum(array_column($batches, 'active_count'));
                             <button type="button" class="btn btn-sm btn-icon btn-label-danger js-batch-delete" data-batch="<?= htmlspecialchars($bName, ENT_QUOTES); ?>" title="<?= $language::get('ac_delete_batch') ?>">
                                 <i class="ti tabler-trash"></i>
                             </button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>

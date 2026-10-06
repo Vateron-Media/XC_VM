@@ -3,6 +3,7 @@
 namespace XcVm\Infrastructure\Bootstrap;
 
 use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Bootstrap\Stage\SessionStage;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\UserRepository;
@@ -33,7 +34,7 @@ final class PlayerScopeBootstrap implements ScopeBootstrap {
 	 */
 	private function bootSession(): void {
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-			session_start();
+			SessionStage::startSession();
 		}
 
 		// Not logged in → redirect to login
@@ -142,8 +143,6 @@ final class PlayerScopeBootstrap implements ScopeBootstrap {
 					header('Location: ' . ($code ? '/' . $code . '/login' : 'login'));
 					exit();
 				}
-
-				sort($rUserInfo['bouquet']);
 			}
 		} else {
 			$code = $_SERVER['XC_CODE'] ?? '';

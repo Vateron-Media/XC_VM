@@ -17,6 +17,15 @@ use XcVm\Core\Util\AdminHelpers;
 
 class PageAuthorization {
 	/**
+	 * The requested page under the name its rule is written for. The router
+	 * takes `line/mass` for `line_mass`, each with or without a trailing `.php`
+	 * (Router::normalizePage), and a page has one rule whichever way it was asked for.
+	 */
+	private static function requestedPage(): string {
+		return str_replace('/', '_', (string) preg_replace('/\.php$/', '', AdminHelpers::getPageName()));
+	}
+
+	/**
 	 * Check whether the current reseller may access a given page.
 	 *
 	 * Maps the page name to the reseller permission flag that gates it; defaults
@@ -29,7 +38,7 @@ class PageAuthorization {
 		global $rPermissions;
 
 		if (!$rPage) {
-			$rPage = AdminHelpers::getPageName();
+			$rPage = self::requestedPage();
 		}
 
 		switch ($rPage) {
@@ -81,7 +90,7 @@ class PageAuthorization {
 			// Under the front controller SCRIPT_FILENAME is always Public/index.php,
 			// so deriving the page from it checked "index" — a page no rule names —
 			// and every page opened for every administrator.
-			$rPage = AdminHelpers::getPageName();
+			$rPage = self::requestedPage();
 		}
 		// Editing an existing record needs edit_*, creating one add_*. A page tells
 		// them apart by ?id=; post.php passes whether the form carries `edit`.
@@ -125,7 +134,8 @@ class PageAuthorization {
 					return true;
 				}
 
-				// no break
+				break;
+
 			case 'code':
 			case 'codes':
 				return Authorization::check('adv', 'add_code');
@@ -162,7 +172,8 @@ class PageAuthorization {
 					return true;
 				}
 
-				// no break
+				break;
+
 			case 'episodes':
 				return Authorization::check('adv', 'episodes');
 
@@ -415,13 +426,20 @@ class PageAuthorization {
 				return Authorization::check('adv', 'connection_logs');
 
 			case 'line_mass':
+			case 'active_codes_mass':
 				return Authorization::check('adv', 'mass_edit_lines');
+
+			// Generating codes creates lines.
+			case 'active_code':
+				return Authorization::check('adv', 'add_user');
 
 			case 'useragents':
 			case 'useragent':
 				return Authorization::check('adv', 'block_uas');
 
 			case 'lines':
+			case 'active_codes':
+			case 'active_codes_batch':
 				return Authorization::check('adv', 'users');
 
 			case 'mysql_syslog':

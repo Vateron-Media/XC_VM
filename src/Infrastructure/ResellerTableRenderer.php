@@ -10,6 +10,7 @@ use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\User\ResellerAPI;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Redis\RedisManager;
@@ -1071,7 +1072,10 @@ class ResellerTableRenderer {
 			foreach (range(1, 10) as $rInt) {
 				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 			}
-			$rWhere[] = '(`lines_activity`.`user_agent` LIKE ? OR `lines_activity`.`user_ip` LIKE ? OR `lines_activity`.`container` LIKE ? OR FROM_UNIXTIME(`lines_activity`.`date_start`) LIKE ? OR FROM_UNIXTIME(`lines_activity`.`date_end`) LIKE ? OR `lines_activity`.`geoip_country_code` LIKE ? OR `lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ? OR `streams`.`stream_display_name` LIKE ?)';
+			// A user agent is stored entity-encoded and the player column shows
+			// it decoded: the name as shown is matched as well.
+			$rWhereV[] = '%' . htmlentities((string) RequestManager::get('search')['value']) . '%';
+			$rWhere[] = '(`lines_activity`.`user_agent` LIKE ? OR `lines_activity`.`user_ip` LIKE ? OR `lines_activity`.`container` LIKE ? OR FROM_UNIXTIME(`lines_activity`.`date_start`) LIKE ? OR FROM_UNIXTIME(`lines_activity`.`date_end`) LIKE ? OR `lines_activity`.`geoip_country_code` LIKE ? OR `lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ? OR `streams`.`stream_display_name` LIKE ? OR `lines_activity`.`user_agent` LIKE ?)';
 		}
 		if ((string) RequestManager::get('range') !== '') {
 			$rStartTime = substr(RequestManager::get('range'), 0, 10);
@@ -1142,7 +1146,9 @@ class ResellerTableRenderer {
 							'user_url'      => $rUserUrl,
 							'stream_name'   => $rRow['stream_display_name'],
 							'stream_url'    => $rStreamUrl,
-							'player'        => trim(explode('(', (string) $rRow['user_agent'])[0]),
+							// A user agent is stored entity-encoded: the page gets the
+							// name the device gave and writes it as text.
+							'player'        => trim(explode('(', html_entity_decode((string) $rRow['user_agent']))[0]),
 							'isp'           => $rRow['isp'],
 							'user_ip'       => $rRow['user_ip'],
 							'country'       => ((string) $rRow['geoip_country_code'] !== '') ? strtolower($rRow['geoip_country_code']) : null,
@@ -1302,7 +1308,10 @@ class ResellerTableRenderer {
 				foreach (range(1, 9) as $rInt) {
 					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 				}
-				$rWhere[] = '(`lines_live`.`user_agent` LIKE ? OR `lines_live`.`user_ip` LIKE ? OR `lines_live`.`container` LIKE ? OR FROM_UNIXTIME(`lines_live`.`date_start`) LIKE ? OR `lines_live`.`geoip_country_code` LIKE ? OR `lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ? OR `streams`.`stream_display_name` LIKE ?)';
+				// A user agent is stored entity-encoded and the player column shows
+				// it decoded: the name as shown is matched as well.
+				$rWhereV[] = '%' . htmlentities((string) RequestManager::get('search')['value']) . '%';
+				$rWhere[] = '(`lines_live`.`user_agent` LIKE ? OR `lines_live`.`user_ip` LIKE ? OR `lines_live`.`container` LIKE ? OR FROM_UNIXTIME(`lines_live`.`date_start`) LIKE ? OR `lines_live`.`geoip_country_code` LIKE ? OR `lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ? OR `streams`.`stream_display_name` LIKE ? OR `lines_live`.`user_agent` LIKE ?)';
 			}
 			if (0 < intval(RequestManager::get('stream'))) {
 				$rWhere[] = '`lines_live`.`stream_id` = ?';
@@ -1360,7 +1369,9 @@ class ResellerTableRenderer {
 						'user_url'      => $rUserUrl,
 						'stream_name'   => $rRow['stream_display_name'],
 						'stream_url'    => $rStreamUrl,
-						'player'        => trim(explode('(', (string) $rRow['user_agent'])[0]),
+						// A user agent is stored entity-encoded: the page gets the
+						// name the device gave and writes it as text.
+						'player'        => trim(explode('(', html_entity_decode((string) $rRow['user_agent']))[0]),
 						'isp'           => $rRow['isp'],
 						'user_ip'       => $rRow['user_ip'],
 						'country'       => ((string) $rRow['geoip_country_code'] !== '') ? strtolower($rRow['geoip_country_code']) : null,
@@ -1530,8 +1541,8 @@ class ResellerTableRenderer {
 							'line_label'     => $rLineLabel,
 							'line_url'       => $rLineUrl,
 							'text'           => $rText,
-							'cost'           => (int) $rRow['cost'],
-							'credits_after'  => (int) $rRow['credits_after'],
+							'cost'           => ResellerAPI::amount($rRow['cost']),
+							'credits_after'  => ResellerAPI::amount($rRow['credits_after']),
 							'date'           => (int) $rRow['date'],
 						];
 					} else {
@@ -1630,7 +1641,7 @@ class ResellerTableRenderer {
 							'ip' => (string) $rRow['ip'],
 							'status' => (int) $rRow['status'],
 							'is_reseller' => (bool) $rRow['is_reseller'],
-							'credits' => (int) $rRow['credits'],
+							'credits' => ResellerAPI::amount($rRow['credits']),
 							'user_count' => (int) $rRow['user_count'],
 							'last_login' => $rRow['last_login'] ?: '',
 							'notes' => (string) $rRow['notes'],

@@ -25,8 +25,10 @@ class PlayerResizeController extends BasePlayerController {
 		}
 
 		// Sensitive endpoint: it fetches/serves remote images. Require an
-		// authenticated player session (the scope bootstrap populates rUserInfo).
-		if (!isset($GLOBALS['rUserInfo']) || empty($GLOBALS['rUserInfo']['id'])) {
+		// authenticated player session (the scope bootstrap populates rUserInfo)
+		// of a line of this panel: a session signed in against an external
+		// server holds no account here.
+		if (!isset($GLOBALS['rUserInfo']) || empty($GLOBALS['rUserInfo']['id']) || !empty($GLOBALS['rUserInfo']['is_external_xc'])) {
 			exit();
 		}
 

@@ -131,6 +131,9 @@ class OffAirHandler {
 				case 'show_not_on_air_video':
 					generateError('STREAM_OFFLINE');
 					break;
+				case 'show_expiring_video':
+					// A notice, not a refusal: with no clip to show, the line plays on.
+					return;
 				default:
 					generate404();
 					break;
@@ -147,6 +150,10 @@ class OffAirHandler {
 			$rProxies = ConnectionTracker::getProxies($rServerID);
 			$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 			if (!$rProxyID) {
+				if ($rShowOptionKey == 'show_expiring_video') {
+					// No proxy to show the notice through: the line plays on.
+					return;
+				}
 				generate404();
 			}
 			$rOriginatorID = $rServerID;

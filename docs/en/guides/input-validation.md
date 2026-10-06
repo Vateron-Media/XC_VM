@@ -310,6 +310,20 @@ Guidelines:
 
 ---
 
+## Addresses a Visitor-Supplied URL Resolves To
+
+When the panel fetches a URL that came from a visitor (the web player's external-server sign-in, the image resizer's remote source), it fetches from public addresses only. `XcVm\Core\Util\PublicAddress::isPublic($ip)` is the one check for an address such a URL resolves to:
+
+```php
+PublicAddress::isPublic(string $rIP): bool
+```
+
+It returns `false` for loopback, private, link-local, shared (`100.64.0.0/10`) and reserved addresses, and for a string that is not an address. An IPv6 address that carries an IPv4 one (IPv4-mapped, IPv4-compatible, NAT64, 6to4) is judged by the IPv4 address inside it.
+
+Check every address the host resolves to, and use this method rather than `filter_var()` with `FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE` on its own, which does not look inside those IPv6 forms.
+
+---
+
 ## Related files
 
 | File | Purpose |
@@ -317,4 +331,5 @@ Guidelines:
 | `src/Core/Validation/InputValidator.php` | All sanitization and validation logic |
 | `src/Core/Init/LegacyInitializer.php` | Bootstrap caller that triggers sanitization via `initCore()` |
 | `src/Core/Http/RequestManager.php` | Stores the sanitized, merged GET+POST data |
+| `src/Core/Util/PublicAddress.php` | `isPublic()`: the public-address check for visitor-supplied URLs |
 | `src/Public/Controllers/` | Controllers that call `validate()` / `validateOrFail()` before business logic |

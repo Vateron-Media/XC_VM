@@ -12,14 +12,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class SessionManagerTest extends TestCase {
 
-	/** @var array<string, string> */
+	/** @var array<string, string|int> */
 	private array $user;
 
 	/** @var array<string, int> */
 	private array $perms;
 
 	protected function setUp(): void {
-		$this->user = ['username' => 'admin', 'password' => 'secret'];
+		$this->user = ['username' => 'admin', 'password' => 'secret', 'status' => 1];
 		$this->perms = ['is_admin' => 1];
 		$_SESSION['ip'] = '10.0.0.5';
 		$_SESSION['verify'] = md5('admin||secret');
@@ -49,6 +49,17 @@ final class SessionManagerTest extends TestCase {
 
 	public function testRejectsWhenNotAdmin(): void {
 		$this->assertFalse(SessionManager::adminSessionValid($this->user, ['is_admin' => 0], $this->settings()));
+	}
+
+	public function testRejectsWhenAccountDisabled(): void {
+		$this->user['status'] = 0;
+		$this->assertFalse(SessionManager::adminSessionValid($this->user, $this->perms, $this->settings()));
+	}
+
+	public function testRejectsARowWithoutItsStatus(): void {
+		unset($this->user['status']);
+		// PHP warns of the missing key: the answer is what is asked here.
+		$this->assertFalse(@SessionManager::adminSessionValid($this->user, $this->perms, $this->settings()));
 	}
 
 	public function testRejectsWhenVerifyHashMismatches(): void {

@@ -62,6 +62,11 @@ class PlayerCategoryHelper {
 			}
 		}
 
+		// A type the line has nothing of has no category to offer.
+		if (self::streamIdsOfType($userInfo, $type) === []) {
+			return [];
+		}
+
 		$allowedIds = !empty($userInfo['category_ids']) ? array_map('intval', $userInfo['category_ids']) : [];
 
 		// 1. Fetch raw categories from database
@@ -243,11 +248,11 @@ class PlayerCategoryHelper {
 	}
 
 	/**
-	 * Calculate streams per category map for authorized subscriber streams.
+	 * The ids of one content type in the line's bouquets.
 	 *
-	 * @return array<int, int> Map of [categoryId => streamCount]
+	 * @return array<int, mixed>
 	 */
-	private static function calculateStreamCounts(array $userInfo, string $type): array {
+	private static function streamIdsOfType(array $userInfo, string $type): array {
 		$streamIds = match ($type) {
 			'live'   => $userInfo['live_ids'] ?? [],
 			'movie'  => $userInfo['vod_ids'] ?? [],
@@ -256,23 +261,27 @@ class PlayerCategoryHelper {
 			default  => [],
 		};
 
+		return is_array($streamIds) ? $streamIds : [];
+	}
+
+	/**
+	 * Calculate streams per category map for authorized subscriber streams.
+	 *
+	 * @return array<int, int> Map of [categoryId => streamCount]
+	 */
+	private static function calculateStreamCounts(array $userInfo, string $type): array {
+		$streamIds = self::streamIdsOfType($userInfo, $type);
+
+		// Nothing of this type in the line's bouquets: nothing to count.
+		if ($streamIds === []) {
+			return [];
+		}
+
 		try {
 			$db = DatabaseFactory::get();
 			$tableName = $type === 'series' ? 'streams_series' : 'streams';
-			if (empty($streamIds) || !is_array($streamIds)) {
-				if ($type === 'series') {
-					$db->query("SELECT id, category_id FROM `streams_series` LIMIT 5000");
-				} elseif ($type === 'movie') {
-					$db->query("SELECT id, category_id FROM `streams` WHERE `type` = 2 LIMIT 5000");
-				} elseif ($type === 'radio') {
-					$db->query("SELECT id, category_id FROM `streams` WHERE `type` = 4 LIMIT 5000");
-				} else {
-					$db->query("SELECT id, category_id FROM `streams` WHERE `type` = 1 LIMIT 5000");
-				}
-			} else {
-				$cleanIds = implode(',', array_slice(array_map('intval', $streamIds), 0, 5000));
-				$db->query("SELECT id, category_id FROM `{$tableName}` WHERE `id` IN ({$cleanIds})");
-			}
+			$cleanIds = implode(',', array_slice(array_map('intval', $streamIds), 0, 5000));
+			$db->query("SELECT id, category_id FROM `{$tableName}` WHERE `id` IN ({$cleanIds})");
 			$rows = $db->get_rows() ?: [];
 
 			$map = [];

@@ -61,11 +61,17 @@ idiom into a few readable lines:
 
 ```php
 public function regenerate(): never {
-    $this->gate('adv', 'manage_streams');
+    $this->requireXhr();
+    $this->gate('adv', 'database');
     // … call a domain service …
     $this->ok();
 }
 ```
+
+Gate an action on the permission of the page that shows its button (here the Cache
+page, `database`), so a group that cannot open the page cannot run its actions. A
+refusal that has a reason to give carries it in `message`:
+`$this->fail(['message' => …])`.
 
 ### Shared line/device state — `LineStateTrait`
 
@@ -87,7 +93,9 @@ Each controller groups a cohesive set of actions (its class docblock lists them)
 | `CacheAjaxController` | Cache regenerate/enable/disable, Redis clear, handlers |
 | `ServerAjaxController` | Server add/edit/delete and ops |
 | `StreamAjaxController` / `StreamToolsAjaxController` | Stream start/stop/restart/purge, lists, reviews |
-| `PackageAjaxController` | Packages/bouquets |
+| `PackageAjaxController` | Packages, bouquets, groups, categories |
+| `ActiveCodeAjaxController` | Activation code generation, batch actions, export |
+| `ModuleAjaxController` | Modules table row actions |
 | `UserAjaxController` | Users, lines, resellers |
 | `DeviceAjaxController` | MAG / Enigma2 devices |
 | `EpgAjaxController` | EPG sources and mappings |
@@ -98,6 +106,46 @@ Each controller groups a cohesive set of actions (its class docblock lists them)
 | `MultiAjaxController` | Bulk (`multi`) actions over selected IDs |
 | `SearchAjaxController` | Global fuzzy search (see below) |
 | `MiscAjaxController` | Remaining small actions |
+
+### Permission gates
+
+Gates that the action name does not give away (all `adv` permissions):
+
+| Action | Permission |
+| --- | --- |
+| `regenerate_cache`, `enable_cache`, `disable_cache`, `enable_handler`, `disable_handler`, `clear_redis` | `database` |
+| `report` (CSV/JSON export) | `database` |
+| `clear_logs` | The permission of the log page that `type` names: `lines_logs` → `client_request_log`, `lines_activity` → `connection_logs`, `streams_errors` → `stream_errors`, `users_credits_logs` → `credits_log`, `users_logs` → `reg_userlog`, `panel_logs` → `panel_logs`. Any other `type` fails. |
+| `download_panel_logs` | `panel_logs`. The table is emptied once its rows are collected. |
+| `get_epg`, `get_programme`, `provider_streams`, `provider_import_epg` | `streams` |
+| `multi` | By `type`, for example `line` → `edit_user`, `series` → `edit_series`, `active_code` → `edit_user` or `mass_edit_lines` |
+| `generate_active_codes` | `add_user` |
+| `active_codes_batch_action` | `edit_user` or `mass_edit_lines` |
+| `active_codes_export_txt` | `users` |
+| `module` | `settings` |
+
+### Rules beyond the gate
+
+Some actions pass the gate and still answer `{"result":false}`:
+
+- **`group`** with `sub` = `is_admin` or `is_reseller` (plus `value` and `group_id`) sets
+  that flag under the rules of the group form. `value` is stored as 0 or 1. A group that
+  cannot be deleted keeps its flags. Only a full administrator (group 1, or an
+  administrator group with an empty permission list) changes an administrator group or
+  makes a group an administrator group.
+- **`package`** with `sub` = `is_trial` or `is_official` (plus `value` and `package_id`) sets
+  that flag, and no other flag is set this way. `value` must read as on or off (`0`, `1`,
+  `true`, `false`, `on`, `off`, `yes`, `no`) and is stored as 0 or 1. A missing or other
+  `value`, or a `package_id` that does not exist, answers `{"result":false}`.
+  Switching both off withdraws the package from resellers on every path (it sells them
+  nothing). Both on is the only way to get a package that sells subscriptions and gives
+  trials; the package form itself clears one switch when the other is switched on.
+- **`reg_user`** and **`adjust_credits`** leave an administrator's account alone unless the
+  caller is a full administrator.
+- **`reinstall_server`** answers `{"result":false,"message":"…"}` when the load balancer
+  would install in cluster mode 2 while the Redis connection handler is on. The server is
+  not marked as being installed, so it stays in rotation. **`enable_handler`** answers the
+  same shape while a node is in mode 2.
 
 ---
 

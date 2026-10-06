@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\PlayerV2;
 
 use XcVm\Core\Config\DomainResolver;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Line\LineService;
@@ -198,9 +199,16 @@ class ProfileController extends BasePlayerV2Controller {
 	public function saveBouquets() {
 		global $db, $rUserInfo;
 
-		if (empty($rUserInfo) || empty($rUserInfo['id'])) {
+		// An external-server session carries a placeholder id, not a line of this panel.
+		if (empty($rUserInfo) || empty($rUserInfo['id']) || !empty($rUserInfo['is_external_xc'])) {
 			http_response_code(401);
 			echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+			exit;
+		}
+
+		if (!SettingsManager::get('player_allow_bouquet')) {
+			http_response_code(403);
+			echo json_encode(['status' => 'error', 'message' => 'Bouquet ordering is disabled.']);
 			exit;
 		}
 
@@ -225,7 +233,11 @@ class ProfileController extends BasePlayerV2Controller {
 			exit;
 		}
 
-		$sanitizedOrder = array_values(array_unique(array_filter(array_map('intval', $orderArray))));
+		// The order only rearranges the bouquets the line has: the ones it names
+		// come first, every other one stays behind them, and none is added.
+		$db->query('SELECT `bouquet` FROM `lines` WHERE `id` = ? LIMIT 1', $userId);
+		$lineBouquets = array_map('intval', json_decode((string) ($db->get_row()['bouquet'] ?? ''), true) ?: []);
+		$sanitizedOrder = array_values(array_unique(array_merge(array_intersect(array_map('intval', $orderArray), $lineBouquets), $lineBouquets)));
 
 		$db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?', json_encode($sanitizedOrder), $userId);
 

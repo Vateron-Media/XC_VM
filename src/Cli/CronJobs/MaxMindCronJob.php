@@ -29,7 +29,10 @@ class MaxMindCronJob implements CommandInterface {
 	}
 
 	public function execute(array $rArgs): int {
-		if (!$this->assertRunAsRoot()) {
+		// Scheduled from the `crontab` table, so started by xc_vm, which owns
+		// bin/maxmind/ and every file in it; the installer and the update start
+		// it as root, and what root writes there is handed to xc_vm.
+		if (posix_geteuid() !== 0 && !$this->assertRunAsXcVm()) {
 			return 1;
 		}
 

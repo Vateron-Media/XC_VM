@@ -5,7 +5,9 @@ namespace XcVm\Public\Controllers\Admin\Ajax;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\User\GroupService;
 use XcVm\Domain\User\TicketRepository;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\User\UserService;
 
@@ -63,12 +65,19 @@ class UserAjaxController extends BaseAjaxController {
 		global $db, $rUserInfo;
 		$rUser = UserRepository::getRegisteredUserById(RequestManager::get('id'));
 
-		if ($rUser && is_numeric(RequestManager::get('credits'))) {
-			$rCredits = intval($rUser['credits']) + intval(RequestManager::get('credits'));
+		// The credits of an administrator's account are adjusted by a full
+		// administrator (GroupService::reservedGroups).
+		if ($rUser && in_array(intval($rUser['member_group_id']), GroupService::reservedGroups())) {
+			$this->fail();
+		}
 
-			if (0 <= $rCredits) {
-				$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rCredits, $rUser['id']);
-				$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['id'], $rUserInfo['id'], RequestManager::get('credits'), time(), RequestManager::get('reason'));
+		if ($rUser && is_numeric(RequestManager::get('credits'))) {
+			$rAmount = intval(RequestManager::get('credits'));
+
+			// The balance changes by the amount on the row as it is stored now: an
+			// amount is taken only from a balance that covers it. The log carries the amount.
+			if ($rAmount < 0 ? UserCredits::debit($rUser['id'], -$rAmount) : UserCredits::credit($rUser['id'], $rAmount)) {
+				$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['id'], $rUserInfo['id'], $rAmount, time(), RequestManager::get('reason'));
 				$this->ok();
 			}
 
@@ -85,6 +94,13 @@ class UserAjaxController extends BaseAjaxController {
 
 		global $db, $rUserInfo;
 		$rSub = RequestManager::get('sub');
+		$rUser = UserRepository::getRegisteredUserById(intval(RequestManager::get('user_id')));
+
+		// An administrator's account is deleted, and switched off or on, by a
+		// full administrator (GroupService::reservedGroups).
+		if ($rUser && in_array(intval($rUser['member_group_id']), GroupService::reservedGroups())) {
+			$this->fail();
+		}
 
 		if ($rSub == 'delete') {
 			UserService::deleteRegisteredUser(RequestManager::get('user_id'), false, false, $rUserInfo['id']);

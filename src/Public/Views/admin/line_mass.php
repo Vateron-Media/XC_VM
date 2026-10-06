@@ -385,11 +385,7 @@ LayoutRenderer::renderFooter('admin');
             banned: 'danger',
             expired: 'warning'
         };
-        var esc = function(s) {
-            var d = document.createElement('div');
-            d.textContent = (s == null ? '' : String(s));
-            return d.innerHTML;
-        };
+        var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
         var pad = function(n) {
             return (n < 10 ? '0' : '') + n;
         };
@@ -401,6 +397,8 @@ LayoutRenderer::renderFooter('admin');
         };
 
         // lines is a clean-JSON handler (objects): map fields to the 13 columns.
+        // A column without a render function is written to its cell as markup,
+        // hidden or not: stored text goes through esc.
         var rTable = $('#datatable-mass').DataTable({
             serverSide: true,
             searchDelay: 250,
@@ -418,11 +416,13 @@ LayoutRenderer::renderFooter('admin');
                     className: 'text-center'
                 },
                 {
-                    data: 'username'
+                    data: 'username',
+                    render: esc
                 },
                 {
                     data: 'password',
-                    visible: false
+                    visible: false,
+                    render: esc
                 },
                 {
                     data: 'owner_name',
@@ -452,7 +452,8 @@ LayoutRenderer::renderFooter('admin');
                 },
                 {
                     data: 'stream_display_name',
-                    visible: false
+                    visible: false,
+                    render: esc
                 },
                 {
                     data: 'active_connections',
@@ -472,7 +473,8 @@ LayoutRenderer::renderFooter('admin');
                 },
                 {
                     data: 'notes',
-                    visible: false
+                    visible: false,
+                    render: esc
                 }
             ],
             rowCallback: function(row, data) {

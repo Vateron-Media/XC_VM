@@ -42,25 +42,38 @@ final class DbCredentials {
 	}
 
 	/**
+	 * How long a queued strip waits for its node, in seconds. The node is
+	 * judged when the command is queued (strip()), so it does not wait the
+	 * day another root command does: a node that is away when it is asked is
+	 * asked again. One the node was handed keeps its row a day past its exp,
+	 * for its ack (CommandBus::prune()).
+	 */
+	public const STRIP_TTL = 600;
+
+	/**
 	 * Ask a node in mode 2 to drop MAIN's credentials (the Cluster Nodes
 	 * page's action, `cluster:strip-credentials`). Null when the signed
 	 * command was queued, else the message key of why nothing was sent:
 	 * `cluster_not_enrolled`, `cluster_strip_needs_mode2`,
 	 * `cluster_strip_not_active`, `cluster_strip_too_soon`,
+	 * `cluster_mode_needs_flows`, `cluster_strip_not_heard`,
 	 * `cluster_strip_not_local`, `cluster_strip_not_queued`. Audited either
 	 * way it reached the node's row (`node.strip_credentials`).
 	 *
 	 * This is the step with no way back, so the days stand here: a node moved
 	 * to mode 2 by the page (ClusterAdmin::act() records when) has spent
 	 * ClusterAdmin::CUTOVER_CLEAN_DAYS there, in which whatever on it still
-	 * asked for MAIN's database was refused and shown. One that says it does
-	 * not read its streams on itself is not asked either: mode_down is how it
-	 * heals, and that needs these credentials. A node with no such record
-	 * (born in mode 2, or moved before the record was kept) passes as before.
+	 * asked for MAIN's database was refused and shown. A node with no such
+	 * record (born in mode 2, or moved before the record was kept) passes as
+	 * before. And the node runs that way now, as the move to mode 2 asked
+	 * (ClusterAdmin::modeGate): every flow on, heard a moment ago (its report
+	 * is only as old as its last heartbeat), and saying that it reads its
+	 * streams on itself. One that says it does not, or says nothing (a node
+	 * with STREAMS off says nothing), is not asked: mode_down is how it heals,
+	 * and that needs these credentials.
 	 */
 	public static function strip(int $rServerID, string $rActor = 'admin'): ?string {
-		self::db()->query('SELECT `mode`, `state` FROM `cluster_nodes` WHERE `server_id` = ?;', $rServerID);
-		$rNode = self::db()->num_rows() > 0 ? self::db()->get_row() : null;
+		$rNode = NodeRegistry::byServer($rServerID);
 		if ($rNode === null) {
 			return 'cluster_not_enrolled';
 		}
@@ -74,12 +87,42 @@ final class DbCredentials {
 		if ($rSince > 0 && ClusterClock::now() - $rSince < ClusterAdmin::CUTOVER_CLEAN_DAYS * 86400) {
 			return 'cluster_strip_too_soon';
 		}
-		if (NodeAudit::streamsLocal(NodeAudit::reports()[$rServerID] ?? null) === false) {
+		if (((int) ($rNode['flows'] ?? 0) & ClusterAdmin::MODE2_FLOWS) !== ClusterAdmin::MODE2_FLOWS) {
+			return 'cluster_mode_needs_flows';
+		}
+		// As ClusterAdmin::act() reads it: MySQL's copy may be a flush behind the bus's.
+		$rLastSeen = HeartbeatService::freshest($rNode['last_seen_at'] ?? null, HeartbeatService::lastSeen()[$rServerID] ?? null);
+		if ($rLastSeen === null || ClusterClock::nowMs() - $rLastSeen > NodeHealth::SUSPECT_AFTER_MS) {
+			return 'cluster_strip_not_heard';
+		}
+		if (NodeAudit::streamsLocal(NodeAudit::reports()[$rServerID] ?? null) !== true) {
 			return 'cluster_strip_not_local';
 		}
 		$rQueued = NodeActions::stripDbCredentials($rServerID);
 		ClusterAudit::log('node.strip_credentials', $rServerID, ['queued' => $rQueued], $rActor);
 		return $rQueued ? null : 'cluster_strip_not_queued';
+	}
+
+	/**
+	 * Withdraw the strip a node has not acked (ClusterAdmin::act(), when the
+	 * node leaves mode 2): it was judged in mode 2, and below it the node
+	 * needs these credentials. Its life ends here, so it goes out no more: a
+	 * node moved back to mode 2 is not handed it, and below mode 2
+	 * CommandBus::pending() hands out no strip at all. One the node was not
+	 * handed goes at the next CommandBus::prune(). One it was handed, or is
+	 * being handed as it is moved, keeps its row: the node may have run it,
+	 * and its ack says what its config holds (acked()). Root on the node runs
+	 * it only while the node is still in mode 2 (NodeCredentials::run). Never
+	 * throws: the move down stands.
+	 */
+	public static function cancelStrip(int $rServerID): void {
+		try {
+			// Ended, not deleted: a hand-out that read the row a moment ago still marks it, and
+			// CommandBus::prune() keeps a strip that was handed out a day past its exp, for its ack.
+			self::db()->query("UPDATE `cluster_commands` SET `exp` = ? WHERE `server_id` = ? AND `type` = 'node.root' AND `action` = ? AND `state` IN ('queued', 'delivered') AND `exp` > ?;", ClusterClock::now(), $rServerID, NodeCredentials::STRIP, ClusterClock::now());
+		} catch (\Throwable) {
+			// No command table: nothing was queued.
+		}
 	}
 
 	/**

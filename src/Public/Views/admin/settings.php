@@ -2957,6 +2957,26 @@ use XcVm\Domain\Server\ServerRepository;
 									</select>
 								</div>
 							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-3 col-form-label">
+									<?= $language::get('system_logs') ?>
+								</label>
+
+								<label class="col-md-3 offset-md-3 col-form-label" for="keep_syslog">
+									<?= $language::get('keep_logs_for') ?>
+								</label>
+
+								<div class="col-md-3">
+									<select name="keep_syslog" id="keep_syslog" class="form-control" data-toggle="select2">
+										<?php foreach ($rLogKeepOptions as $rValue => $rText): ?>
+											<option value="<?= $rValue ?>" <?= ($rSettings["keep_syslog"] ?? 0) == $rValue ? ' selected' : '' ?>>
+												<?= $rText ?>
+											</option>
+										<?php endforeach; ?>
+									</select>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>

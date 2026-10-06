@@ -16,7 +16,8 @@ class ResellerActiveCodeController extends BaseResellerController {
 		$this->setTitle('Generate Active Codes');
 
 		$rUserInfo = $GLOBALS['rUserInfo'] ?? [];
-		$rPackages = PackageService::getAll($rUserInfo['member_group_id'] ?? 0, 'line') ?: [];
+		// The packages codes are sold from: those that sell subscriptions or give trials.
+		$rPackages = array_filter(PackageService::getAll($rUserInfo['member_group_id'] ?? 0, 'line') ?: [], static fn(array $rPackage): bool => $rPackage['is_official'] || $rPackage['is_trial']);
 		$rBouquets = BouquetService::getAllSimple() ?: [];
 		$categoryTemplates = \XcVm\Domain\Stream\CategoryTemplateService::getTemplatesForUser(
 			$rUserInfo,

@@ -31,7 +31,10 @@ use XcVm\Infrastructure\Redis\RedisManager;
  *
  * A node writes only its own connections: `server_id` is always the sender,
  * the line identity is recomputed from the record's owner, and a uuid another
- * node holds is refused.
+ * node holds is refused. The owner is the one the record first entered the
+ * store with, and that entry must prove its mint (admitsFirst()) under
+ * `cluster_conn_binding` = `enforce`, from a node whose stream secret MAIN
+ * withholds (ConnectionAdmission::enforces()).
  *
  * In an events batch a store that fails a read or a write throws rather
  * than answer false: false is an event refused (dropped and counted, and the
@@ -47,6 +50,9 @@ final class ConnectionIngest {
 
 	/** The record keys a node may set. */
 	public const KEYS = ['user_id', 'hmac_id', 'hmac_identifier', 'stream_id', 'proxy_id', 'user_agent', 'user_ip', 'container', 'pid', 'uuid', 'date_start', 'geoip_country_code', 'isp', 'external_device', 'hls_last_read', 'hls_end', 'on_demand'];
+
+	/** The keys that name a record's owner: the first entry sets them, an update never changes them. */
+	private const OWNER = ['user_id', 'hmac_id', 'hmac_identifier', 'identity'];
 
 	/** The `lines_live` columns among them. */
 	private const COLUMNS = ['user_id', 'hmac_id', 'hmac_identifier', 'stream_id', 'server_id', 'proxy_id', 'user_agent', 'user_ip', 'container', 'pid', 'uuid', 'date_start', 'geoip_country_code', 'isp', 'external_device', 'hls_last_read', 'hls_end'];
@@ -137,6 +143,7 @@ final class ConnectionIngest {
 
 	/** @param array<string, mixed> $rRecord */
 	private static function write(int $rServerID, array $rRecord, bool $rFailBatch): bool {
+		$rMint = $rRecord['mint'] ?? null; // the proof of the mint, never stored
 		$rRecord = array_filter(array_intersect_key($rRecord, array_flip(self::KEYS)), static fn($rValue) => is_scalar($rValue) || $rValue === null);
 		$rUUID = (string) ($rRecord['uuid'] ?? '');
 		if (!preg_match(AgentConnections::CONN_UUID, $rUUID) || (empty($rRecord['user_id']) && empty($rRecord['hmac_id']))) {
@@ -157,8 +164,11 @@ final class ConnectionIngest {
 				if ((int) ($rExisting['server_id'] ?? 0) !== $rServerID) {
 					return false; // another node's connection
 				}
-				$rWritten = ConnectionTracker::updateConnection($rExisting, $rRecord, $rRecord['hls_end'] ? 'close' : 'open') !== null;
+				$rWritten = ConnectionTracker::updateConnection($rExisting, array_diff_key($rRecord, array_flip(self::OWNER)), $rRecord['hls_end'] ? 'close' : 'open') !== null;
 			} else {
+				if (!self::admitsFirst($rServerID, $rUUID, $rRecord['identity'], $rMint)) {
+					return false;
+				}
 				$rWritten = (bool) ConnectionTracker::createConnection($rRecord);
 			}
 			return $rWritten || self::failed($rFailBatch); // its EXEC failed
@@ -174,7 +184,7 @@ final class ConnectionIngest {
 			if ((int) $rRow['server_id'] !== $rServerID) {
 				return false;
 			}
-			unset($rColumns['uuid']);
+			unset($rColumns['uuid'], $rColumns['user_id'], $rColumns['hmac_id'], $rColumns['hmac_identifier']);
 			$rWritten = $rDb->query('UPDATE `lines_live` SET ' . implode(', ', array_map(static fn($rColumn) => '`' . $rColumn . '` = ?', array_keys($rColumns))) . ' WHERE `activity_id` = ?;', ...array_values($rColumns), ...[(int) $rRow['activity_id']]);
 			// Nothing changed: the same values again, or MAIN closed this ended row
 			// since it was read (retireEnded) and the viewer would be acknowledged
@@ -184,9 +194,32 @@ final class ConnectionIngest {
 				return self::failed($rFailBatch);
 			}
 		} else {
+			if (!self::admitsFirst($rServerID, $rUUID, $rRecord['identity'], $rMint)) {
+				return false;
+			}
 			$rWritten = $rDb->query('INSERT INTO `lines_live` (`' . implode('`,`', array_keys($rColumns)) . '`) VALUES(' . implode(',', array_fill(0, count($rColumns), '?')) . ');', ...array_values($rColumns));
 		}
 		return $rWritten || self::failed($rFailBatch);
+	}
+
+	/**
+	 * A uuid that first enters MAIN's store, by an event or a snapshot: its
+	 * record's `mint` proves MAIN minted the viewer's token for this identity
+	 * and node (ConnectionAdmission::verifyMint, at any age: a record waits in
+	 * the spool, a movie is opened again, a snapshot brings records back
+	 * after an orphan purge). One that does not is stored and counted under
+	 * `observe`; under `enforce`, for a node whose records prove their mints,
+	 * it is refused and the node's registry told to drop it.
+	 */
+	private static function admitsFirst(int $rServerID, string $rUUID, string $rIdentity, mixed $rMint): bool {
+		$rAge = ConnectionAdmission::verifyMint($rMint, $rIdentity, $rServerID);
+		if ($rAge !== null) {
+			ConnectionAdmission::proved($rServerID, $rAge);
+			return true;
+		}
+		$rRefused = ConnectionAdmission::enforces($rServerID);
+		ConnectionAdmission::unproven($rServerID, false, $rRefused ? $rUUID : null);
+		return !$rRefused;
 	}
 
 	/** @param bool $rFailBatch A store that fails throws (an events batch), rather than answer false. */

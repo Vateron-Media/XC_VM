@@ -36,10 +36,12 @@ class HLSGenerator {
 		$rPrefix = ($rProxyID ? '/' . ProxyRoute::segment((int) $rProxyID, (int) $rServerID) : '');
 		$rSecure = !empty($rSettings['secure_stream_tokens']);
 		$rURL = static function (string $rSegment) use ($rSettings, $rUsername, $rPassword, $rStreamID, $rUUID, $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, $rOnDemand, $rPrefix, $rSecure): string {
+			// segment.php splits a link on '/' and reads its fields by position: a
+			// viewer's names are written encoded, so one that holds a '/' moves none.
 			if ($rIsHMAC) {
-				$rPayload = 'HMAC#' . $rIsHMAC . '/' . $rIdentifier . '/' . $rIP . '/' . $rStreamID . '/' . $rSegment . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
+				$rPayload = 'HMAC#' . $rIsHMAC . '/' . rawurlencode((string) $rIdentifier) . '/' . $rIP . '/' . $rStreamID . '/' . $rSegment . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
 			} else {
-				$rPayload = $rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rStreamID . '/' . $rSegment . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
+				$rPayload = rawurlencode((string) $rUsername) . '/' . rawurlencode((string) $rPassword) . '/' . $rIP . '/' . $rStreamID . '/' . $rSegment . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
 			}
 			$rToken = ViewerKey::mintOwn($rPayload, $rSettings, $rSecure);
 			return !empty($rSettings['allow_cdn_access'])
@@ -94,10 +96,11 @@ class HLSGenerator {
 			function ($rM) use ($rSettings, $rUsername, $rPassword, $rStreamID, $rUUID, $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, $rOnDemand, $rPrefix, &$rReplaced) {
 				$rReplaced++;
 				$rSegName = intval($rStreamID) . '_d' . $rM[1] . '.ts';
+				// The viewer's names encoded, as in generateHLS().
 				if ($rIsHMAC) {
-					$rPayload = 'HMAC#' . $rIsHMAC . '/' . $rIdentifier . '/' . $rIP . '/' . $rStreamID . '/' . $rSegName . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
+					$rPayload = 'HMAC#' . $rIsHMAC . '/' . rawurlencode((string) $rIdentifier) . '/' . $rIP . '/' . $rStreamID . '/' . $rSegName . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
 				} else {
-					$rPayload = $rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rStreamID . '/' . $rSegName . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
+					$rPayload = rawurlencode((string) $rUsername) . '/' . rawurlencode((string) $rPassword) . '/' . $rIP . '/' . $rStreamID . '/' . $rSegName . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
 				}
 				return $rPrefix . '/hls/' . ViewerKey::mintOwn($rPayload, $rSettings);
 			},

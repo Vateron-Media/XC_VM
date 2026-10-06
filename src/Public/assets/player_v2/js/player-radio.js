@@ -24,10 +24,22 @@ window.RadioApp = (function () {
     baseUrl: '',
     currentStation: null,
     isPlaying: false,
-    hls: null
+    hls: null,
+    retryTimer: null
   };
 
   let eventsBound = false;
+
+  const escapeHtml = (str) => {
+    if (!str) return '';
+    // The panel sends the < and > of a stored name as &lt; and &gt; already: those two stay as they are.
+    return String(str)
+      .replace(/&(?!(?:lt|gt);)/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
 
   const savePersistedState = () => {
     try {
@@ -523,13 +535,13 @@ window.RadioApp = (function () {
 
       html += `
         <div class="${colClass}">
-          <div class="card h-100 radio-station-card channel-card border shadow-sm" data-station-id="${s.id}">
+          <div class="card h-100 radio-station-card channel-card border shadow-sm" data-station-id="${escapeHtml(s.id)}">
             <div class="position-relative radio-station-logo-box">
-              <a href="javascript:void(0);" class="station-play-trigger d-flex align-items-center justify-content-center w-100 h-100" data-station-id="${s.id}">
+              <a href="javascript:void(0);" class="station-play-trigger d-flex align-items-center justify-content-center w-100 h-100" data-station-id="${escapeHtml(s.id)}">
                 ${hasLogo ? `
                   <img
-                    src="${s.logo}"
-                    alt="${s.name}"
+                    src="${escapeHtml(s.logo)}"
+                    alt="${escapeHtml(s.name)}"
                     class="radio-station-logo-img"
                     loading="lazy"
                     onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');" />
@@ -547,15 +559,15 @@ window.RadioApp = (function () {
               <button
                 type="button"
                 class="btn btn-sm btn-icon btn-text-secondary rounded-pill position-absolute top-0 start-0 m-2 bg-dark bg-opacity-50 text-white"
-                data-fav-radio-id="${s.id}"
+                data-fav-radio-id="${escapeHtml(s.id)}"
                 title="Toggle Favorite">
                 <i class="icon-base ${fav ? 'bx bxs-star text-warning' : 'bx bx-star'}"></i>
               </button>
             </div>
             <div class="card-body p-3 d-flex flex-column justify-content-between">
               <div>
-                <h6 class="card-title text-truncate mb-1 fw-bold" title="${s.name}">
-                  <a href="javascript:void(0);" class="text-heading station-play-trigger" data-station-id="${s.id}">${s.name}</a>
+                <h6 class="card-title text-truncate mb-1 fw-bold" title="${escapeHtml(s.name)}">
+                  <a href="javascript:void(0);" class="text-heading station-play-trigger" data-station-id="${escapeHtml(s.id)}">${escapeHtml(s.name)}</a>
                 </h6>
               </div>
               <div class="d-flex align-items-center justify-content-between text-body-secondary small mt-2 pt-2 border-top">
@@ -563,7 +575,7 @@ window.RadioApp = (function () {
                 <button
                   type="button"
                   class="btn btn-xs btn-primary d-flex align-items-center gap-1 station-play-trigger"
-                  data-station-id="${s.id}">
+                  data-station-id="${escapeHtml(s.id)}">
                   <i class="icon-base bx bx-play"></i> Listen
                 </button>
               </div>
@@ -592,10 +604,10 @@ window.RadioApp = (function () {
         <a
           href="javascript:void(0);"
           class="list-group-item list-group-item-action d-flex align-items-center justify-content-between rounded mb-1 px-3 py-2 ${active ? 'active' : ''}"
-          data-zap-station-id="${s.id}">
+          data-zap-station-id="${escapeHtml(s.id)}">
           <div class="d-flex align-items-center text-truncate me-2">
             <i class="icon-base bx bx-broadcast me-2 ${active ? 'text-white' : 'text-primary'}"></i>
-            <span class="text-truncate fw-medium">${s.name}</span>
+            <span class="text-truncate fw-medium">${escapeHtml(s.name)}</span>
           </div>
           ${active ? `<span class="badge bg-white text-primary rounded-pill px-2">Playing</span>` : ''}
         </a>`;
@@ -834,10 +846,11 @@ window.RadioApp = (function () {
     });
   };
 
-  const startAudio = (station) => {
+  const startAudio = (station, tries = 0) => {
     const audio = getAudio();
     if (!audio || !station) return;
 
+    clearTimeout(state.retryTimer);
     if (state.hls) {
       try {
         state.hls.destroy();
@@ -851,14 +864,17 @@ window.RadioApp = (function () {
       audio.load();
     } catch (e) {}
 
-    const streamUrl = station.url || station.direct_source || '';
+    const streamUrl = station.url || '';
     if (!streamUrl) {
       console.warn('Radio station has no stream URL:', station);
       setPlayingState(false);
       return;
     }
 
-    const isHls = streamUrl.includes('.m3u8') || (station.container && station.container.includes('m3u8'));
+    // How a station plays is what the list the page holds says of it now: the station kept from an earlier visit may be out of date.
+    const listed = (state.allStations || []).find((s) => Number(s.id) === Number(station.id)) || station;
+    // The panel serves a station as HLS, unless it passes the station on to its source: that one is plain audio.
+    const isHls = !listed.direct;
 
     if (isHls && typeof Hls !== 'undefined' && Hls.isSupported()) {
       const hls = new Hls({
@@ -878,11 +894,24 @@ window.RadioApp = (function () {
             });
         }
       });
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        tries = 0;
+      });
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data && data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
+              // A play address is only good for the connection it opened. While the listener is told the station plays,
+              // the play answer is asked for a new one, a few times; otherwise the station is shown as stopped.
+              try { hls.destroy(); } catch (e) {}
+              state.hls = null;
+              if (state.isPlaying && tries < 3) {
+                state.retryTimer = setTimeout(() => {
+                  if (state.isPlaying) startAudio(state.currentStation, tries + 1);
+                }, 2000);
+              } else {
+                setPlayingState(false);
+              }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               hls.recoverMediaError();

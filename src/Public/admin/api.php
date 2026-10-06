@@ -7,6 +7,7 @@ use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
@@ -169,7 +170,7 @@ switch ($rAction) {
 		switch ($rSubAction) {
 			case 'list':
 				$db->query('SELECT id,username,credits,group_id,group_name,last_login,date_registered,email,ip,status FROM `users` t1 INNER JOIN `users_groups` t2 ON t1.member_group_id = t2.group_id');
-				$rResults = $db->get_rows();
+				$rResults = array_map([UserCredits::class, 'amounts'], $db->get_rows());
 				echo json_encode($rResults);
 
 				break;

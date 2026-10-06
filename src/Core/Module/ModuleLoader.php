@@ -36,7 +36,7 @@ use XcVm\Core\Module\Contract\TopbarProviderInterface;
  * - Automatic discovery of modules in modules/ directory
  * - Environment filtering (main / lb environments with 'any' as universal)
  * - Topological dependency resolution with cycle detection
- * - Fail-fast validation of manifests
+ * - Validation of manifests (a module with an unusable one is skipped)
  * - Module booting and command registration
  *
  * @package XC_VM_Core_Module
@@ -78,7 +78,7 @@ class ModuleLoader {
 	 *
 	 * @param string|null $modulesDir Path to modules directory. If null, auto-detected via MAIN_HOME or src/modules.
 	 * @return self Fluent interface for chaining.
-	 * @throws \RuntimeException If a module fails to load, dependency is missing, or manifest is invalid.
+	 * @throws \RuntimeException If module dependencies are cyclic.
 	 */
 	public function loadAll(?string $modulesDir = null): self {
 		if ($modulesDir === null) {
@@ -132,7 +132,17 @@ class ModuleLoader {
 				continue;
 			}
 
-			if (!$this->load($name, $discovered[$name]['path'])) {
+			// A class file that does not parse and a constructor that throws are a
+			// broken module like any other. load() itself still throws, so a caller
+			// installing one module gets the reason.
+			try {
+				$loaded = $this->load($name, $discovered[$name]['path']);
+			} catch (\Throwable $e) {
+				error_log("ModuleLoader: module '{$name}' cannot be loaded: " . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+				$loaded = false;
+			}
+
+			if (!$loaded) {
 				error_log("ModuleLoader: failed to load module '{$name}' — skipping (panel stays up)");
 				$failed[] = $name;
 				continue;
@@ -356,6 +366,18 @@ class ModuleLoader {
 	}
 
 	/**
+	 * Whether this process has already declared the module's class. load() then
+	 * returns an instance of that class, whatever files are in $modulePath now.
+	 *
+	 * @param string $name Module name.
+	 * @param string $modulePath Full path to module directory.
+	 * @return bool True if load() would not include the class file.
+	 */
+	public function isDeclared(string $name, string $modulePath): bool {
+		return class_exists($this->resolveClassName($this->manifestName($modulePath, $name)), false);
+	}
+
+	/**
 	 * Retrieves a loaded module instance by name.
 	 *
 	 * @param string $name Module name.
@@ -427,15 +449,16 @@ class ModuleLoader {
 	 *
 	 * Reads all module.json manifests, normalizes manifest data, checks override disabling,
 	 * and filters modules to current environment (main/lb). Returns discovered modules
-	 * with their paths and normalized manifest data.
+	 * with their paths and normalized manifest data. A module whose manifest
+	 * readManifest() rejects is logged and left out.
 	 *
 	 * @param array           $jsonFiles          Array of full paths to module.json files.
 	 * @param ServerEnvironment $currentEnvironment Current server environment.
 	 * @return array Associative array of discovered modules: name => [path, manifest].
-	 * @throws \RuntimeException If manifest has invalid environment value or JSON is malformed.
 	 */
 	protected function discoverModules(array $jsonFiles, ServerEnvironment $currentEnvironment): array {
 		$discovered = [];
+		$stepsOf    = self::stepsRunHere();
 
 		foreach ($jsonFiles as $jsonFile) {
 			// Derive a provisional name from directory — used only as fallback in readManifest().
@@ -446,7 +469,14 @@ class ModuleLoader {
 				continue;
 			}
 
-			$manifest = $this->readManifest($jsonFile, $dirName);
+			// A module whose manifest cannot be used is left out like one that fails
+			// to load (see loadAll()): its dependents go with it, the rest still load.
+			try {
+				$manifest = $this->readManifest($jsonFile, $dirName);
+			} catch (\Throwable $e) {
+				error_log("ModuleLoader: skipping module '{$dirName}' — " . $e->getMessage());
+				continue;
+			}
 
 			// Canonical name: always from the manifest (handles module-path subdirs in Composer packages).
 			$name = $manifest['name'];
@@ -456,8 +486,9 @@ class ModuleLoader {
 				continue;
 			}
 
-			if (!in_array($manifest['environment'], ['main', 'lb', 'any'], true)) {
-				throw new ModuleManifestException("ModuleLoader: invalid environment in module.json for module {$name}");
+			// Its steps run in this process before it may boot (stepsRunHere()).
+			if ($name === $stepsOf) {
+				continue;
 			}
 
 			if (!$this->runsHere($name, $manifest, $currentEnvironment)) {
@@ -471,6 +502,26 @@ class ModuleLoader {
 		}
 
 		return $discovered;
+	}
+
+	/**
+	 * The module whose install or update steps this process was started to run
+	 * (`console.php module:migrate <action> <name>`, see
+	 * ModuleManager::migrateReplaced()), or null in any other process.
+	 *
+	 * loadAll() leaves that module out, and with it the ones that depend on
+	 * it: the console boots every module it loaded before its command runs,
+	 * and the version on disk need not boot on the schema its own steps are
+	 * about to change. The command loads the module when it runs them.
+	 *
+	 * @return string|null
+	 */
+	private static function stepsRunHere(): ?string {
+		$argv = $_SERVER['argv'] ?? null;
+		if (PHP_SAPI !== 'cli' || !is_array($argv) || ($argv[1] ?? null) !== 'module:migrate') {
+			return null;
+		}
+		return isset($argv[3]) ? (string) $argv[3] : null;
 	}
 
 	/**
@@ -576,7 +627,8 @@ class ModuleLoader {
 	 * @param string $jsonFile Full path to module.json file.
 	 * @param string $name Module name (used for error messages).
 	 * @return array Normalized manifest.
-	 * @throws \RuntimeException If JSON is invalid, dependencies not array, or dependency names not strings.
+	 * @throws \RuntimeException If JSON is invalid, dependencies not array, dependency names not strings,
+	 *                           or environment is not main, lb or any.
 	 */
 	protected function readManifest(string $jsonFile, string $name): array {
 		$raw = @file_get_contents($jsonFile);
@@ -601,13 +653,18 @@ class ModuleLoader {
 			return array_values(array_unique($result));
 		};
 
+		$environment = strtolower((string) ($manifest['environment'] ?? 'main'));
+		if (!in_array($environment, ['main', 'lb', 'any'], true)) {
+			throw new ModuleManifestException("ModuleLoader: invalid environment in module.json for module {$name}");
+		}
+
 		return [
 			'name'                  => $manifest['name'] ?? $name,
 			'hash_id'               => (string) ($manifest['hash_id'] ?? ''),
 			'description'           => $manifest['description'] ?? '',
 			'version'               => $manifest['version'] ?? '',
 			'requires_core'         => $manifest['requires_core'] ?? '',
-			'environment'           => strtolower((string) ($manifest['environment'] ?? 'main')),
+			'environment'           => $environment,
 			'dependencies'          => self::filterCoreProvidedDependencies($normalizeDepArray($manifest['dependencies'] ?? [], 'dependencies')),
 			'optional_dependencies' => self::filterCoreProvidedDependencies($normalizeDepArray($manifest['optional_dependencies'] ?? [], 'optional_dependencies')),
 			'has_navbar'            => (bool) ($manifest['has_navbar'] ?? false),
@@ -618,6 +675,23 @@ class ModuleLoader {
 			'source_drivers'        => array_values(array_filter((array) ($manifest['source_drivers'] ?? []), 'is_string')),
 			'start_timeout'         => max(0, (int) ($manifest['start_timeout'] ?? 0)),
 		];
+	}
+
+	/**
+	 * Why discovery would leave a module.json out, or null when it can be used.
+	 * For a caller that has to refuse a module before putting it in place.
+	 *
+	 * @param string $jsonFile Full path to module.json file.
+	 * @param string $name     Module name (used in the message).
+	 * @return string|null The reason, or null when the manifest is usable.
+	 */
+	public static function manifestError(string $jsonFile, string $name): ?string {
+		try {
+			(new self())->readManifest($jsonFile, $name);
+		} catch (\Throwable $e) {
+			return $e->getMessage();
+		}
+		return null;
 	}
 
 	/**

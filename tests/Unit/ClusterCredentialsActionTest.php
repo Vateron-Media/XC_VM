@@ -27,9 +27,11 @@ final class ClusterCredentialsActionTest extends TestCase {
 		$this->rDb = new TestDb();
 		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
 		$this->rDb->exec('CREATE TABLE `cluster_meta` (`name` varchar(64) PRIMARY KEY, `value` text, `updated_at` int)');
-		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `node_uuid` char(36), `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 2, `flows` int NOT NULL DEFAULT 2, `root_ready` int NOT NULL DEFAULT 1, `gen` int NOT NULL DEFAULT 1, `install_id` varchar(64) DEFAULT NULL, `db_revoked_at` int DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
-		$this->rDb->exec("INSERT INTO `cluster_nodes` (`server_id`, `node_uuid`) VALUES (7, '0f8fad5b-d9cb-469f-a165-70867728950e')");
+		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `node_uuid` char(36), `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 2, `flows` int NOT NULL DEFAULT 2, `root_ready` int NOT NULL DEFAULT 1, `gen` int NOT NULL DEFAULT 1, `install_id` varchar(64) DEFAULT NULL, `db_revoked_at` int DEFAULT NULL, `audit` text DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
+		// A node strip() asks: every flow on, heard two seconds ago, reading its streams on itself.
+		$this->rDb->query("INSERT INTO `cluster_nodes` (`server_id`, `node_uuid`, `flows`, `last_seen_at`, `audit`) VALUES (7, '0f8fad5b-d9cb-469f-a165-70867728950e', ?, ?, ?)", ClusterAdmin::MODE2_FLOWS, 1800000000000 - 2000, '{"settings_misses":{},"streams_local":true}');
 		DatabaseFactory::set($this->rDb);
+		(new \ReflectionProperty(\XcVm\Domain\Cluster\NodeAudit::class, 'db'))->setValue(null, null);
 		ClusterClock::fix(1800000000000);
 		ClusterMeta::set('panel_sign_pub', base64_encode(str_repeat("\x11", 32)));
 		$this->rSettingsBefore = SettingsManager::getAll();
@@ -82,7 +84,6 @@ final class ClusterCredentialsActionTest extends TestCase {
 	 * holds no such record for (born in mode 2) is asked as before.
 	 */
 	public function testAStripWaitsForSevenDaysInModeTwoAndForLocalStreams(): void {
-		(new \ReflectionProperty(\XcVm\Domain\Cluster\NodeAudit::class, 'db'))->setValue(null, null);
 		ClusterMeta::set(ClusterAdmin::MODE2_AT . 7, (string) (ClusterClock::now() - 7 * 86400 + 60));
 		$this->assertSame(['type' => 'warning', 'message' => 'cluster_strip_too_soon'], $this->act('strip_credentials'));
 		[$rCode, $rOut] = $this->cli(['7', '--yes']);
@@ -93,7 +94,6 @@ final class ClusterCredentialsActionTest extends TestCase {
 		ClusterMeta::set(ClusterAdmin::MODE2_AT . 7, (string) (ClusterClock::now() - 7 * 86400));
 		$this->assertSame(['type' => 'warning', 'message' => 'cluster_strip_not_queued'], $this->act('strip_credentials'), 'seven days: asked (no signed channel here)');
 
-		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `audit` text');
 		$this->rDb->exec('UPDATE `cluster_nodes` SET `audit` = \'{"settings_misses":{},"streams_local":false}\'');
 		$this->assertSame(['type' => 'warning', 'message' => 'cluster_strip_not_local'], $this->act('strip_credentials'));
 		[$rCode, $rOut] = $this->cli(['7', '--yes']);

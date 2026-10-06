@@ -23,17 +23,23 @@ final class NodeCredentialsTest extends TestCase {
 	/** @var list<string> Hosts the fake db_revoke was asked for. */
 	private array $rRevoked = [];
 
+	private string $rFlowsFile = '';
+
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
 		$this->rDb->exec('CREATE TABLE `cluster_audit` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `time` int, `server_id` int, `actor` varchar(64), `event` varchar(64), `detail` text, `ip` varchar(64))');
-		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 2, `db_revoked_at` int DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
+		$this->rDb->exec("CREATE TABLE `cluster_nodes` (`server_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `state` varchar(16) NOT NULL DEFAULT 'active', `mode` int NOT NULL DEFAULT 2, `flows` int NOT NULL DEFAULT 255, `db_revoked_at` int DEFAULT NULL, `audit` text DEFAULT NULL, `last_seen_at` bigint DEFAULT NULL, `updated_at` int NOT NULL DEFAULT 0)");
 		$this->rDb->exec('CREATE TABLE `cluster_commands` (`server_id` int, `cmd_id` char(32), `type` varchar(32), `payload` text)');
 		// When the page moved a node to mode 2 (DbCredentials::strip counts its days from it); none here.
 		$this->rDb->exec('CREATE TABLE `cluster_meta` (`name` varchar(64) PRIMARY KEY, `value` text, `updated_at` int)');
 		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_ip` varchar(255))');
 		$this->rDb->exec("INSERT INTO `servers` (`id`, `server_ip`) VALUES (7, '10.0.0.7')");
-		$this->rDb->exec('INSERT INTO `cluster_nodes` (`server_id`) VALUES (7)');
+		// A node strip() asks: every flow on, heard two seconds ago, reading its streams on itself.
+		$this->rDb->query('INSERT INTO `cluster_nodes` (`server_id`, `last_seen_at`, `audit`) VALUES (7, ?, ?)', $this->rNow * 1000 - 2000, '{"settings_misses":{},"streams_local":true}');
 		DatabaseFactory::set($this->rDb);
+		foreach ([\XcVm\Domain\Cluster\NodeAudit::class, \XcVm\Domain\Cluster\NodeRegistry::class] as $rClass) {
+			(new \ReflectionProperty($rClass, 'db'))->setValue(null, null);
+		}
 		ClusterClock::fix($this->rNow * 1000);
 		DbCredentials::useRevoke(function (string $rHost): bool {
 			$this->rRevoked[] = $rHost;
@@ -42,6 +48,11 @@ final class NodeCredentialsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\XcVm\Core\Cluster\NodeFlows::usePath(null);
+		\XcVm\Core\Cluster\NodeRole::useMainBuild(null);
+		if ($this->rFlowsFile !== '') {
+			@unlink($this->rFlowsFile);
+		}
 		NodeCredentials::useExtension(null);
 		DbCredentials::useRevoke(null);
 		ClusterClock::fix(null);
@@ -56,6 +67,14 @@ final class NodeCredentialsTest extends TestCase {
 		$this->rDb->query('SELECT `db_revoked_at` FROM `cluster_nodes` WHERE `server_id` = 7');
 		$rAt = $this->rDb->get_row()['db_revoked_at'];
 		return $rAt === null ? null : (int) $rAt;
+	}
+
+	/** The node a strip runs on: its agent's flows.json says mode 2 (NodeCredentials::run asks). */
+	private function nodeInModeTwo(): void {
+		$this->rFlowsFile = sys_get_temp_dir() . '/xcvm-node-credentials-flows-' . getmypid() . '.json';
+		file_put_contents($this->rFlowsFile, '{"mode":2,"flows":255,"state":"active"}');
+		\XcVm\Core\Cluster\NodeFlows::usePath($this->rFlowsFile);
+		\XcVm\Core\Cluster\NodeRole::useMainBuild(false);
 	}
 
 	private function fakeExtension(array|false $rAnswer, string $rError = 'RECORD:is_lb'): void {
@@ -75,6 +94,7 @@ final class NodeCredentialsTest extends TestCase {
 		if (class_exists('XC_VM') && method_exists('XC_VM', 'strip_db_credentials')) {
 			$this->markTestSkipped('this PHP loads an xcvm_core that has the method');
 		}
+		$this->nodeInModeTwo();
 		try {
 			NodeCredentials::run(['action' => NodeCredentials::STRIP]);
 			$this->fail('ran without the method');
@@ -85,6 +105,7 @@ final class NodeCredentialsTest extends TestCase {
 
 	public function testStripReportsTheConfigAfterwards(): void {
 		$this->fakeExtension(['server_id' => 7, 'is_lb' => 1, 'db_credentials' => false, 'redis_auth' => false, 'changed' => true]);
+		$this->nodeInModeTwo();
 		$rLine = NodeCredentials::run(['action' => NodeCredentials::STRIP]);
 		$this->assertSame(['server_id' => 7, 'is_lb' => 1, 'db_credentials' => false, 'redis_auth' => false, 'changed' => true], NodeCredentials::outcome("Stripped.\n" . $rLine));
 	}

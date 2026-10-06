@@ -278,7 +278,7 @@ $assetsPath = $baseUrl . 'assets/';
             </li>
 
             <li class="menu-item">
-              <a href="<?= $baseUrl ?>logout" class="menu-link text-danger" onclick="if(window.clearUserClientData){window.clearUserClientData();}">
+              <a href="<?= $baseUrl ?>logout" class="menu-link text-danger" onclick="if(window.clearUserClientData){window.clearUserClientData();} document.getElementById('player-logout-form').submit(); return false;">
                 <i class="menu-icon icon-base bx bx-log-out text-danger"></i>
                 <div>Sign Out</div>
               </a>
@@ -286,6 +286,8 @@ $assetsPath = $baseUrl . 'assets/';
           </ul>
         </aside>
         <!-- / Menu -->
+        <!-- Signing out runs only on a POST: the Sign Out links submit this form. -->
+        <form id="player-logout-form" method="post" action="<?= $baseUrl ?>logout" class="d-none"></form>
 
         <!-- Layout container -->
         <div class="layout-page">
@@ -455,7 +457,7 @@ $assetsPath = $baseUrl . 'assets/';
                       <div class="dropdown-divider my-1"></div>
                     </li>
                     <li>
-                      <a class="dropdown-item text-danger" href="<?= $baseUrl ?>logout" onclick="if(window.clearUserClientData){window.clearUserClientData();}">
+                      <a class="dropdown-item text-danger" href="<?= $baseUrl ?>logout" onclick="if(window.clearUserClientData){window.clearUserClientData();} document.getElementById('player-logout-form').submit(); return false;">
                         <i class="icon-base bx bx-power-off icon-md me-3"></i><span>Sign Out</span>
                       </a>
                     </li>

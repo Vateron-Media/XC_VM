@@ -96,7 +96,7 @@ class BackupService {
 	}
 
 	/**
-	 * List local SQL backups with metadata.
+	 * List local SQL backups with metadata, oldest first.
 	 *
 	 * @return array[] Each entry: filename, timestamp, date, filesize.
 	 */
@@ -113,7 +113,7 @@ class BackupService {
 		usort(
 			$rBackups,
 			function ($a, $b) {
-				return $a['timestamp'];
+				return $a['timestamp'] <=> $b['timestamp'];
 			}
 		);
 

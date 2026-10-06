@@ -4,6 +4,7 @@ namespace XcVm\Infrastructure\Bootstrap;
 
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Bootstrap\Stage\SessionStage;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\AdminHelpers;
@@ -42,7 +43,7 @@ final class ResellerScopeBootstrap implements ScopeBootstrap {
 		}
 
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-			session_start();
+			SessionStage::startSession();
 		}
 
 		// Expire session after timeout
@@ -54,7 +55,7 @@ final class ResellerScopeBootstrap implements ScopeBootstrap {
 			}
 
 			if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-				session_start();
+				SessionStage::startSession();
 			}
 		}
 
@@ -118,6 +119,11 @@ final class ResellerScopeBootstrap implements ScopeBootstrap {
 			$rUserInfo['reports'] = array_map('intval', array_merge([$rUserInfo['id']], $rPermissions['all_reports']));
 			$rIP = NetworkUtils::getUserIP();
 			$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $_SESSION['rip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $_SESSION['rip'] == $rIP);
+
+			// A login needs an enabled account (status 1), and so does the session it opened.
+			if ($rUserInfo && $rUserInfo['status'] != 1) {
+				$rUserInfo = null;
+			}
 
 			if (!$rUserInfo || !$rPermissions['is_reseller'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['rverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {
 				unset($rUserInfo, $rPermissions);

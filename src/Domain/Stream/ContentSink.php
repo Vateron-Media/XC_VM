@@ -83,11 +83,14 @@ final class ContentSink {
 				return false;
 			}
 		}
-		// MAIN's row alone has it: once it landed, a store this node kept lapses.
+		// MAIN's row alone has it: once it landed, a store this node kept lapses
+		// (not in mode 2, where the write was refused and no seed can follow).
 		try {
 			return (bool) ($rDb ?? DatabaseFactory::get())->query('UPDATE `streams` SET `' . $rWorker . '_pid` = ? WHERE `id` = ?', $rPid, $rStreamID);
 		} finally {
-			StreamRuntime::lapse();
+			if (!NodeRole::refusesConnects()) {
+				StreamRuntime::lapse();
+			}
 		}
 	}
 

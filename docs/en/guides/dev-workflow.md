@@ -41,11 +41,13 @@ issues so only **new** ones fail CI. If you intentionally change the level or ac
 findings, regenerate it with `make phpstan-baseline` and commit the result. Don't regenerate it
 just to silence a real new error — fix the code.
 
-`make gates` bundles three guards:
+`make gates` bundles five guards:
 
 - **check-procedural-use** — procedural / view files import every migrated class they use (PHP imports are positional, so the `use` must precede the usage);
 - **verify-lb-archive** — the Load Balancer build excludes privileged code (admin/reseller controllers, user/device domain, install/root commands), every LB list entry still matches a tracked path of the right kind, every script the LB nginx routes to still ships, and the LB update deletes no shipped file — see [Build System (MAIN vs LB)](../builds/build_system.md#build-verification) for the exclusion boundary;
-- **check-vendor-prod-only** — no `require-dev` package is committed under `src/vendor/`.
+- **check-vendor-prod-only** — no `require-dev` package is committed under `src/vendor/`;
+- **check-lb-settings-keys** — a node replica's settings carry only what the Load Balancer build reads, never a secret;
+- **check-core-cluster-refs** — every reference from `src/Core/` to `XcVm\Domain\Cluster` sits behind a `class_exists()` guard (Core ships to load balancers, the cluster domain does not).
 
 ## End-to-End Tests
 

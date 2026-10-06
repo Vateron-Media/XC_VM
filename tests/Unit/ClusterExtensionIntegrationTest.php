@@ -298,6 +298,11 @@ final class ClusterExtensionIntegrationTest extends TestCase {
 			$this->markTestSkipped('xcvm_core without credential-free nodes');
 		}
 		$this->assertTrue(\XC_VM::config_init(['db' => ['host' => '10.0.0.1', 'port' => 3306, 'name' => 'xc_vm', 'user' => 'u', 'pass' => 'p'], 'redis' => ['host' => '10.0.0.1', 'port' => 6379, 'auth' => 'r'], 'server' => ['server_id' => 7, 'is_lb' => 1]]));
+		// A strip runs only on a node its agent's flows.json puts in mode 2 (NodeCredentials::run).
+		$rFlows = $this->rDir . '/flows.json';
+		file_put_contents($rFlows, '{"mode":2,"flows":255,"state":"active"}');
+		\XcVm\Core\Cluster\NodeFlows::usePath($rFlows);
+		\XcVm\Core\Cluster\NodeRole::useMainBuild(false);
 		try {
 			$rOut = \XcVm\Core\Cluster\NodeCredentials::outcome(\XcVm\Core\Cluster\NodeCredentials::run(['action' => \XcVm\Core\Cluster\NodeCredentials::STRIP]));
 			$this->assertSame(['server_id' => 7, 'is_lb' => 1, 'db_credentials' => false, 'redis_auth' => false, 'changed' => true], $rOut);
@@ -309,6 +314,9 @@ final class ClusterExtensionIntegrationTest extends TestCase {
 				$this->assertStringContainsString('refused by xcvm_core: CRYPTO', $rE->getMessage());
 			}
 		} finally {
+			\XcVm\Core\Cluster\NodeFlows::usePath(null);
+			\XcVm\Core\Cluster\NodeRole::useMainBuild(null);
+			@unlink($rFlows);
 			@unlink($this->rDir . '/config.enc');
 		}
 	}

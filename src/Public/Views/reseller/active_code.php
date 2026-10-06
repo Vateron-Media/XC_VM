@@ -16,13 +16,18 @@ $rPermissions = $GLOBALS['rPermissions'] ?? [];
 $rPackages = $rPackages ?? [];
 $rBouquets = $rBouquets ?? [];
 $userCredits = floatval($rUserInfo['credits'] ?? 0);
+// A trial package can be picked while the reseller's trial allowance takes
+// another trial (LineService::canGenerateTrials, asked by the layout).
+$canGenerateTrials = !empty($GLOBALS['rGenTrials'] ?? true);
 
 // Pre-calculate package prices with override
 $packagePrices = [];
 $override = json_decode((string)($rUserInfo['override_packages'] ?? ''), true) ?: [];
 foreach ($rPackages as $pkg) {
     $pkgId = (int)$pkg['id'];
-    $isTrial = !empty($pkg['is_trial']);
+    // A package that sells subscriptions sells official codes; one that gives
+    // trials as well is offered a second time, as trial codes at the trial price.
+    $isTrial = !empty($pkg['is_trial']) && empty($pkg['is_official']);
     if ($isTrial) {
         $cost = floatval($pkg['trial_credits'] ?? 0);
     } else {
@@ -35,6 +40,7 @@ foreach ($rPackages as $pkg) {
     $packagePrices[$pkgId] = [
         'cost' => $cost,
         'is_trial' => $isTrial,
+        'trial_cost' => (!$isTrial && !empty($pkg['is_trial'])) ? floatval($pkg['trial_credits'] ?? 0) : null,
         'name' => (string)$pkg['package_name'],
         'duration' => (int)($isTrial ? $pkg['trial_duration'] : $pkg['official_duration']),
         'duration_in' => (string)($isTrial ? $pkg['trial_duration_in'] : $pkg['official_duration_in']),
@@ -43,6 +49,15 @@ foreach ($rPackages as $pkg) {
         'bouquets' => json_decode((string)($pkg['bouquets'] ?? '[]'), true) ?: [],
     ];
 }
+
+// The form offers what a code can carry: bouquets of the packages this reseller
+// sells, and a choice among them only when its group may change bouquets.
+$allowBouquetChange = !empty($rPermissions['allow_change_bouquets']);
+$offeredBouquets = [];
+foreach ($packagePrices as $price) {
+    $offeredBouquets += array_fill_keys(array_map('intval', $price['bouquets']), true);
+}
+$rBouquets = array_values(array_filter($rBouquets, static fn($bq) => isset($offeredBouquets[(int)$bq['id']])));
 
 // Streaming DNS options
 $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['reseller_dns'] ?? ''))));
@@ -84,6 +99,10 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
         background-color: #7367f0 !important;
         color: #fff !important;
         border-color: #7367f0 !important;
+    }
+
+    .bouquet-item.bq-off-package {
+        display: none !important;
     }
 </style>
 
@@ -159,11 +178,18 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                         <select id="package_id" name="package_id" class="form-select form-select-lg" required>
                             <option value="" disabled selected>-- <?= $language::get('ac_select_a_package') ?> --</option>
                             <?php foreach ($rPackages as $pkg): ?>
-                                <option value="<?= (int)$pkg['id']; ?>" data-cost="<?= $packagePrices[(int)$pkg['id']]['cost']; ?>" data-trial="<?= $packagePrices[(int)$pkg['id']]['is_trial'] ? 1 : 0; ?>">
+                                <option value="<?= (int)$pkg['id']; ?>" data-cost="<?= $packagePrices[(int)$pkg['id']]['cost']; ?>" data-trial="<?= $packagePrices[(int)$pkg['id']]['is_trial'] ? 1 : 0; ?>"<?= ($packagePrices[(int)$pkg['id']]['is_trial'] && !$canGenerateTrials) ? ' disabled' : ''; ?>>
                                     <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?>
                                     (<?= $packagePrices[(int)$pkg['id']]['cost']; ?> <?= $language::get('ac_credits') ?>)
                                     <?= $packagePrices[(int)$pkg['id']]['is_trial'] ? ' - [' . $language::get('trial') . ']' : ''; ?>
                                 </option>
+                                <?php if ($packagePrices[(int)$pkg['id']]['trial_cost'] !== null): ?>
+                                    <option value="<?= (int)$pkg['id']; ?>" data-cost="<?= $packagePrices[(int)$pkg['id']]['trial_cost']; ?>" data-trial="1"<?= !$canGenerateTrials ? ' disabled' : ''; ?>>
+                                        <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?>
+                                        (<?= $packagePrices[(int)$pkg['id']]['trial_cost']; ?> <?= $language::get('ac_credits') ?>)
+                                        - [<?= $language::get('trial') ?>]
+                                    </option>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -198,6 +224,7 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                     <?php endif; ?>
 
                     <!-- Bouquets Customization -->
+                    <?php if ($allowBouquetChange): ?>
                     <div class="mb-4">
                         <div class="bq-wrapper p-3">
                             <!-- Header Toolbar -->
@@ -306,6 +333,7 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
 
                     <!-- Routing Options -->
                     <div class="row g-3 mb-4">
@@ -317,10 +345,6 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                                     <option value="<?= htmlspecialchars($dns, ENT_QUOTES); ?>"><?= htmlspecialchars($dns, ENT_QUOTES); ?></option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold" for="forced_country"><?= $language::get('ac_geo_lock_country_optional') ?></label>
-                            <input type="text" id="forced_country" name="forced_country" class="form-control text-uppercase" maxlength="2" placeholder="<?= $language::get('ac_geo_lock_placeholder') ?>">
                         </div>
                     </div>
 
@@ -514,7 +538,8 @@ LayoutRenderer::renderFooter('reseller');
                 let costPerCode = 0;
 
                 if (pkgId && packagePrices[pkgId]) {
-                    costPerCode = packagePrices[pkgId].cost;
+                    // The option picked carries its price: a package can be offered twice.
+                    costPerCode = parseFloat(jQuery('#package_id option:selected').attr('data-cost')) || 0;
                 }
 
                 const totalCost = qty * costPerCode;
@@ -540,7 +565,7 @@ LayoutRenderer::renderFooter('reseller');
 
             // Bouquets Selection & Interactive Filtering
             function updateBouquetCounts() {
-                const total = jQuery('.bq-checkbox').length;
+                const total = jQuery('.bouquet-item:not(.bq-off-package) .bq-checkbox').length;
                 const selected = jQuery('.bq-checkbox:checked').length;
                 const unselected = total - selected;
 
@@ -653,6 +678,8 @@ LayoutRenderer::renderFooter('reseller');
                     const allowed = new Set(packagePrices[pkgId].bouquets.map(Number));
                     jQuery('.bq-checkbox').each(function() {
                         this.checked = allowed.has(Number(this.value));
+                        // A code carries bouquets of its package only: the others are not offered.
+                        jQuery(this).closest('.bouquet-item').toggleClass('bq-off-package', !this.checked);
                     });
                     updateBouquetCounts();
                 }
@@ -679,6 +706,10 @@ LayoutRenderer::renderFooter('reseller');
                         postData[item.name] = item.value;
                     }
                 });
+                // Trial codes are asked for: the option picked says which kind it is.
+                if (jQuery('#package_id option:selected').attr('data-trial') === '1') {
+                    postData.is_trial = 1;
+                }
 
                 jQuery.post('./api', postData, function(res) {
                     btn.prop('disabled', false).html(origText);

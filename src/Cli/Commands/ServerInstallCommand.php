@@ -28,6 +28,13 @@ use XcVm\Domain\Server\ServerRepository;
  */
 
 class ServerInstallCommand implements CommandInterface {
+	/**
+	 * The OpenSSL 3 package an Ubuntu 20 node is given, and the SHA-256 Ubuntu's
+	 * signed index lists for it (jammy, main/binary-amd64/Packages).
+	 */
+	private const LIBSSL3_URL = 'http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb';
+	private const LIBSSL3_SHA256 = '11a83260542e05aebbbafce9164d594287d2584be80972e08708528fe06f80d3';
+
 	public function getName(): string {
 		return 'server:install';
 	}
@@ -118,6 +125,16 @@ class ServerInstallCommand implements CommandInterface {
 				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 				echo "This panel is not verified — load-balancer nodes require a verified panel.\n";
 				echo "Verify the panel (dashboard banner → Get a key), then retry.\n";
+				return 1;
+			}
+			// An install in API mode ends in a mode 2 enrolment, which MAIN does
+			// not take while the Redis connection handler is on
+			// (EnrolmentService::begin): said before the node is contacted, not
+			// once its panel has been stopped and replaced.
+			$rSettings = SettingsManager::getAll();
+			if (LbInstallFlow::installsInApiMode($rSettings, $rServerID) && !empty($rSettings['redis_handler'])) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo "This node installs in cluster mode 2, which is not available while the Redis connection handler is on: switch the handler off first. Exiting\n";
 				return 1;
 			}
 
@@ -278,6 +295,8 @@ class ServerInstallCommand implements CommandInterface {
 				echo $rFlows . "\n";
 			}
 		} else {
+			// finalizeHostAfterRuntime() handed the whole tree to xc_vm: the key is root's again (ProxyInstallFlow::provisionKey).
+			call_user_func($rRunSSH, $rConn, 'sudo chown root:root ' . MAIN_HOME . 'config/proxy.key && sudo chmod 0600 ' . MAIN_HOME . 'config/proxy.key');
 			ProxyInstallFlow::runStartup($rConn, $rRunSSH);
 		}
 
@@ -311,10 +330,25 @@ class ServerInstallCommand implements CommandInterface {
 		}
 
 		echo "Ubuntu 20.x detected — installing libssl3 for PHP compatibility...\n";
-		call_user_func($rRunSSH, $rConn, 'wget -O /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb');
-		call_user_func($rRunSSH, $rConn, 'sudo dpkg -i /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb || true');
-		call_user_func($rRunSSH, $rConn, 'rm -f /tmp/libssl3_3.0.2-0ubuntu1_amd64.deb');
-		echo "libssl3 installed successfully.\n";
+		// dpkg runs a package's scripts as root: it is handed this one only when
+		// it is the pinned build, from where no other user of the node can reach it.
+		$rDir = LbInstallFlow::privateDir($rConn, $rRunSSH);
+		if ($rDir === null) {
+			echo "libssl3 is not installed: the node gave no private directory to fetch it into.\n";
+			return;
+		}
+		$rDeb = $rDir . '/libssl3.deb';
+		call_user_func($rRunSSH, $rConn, 'wget -O ' . $rDeb . ' ' . self::LIBSSL3_URL);
+		$rSum = trim(explode(' ', (string) call_user_func($rRunSSH, $rConn, 'sha256sum ' . $rDeb)['output'])[0]);
+		if ($rSum !== self::LIBSSL3_SHA256) {
+			call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
+			echo 'libssl3 is not installed: the download failed, or is not the expected package (SHA-256 ' . ($rSum === '' ? 'none' : $rSum) . ").\n";
+			return;
+		}
+		// Not dpkg's exit status: the package asks for a newer libc6 than Ubuntu 20
+		// has, so dpkg unpacks the library and still reports an error.
+		$rHave = trim((string) call_user_func($rRunSSH, $rConn, 'sudo dpkg -i ' . $rDeb . ' >/dev/null 2>&1; rm -rf ' . $rDir . '; test -e /usr/lib/x86_64-linux-gnu/libssl.so.3 && echo SSL_OK')['output']);
+		echo $rHave === 'SSL_OK' ? "libssl3 installed successfully.\n" : "libssl3 is not installed: dpkg could not unpack it.\n";
 	}
 
 	private function prepareInstallRoot($rConn, callable $rRunSSH, int $rType): void {

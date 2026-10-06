@@ -65,6 +65,7 @@ class BackupsCronJob implements CommandInterface {
 			$db->query('UPDATE `settings` SET `backups_pid` = ?;', $rPID);
 		}
 
+		$rCreated = null;
 		if (isset($rBackups) && $rBackups != 'off' || $rForce) {
 			if ($rLastBackup + $rPeriod[$rBackups] <= time() || $rForce) {
 				if (!$rForce) {
@@ -72,6 +73,7 @@ class BackupsCronJob implements CommandInterface {
 				}
 				$db->close_mysql();
 				$rFilename = MAIN_HOME . 'backups/backup_' . date('Y-m-d_H:i:s') . '.sql';
+				$rCreated = basename($rFilename);
 
 				BackupService::create($rFilename);
 
@@ -105,6 +107,10 @@ class BackupsCronJob implements CommandInterface {
 		if (intval(SettingsManager::get('backups_to_keep')) < count($rBackups) && 0 < intval(SettingsManager::get('backups_to_keep'))) {
 			$rDelete = array_slice($rBackups, 0, count($rBackups) - intval(SettingsManager::get('backups_to_keep')));
 			foreach ($rDelete as $rItem) {
+				// Never the backup made in this run, wherever its time puts it in the list.
+				if ($rItem['filename'] === $rCreated) {
+					continue;
+				}
 				if (file_exists(MAIN_HOME . 'backups/' . $rItem['filename'])) {
 					unlink(MAIN_HOME . 'backups/' . $rItem['filename']);
 				}

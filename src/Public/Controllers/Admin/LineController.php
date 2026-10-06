@@ -26,7 +26,7 @@ class LineController extends BaseAdminController {
 		$db = $GLOBALS['db'];
 
 		if (RequestManager::has('id')) {
-			$rLine = UserRepository::getLineById(RequestManager::get('id'));
+			$rLine = self::storedLine(RequestManager::get('id'));
 
 			if (!$rLine || !Authorization::check('adv', 'edit_user')) {
 				AdminHelpers::goHome();
@@ -70,5 +70,22 @@ class LineController extends BaseAdminController {
 			$data['rLine'] = $rLine;
 		}
 		$this->render('line', $data);
+	}
+
+	/**
+	 * The line as stored, or null: the form escapes what it prints and posts it
+	 * back, so text read through the row cleaner ('&lt;' for '<') would be
+	 * saved escaped.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public static function storedLine(mixed $rID): ?array {
+		if (!is_numeric($rID) || (int) $rID <= 0) {
+			return null;
+		}
+		$db = $GLOBALS['db'];
+		$db->query('SELECT * FROM `lines` WHERE `id` = ?;', (int) $rID);
+
+		return $db->get_raw_row();
 	}
 }

@@ -16,8 +16,7 @@ use XcVm\Public\Controllers\Admin\TableController;
  *
  * `report` is opened via full-page navigation (window.location), not XHR, so
  * {@see self::report()} does not call requireXhr(); it streams a CSV/JSON
- * download by dispatching {@see TableController} in-process. `download_panel_logs`
- * has no per-action permission gate.
+ * download by dispatching {@see TableController} in-process.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -26,18 +25,27 @@ use XcVm\Public\Controllers\Admin\TableController;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class BackupAjaxController extends BaseAjaxController {
+	/** The log tables clear_logs empties, each with the permission of the page that lists it. */
+	private const LOG_TABLES = [
+		'lines_logs' => 'client_request_log',
+		'lines_activity' => 'connection_logs',
+		'streams_errors' => 'stream_errors',
+		'users_credits_logs' => 'credits_log',
+		'users_logs' => 'reg_userlog',
+		'panel_logs' => 'panel_logs',
+	];
+
 	/** action=clear_logs — delete/truncate a log table over an optional date range. */
 	public function clearLogs(): never {
 		$this->requireXhr();
-		$this->gateAny([
-			['adv', 'reg_userlog'],
-			['adv', 'client_request_log'],
-			['adv', 'connection_logs'],
-			['adv', 'stream_errors'],
-			['adv', 'credits_log'],
-			['adv', 'folder_watch_settings'],
-			['adv', 'panel_logs'],
-		]);
+
+		$rType = RequestManager::get('type');
+
+		if (!is_string($rType) || !isset(self::LOG_TABLES[$rType])) {
+			$this->fail();
+		}
+
+		$this->gate('adv', self::LOG_TABLES[$rType]);
 
 		global $db;
 
@@ -138,7 +146,7 @@ class BackupAjaxController extends BaseAjaxController {
 	 * is captured from a shutdown hook and converted to the requested format.
 	 */
 	public function report(): never {
-		$this->gate('adv', 'backups');
+		$this->gate('adv', 'database');
 
 		global $rUserInfo;
 		set_time_limit(60);
@@ -186,9 +194,10 @@ class BackupAjaxController extends BaseAjaxController {
 		exit();
 	}
 
-	/** action=download_panel_logs — collect recent panel error-log rows (no per-action gate). */
+	/** action=download_panel_logs — collect recent panel error-log rows and empty the table. */
 	public function downloadPanelLogs(): never {
 		$this->requireXhr();
+		$this->gate('adv', 'panel_logs');
 
 		$this->ok(['data' => DiagnosticsService::downloadPanelLogs()]);
 	}

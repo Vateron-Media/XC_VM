@@ -43,7 +43,10 @@ class BouquetController extends BaseAdminController {
 		$duplicateId = $this->input('duplicate');
 
 		if ($editId !== null) {
-			$rBouquetArr = BouquetService::getById($editId);
+			// The bouquet as stored: the form escapes what it prints and posts it back,
+			// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+			$GLOBALS['db']->query('SELECT * FROM `bouquets` WHERE `id` = ?;', intval($editId));
+			$rBouquetArr = $GLOBALS['db']->get_raw_row();
 		} elseif ($duplicateId !== null) {
 			$rBouquetArr = BouquetService::getById($duplicateId);
 			if ($rBouquetArr) {

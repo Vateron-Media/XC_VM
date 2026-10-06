@@ -20,7 +20,8 @@ class RefreshController extends BasePlayerV2Controller {
 		$username = $rUserInfo['username'] ?? '';
 		$password = $rUserInfo['password'] ?? '';
 
-		if ($userId > 0) {
+		// An external-server session carries a placeholder id, not a line of this panel: it has no cache here.
+		if ($userId > 0 && empty($rUserInfo['is_external_xc'])) {
 			// 1. Clear user line cache files
 			if (defined('LINES_TMP_PATH')) {
 				@unlink(LINES_TMP_PATH . 'line_i_' . $userId);

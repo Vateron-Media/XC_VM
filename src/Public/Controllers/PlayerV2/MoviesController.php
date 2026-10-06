@@ -78,19 +78,8 @@ class MoviesController extends BasePlayerV2Controller {
 				}
 			} else {
 				if (empty($rUserInfo['vod_ids'])) {
-					$where = ['`type` = 2'];
-					$whereV = [];
-					if (!empty($catId)) {
-						$where[] = '`category_id` = ?';
-						$whereV[] = $catId;
-					}
-					if (!empty($searchBy)) {
-						$where[] = '`stream_display_name` LIKE ?';
-						$whereV[] = '%' . $searchBy . '%';
-					}
-					$whereStr = implode(' AND ', $where);
-					$db->query("SELECT * FROM `streams` WHERE {$whereStr} ORDER BY `id` DESC LIMIT 1000", ...$whereV);
-					$streamList = $db->get_rows() ?: [];
+					// No movie in the line's bouquets: nothing to list.
+					$streamList = [];
 				} else {
 					$rStreams = getUserStreams(
 						$rUserInfo,
@@ -176,17 +165,9 @@ class MoviesController extends BasePlayerV2Controller {
 		}
 
 		if (empty($rUserInfo['vod_ids'])) {
-			$where = ['`type` = 2'];
-			$whereV = [];
-			if (!empty($firstCatId)) {
-				$where[] = '`category_id` = ?';
-				$whereV[] = $firstCatId;
-			}
-			$whereStr = implode(' AND ', $where);
-			$db->query("SELECT * FROM `streams` WHERE {$whereStr} ORDER BY `id` DESC LIMIT 100", ...$whereV);
-			$initialStreams = $db->get_rows() ?: [];
-			$db->query("SELECT count(*) as c FROM `streams` WHERE `type` = 2;");
-			$totalCount = (int) ($db->get_row()['c'] ?? 0);
+			// No movie in the line's bouquets: nothing to list.
+			$initialStreams = [];
+			$totalCount = 0;
 		} else {
 			$rStreams = getUserStreams(
 				$rUserInfo,

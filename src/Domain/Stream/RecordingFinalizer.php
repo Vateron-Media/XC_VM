@@ -4,6 +4,7 @@ namespace XcVm\Domain\Stream;
 
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -183,14 +184,20 @@ final class RecordingFinalizer {
 
 	private static function addToBouquet(int $rBouquetID, int $rID): void {
 		$rDb = self::db();
-		$rDb->query('SELECT `bouquet_movies` FROM `bouquets` WHERE `id` = ?;', $rBouquetID);
-		if ($rDb->num_rows() !== 1) {
-			return;
+		// The list is read and written back whole: held from the read to the write, as BouquetService::lock() says.
+		BouquetService::lock($rBouquetID);
+		try {
+			$rDb->query('SELECT `bouquet_movies` FROM `bouquets` WHERE `id` = ?;', $rBouquetID);
+			if ($rDb->num_rows() !== 1) {
+				return;
+			}
+			$rMovies = json_decode((string) $rDb->get_row()['bouquet_movies'], true) ?: [];
+			if (!in_array($rID, $rMovies)) {
+				$rMovies[] = $rID;
+				$rDb->query('UPDATE `bouquets` SET `bouquet_movies` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rMovies)) . ']', $rBouquetID);
+			}
+		} finally {
+			BouquetService::unlock($rBouquetID);
 		}
-		$rMovies = json_decode((string) $rDb->get_row()['bouquet_movies'], true) ?: [];
-		if (!in_array($rID, $rMovies)) {
-			$rMovies[] = $rID;
-		}
-		$rDb->query('UPDATE `bouquets` SET `bouquet_movies` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rMovies)) . ']', $rBouquetID);
 	}
 }

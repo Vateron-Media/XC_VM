@@ -95,8 +95,11 @@ class SearchController extends BasePlayerV2Controller {
 			'radio'    => [],
 		];
 
+		// Each type is searched within what the line's bouquets include; a type
+		// the line has nothing of matches nothing.
+
 		// 1. Live TV Channels (type = 1)
-		$liveClause = '';
+		$liveClause = ' AND 0';
 		if (!empty($rUserInfo['live_ids']) && is_array($rUserInfo['live_ids'])) {
 			$liveSafe = array_map('intval', $rUserInfo['live_ids']);
 			if ($liveSafe !== []) {
@@ -125,7 +128,7 @@ class SearchController extends BasePlayerV2Controller {
 		}
 
 		// 2. Movies / VOD (type = 2)
-		$vodClause = '';
+		$vodClause = ' AND 0';
 		if (!empty($rUserInfo['vod_ids']) && is_array($rUserInfo['vod_ids'])) {
 			$vodSafe = array_map('intval', $rUserInfo['vod_ids']);
 			if ($vodSafe !== []) {
@@ -161,7 +164,7 @@ class SearchController extends BasePlayerV2Controller {
 		}
 
 		// 3. TV Series (streams_series)
-		$seriesClause = '';
+		$seriesClause = ' AND 0';
 		if (!empty($rUserInfo['series_ids']) && is_array($rUserInfo['series_ids'])) {
 			$seriesSafe = array_map('intval', $rUserInfo['series_ids']);
 			if ($seriesSafe !== []) {
@@ -203,7 +206,7 @@ class SearchController extends BasePlayerV2Controller {
 		}
 
 		// 4. Series Episodes (streams_episodes & streams type = 5)
-		$epSeriesClause = '';
+		$epSeriesClause = ' AND 0';
 		if (!empty($rUserInfo['series_ids']) && is_array($rUserInfo['series_ids'])) {
 			$seriesSafe = array_map('intval', $rUserInfo['series_ids']);
 			if ($seriesSafe !== []) {
@@ -257,7 +260,7 @@ class SearchController extends BasePlayerV2Controller {
 		}
 
 		// 5. Radio Stations (type = 4)
-		$radioClause = '';
+		$radioClause = ' AND 0';
 		if (!empty($rUserInfo['radio_ids']) && is_array($rUserInfo['radio_ids'])) {
 			$radioSafe = array_map('intval', $rUserInfo['radio_ids']);
 			if ($radioSafe !== []) {
@@ -339,7 +342,7 @@ class SearchController extends BasePlayerV2Controller {
 	 * Handle global search across Live, VOD, and Series when connected to an external Xtream server.
 	 */
 	private function handleExternalSearch(string $query, string $typeFilter, bool $isAjax): void {
-		$extService = ExternalXtreamService::createFromSession();
+		$extService = ExternalXtreamService::fromSession();
 		$results = [
 			'live'     => [],
 			'movies'   => [],
@@ -387,7 +390,7 @@ class SearchController extends BasePlayerV2Controller {
 				$vodStreams = $extService->getVodStreams();
 				$matchedVod = 0;
 				foreach ($vodStreams as $stream) {
-					$name = $stream['name'] ?? '';
+					$name = $stream['title'] ?? '';
 					if ($query === '' || stripos($name, $query) !== false) {
 						$catId = (int) ($stream['category_id'] ?? 0);
 						$cover = ImageUtils::validateURL($stream['stream_icon'] ?? '') ?: '';
@@ -420,7 +423,7 @@ class SearchController extends BasePlayerV2Controller {
 				$seriesList = $extService->getSeries();
 				$matchedSeries = 0;
 				foreach ($seriesList as $series) {
-					$name = $series['name'] ?? '';
+					$name = $series['title'] ?? '';
 					$genre = $series['genre'] ?? '';
 					if ($query === '' || stripos($name, $query) !== false || stripos($genre, $query) !== false) {
 						$catId = (int) ($series['category_id'] ?? 0);
