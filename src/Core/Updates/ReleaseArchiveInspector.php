@@ -2,6 +2,8 @@
 
 namespace XcVm\Core\Updates;
 
+use XcVm\Core\Process\ProcessRunner;
+
 /**
  * ReleaseArchiveInspector — peeks inside a downloaded release .tar.gz without
  * extracting the whole thing.
@@ -56,14 +58,30 @@ class ReleaseArchiveInspector {
 	 * a very old release predating the migrations/ folder) — the destination
 	 * directory is just absent afterward, and listSubpathFiles() returns [].
 	 * A genuinely unreadable/corrupt archive still throws.
+	 *
+	 * A release built with `tar -C <dir> .` names its members './<path>', a plain
+	 * tar '<path>/', and PharData answers true for a spelling it extracts nothing
+	 * for: each is tried until one leaves files.
 	 */
 	private static function extractSubpath(string $archivePath, string $subpath, string $destination): void {
 		if (class_exists('PharData')) {
 			try {
-				(new \PharData($archivePath))->extractTo($destination, $subpath, true);
-				return;
+				$rPhar = new \PharData($archivePath);
 			} catch (\Throwable $e) {
-				// fall through to the CLI
+				$rPhar = null; // the CLI says whether it is readable
+			}
+			if ($rPhar !== null) {
+				foreach (['./' . $subpath . '/', $subpath . '/', $subpath] as $rMember) {
+					try {
+						$rPhar->extractTo($destination, $rMember, true);
+					} catch (\Throwable $e) {
+						continue;
+					}
+					if (glob($destination . '/' . $subpath . '/*')) {
+						return;
+					}
+				}
+				return;
 			}
 		}
 
@@ -75,8 +93,8 @@ class ReleaseArchiveInspector {
 				throw new \RuntimeException('Cannot read archive: ' . basename($archivePath) . ' (tar -t failed).');
 			}
 			// Best-effort extraction of the one member; ignore its own exit
-			// code — a missing member is expected to leave nothing extracted.
-			exec('tar -xf ' . escapeshellarg($archivePath) . ' -C ' . escapeshellarg($destination) . ' ' . escapeshellarg($subpath) . ' 2>/dev/null');
+			// code — a missing member (or spelling) is expected to leave nothing extracted.
+			ProcessRunner::run(['tar', '-xf', $archivePath, '-C', $destination, './' . $subpath, $subpath], true);
 			return;
 		}
 

@@ -254,13 +254,21 @@ fi
 # release is unpacked, so a file that was deleted and later restored (still
 # listed from an older generate_deleted_files run) would vanish from MAIN too.
 if [ -f "${MAIN_DIR}/migrations/deleted_files.txt" ]; then
-	while IFS= read -r r; do
-		case "$r" in ''|'#'*) continue ;; esac
-		if git ls-files --error-unmatch "src/${r}" >/dev/null 2>&1; then
-			echo "DELETES-SHIPPED: ${MAIN_DIR}/migrations/deleted_files.txt lists '${r}', which is tracked in src/, so every MAIN and LB update would delete it."
-			fail=1
-		fi
-	done < "${MAIN_DIR}/migrations/deleted_files.txt"
+	# The entries as runFileCleanup() reads them: trimmed (a CRLF or a stray space
+	# names the same file there), without comments and blank lines, the last line
+	# with or without a newline.
+	entries=$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^#/d' -e '/^$/d' "${MAIN_DIR}/migrations/deleted_files.txt")
+	# One git call for the whole list: a git process per entry took 19 s on the
+	# 4,692 entries of the committed list. Entry by entry only to name what that
+	# call found, or when it failed.
+	if [ -n "$entries" ] && { ! tracked=$(printf '%s\n' "$entries" | sed 's#^#src/#' | tr '\n' '\0' | xargs -0 git ls-files -- 2>/dev/null) || [ -n "$tracked" ]; }; then
+		while IFS= read -r r; do
+			if git ls-files --error-unmatch "src/${r}" >/dev/null 2>&1; then
+				echo "DELETES-SHIPPED: ${MAIN_DIR}/migrations/deleted_files.txt lists '${r}', which is tracked in src/, so every MAIN and LB update would delete it."
+				fail=1
+			fi
+		done <<< "$entries"
+	fi
 fi
 
 if [ "$fail" -ne 0 ]; then

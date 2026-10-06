@@ -169,8 +169,9 @@ final class AdminScopeBootstrap implements ScopeBootstrap {
 
 			$rServerError = false;
 
-			foreach ($rServers as $rServer) {
-				if (!$rServer['server_online'] && $rServer['enabled'] && $rServer['status'] != 3 && $rServer['status'] != 5) {
+			// Every streaming server, offline ones too: $rServers holds the online ones only.
+			foreach ($allServers as $rServer) {
+				if ((int) ($rServer['server_type'] ?? 0) === 0 && !$rServer['server_online'] && $rServer['enabled'] && $rServer['status'] != 3 && $rServer['status'] != 5) {
 					// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global consumed by legacy admin view templates
 					$rServerError = true;
 				}

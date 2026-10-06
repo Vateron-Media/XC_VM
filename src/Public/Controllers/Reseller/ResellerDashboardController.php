@@ -2,6 +2,8 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
+use XcVm\Core\Cache\FileCache;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Enum\Theme;
 use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Device\EnigmaService;
@@ -10,6 +12,7 @@ use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\User\GroupService;
 use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\UserService;
 
 /**
  * ResellerDashboardController — Reseller dashboard.
@@ -57,39 +60,9 @@ class ResellerDashboardController extends BaseResellerController {
 		$rReportIdsSql = implode(',', $rReportIds);
 		$db->query('SELECT `users`.`username`, `users_logs`.`owner`, `users_logs`.`type`, `users_logs`.`action`, `users_logs`.`log_id`, `users_logs`.`package_id`, `users_logs`.`cost`, `users_logs`.`date`, `users_logs`.`deleted_info` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` WHERE `users_logs`.`owner` IN (' . $rReportIdsSql . ') ORDER BY `users_logs`.`date` DESC LIMIT 250;');
 		$rActivityRows = [];
-		$rDeviceMap = ['line' => 'User Line', 'mag' => 'MAG Device', 'enigma' => 'Enigma2 Device', 'user' => 'Reseller'];
 		foreach ($db->get_rows() as $rRow) {
-			$rDevice = $rDeviceMap[$rRow['type']] ?? '';
-			$rText = '';
-			switch ($rRow['action']) {
-				case 'new':
-					$rText = 'Created New ' . $rDevice . ($rRow['package_id'] && isset($rPackages[$rRow['package_id']]) ? ' with Package:<br/>' . $rPackages[$rRow['package_id']]['package_name'] : '');
-					break;
-				case 'extend':
-					$rText = 'Extended ' . $rDevice . ($rRow['package_id'] && isset($rPackages[$rRow['package_id']]) ? ' with Package:<br/>' . $rPackages[$rRow['package_id']]['package_name'] : '');
-					break;
-				case 'convert':
-					$rText = 'Converted Device to User Line';
-					break;
-				case 'edit':
-					$rText = 'Edited ' . $rDevice;
-					break;
-				case 'enable':
-					$rText = 'Enabled ' . $rDevice;
-					break;
-				case 'disable':
-					$rText = 'Disabled ' . $rDevice;
-					break;
-				case 'delete':
-					$rText = 'Deleted ' . $rDevice;
-					break;
-				case 'send_event':
-					$rText = 'Sent Event to ' . $rDevice;
-					break;
-				case 'adjust_credits':
-					$rText = 'Adjusted Credits by ' . $rRow['cost'];
-					break;
-			}
+			// The view prints it as HTML: escaped, with the package name on its own line.
+			$rText = str_replace("\n", '<br/>', htmlspecialchars(UserService::logText($rRow, $rPackages, "\n"), ENT_QUOTES, 'UTF-8'));
 			$rTargetHtml = '';
 			$rTargetId = intval($rRow['log_id'] ?? 0);
 			switch ($rRow['type']) {
@@ -142,14 +115,22 @@ class ResellerDashboardController extends BaseResellerController {
 		// Connections by location. `lines_activity` is global, so the join onto
 		// `lines` is what keeps a reseller inside its own report tree — there is
 		// deliberately no unscoped fallback when the tree has no activity yet.
-		$db->query('SELECT `lines_activity`.`geoip_country_code`, COUNT(`lines_activity`.`activity_id`) AS `count`
-					FROM `lines_activity`
-					LEFT JOIN `lines` ON `lines`.`id` = `lines_activity`.`user_id`
-					WHERE `lines`.`member_id` IN (' . $rReportIdsSql . ')
-					GROUP BY `lines_activity`.`geoip_country_code`
-					ORDER BY `count` DESC LIMIT 10;');
+		// Only run when the map is drawn, and kept five minutes per reseller: it
+		// aggregates every closed connection.
+		$rCountryRows = [];
+		if (SettingsManager::get('save_closed_connection') && SettingsManager::get('dashboard_map')) {
+			$rCountryRows = (new FileCache(CACHE_TMP_PATH))->remember('reseller_map_' . $rUserId, 300, static function () use ($db, $rReportIdsSql): array|false {
+				$rOk = $db->query('SELECT `lines_activity`.`geoip_country_code`, COUNT(`lines_activity`.`activity_id`) AS `count`
+							FROM `lines_activity`
+							LEFT JOIN `lines` ON `lines`.`id` = `lines_activity`.`user_id`
+							WHERE `lines`.`member_id` IN (' . $rReportIdsSql . ')
+							GROUP BY `lines_activity`.`geoip_country_code`
+							ORDER BY `count` DESC LIMIT 10;');
+				return $rOk ? ($db->get_rows() ?: []) : false;
+			}) ?: [];
+		}
 		[$rConnectionMap, $rConnectionCount] = self::buildConnectionMap(
-			$db->get_rows(),
+			$rCountryRows,
 			Theme::fromId($rUserInfo['theme'] ?? 0)->isDark()
 		);
 

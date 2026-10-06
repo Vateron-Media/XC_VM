@@ -762,14 +762,22 @@ class PlayerApiController {
 				$rWhere[] = '`t1`.`id` IN (' . implode(',', $this->userInfo['live_ids']) . ')';
 				$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
 
-				if ($rSettings['channel_number_type'] != 'manual') {
-					$rOrder = 'FIELD(`t1`.`id`,' . implode(',', $this->userInfo['live_ids']) . ')';
-				} else {
-					$rOrder = '`order`';
-				}
+				$rManual = ($rSettings['channel_number_type'] == 'manual');
 
-				$db->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ' ORDER BY ' . $rOrder . ';', ...$rWhereV);
+				$db->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ($rManual ? ' ORDER BY `order`' : '') . ';', ...$rWhereV);
 				$rChannels = $db->get_rows();
+				// The line's order, as FIELD(id, every id) gave it (each row once, at its first
+				// place) without MariaDB evaluating that list for every row.
+				if (!$rManual && $rChannels) {
+					$rRows = array_column($rChannels, null, 'id');
+					$rChannels = [];
+					foreach ($this->userInfo['live_ids'] as $rID) {
+						if (isset($rRows[$rID])) {
+							$rChannels[] = $rRows[$rID];
+							unset($rRows[$rID]);
+						}
+					}
+				}
 			}
 		} else {
 			$rChannels = $this->userInfo['live_ids'];
@@ -936,14 +944,22 @@ class PlayerApiController {
 				$rWhere[] = '`t1`.`id` IN (' . implode(',', $this->userInfo['vod_ids']) . ')';
 				$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
 
-				if ($rSettings['channel_number_type'] != 'manual') {
-					$rOrder = 'FIELD(`t1`.`id`,' . implode(',', $this->userInfo['vod_ids']) . ')';
-				} else {
-					$rOrder = '`order`';
-				}
+				$rManual = ($rSettings['channel_number_type'] == 'manual');
 
-				$db->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ' ORDER BY ' . $rOrder . ';', ...$rWhereV);
+				$db->query('SELECT t1.id,t1.epg_id,t1.added,t1.allow_record,t1.year,t1.channel_id,t1.movie_properties,t1.stream_source,t1.tv_archive_server_id,t1.vframes_server_id,t1.tv_archive_duration,t1.stream_icon,t1.custom_sid,t1.category_id,t1.stream_display_name,t1.series_no,t1.direct_source,t2.type_output,t1.target_container,t2.live,t1.rtmp_output,t1.order,t2.type_key FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type ' . $rWhereString . ($rManual ? ' ORDER BY `order`' : '') . ';', ...$rWhereV);
 				$rChannels = $db->get_rows();
+				// The line's order, as FIELD(id, every id) gave it (each row once, at its first
+				// place) without MariaDB evaluating that list for every row.
+				if (!$rManual && $rChannels) {
+					$rRows = array_column($rChannels, null, 'id');
+					$rChannels = [];
+					foreach ($this->userInfo['vod_ids'] as $rID) {
+						if (isset($rRows[$rID])) {
+							$rChannels[] = $rRows[$rID];
+							unset($rRows[$rID]);
+						}
+					}
+				}
 			}
 		} else {
 			$rChannels = $this->userInfo['vod_ids'];
@@ -959,12 +975,8 @@ class PlayerApiController {
 			}
 
 			if ($rChannel['type_key'] == 'movie') {
-				$rProperties = json_decode((string) $rChannel['movie_properties'], true);
-
-				if (!is_array($rProperties)) {
-					$rProperties = [];
-				}
-
+				// Decoded once the movie is listed: a category filter skips most of them.
+				$rProperties = null;
 				$rCategoryIDs = json_decode($rChannel['category_id'], true);
 
 				foreach ($rCategoryIDs as $rCategoryID) {
@@ -972,6 +984,12 @@ class PlayerApiController {
 						continue;
 					}
 					if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
+						if ($rProperties === null) {
+							$rProperties = json_decode((string) $rChannel['movie_properties'], true);
+							if (!is_array($rProperties)) {
+								$rProperties = [];
+							}
+						}
 						if ($rSettings['api_redirect']) {
 							$rEncData = 'movie/' . $this->userInfo['username'] . '/' . $this->userInfo['password'] . '/' . $rChannel['id'] . '/' . $rChannel['target_container'];
 							$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));

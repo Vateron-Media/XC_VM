@@ -3,6 +3,7 @@
 namespace XcVm\Core\Backup;
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\Database;
 use XcVm\Core\Storage\DropboxClient;
 use XcVm\Domain\Cluster\DbCredentials;
 
@@ -43,29 +44,76 @@ class BackupService {
 		'watch_logs',
 	];
 
+	/** Automatic backup schedules and their periods in seconds; anything else is off. */
+	public const PERIODS = ['hourly' => 3600, 'daily' => 86400, 'weekly' => 604800, 'monthly' => 2419200];
+
+	/** Prefix of the dump a restore takes of the live database first: the way back, which retention leaves alone. */
+	public const PRE_RESTORE = 'pre_restore_';
+
 	/**
 	 * Create a full database backup (structure + data, excluding large log tables).
 	 * Credentials are never exposed to PHP — delegated to \XC_VM::db_dump().
 	 *
 	 * @param string $filename Output SQL file path
+	 * @return bool Whether the dump finished; one that did not leaves no file
 	 */
-	public static function create(string $filename) {
-		\XC_VM::db_dump($filename, self::$ignoreTables);
+	public static function create(string $filename): bool {
+		$rDumped = (bool) \XC_VM::db_dump($filename, self::$ignoreTables);
+		clearstatcache(true, $filename);
+		if ($rDumped && is_file($filename) && 0 < filesize($filename)) {
+			return true;
+		}
+		@unlink($filename);
+		return false;
 	}
 
 	/**
-	 * Restore a database backup (drops + recreates DB, then imports).
-	 * After a successful import the backup file is refreshed with a clean dump.
+	 * Dump the database to backups/<name>_<date>.sql from a command that holds a
+	 * connection: it is closed for the dump and opened again after it.
+	 *
+	 * @return string|null The file, or null when the dump failed (it leaves none)
+	 */
+	public static function dumpFor(Database $db, string $rName): ?string {
+		$rFile = MAIN_HOME . 'backups/' . $rName . '_' . date('Y-m-d_H-i-s') . '.sql';
+		$db->close_mysql();
+		$rDumped = self::create($rFile);
+		$db->db_connect();
+		return $rDumped ? $rFile : null;
+	}
+
+	/** Bytes the dumped tables hold: a dump comes to about this size. */
+	public static function estimateSize(Database $db): int {
+		$db->query('SELECT COALESCE(SUM(`data_length`), 0) FROM `information_schema`.`tables` WHERE `table_schema` = DATABASE() AND `table_name` NOT IN (' . implode(', ', array_fill(0, count(self::$ignoreTables), '?')) . ');', ...self::$ignoreTables);
+		return (int) $db->get_col();
+	}
+
+	/** Room for a dump of $rNeed bytes: twice over (the migrations copy tables too), plus 512 MiB for the update's own files. */
+	public static function roomForDump(int $rNeed, float $rFree): bool {
+		return 2 * $rNeed + 512 * 1024 * 1024 <= $rFree;
+	}
+
+	/** Remove every <prefix>*.sql in $rDir but $rKeep. */
+	public static function keepOnly(string $rDir, string $rPrefix, string $rKeep): void {
+		foreach (glob($rDir . $rPrefix . '*.sql') ?: [] as $rFile) {
+			if (basename($rFile) !== basename($rKeep)) {
+				@unlink($rFile);
+			}
+		}
+	}
+
+	/**
+	 * Restore a database backup (drops + recreates DB, then imports). The live
+	 * database is dumped to backups/pre_restore_<date>.sql first; when it cannot
+	 * be, nothing is touched unless $rForce. The file restored from is left as it is.
 	 *
 	 * @param string $filename SQL file path to restore
-	 * @return bool Whether the import succeeded
+	 * @return bool|null true: restored. false: the import failed. null: refused, the live database could not be dumped first.
 	 */
-	public static function restore(string $filename) {
-		if (!\XC_VM::db_restore($filename)) {
-			return false;
+	public static function restore(string $filename, bool $rForce = false): ?bool {
+		if (!$rForce && !self::create(MAIN_HOME . 'backups/' . self::PRE_RESTORE . date('Y-m-d_H:i:s') . '.sql')) {
+			return null;
 		}
-		\XC_VM::db_dump($filename, self::$ignoreTables);
-		return true;
+		return (bool) \XC_VM::db_restore($filename);
 	}
 
 	/**
@@ -118,6 +166,24 @@ class BackupService {
 		);
 
 		return $rBackups;
+	}
+
+	/**
+	 * The newest backup a backup run made (backup_*.sql, scheduled or manual), and
+	 * whether its Dropbox upload failed (the .error file beside it).
+	 *
+	 * @return array{timestamp: int, upload_failed: bool}|null null when there is none
+	 */
+	public static function newestBackup(): ?array {
+		if (!is_dir(MAIN_HOME . 'backups/')) {
+			return null;
+		}
+		$rRuns = array_values(array_filter(self::getLocal(), static fn(array $rBackup): bool => str_starts_with($rBackup['filename'], 'backup_')));
+		if ($rRuns === []) {
+			return null;
+		}
+		$rNewest = end($rRuns);
+		return ['timestamp' => (int) $rNewest['timestamp'], 'upload_failed' => is_file(MAIN_HOME . 'backups/' . $rNewest['filename'] . '.error')];
 	}
 
 	/**

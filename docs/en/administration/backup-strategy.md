@@ -34,10 +34,10 @@ Settings are in the admin panel under **Backups**:
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `automatic_backups` | `off` | frequency: `off`, `hourly`, `daily`, `weekly`, `monthly` |
+| `automatic_backups` | `daily` | frequency: `off`, `hourly`, `daily`, `weekly`, `monthly` |
 | `backups_to_keep` | `0` | local retention count (0 = unlimited) |
 | `dropbox_remote` | `0` | enable Dropbox upload |
-| `dropbox_keep` | `0` | remote retention count (0 = unlimited) |
+| `dropbox_keep` | `10` | remote retention count (0 = unlimited) |
 | `dropbox_token` | `''` | Dropbox API token |
 
 ---
@@ -69,7 +69,7 @@ Only runs on the main server (`is_main=1`). Uses PID-based locking to prevent ov
 
 1. Close MySQL connection before dump.
 2. Run `mysqldump --no-data` (structure) + `mysqldump --ignore-table` (data, excluding log tables).
-3. Validate file size (empty files are deleted).
+3. Keep the file only when the dump finished: a dump that failed or came out empty is deleted and does not count as a backup.
 4. If Dropbox enabled: upload with status tracking.
 5. Apply retention policy (delete oldest files exceeding limit).
 
@@ -78,6 +78,12 @@ Only runs on the main server (`is_main=1`). Uses PID-based locking to prevent ov
 ```text
 /home/xc_vm/backups/backup_YYYY-MM-DD_HH:MM:SS.sql
 ```
+
+The same folder holds the dumps MAIN takes on its own, listed in the Backups table with the others:
+
+- `pre_update_<from>_to_<to>_<timestamp>.sql`: before an update's migrations run. One is kept, the newest, and it counts toward *Local Backups to Keep*. After restoring it, run `sudo /home/xc_vm/console.php status` so the migrations are applied again.
+- `pre_rollback_<from>_to_<to>_<timestamp>.sql`: before a rollback. It counts toward *Local Backups to Keep*.
+- `pre_restore_<timestamp>.sql`: before a restore, see [Restoring Backups](#restoring-backups).
 
 ---
 
@@ -90,12 +96,12 @@ Click **Restore** on any backup entry. Requires confirmation.
 Process:
 
 1. If local file exists, use it. Otherwise download from Dropbox to `/home/xc_vm/tmp/restore.sql`.
-2. Drop and recreate the database.
-3. Import the SQL file.
-4. Re-dump structure after import.
+2. Dump the live database to `/home/xc_vm/backups/pre_restore_YYYY-MM-DD_HH:MM:SS.sql`, the way back. When that dump fails (a full disk, a table mysqldump cannot read), nothing is changed and the page asks whether to restore anyway; the current data is then lost.
+3. Drop and recreate the database.
+4. Import the SQL file. The file restored from is left as it is.
 
 ```php
-BackupService::restore($filename, $config)
+BackupService::restore($filename, $force = false) // true, false (the import failed) or null (refused: no dump of the live database)
 ```
 
 > **Important:** Restore drops the entire database and recreates it. All data not in the backup will be lost.
@@ -120,14 +126,15 @@ This restores to a `xc_vm_migrate` database for selective data migration, rather
 
 - If `backups_to_keep > 0`: keeps only the N most recent files. Oldest deleted first.
 - If `backups_to_keep = 0`: keeps all files (unlimited).
-- Files are ordered by modification time. A run never deletes the dump it has just written. A `.sql` file dated in the future counts as more recent than it, so the folder can hold one more than the limit until that date has passed.
+- Files are ordered by modification time. A run never deletes the dump it has just written.
+- `pre_restore_*.sql` files, the dumps a restore takes of the live database first, are neither counted nor deleted: they stay in the Backups table until you delete them. A `.sql` file dated in the future counts as more recent than it, so the folder can hold one more than the limit until that date has passed.
 
 ### Remote retention
 
 - If `dropbox_keep > 0`: keeps only the N most recent files on Dropbox. Oldest deleted first.
 - If `dropbox_keep = 0`: keeps all remote files (unlimited).
 
-Cleanup runs automatically after each backup via `BackupsCronJob`.
+Local cleanup runs every minute via `BackupsCronJob`; Dropbox cleanup runs after each backup the job makes.
 
 ---
 
@@ -217,7 +224,7 @@ Action: `backup` (requires `adv:database` permission)
 | --- | --- |
 | `backup` | trigger immediate backup (background) |
 | `delete` | delete local backup + Dropbox copy |
-| `restore` | restore database from backup |
+| `restore` | restore database from backup; answers `{"result":false,"error":"safety_dump"}` when the live database could not be dumped first, and `force=1` restores without that dump |
 
 ---
 

@@ -7,6 +7,7 @@ use XcVm\Core\Cluster\LbDatabaseAccessException;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Database\Database;
 use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Process\ProcessRunner;
@@ -99,7 +100,8 @@ class StatusCommand implements CommandInterface {
 		$rServers = $this->getServers();
 
 		if ($rServers[SERVER_ID]['is_main']) {
-			MigrationRunner::run($db);
+			// Every run, boot included, so the dashboard's schema row clears once a failure is gone.
+			self::markSchema($db, MigrationRunner::run($db) === []);
 
 			// Provision bundled modules (create their tables via migrations) the
 			// first time after a fresh install/update. Idempotent and safe to
@@ -452,13 +454,25 @@ class StatusCommand implements CommandInterface {
 		return null;
 	}
 
+	/**
+	 * The dashboard's "Database schema" row: this release's mark when every migration
+	 * applied, none while one fails (a mark left from a clean run would hide it).
+	 */
+	public static function markSchema(Database $db, bool $rCurrent): void {
+		$db->query('UPDATE `settings` SET `status_uuid` = ?;', $rCurrent ? self::schemaMark() : null);
+	}
+
+	/** The mark of this release's schema, as the dashboard compares it: the release. */
+	public static function schemaMark(): string {
+		return XC_VM_VERSION;
+	}
+
 	private function printStatusReport(array $rServers): void {
 		$db = self::db();
 		global $rSettings;
 
 		$db->query('UPDATE `servers` SET `is_main` = 0 WHERE `id` <> ?;', SERVER_ID);
 		$db->query('UPDATE `servers` SET `is_main` = 1 WHERE `id` = ?;', SERVER_ID);
-		$db->query('UPDATE `settings` SET `status_uuid` = ?;', md5(XC_VM_VERSION));
 
 		if (stripos($rSettings['server_name'], 'xtream') !== false || stripos($rSettings['server_name'], 'zapx') !== false || stripos($rSettings['server_name'], 'streamcreed') !== false) {
 			$db->query("UPDATE `settings` SET `server_name` = 'XC_VM';");

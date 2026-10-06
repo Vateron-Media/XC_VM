@@ -62,17 +62,7 @@ class ImageUtils {
 				}
 			}
 			if (in_array(strtolower($rExt), ['jpg', 'jpeg', 'png'])) {
-				$rFilename = Encryption::encrypt($rImage, SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
-				// A single filename component is capped at 255 bytes on ext4/most
-				// filesystems. Long source URLs produce an encrypted name that
-				// exceeds this, so file_put_contents fails with "File name too
-				// long" and the whole import (e.g. Plex Sync) stalls. Fall back to
-				// a deterministic hash for those — the tools-images self-heal can't
-				// reverse a hash, but the image still downloads and caches. The
-				// "h_" prefix marks these so the self-heal can skip them.
-				if (strlen($rFilename . '.' . $rExt) > 250) {
-					$rFilename = 'h_' . hash('sha256', $rImage);
-				}
+				$rFilename = self::cacheName($rImage, $rExt);
 				$rPrevPath = IMAGES_PATH . $rFilename . '.' . $rExt;
 				if (file_exists($rPrevPath)) {
 					return 's:' . SERVER_ID . ':/images/' . $rFilename . '.' . $rExt;
@@ -99,6 +89,92 @@ class ImageUtils {
 			}
 		}
 		return $rImage;
+	}
+
+	/**
+	 * Download many images at once: for each URL, what downloadImage() returns for
+	 * it inside an import, with up to $rParallel transfers in flight. Each URL is
+	 * fetched once; an answer of 400 or more is a failure. Once three transfers to
+	 * one host failed in a row, that host's other images keep their URL.
+	 *
+	 * Unlike downloadImage(), a URL without a jpg/jpeg/png extension is never
+	 * asked for its type: it is returned unchanged, as an import's downloadImage()
+	 * (default_socket_timeout 0) left it.
+	 *
+	 * @param array<mixed> $rImages Image URLs; anything but a string is skipped
+	 * @return array<string, string> URL => internal `s:` reference, or the URL unchanged
+	 */
+	public static function downloadImages(array $rImages, int $rParallel = 6): array {
+		$rOut = $rQueue = $rActive = $rFails = [];
+		foreach ($rImages as $rImage) {
+			if (!is_string($rImage) || isset($rOut[$rImage])) {
+				continue;
+			}
+			$rOut[$rImage] = $rImage;
+			$rExt = strtolower(pathinfo(parse_url($rImage, PHP_URL_PATH) ?: $rImage)['extension'] ?? '');
+			if (substr(strtolower($rImage), 0, 4) != 'http' || !in_array($rExt, ['jpg', 'jpeg', 'png'])) {
+				continue;
+			}
+			$rName = self::cacheName($rImage, $rExt) . '.' . $rExt;
+			if (file_exists(IMAGES_PATH . $rName)) {
+				$rOut[$rImage] = 's:' . SERVER_ID . ':/images/' . $rName;
+			} else {
+				$rQueue[] = [$rImage, $rName, strtolower((string) parse_url($rImage, PHP_URL_HOST))];
+			}
+		}
+		if ($rQueue !== [] && !is_dir(IMAGES_PATH)) {
+			@mkdir(IMAGES_PATH, 0775, true);
+		}
+		$rMulti = curl_multi_init();
+		while ($rQueue !== [] || $rActive !== []) {
+			while ($rQueue !== [] && count($rActive) < $rParallel) {
+				$rJob = array_shift($rQueue);
+				if (3 <= ($rFails[$rJob[2]] ?? 0)) {
+					continue;
+				}
+				$rCurl = curl_init();
+				curl_setopt_array($rCurl, [CURLOPT_URL => $rJob[0], CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => 5]);
+				curl_multi_add_handle($rMulti, $rCurl);
+				$rActive[spl_object_id($rCurl)] = [$rCurl, $rJob];
+			}
+			curl_multi_exec($rMulti, $rRunning);
+			while ($rInfo = curl_multi_info_read($rMulti)) {
+				[$rCurl, [$rImage, $rName, $rHost]] = $rActive[spl_object_id($rInfo['handle'])];
+				unset($rActive[spl_object_id($rInfo['handle'])]);
+				$rDone = $rInfo['result'] === CURLE_OK && curl_getinfo($rCurl, CURLINFO_RESPONSE_CODE) < 400;
+				$rData = $rDone ? (string) curl_multi_getcontent($rCurl) : '';
+				$rFails[$rHost] = $rDone ? 0 : ($rFails[$rHost] ?? 0) + 1;
+				curl_multi_remove_handle($rMulti, $rCurl);
+				curl_close($rCurl);
+				if ($rData !== '') {
+					@file_put_contents(IMAGES_PATH . $rName, $rData);
+					if (file_exists(IMAGES_PATH . $rName)) {
+						$rOut[$rImage] = 's:' . SERVER_ID . ':/images/' . $rName;
+					}
+				}
+			}
+			if ($rActive !== []) {
+				curl_multi_select($rMulti, 1.0);
+			}
+		}
+		curl_multi_close($rMulti);
+		return $rOut;
+	}
+
+	/**
+	 * The cached image's file name (without extension): the encrypted URL.
+	 *
+	 * A single filename component is capped at 255 bytes on ext4/most
+	 * filesystems. Long source URLs produce an encrypted name that exceeds
+	 * this, so file_put_contents fails with "File name too long" and the whole
+	 * import (e.g. Plex Sync) stalls. Fall back to a deterministic hash for
+	 * those — the tools-images self-heal can't reverse a hash, but the image
+	 * still downloads and caches. The "h_" prefix marks these so the self-heal
+	 * can skip them.
+	 */
+	private static function cacheName(string $rImage, string $rExt): string {
+		$rFilename = Encryption::encrypt($rImage, SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
+		return strlen($rFilename . '.' . $rExt) > 250 ? 'h_' . hash('sha256', $rImage) : $rFilename;
 	}
 
 	/**

@@ -2,7 +2,7 @@
 
 Step-by-step guide to updating an XC_VM server. For the internals of the update process, see [Update Mechanism](../administration/update-system.md).
 
-> 💾 Before updating, it is recommended to create a [backup](../administration/backup-strategy.md).
+> 💾 MAIN dumps its database to `/home/xc_vm/backups/pre_update_<from>_to_<to>_<timestamp>.sql` before the update's migrations run, when the disk has room for it. A [backup](../administration/backup-strategy.md) of your own before updating is still recommended.
 
 ## Updating via the Panel
 
@@ -70,7 +70,7 @@ Clicking **Rollback** inserts a `rollback` signal (carrying the chosen version) 
 
 The versions offered depend on the server's update channel: on the `stable` channel only stable releases are listed; on `beta` and `dev` you also see `(beta)` pre-releases.
 
-> ⚠️ A rollback **does not undo database migrations** — they are forward-only. The schema is designed to stay backward-compatible, and the automatic backup is the recovery path if an older build cannot read newer data. Use rollback only as a recovery step.
+> ⚠️ A rollback to 2.6.0 or later **does not undo database migrations**; one to 2.5.3 or earlier reverses those that ship a reverse file. The schema is designed to stay backward-compatible, and the automatic backup is the recovery path if an older build cannot read newer data. Use rollback only as a recovery step.
 
 ### Manual Rollback (CLI)
 

@@ -7,9 +7,11 @@ use XcVm\Cli\CronTrait;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Process\Multithread;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Stream\StreamCacheBuilder;
+use XcVm\Infrastructure\Cache\CacheRunState;
 
 /**
  * CacheEngineCronJob — cache engine cron job
@@ -29,13 +31,6 @@ class CacheEngineCronJob implements CommandInterface {
 	private $rThreadCount;
 
 	private $rUpdateIDs = [];
-
-	/**
-	 * Set by a worker whose database read failed; the parent run then keeps
-	 * the existing cache files instead of sweeping the ones it did not
-	 * rewrite (they would be live streams/lines, not deleted ones).
-	 */
-	private const FAILED_MARKER = 'cache_engine_failed';
 
 	public function getName(): string {
 		return 'cron:cache_engine';
@@ -195,7 +190,12 @@ class CacheEngineCronJob implements CommandInterface {
 						break;
 					default:
 						$cacheInitTime = $rSeriesCategories = [];
-						@unlink(CACHE_TMP_PATH . self::FAILED_MARKER);
+						// A scheduled run (no argument) is judged on the dashboard; a forced one is not.
+						if ($rType === null) {
+							CacheRunState::started(CACHE_TMP_PATH);
+						} else {
+							@unlink(CACHE_TMP_PATH . CacheRunState::FAILED);
+						}
 						$db->query('SELECT `series_id`, MAX(`streams`.`added`) AS `last_modified` FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` GROUP BY `series_id`;');
 						foreach ($db->get_rows() as $rRow) {
 							$cacheInitTime[$rRow['series_id']] = $rRow['last_modified'];
@@ -321,9 +321,9 @@ class CacheEngineCronJob implements CommandInterface {
 						foreach ($rSeriesEpisodes as $rSeriesID => $rSeasons) {
 							$this->write(SERIES_TMP_PATH . 'episodes_' . $rSeriesID, igbinary_serialize($rSeasons));
 						}
-						$rFailed = file_exists(CACHE_TMP_PATH . self::FAILED_MARKER);
+						$rFailed = file_exists(CACHE_TMP_PATH . CacheRunState::FAILED);
 						if ($rFailed) {
-							echo 'A cache worker could not read the database; keeping the existing cache files.' . "\n";
+							echo 'A cache worker could not read the database or write a cache file; keeping the entries it did not rewrite.' . "\n";
 						}
 						foreach ([STREAMS_TMP_PATH, LINES_TMP_PATH, SERIES_TMP_PATH, CACHE_TMP_PATH] as $rTmpPath) {
 							FileCache::cleanStaleTemps($rTmpPath);
@@ -360,13 +360,12 @@ class CacheEngineCronJob implements CommandInterface {
 								}
 							}
 						}
-						echo 'Cache updated!' . "\n";
-						$this->write(CACHE_TMP_PATH . 'cache_complete', (string) time());
-						$db->query('UPDATE `settings` SET `last_cache` = ?, `last_cache_taken` = ?;', time(), time() - $rStartTime);
+						$this->finishRun($rFailed, $rStartTime);
 						break;
 				}
 			} else {
 				echo 'Cache is disabled.' . "\n";
+				CacheRunState::clear(CACHE_TMP_PATH);
 				echo 'Generating group permissions...' . "\n";
 				$this->generateGroups();
 				echo 'Generating lines per ip...' . "\n";
@@ -433,9 +432,9 @@ class CacheEngineCronJob implements CommandInterface {
 							$rOldKeys = $this->lineKeys(intval($rUserInfo['id']));
 							$this->write(LINES_TMP_PATH . 'line_i_' . $rUserInfo['id'], igbinary_serialize($rUserInfo));
 							$rKey = $this->credentialKey($rUserInfo['username'], $rUserInfo['password']);
-							$this->write(LINES_TMP_PATH . 'line_c_' . $rKey, (string) $rUserInfo['id']);
+							$this->write(LINES_TMP_PATH . 'line_c_' . $rKey, (string) $rUserInfo['id'], true);
 							if (!empty($rUserInfo['access_token'])) {
-								$this->write(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token'], (string) $rUserInfo['id']);
+								$this->write(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token'], (string) $rUserInfo['id'], true);
 							}
 							// Credentials or token changed: the old lookup files
 							// would keep resolving to this line.
@@ -556,7 +555,10 @@ class CacheEngineCronJob implements CommandInterface {
 					foreach ($rRows as $rStreamInfo) {
 						$rID = intval($rStreamInfo['id']);
 						$rExists[$rID] = true;
-						StreamCacheBuilder::write($rID, StreamCacheBuilder::entry($rStreamInfo, $rBouquetMap[$rID] ?? [], $rStreamMap[$rID] ?? []));
+						if (!StreamCacheBuilder::write($rID, StreamCacheBuilder::entry($rStreamInfo, $rBouquetMap[$rID] ?? [], $rStreamMap[$rID] ?? []))) {
+							echo 'Cache write failed: stream_' . $rID . "\n";
+							$this->markFailed();
+						}
 					}
 					unset($rRows, $rStreamMap);
 				}
@@ -615,6 +617,18 @@ class CacheEngineCronJob implements CommandInterface {
 
 	private function generateGroups(): void {
 		global $db;
+		// Every series' episodes in one read, in the order the per-series read gave them.
+		if (!$db->query('SELECT `series_id`, `stream_id` FROM `streams_episodes` ORDER BY `series_id` ASC, `id` ASC;')) {
+			$this->markFailed();
+			return;
+		}
+		$rEpisodes = [];
+		foreach ($db->get_rows() as $rRow) {
+			$rEpisodes[intval($rRow['series_id'])][] = $rRow['stream_id'];
+		}
+		// A bouquet column that is not a JSON list counts as empty.
+		$rList = static fn(mixed $rJSON): array => is_array($rDecoded = json_decode((string) $rJSON, true)) ? $rDecoded : [];
+
 		$db->query('SELECT `group_id` FROM `users_groups`;');
 		foreach ($db->get_rows() as $rGroup) {
 			$rBouquets = $rReturn = [];
@@ -640,20 +654,11 @@ class CacheEngineCronJob implements CommandInterface {
 				$rSeriesIDs = [];
 				$rStreamIDs = [];
 				foreach ($db->get_rows() as $rRow) {
-					if ($rRow['bouquet_channels']) {
-						$rStreamIDs = array_merge($rStreamIDs, json_decode($rRow['bouquet_channels'], true));
-					}
-					if ($rRow['bouquet_movies']) {
-						$rStreamIDs = array_merge($rStreamIDs, json_decode($rRow['bouquet_movies'], true));
-					}
-					if ($rRow['bouquet_radios']) {
-						$rStreamIDs = array_merge($rStreamIDs, json_decode($rRow['bouquet_radios'], true));
-					}
-					foreach (json_decode($rRow['bouquet_series'], true) as $rSeriesID) {
+					$rStreamIDs = array_merge($rStreamIDs, $rList($rRow['bouquet_channels']), $rList($rRow['bouquet_movies']), $rList($rRow['bouquet_radios']));
+					foreach ($rList($rRow['bouquet_series']) as $rSeriesID) {
 						$rSeriesIDs[] = $rSeriesID;
-						$db->query('SELECT `stream_id` FROM `streams_episodes` WHERE `series_id` = ?;', $rSeriesID);
-						foreach ($db->get_rows() as $rEpisode) {
-							$rStreamIDs[] = $rEpisode['stream_id'];
+						foreach ($rEpisodes[intval($rSeriesID)] ?? [] as $rEpisodeID) {
+							$rStreamIDs[] = $rEpisodeID;
 						}
 					}
 				}
@@ -684,34 +689,67 @@ class CacheEngineCronJob implements CommandInterface {
 
 	private function generateLinesPerIP(): void {
 		global $db;
-		$rLinesPerIP = [3600 => [], 86400 => [], 604800 => [], 0 => []];
-		foreach (array_keys($rLinesPerIP) as $rTime) {
-			if ($rTime > 0) {
-				$db->query('SELECT `lines_activity`.`user_id`, COUNT(DISTINCT(`lines_activity`.`user_ip`)) AS `ip_count`, `lines`.`username` FROM `lines_activity` LEFT JOIN `lines` ON `lines`.`id` = `lines_activity`.`user_id` WHERE `date_start` >= ? AND `lines`.`is_mag` = 0 AND `lines`.`is_e2` = 0 AND `lines`.`is_restreamer` = 0 GROUP BY `lines_activity`.`user_id` ORDER BY `ip_count` DESC LIMIT 1000;', time() - $rTime);
-			} else {
-				$db->query('SELECT `lines_activity`.`user_id`, COUNT(DISTINCT(`lines_activity`.`user_ip`)) AS `ip_count`, `lines`.`username` FROM `lines_activity` LEFT JOIN `lines` ON `lines`.`id` = `lines_activity`.`user_id` WHERE `lines`.`is_mag` = 0 AND `lines`.`is_e2` = 0 AND `lines`.`is_restreamer` = 0 GROUP BY `lines_activity`.`user_id` ORDER BY `ip_count` DESC LIMIT 1000;');
-			}
-			foreach ($db->get_rows() as $rRow) {
-				$rLinesPerIP[$rTime][] = $rRow;
-			}
-		}
-		$this->write(CACHE_TMP_PATH . 'lines_per_ip', igbinary_serialize($rLinesPerIP));
+		$rOld = @igbinary_unserialize((string) @file_get_contents(CACHE_TMP_PATH . 'lines_per_ip'));
+		$this->write(CACHE_TMP_PATH . 'lines_per_ip', igbinary_serialize(self::linesPerIp($db, is_array($rOld) ? $rOld : null, time(), CACHE_TMP_PATH . 'lines_per_ip_all')));
 	}
 
 	private function generateTheftDetection(): void {
 		global $db;
-		$rTheftDetection = [3600 => [], 86400 => [], 604800 => [], 0 => []];
-		foreach (array_keys($rTheftDetection) as $rTime) {
-			if ($rTime > 0) {
-				$db->query('SELECT `lines_activity`.`user_id`, COUNT(DISTINCT(`lines_activity`.`stream_id`)) AS `vod_count`, `lines`.`username` FROM `lines_activity` LEFT JOIN `lines` ON `lines`.`id` = `lines_activity`.`user_id` WHERE `date_start` >= ? AND `lines`.`is_mag` = 0 AND `lines`.`is_e2` = 0 AND `lines`.`is_restreamer` = 0 AND `stream_id` IN (SELECT `id` FROM `streams` WHERE `type` IN (2,5)) GROUP BY `lines_activity`.`user_id` ORDER BY `vod_count` DESC LIMIT 1000;', time() - $rTime);
-			} else {
-				$db->query('SELECT `lines_activity`.`user_id`, COUNT(DISTINCT(`lines_activity`.`stream_id`)) AS `vod_count`, `lines`.`username` FROM `lines_activity` LEFT JOIN `lines` ON `lines`.`id` = `lines_activity`.`user_id` WHERE `lines`.`is_mag` = 0 AND `lines`.`is_e2` = 0 AND `lines`.`is_restreamer` = 0 AND `stream_id` IN (SELECT `id` FROM `streams` WHERE `type` IN (2,5)) GROUP BY `lines_activity`.`user_id` ORDER BY `vod_count` DESC LIMIT 1000;');
+		$rOld = @igbinary_unserialize((string) @file_get_contents(CACHE_TMP_PATH . 'theft_detection'));
+		$this->write(CACHE_TMP_PATH . 'theft_detection', igbinary_serialize(self::theftDetection($db, is_array($rOld) ? $rOld : null, time(), CACHE_TMP_PATH . 'theft_detection_all')));
+	}
+
+	/** How often the All Time range of the two reports reads every closed connection again. */
+	private const ALL_TIME_SEC = 3600;
+
+	/** Line IP Usage: per line, the addresses it used in the last hour, day, week and all time. */
+	public static function linesPerIp(object $db, ?array $rOld, int $rNow, string $rMarker): array {
+		return self::report($db, 'COUNT(DISTINCT(`lines_activity`.`user_ip`)) AS `ip_count`', '', 'ip_count', $rOld, $rNow, $rMarker);
+	}
+
+	/** VOD Theft Detection: per line, the movies and episodes it played in the last hour, day, week and all time. */
+	public static function theftDetection(object $db, ?array $rOld, int $rNow, string $rMarker): array {
+		return self::report($db, 'COUNT(DISTINCT(`lines_activity`.`stream_id`)) AS `vod_count`', ' AND `stream_id` IN (SELECT `id` FROM `streams` WHERE `type` IN (2,5))', 'vod_count', $rOld, $rNow, $rMarker);
+	}
+
+	/**
+	 * Whether the All Time range is due: its marker is ALL_TIME_SEC old or missing.
+	 * The marker records the attempt, so a recompute that is killed is not tried
+	 * again by every pass.
+	 */
+	public static function allTimeDue(string $rMarker, int $rNow, int $rEvery = self::ALL_TIME_SEC): bool {
+		clearstatcache(true, $rMarker);
+		if (is_file($rMarker) && $rNow - (int) filemtime($rMarker) < $rEvery) {
+			return false;
+		}
+		@touch($rMarker, $rNow);
+		return true;
+	}
+
+	/**
+	 * One of the two reports, by window (seconds back; 0 is all time). The All Time
+	 * range reads every closed connection, so it is taken from $rOld unless it is
+	 * due, and kept from $rOld when it cannot be read again.
+	 */
+	private static function report(object $db, string $rCount, string $rWhere, string $rOrder, ?array $rOld, int $rNow, string $rMarker): array {
+		$rReport = [3600 => [], 86400 => [], 604800 => [], 0 => []];
+		foreach (array_keys($rReport) as $rTime) {
+			if ($rTime === 0 && !self::allTimeDue($rMarker, $rNow) && is_array($rOld[0] ?? null)) {
+				$rReport[0] = $rOld[0];
+				continue;
 			}
-			foreach ($db->get_rows() as $rRow) {
-				$rTheftDetection[$rTime][] = $rRow;
+			$rSince = $rTime > 0 ? '`date_start` >= ? AND ' : '';
+			$rOk = $db->query('SELECT `lines_activity`.`user_id`, ' . $rCount . ', `lines`.`username` FROM `lines_activity` LEFT JOIN `lines` ON `lines`.`id` = `lines_activity`.`user_id` WHERE ' . $rSince . '`lines`.`is_mag` = 0 AND `lines`.`is_e2` = 0 AND `lines`.`is_restreamer` = 0' . $rWhere . ' GROUP BY `lines_activity`.`user_id` ORDER BY `' . $rOrder . '` DESC LIMIT 1000;', ...($rTime > 0 ? [$rNow - $rTime] : []));
+			if (!$rOk && $rTime === 0) {
+				@unlink($rMarker);
+				$rReport[0] = is_array($rOld[0] ?? null) ? $rOld[0] : [];
+				continue;
+			}
+			foreach (($rOk ? $db->get_rows() : []) ?: [] as $rRow) {
+				$rReport[$rTime][] = $rRow;
 			}
 		}
-		$this->write(CACHE_TMP_PATH . 'theft_detection', igbinary_serialize($rTheftDetection));
+		return $rReport;
 	}
 
 	/**
@@ -732,15 +770,44 @@ class CacheEngineCronJob implements CommandInterface {
 	}
 
 	/** Atomic cache write: readers see the old file or the new one, never a partial one. */
-	private function write(string $rPath, string $rData): void {
+
+	/**
+	 * A write that fails marks the run failed. A line's lookup is named after its
+	 * credentials ($rLookup), which can hold '/' or be too long for a file name: such
+	 * a lookup never exists (the line signs in from the database), and does not count.
+	 */
+	private function write(string $rPath, string $rData, bool $rLookup = false): void {
 		if (!FileCache::writeAtomic($rPath, $rData)) {
 			echo 'Cache write failed: ' . $rPath . "\n";
+			$rName = substr($rPath, strlen(LINES_TMP_PATH));
+			if (!$rLookup || (!str_contains($rName, '/') && strlen('.' . $rName . '.' . getmypid() . '.tmp') <= 255)) {
+				$this->markFailed();
+			}
 		}
 	}
 
-	/** Tell the parent run a worker's database read failed (FAILED_MARKER). */
+	/**
+	 * End of a full run. A failed one (a worker could not read the database or write
+	 * a file) leaves last_cache where the last good run put it, so the Cache page
+	 * does not show a fresh time over a stale cache, and says so in Panel Logs.
+	 */
+	private function finishRun(bool $rFailed, int $rStartTime): void {
+		global $db;
+		if ($rFailed) {
+			FileLogger::log('cron', 'A cache engine run failed: a worker could not read the database or write a cache file', 'cron:cache_engine');
+		} else {
+			echo 'Cache updated!' . "\n";
+		}
+		$this->write(CACHE_TMP_PATH . 'cache_complete', (string) time());
+		CacheRunState::finished(CACHE_TMP_PATH, $rFailed);
+		if (!$rFailed) {
+			$db->query('UPDATE `settings` SET `last_cache` = ?, `last_cache_taken` = ?;', time(), time() - $rStartTime);
+		}
+	}
+
+	/** Tell the parent run a worker's database read or file write failed (CacheRunState::FAILED). */
 	private function markFailed(): void {
-		@touch(CACHE_TMP_PATH . self::FAILED_MARKER);
+		@touch(CACHE_TMP_PATH . CacheRunState::FAILED);
 	}
 
 	public function shutdown(): void {

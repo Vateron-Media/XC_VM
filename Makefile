@@ -208,6 +208,12 @@ test-db:
 test-db-stop:
 	@docker rm -f $(TEST_DB_CONTAINER) >/dev/null 2>&1 || true
 
+# The unit suite, against the test database (`make test-db` starts one; it is
+# not started here). Extra arguments: make test ARGS="--filter SomeTest".
+.PHONY: test
+test:
+	@php tests/phpunit.phar -c tests/phpunit.xml.dist $(ARGS)
+
 # ─── Static analysis (PHPStan) ──────────────────────────────────
 PHPSTAN := src/vendor/bin/phpstan
 

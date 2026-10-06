@@ -323,7 +323,7 @@ Every `make` target used during release prep, in one place.
 | `make gates`                                       | Regression gates: procedural-use, LB-archive, vendor-prod-only, LB settings keys, Core→cluster refs |
 | `make dev-clean`                                   | Remove the dev tools again, restoring the production-only `vendor/`   |
 | `make test-db`                                     | Throwaway MariaDB in Docker for the unit tests (no local server)      |
-| `php tests/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests, on MariaDB                                                |
+| `make test`                                        | Unit tests, on MariaDB (`ARGS="--filter SomeTest"` for one)           |
 
 **Release prep & build:**
 

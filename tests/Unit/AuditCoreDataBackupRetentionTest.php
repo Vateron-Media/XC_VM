@@ -70,14 +70,56 @@ final class AuditCoreDataBackupRetentionTest extends TestCase {
 		$this->assertSame(['backup_2027-01-01_04:00:00.sql'], array_slice($this->listed($rAges), 0, 6 - 5));
 	}
 
+	/** The stubs' record of what the child called: dumps, imports and Dropbox calls, in order. */
+	private function calls(): array {
+		return is_file($this->rDir . 'calls.log') ? file($this->rDir . 'calls.log', FILE_IGNORE_NEW_LINES) : [];
+	}
+
+	/** Stubs of the xcvm_core dump and import, and of Dropbox, that record each call in calls.log. */
+	private const STUBS = <<<'PHP'
+		namespace XcVm\Core\Storage {
+			final class DropboxClient {
+				public function SetBearerToken(array $rToken): void {
+				}
+
+				public function GetFiles(): array {
+					file_put_contents(MAIN_HOME . 'calls.log', "dropbox:list\n", FILE_APPEND);
+					return [];
+				}
+
+				public function UploadFile(string $rFilename, string $rPath, bool $rOverwrite = true): object {
+					file_put_contents(MAIN_HOME . 'calls.log', "dropbox:upload\n", FILE_APPEND);
+					return (object) ['size' => filesize($rFilename)];
+				}
+			}
+		}
+
+		namespace {
+			// The dump and import xcvm_core does; a failed dump leaves a partial file, as mysqldump does.
+			final class XC_VM {
+				public static function db_dump(string $rFilename, array $rIgnore): bool {
+					file_put_contents(MAIN_HOME . 'calls.log', 'dump ' . basename($rFilename) . "\n", FILE_APPEND);
+					file_put_contents($rFilename, '-- dump');
+					return getenv('XCVM_TEST_DUMP') !== 'fail';
+				}
+
+				public static function db_restore(string $rFilename): bool {
+					file_put_contents(MAIN_HOME . 'calls.log', 'restore ' . basename($rFilename) . "\n", FILE_APPEND);
+					return true;
+				}
+			}
+		}
+		PHP;
+
 	/**
 	 * Run cron:backups on its schedule in a child PHP whose deploy root is the
 	 * throwaway directory: MAIN, started by xc_vm, a backup due, no Dropbox.
 	 *
 	 * @param array<string,int> $rAges filename => seconds since it was written (negative: ahead of the clock)
+	 * @param array<string,mixed> $rSettings settings over the defaults
 	 * @return string[] the backups left afterwards
 	 */
-	private function leftByTheCron(array $rAges, int $rKeep): array {
+	private function leftByTheCron(array $rAges, int $rKeep, array $rSettings = [], bool $rDumpFails = false): array {
 		foreach ($rAges as $rName => $rAge) {
 			touch($this->rDir . 'backups/' . $rName, time() - $rAge);
 		}
@@ -105,15 +147,8 @@ final class AuditCoreDataBackupRetentionTest extends TestCase {
 				define('SERVER_ID', 1);
 				define('CRONS_TMP_PATH', MAIN_HOME . 'crons/');
 
-				// The dump xcvm_core writes.
-				final class XC_VM {
-					public static function db_dump(string $rFilename, array $rIgnore): void {
-						file_put_contents($rFilename, '-- dump');
-					}
-				}
-
 				require $argv[2] . 'vendor/autoload.php';
-				\XcVm\Core\Config\SettingsManager::set(['automatic_backups' => 'daily', 'last_backup' => 0, 'backups_to_keep' => (int) $argv[3]]);
+				\XcVm\Core\Config\SettingsManager::set(json_decode($argv[4], true) + ['automatic_backups' => 'daily', 'last_backup' => 0, 'backups_to_keep' => (int) $argv[3]]);
 				$db = new class {
 					public function query(string $rQuery, mixed ...$rArgs): bool {
 						return true;
@@ -125,8 +160,8 @@ final class AuditCoreDataBackupRetentionTest extends TestCase {
 				};
 				exit((new \XcVm\Cli\CronJobs\BackupsCronJob())->execute([]));
 			}
-			PHP);
-		exec(implode(' ', array_map('escapeshellarg', [...xcvm_test_child_php(), $rScript, $this->rDir, MAIN_HOME, (string) $rKeep])) . ' 2>&1', $rOut, $rCode);
+			PHP . "\n" . self::STUBS);
+		exec(($rDumpFails ? 'XCVM_TEST_DUMP=fail ' : '') . implode(' ', array_map('escapeshellarg', [...xcvm_test_child_php(), $rScript, $this->rDir, MAIN_HOME, (string) $rKeep, json_encode((object) $rSettings)])) . ' 2>&1', $rOut, $rCode);
 		$this->assertSame(0, $rCode, implode("\n", $rOut));
 		return array_values(array_filter(scandir($this->rDir . 'backups'), static fn(string $rName): bool => str_ends_with($rName, '.sql')));
 	}
@@ -143,5 +178,76 @@ final class AuditCoreDataBackupRetentionTest extends TestCase {
 		// One kept, and the one already there was written with the clock ahead of now.
 		$rLeft = $this->leftByTheCron(['backup_2027-01-01_04:00:00.sql' => -86400], 1);
 		$this->assertCount(1, array_diff($rLeft, ['backup_2027-01-01_04:00:00.sql']), 'the backup of this run: ' . implode(', ', $rLeft));
+	}
+
+	public function testADumpThatDidNotFinishIsNotKept(): void {
+		$rLeft = $this->leftByTheCron(['backup_2027-01-01_04:00:00.sql' => 86400], 1, [], true);
+		// The older backup stays and the partial dump is gone.
+		$this->assertSame(['backup_2027-01-01_04:00:00.sql'], $rLeft);
+		$this->assertCount(1, $this->calls(), implode(', ', $this->calls()));
+	}
+
+	public function testDropboxIsAskedForItsListOnlyAfterABackup(): void {
+		$this->leftByTheCron([], 0, ['dropbox_remote' => 1, 'last_backup' => time()]);
+		$this->assertSame([], $this->calls(), 'nothing due: no dump and no Dropbox call');
+
+		$this->leftByTheCron([], 0, ['dropbox_remote' => 1]);
+		$this->assertSame(['dropbox:upload', 'dropbox:list'], array_slice($this->calls(), 1));
+	}
+
+	public function testRetentionLeavesTheDumpTakenBeforeARestore(): void {
+		$rLeft = $this->leftByTheCron(['pre_restore_2027-01-02_10:00:00.sql' => 30, 'backup_2027-01-01_04:00:00.sql' => 86400], 1);
+		$this->assertContains('pre_restore_2027-01-02_10:00:00.sql', $rLeft);
+		$this->assertNotContains('backup_2027-01-01_04:00:00.sql', $rLeft);
+		$this->assertCount(2, $rLeft);
+	}
+
+	/**
+	 * BackupService::restore() in a child PHP whose deploy root is the throwaway directory.
+	 *
+	 * @return array{0: ?bool, 1: string[]} what restore() returned, and the backups left
+	 */
+	private function restored(string $rFile, bool $rForce, bool $rDumpFails = false): array {
+		$rScript = $this->rDir . 'restore.php';
+		file_put_contents($rScript, "<?php\n" . self::STUBS . "\n" . <<<'PHP'
+			namespace {
+				define('MAIN_HOME', $argv[1]);
+				require $argv[2] . 'vendor/autoload.php';
+				echo json_encode(\XcVm\Core\Backup\BackupService::restore(MAIN_HOME . 'backups/' . $argv[3], (bool) $argv[4]));
+			}
+			PHP);
+		exec(($rDumpFails ? 'XCVM_TEST_DUMP=fail ' : '') . implode(' ', array_map('escapeshellarg', [...xcvm_test_child_php(), $rScript, $this->rDir, MAIN_HOME, $rFile, $rForce ? '1' : '0'])) . ' 2>&1', $rOut, $rCode);
+		$this->assertSame(0, $rCode, implode("\n", $rOut));
+		return [json_decode(implode('', $rOut), true), array_values(array_filter(scandir($this->rDir . 'backups'), static fn(string $rName): bool => str_ends_with($rName, '.sql')))];
+	}
+
+	public function testARestoreDumpsTheLiveDatabaseFirstAndLeavesItsSourceAlone(): void {
+		$rSource = $this->rDir . 'backups/backup_2027-01-01_04:00:00.sql';
+		file_put_contents($rSource, str_repeat('-- the backup', 100));
+		touch($rSource, 1800000000);
+
+		[$rResult, $rLeft] = $this->restored('backup_2027-01-01_04:00:00.sql', false);
+
+		$this->assertTrue($rResult);
+		$this->assertCount(2, $this->calls());
+		$this->assertMatchesRegularExpression('/^dump pre_restore_\d{4}-\d\d-\d\d_\d\d:\d\d:\d\d\.sql$/', $this->calls()[0]);
+		$this->assertSame('restore backup_2027-01-01_04:00:00.sql', $this->calls()[1]);
+		$this->assertCount(2, $rLeft);
+		clearstatcache();
+		$this->assertSame(str_repeat('-- the backup', 100), file_get_contents($rSource));
+		$this->assertSame(1800000000, filemtime($rSource));
+	}
+
+	public function testARestoreIsRefusedWhenTheLiveDatabaseCannotBeDumpedUnlessForced(): void {
+		file_put_contents($this->rDir . 'backups/backup_2027-01-01_04:00:00.sql', '-- the backup');
+
+		[$rResult, $rLeft] = $this->restored('backup_2027-01-01_04:00:00.sql', false, true);
+		$this->assertNull($rResult);
+		$this->assertCount(1, $this->calls(), 'no import: ' . implode(', ', $this->calls()));
+		$this->assertSame(['backup_2027-01-01_04:00:00.sql'], $rLeft, 'no partial pre_restore file');
+
+		[$rResult] = $this->restored('backup_2027-01-01_04:00:00.sql', true, true);
+		$this->assertTrue($rResult);
+		$this->assertSame('restore backup_2027-01-01_04:00:00.sql', $this->calls()[1]);
 	}
 }

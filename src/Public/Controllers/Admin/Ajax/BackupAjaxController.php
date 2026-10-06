@@ -125,7 +125,9 @@ class BackupAjaxController extends BaseAjaxController {
 				}
 			}
 
-			$this->json(['result' => BackupService::restore($rFilename)]);
+			// null: the live database could not be dumped first and was not touched; force=1 restores anyway.
+			$rResult = BackupService::restore($rFilename, (bool) RequestManager::get('force'));
+			$this->json(['result' => $rResult === true] + ($rResult === null ? ['error' => 'safety_dump'] : []));
 		}
 
 		if ($rSub != 'backup') {

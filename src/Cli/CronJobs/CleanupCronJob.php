@@ -40,6 +40,9 @@ class CleanupCronJob implements CommandInterface {
 	private const PRUNE_BATCH = 10000;
 	private const PRUNE_SEC = 20;
 
+	/** Seconds of deleting per log table per run: a backlog goes over several hourly runs. */
+	private const PRUNE_LOG_SEC = 240;
+
 	/**
 	 * The directories of resized images under IMAGES_PATH, the days a file
 	 * stays in one, and the bytes and the files one holds before its oldest
@@ -264,14 +267,7 @@ class CleanupCronJob implements CommandInterface {
 		}
 		// SSH passwords saved by installs before they moved to one-shot cred files.
 		InstallCredentials::scrubLegacyMetadata();
-		$rTables = ['lines_activity' => ['keep_activity', 'date_end'], 'lines_logs' => ['keep_client', 'date'], 'login_logs' => ['keep_login', 'date'], 'streams_errors' => ['keep_errors', 'date'], 'streams_logs' => ['keep_restarts', 'date'], 'ondemand_check' => ['on_demand_scan_keep', 'date'], 'mysql_syslog' => ['keep_syslog', 'date']];
-		foreach ($rTables as $rTable => $rArray) {
-			// lb-settings: keep_activity, keep_client, keep_login, keep_errors, keep_restarts, on_demand_scan_keep, keep_syslog
-			if (SettingsManager::getAll()[$rArray[0]] && 0 < SettingsManager::getAll()[$rArray[0]]) {
-				$rDeleteBefore = time() - intval(SettingsManager::getAll()[$rArray[0]]); // lb-settings: keep_activity, keep_client, keep_login, keep_errors, keep_restarts, on_demand_scan_keep, keep_syslog
-				$db->query('DELETE FROM `' . $rTable . '` WHERE `' . $rArray[1] . '` < ?;', $rDeleteBefore);
-			}
-		}
+		self::pruneLogs($db, SettingsManager::getAll(), time());
 
 		// The cluster settings' own retention, in days (ClusterSettings::INTS,
 		// which also holds each one's bounds and default): the dashboard's
@@ -283,9 +279,9 @@ class CleanupCronJob implements CommandInterface {
 			$rDays = ClusterSettings::int($rSetting, SettingsManager::getAll()[$rSetting] ?? null);
 			self::prune($db, $rTable, time() - $rDays * 86400, $rUntil);
 		}
-		// The indexes that prune and the server graphs read by, built online
-		// and apart: on a year of rows the ALTER runs for minutes.
-		if (class_exists(ClusterMaintainStatsCommand::class) && ClusterMaintainStatsCommand::missing($db) !== []) {
+		// The indexes that prune, the server graphs and the log pages read by,
+		// built online and apart: on a year of rows an ALTER runs for minutes.
+		if (class_exists(ClusterMaintainStatsCommand::class) && ClusterMaintainStatsCommand::pending($db) !== []) {
 			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'cluster:maintain-stats']);
 		}
 		// The resized images the panels cache: nothing else removes them.
@@ -379,6 +375,26 @@ class CleanupCronJob implements CommandInterface {
 	}
 
 	/**
+	 * The retention of the connection and log tables (Settings, Logs): each table
+	 * whose keep period is set loses its rows older than that, PRUNE_BATCH at a
+	 * time and for at most $rSeconds, so no single statement holds the table.
+	 *
+	 * @param array<string, mixed> $rSettings
+	 * @return array<string, int> table => rows deleted
+	 */
+	public static function pruneLogs(object $db, array $rSettings, int $rNow, float $rSeconds = self::PRUNE_LOG_SEC): array {
+		$rTables = ['lines_activity' => ['keep_activity', 'date_end'], 'lines_logs' => ['keep_client', 'date'], 'login_logs' => ['keep_login', 'date'], 'streams_errors' => ['keep_errors', 'date'], 'streams_logs' => ['keep_restarts', 'date'], 'ondemand_check' => ['on_demand_scan_keep', 'date'], 'mysql_syslog' => ['keep_syslog', 'date']];
+		$rDeleted = [];
+		foreach ($rTables as $rTable => [$rKey, $rColumn]) {
+			$rKeep = intval($rSettings[$rKey] ?? 0); // lb-settings: keep_activity, keep_client, keep_login, keep_errors, keep_restarts, on_demand_scan_keep, keep_syslog
+			if (0 < $rKeep) {
+				$rDeleted[$rTable] = self::prune($db, $rTable, $rNow - $rKeep, microtime(true) + $rSeconds, $rColumn);
+			}
+		}
+		return $rDeleted;
+	}
+
+	/**
 	 * Delete $rTable's rows older than $rBefore, PRUNE_BATCH at a time, until
 	 * none are left or $rUntil (microtime) passes; the next run goes on. One
 	 * DELETE of a year of rows held the table and its undo log for as long
@@ -386,10 +402,10 @@ class CleanupCronJob implements CommandInterface {
 	 *
 	 * @return int the rows deleted
 	 */
-	public static function prune(object $db, string $rTable, int $rBefore, float $rUntil): int {
+	public static function prune(object $db, string $rTable, int $rBefore, float $rUntil, string $rColumn = 'time'): int {
 		$rDeleted = 0;
 		do {
-			if (!$db->query('DELETE FROM `' . $rTable . '` WHERE `time` < ? LIMIT ' . self::PRUNE_BATCH . ';', $rBefore)) {
+			if (!$db->query('DELETE FROM `' . $rTable . '` WHERE `' . $rColumn . '` < ? LIMIT ' . self::PRUNE_BATCH . ';', $rBefore)) {
 				break;
 			}
 			$rRows = $db->num_rows();

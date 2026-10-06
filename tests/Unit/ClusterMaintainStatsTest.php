@@ -3,10 +3,13 @@
 use PHPUnit\Framework\TestCase;
 use XcVm\Cli\Commands\ClusterMaintainStatsCommand;
 use XcVm\Cli\CronJobs\CleanupCronJob;
+use XcVm\Tests\Support\InstallSchema;
+use XcVm\Tests\Support\QueryLogDb;
 
 /**
  * `servers_stats` retention in batches (CleanupCronJob::prune) and the
- * indexes cluster:maintain-stats builds online (plan, section 8).
+ * indexes cluster:maintain-stats builds online (plan, section 8), on it and on
+ * the log tables retention and the log pages read by date.
  */
 final class ClusterMaintainStatsTest extends TestCase {
 	public function testThePruneDeletesInBatchesAndStopsAtItsDeadline(): void {
@@ -37,6 +40,36 @@ final class ClusterMaintainStatsTest extends TestCase {
 		$rDb = $this->mysql([['PRIMARY', 1, 'id'], ['time', 1, 'time'], ['server_time', 1, 'server_id'], ['server_time', 2, 'time']]);
 		$this->assertSame([], ClusterMaintainStatsCommand::missing($rDb));
 		$this->assertSame([], ClusterMaintainStatsCommand::missing($this->mysql(null)), 'no answer: nothing to start');
+	}
+
+	public function testTheLogTablesGetTheirIndexOnTheDate(): void {
+		$rDb = $this->mysql([['PRIMARY', 1, 'id']]);
+		$this->assertSame(['owner_date' => ['owner', 'date']], ClusterMaintainStatsCommand::missing($rDb, 'users_logs', ClusterMaintainStatsCommand::LOG_INDEXES['users_logs']));
+		$rDb = $this->mysql([['PRIMARY', 1, 'id'], ['mine', 1, 'owner'], ['mine', 2, 'date']]);
+		$this->assertSame([], ClusterMaintainStatsCommand::missing($rDb, 'users_logs', ClusterMaintainStatsCommand::LOG_INDEXES['users_logs']));
+		$this->assertTrue(ClusterMaintainStatsCommand::build($rDb, 'date', ['date'], 'lines_logs'));
+		$this->assertSame('ALTER TABLE `lines_logs` ADD INDEX `date` (`date`), ALGORITHM=INPLACE, LOCK=NONE;', end($rDb->rQueries));
+	}
+
+	public function testEveryPendingIndexIsBuiltAndRetentionThenUsesIt(): void {
+		$rDb = new TestDb();
+		$rDb->exec('CREATE TABLE `servers_stats` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int, `time` int)');
+		foreach (array_keys(ClusterMaintainStatsCommand::LOG_INDEXES) as $rTable) {
+			$rDb->exec(InstallSchema::table($rTable));
+		}
+		$rLog = new QueryLogDb($rDb);
+		$this->assertSame(['servers_stats', 'lines_logs', 'login_logs', 'streams_logs', 'streams_errors', 'ondemand_check', 'users_logs'], array_keys(ClusterMaintainStatsCommand::pending($rLog)));
+
+		ob_start();
+		$rFailed = ClusterMaintainStatsCommand::buildPending($rLog);
+		ob_end_clean();
+
+		$this->assertSame(0, $rFailed);
+		$this->assertSame([], ClusterMaintainStatsCommand::pending($rLog));
+		$rWrites = array_values(array_filter($rLog->rQueries, static fn(string $rQuery): bool => !str_starts_with($rQuery, 'SHOW')));
+		$this->assertSame('SET SESSION lock_wait_timeout = 5;', $rWrites[0], 'before the first ALTER');
+		$rPlan = $rDb->pdo->query('EXPLAIN DELETE FROM `lines_logs` WHERE `date` < 1000')->fetch(\PDO::FETCH_ASSOC);
+		$this->assertSame('date', $rPlan['key']);
 	}
 
 	/**

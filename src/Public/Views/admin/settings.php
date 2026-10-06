@@ -171,23 +171,6 @@ use XcVm\Domain\Server\ServerRepository;
 								<div class="col-md-2">
 									<input type="text" class="form-control text-center" id="fails_per_time" name="fails_per_time" value="<?= intval($rSettings["fails_per_time"]) ?>">
 								</div>
-
-								<!--
-													<label class="col-md-4 col-form-label" for="fingerprint_max">
-														Fingerprint Max
-														<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('maximum_number_of_concurrent_fingerprint_tooltip') ?>"></i>
-													</label>
-
-													<div class="col-md-2">
-														<select name="fingerprint_max" id="fingerprint_max" class="form-control" data-toggle="select2">
-															<?php foreach ([0, 5, 10, 25, 50, 100] as $rShow): ?>
-																<option value="<?= $rShow ?>"<?= $rSettings["fingerprint_max"] == $rShow ? ' selected' : '' ?>>
-																	<?= $rShow ?>
-																</option>
-															<?php endforeach; ?>
-														</select>
-													</div>
-													-->
 							</div>
 
 							<div class="form-group row mb-4">
@@ -291,26 +274,6 @@ use XcVm\Domain\Server\ServerRepository;
 									<div class="form-check form-switch"><input name="show_images" id="show_images" type="checkbox" <?= $rSettings["show_images"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
 								</div>
 
-								<label class="col-md-4 col-form-label" for="group_buttons">
-									<?= $language::get('group_buttons') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('group_action_buttons_into_a_tooltip') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<div class="form-check form-switch"><input name="group_buttons" id="group_buttons" type="checkbox" <?= $rSettings["group_buttons"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
-								</div>
-							</div>
-
-							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="modal_edit">
-									<?= $language::get('quick_edit_modal') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('when_clicking_edit_open_in_tooltip') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<div class="form-check form-switch"><input name="modal_edit" id="modal_edit" type="checkbox" <?= $rSettings["modal_edit"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
-								</div>
-
 								<label class="col-md-4 col-form-label" for="mysql_sleep_kill">
 									<?= $language::get('mysql_sleep_timeout') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('how_long_to_allow_mysql_tooltip') ?>"></i>
@@ -370,15 +333,6 @@ use XcVm\Domain\Server\ServerRepository;
 							</div>
 
 							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="dashboard_display_alt">
-									<?= $language::get('alternate_server_view') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('display_servers_on_the_dashboard_tooltip') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<div class="form-check form-switch"><input name="dashboard_display_alt" id="dashboard_display_alt" type="checkbox" <?= $rSettings["dashboard_display_alt"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
-								</div>
-
 								<label class="col-md-4 col-form-label" for="header_stats_sh">
 									<?= $language::get('show_header_stats') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('show_server_statistics_in_header_menu') ?>"></i>
@@ -387,9 +341,7 @@ use XcVm\Domain\Server\ServerRepository;
 								<div class="col-md-2">
 									<div class="form-check form-switch"><input name="header_stats" id="header_stats_sh" type="checkbox" <?= $rSettings["header_stats"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
 								</div>
-							</div>
 
-							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="dashboard_status">
 									<?= $language::get('show_service_status') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('show_warning_information_based_on_server_stats') ?>"></i>
@@ -397,55 +349,6 @@ use XcVm\Domain\Server\ServerRepository;
 
 								<div class="col-md-2">
 									<div class="form-check form-switch"><input name="dashboard_status" id="dashboard_status" type="checkbox" <?= $rSettings["dashboard_status"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
-								</div>
-
-								<label class="col-md-4 col-form-label" for="threshold_cpu">
-									<?= $language::get('cpu_threshold_not_working') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('when_cpu_usage_is_above_tooltip') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<input type="text" class="form-control text-center" id="threshold_cpu" name="threshold_cpu" value="<?= intval($rSettings["threshold_cpu"]) ?>">
-								</div>
-							</div>
-
-							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="threshold_mem">
-									<?= $language::get('memory_threshold_not_working') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('when_memory_usage_is_above_tooltip') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<input type="text" class="form-control text-center" id="threshold_mem" name="threshold_mem" value="<?= intval($rSettings["threshold_mem"]) ?>">
-								</div>
-
-								<label class="col-md-4 col-form-label" for="threshold_disk">
-									<?= $language::get('disk_threshold_not_working') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('when_disk_usage_is_above_tooltip') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<input type="text" class="form-control text-center" id="threshold_disk" name="threshold_disk" value="<?= intval($rSettings["threshold_disk"]) ?>">
-								</div>
-							</div>
-
-							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="threshold_network">
-									<?= $language::get('network_threshold_not_working') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('when_network_usage_is_above_tooltip') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<input type="text" class="form-control text-center" id="threshold_network" name="threshold_network" value="<?= intval($rSettings["threshold_network"]) ?>">
-								</div>
-
-								<label class="col-md-4 col-form-label" for="threshold_clients">
-									<?= $language::get('clients_threshold_not_working') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('when_number_of_clients_as_tooltip') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<input type="text" class="form-control text-center" id="threshold_clients" name="threshold_clients" value="<?= intval($rSettings["threshold_clients"]) ?>">
 								</div>
 							</div>
 
@@ -1292,26 +1195,6 @@ use XcVm\Domain\Server\ServerRepository;
 
 								<div class="col-md-2">
 									<div class="form-check form-switch"><input name="disable_hls_allow_restream" id="disable_hls_allow_restream" type="checkbox" <?= $rSettings["disable_hls_allow_restream"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
-								</div>
-							</div>
-
-							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="disable_rtmp">
-									<?= $language::get('disable_rtmp_output') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('disable_rtmp_for_all_clients_and_devices') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<div class="form-check form-switch"><input name="disable_rtmp" id="disable_rtmp" type="checkbox" <?= $rSettings["disable_rtmp"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
-								</div>
-
-								<label class="col-md-4 col-form-label" for="disable_rtmp_allow_restream">
-									<?= $language::get('allow_restreamers_rtmp') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('override_to_allow_restreamers_to_tooltip_title') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<div class="form-check form-switch"><input name="disable_rtmp_allow_restream" id="disable_rtmp_allow_restream" type="checkbox" <?= $rSettings["disable_rtmp_allow_restream"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
 								</div>
 							</div>
 
@@ -2827,8 +2710,10 @@ use XcVm\Domain\Server\ServerRepository;
 								259200   => "3 Days",
 								604800   => "7 Days",
 								1209600  => "14 Days",
-								16934400 => "28 Days",
+								2419200  => "28 Days",
 								15552000 => "180 Days",
+								// It was labelled "28 Days" but always kept 196: the value stays, so no saved choice changes.
+								16934400 => "196 Days",
 								31536000 => "365 Days",
 							];
 							?>
@@ -3223,7 +3108,7 @@ LayoutRenderer::renderFooter('admin');
 		}
 
 		// numeric-only inputs
-		['log_clear', 'on_demand_instant_off_grace', 'vod_bitrate_plus', 'vod_limit_perc', 'user_auto_kick_hours', 'flood_limit', 'flood_seconds', 'auth_flood_seconds', 'auth_flood_limit', 'auth_flood_sleep', 'bruteforce_mac_attempts', 'bruteforce_username_attempts', 'bruteforce_frequency', 'login_flood', 'client_prebuffer', 'restreamer_prebuffer', 'fanout_hls_window', 'fanout_grace_sec', 'fanout_write_timeout_sec', 'fanout_chunk_bytes', 'fanout_max_gop_bytes', 'fanout_default_prebuffer_sec', 'fanout_idle_buffer_grace_sec', 'read_buffer_size', 'stream_max_analyze', 'probesize', 'stream_start_delay', 'online_capacity_interval', 'on_demand_wait_time', 'seg_time', 'stream_fail_sleep', 'probe_extra_wait', 'seg_list_size', 'cpu_limit', 'mem_limit', 'playback_limit', 'connection_loop_per', 'connection_loop_count', 'max_simultaneous_downloads', 'cache_playlists', 'seg_delete_threshold', 'fails_per_time', 'create_expiration', 'max_encode_movies', 'max_encode_cc', 'queue_loop', 'player_blur', 'player_opacity', 'disallow_2nd_ip_max', 'probesize_ondemand', 'segment_wait_time', 'on_demand_scan_time', 'on_demand_max_probe', 'on_demand_scan_keep', 'stop_failures', 'mysql_sleep_kill', 'threshold_cpu', 'threshold_mem', 'threshold_disk', 'threshold_network', 'threshold_clients'].forEach(function(id) {
+		['log_clear', 'on_demand_instant_off_grace', 'vod_bitrate_plus', 'vod_limit_perc', 'user_auto_kick_hours', 'flood_limit', 'flood_seconds', 'auth_flood_seconds', 'auth_flood_limit', 'auth_flood_sleep', 'bruteforce_mac_attempts', 'bruteforce_username_attempts', 'bruteforce_frequency', 'login_flood', 'client_prebuffer', 'restreamer_prebuffer', 'fanout_hls_window', 'fanout_grace_sec', 'fanout_write_timeout_sec', 'fanout_chunk_bytes', 'fanout_max_gop_bytes', 'fanout_default_prebuffer_sec', 'fanout_idle_buffer_grace_sec', 'read_buffer_size', 'stream_max_analyze', 'probesize', 'stream_start_delay', 'online_capacity_interval', 'on_demand_wait_time', 'seg_time', 'stream_fail_sleep', 'probe_extra_wait', 'seg_list_size', 'cpu_limit', 'mem_limit', 'playback_limit', 'connection_loop_per', 'connection_loop_count', 'max_simultaneous_downloads', 'cache_playlists', 'seg_delete_threshold', 'fails_per_time', 'create_expiration', 'max_encode_movies', 'max_encode_cc', 'queue_loop', 'player_blur', 'player_opacity', 'disallow_2nd_ip_max', 'probesize_ondemand', 'segment_wait_time', 'on_demand_scan_time', 'on_demand_max_probe', 'on_demand_scan_keep', 'stop_failures', 'mysql_sleep_kill'].forEach(function(id) {
 			var el = document.getElementById(id);
 			if (el) {
 				el.addEventListener('input', function() {

@@ -23,6 +23,7 @@ use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\ResellerAPI;
 use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\UserService;
 use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Fanout\FanoutMode;
@@ -3130,46 +3131,10 @@ class TableController extends BaseAdminController {
 		if (0 < $rReturn["recordsTotal"]) {
 			$rPackages = PackageService::getAll();
 			$rCanEdit  = Authorization::check("adv", "edit_reguser");
-			$rDeviceMap = ["line" => "User Line", "mag" => "MAG Device", "enigma" => "Enigma2 Device", "user" => "Reseller"];
 			$rQuery = "SELECT `users`.`username`, `users_logs`.`id`, `users_logs`.`owner`, `users_logs`.`type`, `users_logs`.`action`, `users_logs`.`log_id`, `users_logs`.`package_id`, `users_logs`.`cost`, `users_logs`.`credits_after`, `users_logs`.`date`, `users_logs`.`deleted_info` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
 			foreach ($db->get_rows() as $rRow) {
-				$rDevice = $rDeviceMap[$rRow["type"]] ?? (string) $rRow["type"];
-				$rPkg = $rRow["package_id"] ? (" with Package: " . ($rPackages[$rRow["package_id"]]["package_name"] ?? "")) : "";
-				switch ($rRow["action"]) {
-					case "new":
-						$rText = "Created New " . $rDevice . $rPkg;
-						break;
-					case "extend":
-						$rText = "Extended " . $rDevice . $rPkg;
-						break;
-					case "convert":
-						$rText = "Converted Device to User Line";
-						break;
-					case "edit":
-						$rText = "Edited " . $rDevice;
-						break;
-					case "enable":
-						$rText = "Enabled " . $rDevice;
-						break;
-					case "disable":
-						$rText = "Disabled " . $rDevice;
-						break;
-					case "delete":
-						$rText = "Deleted " . $rDevice;
-						break;
-					case "send_event":
-						$rText = "Sent Event to " . $rDevice;
-						break;
-					case "adjust_credits":
-						$rText = "Adjusted Credits by " . $rRow["cost"];
-						break;
-					case "connection":
-						$rText = "Additional Connection Added";
-						break;
-					default:
-						$rText = (string) $rRow["action"];
-				}
+				$rText = UserService::logText($rRow, $rPackages);
 				$rLineLabel = null;
 				$rLineUrl   = null;
 				switch ($rRow["type"]) {
