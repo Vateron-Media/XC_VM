@@ -186,8 +186,7 @@ class PortalHandler {
 				$rTotal["enable_buffering_indication"] = 1;
 				$rTotal["watchdog_timeout"] = mt_rand(80, 120);
 
-				if (
-					empty($rTotal["aspect"])
+				if (empty($rTotal["aspect"])
 					&& $rServers[SERVER_ID]["server_protocol"] == "https"
 				) {
 					$rTotal["aspect"] = "16";
@@ -202,8 +201,8 @@ class PortalHandler {
 							(array) ($rSettings["allowed_stb_types"] ?? []),
 						),
 						"strict_stb_type_check" => empty($rSettings["strict_stb_type_check"])
-							? ""
-							: $rSettings["strict_stb_type_check"],
+								? ""
+								: $rSettings["strict_stb_type_check"],
 					],
 				]));
 
@@ -629,8 +628,7 @@ class PortalHandler {
 				exit(json_encode(["js" => true]));
 
 			case "set_parent_password":
-				if (
-					isset($rRequest["parent_password"])
+				if (isset($rRequest["parent_password"])
 					&& isset($rRequest["pass"])
 					&& isset($rRequest["repeat_pass"])
 					&& $rRequest["pass"] == $rRequest["repeat_pass"]
@@ -769,8 +767,7 @@ class PortalHandler {
 				];
 			}
 			foreach ($rCategories as $rCategory) {
-				if (
-					$rCategory["category_type"] == "movie"
+				if ($rCategory["category_type"] == "movie"
 					&& in_array($rCategory["id"], $ctx["device"]["category_ids"])
 				) {
 					$rOutput["js"][] = [
@@ -1008,8 +1005,7 @@ class PortalHandler {
 				}
 
 				foreach ($rCategories as $rCategory) {
-					if (
-						$rCategory["category_type"] == "live"
+					if ($rCategory["category_type"] == "live"
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
@@ -1107,8 +1103,7 @@ class PortalHandler {
 				}
 
 				foreach ($rCategories as $rCategory) {
-					if (
-						$rCategory["category_type"] == "movie"
+					if ($rCategory["category_type"] == "movie"
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
@@ -1127,8 +1122,7 @@ class PortalHandler {
 				$rOutput["js"][] = ["id" => "*", "title" => "*"];
 
 				foreach ($rCategories as $rCategory) {
-					if (
-						$rCategory["category_type"] == "movie"
+					if ($rCategory["category_type"] == "movie"
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
@@ -1336,8 +1330,7 @@ class PortalHandler {
 				}
 
 				foreach ($rCategories as $rCategory) {
-					if (
-						$rCategory["category_type"] == "series"
+					if ($rCategory["category_type"] == "series"
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
@@ -1356,8 +1349,7 @@ class PortalHandler {
 				$rOutput["js"][] = ["id" => "*", "title" => "*"];
 
 				foreach ($rCategories as $rCategory) {
-					if (
-						$rCategory["category_type"] == "series"
+					if ($rCategory["category_type"] == "series"
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
@@ -1404,7 +1396,7 @@ class PortalHandler {
 
 		if ($rReqAction === "get_main_info") {
 			if (empty($ctx["device"]["exp_date"])) {
-				$rExpiry = "Unlimited";
+					$rExpiry = "Unlimited";
 			} else {
 				$rExpiry = date("F j, Y, g:i a", $ctx["device"]["exp_date"]);
 			}
@@ -1702,8 +1694,7 @@ class PortalHandler {
 				$rChannelIDx = 0;
 
 				foreach ($rEPGDatas as $rKey => $rEPGData) {
-					if (
-						$rEPGData["start_timestamp"] <= time()
+					if ($rEPGData["start_timestamp"] <= time()
 						&& time() <= $rEPGData["stop_timestamp"]
 					) {
 						$rChannelIDx = $rKey + 1;
@@ -1843,12 +1834,92 @@ class PortalHandler {
 	 * @param array  &$ctx Context array
 	 */
 	public static function handleUnauthenticated(string $rReqType, string $rReqAction, array &$ctx) {
-		if ($rReqType == "stb" && $rReqAction == "get_profile") {
-			BruteforceGuard::checkBruteforce($ctx["ip"], $ctx["mac"]);
-			BruteforceGuard::checkFlood();
+		// A missing or stale token (e.g. replaced by a newer handshake of the same
+		// MAC) gets the canonical Stalker middleware answer: Stalker clients take
+		// this exact plain-text body as the cue to handshake again, while an empty
+		// reply left them stuck on an "unknown error".
+		exit('Authorization failed.');
+	}
+
+	/** Seconds in the period a handshake's token is made in: get_profile takes the token in that period and in the next. */
+	private const HANDSHAKE_PERIOD = 600;
+
+	/**
+	 * The token a handshake hands a registered device: eight random bytes, then a
+	 * keyed digest of them, of the device's number and of the period it is made
+	 * in. Nothing is kept for it: by the digest get_profile tells that a handshake
+	 * made the token for this device, and not long ago.
+	 *
+	 * @param string|null $rRandom The random part of a token, to make that token again
+	 * @param int         $rAgo    How many periods ago that token was made
+	 */
+	private static function handshakeToken($rMagID, ?string $rRandom = null, int $rAgo = 0): string {
+		global $rSettings;
+
+		$rRandom ??= strtoupper(bin2hex(random_bytes(8)));
+		$rPeriod = intdiv(time(), self::HANDSHAKE_PERIOD) - $rAgo;
+		$rDigest = hash_hmac("sha256", $rMagID . "|" . $rRandom . "|" . $rPeriod, "mag handshake|" . $rSettings["live_streaming_pass"]);
+
+		return $rRandom . strtoupper(substr($rDigest, 0, 16));
+	}
+
+	/**
+	 * The device a handshake made $rToken for, as the panel has it now: what
+	 * get_profile verifies a box that comes with that token against. The token is
+	 * not the device's yet, and the device's entry is neither read nor written.
+	 *
+	 * @return array The device, not verified; [] when no handshake made the token, lately, for a device the panel has
+	 */
+	public static function handshakeDevice($rMagID, $rToken) {
+		global $db;
+
+		if (!is_scalar($rMagID) || !is_string($rToken) || strlen($rToken) != 32) {
+			return [];
+		}
+		$rRandom = substr($rToken, 0, 16);
+		if (!hash_equals(self::handshakeToken($rMagID, $rRandom), $rToken)
+			&& !hash_equals(self::handshakeToken($rMagID, $rRandom, 1), $rToken)
+		) {
+			return [];
+		}
+		// As in the handshake: a lookup that failed says nothing about the device.
+		if (!$db->query("SELECT `mac` FROM `mag_devices` WHERE `mag_id` = ? LIMIT 1", $rMagID)) {
+			http_response_code(503);
+			exit();
+		}
+		$rRow = $db->get_row();
+		$rDevice = empty($rRow["mac"]) ? null : getdevice(null, $rRow["mac"]);
+		if (!is_array($rDevice) && !empty($rRow["mac"])) {
+			http_response_code(503);
+			exit();
 		}
 
-		exit();
+		return is_array($rDevice) && (string) $rDevice["mag_id"] === (string) $rMagID ? $rDevice : [];
+	}
+
+	/**
+	 * A box get_profile has verified came with a handshake's token: from here on
+	 * that is the device's token, the one its stream links are checked against,
+	 * and the one before it stops.
+	 */
+	public static function adoptToken(string $rToken) {
+		global $db, $rDevice;
+		static $rLock = null;
+
+		// One verified get_profile of a device at a time stores its token and
+		// writes the device's entry: two at once would leave the entry under one
+		// token and the database under the other. Held until the request ends.
+		$rLock = @fopen(MINISTRA_TMP_PATH . "ministra_" . intval($rDevice["mag_id"]) . ".lock", "c");
+		if ($rLock) {
+			flock($rLock, LOCK_EX);
+		}
+		// Not stored, the token is not the device's: the box comes again, and the device keeps the one it has.
+		if (!$db->query("UPDATE `mag_devices` SET `token` = ? WHERE `mag_id` = ?", $rToken, $rDevice["mag_id"])) {
+			http_response_code(503);
+			exit();
+		}
+		$rDevice["token"] = $rToken;
+		SignalDispatcher::cache(intval(SERVER_ID), ["type" => "update_line", "id" => $rDevice["user_id"]], false, false, $db);
 	}
 
 	/**
