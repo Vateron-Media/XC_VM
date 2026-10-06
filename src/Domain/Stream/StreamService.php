@@ -307,13 +307,16 @@ class StreamService {
 
 			$rInsertID = 0;
 			$rSavedIDs = [];
+			// The new rows' icons, several at a time, before the first row is written.
+			$rIcons = $rSettings['download_images'] ? ImageUtils::downloadImages(array_column(array_filter($rImportStreams, static fn(array $rRow): bool => !($rRow['update'] ?? false)), 'stream_icon')) : [];
 
 			foreach ($rImportStreams as $rImportStream) {
 				if (!($rImportStream['update'] ?? false)) {
 					$rImportArray = $rArray;
 
 					if ($rSettings['download_images']) {
-						$rImportStream['stream_icon'] = ImageUtils::downloadImage($rImportStream['stream_icon'], 1);
+						$rIcon = $rImportStream['stream_icon'] ?? null;
+						$rImportStream['stream_icon'] = is_string($rIcon) ? ($rIcons[$rIcon] ?? $rIcon) : $rIcon;
 					}
 
 					if ($rReview) {
