@@ -242,7 +242,7 @@ console.php cluster:exec             # one signed command
 console.php cluster:nginx            # render and reload the API's nginx config
 console.php cluster:pools            # start or resize the API's FPM pools
 console.php cluster:endpoint list    # old ports and URLs still served
-console.php cluster:maintain-stats   # servers_stats indexes, built online (cron:cleanup starts it)
+console.php cluster:maintain-stats   # servers_stats and log table indexes, built online (cron:cleanup starts it)
 
 # Before switching CONNECTIONS on: load the node's viewers into its agent
 console.php cluster:seed-connections <serverID>

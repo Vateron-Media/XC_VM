@@ -117,8 +117,8 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:cache` | `CacheCronJob` | Cache management |
 | `cron:cache_engine` | `CacheEngineCronJob` | Generate cache for lines, streams, series, groups (optional) |
 | `cron:certbot` | `CertbotCronJob` | SSL certificate renewal |
-| `cron:cleanup` | `CleanupCronJob` | Cleanup temporary files and logs. On MAIN it also prunes the resized-image caches `storage/images/admin/` and `storage/images/player/`: files older than 30 days, then the oldest files of a directory above 4 GiB or above 250,000 files. Only names the resizer writes are removed |
-| `cron:epg` | `EpgCronJob` | EPG download and processing (optional) |
+| `cron:cleanup` | `CleanupCronJob` | Cleanup temporary files and logs. On MAIN it deletes the connection and log rows older than their *Keep Logs For* period (Settings, Logs; new installs keep activity and client logs 180 days and login, error and restart logs 365 days, 0 keeps them), 10,000 rows at a time and for at most 4 minutes per table per run, so a backlog goes over several runs; it starts `cluster:maintain-stats` while an index those tables are pruned by is missing. On MAIN it also prunes the resized-image caches `storage/images/admin/` and `storage/images/player/`: files older than 30 days, then the oldest files of a directory above 4 GiB or above 250,000 files. Only names the resizer writes are removed |
+| `cron:epg` | `EpgCronJob` | EPG download and processing (optional). It then writes the XMLTV files in `content/epg`: `epg_all.xml` and one per bouquet set the lines use, each with its `.gz`. The programmes of a set of EPG sources are read once, 5,000 rows at a time, for every file that uses them, and compressed once. Each file is written beside its name and renamed when complete; one that cannot be written keeps its previous version. |
 | `cron:errors` | `ErrorsCronJob` | Process error logs |
 | `cron:lines_logs` | `LinesLogsCronJob` | Import client request logs into DB |
 | `cron:maxmind` | `MaxMindCronJob` | Update MaxMind GeoIP databases (Tuesdays only; `--force` to run manually) |

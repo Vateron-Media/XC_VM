@@ -50,40 +50,54 @@ class StatsCronJob implements CommandInterface {
 			return;
 		}
 
-		$rTime = time();
+		self::rebuild($db, time());
+	}
+
+	/**
+	 * Rebuild streams_stats: per window, each stream's connections, viewing time
+	 * and viewers, ranked by viewing time (then stream id, highest first). One
+	 * aggregate per window, and the new set replaces the old in one transaction:
+	 * Stream Rank shows the previous figures until it commits, and keeps them
+	 * when a read or a write fails. Ids run 1..N, so the counter does not climb.
+	 *
+	 * @return int|null The rows written, or null when the table was left as it was
+	 */
+	public static function rebuild(object $db, int $rNow): ?int {
 		$rDates = [
-			'today' => [$rTime - 86400, $rTime],
-			'week'  => [$rTime - 604800, $rTime],
-			'month' => [$rTime - 2592000, $rTime],
-			'all'   => [0, $rTime],
+			'today' => [$rNow - 86400, $rNow],
+			'week'  => [$rNow - 604800, $rNow],
+			'month' => [$rNow - 2592000, $rNow],
+			'all'   => [0, $rNow],
 		];
 
-		$db->query('TRUNCATE `streams_stats`;');
-
+		$rRows = [];
 		foreach ($rDates as $rType => $rDate) {
-			$rStats = [];
-
-			$db->query('SELECT `stream_id`, COUNT(*) AS `connections`, SUM(`date_end` - `date_start`) AS `time`, COUNT(DISTINCT(`user_id`)) AS `users` FROM `lines_activity` LEFT JOIN `streams` ON `streams`.`id` = `lines_activity`.`stream_id` WHERE `date_start` > ? AND `date_end` <= ? GROUP BY `stream_id`;', $rDate[0], $rDate[1]);
-			if ($db->num_rows() > 0) {
-				foreach ($db->get_rows() as $rRow) {
-					$rStats[$rRow['stream_id']] = ['rank' => 0, 'time' => intval($rRow['time']), 'connections' => $rRow['connections'], 'users' => $rRow['users']];
-				}
+			if (!$db->query('SELECT `stream_id`, COUNT(*) AS `connections`, SUM(`date_end` - `date_start`) AS `time`, COUNT(DISTINCT(`user_id`)) AS `users` FROM `lines_activity` LEFT JOIN `streams` ON `streams`.`id` = `lines_activity`.`stream_id` WHERE `date_start` > ? AND `date_end` <= ? GROUP BY `stream_id`;', $rDate[0], $rDate[1])) {
+				return null;
 			}
-
-			$db->query('SELECT `stream_id`, SUM(`date_end` - `date_start`) AS `time` FROM `lines_activity` LEFT JOIN `streams` ON `streams`.`id` = `lines_activity`.`stream_id` WHERE `date_start` > ? AND `date_end` <= ? GROUP BY `stream_id` ORDER BY `time` DESC, `stream_id` DESC;', $rDate[0], $rDate[1]);
-			if ($db->num_rows() > 0) {
-				$rRank = 1;
-				foreach ($db->get_rows() as $rRow) {
-					if (isset($rStats[$rRow['stream_id']])) {
-						$rStats[$rRow['stream_id']]['rank'] = $rRank;
-						$rRank++;
-					}
-				}
-			}
-
-			foreach ($rStats as $rStreamID => $rArray) {
-				$db->query('INSERT INTO `streams_stats`(`stream_id`, `rank`, `time`, `connections`, `users`, `type`) VALUES(?, ?, ?, ?, ?, ?);', $rStreamID, $rArray['rank'], $rArray['time'], $rArray['connections'], $rArray['users'], $rType);
+			$rWindow = $db->get_rows() ?: [];
+			// SQL's ORDER BY `time` DESC, `stream_id` DESC: activity without a stream comes last among equals.
+			$rKey = static fn(array $rRow): array => [intval($rRow['time']), $rRow['stream_id'] === null ? PHP_INT_MIN : intval($rRow['stream_id'])];
+			usort($rWindow, static fn(array $a, array $b): int => $rKey($b) <=> $rKey($a));
+			foreach ($rWindow as $i => $rRow) {
+				$rRows[] = [count($rRows) + 1, $rRow['stream_id'], $i + 1, intval($rRow['time']), $rRow['connections'], $rRow['users'], $rType];
 			}
 		}
+
+		if (!$db->beginTransaction()) {
+			return null;
+		}
+		$rDone = $db->query('DELETE FROM `streams_stats`;');
+		foreach (array_chunk($rRows, 1000) as $rChunk) {
+			if (!$rDone) {
+				break;
+			}
+			$rDone = $db->query('INSERT INTO `streams_stats` (`id`, `stream_id`, `rank`, `time`, `connections`, `users`, `type`) VALUES ' . implode(', ', array_fill(0, count($rChunk), '(?, ?, ?, ?, ?, ?, ?)')) . ';', ...array_merge(...$rChunk));
+		}
+		if (!$rDone || !$db->commit()) {
+			$db->rollback();
+			return null;
+		}
+		return count($rRows);
 	}
 }

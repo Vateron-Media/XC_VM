@@ -59,7 +59,7 @@ $rPeriods = ['today' => 'today', 'week' => 'week', 'month' => 'month', 'all' => 
                     <tr>
                         <td></td>
                         <td class="text-center"><?= $i; ?></td>
-                        <td><a href="stream_view?id=<?= (int) $rRow['id']; ?>" class="text-body"><?= htmlspecialchars((string) $rRow['stream_display_name'], ENT_QUOTES); ?></a></td>
+                        <td><a href="stream_view?id=<?= (int) $rRow['stream_id']; ?>" class="text-body"><?= htmlspecialchars((string) $rRow['stream_display_name'], ENT_QUOTES); ?></a></td>
                         <td class="text-center" data-order="<?= $rSeconds; ?>"><span class="badge bg-label-secondary"><?= $rTime; ?></span></td>
                         <td class="text-center" data-order="<?= (int) $rRow['connections']; ?>"><?= number_format((float) $rRow['connections'], 0); ?></td>
                         <td class="text-center" data-order="<?= (int) $rRow['users']; ?>"><?= number_format((float) $rRow['users'], 0); ?></td>

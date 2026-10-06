@@ -167,7 +167,10 @@ final class AuditInstallFollowImageCacheTest extends TestCase {
 		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/CleanupCronJob.php');
 		$this->assertSame(1, preg_match('/if \(defined\(\'IMAGES_PATH\'\)\) \{\s*self::pruneImageCaches\(IMAGES_PATH\);\s*\}/', $rSource, $rMatch, PREG_OFFSET_CAPTURE), 'a pass without the constant prunes nothing');
 		$this->assertGreaterThan(strpos($rSource, 'if (!NodeRole::isMain()) {'), $rMatch[0][1]);
-		$this->assertGreaterThan(strrpos($rSource, 'self::prune($db,'), $rMatch[0][1]);
+		// After the retention the run does (its prunes, not the methods defined below it).
+		$rRun = substr($rSource, 0, $rMatch[0][1]);
+		$this->assertStringContainsString('self::pruneLogs($db,', substr($rRun, strpos($rRun, 'if (!NodeRole::isMain()) {')));
+		$this->assertStringContainsString('self::prune($db,', substr($rRun, strpos($rRun, 'if (!NodeRole::isMain()) {')));
 		$this->assertSame(1, substr_count($rSource, 'self::pruneImageCaches('), 'once, and no other path');
 	}
 }
