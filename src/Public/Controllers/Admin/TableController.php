@@ -21,6 +21,7 @@ use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\ResellerAPI;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
 use XcVm\Infrastructure\Redis\RedisManager;
@@ -2999,7 +3000,7 @@ class TableController extends BaseAdminController {
 					"target_id"       => (int) $rRow["target_id"],
 					"target_username" => $rRow["target_username"],
 					"target_url"      => ($rCanEdit && $rRow["target_username"] !== null) ? "user?id=" . (int) $rRow["target_id"] : null,
-					"amount"          => (int) $rRow["amount"],
+					"amount"          => ResellerAPI::amount($rRow["amount"]),
 					"reason"          => $rRow["reason"],
 					"date"            => (int) $rRow["date"],
 				];
@@ -3432,7 +3433,7 @@ class TableController extends BaseAdminController {
 			$db->query($rQuery, ...$rWhereV);
 			if (0 < $db->num_rows()) {
 				$rUserInfo = $rOwnerInfo = $rUserIDs = $rOwnerIDs = [];
-				$rRows = $db->get_rows();
+				$rRows = array_map([UserCredits::class, 'amounts'], $db->get_rows());
 				foreach ($rRows as $rRow) {
 					$rUserIDs[] = $rRow["id"];
 					if ($rRow["owner_id"]) {
@@ -3486,7 +3487,7 @@ class TableController extends BaseAdminController {
 							"member_group_id" => (int) $rRow["member_group_id"],
 							"group_name"      => $rRow["group_name"],
 							"is_reseller"     => (1 == (int) $rRow["is_reseller"]),
-							"credits"         => (int) $rRow["credits"],
+							"credits"         => ResellerAPI::amount($rRow["credits"]),
 							"user_count"      => (int) $rRow["user_count"],
 							"user_lines"      => (int) $rRow["user_lines"],
 							"mag_lines"       => (int) $rRow["mag_lines"],

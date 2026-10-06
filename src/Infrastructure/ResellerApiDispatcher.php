@@ -17,6 +17,7 @@ use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\ResellerAPI;
 use XcVm\Domain\User\TicketRepository;
 use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
@@ -160,7 +161,7 @@ class ResellerApiDispatcher {
 		$db->query('SELECT COUNT(`id`) AS `count` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 		$rReturn['active_accounts'] = ($db->get_row()['count'] ?: 0);
 		$db->query('SELECT SUM(`credits`) AS `credits` FROM `users` WHERE `id` IN (' . implode(',', $rUserInfo['reports']) . ');');
-		$rReturn['credits'] = ($db->get_row()['credits'] ?: 0);
+		$rReturn['credits'] = ResellerAPI::amount($db->get_row()['credits']);
 		$rReturn['credits_assigned'] = ($rReturn['credits'] - intval($rUserInfo['credits']) ?: 0);
 		echo json_encode($rReturn);
 		exit();
@@ -654,7 +655,7 @@ class ResellerApiDispatcher {
 		$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `check_compatible`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 
 		if ($db->num_rows() == 1) {
-			$rData = $db->get_row();
+			$rData = UserCredits::amounts($db->get_row());
 
 			if (isset($rOverride[$rData['id']]['official_credits']) && (string) $rOverride[$rData['id']]['official_credits'] !== '') {
 				$rData['cost_credits'] = $rOverride[$rData['id']]['official_credits'];
@@ -702,7 +703,7 @@ class ResellerApiDispatcher {
 		$rReturn = [];
 		$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 		if ($db->num_rows() == 1) {
-			$rData = $db->get_row();
+			$rData = UserCredits::amounts($db->get_row());
 			$rData['exp_date'] = date('Y-m-d H:i', strtotime('+' . intval($rData['trial_duration']) . ' ' . $rData['trial_duration_in']));
 
 			foreach (json_decode($rData['bouquets'], true) as $rBouquet) {
@@ -788,7 +789,7 @@ class ResellerApiDispatcher {
 		$db->query('SELECT COUNT(*) AS `count` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 		$rReturn['total_lines'] = $db->get_row()['count'];
 		$db->query('SELECT COUNT(*) AS `count`, SUM(`credits`) AS `credits` FROM `users` WHERE `owner_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
-		$rRow = $db->get_row();
+		$rRow = UserCredits::amounts($db->get_row());
 		$rReturn['total_users'] = $rRow['count'];
 		$rReturn['user_credits'] = $rRow['credits'];
 		$rReturn['owner_credits'] = $rUserInfo['credits'];

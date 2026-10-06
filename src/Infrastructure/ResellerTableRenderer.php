@@ -1641,7 +1641,7 @@ class ResellerTableRenderer {
 							'ip' => (string) $rRow['ip'],
 							'status' => (int) $rRow['status'],
 							'is_reseller' => (bool) $rRow['is_reseller'],
-							'credits' => (int) $rRow['credits'],
+							'credits' => ResellerAPI::amount($rRow['credits']),
 							'user_count' => (int) $rRow['user_count'],
 							'last_login' => $rRow['last_login'] ?: '',
 							'notes' => (string) $rRow['notes'],

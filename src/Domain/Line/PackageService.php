@@ -6,6 +6,7 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -113,7 +114,7 @@ class PackageService {
 			foreach ($db->get_rows() as $rRow) {
 				if (!isset($rGroup) || in_array(intval($rGroup), json_decode($rRow['groups'], true))) {
 					if (!$rType || $rRow['is_' . $rType]) {
-						$rReturn[intval($rRow['id'])] = $rRow;
+						$rReturn[intval($rRow['id'])] = UserCredits::amounts($rRow);
 					}
 				}
 			}
@@ -136,7 +137,7 @@ class PackageService {
 			return null;
 		}
 
-		return $db->get_row();
+		return UserCredits::amounts($db->get_row());
 	}
 
 	/**

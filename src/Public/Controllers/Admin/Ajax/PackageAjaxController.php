@@ -8,6 +8,7 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 
 /**
@@ -151,7 +152,7 @@ class PackageAjaxController extends BaseAjaxController {
 		$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `can_gen_mag`, `can_gen_e2`, `only_mag`, `only_e2` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 
 		if ($db->num_rows() == 1) {
-			$rData = $db->get_row();
+			$rData = UserCredits::amounts($db->get_row());
 
 			if (isset($rOverride[$rData['id']]['official_credits']) && (string) $rOverride[$rData['id']]['official_credits'] !== '') {
 				$rData['cost_credits'] = $rOverride[$rData['id']]['official_credits'];
@@ -181,7 +182,7 @@ class PackageAjaxController extends BaseAjaxController {
 		$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `can_gen_mag`, `can_gen_e2`, `only_mag`, `only_e2` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 
 		if ($db->num_rows() == 1) {
-			$rData = $db->get_row();
+			$rData = UserCredits::amounts($db->get_row());
 			$rData['exp_date'] = date('Y-m-d', strtotime('+' . intval($rData['trial_duration']) . ' ' . $rData['trial_duration_in']));
 
 			$this->ok(['bouquets' => $this->collectPackageBouquets($rData['bouquets']), 'data' => $rData]);

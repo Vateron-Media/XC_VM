@@ -3,6 +3,7 @@
 namespace XcVm\Core\Auth;
 
 use XcVm\Core\Cluster\NodeRpc;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 
 /**
@@ -269,7 +270,8 @@ class AuthRepository {
 		$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
 
 		if ($db->num_rows() == 1) {
-			$rRow = $db->get_row();
+			// Domain\User is not in the load balancer build: a node reads the row as it is.
+			$rRow = class_exists(UserCredits::class) ? UserCredits::amounts($db->get_row()) : $db->get_row();
 			$rRow['subresellers'] = !empty($rRow['subresellers']) ? json_decode($rRow['subresellers'], true) : [];
 
 			if (count($rRow['subresellers'] ?? []) == 0) {

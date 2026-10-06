@@ -167,7 +167,7 @@ class GroupService {
 
 		if (0 < $db->num_rows()) {
 			foreach ($db->get_rows() as $rRow) {
-				$rReturn[intval($rRow['group_id'])] = $rRow;
+				$rReturn[intval($rRow['group_id'])] = UserCredits::amounts($rRow);
 			}
 		}
 
@@ -185,7 +185,7 @@ class GroupService {
 		$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
 
 		if ($db->num_rows() == 1) {
-			return $db->get_row();
+			return UserCredits::amounts($db->get_row());
 		}
 		return false;
 	}

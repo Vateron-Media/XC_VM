@@ -11,8 +11,10 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  * the read to the write. It is never written back from a copy read earlier in
  * the request: another request may have changed it since.
  *
- * `users`.`credits` is a FLOAT: it is read at four decimals, so a balance
- * shown as 0.7 covers a price of 0.7 and leaves 0.
+ * Balances and prices are DECIMAL(16,4) columns: a balance of 0.7 covers a
+ * price of 0.7 and leaves 0. The database gives such a column as text with
+ * its four decimals ('10.0000'): amounts() gives it back as the number the
+ * panel shows and answers.
  *
  * @package XC_VM_Domain_User
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -23,6 +25,9 @@ use XcVm\Infrastructure\Database\DatabaseAware;
 
 class UserCredits {
 	use DatabaseAware;
+
+	/** The columns that hold credits: balances, prices and logged amounts (and a package price read as `cost_credits`). */
+	private const AMOUNTS = ['credits', 'amount', 'trial_credits', 'official_credits', 'create_sub_resellers_price', 'cost_credits'];
 
 	/**
 	 * Take an amount from a balance that covers it.
@@ -114,6 +119,25 @@ class UserCredits {
 		$db->query('SELECT ROUND(COALESCE(`credits`, 0), 4) FROM `users` WHERE `id` = ?;', $rUserID);
 
 		return floatval($db->get_col());
+	}
+
+	/**
+	 * A row's credit amounts as numbers: a whole amount the integer it is
+	 * shown as (10, not '10.0000'), a fraction the amount at four decimals
+	 * (10.9). A column the row does not have, or holds no amount in (NULL), is
+	 * left as it is.
+	 *
+	 * @param array $rRow A row of `users`, `users_groups`, `users_packages` or `users_credits_logs`.
+	 * @return array
+	 */
+	public static function amounts(array $rRow): array {
+		foreach (self::AMOUNTS as $rKey) {
+			if (isset($rRow[$rKey]) && is_numeric($rRow[$rKey])) {
+				$rRow[$rKey] = ResellerAPI::amount($rRow[$rKey]);
+			}
+		}
+
+		return $rRow;
 	}
 
 	/**
