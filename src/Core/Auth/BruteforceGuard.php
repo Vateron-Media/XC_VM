@@ -198,14 +198,16 @@ class BruteforceGuard {
 	}
 
 	/**
-	 * Check for brute-force attacks (too many unique MACs/usernames).
+	 * Check for brute-force attacks (too many unique MACs/usernames, or too
+	 * many unique passwords for one username).
 	 *
 	 * @param string|null $ip            IP address (auto-detected if null)
 	 * @param string|null $mac           MAC address
 	 * @param string|null $username      Username
 	 * @param bool        $useCachedMode Use signal-based blocking for streaming context
+	 * @param string|null $password      Password a refused sign-in carried for the username (none: only the username is counted)
 	 */
-	public static function checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false): void {
+	public static function checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false, ?string $password = null): void {
 		if (!$mac && !$username) {
 			return;
 		}
@@ -239,17 +241,61 @@ class BruteforceGuard {
 		if (json_encode($term) === false) {
 			$term = hash('sha256', $term);
 		}
+		// A password is counted per username by a digest keyed with the panel's own secrets: the password itself is never kept.
+		// The line lookup may take a username in another letter case, or with spaces after it: those share one count of passwords.
+		$folded = rtrim(function_exists('mb_strtolower') ? mb_strtolower($term, 'UTF-8') : strtolower($term), ' ');
+		$digest = null;
+		if ($floodType == 'user' && !is_null($password) && $password !== '') {
+			$key = ($settings['live_streaming_pass'] ?? '') . '|' . (defined('OPENSSL_EXTRA') ? OPENSSL_EXTRA : '');
+			$digest = substr(hash_hmac('sha256', 'xc_vm refused password v1|' . $folded . '|' . $password, $key), 0, 16);
+		}
 		$ipFile = FLOOD_TMP_PATH . $ip . '_' . $floodType;
+		// Requests refused at once for one address take turns at its count, so each of them is counted. The lock is on
+		// the count file, which a turn replaces: a request that waited takes the lock again, on the file that is there
+		// now. It ends with this call. Where the file cannot be locked, or twenty turns went to others, the count is
+		// kept without it.
+		for ($turn = 0; $turn < 20; $turn++) {
+			$lock = @fopen($ipFile, 'c');
+			if ($lock === false || !flock($lock, LOCK_EX)) {
+				break;
+			}
+			clearstatcache(true, $ipFile);
+			if (fstat($lock)['ino'] === @fileinode($ipFile)) {
+				break;
+			}
+			fclose($lock);
+		}
 		$floodRow = (file_exists($ipFile) ? json_decode(file_get_contents($ipFile), true) : null);
 
 		if (is_array($floodRow)) {
 			$floodSeconds = intval($settings['bruteforce_frequency']);
 			$floodLimit = intval($settings[['mac' => 'bruteforce_mac_attempts', 'user' => 'bruteforce_username_attempts'][$floodType]]);
 			$floodRow['attempts'] = self::truncateAttempts($floodRow['attempts'], $floodSeconds);
+			// How many different ones this request adds to: terms, or passwords for its username. None when it adds nothing.
+			$count = null;
 
 			if (!in_array($term, array_keys($floodRow['attempts']))) {
 				$floodRow['attempts'][$term] = time();
-				if ($floodLimit > count($floodRow['attempts'])) {
+				$count = count($floodRow['attempts']);
+			}
+
+			if (!is_null($digest)) {
+				$passwords = [];
+				foreach ((is_array($floodRow['passwords'] ?? null) ? $floodRow['passwords'] : []) as $name => $digests) {
+					$digests = (is_array($digests) ? self::truncateAttempts($digests, $floodSeconds) : []);
+					if ($digests) {
+						$passwords[$name] = $digests;
+					}
+				}
+				if (!isset($passwords[$folded][$digest])) {
+					$passwords[$folded][$digest] = time();
+					$count = max(intval($count), count($passwords[$folded]));
+				}
+				$floodRow['passwords'] = $passwords;
+			}
+
+			if (!is_null($count)) {
+				if ($floodLimit > $count) {
 					AtomicFile::write($ipFile, (string) json_encode($floodRow));
 				} else {
 					$blockedIPs = self::getBlockedIPs();
@@ -264,6 +310,9 @@ class BruteforceGuard {
 			}
 		} else {
 			$floodRow = ['attempts' => [$term => time()]];
+			if (!is_null($digest)) {
+				$floodRow['passwords'] = [$folded => [$digest => time()]];
+			}
 			AtomicFile::write($ipFile, (string) json_encode($floodRow));
 		}
 	}

@@ -74,7 +74,7 @@ class Enigma2ApiController {
 		$this->userInfo = UserRepository::getUserInfo(null, $this->username, $this->password, true, false);
 
 		if (!$this->userInfo) {
-			BruteforceGuard::checkBruteforce(null, null, $this->username);
+			BruteforceGuard::checkBruteforce(null, null, $this->username, false, $this->password);
 			generateError('INVALID_CREDENTIALS');
 		}
 

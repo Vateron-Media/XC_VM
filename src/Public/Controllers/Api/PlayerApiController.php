@@ -261,8 +261,9 @@ class PlayerApiController {
 			$this->sendAuthError('Disabled', 'Account has been disabled.');
 		}
 
-		// A token nothing answers to is a guess, as a username is.
-		BruteforceGuard::checkBruteforce(null, null, $rUsername ?? $rToken ?? '');
+		// A token nothing answers to is a guess, as a username is; so is the
+		// password a username came with (a token comes with none).
+		BruteforceGuard::checkBruteforce(null, null, $rUsername ?? $rToken ?? '', false, $rPassword ?? null);
 		// A refused sign-in counts against the address, as on the other client
 		// APIs (sendAuthError() leaves shutdown() nothing to count).
 		BruteforceGuard::checkFlood();

@@ -257,7 +257,7 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 					} else {
 						if (!isset($rUsername)) {
 						} else {
-							BruteforceGuard::checkBruteforce($rIP, null, $rUsername);
+							BruteforceGuard::checkBruteforce($rIP, null, $rUsername, false, $rPassword ?? null);
 						}
 
 						DatabaseLogger::clientLog($rStreamID, 0, 'AUTH_FAILED', $rIP);

@@ -23,7 +23,7 @@ if (isset($rRequest['data']) && !is_array($rRequest['data'])) {
 	$rIP = $_SERVER['REMOTE_ADDR'];
 	$rPath = base64_decode($rRequest['data']);
 	$rPathSize = count(explode('/', $rPath));
-	$rUserInfo = $rStreamID = $rUsername = null;
+	$rUserInfo = $rStreamID = $rUsername = $rPassword = null;
 
 	if ($rPathSize == 3) {
 		if (!$rStreamID) {
@@ -47,6 +47,7 @@ if (isset($rRequest['data']) && !is_array($rRequest['data'])) {
 				if ($rData[0] == 'live') {
 					$rStreamID = intval($rData[3]);
 					$rUsername = $rData[1];
+					$rPassword = $rData[2] ?? null;
 					$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rData[1], $rData[2], true);
 				}
 			}
@@ -63,6 +64,7 @@ if (isset($rRequest['data']) && !is_array($rRequest['data'])) {
 					if ($rData[0] == 'live') {
 						$rStreamID = intval($rData[3]);
 						$rUsername = $rData[1];
+						$rPassword = $rData[2] ?? null;
 						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rData[1], $rData[2], true);
 					}
 				}
@@ -94,6 +96,7 @@ if (isset($rRequest['data']) && !is_array($rRequest['data'])) {
 				if (count($rMatches) == 5) {
 					$rStreamID = intval($rMatches[3]);
 					$rUsername = $rMatches[1];
+					$rPassword = $rMatches[2];
 					$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], $rMatches[2], true);
 				}
 			}
@@ -105,6 +108,7 @@ if (isset($rRequest['data']) && !is_array($rRequest['data'])) {
 				if (count($rMatches) == 4) {
 					$rStreamID = intval($rMatches[3]);
 					$rUsername = $rMatches[1];
+					$rPassword = $rMatches[2];
 					$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], $rMatches[2], true);
 				}
 			}
@@ -117,6 +121,7 @@ if (isset($rRequest['data']) && !is_array($rRequest['data'])) {
 					if (count($rMatches) == 5) {
 						$rStreamID = intval($rMatches[3]);
 						$rUsername = $rMatches[1];
+						$rPassword = $rMatches[2];
 						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], $rMatches[2], true);
 					}
 				}
@@ -128,6 +133,7 @@ if (isset($rRequest['data']) && !is_array($rRequest['data'])) {
 					if (count($rMatches) == 4) {
 						$rStreamID = intval($rMatches[3]);
 						$rUsername = $rMatches[1];
+						$rPassword = $rMatches[2];
 						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rMatches[1], $rMatches[2], true);
 					}
 				}
@@ -138,7 +144,7 @@ if (isset($rRequest['data']) && !is_array($rRequest['data'])) {
 	// A name and password that match no line count against the address, where
 	// auth.php counts them too (it does not under ignore_invalid_users).
 	if (!$rUserInfo && $rUsername !== null && !($rSettings['ignore_invalid_users'] && $rSettings['enable_cache'])) {
-		BruteforceGuard::checkBruteforce($rIP, null, $rUsername);
+		BruteforceGuard::checkBruteforce($rIP, null, $rUsername, false, $rPassword);
 	}
 
 	if ($rStreamID && $rUserInfo) {
