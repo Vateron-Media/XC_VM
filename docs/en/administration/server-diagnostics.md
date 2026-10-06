@@ -218,6 +218,7 @@ Probable cause(s):
 The admin dashboard lists one row per check, failing and warning rows first. Every admin who can open the dashboard sees it.
 
 - **Servers**: enabled servers that stopped reporting, proxies included; a server installing or updating is not counted. While one is down, a red icon also shows in the top bar of every admin page.
+- **Server clocks**: yellow when an enabled server that answers has a clock more than 5 seconds off MAIN's (`time_offset`, measured each minute), naming each with its offset. A token's times are MAIN's, and a server reads them through its last measured offset, so when NTP then corrects that clock, viewers on it can be refused for about two minutes, until the new offset is measured.
 - **Database schema**: a migration failed (see [Database migrations](../guides/database-migrations.md)).
 - **Root cron jobs**: the root crontab has not run for ten minutes.
 - **Live delivery (xc_fanout)** and **Cluster API**: the daemon and the cluster nodes.

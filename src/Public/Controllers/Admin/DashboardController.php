@@ -163,6 +163,7 @@ class DashboardController extends BaseAdminController {
 		$rCache = CacheRunState::state(CACHE_TMP_PATH);
 		$rChecks = [
 			self::serversCheck($servers),
+			self::clockCheck($servers),
 			self::schemaCheck((string) SettingsManager::get('status_uuid'), XC_VM_VERSION, $bin),
 			self::cronCheck(file_exists($signals) ? filemtime($signals) : null, $now, $bin),
 			// A proxy's watchdog blob is its own: the daemon runs on streaming servers.
@@ -371,6 +372,30 @@ class DashboardController extends BaseAdminController {
 		$detail = Translator::get('dashboard_check_servers_ok', ['{online}' => (string) ($total - count($offline)), '{total}' => (string) $total]);
 
 		return self::check($offline !== [] ? 'fail' : 'ok', 'tabler-server-2', 'dashboard_check_servers', self::withDown($detail, $offline));
+	}
+
+	/** Seconds a server's clock may be off MAIN's (servers.time_offset) before the row warns. */
+	private const CLOCK_WARN_SEC = 5;
+
+	/**
+	 * The clock of each enabled server that answers, as MAIN last measured it
+	 * against its own: yellow past CLOCK_WARN_SEC, naming the server and its offset.
+	 *
+	 * @param array<int,array<string,mixed>> $servers
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 */
+	public static function clockCheck(array $servers): array {
+		$rOff = [];
+		foreach ($servers as $rServer) {
+			$rOffset = (int) ($rServer['time_offset'] ?? 0);
+			if (!empty($rServer['enabled']) && !empty($rServer['server_online']) && self::CLOCK_WARN_SEC < abs($rOffset)) {
+				$rOff[] = $rServer['server_name'] . ' ' . sprintf('%+d', $rOffset) . ' s';
+			}
+		}
+		if ($rOff === []) {
+			return self::check('ok', 'tabler-clock', 'dashboard_check_clock', Translator::get('dashboard_check_clock_ok', ['{sec}' => (string) self::CLOCK_WARN_SEC]));
+		}
+		return self::check('warn', 'tabler-clock', 'dashboard_check_clock', Translator::get('dashboard_check_clock_off', ['{names}' => implode(', ', $rOff)]), Translator::get('dashboard_status_clock_text'));
 	}
 
 	/**

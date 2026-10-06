@@ -34,6 +34,25 @@ final class DashboardStatusChecksTest extends TestCase {
 		$this->assertStringNotContainsString('Main', $check['detail']);
 	}
 
+	/** A node's clock off MAIN's, as servers.time_offset holds it (issue #273). */
+	public function testTheClockRowNamesAServerMoreThanFiveSecondsOffMains(): void {
+		$rServers = [
+			['server_name' => 'Main', 'enabled' => 1, 'server_online' => 1, 'time_offset' => 0],
+			['server_name' => 'LB-1', 'enabled' => 1, 'server_online' => 1, 'time_offset' => 5],
+			['server_name' => 'Down', 'enabled' => 1, 'server_online' => 0, 'time_offset' => 1079],
+			['server_name' => 'Spare', 'enabled' => 0, 'server_online' => 1, 'time_offset' => -300],
+		];
+		$this->assertSame('ok', DashboardController::clockCheck($rServers)['state'], 'within 5 s, or not judged: offline, disabled');
+
+		$rServers[] = ['server_name' => 'LB-2', 'enabled' => 1, 'server_online' => 1, 'time_offset' => 76];
+		$rServers[] = ['server_name' => 'LB-3', 'enabled' => 1, 'server_online' => 1, 'time_offset' => -6];
+		$rCheck = DashboardController::clockCheck($rServers);
+		$this->assertSame('warn', $rCheck['state']);
+		$this->assertStringContainsString('LB-2 +76 s, LB-3 -6 s', $rCheck['detail']);
+		$this->assertStringNotContainsString('LB-1', $rCheck['detail']);
+		$this->assertNotSame('', $rCheck['help']);
+	}
+
 	public function testSchemaOkOnlyWhenWatermarkMatchesVersion(): void {
 		$this->assertSame('ok', DashboardController::schemaCheck('2.5.3', '2.5.3', self::BIN)['state']);
 

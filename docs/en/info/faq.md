@@ -75,7 +75,7 @@ If the error is of another type — send its output so I can help diagnose it.
 
 These are security features, not bugs:
 
-- **TOKEN_EXPIRED** — session token has a time limit. The user needs to re-authenticate.
+- **TOKEN_EXPIRED** — session token has a time limit. The user needs to re-authenticate. When every viewer of one server gets it, check that server's clock: the dashboard's *Server clocks* row names a server more than 5 seconds off MAIN's.
 - **IP_MISMATCH** — the user's IP changed mid-stream (often detected as credential sharing).
 
 **Relevant settings:**
