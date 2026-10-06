@@ -161,9 +161,10 @@ class AdminAPIWrapper {
 		if (isset($rData['isp_clear'])) {
 			$rData['isp_clear'] = '';
 		}
+		$rStored = self::storedRow('SELECT * FROM `lines` WHERE `id` = ?;', $rID);
 		// A request that leaves out the username or the password keeps the line's own.
-		$rData += ['username' => $rLine['data']['username'], 'password' => $rLine['data']['password']];
-		$rReturn = parseerror(LineService::process(self::keepLineFields($rData, $rLine['data'])));
+		$rData += ['username' => $rStored['username'], 'password' => $rStored['password']];
+		$rReturn = parseerror(LineService::process(self::keepLineFields($rData, $rStored)));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getLine($rReturn['data']['insert_id'])['data'];
 		}
@@ -226,6 +227,271 @@ class AdminAPIWrapper {
 		}
 
 		return $rData;
+	}
+
+	/**
+	 * The first row of a query as stored: get_raw_row(), not get_row(), which
+	 * rewrites text holding < or >.
+	 *
+	 * @return array The row, empty when there is none.
+	 */
+	private static function storedRow(string $rQuery, ...$rArgs) {
+		self::$db->query($rQuery, ...$rArgs);
+		return self::$db->get_raw_row() ?? [];
+	}
+
+	/**
+	 * The rows of a query as stored (storedRow()).
+	 *
+	 * @return array[]
+	 */
+	private static function storedRows(string $rQuery, ...$rArgs) {
+		self::$db->query($rQuery, ...$rArgs);
+		return self::$db->get_raw_rows();
+	}
+
+	/**
+	 * A stored JSON list (or map), decoded; empty when it holds none.
+	 */
+	private static function storedList($rJSON) {
+		return is_array($rDecoded = json_decode((string) $rJSON, true)) ? $rDecoded : [];
+	}
+
+	/**
+	 * An edit through the API keeps every field the request leaves out, as
+	 * keepLineFields() does for a line: the services take the whole form of
+	 * the panel, where a field that is not posted is switched off, emptied or
+	 * given its default.
+	 *
+	 * @param array $rData     The request.
+	 * @param array $rKept     Each field the request may leave out => its stored value, as the form posts it.
+	 * @param array $rSwitches Each switch => its stored value. The form posts a switch only when it is
+	 *                         on; a request switches one off by sending 0 or nothing.
+	 * @param array $rEmpty    Each list => what it is when the request sends it empty.
+	 * @return array The request with the fields it left out.
+	 */
+	private static function keepFields(array $rData, array $rKept, array $rSwitches = [], array $rEmpty = []) {
+		$rData += $rKept;
+		foreach ($rEmpty as $rKey => $rValue) {
+			if (($rData[$rKey] ?? null) === '') {
+				$rData[$rKey] = $rValue;
+			}
+		}
+		foreach ($rSwitches as $rKey => $rStored) {
+			$rOn = !empty($rData[$rKey] ?? $rStored);
+			unset($rData[$rKey]);
+			if ($rOn) {
+				$rData[$rKey] = 1;
+			}
+		}
+		return $rData;
+	}
+
+	/**
+	 * keepFields() for a MAG or an Enigma2 device: its own row and its line's.
+	 *
+	 * @param array $rData   The request.
+	 * @param array $rDevice The device as stored.
+	 * @param array $rLine   Its line as stored.
+	 * @return array
+	 */
+	private static function keepDeviceFields(array $rData, array $rDevice, array $rLine) {
+		// The line's credentials as stored: the service starts from the cleaned row.
+		$rKept = ['mac' => $rDevice['mac'], 'username' => $rLine['username'] ?? '', 'password' => $rLine['password'] ?? '', 'isp_clear' => '1', 'bouquets_selected' => json_encode(self::storedList($rLine['bouquet'] ?? '')), 'allowed_ips' => self::storedList($rLine['allowed_ips'] ?? '')];
+		if (!is_null($rLine['pair_id'] ?? null)) {
+			$rKept['pair_id'] = $rLine['pair_id'];
+		}
+		// `no_expire` counts when it is on; a date left out is the stored one,
+		// one sent empty is none (as keepLineFields()).
+		if (empty($rData['no_expire'])) {
+			unset($rData['no_expire']);
+		}
+		if (!isset($rData['exp_date']) && !is_null($rLine['exp_date'] ?? null)) {
+			$rData['exp_date'] = '@' . intval($rLine['exp_date']);
+		} elseif (($rData['exp_date'] ?? null) === '') {
+			unset($rData['exp_date']);
+		}
+		return self::keepFields($rData, $rKept, ['is_trial' => $rLine['is_trial'] ?? 0, 'is_isplock' => $rLine['is_isplock'] ?? 0, 'lock_device' => $rDevice['lock_device']], ['bouquets_selected' => '[]', 'allowed_ips' => []]);
+	}
+
+	/**
+	 * The ids of the bouquets whose list of this kind holds an item.
+	 *
+	 * @param string $rColumn bouquet_channels, bouquet_movies, bouquet_radios or bouquet_series.
+	 * @param int    $rID     The stream or series.
+	 * @return int[]
+	 */
+	private static function storedBouquets(string $rColumn, $rID) {
+		$rIDs = [];
+		foreach (self::storedRows('SELECT `id`, `' . $rColumn . '` AS `items` FROM `bouquets`;') as $rRow) {
+			if (in_array(intval($rID), array_map('intval', self::storedList($rRow['items'])), true)) {
+				$rIDs[] = intval($rRow['id']);
+			}
+		}
+		return $rIDs;
+	}
+
+	/**
+	 * keepFields() for the fields every stream form shares: its categories and
+	 * bouquets, its servers (the tree the form posts, and on demand), and, for a
+	 * live kind, its restart schedule and the source options.
+	 *
+	 * @param array  $rData   The request.
+	 * @param array  $rStream The stream as stored.
+	 * @param ?string $rColumn The bouquets' list of its kind (none for an episode).
+	 * @param bool   $rLive   Whether the form has the restart schedule and the source options.
+	 * @return array
+	 */
+	private static function keepStreamFields(array $rData, array $rStream, ?string $rColumn, bool $rLive) {
+		$rTree = $rOnDemand = [];
+		foreach (self::storedRows('SELECT `server_id`, `parent_id`, `on_demand` FROM `streams_servers` WHERE `stream_id` = ?;', $rStream['id']) as $rRow) {
+			$rTree[] = ['id' => intval($rRow['server_id']), 'parent' => $rRow['parent_id'] ? intval($rRow['parent_id']) : 'source'];
+			if ($rRow['on_demand']) {
+				$rOnDemand[] = intval($rRow['server_id']);
+			}
+		}
+		$rKept = ['category_id' => self::storedList($rStream['category_id']), 'bouquets' => $rColumn ? self::storedBouquets($rColumn, $rStream['id']) : [], 'server_tree_data' => json_encode($rTree), 'on_demand' => $rOnDemand];
+		$rEmpty = ['category_id' => [], 'bouquets' => [], 'on_demand' => []];
+		$rSwitches = [];
+		if ($rLive) {
+			$rRestart = self::storedList($rStream['auto_restart']);
+			if (!empty($rRestart['days'])) {
+				$rKept += ['days_to_restart' => $rRestart['days'], 'time_to_restart' => $rRestart['at'] ?? ''];
+			}
+			$rEmpty['days_to_restart'] = [];
+			$rOptions = array_column(self::storedRows('SELECT `argument_id`, `value` FROM `streams_options` WHERE `stream_id` = ?;', $rStream['id']), 'value', 'argument_id');
+			foreach ([1 => 'user_agent', 2 => 'http_proxy', 17 => 'cookie', 19 => 'headers', 20 => 'force_input_acodec'] as $rArgument => $rKey) {
+				if (isset($rOptions[$rArgument])) {
+					$rKept[$rKey] = $rOptions[$rArgument];
+				}
+			}
+			$rSwitches['skip_ffprobe'] = $rOptions[21] ?? 0;
+		}
+		return self::keepFields($rData, $rKept, $rSwitches, $rEmpty);
+	}
+
+	/**
+	 * A movie's or an episode's subtitles as the form posts them: s:<server>:<path>.
+	 */
+	private static function subtitlesField($rJSON) {
+		$rSubtitles = self::storedList($rJSON);
+		return isset($rSubtitles['location']) ? 's:' . $rSubtitles['location'] . ':' . ($rSubtitles['files'][0] ?? '') : '';
+	}
+
+	/**
+	 * keepFields() for an access code.
+	 *
+	 * @param array $rData The request.
+	 * @param array $rCode The code as stored.
+	 * @return array
+	 */
+	private static function keepCodeFields(array $rData, array $rCode) {
+		return self::keepFields($rData, ['code' => $rCode['code'], 'type' => $rCode['type'], 'whitelist' => self::storedList($rCode['whitelist'])], ['enabled' => $rCode['enabled']], ['whitelist' => []]);
+	}
+
+	/**
+	 * keepFields() for a transcode profile: ProfileService::process() builds
+	 * the profile's options from the form alone, so each field the request
+	 * leaves out is read back from them, as the profile form shows them.
+	 *
+	 * @param array $rData    The request.
+	 * @param array $rProfile The profile as stored.
+	 * @return array
+	 */
+	private static function keepProfileFields(array $rData, array $rProfile) {
+		$rOptions = self::storedList($rProfile['profile_options'] ?? '');
+		$rGPU = $rOptions['gpu'] ?? [];
+		$rValue = static fn($rIndex) => $rOptions[$rIndex]['val'] ?? '';
+		$rKept = [
+			'profile_name' => $rProfile['profile_name'] ?? '',
+			'gpu_device' => $rGPU['val'] ?? 0,
+			'software_decoding' => $rOptions['software_decoding'] ?? 0,
+			'resize' => $rGPU['resize'] ?? '',
+			'deint' => $rGPU['deint'] ?? 0,
+			'video_codec_gpu' => $rGPU ? ($rOptions['-vcodec'] ?? '') : '',
+			'video_codec_cpu' => $rGPU ? '' : ($rOptions['-vcodec'] ?? ''),
+			'audio_codec' => $rOptions['-acodec'] ?? '',
+			'scaling' => $rGPU ? '' : $rValue(9),
+			'logo_path' => $rValue(16),
+			'logo_pos' => $rOptions[16]['pos'] ?? '',
+		];
+		foreach (['video_bitrate' => 3, 'audio_bitrate' => 4, 'min_tolerance' => 5, 'max_tolerance' => 6, 'buffer_size' => 7, 'crf_value' => 8, 'aspect_ratio' => 10, 'framerate' => 11, 'samplerate' => 12, 'audio_channels' => 13, 'threads' => 15] as $rKey => $rIndex) {
+			$rKept[$rKey] = $rValue($rIndex);
+		}
+		// The preset and the video profile are read from the field of the codec in use.
+		foreach (['cpu', 'h264', 'hevc', ''] as $rCodec) {
+			$rKept['preset_' . $rCodec] = $rOptions['-preset'] ?? '';
+			$rKept['video_profile_' . $rCodec] = $rOptions['-profile:v'] ?? '';
+		}
+		return self::keepFields($rData, $rKept, ['yadif_filter' => !$rGPU && $rValue(17) == 1]);
+	}
+
+	/**
+	 * keepFields() for a server or a proxy.
+	 *
+	 * @param array $rData   The request.
+	 * @param array $rServer The server as stored.
+	 * @param bool  $rProxy  Whether it is edited with the proxy form.
+	 * @return array
+	 */
+	private static function keepServerFields(array $rData, array $rServer, bool $rProxy) {
+		$rSplit = static fn($rList) => array_values(array_filter(explode(',', (string) $rList), 'strlen'));
+		$rKept = ['server_ip' => $rServer['server_ip'], 'domain_name' => $rSplit($rServer['domain_name']), 'geoip_countries' => self::storedList($rServer['geoip_countries'])];
+		$rSwitches = array_intersect_key($rServer, array_flip(['enable_https', 'random_ip', 'enable_geoip', 'enabled']));
+		if (!$rProxy) {
+			// The first port of each kind and the ones added to it, as the form lists them.
+			$rKept += [
+				'http_broadcast_ports' => array_merge(array_filter([$rServer['http_broadcast_port']]), $rSplit($rServer['http_ports_add'])),
+				'https_broadcast_ports' => array_merge(array_filter([$rServer['https_broadcast_port']]), $rSplit($rServer['https_ports_add'])),
+				'isp_names' => self::storedList($rServer['isp_names']),
+				'total_services' => $rServer['total_services'],
+			];
+			$rSwitches += array_intersect_key($rServer, array_flip(['enable_gzip', 'timeshift_only', 'enable_isp', 'enable_proxy'])) + ['disable_ramdisk' => $rServer['use_disk']];
+		}
+		return self::keepFields($rData, $rKept, $rSwitches, ['domain_name' => [], 'geoip_countries' => [], 'http_broadcast_ports' => [], 'https_broadcast_ports' => [], 'isp_names' => []]);
+	}
+
+	/**
+	 * An edit of the settings through the API changes only the settings the
+	 * request names. SettingsService::edit() takes the settings form, which
+	 * empties the stream arguments' defaults and the lists it does not post;
+	 * each is added here as stored. The switches are all posted, as the form
+	 * posts them, so one is switched off by sending 0 or nothing.
+	 *
+	 * @param array $rData      The request.
+	 * @param array $rStored    The settings as stored.
+	 * @param array $rArguments argument_key => argument_default_value of streams_arguments.
+	 * @param array $rGenres    The genre mapping's rows (watch_categories).
+	 * @return array
+	 */
+	private static function keepSettings(array $rData, array $rStored, array $rArguments, array $rGenres) {
+		$rKept = ['search_items' => $rStored['search_items'] ?? null];
+		foreach (['user_agent' => 'user_agent', 'http_proxy' => 'proxy', 'cookie' => 'cookie', 'headers' => 'headers'] as $rField => $rKey) {
+			$rKept[$rField] = $rArguments[$rKey] ?? null;
+		}
+		// A list sent empty is none selected, which the service stores as the form does.
+		foreach (['allowed_stb_types_for_local_recording', 'allowed_stb_types', 'maxmind_editions', 'shared_mount_prefixes', 'allow_countries'] as $rKey) {
+			if (!array_key_exists($rKey, $rData)) {
+				$rKept[$rKey] = self::storedList($rStored[$rKey] ?? '');
+			} elseif ($rData[$rKey] === '') {
+				unset($rData[$rKey]);
+			}
+		}
+		// A genre posted without its bouquets keeps them.
+		foreach ($rGenres as $rGenre) {
+			$rKey = (intval($rGenre['type']) == 2 ? 'genretv_' : 'genre_') . intval($rGenre['genre_id']);
+			$rBouquets = (intval($rGenre['type']) == 2 ? 'bouquettv_' : 'bouquet_') . intval($rGenre['genre_id']);
+			if (isset($rData[$rKey]) && !array_key_exists($rBouquets, $rData)) {
+				$rKept[$rBouquets] = self::storedList($rGenre['bouquets']);
+			} elseif (($rData[$rBouquets] ?? null) === '') {
+				$rData[$rBouquets] = [];
+			}
+		}
+		$rSwitches = ['responsive_tables' => empty($rStored['disable_table_responsive'])];
+		foreach (SettingsService::checkboxes() as $rKey) {
+			$rSwitches[$rKey] = $rStored[$rKey] ?? 0;
+		}
+		return self::keepFields($rData, $rKept, $rSwitches) + ['submit_settings' => 1];
 	}
 
 	public static function deleteLine($rID) {
@@ -299,7 +565,16 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
-		$rReturn = parseerror(UserService::process($rData));
+		$rStored = self::storedRow('SELECT * FROM `users` WHERE `id` = ?;', $rID);
+		// The form posts the password empty when it stays.
+		$rKept = ['username' => $rStored['username'], 'password' => '', 'member_group_id' => $rStored['member_group_id']];
+		// A package's credits override posts as override_<package>; one sent empty is none.
+		foreach (self::storedList($rStored['override_packages']) as $rPackage => $rOverride) {
+			if (!empty($rOverride['official_credits'])) {
+				$rKept['override_' . $rPackage] = $rOverride['official_credits'];
+			}
+		}
+		$rReturn = parseerror(UserService::process(self::keepFields($rData, $rKept)));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getUser($rReturn['data']['insert_id'])['data'];
 		}
@@ -359,6 +634,8 @@ class AdminAPIWrapper {
 		if (isset($rData['isp_clear'])) {
 			$rData['isp_clear'] = '';
 		}
+		$rStored = self::storedRow('SELECT * FROM `mag_devices` WHERE `mag_id` = ?;', $rID);
+		$rData = self::keepDeviceFields($rData, $rStored, self::storedRow('SELECT * FROM `lines` WHERE `id` = ?;', $rStored['user_id']));
 		$rReturn = parseerror(MagService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getMAG($rReturn['data']['insert_id'])['data'];
@@ -448,6 +725,8 @@ class AdminAPIWrapper {
 		if (isset($rData['isp_clear'])) {
 			$rData['isp_clear'] = '';
 		}
+		$rStored = self::storedRow('SELECT * FROM `enigma2_devices` WHERE `device_id` = ?;', $rID);
+		$rData = self::keepDeviceFields($rData, $rStored, self::storedRow('SELECT * FROM `lines` WHERE `id` = ?;', $rStored['user_id']));
 		$rReturn = parseerror(EnigmaService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getEnigma($rReturn['data']['insert_id'])['data'];
@@ -535,6 +814,9 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
+		// The form posts the bouquet's four lists together.
+		$rData += ['bouquet_data' => json_encode(['stream' => self::storedList($rStored['bouquet_channels']), 'movies' => self::storedList($rStored['bouquet_movies']), 'radios' => self::storedList($rStored['bouquet_radios']), 'series' => self::storedList($rStored['bouquet_series'])])];
 		$rReturn = parseerror(BouquetService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getBouquet($rReturn['data']['insert_id'])['data'];
@@ -578,6 +860,7 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rData = self::keepCodeFields($rData, self::storedRow('SELECT * FROM `access_codes` WHERE `id` = ?;', $rID));
 		$rReturn = parseerror(AuthService::processCode($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getAccessCode($rReturn['data']['insert_id'])['data'];
@@ -621,6 +904,9 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `hmac_keys` WHERE `id` = ?;', $rID);
+		// The form posts the key as hidden when it stays.
+		$rData = self::keepFields($rData, ['keygen' => 'HMAC KEY HIDDEN', 'notes' => $rStored['notes']], ['enabled' => $rStored['enabled']]);
 		$rReturn = parseerror(AuthService::processHMAC($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getHMAC($rReturn['data']['insert_id'])['data'];
@@ -716,6 +1002,8 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `providers` WHERE `id` = ?;', $rID);
+		$rData = self::keepFields($rData, array_intersect_key($rStored, array_flip(['name', 'ip', 'port', 'username', 'password'])), array_intersect_key($rStored, array_flip(['enabled', 'ssl', 'hls', 'legacy'])));
 		$rReturn = parseerror(ProviderService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getProvider($rReturn['data']['insert_id'])['data'];
@@ -768,6 +1056,17 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
+		$rPackages = [];
+		foreach (self::storedRows('SELECT `id`, `groups` FROM `users_packages`;') as $rRow) {
+			if (in_array(intval($rID), array_map('intval', self::storedList($rRow['groups'])), true)) {
+				$rPackages[] = intval($rRow['id']);
+			}
+		}
+		// The notice is stored with its entities, as GroupService::process() writes it.
+		$rKept = ['group_name' => $rStored['group_name'], 'permissions_selected' => json_encode(self::storedList($rStored['allowed_pages'])), 'groups_selected' => json_encode(self::storedList($rStored['subresellers'])), 'notice_html' => html_entity_decode((string) $rStored['notice_html']), 'packages_selected' => json_encode($rPackages)];
+		$rSwitches = array_intersect_key($rStored, array_flip(['is_admin', 'is_reseller', 'allow_restrictions', 'create_sub_resellers', 'delete_users', 'allow_download', 'can_view_vod', 'reseller_client_connection_logs', 'allow_change_bouquets', 'allow_change_username', 'allow_change_password']));
+		$rData = self::keepFields($rData, $rKept, $rSwitches, ['permissions_selected' => '[]', 'groups_selected' => '[]', 'packages_selected' => '[]']);
 		$rReturn = parseerror(GroupService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getGroup($rReturn['data']['insert_id'])['data'];
@@ -811,6 +1110,10 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `users_packages` WHERE `id` = ?;', $rID);
+		$rKept = ['package_name' => $rStored['package_name'], 'groups_selected' => json_encode(self::storedList($rStored['groups'])), 'bouquets_selected' => json_encode(self::storedList($rStored['bouquets']))];
+		$rSwitches = array_intersect_key($rStored, array_flip(['is_trial', 'is_official', 'is_mag', 'is_e2', 'is_line', 'lock_device', 'is_restreamer', 'is_isplock', 'check_compatible']));
+		$rData = self::keepFields($rData, $rKept, $rSwitches, ['groups_selected' => '[]', 'bouquets_selected' => '[]']);
 		$rReturn = parseerror(PackageService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getPackage($rReturn['data']['insert_id'])['data'];
@@ -854,6 +1157,7 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rData = self::keepProfileFields($rData, self::storedRow('SELECT * FROM `profiles` WHERE `profile_id` = ?;', $rID));
 		$rReturn = parseerror(ProfileService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getTranscodeProfile($rReturn['data']['insert_id'])['data'];
@@ -897,6 +1201,9 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `rtmp_ips` WHERE `id` = ?;', $rID);
+		// A password left out is the stored one, not a new one.
+		$rData = self::keepFields($rData, ['ip' => $rStored['ip'], 'password' => $rStored['password']], ['push' => $rStored['push'], 'pull' => $rStored['pull']]);
 		$rReturn = parseerror(BlocklistService::processRTMPIP($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getRTMPIP($rReturn['data']['insert_id'])['data'];
@@ -940,6 +1247,8 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `streams_categories` WHERE `id` = ?;', $rID);
+		$rData = self::keepFields($rData, [], ['is_adult' => $rStored['is_adult']]);
 		$rReturn = parseerror(CategoryService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getCategory($rReturn['data']['insert_id'])['data'];
@@ -1072,6 +1381,16 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
+		$rKept = ['stream_source' => self::storedList($rStored['stream_source'])];
+		if (!is_null($rStored['adaptive_link'])) {
+			$rKept['adaptive_link'] = self::storedList($rStored['adaptive_link']);
+		}
+		if (!is_null($rStored['title_sync'])) {
+			$rKept['title_sync'] = $rStored['title_sync'];
+		}
+		$rSwitches = array_intersect_key($rStored, array_flip(['fps_restart', 'gen_timestamps', 'allow_record', 'rtmp_output', 'stream_all', 'direct_source', 'direct_proxy', 'read_native']));
+		$rData = self::keepFields(self::keepStreamFields($rData, $rStored, 'bouquet_channels', true), $rKept, $rSwitches, ['stream_source' => [], 'adaptive_link' => []]);
 		$rReturn = parseerror(StreamService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getStream($rReturn['data']['insert_id'])['data'];
@@ -1135,6 +1454,10 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
+		// A created channel plays a series (type 0) or its video files (type 1).
+		$rKept = ['channel_type' => self::storedList($rStored['movie_properties'])['type'] ?? 0, 'series_no' => $rStored['series_no'], 'video_files' => json_encode(self::storedList($rStored['stream_source'])), 'transcode_profile_id' => $rStored['transcode_profile_id'], 'bouquet_create_list' => '[]', 'category_create_list' => '[]'];
+		$rData = self::keepFields(self::keepStreamFields($rData, $rStored, 'bouquet_channels', false), $rKept, array_intersect_key($rStored, array_flip(['allow_record', 'rtmp_output'])));
 		$rReturn = parseerror(ChannelService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getChannel($rReturn['data']['insert_id'])['data'];
@@ -1174,6 +1497,9 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
+		$rKept = ['stream_display_name' => $rStored['stream_display_name'], 'stream_source' => self::storedList($rStored['stream_source']), 'probesize_ondemand' => $rStored['probesize_ondemand']];
+		$rData = self::keepFields(self::keepStreamFields($rData, $rStored, 'bouquet_radios', true), $rKept, ['direct_source' => $rStored['direct_source']], ['stream_source' => ['']]);
 		$rReturn = parseerror(RadioService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getStation($rReturn['data']['insert_id'])['data'];
@@ -1213,6 +1539,14 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
+		$rProperties = self::storedList($rStored['movie_properties']);
+		$rKept = ['stream_display_name' => $rStored['stream_display_name'], 'stream_source' => self::storedList($rStored['stream_source'])[0] ?? '', 'movie_subtitles' => self::subtitlesField($rStored['movie_subtitles']), 'tmdb_id' => (string) ($rStored['tmdb_id'] ?: ($rProperties['tmdb_id'] ?? '')), 'backdrop_path' => ((array) ($rProperties['backdrop_path'] ?? []))[0] ?? ''];
+		foreach (['movie_image', 'release_date', 'episode_run_time', 'youtube_trailer', 'director', 'cast', 'plot', 'country', 'genre', 'rating'] as $rKey) {
+			$rKept[$rKey] = $rProperties[$rKey] ?? '';
+		}
+		$rSwitches = array_intersect_key($rStored, array_flip(['read_native', 'movie_symlink', 'direct_source', 'direct_proxy', 'remove_subtitles']));
+		$rData = self::keepFields(self::keepStreamFields($rData, $rStored, 'bouquet_movies', false), $rKept, $rSwitches);
 		$rReturn = parseerror(MovieService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getMovie($rReturn['data']['insert_id'])['data'];
@@ -1276,6 +1610,16 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `streams` WHERE `id` = ?;', $rID);
+		$rEpisode = self::storedRow('SELECT * FROM `streams_episodes` WHERE `stream_id` = ?;', $rID);
+		$rProperties = self::storedList($rStored['movie_properties']);
+		// The runtime is posted in minutes, as the form shows it.
+		$rKept = ['stream_source' => self::storedList($rStored['stream_source'])[0] ?? '', 'movie_subtitles' => self::subtitlesField($rStored['movie_subtitles']), 'series' => (string) ($rEpisode['series_id'] ?? ''), 'season_num' => (string) ($rEpisode['season_num'] ?? ''), 'episode' => (string) ($rEpisode['episode_num'] ?? ''), 'target_container' => $rStored['target_container'], 'episode_run_time' => intval(($rProperties['duration_secs'] ?? 0) / 60)];
+		foreach (['release_date', 'plot', 'movie_image', 'rating', 'tmdb_id'] as $rKey) {
+			$rKept[$rKey] = $rProperties[$rKey] ?? '';
+		}
+		$rSwitches = array_intersect_key($rStored, array_flip(['read_native', 'movie_symlink', 'direct_source', 'direct_proxy', 'remove_subtitles']));
+		$rData = self::keepFields(self::keepStreamFields($rData, $rStored, null, false), $rKept, $rSwitches);
 		$rReturn = parseerror(EpisodeService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getEpisode($rReturn['data']['insert_id'])['data'];
@@ -1315,6 +1659,9 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rStored = self::storedRow('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
+		$rKept = ['title' => $rStored['title'], 'cover' => $rStored['cover'], 'backdrop_path' => self::storedList($rStored['backdrop_path'])[0] ?? '', 'category_id' => self::storedList($rStored['category_id']), 'bouquets' => self::storedBouquets('bouquet_series', $rID)];
+		$rData = self::keepFields($rData, $rKept, [], ['category_id' => [], 'bouquets' => []]);
 		$rReturn = parseerror(SeriesService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getSeries($rReturn['data']['insert_id'])['data'];
@@ -1365,6 +1712,7 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rData = self::keepServerFields($rData, self::storedRow('SELECT * FROM `servers` WHERE `id` = ?;', $rID), false);
 		$rReturn = parseerror(ServerService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getServer($rReturn['data']['insert_id'])['data'];
@@ -1377,6 +1725,7 @@ class AdminAPIWrapper {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		$rData['edit'] = $rID;
+		$rData = self::keepServerFields($rData, self::storedRow('SELECT * FROM `servers` WHERE `id` = ?;', $rID), true);
 		$rReturn = parseerror(ServerService::processProxy($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getServer($rReturn['data']['insert_id'])['data'];
@@ -1398,7 +1747,10 @@ class AdminAPIWrapper {
 	}
 
 	public static function editSettings($rData) {
-		$rReturn = parseerror(SettingsService::edit($rData));
+		$rStored = self::storedRow('SELECT * FROM `settings` LIMIT 1;');
+		$rArguments = array_column(self::storedRows('SELECT `argument_key`, `argument_default_value` FROM `streams_arguments`;'), 'argument_default_value', 'argument_key');
+		$rGenres = preg_grep('/^(genre|genretv)_\d+$/', array_keys($rData)) ? self::storedRows('SELECT `genre_id`, `type`, `bouquets` FROM `watch_categories`;') : [];
+		$rReturn = parseerror(SettingsService::edit(self::keepSettings($rData, $rStored, $rArguments, $rGenres)));
 		$rReturn['data'] = self::getSettings()['data'];
 		return $rReturn;
 	}
