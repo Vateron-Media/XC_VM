@@ -79,6 +79,26 @@ boot() {
   sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php fanout_sync >/dev/null 2>/dev/null &
 }
 
+# At power-on the clock comes from the hardware clock until NTP first sets it:
+# one that runs fast or slow is set back or forward under the running
+# services. Wait for that first synchronisation, up to 30 s, then start
+# anyway (an unreachable NTP server must not keep a server down).
+clock_sync() {
+  NTP=$(timedatectl show -p NTP --value 2>/dev/null) || return 0
+  if [ "$NTP" != "yes" ]; then
+    echo 'WARNING: NTP is off on this server (timedatectl). XC_VM is continuing with the current system clock.'
+    return 0
+  fi
+  for _ in 1 2 3; do
+    if [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null)" = "yes" ]; then
+      echo 'Clock synchronized by NTP.'
+      return 0
+    fi
+    sleep 10
+  done
+  echo 'WARNING: NTP synchronization unavailable after 3 attempts. XC_VM is continuing with the current system clock.'
+}
+
 # Foreground entry for systemd (Type=simple): boot, then stay alive so systemd
 # keeps tracking the unit. Holds the terminal BY DESIGN — for a manual,
 # non-blocking restart use `restart` (or `systemctl restart|reload xc_vm`).
@@ -88,6 +108,7 @@ start() {
     echo 'XC_VM is already running'
     return 1
   fi
+  clock_sync
   boot
   echo 'Running in foreground...'
   sleep infinity
