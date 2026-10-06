@@ -142,10 +142,20 @@ final class AuditCoreDataBackupRetentionTest extends TestCase {
 				}
 			}
 
+			namespace XcVm\Domain\Backup {
+				// No backup target is set up.
+				final class BackupTargets {
+					public static function enabled(): array {
+						return [];
+					}
+				}
+			}
+
 			namespace {
 				define('MAIN_HOME', $argv[1]);
 				define('SERVER_ID', 1);
 				define('CRONS_TMP_PATH', MAIN_HOME . 'crons/');
+				define('CONFIG_PATH', MAIN_HOME . 'config/');
 
 				require $argv[2] . 'vendor/autoload.php';
 				\XcVm\Core\Config\SettingsManager::set(json_decode($argv[4], true) + ['automatic_backups' => 'daily', 'last_backup' => 0, 'backups_to_keep' => (int) $argv[3]]);

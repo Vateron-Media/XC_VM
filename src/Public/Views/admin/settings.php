@@ -3,6 +3,7 @@
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
+use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Reference\DeviceReference;
 use XcVm\Core\Reference\GeoReference;
 use XcVm\Core\Reference\LocaleReference;
@@ -10,6 +11,8 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Alert\AlertChannels;
+use XcVm\Domain\Alert\ExpiryReminders;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
@@ -88,6 +91,103 @@ use XcVm\Domain\Server\ServerRepository;
 				<div class="tab-pane fade show active" id="interface" role="tabpanel">
 					<div class="row">
 						<div class="col-12">
+
+							<?php // Maintenance: the client APIs and resellers are refused; admins and viewers already watching are not. ?>
+							<h5 class="card-title mb-4"><?= $language::get('maintenance_mode') ?></h5>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="maintenance_mode">
+									<?= $language::get('maintenance_mode_on') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('maintenance_mode_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<div class="form-check form-switch"><input name="maintenance_mode" id="maintenance_mode" type="checkbox" <?= !empty($rSettings["maintenance_mode"]) ? ' checked' : '' ?> class="form-check-input"></div>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="maintenance_until"><?= $language::get('maintenance_until') ?></label>
+								<div class="col-md-8">
+									<input type="datetime-local" class="form-control" id="maintenance_until" name="maintenance_until" value="<?= !empty($rSettings["maintenance_until"]) ? date('Y-m-d\TH:i', (int) $rSettings["maintenance_until"]) : '' ?>">
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="maintenance_message"><?= $language::get('maintenance_message') ?></label>
+								<div class="col-md-8">
+									<input type="text" class="form-control" id="maintenance_message" name="maintenance_message" maxlength="255" placeholder="<?= htmlspecialchars(Maintenance::message([]), ENT_QUOTES) ?>" value="<?= htmlspecialchars((string) ($rSettings["maintenance_message"] ?? ''), ENT_QUOTES) ?>">
+								</div>
+							</div>
+
+							<?php // ExpiryReminders (cron:reminders, daily at 09:00): lines that expire within the days below. ?>
+							<h5 class="card-title mb-4"><?= $language::get('reminders') ?></h5>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="reminders_days">
+									<?= $language::get('reminders_days') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('reminders_days_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<input type="text" class="form-control" id="reminders_days" name="reminders_days" maxlength="64" value="<?= htmlspecialchars((string) ($rSettings["reminders_days"] ?? ''), ENT_QUOTES) ?>">
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="reminders_email">
+									<?= $language::get('reminders_email') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('reminders_email_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<div class="form-check form-switch"><input name="reminders_email" id="reminders_email" type="checkbox" <?= !empty($rSettings["reminders_email"]) ? ' checked' : '' ?> class="form-check-input"></div>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="reminders_mag">
+									<?= $language::get('reminders_mag') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('reminders_mag_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<div class="form-check form-switch"><input name="reminders_mag" id="reminders_mag" type="checkbox" <?= !empty($rSettings["reminders_mag"]) ? ' checked' : '' ?> class="form-check-input"></div>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="reminders_webhook">
+									<?= $language::get('reminders_webhook') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('reminders_webhook_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<div class="form-check form-switch"><input name="reminders_webhook" id="reminders_webhook" type="checkbox" <?= !empty($rSettings["reminders_webhook"]) ? ' checked' : '' ?> class="form-check-input"></div>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="reminders_telegram">
+									<?= $language::get('reminders_telegram') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('reminders_telegram_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<select class="form-select" id="reminders_telegram" name="reminders_telegram">
+										<option value="0"><?= $language::get('reminders_telegram_off') ?></option>
+										<?php foreach (AlertChannels::all() as $rChannel): ?>
+											<?php if ($rChannel['type'] === 'telegram'): ?>
+												<option value="<?= (int) $rChannel['id'] ?>" <?= (int) ($rSettings["reminders_telegram"] ?? 0) === $rChannel['id'] ? 'selected' : '' ?>><?= htmlspecialchars($rChannel['name'], ENT_QUOTES) ?></option>
+											<?php endif; ?>
+										<?php endforeach; ?>
+									</select>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="reminders_message">
+									<?= $language::get('reminders_message') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('reminders_message_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<input type="text" class="form-control" id="reminders_message" name="reminders_message" maxlength="255" placeholder="<?= htmlspecialchars(ExpiryReminders::DEFAULT_MESSAGE, ENT_QUOTES) ?>" value="<?= htmlspecialchars((string) ($rSettings["reminders_message"] ?? ''), ENT_QUOTES) ?>">
+								</div>
+							</div>
 
 							<h5 class="card-title mb-4"><?= $language::get('preferences') ?></h5>
 
@@ -998,6 +1098,21 @@ use XcVm\Domain\Server\ServerRepository;
 
 								<div class="col-md-8">
 									<input type="password" class="form-control" id="api_pass" name="api_pass" value="<?= htmlspecialchars($rSettings["api_pass"] ?? '') ?>">
+								</div>
+							</div>
+
+							<?php // Public/Controllers/Api/MetricsController: /metrics answers this token; empty, it is off. ?>
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="metrics_token">
+									<?= $language::get('metrics_token') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('metrics_token_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<div class="input-group">
+										<input type="text" readonly class="form-control" id="metrics_token" name="metrics_token" autocomplete="off" value="<?= htmlspecialchars((string) ($rSettings["metrics_token"] ?? ''), ENT_QUOTES) ?>">
+										<button class="btn btn-outline-danger" type="button" id="metrics-token-clear"><i class="icon-base ti tabler-x"></i></button>
+										<button class="btn btn-outline-info" type="button" id="metrics-token-new"><i class="icon-base ti tabler-refresh"></i></button>
+									</div>
 								</div>
 							</div>
 
@@ -3197,6 +3312,22 @@ LayoutRenderer::renderFooter('admin');
 		}
 
 		// Address helpers (crypto-donation table on the Info tab).
+		// Metrics Token: 40 hexadecimal digits from the browser's cryptographic source.
+		(function() {
+			var field = document.getElementById('metrics_token');
+			if (!field) {
+				return;
+			}
+			document.getElementById('metrics-token-new').addEventListener('click', function() {
+				field.value = Array.from(crypto.getRandomValues(new Uint8Array(20)), function(b) {
+					return ('0' + b.toString(16)).slice(-2);
+				}).join('');
+			});
+			document.getElementById('metrics-token-clear').addEventListener('click', function() {
+				field.value = '';
+			});
+		})();
+
 		window.showQR = function(btnEl) {
 			var row = btnEl.closest('tr');
 			var addrCell = row ? row.querySelector('td.text-monospace') : null;

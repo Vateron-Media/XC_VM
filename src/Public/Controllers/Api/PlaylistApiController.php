@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Api;
 
 use XcVm\Core\Auth\BruteforceGuard;
+use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\GeoIP;
@@ -56,6 +57,10 @@ class PlaylistApiController extends BaseApiController {
 		$this->deny = false;
 		$this->userInfo = $rUserInfo;
 		ini_set('memory_limit', -1);
+
+		if (Maintenance::active(SettingsManager::getAll())) {
+			Maintenance::refuse(SettingsManager::getAll());
+		}
 
 		if (!$rUserInfo['is_restreamer'] && SettingsManager::get('disable_playlist')) {
 			generateError('PLAYLIST_DISABLED');

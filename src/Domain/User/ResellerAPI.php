@@ -50,7 +50,7 @@ class ResellerAPI {
 	 * @return array Action result.
 	 */
 	public static function processData(string $rType, array $rData) {
-		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'category_template_id'], 'mag' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
+		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'telegram', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'category_template_id'], 'mag' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
 
 		foreach ($rData as $rKey => $rValue) {
 			if (!in_array($rKey, $rArray[$rType])) {
@@ -338,6 +338,10 @@ class ResellerAPI {
 				$rArray[$rKey] = $rData[$rKey];
 			}
 			$rUserArray['reseller_notes'] = $rData['reseller_notes'];
+			// The subscriber's Telegram username for the expiry reminders, kept when not sent.
+			if (array_key_exists('telegram', $rData)) {
+				$rUserArray['telegram'] = trim((string) $rData['telegram']);
+			}
 			$rOwner = $rData['member_id'] ?? null;
 
 			// A trial is held by the reseller that makes it and stays with its
@@ -641,6 +645,10 @@ class ResellerAPI {
 				$rArray[$rKey] = $rData[$rKey];
 			}
 			$rUserArray['reseller_notes'] = $rData['reseller_notes'];
+			// The subscriber's Telegram username for the expiry reminders, kept when not sent.
+			if (array_key_exists('telegram', $rData)) {
+				$rUserArray['telegram'] = trim((string) $rData['telegram']);
+			}
 			$rOwner = $rData['member_id'] ?? null;
 
 			// A trial is held by the reseller that makes it and stays with its
@@ -1140,6 +1148,10 @@ class ResellerAPI {
 
 			$rArray['contact'] = $rData['contact'];
 			$rArray['reseller_notes'] = $rData['reseller_notes'];
+			// The subscriber's Telegram username for the expiry reminders, kept when not sent.
+			if (array_key_exists('telegram', $rData)) {
+				$rArray['telegram'] = trim((string) $rData['telegram']);
+			}
 			$rOwner = $rData['member_id'] ?? null;
 
 			// A trial is held by the reseller that makes it and stays with its

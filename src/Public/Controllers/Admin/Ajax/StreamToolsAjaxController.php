@@ -7,6 +7,7 @@ use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Module\SourceDriverRegistry;
 use XcVm\Core\Process\ProcessRunner;
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamRepository;
@@ -399,24 +400,16 @@ class StreamToolsAjaxController extends BaseAjaxController {
 		}
 
 		$rInput = [];
+		$rGuessit = SettingsManager::get('parse_type') == 'guessit';
 
-		if (SettingsManager::get('parse_type') == 'guessit') {
-			foreach ($rData as $rEpisodeID => $rName) {
-				$rInput[$rEpisodeID] = pathinfo($rName)['filename'];
-			}
-
-			$rCommand = MAIN_HOME . 'bin/guess ' . escapeshellarg(json_encode($rInput));
-		} else {
-			foreach ($rData as $rEpisodeID => $rName) {
-				$rInput[$rEpisodeID] = pathinfo(str_replace('-', '_', $rName))['filename'];
-			}
-
-			$rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'bin/python/release.py ' . escapeshellarg(json_encode($rInput));
+		foreach ($rData as $rEpisodeID => $rName) {
+			$rInput[$rEpisodeID] = $rGuessit ? pathinfo($rName)['filename'] : pathinfo(str_replace('-', '_', $rName))['filename'];
 		}
 
-		$rEpisodes = json_decode(shell_exec($rCommand), true);
+		$rEpisodes = AdminHelpers::runReleaseParser($rGuessit ? 'guessit' : 'ptn', (string) json_encode($rInput));
 
-		foreach ($rEpisodes as $rEpisodeID => $rEpisode) {
+		// No answer (the parser failed): no episode found.
+		foreach (is_array($rEpisodes) ? $rEpisodes : [] as $rEpisodeID => $rEpisode) {
 			if (isset($rEpisode['episode'])) {
 				if (is_array($rEpisode['episode'])) {
 					$rReturn[] = [$rEpisodeID, intval($rEpisode['episode'][0])];

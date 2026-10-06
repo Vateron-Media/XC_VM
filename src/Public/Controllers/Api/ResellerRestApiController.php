@@ -3,6 +3,8 @@
 namespace XcVm\Public\Controllers\Api;
 
 use XcVm\Core\Auth\ApiTokens;
+use XcVm\Core\Config\Maintenance;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 
 /**
@@ -25,6 +27,12 @@ class ResellerRestApiController {
 			if (substr($rKey, 0, 7) == 'STATUS_') {
 				$_ERRORS[intval($rValue)] = $rKey;
 			}
+		}
+		// Maintenance mode: the reseller API is closed with the panel.
+		if (Maintenance::active(SettingsManager::getAll())) {
+			http_response_code(503);
+			echo json_encode(['status' => 'STATUS_FAILURE', 'error' => Maintenance::message(SettingsManager::getAll())]);
+			return;
 		}
 		$rData = RequestManager::getAll();
 		ResellerAPIWrapper::$db = &$db;

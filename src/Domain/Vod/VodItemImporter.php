@@ -7,6 +7,7 @@ use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Events\Vod\VodImportResultEvent;
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Process\Multithread;
 use XcVm\Domain\Bouquet\BouquetService;
@@ -65,14 +66,7 @@ class VodItemImporter {
 		// the title, and "|" is \p{Sm}, which parseTitle() keeps, so a tag left
 		// in sinks both the TMDb search and the similarity check (No match).
 		$rRelease = trim(preg_replace('/\|[^\s|][^|]{0,10}\|/u', ' ', (string) $rRelease));
-		if ($rType == 'guessit') {
-			$rCommand = MAIN_HOME . 'bin/guess ' . escapeshellarg($rRelease . '.mkv');
-		} else {
-			$rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'bin/python/release.py ' . escapeshellarg(str_replace('-', '_', $rRelease));
-		}
-		// The parser path is MAIN_HOME's; the release name is escapeshellarg()'d.
-		// nosemgrep: php.lang.security.exec-use.exec-use
-		$rResult = json_decode(shell_exec($rCommand), true);
+		$rResult = $rType == 'guessit' ? AdminHelpers::runReleaseParser('guessit', $rRelease . '.mkv') : AdminHelpers::runReleaseParser('ptn', str_replace('-', '_', $rRelease));
 		if (!is_array($rResult)) {
 			$rResult = [];
 		}

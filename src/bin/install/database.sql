@@ -124,6 +124,23 @@ CREATE TABLE IF NOT EXISTS `blocked_uas` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `backup_targets`
+--
+
+CREATE TABLE IF NOT EXISTS `backup_targets` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT '1',
+  `keep` int(11) NOT NULL DEFAULT '0',
+  `config` text COLLATE utf8_unicode_ci,
+  `created` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `bouquets`
 --
 
@@ -390,6 +407,73 @@ CREATE TABLE IF NOT EXISTS `cluster_stream_ver` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `alert_channels`
+--
+
+CREATE TABLE IF NOT EXISTS `alert_channels` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT '1',
+  `config` text COLLATE utf8_unicode_ci,
+  `created` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `alert_rules`
+--
+
+CREATE TABLE IF NOT EXISTS `alert_rules` (
+  `rule` varchar(32) COLLATE utf8_unicode_ci NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT '1',
+  `threshold` int(11) NOT NULL DEFAULT '0',
+  `minutes` int(11) NOT NULL DEFAULT '0',
+  `channels` text COLLATE utf8_unicode_ci,
+  PRIMARY KEY (`rule`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `alert_state`
+--
+
+CREATE TABLE IF NOT EXISTS `alert_state` (
+  `rule` varchar(32) COLLATE utf8_unicode_ci NOT NULL,
+  `subject` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `label` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT '0',
+  `since` int(11) NOT NULL DEFAULT '0',
+  `notified` tinyint(1) NOT NULL DEFAULT '0',
+  `sent` tinyint(1) NOT NULL DEFAULT '0',
+  `fired_at` int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`rule`, `subject`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `alert_log`
+--
+
+CREATE TABLE IF NOT EXISTS `alert_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `date` int(11) NOT NULL,
+  `rule` varchar(32) COLLATE utf8_unicode_ci NOT NULL,
+  `kind` varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  `title` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `text` text COLLATE utf8_unicode_ci,
+  `results` text COLLATE utf8_unicode_ci,
+  PRIMARY KEY (`id`),
+  KEY `date` (`date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `crontab`
 --
 
@@ -402,7 +486,7 @@ CREATE TABLE IF NOT EXISTS `crontab` (
   PRIMARY KEY (`id`),
   KEY `enabled` (`enabled`),
   KEY `filename` (`filename`)
-) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
 -- Dumping data for table `crontab`
@@ -434,7 +518,10 @@ INSERT INTO `crontab` (`id`, `filename`, `time`, `enabled`, `role`) VALUES
 (27, 'plex', '*/5 * * * *', 1, 'main'),
 (28, 'maxmind', '0 4 * * 2', 1, 'all'),
 (29, 'proxy', '0 5 * * *', 1, 'main'),
-(30, 'cluster', '* * * * *', 1, 'main');
+(30, 'cluster', '* * * * *', 1, 'main'),
+(31, 'alerts', '* * * * *', 1, 'main'),
+(32, 'reminders', '0 9 * * *', 1, 'main'),
+(33, 'backup_verify', '0 5 * * 0', 1, 'main');
 
 -- --------------------------------------------------------
 
@@ -588,6 +675,35 @@ CREATE TABLE IF NOT EXISTS `hmac_keys` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `telegram_chats`
+--
+
+CREATE TABLE IF NOT EXISTS `telegram_chats` (
+  `username` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `chat_id` varchar(32) COLLATE utf8_unicode_ci NOT NULL,
+  `updated` int(11) DEFAULT NULL,
+  PRIMARY KEY (`username`),
+  KEY `chat_id` (`chat_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `line_reminders`
+--
+
+CREATE TABLE IF NOT EXISTS `line_reminders` (
+  `line_id` int(11) NOT NULL,
+  `exp_date` int(11) NOT NULL,
+  `days` int(11) NOT NULL,
+  `sent` int(11) DEFAULT NULL,
+  PRIMARY KEY (`line_id`, `exp_date`, `days`),
+  KEY `exp_date` (`exp_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `lines`
 --
 
@@ -625,6 +741,7 @@ CREATE TABLE IF NOT EXISTS `lines` (
   `package_id` int(11) DEFAULT NULL,
   `access_token` varchar(32) COLLATE utf8_unicode_ci DEFAULT NULL,
   `contact` text COLLATE utf8_unicode_ci,
+  `telegram` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
   `last_activity` int(11) DEFAULT NULL,
   `last_activity_array` mediumtext COLLATE utf8_unicode_ci,
   `updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1505,6 +1622,17 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `keep_errors` int(11) DEFAULT '0',
   `keep_restarts` int(11) DEFAULT '0',
   `keep_syslog` int(11) DEFAULT '0',
+  `maintenance_mode` tinyint(1) DEFAULT '0',
+  `maintenance_until` int(11) DEFAULT '0',
+  `maintenance_message` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `metrics_token` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `reminders_days` varchar(64) COLLATE utf8_unicode_ci DEFAULT '7,3,1',
+  `reminders_email` tinyint(1) DEFAULT '0',
+  `reminders_mag` tinyint(1) DEFAULT '0',
+  `reminders_webhook` tinyint(1) DEFAULT '0',
+  `reminders_message` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `reminders_telegram` int(11) DEFAULT '0',
+  `backup_verify` text COLLATE utf8_unicode_ci,
   `ignore_keyframes` int(11) DEFAULT '0',
   `seg_delete_threshold` int(11) DEFAULT '4',
   `fails_per_time` int(11) DEFAULT '86400',

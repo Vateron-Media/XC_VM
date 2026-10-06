@@ -1,6 +1,6 @@
 # Backup Strategy
 
-XC_VM supports automated and manual database backups with local storage and optional Dropbox upload.
+XC_VM supports automated and manual database backups with local storage, optional Dropbox upload and [off-site copies](operations.md#off-site-backups) to S3-compatible storage or SFTP.
 Backups are managed through the admin panel, CLI commands, and a cron job.
 
 ---
@@ -22,7 +22,7 @@ users_credits_logs, users_logs, watch_logs
 Backups do **not** include:
 
 - File system data (recordings, VOD files, EPG XML)
-- Configuration files (`config/`)
+- Configuration files (`config/`): the [recovery bundle](operations.md#recovery-bundle) holds the ones a new MAIN needs
 - Binary dependencies (`bin/`)
 - Temporary files (`tmp/`)
 
@@ -72,6 +72,7 @@ Only runs on the main server (`is_main=1`). Uses PID-based locking to prevent ov
 3. Keep the file only when the dump finished: a dump that failed or came out empty is deleted and does not count as a backup.
 4. If Dropbox enabled: upload with status tracking.
 5. Apply retention policy (delete oldest files exceeding limit).
+6. Copy the backup, and once a day the recovery bundle, to every enabled [off-site target](operations.md#off-site-backups), then keep each target's newest copies.
 
 ### File location
 
@@ -301,6 +302,9 @@ php console.php cluster:import-keys /root/cluster-keys.xcdr
 | `src/Cli/Commands/ToolsCommand.php` | CLI migration and database tools |
 | `src/Cli/Commands/ClusterExportKeysCommand.php`, `ClusterImportKeysCommand.php` | cluster keys export and import |
 | `src/Cli/Commands/ClusterReenrolCommand.php` | re-enrols the fleet over SSH after a MAIN replaced without keys |
+| `src/Domain/Backup/BackupTargets.php` | off-site targets (S3, SFTP) |
+| `src/Domain/Backup/RecoveryBundle.php`, `src/Cli/Commands/BackupOpenBundleCommand.php` | recovery bundle, and `backup:open-bundle` |
+| `src/Domain/Backup/BackupVerifier.php`, `src/Cli/CronJobs/BackupVerifyCronJob.php` | weekly [restore test](operations.md#restore-test) |
 | `src/Public/Views/admin/backups.php` | admin panel UI |
 | `src/Public/Views/admin/api.php` | API endpoint handler |
 | `src/Public/Controllers/Admin/BackupsController.php` | admin controller |

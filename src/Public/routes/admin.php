@@ -9,7 +9,9 @@ use XcVm\Public\Controllers\Admin\AdminActionController;
 use XcVm\Public\Controllers\Admin\AdminLogoutController;
 use XcVm\Public\Controllers\Admin\AdminResizeController;
 use XcVm\Public\Controllers\Admin\Ajax\ActiveCodeAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\AlertAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BackupAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\BackupTargetAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CategoryTemplateAjaxController;
@@ -27,6 +29,7 @@ use XcVm\Public\Controllers\Admin\Ajax\StreamAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamToolsAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\UserAjaxController;
 use XcVm\Public\Controllers\Admin\AjaxController;
+use XcVm\Public\Controllers\Admin\AlertController;
 use XcVm\Public\Controllers\Admin\ArchiveController;
 use XcVm\Public\Controllers\Admin\AsnsController;
 use XcVm\Public\Controllers\Admin\BackupsController;
@@ -191,6 +194,7 @@ $router->get('bouquet_sort', [BouquetSortController::class, 'index']);
 
 $router->get('login_logs', [LoginLogController::class, 'index']);
 $router->get('admin_actions', [AdminActionController::class, 'index']);
+$router->get('alerts', [AlertController::class, 'index']);
 $router->get('mysql_syslog', [MysqlSyslogController::class, 'index']);
 $router->get('mag_events', [MagEventController::class, 'index']);
 $router->get('restream_logs', [RestreamLogController::class, 'index']);
@@ -417,6 +421,19 @@ $router->api('header_stats', [StatsAjaxController::class, 'headerStats']);
 $router->api('save_ui_prefs', [StatsAjaxController::class, 'saveUiPrefs']);
 
 // ─── Backups, Logs & Reports ───────────────────────
+// Alerts (Domain\\Alert): channels and rules.
+$router->api('alert_channel_save', [AlertAjaxController::class, 'saveChannel']);
+$router->api('alert_channel_delete', [AlertAjaxController::class, 'deleteChannel']);
+$router->api('alert_channel_test', [AlertAjaxController::class, 'testChannel']);
+$router->api('alert_rules_save', [AlertAjaxController::class, 'saveRules']);
+
+// Off-site backups (Domain\\Backup): targets, recovery bundle, restore test.
+$router->api('backup_target_save', [BackupTargetAjaxController::class, 'save']);
+$router->api('backup_target_delete', [BackupTargetAjaxController::class, 'delete']);
+$router->api('backup_target_test', [BackupTargetAjaxController::class, 'test']);
+$router->api('backup_bundle_passphrase', [BackupTargetAjaxController::class, 'passphrase']);
+$router->api('backup_verify_now', [BackupTargetAjaxController::class, 'verifyNow']);
+
 $router->api('clear_logs', [BackupAjaxController::class, 'clearLogs']);
 $router->api('backup', [BackupAjaxController::class, 'backup']);
 $router->api('report', [BackupAjaxController::class, 'report']);

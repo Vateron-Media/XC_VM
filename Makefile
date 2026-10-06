@@ -44,6 +44,8 @@ LB_DIRS_TO_REMOVE := \
 	Domain/User \
 	Domain/Device \
 	Domain/Cluster \
+	Domain/Alert \
+	Domain/Backup \
 	Public/cluster \
 	Public/Controllers/Admin \
 	Public/Controllers/Player \
@@ -76,6 +78,11 @@ LB_FILES_TO_REMOVE := \
 	Public/Controllers/Api/ActiveCodeApiController.php \
 	Public/Controllers/Api/ResellerRestApiController.php \
 	Public/Controllers/Api/ResellerAPIWrapper.php \
+	Public/Controllers/Api/MetricsController.php \
+	Cli/CronJobs/AlertsCronJob.php \
+	Cli/CronJobs/RemindersCronJob.php \
+	Cli/CronJobs/BackupVerifyCronJob.php \
+	Cli/Commands/BackupOpenBundleCommand.php \
 	Infrastructure/ResellerApiDispatcher.php \
 	Infrastructure/ResellerTableRenderer.php \
 	config/rclone.conf \

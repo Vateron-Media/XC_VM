@@ -54,7 +54,15 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
                     </div>
                 <?php endif; ?>
 
-                <?php if ($rTwoFactor !== null || $rRecovery !== null): ?>
+                <?php if (!empty($rMaintenance)): ?>
+                    <div class="panel-alert" role="alert">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 8v5M12 16h.01" />
+                        </svg>
+                        <span><?= htmlspecialchars($rMaintenance, ENT_QUOTES) ?></span>
+                    </div>
+                <?php elseif ($rTwoFactor !== null || $rRecovery !== null): ?>
                     <?php require MAIN_HOME . 'Public/Views/layouts/login_2fa.php'; ?>
                 <?php else: ?>
                 <form id="loginForm" method="POST" action="./login">

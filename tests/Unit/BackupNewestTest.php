@@ -38,7 +38,7 @@ final class BackupNewestTest extends TestCase {
 		touch($this->rDir . 'backups/pre_restore_2027-01-02_05:00:00.sql', 1800000200);
 		file_put_contents($this->rDir . 'backups/backup_2027-01-02_04:00:00.sql.error', 'too_many_write_operations');
 
-		$this->assertSame(['timestamp' => 1800000000, 'upload_failed' => true], $this->newest());
+		$this->assertSame(['timestamp' => 1800000000, 'upload_failed' => true, 'filename' => 'backup_2027-01-02_04:00:00.sql'], $this->newest());
 	}
 
 	public function testNoBackupRunIsNone(): void {

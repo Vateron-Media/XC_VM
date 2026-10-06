@@ -107,6 +107,9 @@ $rBackupTypes = ['off' => 'Off', 'hourly' => 'Hourly', 'daily' => 'Daily', 'week
             </div>
         </div>
     </div>
+
+    <?php // Off-site copies, the recovery bundle and the restore test (Domain\Backup). ?>
+    <?php require MAIN_HOME . 'Public/Views/admin/backups_offsite.php'; ?>
 </div>
 
 <?php

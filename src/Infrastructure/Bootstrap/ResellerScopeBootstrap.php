@@ -5,6 +5,8 @@ namespace XcVm\Infrastructure\Bootstrap;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Bootstrap\Stage\SessionStage;
+use XcVm\Core\Config\Maintenance;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\AdminHelpers;
@@ -65,6 +67,13 @@ final class ResellerScopeBootstrap implements ScopeBootstrap {
 			// for authenticated pages. Redirect to login with referrer.
 			$referrer = defined('PAGE_NAME') ? PAGE_NAME : basename($_SERVER['REQUEST_URI'] ?? '', '.php');
 			header('Location: login?referrer=' . urlencode($referrer));
+			exit();
+		}
+
+		// Maintenance mode: a reseller is signed out to the login page, which says so.
+		if (Maintenance::active(SettingsManager::getAll())) {
+			SessionManager::clearContext('reseller');
+			header('Location: login');
 			exit();
 		}
 

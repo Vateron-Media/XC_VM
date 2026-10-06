@@ -132,6 +132,7 @@ final class NavbarProfileMenuTest extends TestCase {
         // Settings/modules gate on 'settings'; backups/cache on 'database'.
         $this->assertSame(['settings'], $byKey['profile.settings']->permissions);
         $this->assertSame(['settings'], $byKey['profile.modules']->permissions);
+        $this->assertSame(['settings'], $byKey['profile.alerts']->permissions);
         $this->assertSame(['database'], $byKey['profile.backups']->permissions);
         $this->assertSame(['database'], $byKey['profile.cache']->permissions);
     }
@@ -146,6 +147,7 @@ final class NavbarProfileMenuTest extends TestCase {
         $this->assertSame([
             'profile.edit',
             'profile.settings',
+            'profile.alerts',
             'profile.backups',
             'profile.cache',
             'profile.modules',
@@ -197,6 +199,7 @@ final class NavbarProfileMenuTest extends TestCase {
         $this->assertSame([
             'profile.edit',
             'profile.settings',
+            'profile.alerts',
             'profile.backups',
             'profile.cache',
             'profile.modules',
@@ -220,6 +223,7 @@ final class NavbarProfileMenuTest extends TestCase {
         $this->assertSame([
             'profile.edit',
             'profile.settings',
+            'profile.alerts',
             'profile.backups',
             'profile.cache',
             'profile.modules',
