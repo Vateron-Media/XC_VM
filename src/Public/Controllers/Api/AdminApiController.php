@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Api;
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 
 /**
@@ -15,6 +16,232 @@ use XcVm\Core\Http\RequestManager;
  */
 
 class AdminApiController {
+	/**
+	 * The permissions each action asks of the group of the key: those the panel
+	 * asks for the same operation (PageAuthorization, the admin-ajax gates, the
+	 * services, TableController). Several mean any one of them; none, that every
+	 * key runs the action. A full administrator holds them all
+	 * (Authorization::check). An action that is not listed is a module's
+	 * (AdminApiRegistry, TableRegistry), which asks for its own permission.
+	 *
+	 * @var array<string, list<string>>
+	 */
+	public const ACTION_PERMISSIONS = [
+		'mysql_query' => ['database'],
+		// The key's own account.
+		'user_info' => [],
+		// Tables, as TableController asks.
+		'get_lines' => ['users', 'mass_edit_lines'],
+		'get_mags' => ['manage_mag', 'mass_edit_mags'],
+		'get_enigmas' => ['manage_e2', 'mass_edit_enigmas'],
+		'get_users' => ['mng_regusers', 'mass_edit_users'],
+		'get_streams' => ['streams', 'mass_edit_streams'],
+		'get_channels' => ['streams', 'mass_edit_streams'],
+		'get_stations' => ['radio', 'mass_edit_radio'],
+		'get_movies' => ['movies', 'mass_sedits_vod'],
+		'get_series_list' => ['series', 'mass_sedits'],
+		'get_episodes' => ['episodes', 'mass_sedits'],
+		'activity_logs' => ['connection_logs'],
+		'live_connections' => ['live_connections'],
+		'credit_logs' => ['credits_log'],
+		'client_logs' => ['client_request_log'],
+		'user_logs' => ['reg_userlog'],
+		'stream_errors' => ['stream_errors'],
+		'system_logs' => ['panel_logs'],
+		'login_logs' => ['login_logs'],
+		'restream_logs' => ['restream_logs'],
+		'mag_events' => ['manage_events'],
+		// As the table asks: the stream and movie forms and the providers page show it.
+		'get_provider_streams' => ['streams', 'add_stream', 'edit_stream', 'add_movie', 'edit_movie'],
+		// One record is read with the permission of its form: a table lists less of it.
+		'get_line' => ['edit_user'],
+		'create_line' => ['add_user'],
+		'edit_line' => ['edit_user'],
+		'delete_line' => ['edit_user'],
+		'disable_line' => ['edit_user'],
+		'enable_line' => ['edit_user'],
+		'unban_line' => ['edit_user'],
+		'ban_line' => ['edit_user'],
+		'get_user' => ['edit_reguser'],
+		'create_user' => ['add_reguser'],
+		'edit_user' => ['edit_reguser'],
+		'delete_user' => ['edit_reguser'],
+		'disable_user' => ['edit_reguser'],
+		'enable_user' => ['edit_reguser'],
+		'get_mag' => ['edit_mag'],
+		'create_mag' => ['add_mag'],
+		'edit_mag' => ['edit_mag'],
+		'delete_mag' => ['edit_mag'],
+		'disable_mag' => ['edit_mag'],
+		'enable_mag' => ['edit_mag'],
+		'unban_mag' => ['edit_mag'],
+		'ban_mag' => ['edit_mag'],
+		'convert_mag' => ['edit_mag'],
+		'get_enigma' => ['edit_e2'],
+		'create_enigma' => ['add_e2'],
+		'edit_enigma' => ['edit_e2'],
+		'delete_enigma' => ['edit_e2'],
+		'disable_enigma' => ['edit_e2'],
+		'enable_enigma' => ['edit_e2'],
+		'unban_enigma' => ['edit_e2'],
+		'ban_enigma' => ['edit_e2'],
+		'convert_enigma' => ['edit_e2'],
+		'get_bouquets' => ['bouquets'],
+		// Or of its list, where the list answers with the same records.
+		'get_bouquet' => ['bouquets', 'edit_bouquet'],
+		'create_bouquet' => ['add_bouquet'],
+		'edit_bouquet' => ['edit_bouquet'],
+		'delete_bouquet' => ['edit_bouquet'],
+		'get_access_codes' => ['add_code'],
+		'get_access_code' => ['add_code'],
+		'create_access_code' => ['add_code'],
+		'edit_access_code' => ['add_code'],
+		'delete_access_code' => ['add_code'],
+		'get_hmacs' => ['add_hmac'],
+		'get_hmac' => ['add_hmac'],
+		'create_hmac' => ['add_hmac'],
+		'edit_hmac' => ['add_hmac'],
+		'delete_hmac' => ['add_hmac'],
+		'get_epgs' => ['epg'],
+		'get_epg' => ['epg', 'epg_edit'],
+		'create_epg' => ['add_epg'],
+		'edit_epg' => ['epg_edit'],
+		'delete_epg' => ['epg_edit'],
+		// Every EPG is reloaded with `epg`, one of them with `epg_edit`.
+		'reload_epg' => ['epg', 'epg_edit'],
+		'get_providers' => ['streams'],
+		'get_provider' => ['streams'],
+		'create_provider' => ['streams'],
+		'edit_provider' => ['streams'],
+		'delete_provider' => ['streams'],
+		'reload_provider' => ['streams'],
+		'get_groups' => ['mng_groups'],
+		'get_group' => ['mng_groups', 'edit_group'],
+		'create_group' => ['add_group'],
+		'edit_group' => ['edit_group'],
+		'delete_group' => ['edit_group'],
+		'get_packages' => ['mng_packages'],
+		'get_package' => ['mng_packages', 'edit_package'],
+		'create_package' => ['add_packages'],
+		'edit_package' => ['edit_package'],
+		'delete_package' => ['edit_package'],
+		'get_transcode_profiles' => ['tprofiles'],
+		'get_transcode_profile' => ['tprofiles', 'tprofile'],
+		'create_transcode_profile' => ['tprofile'],
+		'edit_transcode_profile' => ['tprofile'],
+		'delete_transcode_profile' => ['tprofiles'],
+		'get_rtmp_ips' => ['rtmp'],
+		'get_rtmp_ip' => ['rtmp', 'add_rtmp'],
+		'create_rtmp_ip' => ['add_rtmp'],
+		'edit_rtmp_ip' => ['add_rtmp'],
+		'delete_rtmp_ip' => ['add_rtmp'],
+		'get_categories' => ['categories'],
+		'get_category' => ['categories'],
+		'create_category' => ['add_cat'],
+		'edit_category' => ['add_cat'],
+		'delete_category' => ['edit_cat'],
+		'get_blocked_isps' => ['block_isps'],
+		'add_blocked_isp' => ['block_isps'],
+		'delete_blocked_isp' => ['block_isps'],
+		'get_blocked_uas' => ['block_uas'],
+		'add_blocked_ua' => ['block_uas'],
+		'delete_blocked_ua' => ['block_uas'],
+		'get_blocked_ips' => ['block_ips'],
+		'add_blocked_ip' => ['block_ips'],
+		'delete_blocked_ip' => ['block_ips'],
+		'flush_blocked_ips' => ['block_ips'],
+		'get_stream' => ['edit_stream'],
+		'create_stream' => ['add_stream'],
+		'edit_stream' => ['edit_stream'],
+		'delete_stream' => ['edit_stream'],
+		'start_stream' => ['edit_stream'],
+		'stop_stream' => ['edit_stream'],
+		'get_channel' => ['edit_cchannel'],
+		'create_channel' => ['create_channel'],
+		'edit_channel' => ['edit_cchannel'],
+		// A created channel or a station is deleted, started and stopped from its
+		// row with `edit_stream`, or from the selection with its own permission.
+		'delete_channel' => ['edit_cchannel', 'edit_stream'],
+		'start_channel' => ['edit_cchannel', 'edit_stream'],
+		'stop_channel' => ['edit_cchannel', 'edit_stream'],
+		'get_station' => ['edit_radio'],
+		'create_station' => ['add_radio'],
+		'edit_station' => ['edit_radio'],
+		'delete_station' => ['edit_radio', 'edit_stream'],
+		'start_station' => ['edit_radio', 'edit_stream'],
+		'stop_station' => ['edit_radio', 'edit_stream'],
+		'get_movie' => ['edit_movie'],
+		'create_movie' => ['add_movie'],
+		'edit_movie' => ['edit_movie'],
+		'delete_movie' => ['edit_movie'],
+		'start_movie' => ['edit_movie'],
+		'stop_movie' => ['edit_movie'],
+		'get_episode' => ['edit_episode'],
+		'create_episode' => ['add_episode'],
+		'edit_episode' => ['edit_episode'],
+		'delete_episode' => ['edit_episode'],
+		'start_episode' => ['edit_episode'],
+		'stop_episode' => ['edit_episode'],
+		'get_series' => ['edit_series'],
+		'create_series' => ['add_series'],
+		'edit_series' => ['edit_series'],
+		'delete_series' => ['edit_series'],
+		'get_servers' => ['servers'],
+		'get_server' => ['servers', 'edit_server'],
+		'install_server' => ['add_server'],
+		'install_proxy' => ['add_server'],
+		'edit_server' => ['edit_server'],
+		'edit_proxy' => ['edit_server'],
+		'delete_server' => ['edit_server'],
+		'get_settings' => ['settings'],
+		'edit_settings' => ['settings'],
+		// The dashboard's figures, or the server view's.
+		'get_server_stats' => ['index', 'add_server', 'edit_server'],
+		'get_fpm_status' => ['add_server', 'edit_server'],
+		'get_rtmp_stats' => ['rtmp'],
+		'get_free_space' => ['process_monitor', 'edit_server'],
+		'get_pids' => ['process_monitor'],
+		'get_certificate_info' => ['servers', 'edit_server'],
+		// The panel has no such action: it is one on a server.
+		'reload_nginx' => ['edit_server'],
+		'clear_temp' => ['process_monitor'],
+		'clear_streams' => ['process_monitor'],
+		// The file browser of the movie, episode and created channel forms.
+		'get_directory' => ['add_episode', 'edit_episode', 'add_movie', 'edit_movie', 'create_channel', 'edit_cchannel'],
+		'kill_pid' => ['process_monitor'],
+		'kill_connection' => ['connection_logs'],
+		'adjust_credits' => ['edit_reguser'],
+		'reload_cache' => ['database'],
+		'get_active_codes' => ['users', 'mass_edit_lines'],
+		'get_active_code' => ['users'],
+		'generate_active_codes' => ['add_user'],
+		'create_active_code' => ['add_user'],
+		// A code is edited with its line, which the panel edits as a line.
+		'edit_active_code' => ['edit_user'],
+		'delete_active_code' => ['edit_user', 'mass_edit_lines'],
+		'disable_active_code' => ['edit_user', 'mass_edit_lines'],
+		'enable_active_code' => ['edit_user', 'mass_edit_lines'],
+		'reset_active_code_device' => ['edit_user', 'mass_edit_lines'],
+		'mass_active_codes' => ['edit_user', 'mass_edit_lines'],
+		'get_active_codes_batches' => ['users'],
+		'export_active_code_batch' => ['users'],
+		'check_active_code' => ['users'],
+	];
+
+	/**
+	 * Whether the key may run an action: its group lists one of the permissions
+	 * the action asks for (ACTION_PERMISSIONS).
+	 */
+	public static function permitted(string $rAction): bool {
+		$rAsked = self::ACTION_PERMISSIONS[$rAction] ?? [];
+		foreach ($rAsked as $rPermission) {
+			if (Authorization::check('adv', $rPermission)) {
+				return true;
+			}
+		}
+		return count($rAsked) == 0;
+	}
+
 	public function index() {
 		global $db;
 		global $_ERRORS;
@@ -42,6 +269,11 @@ class AdminApiController {
 				$rHideColumns = explode(',', RequestManager::get('hide_columns'));
 			} else {
 				$rHideColumns = null;
+			}
+			// An action runs with a permission of the key's group (ACTION_PERMISSIONS).
+			if (!self::permitted($rAction)) {
+				echo json_encode(['status' => 'STATUS_NO_PERMISSIONS']);
+				return;
 			}
 			switch ($rAction) {
 				case 'mysql_query':
@@ -533,7 +765,8 @@ class AdminApiController {
 					echo json_encode(AdminAPIWrapper::filterRow(AdminAPIWrapper::getServer($rData['id']), $rShowColumns, $rHideColumns));
 					break;
 				case 'install_server':
-					$rData['type'] = 0;
+					// The install command's type of a load balancer; 1 is a proxy.
+					$rData['type'] = 2;
 					echo json_encode(AdminAPIWrapper::installServer($rData));
 					break;
 				case 'install_proxy':

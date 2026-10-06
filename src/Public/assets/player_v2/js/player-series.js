@@ -25,6 +25,17 @@ window.SeriesApp = (function () {
     baseUrl: ''
   };
 
+  const escapeHtml = (str) => {
+    if (!str) return '';
+    // The panel sends the < and > of a stored name as &lt; and &gt; already: those two stay as they are.
+    return String(str)
+      .replace(/&(?!(?:lt|gt);)/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
   // Cache DOM Elements
   const els = {};
 
@@ -418,8 +429,8 @@ window.SeriesApp = (function () {
           <div class="card h-100 channel-card border shadow-sm" data-series-card-id="${s.id}">
             <div class="position-relative overflow-hidden">
               <img
-                src="${posterSrc}"
-                alt="${s.title}"
+                src="${escapeHtml(posterSrc)}"
+                alt="${escapeHtml(s.title)}"
                 class="card-img-top object-fit-cover media-poster-ratio"
                 loading="lazy"
                 onerror="this.src='${state.baseUrl}assets/img/placeholder-poster.png';" />
@@ -430,7 +441,7 @@ window.SeriesApp = (function () {
               </a>
               ${s.rating && s.rating !== 'N/A' ? `
                 <span class="position-absolute top-0 end-0 m-2 badge bg-dark bg-opacity-75 z-3 pe-none">
-                  <i class="icon-base bx bxs-star text-warning me-1"></i>${s.rating}
+                  <i class="icon-base bx bxs-star text-warning me-1"></i>${escapeHtml(s.rating)}
                 </span>` : ''}
               <button
                 type="button"
@@ -442,14 +453,14 @@ window.SeriesApp = (function () {
             </div>
             <div class="card-body p-3 d-flex flex-column justify-content-between">
               <div>
-                <h6 class="card-title text-truncate mb-1 fw-bold" title="${s.title}">
-                  <a href="${state.baseUrl}series?id=${s.id}" class="text-heading">${s.title}</a>
+                <h6 class="card-title text-truncate mb-1 fw-bold" title="${escapeHtml(s.title)}">
+                  <a href="${state.baseUrl}series?id=${s.id}" class="text-heading">${escapeHtml(s.title)}</a>
                 </h6>
               </div>
               <div class="d-flex align-items-center justify-content-between text-body-secondary small mt-2 pt-2 border-top">
-                <span>${s.year ? s.year : '&mdash;'}</span>
+                <span>${s.year ? escapeHtml(s.year) : '&mdash;'}</span>
                 <span class="badge bg-label-secondary rounded-pill px-2">
-                  ${s.total_seasons || 1} Season${(s.total_seasons || 1) > 1 ? 's' : ''}
+                  ${s.seasons_count || 1} Season${(s.seasons_count || 1) > 1 ? 's' : ''}
                 </span>
                 <a href="${state.baseUrl}series?id=${s.id}" class="btn btn-xs btn-primary d-flex align-items-center gap-1">
                   <i class="icon-base bx bx-play"></i> Watch

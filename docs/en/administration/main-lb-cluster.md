@@ -158,6 +158,10 @@ A load balancer that **was already running** and joined with an enrol code start
 off. It is connected and reporting, but it still works the old way. You then switch its flows on,
 one by one, on the **Cluster Nodes** page.
 
+The exception is a load balancer that was in mode 2, or whose DB credentials were dropped
+(Step 5). When you reinstall it or enrol it again by code, it comes back in mode 2 with every flow
+on, because in mode 1 it would have no database.
+
 Switch them on in this order. After each one, watch the LB for a while (its streams, its viewers,
 the warnings on Cluster Nodes) before going on:
 
@@ -173,8 +177,9 @@ the warnings on Cluster Nodes) before going on:
 | 8 | **Data plane** | Relays and files from other servers go through the agent with signed tickets instead of the stream password. Needs Streams and Content |
 
 Every flow can be switched off again: the load balancer then goes back to the old way for that
-part. Before switching **Connections** on, load the LB's current viewers into its agent with one
-command on MAIN:
+part. The exception is a load balancer in mode 2 (Step 4), which needs every flow: the page refuses
+to switch one off, and you press **Mode down** first. Before switching **Connections** on, load the
+LB's current viewers into its agent with one command on MAIN:
 
 ```bash
 sudo -u xc_vm /home/xc_vm/console.php cluster:seed-connections <server id>
@@ -224,8 +229,14 @@ cannot read its streams any more: press **Mode down**, wait a minute or two, the
     With the **DB Allowlist** on (Step 5), MAIN's firewall lets the load balancer back in up to a
     minute after **Mode down**. Its services may fail and restart once during that minute.
 
-    Do not switch the **Redis connection handler** on while a load balancer is in mode 2. The
-    Cache page refuses it.
+    Do not switch the **Redis connection handler** on while a load balancer is in mode 2, or is
+    joining in mode 2. The Cache page refuses it.
+
+    The other way round, while the handler is on the panel refuses to install or reinstall a load
+    balancer that would join in mode 2 (one that is in mode 2, or whose DB credentials were
+    dropped), and to approve its enrolment by code. An install is refused before the panel touches
+    the server, so a running load balancer stays in rotation; a request by code stays pending.
+    Switch the handler off first.
 
 ### Step 5 (optional): lock everything down
 
@@ -234,9 +245,14 @@ Only when every load balancer is in mode 2:
 1. **Drop DB credentials** (Cluster Nodes, per LB) removes MAIN's database and Redis passwords
    from the load balancer, and MAIN cancels its database access. This step cannot be undone from
    the panel, so the page allows it only after the load balancer has spent **seven days in mode
-   2**, and not while it shows **Streams not local**. Use those days: if the *MAIN DB connects*
-   box of that load balancer keeps showing refused connections, something on it still needs
-   MAIN's database.
+   2**, and only while it can run that way right now: every flow is on, MAIN heard it in the last
+   ten seconds, and it says that it reads its streams by itself. Otherwise the page tells you
+   what is missing. Use those days: if the *MAIN DB connects* box of that load balancer keeps
+   showing refused connections, something on it still needs MAIN's database.
+   The request waits ten minutes for the load balancer. If the load balancer does not collect it
+   in that time, nothing is removed: press the button again. **Mode down** withdraws a request
+   the load balancer has not collected yet, and the load balancer itself removes the passwords
+   only while it is in mode 2. When it is done, the load balancer shows a **DB revoked** badge.
 2. **DB Allowlist** (Settings → Cluster) firewalls MAIN's MySQL and Redis so that only MAIN, and
    servers that still need them, can connect.
 3. **Proxies:** reinstall each proxy from **Servers → Manage Proxies**, so it gets its own key and
@@ -267,7 +283,7 @@ The buttons:
 | --- | --- |
 | **Rotate token** / **Rotate all tokens now** | Issues a new token, for example if you think one leaked. The LB keeps working |
 | **Fence** / **Unfence** | Stops new viewers on that LB at once, and drops the rest after a short drain. Unfence puts it back on air |
-| **Quarantine** / **Trust again** | Freezes the LB's trust: it keeps serving but takes no new instructions. MAIN also does this by itself if it suspects a cloned server |
+| **Quarantine** / **Trust again** | Freezes the LB's trust: it keeps serving but takes no new instructions. MAIN also does this by itself if it suspects a cloned server. Commands queued for it that grant something are ended by the quarantine (the page says how many, the audit log names them): after *Trust again*, send again what is still wanted |
 | **Resync** | The LB fetches its copy of the configuration and its viewer list again from scratch |
 | **Revoke** | Removes the LB from the cluster. Its tokens stop working at once; it must join again |
 | **Mode up** / **Mode down** | Moves the LB between modes 0, 1 and 2 |
@@ -310,3 +326,13 @@ MAIN can only let new load balancers join with a valid licence. Check
 **A new load balancer stayed in the old mode after install.**
 It could not download its agent from GitHub, or the cluster was not switched on yet. Check that
 the server can reach GitHub over HTTPS, then join it with **Enrol by code**.
+
+**The install stops with "No MD5 hash for … in the hashes.md5 of release …".**
+A load balancer installs its PHP and nginx bundle only after checking it against the checksum list
+of its release. This line means that the list does not name the bundle, or that the load balancer
+could not download the list. Check that the server can reach GitHub over HTTPS, then reinstall. If
+it can, the binaries release is missing the entry, and it has to be completed first.
+
+**On Ubuntu 20.04, the install log says "libssl3 is not installed".**
+On Ubuntu 20.04 the install adds the OpenSSL 3 library for the bundled PHP. The log says whether
+it was installed and, if not, why. This line does not stop the install.

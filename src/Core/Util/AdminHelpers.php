@@ -137,7 +137,7 @@ class AdminHelpers {
 		$random_string = '';
 
 		for ($i = 0; $i < $strength; $i++) {
-			$random_character = $input[mt_rand(0, $input_length - 1)];
+			$random_character = $input[random_int(0, $input_length - 1)];
 			$random_string .= $random_character;
 		}
 
@@ -148,6 +148,7 @@ class AdminHelpers {
 	 * Reorder an array to match the order of values in another array.
 	 *
 	 * Values found in $rSort come first (in that order); the rest are appended.
+	 * Only numbers and text are kept.
 	 *
 	 * @param array $rArray Values to reorder.
 	 * @param array $rSort  Desired order of values.
@@ -158,16 +159,21 @@ class AdminHelpers {
 			return [];
 		}
 
+		// Only numbers and text are values: a boolean, null or a list is
+		// loosely equal to values it is not, and the callers store what comes
+		// back as ids.
+		$rIsValue = static fn($rValue) => is_scalar($rValue) && !is_bool($rValue);
+		$rValues = array_filter($rArray, $rIsValue);
 		$rOrdered = [];
 
 		foreach ($rSort as $rValue) {
-			if (($rKey = array_search($rValue, $rArray)) !== false) {
-				$rOrdered[] = $rValue;
-				unset($rArray[$rKey]);
+			if ($rIsValue($rValue) && ($rKey = array_search($rValue, $rValues)) !== false) {
+				$rOrdered[] = $rValues[$rKey];
+				unset($rValues[$rKey]);
 			}
 		}
 
-		return $rOrdered + $rArray;
+		return array_merge($rOrdered, array_values($rValues));
 	}
 
 	/**

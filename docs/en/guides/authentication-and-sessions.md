@@ -135,6 +135,10 @@ The player login flow is fundamentally different from admin/reseller. It authent
 
 Every failure triggers `BruteforceGuard::checkFlood()` before returning an error code.
 
+On success the session moves onto a fresh id (`session_regenerate_id(true)`) before the session keys are written, as at admin and reseller login, so the browser gets a new session cookie at sign-in.
+
+The second web player (`src/Public/Controllers/PlayerV2/PlayerLoginController.php`) also signs in with an account on another Xtream server (the server form, or a playlist address). When that server refuses, the request ends there, for a plain form post as for the page's script: the login page shows that server's answer, the address is counted once by `checkFlood()`, and the username and password are not tried as a line of this panel.
+
 ### Player Error Codes
 
 | Constant | Value | Meaning |
@@ -169,7 +173,7 @@ Entry point: `AdminScopeBootstrap::hydrateAdminContext()` (`src/Infrastructure/B
 
 When `$_SESSION['hash']` is set, it resolves the user (`UserRepository::getRegisteredUserById($_SESSION['hash'])`) and permissions (`AuthRepository::getPermissions()`), then validates the session's integrity via `SessionManager::adminSessionValid($rUserInfo, $rPermissions, $rSettings)`:
 
-1. **User & admin** -- a user row and permissions exist and `is_admin` is set.
+1. **User & admin** -- a user row and permissions exist, `is_admin` is set and the account is still enabled (`status` is 1, as a login requires).
 2. **IP verification** -- Compares the current IP against `$_SESSION['ip']`:
    - If `ip_subnet_match` setting is enabled: compares only the first three octets (e.g., `192.168.1.*` matches `192.168.1.*`).
    - If `ip_subnet_match` is disabled: requires an exact IP match.
@@ -178,9 +182,11 @@ When `$_SESSION['hash']` is set, it resolves the user (`UserRepository::getRegis
 
 If validation fails, the session is cleared via `SessionManager::clearContext('admin')` and the user is redirected to the index page. The admin JSON DataTables endpoint (`Public\Controllers\Admin\TableController`) runs the same `SessionManager::adminSessionValid()` check on its session branch but responds with JSON instead of redirecting.
 
+Because the account's `status` is part of the check, disabling an admin ends the session that account has open on its next request; there is no need to wait for the inactivity timeout.
+
 ### Reseller Session Validation
 
-File: `src/Infrastructure/Bootstrap/reseller_functions.php`
+File: `src/Infrastructure/Bootstrap/ResellerScopeBootstrap.php`
 
 Identical logic to admin validation, but uses the reseller session keys:
 
@@ -188,6 +194,7 @@ Identical logic to admin validation, but uses the reseller session keys:
 - Uses `$_SESSION['rip']` for IP comparison.
 - Uses `$_SESSION['rverify']` for the verify hash.
 - Validates `is_reseller` permission instead of `is_admin`.
+- Requires the account to be enabled (`status` is 1), so disabling a reseller ends its open session on the next request.
 
 The IP subnet matching and IP logout behavior is the same as admin.
 
@@ -279,23 +286,26 @@ File: `src/Core/Auth/BruteforceGuard.php`
 
 Centralized rate-limiting and brute-force protection. All methods use file-based state stored at `FLOOD_TMP_PATH` (`/home/xc_vm/tmp/flood/`). Allowed IPs (server IPs) and IPs listed in the `flood_ips_exclude` setting are always exempted.
 
+Every count and block marker is a file named after the address, so `checkFlood()`, `checkBruteforce()` and `checkAuthFlood()` count IP addresses only. A value that is not an IP address is not counted and creates no file under `tmp/flood/`.
+
 ### `checkFlood(?string $ip = null, bool $useCachedMode = false): void`
 
 Rate-limits requests per IP within a configurable time window.
 
-- **Settings:** `flood_limit` (max requests), `flood_seconds` (window size).
+- **Settings:** `flood_limit` (max requests), `flood_seconds` (the longest gap between two requests that are counted together).
 - **State file:** `FLOOD_TMP_PATH . $ip` -- stores a JSON object with `requests` count and `last_request` timestamp.
-- **Behavior:** Tracks request count within the time window. If the count exceeds `flood_limit`, the IP is blocked (inserted into `blocked_ips` table or signaled via Redis in cached/streaming mode). The state file is deleted after blocking.
-- **Used by:** Player login (called on every failed login attempt), streaming endpoints.
+- **Behavior:** Counts requests in a row, each within `flood_seconds` of the one before; a longer gap starts the count again. If the count exceeds `flood_limit`, the IP is blocked (inserted into `blocked_ips` table or signaled via Redis in cached/streaming mode). The state file is deleted after blocking.
+- **Used by:** Player login (called on every failed login attempt), streaming endpoints, the client APIs (a refused sign-in on `player_api.php` / `panel_api.php` included) and the MAG portal.
 
-### `checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false): void`
+### `checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false, ?string $password = null): void`
 
-Detects brute-force attacks based on the number of unique MAC addresses or usernames seen from a single IP.
+Detects brute-force attacks based on the number of unique MAC addresses or usernames seen from a single IP, and on the number of different passwords tried for one username from it.
 
-- **Settings:** `bruteforce_mac_attempts`, `bruteforce_username_attempts` (max unique values), `bruteforce_frequency` (time window in seconds).
-- **State file:** `FLOOD_TMP_PATH . $ip . '_mac'` or `FLOOD_TMP_PATH . $ip . '_user'` -- stores attempts as `{term: timestamp}` pairs.
-- **Behavior:** Expired attempts (outside the frequency window) are pruned via `truncateAttempts()`. If the number of unique terms exceeds the limit, the IP is blocked.
-- **Used by:** Streaming authentication endpoints.
+- **Settings:** `bruteforce_mac_attempts`, `bruteforce_username_attempts` (max unique values), `bruteforce_frequency` (time window in seconds). A limit that is 0, empty or absent switches that count off: MAC addresses and usernames are counted separately, each against its own limit.
+- **State file:** `FLOOD_TMP_PATH . $ip . '_mac'` stores attempts as `{term: timestamp}` pairs. `FLOOD_TMP_PATH . $ip . '_user'` holds `{"attempts": {term: timestamp}, "passwords": {username: {digest: timestamp}}}`: the `attempts` keys are the usernames as sent; the `passwords` keys are the username in lower case without trailing spaces, and each digest is the first 16 hex characters of HMAC-SHA256 over that username and the password, keyed with the panel's stream secret. The password itself is never stored.
+- **Behavior:** Expired attempts and digests (outside the frequency window) are pruned via `truncateAttempts()`. The IP is blocked when the number of unique terms reaches the limit, or when the different passwords tried for one username reach `bruteforce_username_attempts` (same limit, same note). The same wrong password sent again counts once; an empty or absent password is not counted; a correct sign-in is never counted.
+- **Concurrency:** a call holds an exclusive `flock` on the count file for its read and replace, so requests refused at the same moment for one address are each counted. The file is still replaced by rename; a waiting request locks the file now at the path again (at most 20 turns, then it proceeds without the lock). No lock file is created.
+- **Used by:** Streaming authentication endpoints, the client APIs and web player sign-in (unknown usernames, tokens and activation codes), and the MAG portal. The username and password sign-ins pass the password too (player_api, playlist, EPG, Enigma2, both web players, stream authentication, RTMP and the probe); token, activation-code and MAG portal callers pass none. The portal reports a handshake for a MAC the panel does not know and a `get_profile` that does not verify the device: each calls `checkBruteforce()` with the SHA-256 of the MAC as sent, then `checkFlood()`.
 
 ### `checkAuthFlood(array $user, ?string $ip = null): void`
 
@@ -324,17 +334,34 @@ When an IP is blocked:
 
 ### Cookie Configuration
 
-In the admin bootstrap context, the session cookie is `SameSite=Strict` and `HttpOnly`, and PHP runs in strict mode, refusing session ids it never issued:
+The session cookie parameters are set in one place, `SessionStage::startSession()` (`src/Core/Bootstrap/Stage/SessionStage.php`): the admin bootstrap context runs it as a boot stage, and the admin, reseller and player scope bootstraps call it for the session they start before the framework boot. The admin session poll (`Public\Controllers\Admin\SessionController`, the `session` route) and `SessionManager::start()` call it too; the latter makes the first start of a form save, because nginx runs `Public/Views/admin/post.php` itself. Every session start of both web players (sign-in, sign-out, external accounts) goes through it as well.
+
+It chooses the cookie from the request's scope (`XC_SCOPE`, set by nginx):
+
+- The admin and reseller panels, the APIs and every other scope keep PHP's `PHPSESSID`, `SameSite=Strict`.
+- The two web players (`player`, `player_v2`) use their own cookie, `PLAYERSESSID` (`SessionStage::PLAYER_COOKIE`), `SameSite=Lax`.
+
+Both are `HttpOnly`, and PHP runs in strict mode, refusing session ids it never issued:
 
 ```php
-$params['samesite'] = 'Strict';
-$params['httponly'] = true;
-session_set_cookie_params($params);
+if (in_array($_SERVER['XC_SCOPE'] ?? '', ['player', 'player_v2'], true)) {
+    session_name(self::PLAYER_COOKIE);
+}
+$rParams = session_get_cookie_params();
+$rParams['samesite'] = session_name() === self::PLAYER_COOKIE ? 'Lax' : 'Strict';
+$rParams['httponly'] = true;
+session_set_cookie_params($rParams);
 ini_set('session.use_strict_mode', '1');
 session_start();
 ```
 
 No panel script reads the session cookie, so `HttpOnly` costs nothing and keeps an XSS from reading it.
+
+`SameSite=Strict` means a browser does not send the panels' cookie on a request that starts on another website, so a link from another site never reaches a signed-in panel. The player's cookie is sent on a link from another site (a top-level `GET`), so a viewer who follows one stays signed in; it is not sent on a form post or a script request from another site.
+
+A panel sign-in and a player sign-in in one browser are two sessions: a player request neither reads nor writes the panel's session, and the reverse. Signing out of the player ends the player's session only. A session from before the player had its own cookie is not carried over: viewers sign in to the player once after the update.
+
+The players' actions that change something run only on a `POST`, which a browser does not send with the player's cookie from another site: `logout` (both players; a `GET` leads to the home page), `refresh` (second player; `GET` is not routed) and the bouquet order of `profile` (first player; a `GET` only shows the page). The players' own links and scripts send `POST`.
 
 ### Verify Hash
 
@@ -410,6 +437,8 @@ Page-level access control. Determines whether the current user's group permissio
 
 - `PageAuthorization::checkResellerPermissions($page)` -- maps page names to required permission flags and returns whether access is allowed.
 
+A page's rule is looked up under its underscore name, whichever way the URL spells it (`line/mass` for `line_mass`, with or without a trailing `.php`). A new admin or reseller page that needs a permission gets a case in `PageAuthorization`; a page with no case stays open to every admin group. See [Permissions and RBAC](permissions-and-rbac.md).
+
 ---
 
 ## Related files
@@ -424,7 +453,8 @@ Page-level access control. Determines whether the current user's group permissio
 | `src/Public/Controllers/Player/PlayerLoginController.php` | Player login flow with security checks |
 | `src/Infrastructure/Bootstrap/AdminScopeBootstrap.php` | Admin bootstrap: session lifecycle, `$rUserInfo`/`$rPermissions`, integrity guard |
 | `src/Public/Controllers/Admin/SessionController.php` | AJAX admin session poll (`session` route) |
-| `src/Infrastructure/Bootstrap/reseller_functions.php` | Reseller session validation on every page load |
+| `src/Infrastructure/Bootstrap/ResellerScopeBootstrap.php` | Reseller session validation on every page load |
+| `src/Core/Bootstrap/Stage/SessionStage.php` | `startSession()`: session start with the panel's cookie parameters |
 | `src/Domain/User/UserRepository.php` | Credential lookup (`getAuthUserByCredentials`) |
 | `src/bootstrap.php` | Status constant definitions, bootstrap contexts |
 | `src/Core/Config/ConstantsInitializer.php` | `FLOOD_TMP_PATH` definition (`paths()` map) |

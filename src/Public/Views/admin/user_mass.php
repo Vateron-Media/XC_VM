@@ -99,7 +99,8 @@ $rOwner = (RequestManager::has('owner') && ($rO = UserRepository::getRegisteredU
                         <label class="col-md-3 col-form-label" for="member_group_id"><?= $language::get('member_group'); ?></label>
                         <div class="col-md-8">
                             <select disabled name="member_group_id" id="member_group_id" class="form-select">
-                                <?php foreach (GroupService::getAll() as $rGroup): ?><option value="<?= (int) $rGroup['group_id']; ?>"><?= htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES); ?></option><?php endforeach; ?>
+                                <?php // An administrator group is given out by a full administrator.
+                                foreach (array_diff_key(GroupService::getAll(), array_flip(GroupService::reservedGroups())) as $rGroup): ?><option value="<?= (int) $rGroup['group_id']; ?>"><?= htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES); ?></option><?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -249,17 +250,15 @@ LayoutRenderer::renderFooter('admin');
             }
         });
 
-        var esc = function(s) {
-            var d = document.createElement('div');
-            d.textContent = (s == null ? '' : String(s));
-            return d.innerHTML;
-        };
+        var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
         var statusMap = {
             0: ['secondary', 'Disabled'],
             1: ['success', 'Active'],
             2: ['danger', 'Banned']
         };
         // reg_users is a clean-JSON handler (objects), so map fields to the 13 columns.
+        // A column without a render function is written to its cell as markup,
+        // hidden or not: stored text goes through esc.
         var rTable = $('#datatable-mass').DataTable({
             serverSide: true,
             searchDelay: 250,
@@ -276,7 +275,8 @@ LayoutRenderer::renderFooter('admin');
                     className: 'text-center'
                 },
                 {
-                    data: 'username'
+                    data: 'username',
+                    render: esc
                 },
                 {
                     data: 'owner_username',
@@ -288,7 +288,8 @@ LayoutRenderer::renderFooter('admin');
                 {
                     data: 'ip',
                     className: 'text-center',
-                    visible: false
+                    visible: false,
+                    render: esc
                 },
                 {
                     data: 'status',

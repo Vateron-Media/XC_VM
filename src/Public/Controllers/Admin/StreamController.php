@@ -30,7 +30,10 @@ class StreamController extends BaseAdminController {
 
 		if (RequestManager::has('id')) {
 			if (!RequestManager::has('import') && Authorization::check('adv', 'edit_stream')) {
-				$rStream = StreamRepository::getById(RequestManager::get('id'));
+				// The stream as stored: the form escapes what it prints and posts it back,
+				// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+				$db->query('SELECT * FROM `streams` WHERE `id` = ?;', intval(RequestManager::get('id')));
+				$rStream = $db->get_raw_row();
 				if (!$rStream || $rStream['type'] != 1) {
 					$this->redirect('streams');
 					return;

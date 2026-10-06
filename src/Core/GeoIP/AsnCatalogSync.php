@@ -80,9 +80,11 @@ class AsnCatalogSync {
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
 		$rData = curl_exec($ch);
+		$rStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
 
-		if ($rData === false || $rData === '') {
+		// Only the release's own file: the body of an error answer is not the catalogue.
+		if ($rData === false || $rData === '' || $rStatus !== 200) {
 			return false;
 		}
 

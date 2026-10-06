@@ -45,7 +45,7 @@ class ProfileService {
 
 					if ((string) $rData['resize'] !== '') {
 						$rProfileOptions['gpu']['resize'] = $rData['resize'];
-						$rCommand[] = '-resize ' . escapeshellcmd($rData['resize']);
+						$rCommand[] = '-resize ' . self::quoted($rData['resize']);
 					}
 
 					if (0 < $rData['deint']) {
@@ -84,10 +84,7 @@ class ProfileService {
 
 					if ((string) $rData['video_codec_gpu'] !== '') {
 						$rProfileOptions['-vcodec'] = escapeshellcmd($rData['video_codec_gpu']);
-						if ($rData['video_codec_gpu'] === 'hevc_nvenc') {
-							$rCodec = 'hevc';
-						}
-						$rCodec = 'h264';
+						$rCodec = ($rData['video_codec_gpu'] === 'hevc_nvenc' ? 'hevc' : 'h264');
 					}
 
 					if ((string) $rData['preset_' . $rCodec] !== '') {
@@ -141,7 +138,7 @@ class ProfileService {
 			}
 
 			if ((string) $rData['aspect_ratio'] !== '') {
-				$rProfileOptions[10] = ['cmd' => '-aspect ' . escapeshellcmd($rData['aspect_ratio']), 'val' => $rData['aspect_ratio']];
+				$rProfileOptions[10] = ['cmd' => '-aspect ' . self::quoted($rData['aspect_ratio']), 'val' => $rData['aspect_ratio']];
 			}
 
 			if ((string) $rData['framerate'] !== '') {
@@ -210,7 +207,7 @@ class ProfileService {
 					}
 				} else {
 					if ((string) $rData['scaling'] !== '') {
-						$rProfileOptions[9] = ['cmd' => '-vf scale=' . escapeshellcmd($rData['scaling']), 'val' => $rData['scaling']];
+						$rProfileOptions[9] = ['cmd' => '-vf scale=' . self::quoted($rData['scaling']), 'val' => $rData['scaling']];
 					}
 
 					if (isset($rData['yadif_filter'])) {
@@ -254,7 +251,7 @@ class ProfileService {
 					}
 				} else {
 					if ((string) $rData['resize'] !== '') {
-						$rProfileOptions[9] = ['cmd' => '-vf scale=' . escapeshellcmd($rData['resize']), 'val' => $rData['resize']];
+						$rProfileOptions[9] = ['cmd' => '-vf scale=' . self::quoted($rData['resize']), 'val' => $rData['resize']];
 					}
 
 					if (0 < intval($rData['deint'])) {
@@ -263,7 +260,10 @@ class ProfileService {
 				}
 			}
 
-			if ($rComplex) {
+			if ($rComplex && !isset($rProfileOptions[16])) {
+				// Deinterlace and scaling with no logo: one filter chain on the source, no logo entry.
+				$rProfileOptions[9]['cmd'] = '-vf ' . self::quoted('yadif,scale=' . $rProfileOptions[9]['val']);
+			} elseif ($rComplex) {
 				if (!empty($rScale) && substr($rScale, strlen($rScale) - 1, 1) != ']') {
 					$rOverlay = ',' . $rOverlay;
 				} else {
@@ -272,6 +272,14 @@ class ProfileService {
 					}
 				}
 				$rProfileOptions[16]['cmd'] = str_replace(['{SCALE}', '{OVERLAY}', '{LOGO}'], [$rScale, $rOverlay, $rLogoInput], '{LOGO} -filter_complex "{SCALE}{OVERLAY}"');
+			}
+
+			// A codec, a preset and a video profile follow their option on the command line as they
+			// are stored, and are read back as plain text: each is a name, a video profile with its level.
+			foreach (['-vcodec', '-acodec', '-preset', '-profile:v'] as $rOption) {
+				if (isset($rProfileOptions[$rOption]) && !preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:+-]*' . ($rOption === '-profile:v' ? '( -level [0-9.]+)?' : '') . '$/D', $rProfileOptions[$rOption])) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
 			}
 
 			$rArray['profile_options'] = json_encode($rProfileOptions, JSON_UNESCAPED_UNICODE);
@@ -293,5 +301,19 @@ class ProfileService {
 		}
 
 		return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+	}
+
+	/**
+	 * A free-text value of the form, quoted for the command line its option
+	 * joins: one argument, as typed. In double quotes, with those of the
+	 * value escaped: StreamUtils::parseTranscode() gathers every
+	 * -filter_complex "..." it finds in an option's text, and a value quoted
+	 * this way cannot hold one.
+	 *
+	 * @param string $rValue The value as typed.
+	 * @return string
+	 */
+	private static function quoted(string $rValue): string {
+		return '"' . addcslashes($rValue, '"$`\\') . '"';
 	}
 }

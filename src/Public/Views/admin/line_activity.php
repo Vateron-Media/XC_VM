@@ -95,11 +95,7 @@ LayoutRenderer::renderFooter('admin');
 ?>
 <script>
     (function() {
-        var esc = function(s) {
-            var d = document.createElement('div');
-            d.textContent = (s == null ? '' : String(s));
-            return d.innerHTML;
-        };
+        var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
         var fmtDate = function(ts) {
             return ts ? new Date(ts * 1000).toLocaleString() : '';
         };
@@ -193,10 +189,12 @@ LayoutRenderer::renderFooter('admin');
                     }
                 },
                 {
-                    data: 'player'
+                    data: 'player',
+                    render: esc
                 },
                 {
-                    data: 'isp'
+                    data: 'isp',
+                    render: esc
                 },
                 {
                     data: 'user_ip',
@@ -232,7 +230,8 @@ LayoutRenderer::renderFooter('admin');
                 },
                 {
                     data: 'container',
-                    className: 'text-center'
+                    className: 'text-center',
+                    render: esc
                 },
                 {
                     data: 'is_restreamer',

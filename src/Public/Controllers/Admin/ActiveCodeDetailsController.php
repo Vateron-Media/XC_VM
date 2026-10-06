@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Localization\Translator;
@@ -28,6 +29,13 @@ class ActiveCodeDetailsController {
 			&& strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') !== 'xmlhttprequest'
 			&& !RequestManager::has('id')
 		) {
+			exit();
+		}
+
+		// The details carry the line's username and password: they take the
+		// permission that lists the lines, as the code list itself does.
+		if (!Authorization::check('adv', 'users')) {
+			http_response_code(403);
 			exit();
 		}
 

@@ -225,8 +225,12 @@ class MagService {
 		if (InputValidator::validate('processMAG', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_mag')) {
-					$rArray = AdminHelpers::overwriteData(self::getById($rData['edit']), $rData);
-					$rUser = UserRepository::getLineById($rArray['user_id']);
+					// The edit starts from the device and its line as stored: the row
+					// cleaner's escaping would be written back into every field not sent.
+					$db->query('SELECT * FROM `mag_devices` WHERE `mag_id` = ?;', intval($rData['edit']));
+					$rArray = AdminHelpers::overwriteData($db->get_raw_row() ?? [], $rData);
+					$db->query('SELECT * FROM `lines` WHERE `id` = ?;', intval($rArray['user_id']));
+					$rUser = $db->get_raw_row();
 
 					if ($rUser) {
 						$rUserArray = AdminHelpers::overwriteData($rUser, $rData);
@@ -256,6 +260,16 @@ class MagService {
 
 			if (strlen($rUserArray['password']) == 0) {
 				$rUserArray['password'] = AdminHelpers::generateString(32);
+			}
+
+			// Neither holds the separator of the line's playback addresses; the
+			// device's line keeps the value it has until it is changed.
+			if (!LineService::credentialAllowed($rUserArray['username'], $rUser['username'] ?? null)) {
+				return ['status' => STATUS_INVALID_USERNAME, 'data' => $rData];
+			}
+
+			if (!LineService::credentialAllowed($rUserArray['password'], $rUser['password'] ?? null)) {
+				return ['status' => STATUS_INVALID_PASSWORD, 'data' => $rData];
 			}
 
 			if (strlen($rData['isp_clear']) == 0) {

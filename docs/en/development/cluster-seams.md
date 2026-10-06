@@ -17,7 +17,7 @@ Each seam has a hook for tests and for the future transport (`useSink()`,
 | `Core\Cluster\SignalDispatcher` | the 47 `INSERT INTO signals` sites (kill, cache jobs, root actions) | `LegacySqlSignalSink` | commands and events (4/5) |
 | `Domain\Stream\StreamStateWriter` | a node's runtime state in `streams_servers`; refuses any column outside `STATE_FIELDS` | `StreamRowMerge::apply()` | `stream.state` event (5), kept in the node's own store (`Core\Cluster\StreamRuntime`, 7) |
 | `Domain\Stream\StreamSource` | the stream row, this node's `streams_servers` row, the stream options and a recording, read before running a stream or a recording; the stream with this node's row and its runtime state (`nodeRow()`, `workerRow()`, `plainRow()`, `createdRow()`, `builtServerRow()`, `channelRow()`, `movieRow()`) | SQL | the node's stream caches, built by `cluster:apply` from the R2 `streams` section once the STREAMS flow is on (`ReplicaStreamCache`, 7), with the runtime state from the node's own store once it is seeded (`StreamRuntime`, 7); `stream_bundle` on a miss (not built) |
-| `Domain\Stream\NodeStreams` | the lists of this node's streams its crons and daemons select with their runtime state (`cron:streams`, `cron:vod`, `cron:cleanup`, the on-demand daemon) | SQL | the stream caches and the node's own store, or the R2 section whole (`ReplicaStreams`) for the lists `cron:cleanup` prunes files by (7) |
+| `Domain\Stream\NodeStreams` | the lists of this node's streams its crons and daemons select with their runtime state (`cron:streams`, `cron:vod`, `cron:cleanup`, the on-demand daemon) | SQL; `fileStreams()`, `archives()`, `createdIDs()`, `liveChecks()` and `onDemandIDs()` answer `null`, never an empty list, when MAIN's database did not answer the read | the stream caches and the node's own store, or the R2 section whole (`ReplicaStreams`) for the lists `cron:cleanup` prunes files by (7): `null` when the section is not whole |
 | `Core\Cluster\LogSink` | client, stream, stream-error, panel-error and restream-detection records; root's system log lines (`syslog()`) | one multi-row INSERT per batch (chunks of 1000); the caller's own `mysql_syslog` INSERT | `log.*` events, redacted first (5); `log.syslog` (7) |
 
 ## MAIN side
@@ -98,6 +98,15 @@ action.
   in the node's own store in mode 2 (`StreamStateWriter::resend()` sends it
   later) instead of falling back to MAIN's row; in mode 0 and 1 it falls back,
   and the store lapses once MAIN's row has it (`StreamRuntime::lapse()`).
+  A node in mode 2 never lapses its store on a write
+  (`StreamStateWriter::write()`, `ContentSink::workerPid()`): MAIN's database
+  refused that write, and the store cannot be seeded again.
+- A list whose caller deletes or stops what the list does not name is `null`,
+  never empty, when it could not be read (`NodeStreams`, above). The caller
+  does nothing by a `null` list: `cron:cleanup` skips that check, and
+  `cron:streams` ends its pass where it reads the list: before its per-stream
+  work when `liveChecks()` is `null`, and after that work, before it stops any
+  process its lists do not name, when `onDemandIDs()` is `null`.
 - A file a node needs from MAIN (a custom off-air video, a module's archive)
   is an artefact: MAIN names it in
   `Domain\Cluster\ArtefactRegistry` and grants it with a signed command
@@ -120,4 +129,5 @@ Tests that pin these rules: `SignalDispatcherParityTest`, `StreamStateWriterTest
 `StreamRowMergeTest`, `StreamCacheBuilderSourceTest`, `LogSinkTest`,
 `NodeRpcActionsTest`, `ArchitectureTest`, `DbConnectRefusalTest`,
 `ReplicaBootTest`, `ModeTwoPathsTest`, `ArtefactHashRefusalTest`,
-`StreamRuntimeTest` and `StreamRuntimeReadersTest`.
+`StreamRuntimeTest`, `StreamRuntimeReadersTest`, `AuditCronStreamsTest` and
+`AuditClusterFlowsModeTwoTest`.

@@ -566,15 +566,17 @@ class InternalApiController {
 		$rFetchArguments = [];
 
 		if (!empty($rRequest['user_agent'])) {
-			$rFetchArguments[] = sprintf("-user_agent '%s'", escapeshellcmd($rRequest['user_agent']));
+			$rFetchArguments[] = '-user_agent ' . escapeshellarg($rRequest['user_agent']);
 		}
 
 		if ($rProxy !== '') {
 			$rFetchArguments[] = '-http_proxy ' . escapeshellarg(StreamUtils::proxyURL($rProxy));
 		}
 
+		// Completed as a stream start completes it: the probe sends the
+		// source the cookie the stream will send.
 		if (!empty($rRequest['cookies'])) {
-			$rFetchArguments[] = sprintf("-cookies '%s'", escapeshellcmd($rRequest['cookies']));
+			$rFetchArguments[] = '-cookies ' . escapeshellarg(StreamUtils::fixCookie($rRequest['cookies']));
 		}
 
 		$rHeaders = !empty($rRequest['headers']) ? rtrim($rRequest['headers'], "\r\n") . "\r\n" : '';

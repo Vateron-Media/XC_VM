@@ -225,6 +225,8 @@ After building, `dist/` should contain:
 cd dist && md5sum -c hashes.md5
 ```
 
+> ⚠️ `hashes.md5` must list every asset of the release. The installer, a load balancer's install, the panel update and the runtime-bundle update (`binaries`) refuse an asset that the `hashes.md5` of its release does not list. This holds for the `XC_VM` and the `XC_VM_Binaries` releases alike.
+
 **Docker test install** (see `tools/test-install/`) — only after building, since it needs `dist/XC_VM.zip`:
 
 ```bash
@@ -291,6 +293,9 @@ After publishing, the workflow will automatically:
   failed workflow from the Actions tab; if the tag itself is wrong, delete the release **and** the
   tag (`git push --delete <remote> X.Y.Z`, the remote as `git remote` names it), fix, and re-tag. Don't leave a published release with
   missing assets — panels fetch `hashes.md5` / archives from it.
+- **`hashes.md5` is missing from a published release, or does not list one of its assets** — add
+  it before anything else, in `XC_VM` and in `XC_VM_Binaries` alike: until then installs, updates
+  and runtime-bundle updates refuse the assets it does not list.
 - **A released asset is broken** — publish a **PATCH** hotfix release (new tag) rather than editing
   a published one; clients pin to a tag.
 - **A bad release already reached servers** — operators can downgrade per-server from the panel

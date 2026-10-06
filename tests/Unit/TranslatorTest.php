@@ -29,6 +29,8 @@ final class TranslatorTest extends TestCase {
 		}
 		@rmdir($this->dir);
 		unset($_COOKIE['lang']);
+		// The panel's own strings again, for the tests that run after this one.
+		Translator::init(MAIN_HOME . 'Core/Localization/lang');
 	}
 
 	public function testDefaultsToEnglishAndReadsValues(): void {

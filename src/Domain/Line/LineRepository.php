@@ -36,6 +36,12 @@ class LineRepository {
 		$db->query('DELETE FROM `lines` WHERE `id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `lines_logs` WHERE `user_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('UPDATE `lines_activity` SET `user_id` = 0 WHERE `user_id` IN (' . implode(',', $rIDs) . ');');
+
+		// A deleted line loses its live sessions, as one deleted on its own does.
+		foreach ($rIDs as $rID) {
+			LineService::closeLineConnections(intval($rID));
+		}
+
 		$rPairIDs = [];
 		$db->query('SELECT `id` FROM `lines` WHERE `pair_id` IN (' . implode(',', $rIDs) . ');');
 

@@ -5,8 +5,6 @@ namespace XcVm\Cli\CronJobs;
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Domain\Security\BlocklistService;
-use XcVm\Domain\Server\ServerRepository;
 
 /**
  * RootMysqlCronJob — root mysql cron job
@@ -26,7 +24,7 @@ class RootMysqlCronJob implements CommandInterface {
 	}
 
 	public function getDescription(): string {
-		return 'Cron: monitor MariaDB, parse syslog, block bruteforce (root)';
+		return 'Cron: monitor MariaDB, parse syslog (root)';
 	}
 
 	public function execute(array $rArgs): int {
@@ -54,19 +52,10 @@ class RootMysqlCronJob implements CommandInterface {
 
 		$db->query('SELECT MAX(`date`) AS `date` FROM `mysql_syslog`;');
 		$rMaxTime = intval($db->get_row()['date']);
-
-		$rMaxAttempts = 10;
-		$rAttempts = [];
-
-		$db->query("SELECT `mysql_syslog`.`ip`, COUNT(`mysql_syslog`.`id`) AS `count`, `blocked_ips`.`id` AS `block_id` FROM `mysql_syslog` LEFT JOIN `blocked_ips` ON `blocked_ips`.`ip` = `mysql_syslog`.`ip` WHERE `type` = 'AUTH' AND `mysql_syslog`.`date` > UNIX_TIMESTAMP() - 86400 GROUP BY `mysql_syslog`.`ip`;");
-		foreach ($db->get_rows() as $rRow) {
-			$rAttempts[$rRow['ip']] = $rRow['count'];
-			if ($rMaxAttempts < $rRow['count'] && !$rRow['block_id']) {
-				if (!in_array($rRow['ip'], ServerRepository::getAllowedIPs())) {
-					echo 'Blocking IP ' . $rRow['ip'] . "\n";
-					BlocklistService::blockIP(['ip' => $rRow['ip'], 'notes' => 'MYSQL BRUTEFORCE ATTACK']);
-				}
-			}
+		// A line older than System Logs keep (keep_syslog) is not stored: cron:cleanup
+		// has pruned it, and the rows left no longer say it was read.
+		if (0 < intval(SettingsManager::get('keep_syslog'))) {
+			$rMaxTime = max($rMaxTime, time() - intval(SettingsManager::get('keep_syslog')));
 		}
 
 		// Fast-path: skip expensive syslog tail/grep when file size has not changed.
@@ -110,10 +99,13 @@ class RootMysqlCronJob implements CommandInterface {
 				$rNote = trim(explode('[Note]', $rStrip)[1]);
 				$rType = 'NOTICE';
 			} elseif (stripos($rStrip, '[Warning]') !== false) {
+				// A refused login included: it is kept as the warning it is, with
+				// no address of its own, and no address is blocked for it.
 				$rNote = trim(explode('[Warning]', $rStrip)[1]);
 				$rType = 'WARNING';
-			} elseif (stripos($rStrip, '[Error]') !== false) {
-				$rNote = trim(explode('[Error]', $rStrip)[1]);
+			} elseif (strpos($rStrip, '[ERROR]') !== false) {
+				// MariaDB writes the level of an error in capitals, unlike Note and Warning.
+				$rNote = trim(explode('[ERROR]', $rStrip)[1]);
 				$rType = 'ERROR';
 			}
 
@@ -124,12 +116,6 @@ class RootMysqlCronJob implements CommandInterface {
 			$rUsername = null;
 			$rHost = null;
 			$rDatabase = null;
-
-			if (stripos($rNote, 'access denied for user') !== false) {
-				$rUsername = trim(explode("'", explode("user '", $rNote)[1])[0]);
-				$rHost = trim(explode("'", explode("user '", $rNote)[1])[2]);
-				$rType = 'AUTH';
-			}
 
 			if (stripos($rNote, 'user:') !== false) {
 				$rUsername = trim(explode("'", explode("user: '", $rNote)[1])[0]);

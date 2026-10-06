@@ -93,6 +93,27 @@ final class HeartbeatService {
 	/** A node silent this long (ms) leaves the bus, once flushed. */
 	public const FORGET_AFTER_MS = 600000;
 
+	/**
+	 * cluster_meta: when MAIN took a node's "updating" (status 5) from its
+	 * node.state (`updating.<server id>`, by its updated_at); dropped when it
+	 * takes "back" (EventIngest).
+	 */
+	public const UPDATING = 'updating.';
+
+	/**
+	 * Seconds a heartbeat leaves a row at 5 alone after MAIN took it
+	 * (UPDATING): the agent keeps sending heartbeats until the update stops
+	 * it. Past them, a node that still sends them is back by itself.
+	 */
+	public const UPDATING_HOLD_SEC = 60;
+
+	/**
+	 * What a heartbeat's `servers.status = 1` leaves alone: a row at 5 whose
+	 * note (UPDATING) is younger than UPDATING_HOLD_SEC and not ahead of
+	 * MAIN's clock. Its arguments come from held().
+	 */
+	private const NOT_HELD = ' AND NOT (`status` = 5 AND EXISTS (SELECT 1 FROM `cluster_meta` WHERE `name` = ? AND `updated_at` > ? AND `updated_at` <= ?))';
+
 	/** Milliseconds a flusher holds its lock at most. */
 	private const LOCK_MS = 10000;
 
@@ -253,7 +274,18 @@ final class HeartbeatService {
 		}
 		// The node's first authenticated heartbeat is what marks the server up
 		// (plan, section 6); legacy nodes keep setting it through the watchdog.
-		self::db()->query('UPDATE `servers` SET `status` = 1 WHERE `id` = ? AND `status` <> 1;', $rServerID);
+		// An update the node just reported holds for UPDATING_HOLD_SEC.
+		self::db()->query('UPDATE `servers` SET `status` = 1 WHERE `id` = ? AND `status` <> 1' . self::NOT_HELD . ';', $rServerID, ...self::held($rServerID, $rNow));
+	}
+
+	/**
+	 * NOT_HELD's arguments for a heartbeat MAIN heard at $rNowMs.
+	 *
+	 * @return array{string, int, int}
+	 */
+	private static function held(int $rServerID, int $rNowMs): array {
+		$rNow = intdiv($rNowMs, 1000);
+		return [self::UPDATING . $rServerID, $rNow - self::UPDATING_HOLD_SEC, $rNow];
 	}
 
 	/**
@@ -458,7 +490,8 @@ final class HeartbeatService {
 	/**
 	 * A node's last heartbeat into cluster_nodes, for the enrolment that sent
 	 * it (gen) and unless MySQL already has a later one (not one ahead of
-	 * MAIN's clock), and the server marked up, as each heartbeat did.
+	 * MAIN's clock), and the server marked up, as each heartbeat did (but a
+	 * reported update for its hold, NOT_HELD).
 	 *
 	 * @param array{heard: int, offset: int, root: string, tel: int, auth: bool, gen: int, raw: string} $rBeat
 	 * @param string $rRecorded The root_ready recorded at the last flush.
@@ -478,7 +511,7 @@ final class HeartbeatService {
 		array_push($rArgs, intdiv($rBeat['heard'], 1000), $rServerID, $rBeat['gen'], $rBeat['heard'], $rNow + self::STEP_MS);
 		$rDb = self::db();
 		StrictQuery::orThrow($rDb, 'flush', $rSql . ', `updated_at` = ? WHERE `server_id` = ? AND `gen` = ? AND (`last_seen_at` IS NULL OR `last_seen_at` < ? OR `last_seen_at` > ?);', ...$rArgs);
-		StrictQuery::orThrow($rDb, 'flush', 'UPDATE `servers` SET `status` = 1 WHERE `id` = ? AND `status` <> 1 AND EXISTS (SELECT 1 FROM `cluster_nodes` WHERE `server_id` = ? AND `gen` = ?);', $rServerID, $rServerID, $rBeat['gen']);
+		StrictQuery::orThrow($rDb, 'flush', 'UPDATE `servers` SET `status` = 1 WHERE `id` = ? AND `status` <> 1 AND EXISTS (SELECT 1 FROM `cluster_nodes` WHERE `server_id` = ? AND `gen` = ?)' . self::NOT_HELD . ';', $rServerID, $rServerID, $rBeat['gen'], ...self::held($rServerID, $rNow));
 		if ($rBeat['root'] === '-' || $rBeat['root'] === $rRecorded) {
 			return $rBeat['root'];
 		}

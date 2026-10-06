@@ -34,7 +34,10 @@ class EpgService {
 			if (!Authorization::check('adv', 'epg_edit')) {
 				exit();
 			}
-			$rArray = AdminHelpers::overwriteData(self::getById($rData['edit']), $rData);
+			// The edit starts from the EPG source as stored: the row cleaner's
+			// escaping would be written back into every field not sent.
+			$db->query('SELECT * FROM `epg` WHERE `id` = ?;', intval($rData['edit']));
+			$rArray = AdminHelpers::overwriteData($db->get_raw_row(), $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_epg')) {
 				exit();

@@ -19,6 +19,13 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  *
  * Every read throws when it fails: MAIN would otherwise sign a partial
  * section, and a node would report streams missing that are not.
+ *
+ * A record carries the stream's row, its type, its profile and its options
+ * without the row cleaner's HTML escaping (unescaped()): a node starts the
+ * stream with them, and get_rows() would hand ffmpeg `&lt;` for a `<` in a
+ * source, a header or an option. StreamSource reads MAIN's database the
+ * same way, so a start takes the same text from either. No page prints a
+ * record.
  */
 final class StreamRecords {
 	use DatabaseAware;
@@ -78,27 +85,27 @@ final class StreamRecords {
 		}
 		$rIn = implode(',', array_map('intval', $rIDs));
 		self::read('SELECT `' . implode('`, `', array_keys(ReplicaSections::STREAM_FIELDS)) . '` FROM `streams` WHERE `id` IN (' . $rIn . ') ORDER BY `id`;');
-		$rStreams = self::db()->get_rows() ?: [];
+		$rStreams = self::rows();
 		if ($rStreams === []) {
 			return [];
 		}
 		self::read('SELECT * FROM `streams_types`;');
 		$rTypes = [];
-		foreach (self::db()->get_rows() ?: [] as $rRow) {
+		foreach (self::rows() as $rRow) {
 			$rTypes[(int) $rRow['type_id']] = ReplicaSections::typed($rRow, ReplicaSections::STREAM_TYPE_FIELDS);
 		}
 		$rProfileIDs = array_values(array_unique(array_filter(array_map(static fn(array $rRow): int => (int) $rRow['transcode_profile_id'], $rStreams))));
 		$rProfiles = [];
 		if ($rProfileIDs !== []) {
 			self::read('SELECT * FROM `profiles` WHERE `profile_id` IN (' . implode(',', $rProfileIDs) . ');');
-			foreach (self::db()->get_rows() ?: [] as $rRow) {
+			foreach (self::rows() as $rRow) {
 				$rProfiles[(int) $rRow['profile_id']] = ReplicaSections::typed($rRow, ReplicaSections::PROFILE_FIELDS);
 			}
 		}
 		$rOptionColumns = array_merge(array_map(static fn(string $rColumn): string => 't1.`' . $rColumn . '`', array_keys(ReplicaSections::OPTION_FIELDS)), array_map(static fn(string $rColumn): string => 't2.`' . $rColumn . '`', array_keys(ReplicaSections::ARGUMENT_FIELDS)));
 		self::read('SELECT t1.`stream_id`, ' . implode(', ', $rOptionColumns) . ' FROM `streams_options` t1 INNER JOIN `streams_arguments` t2 ON t2.`id` = t1.`argument_id` WHERE t1.`stream_id` IN (' . $rIn . ') ORDER BY t1.`stream_id`, t1.`argument_id`, t1.`id`;');
 		$rOptions = [];
-		foreach (self::db()->get_rows() ?: [] as $rRow) {
+		foreach (self::rows() as $rRow) {
 			$rOptions[(int) $rRow['stream_id']][] = ReplicaSections::typed($rRow, ReplicaSections::OPTION_FIELDS + ReplicaSections::ARGUMENT_FIELDS);
 		}
 		self::read('SELECT `' . implode('`, `', array_keys(ReplicaSections::STREAM_SERVER_FIELDS)) . '` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . $rIn . ') ORDER BY `server_stream_id`;', $rServerID);
@@ -134,6 +141,29 @@ final class StreamRecords {
 			]);
 		}
 		return $rOut;
+	}
+
+	/**
+	 * A row read with get_raw_rows(), for a command: what the row cleaner of
+	 * get_rows() hands (line ends as LF, the blanks around a value trimmed)
+	 * but for its HTML escaping, so a `<`, a `>` and an `&` are the ones that
+	 * were saved. A number stays the driver's, where the cleaner hands a
+	 * non-zero one as text. Never echo such a row into a page.
+	 *
+	 * @param array<string, mixed> $rRow
+	 * @return array<string, mixed>
+	 */
+	public static function unescaped(array $rRow): array {
+		return array_map(static fn(mixed $rValue): mixed => is_string($rValue) ? trim(str_replace(["\r\n", "\n\r", "\r"], "\n", $rValue)) : $rValue, $rRow);
+	}
+
+	/**
+	 * The rows of the last read, for a command (unescaped()).
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private static function rows(): array {
+		return array_map([self::class, 'unescaped'], self::db()->get_raw_rows());
 	}
 
 	/** Run one of the section's reads: a failed one throws, never an empty result. */

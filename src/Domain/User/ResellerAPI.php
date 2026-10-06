@@ -13,6 +13,7 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
@@ -49,7 +50,7 @@ class ResellerAPI {
 	 * @return array Action result.
 	 */
 	public static function processData(string $rType, array $rData) {
-		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear'], 'mag' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
+		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'category_template_id'], 'mag' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
 
 		foreach ($rData as $rKey => $rValue) {
 			if (!in_array($rKey, $rArray[$rType])) {
@@ -58,6 +59,12 @@ class ResellerAPI {
 		}
 
 		if (in_array($rType, ['line', 'mag', 'enigma'], true)) {
+			// The bouquets chosen are a list of bouquet ids. Anything else is no
+			// choice (the line form sends an empty field when none is ticked), and
+			// the line gets the bouquets of its package.
+			if (isset($rData['bouquets_selected'])) {
+				$rData['bouquets_selected'] = (is_array($rData['bouquets_selected']) ? array_map('intval', array_filter($rData['bouquets_selected'], 'is_numeric')) : []);
+			}
 			// A trial comes with a new subscription. On an edit it reset the expiry
 			// for trial_credits (usually 0), and the trial quota — lines counted by
 			// created_at — never saw it, so any line could be kept alive for free.
@@ -69,6 +76,25 @@ class ResellerAPI {
 			// may be named. Devices checked this; lines stored any id.
 			if (isset($rData['pair_id']) && !Authorization::check('line', $rData['pair_id'])) {
 				unset($rData['pair_id']);
+			}
+			// A trial is not paired, and nothing is paired with one: a trial stays
+			// the trial it was made as, and the trial allowance counts it. Nor is
+			// anything paired with a line that waits for its activation code to
+			// be redeemed: it has no term to give yet.
+			if (isset($rData['pair_id'])) {
+				$rPair = UserRepository::getLineById($rData['pair_id']) ?: [];
+
+				if (!empty($rData['trial']) || !empty($rPair['is_trial']) || ActiveCodeService::lineAwaitsRedemption($rPair)) {
+					unset($rData['pair_id']);
+				}
+			}
+			// The category template picked on the form is applied to the line:
+			// one of those the reseller may use.
+			if (isset($rData['category_template_id']) && 0 < intval($rData['category_template_id'])) {
+				$rTemplate = \XcVm\Domain\Stream\CategoryTemplateService::getTemplateById(intval($rData['category_template_id']));
+				if (!$rTemplate || !\XcVm\Domain\Stream\CategoryTemplateService::canAccessTemplate($rTemplate, self::$rUserInfo ?: [], false)) {
+					unset($rData['category_template_id']);
+				}
 			}
 		}
 
@@ -160,6 +186,16 @@ class ResellerAPI {
 	 * @return array|false Result status payload, or false on authorization/validation failure.
 	 */
 	public static function processMAG(array $rData) {
+		return self::holdingTrials($rData, static fn() => self::saveMAG($rData));
+	}
+
+	/**
+	 * The save of processMAG().
+	 *
+	 * @param array $rData Submitted MAG/line data.
+	 * @return array|false Result status payload, or false on authorization/validation failure.
+	 */
+	private static function saveMAG(array $rData) {
 		$db = self::db();
 		$rData = self::processData('mag', $rData);
 
@@ -184,6 +220,7 @@ class ResellerAPI {
 
 			$rUserArray['is_mag'] = 1;
 			$rUserArray['is_e2'] = 0;
+			$rExpDate = $rUserArray['exp_date'] ?? null;
 			$rGenTrials = LineService::canGenerateTrials(self::$rUserInfo['id']);
 			$rCost = 0;
 
@@ -197,10 +234,12 @@ class ResellerAPI {
 						$rCompatible = true;
 					}
 
-					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true))) {
+					// A trial is made from a package that offers trials, and a subscription
+					// is bought from a package that sells them.
+					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
 						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
-								$rCost = intval($rPackage['trial_credits']);
+								$rCost = self::amount($rPackage['trial_credits']);
 							} else {
 								return ['status' => STATUS_NO_TRIALS, 'data' => $rData];
 							}
@@ -208,13 +247,13 @@ class ResellerAPI {
 							$rOverride = json_decode(self::$rUserInfo['override_packages'], true);
 
 							if (isset($rOverride[$rPackage['id']]['official_credits']) && (string) $rOverride[$rPackage['id']]['official_credits'] !== '') {
-								$rCost = intval($rOverride[$rPackage['id']]['official_credits']);
+								$rCost = self::amount($rOverride[$rPackage['id']]['official_credits']);
 							} else {
-								$rCost = intval($rPackage['official_credits']);
+								$rCost = self::amount($rPackage['official_credits']);
 							}
 						}
 
-						if ($rCost <= intval(self::$rUserInfo['credits'])) {
+						if ($rCost <= self::amount(self::$rUserInfo['credits'])) {
 							if (!empty($rData['trial'])) {
 								$rUserArray['exp_date'] = strtotime('+' . intval($rPackage['trial_duration']) . ' ' . $rPackage['trial_duration_in']);
 								$rUserArray['is_trial'] = 1;
@@ -301,6 +340,12 @@ class ResellerAPI {
 			$rUserArray['reseller_notes'] = $rData['reseller_notes'];
 			$rOwner = $rData['member_id'] ?? null;
 
+			// A trial is held by the reseller that makes it and stays with its
+			// holder: the trial allowance counts the trials a reseller holds.
+			if (!empty($rUserArray['is_trial'])) {
+				$rOwner = (isset($rUserArray['id']) ? $rUserArray['member_id'] : self::$rUserInfo['id']);
+			}
+
 			if (Authorization::check('user', $rOwner)) {
 				$rUserArray['member_id'] = $rOwner;
 			} else {
@@ -338,7 +383,8 @@ class ResellerAPI {
 				if (0 >= $db->num_rows()) {
 					$rArray['mac'] = $rData['mac'];
 
-					if (isset($rData['pair_id']) && Authorization::check('line', $rData['pair_id'])) {
+					// A device that is a trial is not paired (see processData).
+					if (isset($rData['pair_id']) && empty($rUserArray['is_trial']) && Authorization::check('line', $rData['pair_id'])) {
 						$rUserArray['pair_id'] = intval($rData['pair_id']);
 					} else {
 						$rUserArray['pair_id'] = null;
@@ -357,13 +403,17 @@ class ResellerAPI {
 							: null;
 					}
 
-					$rPrepare = QueryHelper::prepareArray($rUserArray);
-					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+					// The price leaves the balance as it is stored now, before anything
+					// is sold: a balance that no longer covers it sells nothing.
+					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
+						return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
+					}
 
-					if ($db->query($rQuery, ...$rPrepare['data'])) {
-						$rInsertID = $db->last_insert_id();
-						MagService::syncLineDevices($rInsertID);
-						SignalDispatcher::cache(intval(SERVER_ID), ['type' => 'update_line', 'id' => $rInsertID], false, false, $db);
+					// The line and its device row are stored together, or neither is.
+					$rOwn = !$db->isInTransaction() && $db->beginTransaction();
+
+					if (self::storeLine($rUserArray, $rExpDate)) {
+						$rInsertID = ($rUserArray['id'] ?? $db->last_insert_id());
 						$rArray['user_id'] = $rInsertID;
 						unset($rArray['user'], $rArray['paired']);
 						if (!isset($rData['edit'])) {
@@ -380,9 +430,15 @@ class ResellerAPI {
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
 							$rInsertID = $db->last_insert_id();
 
+							if ($rOwn) {
+								$db->commit();
+							}
+
+							MagService::syncLineDevices($rArray['user_id']);
+							SignalDispatcher::cache(intval(SERVER_ID), ['type' => 'update_line', 'id' => $rArray['user_id']], false, false, $db);
+
 							if (isset($rPackage)) {
-								$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-								$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
 								if (isset($rArray['id'])) {
 									if ($rUserArray['package_id']) {
@@ -407,6 +463,15 @@ class ResellerAPI {
 						}
 					}
 
+					if ($rOwn) {
+						$db->rollback();
+					}
+
+					// Nothing was sold: the price goes back.
+					if (isset($rPackage)) {
+						UserCredits::credit(self::$rUserInfo['id'], $rCost);
+					}
+
 					return ['status' => STATUS_FAILURE, 'data' => $rData];
 				}
 
@@ -425,6 +490,16 @@ class ResellerAPI {
 	 * @return array|false Result status payload, or false on authorization/validation failure.
 	 */
 	public static function processEnigma(array $rData) {
+		return self::holdingTrials($rData, static fn() => self::saveEnigma($rData));
+	}
+
+	/**
+	 * The save of processEnigma().
+	 *
+	 * @param array $rData Submitted Enigma2/line data.
+	 * @return array|false Result status payload, or false on authorization/validation failure.
+	 */
+	private static function saveEnigma(array $rData) {
 		$db = self::db();
 		$rData = self::processData('enigma', $rData);
 
@@ -448,6 +523,7 @@ class ResellerAPI {
 
 			$rUserArray['is_mag'] = 0;
 			$rUserArray['is_e2'] = 1;
+			$rExpDate = $rUserArray['exp_date'] ?? null;
 			$rGenTrials = LineService::canGenerateTrials(self::$rUserInfo['id']);
 			$rCost = 0;
 
@@ -461,10 +537,12 @@ class ResellerAPI {
 						$rCompatible = true;
 					}
 
-					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true))) {
+					// A trial is made from a package that offers trials, and a subscription
+					// is bought from a package that sells them.
+					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
 						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
-								$rCost = intval($rPackage['trial_credits']);
+								$rCost = self::amount($rPackage['trial_credits']);
 							} else {
 								return ['status' => STATUS_NO_TRIALS, 'data' => $rData];
 							}
@@ -472,13 +550,13 @@ class ResellerAPI {
 							$rOverride = json_decode(self::$rUserInfo['override_packages'], true);
 
 							if (isset($rOverride[$rPackage['id']]['official_credits']) && (string) $rOverride[$rPackage['id']]['official_credits'] !== '') {
-								$rCost = intval($rOverride[$rPackage['id']]['official_credits']);
+								$rCost = self::amount($rOverride[$rPackage['id']]['official_credits']);
 							} else {
-								$rCost = intval($rPackage['official_credits']);
+								$rCost = self::amount($rPackage['official_credits']);
 							}
 						}
 
-						if ($rCost <= intval(self::$rUserInfo['credits'])) {
+						if ($rCost <= self::amount(self::$rUserInfo['credits'])) {
 							if (!empty($rData['trial'])) {
 								$rUserArray['exp_date'] = strtotime('+' . intval($rPackage['trial_duration']) . ' ' . $rPackage['trial_duration_in']);
 								$rUserArray['is_trial'] = 1;
@@ -565,6 +643,12 @@ class ResellerAPI {
 			$rUserArray['reseller_notes'] = $rData['reseller_notes'];
 			$rOwner = $rData['member_id'] ?? null;
 
+			// A trial is held by the reseller that makes it and stays with its
+			// holder: the trial allowance counts the trials a reseller holds.
+			if (!empty($rUserArray['is_trial'])) {
+				$rOwner = (isset($rUserArray['id']) ? $rUserArray['member_id'] : self::$rUserInfo['id']);
+			}
+
 			if (Authorization::check('user', $rOwner)) {
 				$rUserArray['member_id'] = $rOwner;
 			} else {
@@ -602,19 +686,24 @@ class ResellerAPI {
 				if (0 >= $db->num_rows()) {
 					$rArray['mac'] = $rData['mac'];
 
-					if (isset($rData['pair_id']) && Authorization::check('line', $rData['pair_id'])) {
+					// A device that is a trial is not paired (see processData).
+					if (isset($rData['pair_id']) && empty($rUserArray['is_trial']) && Authorization::check('line', $rData['pair_id'])) {
 						$rUserArray['pair_id'] = intval($rData['pair_id']);
 					} else {
 						$rUserArray['pair_id'] = null;
 					}
 
-					$rPrepare = QueryHelper::prepareArray($rUserArray);
-					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+					// The price leaves the balance as it is stored now, before anything
+					// is sold: a balance that no longer covers it sells nothing.
+					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
+						return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
+					}
 
-					if ($db->query($rQuery, ...$rPrepare['data'])) {
-						$rInsertID = $db->last_insert_id();
-						MagService::syncLineDevices($rInsertID);
-						SignalDispatcher::cache(intval(SERVER_ID), ['type' => 'update_line', 'id' => $rInsertID], false, false, $db);
+					// The line and its device row are stored together, or neither is.
+					$rOwn = !$db->isInTransaction() && $db->beginTransaction();
+
+					if (self::storeLine($rUserArray, $rExpDate)) {
+						$rInsertID = ($rUserArray['id'] ?? $db->last_insert_id());
 						$rArray['user_id'] = $rInsertID;
 						unset($rArray['user'], $rArray['paired']);
 						if (!isset($rData['edit'])) {
@@ -630,9 +719,15 @@ class ResellerAPI {
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
 							$rInsertID = $db->last_insert_id();
 
+							if ($rOwn) {
+								$db->commit();
+							}
+
+							MagService::syncLineDevices($rArray['user_id']);
+							SignalDispatcher::cache(intval(SERVER_ID), ['type' => 'update_line', 'id' => $rArray['user_id']], false, false, $db);
+
 							if (isset($rPackage)) {
-								$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-								$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
 								if (isset($rArray['id'])) {
 									if ($rArray['package_id']) {
@@ -655,6 +750,15 @@ class ResellerAPI {
 						if (!isset($rData['edit'])) {
 							$db->query('DELETE FROM `lines` WHERE `id` = ?;', $rInsertID);
 						}
+					}
+
+					if ($rOwn) {
+						$db->rollback();
+					}
+
+					// Nothing was sold: the price goes back.
+					if (isset($rPackage)) {
+						UserCredits::credit(self::$rUserInfo['id'], $rCost);
 					}
 
 					return ['status' => STATUS_FAILURE, 'data' => $rData];
@@ -695,6 +799,25 @@ class ResellerAPI {
 				unset($rArray['id']);
 			}
 
+			// An administrator's account is not a reseller's to change, nor an
+			// administrator group one it gives a user (GroupService::reservedGroups).
+			// The reseller's own group, unless it is an administrator group, is not
+			// reserved: the groups are read only when another one is involved.
+			$rGroups = array_map('intval', self::$rPermissions['subresellers']);
+			$rOthers = array_merge($rGroups, (isset($rArray['id']) ? [intval($rArray['member_group_id'])] : []));
+
+			if (empty(self::$rPermissions['is_admin'])) {
+				$rOthers = array_diff($rOthers, [intval(self::$rUserInfo['member_group_id'])]);
+			}
+
+			$rReserved = (0 < count($rOthers) ? GroupService::reservedGroups() : []);
+
+			if (isset($rArray['id']) && in_array(intval($rArray['member_group_id']), $rReserved)) {
+				return false;
+			}
+
+			$rGroups = array_values(array_diff($rGroups, $rReserved));
+
 			if (!self::$rPermissions['allow_change_username']) {
 				if (isset($rArray['id'])) {
 					$rData['username'] = $rArray['username'];
@@ -713,7 +836,13 @@ class ResellerAPI {
 
 			if (strlen($rData['username']) >= self::$rPermissions['minimum_username_length'] || (isset($rData['edit']) && strlen($rData['username']) == 0)) {
 				if (strlen($rData['password']) >= self::$rPermissions['minimum_password_length'] || (isset($rData['edit']) && strlen($rData['password']) == 0)) {
-					if (!QueryHelper::checkExists('users', 'username', $rArray['username'], 'id', $rData['edit'] ?? null)) {
+					// An edit that sends no name keeps the one the user has.
+					if (isset($rArray['id']) && strlen($rData['username']) == 0) {
+						$rData['username'] = $rArray['username'];
+					}
+
+					// The name that will be stored is the one no other user may have.
+					if (!QueryHelper::checkExists('users', 'username', $rData['username'], 'id', $rData['edit'] ?? null)) {
 						$rArray['username'] = $rData['username'];
 
 						if ((string) $rData['password'] !== '') {
@@ -727,17 +856,17 @@ class ResellerAPI {
 						}
 
 						if (!isset($rData['edit'])) {
-							$rCost = intval(self::$rPermissions['create_sub_resellers_price']);
+							$rCost = self::amount(self::$rPermissions['create_sub_resellers_price']);
 							if (self::$rUserInfo['credits'] - $rCost < 0) {
 								return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
 							}
 						}
 
-						if (isset($rData['member_group_id']) && in_array($rData['member_group_id'], self::$rPermissions['subresellers'])) {
+						if (isset($rData['member_group_id']) && in_array($rData['member_group_id'], $rGroups)) {
 							$rArray['member_group_id'] = $rData['member_group_id'];
 						} else {
-							if (0 < count(self::$rPermissions['subresellers'])) {
-								$rArray['member_group_id'] = self::$rPermissions['subresellers'][0];
+							if (0 < count($rGroups)) {
+								$rArray['member_group_id'] = $rGroups[0];
 							} else {
 								return ['status' => STATUS_INVALID_SUBRESELLER, 'data' => $rData];
 							}
@@ -746,22 +875,41 @@ class ResellerAPI {
 						$rArray['email'] = $rData['email'];
 						$rArray['reseller_dns'] = $rData['reseller_dns'];
 						$rArray['notes'] = $rData['notes'];
-						$rPrepare = QueryHelper::prepareArray($rArray);
-						$rQuery = 'REPLACE INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+
+						// The price leaves the balance as it is stored now, before anything
+						// is sold: a balance that no longer covers it sells nothing.
+						if (isset($rCost) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
+							return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
+						}
+
+						if (isset($rArray['id'])) {
+							// An edit leaves the user's balance to the statements that move
+							// credits: it is not written back from the copy read above.
+							$rPrepare = QueryHelper::prepareArray(array_diff_key($rArray, ['id' => 0, 'credits' => 0]));
+							$rQuery = 'UPDATE `users` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
+							$rPrepare['data'][] = $rArray['id'];
+						} else {
+							$rPrepare = QueryHelper::prepareArray($rArray);
+							$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+						}
 
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = $db->last_insert_id();
+							$rInsertID = ($rArray['id'] ?? $db->last_insert_id());
 							$rData = UserRepository::getRegisteredUserById($rInsertID);
 
 							if (isset($rCost)) {
-								$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
-								$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'new', $rInsertID, $rCost, $rNewCredits, time(), json_encode($rData));
 							} else {
 								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 							}
 
 							return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rInsertID]];
+						}
+
+						// Nothing was sold: the price goes back.
+						if (isset($rCost)) {
+							UserCredits::credit(self::$rUserInfo['id'], $rCost);
 						}
 
 						return ['status' => STATUS_FAILURE, 'data' => $rData];
@@ -855,6 +1003,16 @@ class ResellerAPI {
 	 * @return array|false Result status payload, or false on authorization/validation failure.
 	 */
 	public static function processLine(array $rData) {
+		return self::holdingTrials($rData, static fn() => self::saveLine($rData));
+	}
+
+	/**
+	 * The save of processLine().
+	 *
+	 * @param array $rData Submitted line data.
+	 * @return array|false Result status payload, or false on authorization/validation failure.
+	 */
+	private static function saveLine(array $rData) {
 		$db = self::db();
 		$rData = self::processData('line', $rData);
 
@@ -875,6 +1033,7 @@ class ResellerAPI {
 
 			$rArray['is_mag'] = 0;
 			$rArray['is_e2'] = 0;
+			$rExpDate = $rArray['exp_date'] ?? null;
 			$rGenTrials = LineService::canGenerateTrials(self::$rUserInfo['id']);
 
 			if (!empty($rData['package'])) {
@@ -887,10 +1046,12 @@ class ResellerAPI {
 						$rCompatible = true;
 					}
 
-					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true))) {
+					// A trial is made from a package that offers trials, and a subscription
+					// is bought from a package that sells them.
+					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
 						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
-								$rCost = intval($rPackage['trial_credits']);
+								$rCost = self::amount($rPackage['trial_credits']);
 							} else {
 								return ['status' => STATUS_NO_TRIALS, 'data' => $rData];
 							}
@@ -898,13 +1059,13 @@ class ResellerAPI {
 							$rOverride = json_decode(self::$rUserInfo['override_packages'], true);
 
 							if (isset($rOverride[$rPackage['id']]['official_credits']) && (string) $rOverride[$rPackage['id']]['official_credits'] !== '') {
-								$rCost = intval($rOverride[$rPackage['id']]['official_credits']);
+								$rCost = self::amount($rOverride[$rPackage['id']]['official_credits']);
 							} else {
-								$rCost = intval($rPackage['official_credits']);
+								$rCost = self::amount($rPackage['official_credits']);
 							}
 						}
 
-						if ($rCost <= intval(self::$rUserInfo['credits'])) {
+						if ($rCost <= self::amount(self::$rUserInfo['credits'])) {
 							if (!empty($rData['trial'])) {
 								$rArray['exp_date'] = strtotime('+' . intval($rPackage['trial_duration']) . ' ' . $rPackage['trial_duration_in']);
 								$rArray['is_trial'] = 1;
@@ -981,6 +1142,12 @@ class ResellerAPI {
 			$rArray['reseller_notes'] = $rData['reseller_notes'];
 			$rOwner = $rData['member_id'] ?? null;
 
+			// A trial is held by the reseller that makes it and stays with its
+			// holder: the trial allowance counts the trials a reseller holds.
+			if (!empty($rArray['is_trial'])) {
+				$rOwner = (isset($rArray['id']) ? $rArray['member_id'] : self::$rUserInfo['id']);
+			}
+
 			if (Authorization::check('user', $rOwner)) {
 				$rArray['member_id'] = $rOwner;
 			} else {
@@ -1029,6 +1196,16 @@ class ResellerAPI {
 						return ['status' => STATUS_INVALID_PASSWORD, 'data' => $rData];
 					}
 				}
+			}
+
+			// Neither holds the separator of the line's playback addresses; a
+			// line keeps the value it has until it is changed.
+			if (!LineService::credentialAllowed($rData['username'], $rOrigCredentials['username'])) {
+				return ['status' => STATUS_INVALID_USERNAME, 'data' => $rData];
+			}
+
+			if (!LineService::credentialAllowed($rData['password'], $rOrigCredentials['password'])) {
+				return ['status' => STATUS_INVALID_PASSWORD, 'data' => $rData];
 			}
 
 			if (!empty($rData['username'])) {
@@ -1097,19 +1274,20 @@ class ResellerAPI {
 						: null;
 				}
 
-				$rPrepare = QueryHelper::prepareArray($rArray);
-				$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+				// $rCost is only set on the charge paths above (package accepted for
+				// this reseller group); on edits / non-charge paths it stays unset and
+				// nothing is charged. The price leaves the balance as it is stored
+				// now, before anything is sold: a balance that no longer covers it
+				// sells nothing.
+				if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost ?? 0)) {
+					return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
+				}
 
-				if ($db->query($rQuery, ...$rPrepare['data'])) {
-					$rInsertID = $db->last_insert_id();
+				if (self::storeLine($rArray, $rExpDate)) {
+					$rInsertID = ($rArray['id'] ?? $db->last_insert_id());
 					MagService::syncLineDevices($rInsertID);
 					if (isset($rPackage)) {
-						// $rCost is only set on the charge paths above (package accepted
-						// for this reseller group); on edits / non-charge paths it stays
-						// unset. intval($rCost ?? 0) == intval(null), so the credit math
-						// is unchanged — this only removes the "undefined variable" warning.
-						$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost ?? 0);
-						$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
+						$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
 						if (isset($rArray['id'])) {
 							if ($rArray['package_id']) {
@@ -1130,6 +1308,11 @@ class ResellerAPI {
 					return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rInsertID]];
 				}
 
+				// Nothing was sold: the price goes back.
+				if (isset($rPackage)) {
+					UserCredits::credit(self::$rUserInfo['id'], $rCost ?? 0);
+				}
+
 				return ['status' => STATUS_FAILURE, 'data' => $rData];
 			}
 
@@ -1137,5 +1320,72 @@ class ResellerAPI {
 		}
 
 		return false;
+	}
+
+	/**
+	 * An amount of credits as it is charged and logged: a price or a balance
+	 * at the four decimals a balance is kept at (UserCredits). A whole amount
+	 * is the integer it has always been.
+	 *
+	 * @param mixed $rStored The amount as a column or a stored override gives it.
+	 * @return int|float
+	 */
+	public static function amount(mixed $rStored): int|float {
+		$rAmount = round(floatval($rStored), 4);
+
+		return ($rAmount == intval($rAmount) ? intval($rAmount) : $rAmount);
+	}
+
+	/**
+	 * Run the save of a line or a device. A trial is counted against the
+	 * reseller's allowance and then stored: the reseller's trials are held from
+	 * the count to the save, so that of two requests at once the later one
+	 * counts the trial the earlier one made.
+	 *
+	 * @param array    $rData Request payload.
+	 * @param \Closure $rSave The save.
+	 * @return array|false What the save answers.
+	 */
+	private static function holdingTrials(array $rData, \Closure $rSave) {
+		if (empty($rData['trial']) || isset($rData['edit'])) {
+			return $rSave();
+		}
+
+		$rUserID = intval(self::$rUserInfo['id'] ?? 0);
+		LineService::lockTrials($rUserID);
+
+		try {
+			return $rSave();
+		} finally {
+			LineService::unlockTrials($rUserID);
+		}
+	}
+
+	/**
+	 * Store a line. A change to an existing line is written over the line as
+	 * this request read it, and one that moves the expiry was priced on the
+	 * expiry it read: it is stored only while the line still has that expiry.
+	 * When another request has moved it since, nothing is stored and nothing
+	 * is sold, and the term the other request sold stays on the line.
+	 *
+	 * @param array $rLine    The line to store.
+	 * @param mixed $rExpDate The expiry this request read from the line.
+	 * @return bool False when the line was not stored.
+	 */
+	private static function storeLine(array $rLine, mixed $rExpDate): bool {
+		$db = self::db();
+		$rPrepare = QueryHelper::prepareArray($rLine);
+
+		if (!isset($rLine['id'])) {
+			return $db->query('REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');', ...$rPrepare['data']);
+		}
+
+		if (!$db->query('UPDATE `lines` SET ' . $rPrepare['update'] . ' WHERE `id` = ? AND `exp_date` <=> ?;', ...array_merge($rPrepare['data'], [$rLine['id'], $rExpDate]))) {
+			return false;
+		}
+
+		// No row changed: the line is stored as it is (there was nothing to
+		// write), or it no longer has the expiry this request read.
+		return $db->num_rows() == 1 || ($db->query('SELECT `id` FROM `lines` WHERE `id` = ? AND `exp_date` <=> ?;', $rLine['id'], $rExpDate) && $db->num_rows() == 1);
 	}
 }

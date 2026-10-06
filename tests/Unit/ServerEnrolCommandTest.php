@@ -91,6 +91,15 @@ final class ServerEnrolCommandTest extends TestCase {
 		$this->assertSame(1, substr_count($rOut, 'Node enrolled (uuid '), 'the flow prints once');
 	}
 
+	public function testEveryFileTestOnTheNodeRunsAsRoot(): void {
+		// bin/ is 0750 again after an update, config/ always: a sudoer who is not root sees into neither.
+		[$rWhy, $rOut] = $this->enrol($this->servers());
+		$this->assertNull($rWhy, $rOut);
+		foreach ($this->rSsh->commands('10.0.0.7') as $rCommand) {
+			$this->assertDoesNotMatchRegularExpression('/(?<!sudo )\btest -[a-z] |\[ !? ?-[a-z] /', $rCommand);
+		}
+	}
+
 	public function testTheHostKeyIsNeverTrustedOnFirstUse(): void {
 		$rServers = $this->servers();
 		$rServers[7]['ssh_hostkey_sha1'] = null;

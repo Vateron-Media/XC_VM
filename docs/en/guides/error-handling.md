@@ -57,7 +57,7 @@ Use centralized code definitions only. Do not hardcode error text in endpoint ha
 | `CACHE_INCOMPLETE` | Cache is being generated... |
 | `DEVICE_NOT_ALLOWED` | MAG & Enigma devices are not allowed to access this. |
 | `DISABLED` | Line has been disabled. |
-| `DOWNLOAD_LIMIT_REACHED` | Reached the simultaneous download limit. |
+| `DOWNLOAD_LIMIT_REACHED` | Reached the simultaneous download limit. The request is answered with HTTP 429 and an empty body while the line already has `max_simultaneous_downloads` downloads of that kind (playlist or XMLTV) running on the server; the code and its text are shown only with `debug_show_errors` on. |
 | `E2_DEVICE_LOCK_FAILED` | Device lock checks failed. |
 | `E2_DISABLED` | Device has been disabled. |
 | `E2_NO_TOKEN` | No token has been specified. |
@@ -239,7 +239,7 @@ Decoded JSON structure:
 | `log_message` | Error/exception message text |
 | `file` | Absolute path to the source file |
 | `line` | Line number where the error occurred |
-| `log_extra` | Stack trace (formatted string). Empty for fatal errors. |
+| `log_extra` | Stack trace (formatted string). Empty for fatal errors. For `pdo` entries (written by `FileLogger`), the failed SQL statement as written, with its `?` placeholders in place of the bound values (a statement run through `simple_query()` has no placeholders and is logged whole). The driver's message is in `log_message`. The text MySQL quotes after `value: ` ("Incorrect integer value: '...'") and after a syntax error's `near ` is replaced by `?`; any other message, and the message of a statement run through `simple_query()`, is logged as MySQL wrote it and can still quote a value. |
 | `time` | Unix timestamp |
 | `env` | PHP SAPI name (`cli`, `fpm-fcgi`, etc.) |
 

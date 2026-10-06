@@ -43,6 +43,8 @@ export async function until(page: Page, what: string, ok: (tr: Locator) => Promi
 
 export const health = async (tr: Locator): Promise<string> => (await tr.locator('td').nth(1).locator('.badge').first().innerText()).trim();
 export const flowOn = async (tr: Locator, flow: string): Promise<boolean> => (await tr.locator(`button[value="${flow}_off"]`).count()) > 0;
+/** The node's cluster mode, as the forms of its mode cell name it. */
+export const mode = async (tr: Locator): Promise<number> => Number(await tr.locator('input[name="mode"]').first().inputValue());
 export const epochCell = (tr: Locator): Locator => tr.locator('td').filter({ hasText: /\(gen \d+\)/ }).first();
 export const epoch = async (tr: Locator): Promise<number> => Number((await epochCell(tr).innerText()).trim().split(/\s+/)[0]);
 /** The node's command queue: the badge three cells after the epoch's. */

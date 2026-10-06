@@ -34,7 +34,10 @@ class ProviderService {
 		if (InputValidator::validate('processProvider', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'streams')) {
-					$rArray = AdminHelpers::overwriteData(self::getById($rData['edit']), $rData);
+					// The edit starts from the provider as stored: the row cleaner's
+					// escaping would be written back into every field not sent.
+					$db->query('SELECT * FROM `providers` WHERE `id` = ?;', intval($rData['edit']));
+					$rArray = AdminHelpers::overwriteData($db->get_raw_row(), $rData);
 				} else {
 					exit();
 				}

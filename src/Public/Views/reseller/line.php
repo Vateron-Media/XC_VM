@@ -74,8 +74,9 @@ $rStatusMessages = [
     STATUS_NO_TRIALS            => 'You cannot generate trials at this time.',
     STATUS_INSUFFICIENT_CREDITS => 'You do not have enough credits to make this purchase.',
     STATUS_INVALID_PACKAGE      => 'Please select a valid package.',
-    STATUS_INVALID_USERNAME     => 'Username is too short! It must be at least ' . intval($rPermissions['minimum_username_length']) . ' characters long.',
-    STATUS_INVALID_PASSWORD     => 'Password is too short! It must be at least ' . intval($rPermissions['minimum_password_length']) . ' characters long.',
+    // One answer for two rules: the group's minimum length, and the character neither can hold.
+    STATUS_INVALID_USERNAME     => $language::get('line_username_rule', ['{num}' => (string) intval($rPermissions['minimum_username_length'])]),
+    STATUS_INVALID_PASSWORD     => $language::get('line_password_rule', ['{num}' => (string) intval($rPermissions['minimum_password_length'])]),
     STATUS_EXISTS_USERNAME      => 'The username you selected already exists. Please use another.',
 ];
 ?>
@@ -147,7 +148,8 @@ $rStatusMessages = [
                             </div>
                         <?php endif; ?>
 
-                        <?php if (count($rPermissions['all_reports']) > 0): ?>
+                        <?php // A new trial is held by the reseller that makes it: there is no owner to pick.
+                        if (count($rPermissions['all_reports']) > 0 && ($rIsEdit || !$rIsTrial)): ?>
                             <div class="mb-6">
                                 <label class="form-label" for="member_id">Owner</label>
                                 <select name="member_id" id="member_id" class="form-select select2">
@@ -173,6 +175,10 @@ $rStatusMessages = [
                                         </optgroup>
                                     <?php endif; ?>
                                 </select>
+                                <?php // A trial stays with its holder: the owner picked applies once a package makes the line official.
+                                if ($rIsEdit && $rLine['is_trial']): ?>
+                                    <div class="form-text small"><?= $language::get('trial_owner_kept'); ?></div>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
 
@@ -377,7 +383,7 @@ LayoutRenderer::renderFooter('reseller');
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var statusMessages = <?= json_encode($rStatusMessages); ?>;
 
-        var ownerCredits = <?= (int) $rUserInfo['credits']; ?>;
+        var ownerCredits = <?= (float) $rUserInfo['credits']; ?>;
         var allowChangeBouquets = <?= $rAllowChange ? 'true' : 'false'; ?>;
         var userPackage = <?= $rIsEdit ? (intval($rLine['package_id']) ?: 'null') : 'null'; ?>;
         var userBouquet = <?= $rIsEdit ? json_encode(array_map('intval', json_decode((string) $rLine['bouquet'], true) ?: [])) : '[]'; ?>;

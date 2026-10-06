@@ -70,21 +70,34 @@ if (isset($_GET['token'])) {
 
 	if (6 > count($rTokenArray)) {
 	} else {
-		if ($rTokenArray[0] == 'TS') {
+		// A catch-up link begins with TS and has its start in the sixth field. A
+		// live link has the viewer's connection id there, and a line may be named TS.
+		$rArchive = $rTokenArray[0] == 'TS' && !preg_match('/^[0-9a-f]{32}\z/', $rTokenArray[5]);
+
+		if ($rArchive) {
+			// A catch-up link has nine fields, each read by its position: no more, no fewer.
+			if (count($rTokenArray) != 9) {
+				generate404();
+			}
+
 			$rServerID = $rTokenArray[8];
 		} else {
 			$rServerID = $rTokenArray[6];
 		}
 
 		if ($rServerID == SERVER_ID) {
-			if ($rTokenArray[0] == 'TS') {
+			if ($rArchive) {
 				$rType = 'ARCHIVE';
 				list(, $rUsername, $rPassword, $rUserIP, $rDuration, $rStartDate, $rSegmentData, $rUUID) = $rTokenArray;
 				list($rStreamID, $rSegmentID, $rOffset) = explode('_', $rSegmentData);
 				$rStreamID = intval($rStreamID);
 				$rSegment = ARCHIVE_PATH . $rStreamID . '/' . $rSegmentID;
 
-				if (!file_exists($rSegment)) {
+				// Only a recorded minute (the name ArchiveCommand gives it) is served,
+				// and only to a viewer whose marker a connection id names. The path is
+				// an integer id and that name, checked before the file is looked at.
+				// nosemgrep: php.lang.security.injection.tainted-filename.tainted-filename
+				if (!preg_match('/^\d{4}-\d{2}-\d{2}:\d{2}-\d{2}\.ts\z/', (string) $rSegmentID) || !preg_match('/^[0-9a-f]{32}\z/', $rUUID) || !file_exists($rSegment)) {
 					generate404();
 				}
 			} else {

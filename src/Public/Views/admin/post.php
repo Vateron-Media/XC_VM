@@ -21,6 +21,7 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Line\LineRepository;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Security\BlocklistService;
@@ -461,25 +462,33 @@ if (1 < $rICount) { ?>
 				}
 
 				if (isset($rData['remove_null_lines'])) {
-					$db->query('DELETE FROM `lines` WHERE `username` IS NULL AND `password` IS NULL;');
+					// Removed here, a line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `username` IS NULL AND `password` IS NULL;');
+					LineRepository::deleteMany(array_column($db->get_rows() ?: [], 'id'));
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['remove_expired'])) {
-					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					// Removed here, a line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					LineRepository::deleteMany(array_column($db->get_rows() ?: [], 'id'));
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['remove_trial'])) {
-					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `is_trial` = 1;');
+					// Removed here, a line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `is_trial` = 1;');
+					LineRepository::deleteMany(array_column($db->get_rows() ?: [], 'id'));
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['remove_expired_trial'])) {
-					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					// Removed here, a line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					LineRepository::deleteMany(array_column($db->get_rows() ?: [], 'id'));
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -503,22 +512,37 @@ if (1 < $rICount) { ?>
 				}
 
 				if (isset($rData['remove_expired_mag'])) {
-					$db->query('DELETE FROM `mag_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP()));');
-					$db->query('DELETE FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					// Removed here, a device's line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					$rLineIDs = array_map('intval', array_column($db->get_rows() ?: [], 'id'));
+					if (0 < count($rLineIDs)) {
+						$db->query('DELETE FROM `mag_devices` WHERE `user_id` IN (' . implode(',', $rLineIDs) . ');');
+					}
+					LineRepository::deleteMany($rLineIDs);
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['remove_trial_mag'])) {
-					$db->query('DELETE FROM `mag_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1);');
-					$db->query('DELETE FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1;');
+					// Removed here, a device's line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1;');
+					$rLineIDs = array_map('intval', array_column($db->get_rows() ?: [], 'id'));
+					if (0 < count($rLineIDs)) {
+						$db->query('DELETE FROM `mag_devices` WHERE `user_id` IN (' . implode(',', $rLineIDs) . ');');
+					}
+					LineRepository::deleteMany($rLineIDs);
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['remove_expired_trial_mag'])) {
-					$db->query('DELETE FROM `mag_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP()));');
-					$db->query('DELETE FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					// Removed here, a device's line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 1 AND `is_e2` = 0 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					$rLineIDs = array_map('intval', array_column($db->get_rows() ?: [], 'id'));
+					if (0 < count($rLineIDs)) {
+						$db->query('DELETE FROM `mag_devices` WHERE `user_id` IN (' . implode(',', $rLineIDs) . ');');
+					}
+					LineRepository::deleteMany($rLineIDs);
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -560,22 +584,37 @@ if (1 < $rICount) { ?>
 				}
 
 				if (isset($rData['remove_expired_e2'])) {
-					$db->query('DELETE FROM `enigma2_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP()));');
-					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					// Removed here, a device's line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					$rLineIDs = array_map('intval', array_column($db->get_rows() ?: [], 'id'));
+					if (0 < count($rLineIDs)) {
+						$db->query('DELETE FROM `enigma2_devices` WHERE `user_id` IN (' . implode(',', $rLineIDs) . ');');
+					}
+					LineRepository::deleteMany($rLineIDs);
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['remove_trial_e2'])) {
-					$db->query('DELETE FROM `enigma2_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1);');
-					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1;');
+					// Removed here, a device's line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1;');
+					$rLineIDs = array_map('intval', array_column($db->get_rows() ?: [], 'id'));
+					if (0 < count($rLineIDs)) {
+						$db->query('DELETE FROM `enigma2_devices` WHERE `user_id` IN (' . implode(',', $rLineIDs) . ');');
+					}
+					LineRepository::deleteMany($rLineIDs);
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['remove_expired_trial_e2'])) {
-					$db->query('DELETE FROM `enigma2_devices` WHERE `user_id` IN (SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP()));');
-					$db->query('DELETE FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					// Removed here, a device's line leaves as one deleted from the list does: its sessions are closed.
+					$db->query('SELECT `id` FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 1 AND `is_trial` = 1 AND (`exp_date` IS NOT NULL AND `exp_date` < UNIX_TIMESTAMP());');
+					$rLineIDs = array_map('intval', array_column($db->get_rows() ?: [], 'id'));
+					if (0 < count($rLineIDs)) {
+						$db->query('DELETE FROM `enigma2_devices` WHERE `user_id` IN (' . implode(',', $rLineIDs) . ');');
+					}
+					LineRepository::deleteMany($rLineIDs);
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -938,10 +977,8 @@ if (1 < $rICount) { ?>
 						$rIDs[] = $rRow['id'];
 					}
 
-					if (0 >= count($rIDs)) {
-					} else {
-						$db->query('DELETE FROM `lines` WHERE `id` IN (' . implode(',', array_map('intval', $rIDs)) . ');');
-					}
+					// Removed here, a line leaves as one deleted from the list does: its sessions are closed.
+					LineRepository::deleteMany($rIDs);
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
@@ -955,10 +992,8 @@ if (1 < $rICount) { ?>
 						$rIDs[] = $rRow['id'];
 					}
 
-					if (0 >= count($rIDs)) {
-					} else {
-						$db->query('DELETE FROM `lines` WHERE `id` IN (' . implode(',', array_map('intval', $rIDs)) . ');');
-					}
+					// Removed here, a line leaves as one deleted from the list does: its sessions are closed.
+					LineRepository::deleteMany($rIDs);
 
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
@@ -1910,7 +1945,8 @@ if (1 < $rICount) { ?>
 					exit();
 				}
 
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
+				// A refused install says why (ServerService::install).
+				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status'], 'message' => isset($rReturn['message']) ? $language::get($rReturn['message']) : null));
 				exit();
 
 			case 'settings':

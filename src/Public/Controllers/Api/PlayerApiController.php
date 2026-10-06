@@ -252,7 +252,21 @@ class PlayerApiController {
 			echo json_encode($output);
 			exit();
 		}
-		BruteforceGuard::checkBruteforce(null, null, $rUsername ?? '');
+		// A known activation code that has run out or been suspended is its
+		// subscriber's own: it is answered as such a line is, and not counted.
+		if (($actRes['status'] ?? '') === 'EXPIRED') {
+			$this->sendAuthError('Expired', 'Account has expired.');
+		}
+		if (($actRes['status'] ?? '') === 'DISABLED') {
+			$this->sendAuthError('Disabled', 'Account has been disabled.');
+		}
+
+		// A token nothing answers to is a guess, as a username is; so is the
+		// password a username came with (a token comes with none).
+		BruteforceGuard::checkBruteforce(null, null, $rUsername ?? $rToken ?? '', false, $rPassword ?? null);
+		// A refused sign-in counts against the address, as on the other client
+		// APIs (sendAuthError() leaves shutdown() nothing to count).
+		BruteforceGuard::checkFlood();
 		$this->sendAuthError('', 'Username or password is invalid.');
 	}
 

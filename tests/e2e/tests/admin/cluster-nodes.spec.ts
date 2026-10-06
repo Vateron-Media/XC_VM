@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { act, epoch, flowOn, health, lastSeen, lb, queued, row, until, withFlow } from './cluster-support';
+import { act, epoch, flowOn, health, lastSeen, lb, mode, queued, row, until, withFlow } from './cluster-support';
 
 /**
  * The Cluster Nodes page against a real load balancer enrolled in the cluster
@@ -29,7 +29,15 @@ test('the load balancer is active, heard and names its agent', async ({ page }) 
 
 test('a flow switched on reaches the node and is switched off again', async ({ page }) => {
   test.setTimeout(120_000);
-  const wasOn = await flowOn(await row(page), 'telemetry');
+  const tr = await row(page);
+  const wasOn = await flowOn(tr, 'telemetry');
+  if (wasOn && (await mode(tr)) === 2) {
+    // A node in mode 2 keeps every flow: the page refuses the switch and says so.
+    await act(page, 'telemetry_off');
+    await expect(page.locator('.alert-warning')).toBeVisible();
+    expect(await flowOn(await row(page), 'telemetry'), 'telemetry stays on').toBe(true);
+    return;
+  }
   await act(page, wasOn ? 'telemetry_off' : 'telemetry_on');
   await until(page, 'telemetry switched', async (tr) => (await flowOn(tr, 'telemetry')) !== wasOn, 30_000);
   // The node keeps heart-beating under the new flows: a heartbeat newer than

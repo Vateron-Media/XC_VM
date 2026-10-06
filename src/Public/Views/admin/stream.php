@@ -187,6 +187,14 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                         <div class="col-md-6">
                             <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="direct_proxy" name="direct_proxy" value="1" <?= ($rIsEdit && ($rStream['direct_proxy'] ?? 0) == 1) ? 'checked' : ''; ?>><label class="form-check-label" for="direct_proxy">Direct Stream</label></div>
                         </div>
+                        <?php if ($rIsImport): ?>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="add_source_as_backup" name="add_source_as_backup" value="1"><label class="form-check-label" for="add_source_as_backup"><?= $language::get('add_source_as_backup'); ?> <i class="icon-base ti tabler-help-circle text-muted" title="<?= $language::get('if_an_identical_stream_name_tooltip'); ?>"></i></label></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="update_existing" name="update_existing" value="1"><label class="form-check-label" for="update_existing"><?= $language::get('update_existing'); ?> <i class="icon-base ti tabler-help-circle text-muted" title="<?= $language::get('if_the_source_exists_overwrite_tooltip'); ?>"></i></label></div>
+                            </div>
+                        <?php endif; ?>
                         <div class="col-md-6">
                             <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fps_restart" name="fps_restart" value="1" <?= ($rIsEdit && ($rStream['fps_restart'] ?? 0) == 1) ? 'checked' : ''; ?>><label class="form-check-label" for="fps_restart">Restart on FPS Drop</label></div>
                         </div>

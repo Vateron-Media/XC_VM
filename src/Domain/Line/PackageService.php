@@ -6,6 +6,7 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -33,7 +34,10 @@ class PackageService {
 			if (!Authorization::check('adv', 'edit_package')) {
 				exit();
 			}
-			$rArray = AdminHelpers::overwriteData(self::getById($rData['edit']), $rData);
+			// The edit starts from the package as stored: the row cleaner's
+			// escaping would be written back into every field not sent.
+			$db->query('SELECT * FROM `users_packages` WHERE `id` = ?;', intval($rData['edit']));
+			$rArray = AdminHelpers::overwriteData(($rStored = $db->get_raw_row()) ? UserCredits::amounts($rStored) : null, $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_packages')) {
 				exit();
@@ -113,7 +117,7 @@ class PackageService {
 			foreach ($db->get_rows() as $rRow) {
 				if (!isset($rGroup) || in_array(intval($rGroup), json_decode($rRow['groups'], true))) {
 					if (!$rType || $rRow['is_' . $rType]) {
-						$rReturn[intval($rRow['id'])] = $rRow;
+						$rReturn[intval($rRow['id'])] = UserCredits::amounts($rRow);
 					}
 				}
 			}
@@ -136,7 +140,7 @@ class PackageService {
 			return null;
 		}
 
-		return $db->get_row();
+		return UserCredits::amounts($db->get_row());
 	}
 
 	/**

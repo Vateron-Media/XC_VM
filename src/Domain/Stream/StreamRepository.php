@@ -234,9 +234,10 @@ class StreamRepository {
 	 * @param int  $rServerID          Restrict deletion to a server (-1 for all).
 	 * @param bool $rDeleteFiles       Also remove on-disk stream files.
 	 * @param bool $f2d619cb38696890   Internal flag controlling cascade behavior.
+	 * @param bool $rScan              Start the bouquet scan; false for a caller that deletes several streams and starts one scan after the last.
 	 * @return bool True on success.
 	 */
-	public static function deleteStream(int $rID, int $rServerID = -1, bool $rDeleteFiles = true, bool $f2d619cb38696890 = true) {
+	public static function deleteStream(int $rID, int $rServerID = -1, bool $rDeleteFiles = true, bool $f2d619cb38696890 = true, bool $rScan = true) {
 		$db = self::db();
 		$db->query('SELECT `id`, `type` FROM `streams` WHERE `id` = ?;', $rID);
 
@@ -288,7 +289,10 @@ class StreamRepository {
 
 		$db->query('DELETE FROM `streams_servers` WHERE `parent_id` IS NOT NULL AND `parent_id` > 0 AND `parent_id` NOT IN (SELECT `id` FROM `servers` WHERE `server_type` = 0);');
 		StreamProcess::updateStream($rID);
-		BouquetService::scan();
+
+		if ($rScan) {
+			BouquetService::scan();
+		}
 
 		return true;
 	}

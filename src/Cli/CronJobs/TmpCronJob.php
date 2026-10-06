@@ -5,6 +5,7 @@ namespace XcVm\Cli\CronJobs;
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Process\ProcessManager;
 
 /**
  * TmpCronJob — tmp cron job
@@ -51,6 +52,16 @@ class TmpCronJob implements CommandInterface {
 		return self::KEEP[$rFile] ?? 600;
 	}
 
+	/**
+	 * Is this file the lock of a cron that still runs? It stays whatever its
+	 * age: with it swept, a second copy of the cron started beside the first.
+	 * A lock whose cron is gone, a lock of the previous release (it names a
+	 * pid alone) and a daemon's daemon_<name>.lock are swept by age as before.
+	 */
+	public static function keepsLock(string $rPath): bool {
+		return strpos(basename($rPath), 'lock_') === 0 && ProcessManager::cronLockHolder($rPath, true) > 0;
+	}
+
 	public function execute(array $rArgs): int {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
@@ -77,7 +88,7 @@ class TmpCronJob implements CommandInterface {
 				if ($rFile === '.' || $rFile === '..') {
 					continue;
 				}
-				if (is_file($fullPath) && time() - filemtime($fullPath) >= self::maxAge($rFile) && stripos($rFile, 'ministra_') === false) {
+				if (is_file($fullPath) && time() - filemtime($fullPath) >= self::maxAge($rFile) && stripos($rFile, 'ministra_') === false && !self::keepsLock($fullPath)) {
 					unlink($fullPath);
 				}
 			}

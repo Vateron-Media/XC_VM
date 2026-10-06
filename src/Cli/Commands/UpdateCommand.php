@@ -3,11 +3,13 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\NodeStateSink;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Logging\UpdateLogger;
 use XcVm\Core\Process\ProcessRunner;
@@ -374,7 +376,16 @@ class UpdateCommand implements CommandInterface {
 					}
 				}
 
-				exec('sudo chown -R xc_vm:xc_vm ' . MAIN_HOME);
+				// An update keeps the installed access-code files: they are built
+				// again from the codes, so what this release's template (or the
+				// generator) changes reaches them. Never with no code to build, which
+				// would leave only the no-code file.
+				if (ServerRepository::getAll()[SERVER_ID]['is_main'] && array_filter(AuthRepository::getAllCodes(), static fn(array $rCode): bool => (bool) $rCode['enabled'])) {
+					UpdateLogger::info('Rebuilding the access-code nginx files');
+					AuthRepository::updateCodes();
+				}
+
+				ProcessRunner::run(TreeOwnership::chownTree(MAIN_HOME));
 				exec('sudo systemctl daemon-reload');
 				exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system");
 				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status');

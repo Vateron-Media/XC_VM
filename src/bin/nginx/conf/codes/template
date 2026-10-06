@@ -11,6 +11,13 @@ location ^~ /#CODE# {
     alias /home/xc_vm/#ALIAS#;
     try_files $uri $uri.html @fc_#CODE#;
     #WHITELIST#
+    # The sign-in and the image resizer carry no .php: they are limited per
+    # address here, in a zone of the panel's own, so a list of thumbnails never
+    # holds back the address's streams.
+    location ~ /(login|resize)$ {
+        limit_req zone=#ZONE# burst=#BURST# nodelay;
+        try_files $uri @fc_#CODE#;
+    }
     location ~ \.php$ {
         limit_req zone=one burst=#BURST# nodelay;
         try_files $uri @fc_#CODE#;

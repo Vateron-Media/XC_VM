@@ -5,6 +5,7 @@ namespace XcVm\Domain\Cluster;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\Crypto\Canonical;
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
+use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
 
 /**
  * Enrolment on MAIN.
@@ -49,7 +50,8 @@ final class EnrolmentService {
 	 * Start an enrolment, as both paths do (install, and an approved code):
 	 * the node's mode from `lb_new_node_mode` (mode 2, `api`, with the flows
 	 * mode 2 needs), a new generation with these keys, and epoch 1's token
-	 * sealed to the agent's ephemeral key.
+	 * sealed to the agent's ephemeral key. Mode 2 is refused while
+	 * `redis_handler` is on (ClusterRefusedException, reason REDIS_HANDLER).
 	 *
 	 * The caller writes the `node.enrol_start` audit event: the install path
 	 * right after this, the code path only once the approval is signed and
@@ -60,6 +62,13 @@ final class EnrolmentService {
 	 */
 	public static function begin(ClusterCrypto $rCrypto, int $rServerID, string $rNodeUuid, string $rSignPub, string $rBoxPub, string $rAgentEphPub, array $rSettings): array {
 		$rMode = ClusterSettings::enum('lb_new_node_mode', $rSettings['lb_new_node_mode'] ?? null) === 'api' ? 2 : 1;
+		if ($rMode === 2 && !empty($rSettings['redis_handler'])) {
+			// As the page's move to mode 2 (ClusterAdmin::act()): with the Redis
+			// connection handler the node's stream entry opens MAIN's Redis at
+			// every viewer, which mode 2 refuses. Refused before the node's row is
+			// touched, as a refusal every enrolment path already reports.
+			throw new ClusterRefusedException('REDIS_HANDLER', 'enrolment');
+		}
 		// A node born in mode 2 has no DB grant and no credentials to fall back
 		// on: every flow but the data plane is on from its first hello, as the
 		// mode gate asks of a promoted one (ClusterAdmin::MODE2_FLOWS).

@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\Player;
 
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Bootstrap\Stage\SessionStage;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\GeoIP;
@@ -53,7 +54,7 @@ class PlayerLoginController {
 
 		// Start session
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-			session_start();
+			SessionStage::startSession();
 		}
 
 		// Destroy existing session
@@ -89,6 +90,11 @@ class PlayerLoginController {
 		$rUserAgent = empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlspecialchars(trim($_SERVER['HTTP_USER_AGENT']));
 
 		if (!$rUserInfo) {
+			// The username of a refused sign-in is a guess, and so is its
+			// password, as on the client APIs: counted where the panel sets a
+			// limit on them.
+			$rPassword = RequestManager::get('password');
+			BruteforceGuard::checkBruteforce(null, null, RequestManager::get('username'), false, is_string($rPassword) ? $rPassword : null);
 			BruteforceGuard::checkFlood();
 			return CLIENT_INVALID;
 		}
@@ -156,7 +162,11 @@ class PlayerLoginController {
 			return CLIENT_DISALLOWED;
 		}
 
-		// Success — set session and redirect
+		// Success — set session and redirect. The session moves to a fresh id
+		// first: the one the visitor arrived with may be known to someone else.
+		if (session_status() === PHP_SESSION_ACTIVE) {
+			session_regenerate_id(true);
+		}
 		$_SESSION['phash'] = $rUserInfo['id'];
 		$_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password']);
 		header('Location: index');

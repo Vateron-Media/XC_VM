@@ -305,6 +305,8 @@ The router normalizes legacy page names by converting underscores to slashes:
 
 This normalization is applied both at registration time (`buildRoute`) and at dispatch time (`normalizePage`), so routes registered as `watch/add` match page names like `watch_add`.
 
+Page permission rules follow the same spellings: `PageAuthorization` looks a page's rule up under its underscore name, so `line/mass`, `line_mass` and `line_mass.php` share one rule. A new admin or reseller page that needs a permission gets a case in `PageAuthorization` (or a `permission` option on its route); a page with neither stays open to every group of that panel. See [Permissions and RBAC](../guides/permissions-and-rbac.md).
+
 ### Dispatch
 
 ```php

@@ -24,6 +24,7 @@ class ActiveCodeAjaxController extends BaseAjaxController {
 	 */
 	public function generate(): never {
 		$this->requireXhr();
+		$this->gate('adv', 'add_user');
 
 		$data = RequestManager::getAll();
 		$user = $GLOBALS['rUserInfo'] ?? [];
@@ -48,6 +49,7 @@ class ActiveCodeAjaxController extends BaseAjaxController {
 	 */
 	public function batchAction(): never {
 		$this->requireXhr();
+		$this->gateAny([['adv', 'edit_user'], ['adv', 'mass_edit_lines']]);
 
 		global $db;
 		$batchName = trim(RequestManager::get('batch_name') ?? '');
@@ -82,6 +84,8 @@ class ActiveCodeAjaxController extends BaseAjaxController {
 	 * action=active_codes_export_txt — Export physical scratch card vouchers as .txt.
 	 */
 	public function exportTxt(): never {
+		$this->gate('adv', 'users');
+
 		$batchName = trim(RequestManager::get('batch_name') ?? '');
 		if (empty($batchName)) {
 			exit('Invalid batch name');

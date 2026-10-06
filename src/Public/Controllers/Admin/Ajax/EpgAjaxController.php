@@ -264,7 +264,7 @@ class EpgAjaxController extends BaseAjaxController {
 	public function providerImportEpg(): never {
 		$this->requireXhr();
 
-		if (!Authorization::check('adv', 'providers')) {
+		if (!Authorization::check('adv', 'streams')) {
 			$this->json(['status' => STATUS_FAILURE]);
 		}
 
@@ -306,7 +306,7 @@ class EpgAjaxController extends BaseAjaxController {
 	/** action=get_epg — TV-guide grid (channels + timed listings) for the given streams. */
 	public function getEpg(): never {
 		$this->requireXhr();
-		$this->gate('adv', 'manage_streams');
+		$this->gate('adv', 'streams');
 
 		global $db;
 		$rTimezone = (RequestManager::get('timezone') ?: 'Europe/London');
@@ -395,7 +395,7 @@ class EpgAjaxController extends BaseAjaxController {
 	/** action=get_programme — single programme details + live/archive availability. */
 	public function getProgramme(): never {
 		$this->requireXhr();
-		$this->gate('adv', 'manage_streams');
+		$this->gate('adv', 'streams');
 
 		global $db;
 		$rTimezone = (RequestManager::get('timezone') ?: 'Europe/London');

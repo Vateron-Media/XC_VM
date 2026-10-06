@@ -32,6 +32,17 @@ window.LiveApp = window.LivePlayerApp = (function () {
     currentReqId: 0
   };
 
+  const escapeHtml = (str) => {
+    if (!str) return '';
+    // The panel sends the < and > of a stored name as &lt; and &gt; already: those two stay as they are.
+    return String(str)
+      .replace(/&(?!(?:lt|gt);)/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
   // Cache DOM Elements
   const els = {};
 
@@ -462,7 +473,7 @@ window.LiveApp = window.LivePlayerApp = (function () {
       const fav = isFavorite(ch.id);
       const isCur = state.activeChannel && Number(ch.id) === Number(state.activeChannel.id);
       const logoHtml = ch.logo
-        ? `<img src="${ch.logo}" alt="${ch.name}" class="channel-logo-img" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<i class=\\'icon-base bx bx-tv text-primary fs-2\\'></i>';">`
+        ? `<img src="${escapeHtml(ch.logo)}" alt="${escapeHtml(ch.name)}" class="channel-logo-img" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<i class=\\'icon-base bx bx-tv text-primary fs-2\\'></i>';">`
         : `<i class="icon-base bx bx-tv text-primary fs-2"></i>`;
 
       html += `
@@ -481,7 +492,7 @@ window.LiveApp = window.LivePlayerApp = (function () {
                 ${logoHtml}
               </div>
               <div class="text-center mt-auto" data-play-channel="${ch.id}">
-                <h6 class="card-title mb-1 text-truncate fw-bold ${isCur ? 'text-primary' : ''}" title="${ch.name}">${ch.name}</h6>
+                <h6 class="card-title mb-1 text-truncate fw-bold ${isCur ? 'text-primary' : ''}" title="${escapeHtml(ch.name)}">${escapeHtml(ch.name)}</h6>
                 <small class="text-body-secondary d-block text-truncate" data-epg-id="${ch.id}">Loading EPG...</small>
               </div>
             </div>
@@ -507,10 +518,10 @@ window.LiveApp = window.LivePlayerApp = (function () {
       html += `
         <div class="live-zap-item d-flex align-items-center p-2 rounded mb-1 ${isCur ? 'active' : ''}" data-player-zap-id="${ch.id}">
           <div class="channel-logo-box me-2 d-flex align-items-center justify-content-center">
-            ${ch.logo ? `<img src="${ch.logo}" alt="" class="channel-zap-logo" onerror="this.onerror=null;this.parentElement.innerHTML='<i class=\\'icon-base bx bx-tv text-primary\\'></i>';">` : `<i class="icon-base bx bx-tv ${isCur ? 'text-primary' : 'text-body-secondary'}"></i>`}
+            ${ch.logo ? `<img src="${escapeHtml(ch.logo)}" alt="" class="channel-zap-logo" onerror="this.onerror=null;this.parentElement.innerHTML='<i class=\\'icon-base bx bx-tv text-primary\\'></i>';">` : `<i class="icon-base bx bx-tv ${isCur ? 'text-primary' : 'text-body-secondary'}"></i>`}
           </div>
           <div class="flex-grow-1 overflow-hidden me-1">
-            <div class="fw-semibold text-truncate small channel-zap-name ${isCur ? 'text-primary' : ''}">${ch.name}</div>
+            <div class="fw-semibold text-truncate small channel-zap-name ${isCur ? 'text-primary' : ''}">${escapeHtml(ch.name)}</div>
             <div class="text-body-secondary text-truncate fs-tiny d-flex align-items-center gap-1">
               ${isCur ? '<span class="badge bg-label-primary px-1 py-0 rounded fw-bold">NOW PLAYING</span>' : '<span class="text-body-secondary">LIVE Broadcast</span>'}
             </div>

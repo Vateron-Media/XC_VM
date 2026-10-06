@@ -16,7 +16,10 @@ use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\ResellerAPI;
 use XcVm\Domain\User\TicketRepository;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\User\UserService;
 use XcVm\Infrastructure\Database\DatabaseAware;
@@ -158,7 +161,7 @@ class ResellerApiDispatcher {
 		$db->query('SELECT COUNT(`id`) AS `count` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 		$rReturn['active_accounts'] = ($db->get_row()['count'] ?: 0);
 		$db->query('SELECT SUM(`credits`) AS `credits` FROM `users` WHERE `id` IN (' . implode(',', $rUserInfo['reports']) . ');');
-		$rReturn['credits'] = ($db->get_row()['credits'] ?: 0);
+		$rReturn['credits'] = ResellerAPI::amount($db->get_row()['credits']);
 		$rReturn['credits_assigned'] = ($rReturn['credits'] - intval($rUserInfo['credits']) ?: 0);
 		echo json_encode($rReturn);
 		exit();
@@ -227,7 +230,13 @@ class ResellerApiDispatcher {
 				}
 
 				if ($rSub == 'enable') {
+					// A line that waits for its activation code is switched on by redeeming the code.
+					if (ActiveCodeService::lineAwaitsRedemption($rLine)) {
+						echo json_encode(['result' => false]);
+						exit();
+					}
 					$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rUserID);
+					LineService::updateLineSignal($rUserID);
 					$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', RequestManager::get('user_id'), 0, $rUserInfo['credits'], time(), json_encode($rLine));
 					echo json_encode(['result' => true]);
 					exit();
@@ -235,6 +244,7 @@ class ResellerApiDispatcher {
 
 				if ($rSub == 'disable') {
 					$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rUserID);
+					LineService::updateLineSignal($rUserID);
 					$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', RequestManager::get('user_id'), 0, $rUserInfo['credits'], time(), json_encode($rLine));
 					echo json_encode(['result' => true]);
 					exit();
@@ -332,15 +342,14 @@ class ResellerApiDispatcher {
 			if (Authorization::check('user', RequestManager::get('id'))) {
 				$rUser = UserRepository::getRegisteredUserById(RequestManager::get('id'));
 
-				if ($rUser && is_numeric(RequestManager::get('credits'))) {
-					$rOwnerCredits = intval($rUserInfo['credits']) - intval(RequestManager::get('credits'));
-					$rCredits = intval($rUser['credits']) + intval(RequestManager::get('credits'));
-
-					if (0 <= $rCredits && 0 <= $rOwnerCredits) {
-						$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rOwnerCredits, $rUserInfo['id']);
-						$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rCredits, $rUser['id']);
+				// An administrator's account keeps its credits: they are not a
+				// reseller's to move (GroupService::reservedGroups).
+				if ($rUser && is_numeric(RequestManager::get('credits')) && !in_array(intval($rUser['member_group_id']), GroupService::reservedGroups())) {
+					// Credits move between the reseller and one of its sub-resellers:
+					// each side gives only what its balance holds now.
+					if (UserCredits::transfer($rUserInfo['id'], $rUser['id'], intval(RequestManager::get('credits')))) {
 						$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['id'], $rUserInfo['id'], RequestManager::get('credits'), time(), RequestManager::get('reason'));
-						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'adjust_credits', RequestManager::get('id'), intval(RequestManager::get('credits')), $rOwnerCredits, time(), json_encode($rUser));
+						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'adjust_credits', RequestManager::get('id'), intval(RequestManager::get('credits')), intval(UserCredits::balance($rUserInfo['id'])), time(), json_encode($rUser));
 						echo json_encode(['result' => true]);
 						exit();
 					}
@@ -369,13 +378,32 @@ class ResellerApiDispatcher {
 				$rSub = RequestManager::get('sub');
 				$rUser = UserRepository::getRegisteredUserById(RequestManager::get('user_id'));
 
+				// Neither the reseller's own account nor an administrator's is a
+				// reseller's to delete or to switch off or on (GroupService::reservedGroups).
+				if ($rUser && ($rUser['id'] == $rUserInfo['id'] || in_array(intval($rUser['member_group_id']), GroupService::reservedGroups()))) {
+					echo json_encode(['result' => false]);
+					exit();
+				}
+
 				if ($rSub == 'delete') {
 					if ($rPermissions['delete_users']) {
-						$rOwnerCredits = intval($rUserInfo['credits']) + intval($rUser['credits']);
-						$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rOwnerCredits, $rUserInfo['id']);
-						UserService::deleteRegisteredUser(RequestManager::get('user_id'), false, false, $rUserInfo['id']);
-						$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUserInfo['id'], $rUserInfo['id'], intval($rUser['credits']), time(), 'Deleted user: ' . $rUser['username']);
-						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::get('user_id'), intval($rUser['credits']), $rOwnerCredits, time(), json_encode($rUser));
+						// The deleted user's credits return to the reseller: all its
+						// balance holds now, moved from one balance to the other, once.
+						// The move and the delete are one transaction: a user whose
+						// credits could not be moved is not deleted. The user's row is
+						// held from this read to the delete, so what it holds here is
+						// what is moved.
+						$db->beginTransaction();
+						$rHeld = ($db->query('SELECT ROUND(COALESCE(`credits`, 0), 4) FROM `users` WHERE `id` = ? FOR UPDATE;', intval($rUser['id'])) ? floatval($db->get_col()) : null);
+						$rReturned = UserCredits::transferAll(intval($rUser['id']), $rUserInfo['id']);
+						if ($rHeld === null || ($rReturned == 0 && $rHeld != 0) || !UserService::deleteRegisteredUser(RequestManager::get('user_id'), false, false, $rUserInfo['id'])) {
+							$db->rollback();
+							echo json_encode(['result' => false]);
+							exit();
+						}
+						$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUserInfo['id'], $rUserInfo['id'], $rReturned, time(), 'Deleted user: ' . $rUser['username']);
+						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'delete', RequestManager::get('user_id'), intval($rReturned), intval(UserCredits::balance($rUserInfo['id'])), time(), json_encode($rUser));
+						$db->commit();
 						echo json_encode(['result' => true]);
 						exit();
 					}
@@ -465,7 +493,13 @@ class ResellerApiDispatcher {
 					}
 
 					if ($rSub == 'enable') {
+						// A line that waits for an activation code is switched on by redeeming the code.
+						if (ActiveCodeService::lineAwaitsRedemption($rMagDetails['user'] ?: [])) {
+							echo json_encode(['result' => false]);
+							exit();
+						}
 						$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rMagDetails['user_id']);
+						LineService::updateLineSignal($rMagDetails['user_id']);
 						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', RequestManager::get('mag_id'), 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
 						echo json_encode(['result' => true]);
 						exit();
@@ -473,6 +507,7 @@ class ResellerApiDispatcher {
 
 					if ($rSub == 'disable') {
 						$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rMagDetails['user_id']);
+						LineService::updateLineSignal($rMagDetails['user_id']);
 						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', RequestManager::get('mag_id'), 0, $rUserInfo['credits'], time(), json_encode($rMagDetails));
 						echo json_encode(['result' => true]);
 						exit();
@@ -544,7 +579,13 @@ class ResellerApiDispatcher {
 					}
 
 					if ($rSub == 'enable') {
+						// A line that waits for an activation code is switched on by redeeming the code.
+						if (ActiveCodeService::lineAwaitsRedemption($rE2Details['user'] ?: [])) {
+							echo json_encode(['result' => false]);
+							exit();
+						}
 						$db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rE2Details['user_id']);
+						LineService::updateLineSignal($rE2Details['user_id']);
 						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'enable', RequestManager::get('e2_id'), 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
 						echo json_encode(['result' => true]);
 						exit();
@@ -552,6 +593,7 @@ class ResellerApiDispatcher {
 
 					if ($rSub == 'disable') {
 						$db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rE2Details['user_id']);
+						LineService::updateLineSignal($rE2Details['user_id']);
 						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'disable', RequestManager::get('e2_id'), 0, $rUserInfo['credits'], time(), json_encode($rE2Details));
 						echo json_encode(['result' => true]);
 						exit();
@@ -613,7 +655,7 @@ class ResellerApiDispatcher {
 		$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `check_compatible`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 
 		if ($db->num_rows() == 1) {
-			$rData = $db->get_row();
+			$rData = UserCredits::amounts($db->get_row());
 
 			if (isset($rOverride[$rData['id']]['official_credits']) && (string) $rOverride[$rData['id']]['official_credits'] !== '') {
 				$rData['cost_credits'] = $rOverride[$rData['id']]['official_credits'];
@@ -661,7 +703,7 @@ class ResellerApiDispatcher {
 		$rReturn = [];
 		$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 		if ($db->num_rows() == 1) {
-			$rData = $db->get_row();
+			$rData = UserCredits::amounts($db->get_row());
 			$rData['exp_date'] = date('Y-m-d H:i', strtotime('+' . intval($rData['trial_duration']) . ' ' . $rData['trial_duration_in']));
 
 			foreach (json_decode($rData['bouquets'], true) as $rBouquet) {
@@ -747,7 +789,7 @@ class ResellerApiDispatcher {
 		$db->query('SELECT COUNT(*) AS `count` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 		$rReturn['total_lines'] = $db->get_row()['count'];
 		$db->query('SELECT COUNT(*) AS `count`, SUM(`credits`) AS `credits` FROM `users` WHERE `owner_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
-		$rRow = $db->get_row();
+		$rRow = UserCredits::amounts($db->get_row());
 		$rReturn['total_users'] = $rRow['count'];
 		$rReturn['user_credits'] = $rRow['credits'];
 		$rReturn['owner_credits'] = $rUserInfo['credits'];

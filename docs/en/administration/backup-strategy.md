@@ -99,6 +99,8 @@ BackupService::restore($filename, $config)
 ```
 
 > **Important:** Restore drops the entire database and recreates it. All data not in the backup will be lost.
+>
+> While the database is gone, `cron:cleanup` and `cron:streams` on MAIN, and on every load balancer that reads its stream lists from MAIN's database, cannot read those lists. They leave stream files, TV archives, running monitors and their encoders as they are, and streams are not checked or restarted until the database answers again. Restoring while streams are live is still not advised: a list read from a table that is only partly loaded is acted on.
 
 ### From CLI
 
@@ -118,6 +120,7 @@ This restores to a `xc_vm_migrate` database for selective data migration, rather
 
 - If `backups_to_keep > 0`: keeps only the N most recent files. Oldest deleted first.
 - If `backups_to_keep = 0`: keeps all files (unlimited).
+- Files are ordered by modification time. A run never deletes the dump it has just written. A `.sql` file dated in the future counts as more recent than it, so the folder can hold one more than the limit until that date has passed.
 
 ### Remote retention
 
@@ -138,6 +141,8 @@ When `dropbox_remote` is enabled:
 2. A `.uploading` marker file is created during upload.
 3. On success: `.uploading` is deleted.
 4. On failure: `.error` file is created with the error message.
+
+Requests to Dropbox verify the server's certificate. An upload that fails certificate verification is reported like any other upload error: the backup shows the red indicator on the Backups page.
 
 Admin panel status indicators:
 

@@ -86,6 +86,14 @@ class StreamAuthMiddleware {
 			generateError('LB_TOKEN_INVALID');
 		}
 
+		// The connection id names files under this server's own directories. It
+		// is the 32 hex characters auth.php mints; a legacy token is not
+		// authenticated, so the form is checked rather than taken on trust.
+		if (array_key_exists('uuid', $rTokenData) && !(is_string($rTokenData['uuid']) && preg_match('/^[0-9a-f]{32}\z/', $rTokenData['uuid']))) {
+			DatabaseLogger::clientLog(0, 0, 'LB_TOKEN_INVALID', $rIP);
+			generateError('LB_TOKEN_INVALID');
+		}
+
 		if (isset($rTokenData['expires']) && $rTokenData['expires'] < time() - intval($rServers[SERVER_ID]['time_offset'])) {
 			generateError('TOKEN_EXPIRED');
 		}

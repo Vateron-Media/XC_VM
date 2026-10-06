@@ -11,6 +11,18 @@ window.PlayerHome = (function () {
   let heroTimer = null;
   let currentHeroIdx = 0;
   let heroSlidesData = [];
+  let favTogglesBound = false;
+
+  const escapeHtml = (str) => {
+    if (!str) return '';
+    // The panel sends the < and > of a stored name as &lt; and &gt; already: those two stay as they are.
+    return String(str)
+      .replace(/&(?!(?:lt|gt);)/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
 
   const init = () => {
     initHeroBillboard();
@@ -157,20 +169,21 @@ window.PlayerHome = (function () {
     let cardsHtml = '';
 
     allItems.slice(0, 10).forEach((item) => {
-      const isSeries = !!item.series_id || item.type === 'series';
+      // An episode is kept by player-cinema.js as seriesId, streamId, seasonNum, episodeNum and progress.
+      const isSeries = !!item.seriesId || item.type === 'series';
       const resumeUrl = isSeries
-        ? `player?type=series&id=${item.stream_id || item.id}&series_id=${item.series_id || item.id}&s=${item.season || 1}&e=${item.episode || 1}`
+        ? `player?type=series&id=${item.streamId || item.id}&series_id=${item.seriesId || item.id}&s=${item.seasonNum || 1}&e=${item.episodeNum || 1}`
         : `player?type=movie&id=${item.id}`;
 
-      const pct = Math.min(100, Math.max(5, item.progressPercent || 25));
+      const pct = Math.min(100, Math.max(5, item.progress == null ? 25 : item.progress));
       const thumb = item.backdrop || item.cover || 'assets/img/pages/profile-banner.png';
 
       cardsHtml += `
         <div class="shelf-card-item">
           <div class="continue-watch-card">
             <div class="position-relative overflow-hidden rounded-top">
-              <img src="${thumb}" alt="${item.title || 'Stream'}" class="continue-watch-thumb" onerror="this.src='assets/img/pages/profile-banner.png';" />
-              <a href="${resumeUrl}" class="play-hover-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center text-white text-decoration-none z-2" title="Resume Playback">
+              <img src="${escapeHtml(thumb)}" alt="${escapeHtml(item.title || 'Stream')}" class="continue-watch-thumb" onerror="this.src='assets/img/pages/profile-banner.png';" />
+              <a href="${escapeHtml(resumeUrl)}" class="play-hover-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center text-white text-decoration-none z-2" title="Resume Playback">
                 <div class="avatar avatar-md rounded-circle bg-primary d-flex align-items-center justify-content-center shadow">
                   <i class="icon-base bx bx-play fs-4 text-white"></i>
                 </div>
@@ -180,9 +193,9 @@ window.PlayerHome = (function () {
               <div class="progress-bar bg-danger" role="progressbar" data-progress-percent="${pct}"></div>
             </div>
             <div class="p-2">
-              <h6 class="mb-0 fw-bold small text-truncate" title="${item.title || ''}">${item.title || 'Untitled'}</h6>
+              <h6 class="mb-0 fw-bold small text-truncate" title="${escapeHtml(item.title)}">${escapeHtml(item.title || 'Untitled')}</h6>
               <div class="d-flex align-items-center justify-content-between mt-1 text-body-secondary small">
-                <span>${isSeries ? `S${item.season || 1}E${item.episode || 1}` : 'Movie'}</span>
+                <span>${isSeries ? `S${escapeHtml(item.seasonNum || 1)}E${escapeHtml(item.episodeNum || 1)}` : 'Movie'}</span>
                 <span class="text-primary fw-medium">Resume</span>
               </div>
             </div>
@@ -221,6 +234,10 @@ window.PlayerHome = (function () {
    * Universal Client-Side Favorite Toggle.
    */
   const initFavoriteToggles = () => {
+    // init() runs again on every return to the home page; the document, and its listener, stay.
+    if (favTogglesBound) return;
+    favTogglesBound = true;
+
     document.addEventListener('click', (e) => {
       const favBtn = e.target.closest('[data-fav-toggle-type]');
       if (!favBtn) return;

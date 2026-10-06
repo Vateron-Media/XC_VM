@@ -43,6 +43,7 @@ To see all available commands:
 | `certbot` | `CertbotCommand` | Generate SSL certificate via certbot | root |
 | `binaries` | `BinariesCommand` | Update the runtime bundle (php/nginx/…) from the `XC_VM_Binaries` release | xc_vm |
 | `fanout_binary` | `FanoutBinaryCommand` | Install/update the `xc_fanout` daemon binary from its release | root |
+| `root:paths` | `RootPathsCommand` | List what root runs from the tree (its crontab, the service unit, `service`, the updater and the binaries root starts) and, for each path, whether the `xc_vm` user can replace it, following every symbolic link on the way. Changes nothing. | root |
 | `xcvm_core` | `XcvmCoreCommand` | Install/update the `xcvm_core` PHP extension from the binaries repo | root |
 | `ytdlp` | `YtDlpCommand` | Install/update `yt-dlp` from its upstream GitHub release | root |
 | `startup` | `StartupCommand` | System initialization: daemons.sh, crontab, cache | root |
@@ -54,6 +55,7 @@ To see all available commands:
 | `watch_item` | `WatchItemCommand` | Watch module ≤ 1.0.5 only: its own per-file worker, replaced by `vod_import_item` in 1.1.0 | xc_vm |
 | `migrate` | `MigrateCommand` | Transfer data from `xc_vm_migrate` database | xc_vm |
 | `db:migrate` | `DbMigrateCommand` | Apply pending database migrations from the `migrations/` directory | xc_vm |
+| `module:migrate` | `ModuleMigrateCommand` | Run the install or update steps of a module whose files are in place (started by the panel during a module update) | xc_vm |
 | `server:install` | `ServerInstallCommand` | Install/configure server (Proxy/LB) via SSH | root |
 | `server:diagnose` | `ServerDiagnoseCommand` | Diagnose why a proxy/LB node is silent to the main (heartbeat, reachability, iptables, service, cluster state) | root |
 | `server:sync-openssl-extra` | `ServerSyncOpensslExtraCommand` | Send the main's `OPENSSL_EXTRA` to load balancers that report another one (MAIN only) | root/xc_vm |
@@ -115,13 +117,13 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:cache` | `CacheCronJob` | Cache management |
 | `cron:cache_engine` | `CacheEngineCronJob` | Generate cache for lines, streams, series, groups (optional) |
 | `cron:certbot` | `CertbotCronJob` | SSL certificate renewal |
-| `cron:cleanup` | `CleanupCronJob` | Cleanup temporary files and logs |
+| `cron:cleanup` | `CleanupCronJob` | Cleanup temporary files and logs. On MAIN it also prunes the resized-image caches `storage/images/admin/` and `storage/images/player/`: files older than 30 days, then the oldest files of a directory above 4 GiB or above 250,000 files. Only names the resizer writes are removed |
 | `cron:epg` | `EpgCronJob` | EPG download and processing (optional) |
 | `cron:errors` | `ErrorsCronJob` | Process error logs |
 | `cron:lines_logs` | `LinesLogsCronJob` | Import client request logs into DB |
 | `cron:maxmind` | `MaxMindCronJob` | Update MaxMind GeoIP databases (Tuesdays only; `--force` to run manually) |
 | `cron:providers` | `ProvidersCronJob` | Update providers (optional) |
-| `cron:root_mysql` | `RootMysqlCronJob` | Database maintenance (root, optional) |
+| `cron:root_mysql` | `RootMysqlCronJob` | Collect MariaDB's log lines (notes, warnings and `[ERROR]` lines) into System Logs (root, optional); `cron:cleanup` prunes them by *Keep Logs For* of System Logs (`keep_syslog`, 0 keeps them). It no longer blocks addresses for refused MySQL logins; blocks it made earlier stay until removed. |
 | `cron:root_signals` | `RootSignalsCronJob` | Process signals, iptables, nginx, service management, and **binary self-heal** (root) |
 | `cron:series` | `SeriesCronJob` | Update series data (optional) |
 | `cron:servers` | `ServersCronJob` | Monitor server, launch daemons, update statistics |
@@ -186,7 +188,10 @@ handling is validated. A setting naming a build the node lacks takes the newest
 of its major (8.0 until 8.1 is fetched).
 
 The heavy runtime bundle (nginx, nginx_rtmp and PHP) is instead refreshed by the
-`binaries` command, triggered by an `update_binaries` signal from MAIN.
+`binaries` command, triggered by an `update_binaries` signal from MAIN. The bundle is
+installed only when the `hashes.md5` of its release lists the archive's MD5 and the
+download matches it; otherwise the running binaries are kept and the reason is in
+`tmp/binaries_update_*.log`.
 
 ---
 
@@ -294,7 +299,7 @@ The `tools` command provides system maintenance utilities.
 | `user` | Create a rescue admin user with random credentials. Prints username and password. **Delete this user after use!** |
 | `mysql` | Reauthorise MySQL privileges for all load balancer servers. |
 | `database` | Restore a blank XC_VM database from `database.sql`. **Erases ALL data!** Requires `--confirm` flag. |
-| `flush` | Flush all blocked IPs — clears iptables rules, removes block files, and truncates the `blocked_ips` table. |
+| `flush` | Flush all blocked IPs — removes the panel's own block rules (`-s <address> -j DROP` in `INPUT`, IPv4 and IPv6) in one commit per address family, removes the block files, and truncates the `blocked_ips` table. Every other firewall rule, chain and policy is left alone. |
 
 ### Subcommands (run as `xc_vm`)
 
@@ -302,7 +307,7 @@ The `tools` command provides system maintenance utilities.
 | --- | --- |
 | `images` | Download missing stream/movie/series images from TMDB. Scans DB for image URLs and downloads missing files. |
 | `duplicates` | Find and remove duplicate VOD streams. Groups by identical source, keeps first, deletes rest. **Destructive!** |
-| `bouquets` | Clean stale references from bouquets. Removes IDs that no longer exist in the database. |
+| `bouquets` | Clean stale references from bouquets. Removes IDs that no longer exist in the database. It can run while imports are adding items. Only one scan runs at a time and one waits; a run started while one is already waiting returns at once and leaves it the work. |
 
 ### Examples
 
@@ -375,6 +380,8 @@ With `first-run` argument, skips the running check — used for initial setup:
 ```bash
 sudo /home/xc_vm/console.php status first-run
 ```
+
+`status` and `startup` both check root's crontab and print one of three lines. `Crontab already installed` is the normal line at every start. `Crontab installed` appears only when the list of entries changed. `Crontab not installed: ...` means the new list could not be put in place and the old crontab was kept.
 
 ### Service Management
 

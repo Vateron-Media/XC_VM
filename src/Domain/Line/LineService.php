@@ -157,9 +157,15 @@ class LineService {
 	public static function process(array $rData) {
 		$db = self::db();
 		if (InputValidator::validate('processLine', $rData)) {
+			$rLine = null;
+
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_user')) {
-					$rArray = AdminHelpers::overwriteData(UserRepository::getLineById($rData['edit']), $rData);
+					// The edit starts from the line as stored: the row cleaner's
+					// escaping would be written back into every field not sent.
+					$db->query('SELECT * FROM `lines` WHERE `id` = ?;', intval($rData['edit']));
+					$rLine = $db->get_raw_row();
+					$rArray = AdminHelpers::overwriteData($rLine, $rData);
 				} else {
 					exit();
 				}
@@ -181,10 +187,22 @@ class LineService {
 				$rArray['password'] = AdminHelpers::generateString(10);
 			}
 
+			// Neither holds the separator of the line's playback addresses; a
+			// line keeps the value it has until it is changed.
+			if (!self::credentialAllowed($rArray['username'], $rLine['username'] ?? null)) {
+				return ['status' => STATUS_INVALID_USERNAME, 'data' => $rData];
+			}
+
+			if (!self::credentialAllowed($rArray['password'], $rLine['password'] ?? null)) {
+				return ['status' => STATUS_INVALID_PASSWORD, 'data' => $rData];
+			}
+
+			// A new line starts at 1; an edit keeps the line's own value unless
+			// the request sends one (the form has no enabled or admin_enabled).
 			foreach (['max_connections', 'enabled', 'admin_enabled'] as $rSelection) {
 				if (isset($rData[$rSelection])) {
 					$rArray[$rSelection] = intval($rData[$rSelection]);
-				} else {
+				} elseif (!$rLine) {
 					$rArray[$rSelection] = 1;
 				}
 			}
@@ -218,7 +236,9 @@ class LineService {
 				$rArray['exp_date'] = null;
 			}
 
-			if (!$rArray['member_id']) {
+			// A new line without an owner is the saving user's; a line whose
+			// owner was deleted keeps none until the request names one.
+			if (!$rArray['member_id'] && !($rLine && is_null($rArray['member_id']))) {
 				$rArray['member_id'] = $GLOBALS['rAdminUserInfo']['id'];
 			}
 
@@ -275,6 +295,21 @@ class LineService {
 			return ['status' => STATUS_EXISTS_USERNAME, 'data' => $rData];
 		}
 		return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+	}
+
+	/**
+	 * Whether a line may be given this username or password. Each is one
+	 * segment of the line's playback addresses (/live/<username>/<password>/<id>)
+	 * and of the play tokens built from them, so neither is set to a value that
+	 * holds the character that separates the segments. A line keeps the value
+	 * it has until that value is changed.
+	 *
+	 * @param mixed $rValue  The username or password to store.
+	 * @param mixed $rStored The one the line has now; null for a new line.
+	 * @return bool False when the value is refused.
+	 */
+	public static function credentialAllowed(mixed $rValue, mixed $rStored = null): bool {
+		return !str_contains((string) $rValue, '/') || (string) $rValue === (string) $rStored;
 	}
 
 	/**
@@ -449,10 +484,14 @@ class LineService {
 	/**
 	 * Check whether a user may still generate trial lines.
 	 *
-	 * @param int $rUserID User id.
+	 * The group's allowance is for one period (a day or a month) and counts the
+	 * trials the user holds: a trial is held by the reseller that made it.
+	 *
+	 * @param int $rUserID   User id.
+	 * @param int $rQuantity Trials about to be generated.
 	 * @return bool True if trial generation is allowed.
 	 */
-	public static function canGenerateTrials(int $rUserID) {
+	public static function canGenerateTrials(int $rUserID, int $rQuantity = 1) {
 		$db = self::db();
 		global $rSettings;
 		$rUser = UserRepository::getRegisteredUserById($rUserID);
@@ -475,13 +514,40 @@ class LineService {
 		$rTotalIn = $rPermissions['total_allowed_gen_in'];
 
 		if ($rTotalIn == 'hours') {
-			$rTime = time() - intval($rTotal) * 3600;
+			$rTime = time() - 3600;
+		} elseif ($rTotalIn == 'month') {
+			$rTime = strtotime('-1 month');
 		} else {
-			$rTime = time() - intval($rTotal) * 3600 * 24;
+			$rTime = time() - 3600 * 24;
 		}
 
 		$db->query('SELECT COUNT(`id`) AS `count` FROM `lines` WHERE `member_id` = ? AND `created_at` >= ? AND `is_trial` = 1;', $rUser['id'], $rTime);
 
-		return $db->get_row()['count'] < $rTotal;
+		return $db->get_row()['count'] + $rQuantity <= $rTotal;
+	}
+
+	/**
+	 * Hold a user's trials for one request. A trial is counted against the
+	 * allowance (canGenerateTrials()) and stored afterwards, so of two requests
+	 * at once each would count before the other has stored: each takes the
+	 * user's trials before it counts and gives them back with unlockTrials()
+	 * after it stored. A request waits its turn for ten seconds, then goes on
+	 * without it; a connection that ends gives back what it held.
+	 *
+	 * @param int $rUserID User id.
+	 * @return void
+	 */
+	public static function lockTrials(int $rUserID) {
+		self::db()->query("SELECT GET_LOCK(CONCAT(DATABASE(), '.trials_', ?), 10);", $rUserID);
+	}
+
+	/**
+	 * Give a user's trials taken with lockTrials() back to its other requests.
+	 *
+	 * @param int $rUserID User id.
+	 * @return void
+	 */
+	public static function unlockTrials(int $rUserID) {
+		self::db()->query("SELECT RELEASE_LOCK(CONCAT(DATABASE(), '.trials_', ?));", $rUserID);
 	}
 }

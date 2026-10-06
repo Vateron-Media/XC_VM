@@ -22,7 +22,7 @@ use XcVm\Domain\User\UserRepository;
 use XcVm\Core\Util\LayoutRenderer;
 
 $rIsEdit  = isset($rUser);
-$rCost    = intval($rPermissions['create_sub_resellers_price']);
+$rCost    = (float) $rPermissions['create_sub_resellers_price'];
 $rNoFunds = !$rIsEdit && ($rUserInfo['credits'] - $rCost < 0);
 
 // Numeric status -> user message map (mirrors the legacy callbackForm 'user' switch).

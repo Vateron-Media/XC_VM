@@ -127,6 +127,7 @@ The viewer-API controllers (`PlayerApiController`, `Enigma2ApiController`, `XPlu
 | --- | --- |
 | `Cli/Commands/MigrateCommand.php`, `Cli/migration_logic.php` | Migration is MAIN-only |
 | `Cli/Commands/DbMigrateCommand.php` | Applies MAIN's schema migrations (MAIN-only) |
+| `Cli/Commands/ModuleMigrateCommand.php` | Runs a module's install or update steps (modules are MAIN-only) |
 | `Cli/Commands/CacheHandlerCommand.php` | Cache handler is MAIN-only |
 | `Cli/Commands/ServerInstallCommand.php` | Server installer (not needed on LB itself) |
 | `Cli/Commands/ServerSyncOpensslExtraCommand.php` | Sends MAIN's `OPENSSL_EXTRA` to LBs (MAIN-only) |

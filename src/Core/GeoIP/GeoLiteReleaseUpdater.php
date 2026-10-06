@@ -4,6 +4,7 @@ namespace XcVm\Core\GeoIP;
 
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\UpdateChannels;
+use XcVm\Core\Util\AtomicFile;
 
 /**
  * GeoLiteReleaseUpdater — syncs the GeoIP databases that ship as GitHub release
@@ -31,7 +32,7 @@ class GeoLiteReleaseUpdater {
 
 	/**
 	 * Download the GeoLite2 databases from the latest release and record the
-	 * version. Returns true when any file failed to download.
+	 * version once both are in place. Returns true when any file failed to download.
 	 */
 	public function updateGeoLite(bool $rForce): bool {
 		$rVersion = $this->rRepo->getReleases()[0] ?? null;
@@ -47,7 +48,9 @@ class GeoLiteReleaseUpdater {
 			}
 		}
 
-		$this->recordVersion('geolite2_version', $rVersion);
+		if (!$rHadError) {
+			$this->recordVersion('geolite2_version', $rVersion);
+		}
 		return $rHadError;
 	}
 
@@ -91,9 +94,12 @@ class GeoLiteReleaseUpdater {
 
 	/**
 	 * Download one release asset: md5-gated skip, create the target dir if
-	 * missing, and ALWAYS save a successfully downloaded file (the checksum only
-	 * sets the status line — the release `hashes.md5` can time out over SSL or
-	 * lag a release, and GeoIP data is non-critical).
+	 * missing, and ALWAYS save a successfully downloaded database (the checksum
+	 * only sets the status line — the release `hashes.md5` can time out over SSL
+	 * or lag a release, and GeoIP data is non-critical). Successfully downloaded
+	 * means a 200 whose body the MaxMind reader opens: anything else (an error
+	 * page, a cut-off body) leaves the database in use where it is. The new one
+	 * is renamed over it, so a lookup reads the old file or the new, never half.
 	 *
 	 * @param array{fileurl: string, path: string, md5: ?string} $rFile
 	 * @return bool|null true = downloaded, false = skipped (up to date), null = error.
@@ -117,10 +123,27 @@ class GeoLiteReleaseUpdater {
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
 		$rData = curl_exec($ch);
+		$rStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
 
-		if ($rData === false || $rData === '') {
-			echo '[ERROR] ' . $rFile['path'] . ': download failed' . "\n";
+		if ($rData === false || $rData === '' || $rStatus !== 200) {
+			echo '[ERROR] ' . $rFile['path'] . ': download failed' . ($rStatus !== 0 && $rStatus !== 200 ? ' (HTTP ' . $rStatus . ')' : '') . "\n";
+			return null;
+		}
+
+		$rIsDatabase = null;
+		$rSaved = AtomicFile::write($rFile['path'], $rData, 0750, false, static function (string $rTmp) use (&$rIsDatabase): bool {
+			try {
+				(new \MaxMind\Db\Reader($rTmp))->close();
+				$rIsDatabase = true;
+			} catch (\Throwable $e) {
+				$rIsDatabase = false;
+			}
+			@chown($rTmp, 'xc_vm');
+			return $rIsDatabase;
+		});
+		if (!$rSaved) {
+			echo '[ERROR] ' . $rFile['path'] . ': ' . ($rIsDatabase === false ? 'not a MaxMind database, kept the current one' : 'could not be written') . "\n";
 			return null;
 		}
 
@@ -132,9 +155,6 @@ class GeoLiteReleaseUpdater {
 			echo '[WARN]  ' . $rFile['path'] . ': checksum mismatch — saved anyway' . "\n";
 		}
 
-		file_put_contents($rFile['path'], $rData);
-		chown($rFile['path'], 'xc_vm');
-		chmod($rFile['path'], 0750);
 		return true;
 	}
 }

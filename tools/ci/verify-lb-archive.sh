@@ -136,6 +136,7 @@ SENSITIVE=(
 	"Cli/Commands/ProxyInstallFlow.php"
 	"Cli/Commands/MigrateCommand.php"
 	"Cli/Commands/DbMigrateCommand.php"
+	"Cli/Commands/ModuleMigrateCommand.php"
 	"Cli/Commands/CacheHandlerCommand.php"
 	"Cli/migration_logic.php"
 	"Cli/CronJobs/RootMysqlCronJob.php"

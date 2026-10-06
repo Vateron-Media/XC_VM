@@ -46,7 +46,8 @@ class ServersCronJob implements CommandInterface {
 			return 1;
 		}
 
-		$this->initCron('XC_VM[Servers]');
+		// A run over ten minutes is hung: the next one ends it and takes over.
+		$this->initCron('XC_VM[Servers]', 600);
 		$this->loadCron();
 
 		return 0;

@@ -4,6 +4,7 @@ namespace XcVm\Domain\Stream;
 
 use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Cluster\ReplicaStreamCache;
+use XcVm\Core\Cluster\StreamRecords;
 use XcVm\Core\Cluster\StreamRuntime;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
@@ -36,6 +37,13 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  * RTMP callback), read it through nodeRow() and its kin: MAIN's database's
  * row as before, or with local() the caches' definition and the store's
  * runtime state, in the same shape.
+ *
+ * A stream's rows and options are read without the row cleaner's HTML
+ * escaping, from MAIN's database and from the replica alike
+ * (StreamRecords::unescaped): get_row() would hand ffmpeg `&lt;` for a `<`
+ * in a source, a header or an option. So what these readers answer is for
+ * a command, never for a page. A recording's row, which starts nothing, is
+ * still read through the cleaner on both.
  *
  * @package XC_VM_Domain_Stream
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
@@ -76,7 +84,7 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = ' . ($rLive ? 1 : 0) . ' LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
-		return $rDb->num_rows() > 0 ? $rDb->get_row() : null;
+		return $rDb->num_rows() > 0 ? self::unescaped($rDb) : null;
 	}
 
 	/**
@@ -95,7 +103,7 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT * FROM `streams_servers` WHERE stream_id = ? AND `server_id` = ?', $rStreamID, $rServerID);
-		return $rDb->num_rows() > 0 ? self::remembered($rDb->get_row()) : null;
+		return $rDb->num_rows() > 0 ? self::remembered(self::unescaped($rDb)) : null;
 	}
 
 	/**
@@ -112,7 +120,7 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT * FROM `streams_servers` WHERE stream_id  = ? AND `server_id` = ? AND `parent_id` IS NULL', $rStreamID, SERVER_ID);
-		return $rDb->num_rows() > 0 ? self::remembered($rDb->get_row()) : null;
+		return $rDb->num_rows() > 0 ? self::remembered(self::unescaped($rDb)) : null;
 	}
 
 	/**
@@ -129,7 +137,7 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT * FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t2.stream_id = t1.id AND t2.server_id = ? WHERE t1.id = ?', SERVER_ID, $rStreamID);
-		return $rDb->num_rows() > 0 ? self::remembered($rDb->get_row()) : null;
+		return $rDb->num_rows() > 0 ? self::remembered(self::unescaped($rDb)) : null;
 	}
 
 	/**
@@ -156,7 +164,7 @@ final class StreamSource {
 		} else {
 			$rDb->query('SELECT * FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t1.id = t2.stream_id AND t2.server_id = t1.vframes_server_id WHERE t1.`id` = ? AND t1.`vframes_server_id` = ?', $rStreamID, SERVER_ID);
 		}
-		return $rDb->num_rows() > 0 ? self::remembered($rDb->get_row()) : null;
+		return $rDb->num_rows() > 0 ? self::remembered(self::unescaped($rDb)) : null;
 	}
 
 	/**
@@ -171,7 +179,7 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT * FROM `streams` WHERE direct_source = 0 AND id = ?', $rStreamID);
-		return $rDb->num_rows() > 0 ? $rDb->get_row() : null;
+		return $rDb->num_rows() > 0 ? self::unescaped($rDb) : null;
 	}
 
 	/**
@@ -187,7 +195,7 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT * FROM `streams` t1 LEFT JOIN `profiles` t3 ON t1.transcode_profile_id = t3.profile_id WHERE t1.`id` = ?', $rStreamID);
-		return $rDb->num_rows() > 0 ? $rDb->get_row() : null;
+		return $rDb->num_rows() > 0 ? self::unescaped($rDb) : null;
 	}
 
 	/**
@@ -206,7 +214,7 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t1.type = 3 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
-		return $rDb->num_rows() > 0 ? $rDb->get_row() : null;
+		return $rDb->num_rows() > 0 ? self::unescaped($rDb) : null;
 	}
 
 	/**
@@ -226,7 +234,7 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query("SELECT t1.* FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t2.stream_id = t1.id AND t2.pid IS NOT NULL AND t2.server_id = ? INNER JOIN `streams_types` t3 ON t3.type_id = t1.type AND t3.type_key IN ('movie', 'series') WHERE t1.`id` = ?", SERVER_ID, $rStreamID);
-		return $rDb->num_rows() > 0 ? $rDb->get_row() : null;
+		return $rDb->num_rows() > 0 ? self::unescaped($rDb) : null;
 	}
 
 	/**
@@ -244,7 +252,8 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
-		return ($rKeyed ? $rDb->get_rows(true, 'argument_key') : $rDb->get_rows()) ?: [];
+		$rRows = array_map([StreamRecords::class, 'unescaped'], $rDb->get_raw_rows());
+		return $rKeyed ? array_column($rRows, null, 'argument_key') : $rRows;
 	}
 
 	/**
@@ -262,7 +271,7 @@ final class StreamSource {
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?', $rStreamID);
-		return $rDb->num_rows() > 0 ? $rDb->get_row() : [];
+		return $rDb->num_rows() > 0 ? self::unescaped($rDb) : [];
 	}
 
 	/**
@@ -341,6 +350,16 @@ final class StreamSource {
 	 */
 	private static function profile(array $rEntry): array {
 		return $rEntry['profile'] ?? array_fill_keys(array_keys(ReplicaSections::PROFILE_FIELDS), null);
+	}
+
+	/**
+	 * The row MAIN's database answered, for a command
+	 * (StreamRecords::unescaped): a `<`, a `>` and an `&` as they were saved.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function unescaped(object $rDb): array {
+		return StreamRecords::unescaped($rDb->get_raw_row() ?? []);
 	}
 
 	/**

@@ -20,6 +20,8 @@ if (!Authorization::check('adv', 'mng_groups') && !Authorization::check('adv', '
 endif;
 
 $rCanEdit = Authorization::check('adv', 'edit_group');
+// An administrator group is changed and deleted by a full administrator.
+$rReserved = GroupService::reservedGroups();
 
 if (!function_exists('xc_bool_flag')) {
     function xc_bool_flag($rOn) {
@@ -55,10 +57,10 @@ if (!function_exists('xc_bool_flag')) {
                         <td class="text-center" data-order="<?= (int) (bool) $rGroup['is_reseller']; ?>"><?= xc_bool_flag($rGroup['is_reseller']); ?></td>
                         <td class="text-center" data-order="<?= (int) (bool) $rGroup['create_sub_resellers']; ?>"><?= xc_bool_flag($rGroup['create_sub_resellers']); ?></td>
                         <td class="text-center text-nowrap">
-                            <?php if ($rCanEdit): ?>
+                            <?php if ($rCanEdit && !in_array((int) $rGroup['group_id'], $rReserved)): ?>
                                 <a href="group?id=<?= (int) $rGroup['group_id']; ?>" class="btn btn-sm btn-icon btn-label-secondary" title="<?= $language::get('edit_group'); ?>"><i class="icon-base ti tabler-pencil"></i></a>
                             <?php endif; ?>
-                            <?php if (!empty($rGroup['can_delete'])): ?>
+                            <?php if (!empty($rGroup['can_delete']) && !in_array((int) $rGroup['group_id'], $rReserved)): ?>
                                 <button type="button" class="btn btn-sm btn-icon btn-label-danger js-del" data-id="<?= (int) $rGroup['group_id']; ?>" title="<?= $language::get('delete_group'); ?>"><i class="icon-base ti tabler-trash"></i></button>
                             <?php endif; ?>
                         </td>

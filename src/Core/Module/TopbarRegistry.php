@@ -91,7 +91,7 @@ class TopbarRegistry {
 	/**
 	 * Mark a page as a report/export page so its "Export as CSV/JSON" topbar
 	 * buttons pass the core export gate (still additionally requires the
-	 * `backups` permission). Use for a module's own log/report page.
+	 * `database` permission). Use for a module's own log/report page.
 	 */
 	public static function markExportPage(string $page): void {
 		self::$exportPages[$page] = true;

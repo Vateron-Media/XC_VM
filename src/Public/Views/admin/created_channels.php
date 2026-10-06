@@ -19,7 +19,7 @@ use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 
-if (!Authorization::check('adv', 'created_channels') && !Authorization::check('adv', 'edit_cchannel')):
+if (!Authorization::check('adv', 'manage_cchannels') && !Authorization::check('adv', 'edit_cchannel')):
 ?>
     <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
 <?php

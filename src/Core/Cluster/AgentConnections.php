@@ -68,6 +68,9 @@ final class AgentConnections {
 	 *   the agent sends MAIN's conn_admit when there is no `adm`.
 	 * - `max_connections`: the token's limit, for the `local` offline policy
 	 *   only; the agent never sends it to MAIN.
+	 * - `mint`: the record's proof that MAIN minted the token
+	 *   (ConnectionTracker::openRecord), which an agent from 0.14.4 copies
+	 *   into conn_admit; an older one ignores it.
 	 *
 	 * Null for a viewer with no limit (the token's max_connections is 0), and
 	 * on a node MAIN has not left `active` (quarantined): MAIN mints it no
@@ -88,6 +91,9 @@ final class AgentConnections {
 		$rAdm = $rToken['adm'] ?? null;
 		if (is_array($rAdm) && is_int($rAdm['exp'] ?? null) && is_int($rAdm['sid'] ?? null) && $rAdm['exp'] >= $rMainNow && $rAdm['sid'] === (int) ($rRecord['server_id'] ?? 0)) {
 			$rOut['adm'] = ['exp' => $rAdm['exp'], 'sid' => $rAdm['sid']];
+		}
+		if (is_string($rRecord['mint'] ?? null)) {
+			$rOut['mint'] = $rRecord['mint']; // MAIN's proof of the mint, for conn_admit (an agent that knows it)
 		}
 		if (!empty($rRecord['user_id'])) {
 			$rOut['line_id'] = (int) $rRecord['user_id'];

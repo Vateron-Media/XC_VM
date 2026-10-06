@@ -177,11 +177,16 @@ class PlayerWatchController extends BasePlayerV2Controller {
 		);
 
 		if ($type === 'series') {
+			// Validate subscriber access: an episode is the line's when a series it
+			// belongs to is in the line's bouquets, whichever series the request names.
+			$db->query('SELECT `series_id` FROM `streams_episodes` WHERE `stream_id` = ?', $id);
+			$ownSeries = array_intersect(array_map('intval', array_column($db->get_rows() ?: [], 'series_id')), $rUserInfo['series_ids'] ?? []);
+			// The page is drawn for the series the request names when it is one of them.
 			$seriesId = (int) RequestManager::get('series_id');
-
-			// Validate subscriber access
-			$hasSeriesAccess = empty($rUserInfo['series_ids']) || (!empty($seriesId) && in_array($seriesId, $rUserInfo['series_ids'], true));
-			$hasEpisodeAccess = empty($rUserInfo['episode_ids']) || (!empty($id) && (in_array($id, $rUserInfo['episode_ids'], true) || $hasSeriesAccess));
+			if (!in_array($seriesId, $ownSeries, true)) {
+				$seriesId = (int) reset($ownSeries);
+			}
+			$hasEpisodeAccess = $seriesId > 0;
 
 			if ($id <= 0 || !$hasEpisodeAccess || !($rStream = getStream($id))) {
 				header('Location: ' . $baseUrl . 'series');
@@ -198,11 +203,6 @@ class PlayerWatchController extends BasePlayerV2Controller {
 			// Episode info from streams_episodes
 			$db->query('SELECT * FROM `streams_episodes` WHERE `stream_id` = ? LIMIT 1', $id);
 			$epMeta = $db->get_row();
-			if (!$seriesId && !empty($epMeta['series_id'])) {
-				$seriesId = (int) $epMeta['series_id'];
-				$db->query('SELECT * FROM `streams_series` WHERE `id` = ?', $seriesId);
-				$rSeries = $db->get_row();
-			}
 
 			$seasonNum = (int) ($epMeta['season_num'] ?? RequestManager::get('s') ?? 1);
 			$episodeNum = (int) ($epMeta['episode_num'] ?? RequestManager::get('e') ?? 1);

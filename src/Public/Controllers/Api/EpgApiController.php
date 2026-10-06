@@ -43,7 +43,8 @@ class EpgApiController extends BaseApiController {
 		$rUserInfo = $this->authenticate($rIP);
 
 		if (!$rUserInfo) {
-			BruteforceGuard::checkBruteforce(null, null, $rUsername);
+			$rPassword = RequestManager::get('password');
+			BruteforceGuard::checkBruteforce(null, null, $rUsername, false, is_string($rPassword) ? $rPassword : null);
 			generateError('INVALID_CREDENTIALS');
 		}
 

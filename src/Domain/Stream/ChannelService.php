@@ -38,7 +38,10 @@ class ChannelService {
 		$db = self::db();
 		if (isset($rData['edit'])) {
 			if (Authorization::check('adv', 'edit_cchannel')) {
-				$rArray = AdminHelpers::overwriteData(StreamRepository::getById($rData['edit']), $rData);
+				// The edit starts from the stream as stored: the row cleaner's
+				// escaping would be written back into every field not sent.
+				$db->query('SELECT * FROM `streams` WHERE `id` = ?;', intval($rData['edit']));
+				$rArray = AdminHelpers::overwriteData($db->get_raw_row(), $rData);
 			} else {
 				exit();
 			}

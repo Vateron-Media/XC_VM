@@ -369,7 +369,7 @@ class SearchAjaxController extends BaseAjaxController {
 		return [
 			'layout' => $rLive ? 'live' : 'vod',
 			'title' => $rTitle,
-			'title_link' => Authorization::check('adv', 'manage_streams') ? ('stream_view?id=' . intval($rItem['id'])) : null,
+			'title_link' => Authorization::check('adv', 'streams') ? ('stream_view?id=' . intval($rItem['id'])) : null,
 			'category' => $rCategory,
 			'server' => $rServerName,
 			'image' => $rLive

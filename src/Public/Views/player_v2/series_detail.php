@@ -64,7 +64,7 @@ $initialSeason = !empty($seasons[0]['season_number']) ? (int)$seasons[0]['season
       <div class="col-12 col-md-5 col-lg-4 col-xl-3">
         <div class="movie-poster-wrap">
           <img
-            src="<?= $posterUrl ?: $baseUrl . 'assets/img/pages/profile-banner.png' ?>"
+            src="<?= htmlspecialchars($posterUrl ?: $baseUrl . 'assets/img/pages/profile-banner.png') ?>"
             alt="<?= htmlspecialchars($title) ?>"
             class="movie-poster-img"
             onerror="this.src='<?= $baseUrl ?>assets/img/pages/profile-banner.png';" />
@@ -341,7 +341,7 @@ $initialSeason = !empty($seasons[0]['season_number']) ? (int)$seasons[0]['season
                   src="<?= htmlspecialchars($seasonCover) ?>"
                   alt="<?= htmlspecialchars($seasonName) ?>"
                   loading="lazy"
-                  onerror="this.src='<?= $posterUrl ?: $baseUrl . 'assets/img/pages/profile-banner.png' ?>';" />
+                  onerror="this.src=<?= htmlspecialchars(json_encode($posterUrl ?: $baseUrl . 'assets/img/pages/profile-banner.png')) ?>;" />
                 <span class="position-absolute top-0 end-0 m-2 badge bg-dark bg-opacity-75">
                   <?= $epCount ?> Eps
                 </span>
@@ -396,7 +396,7 @@ $initialSeason = !empty($seasons[0]['season_number']) ? (int)$seasons[0]['season
                     src="<?= htmlspecialchars($ep['cover']) ?>"
                     alt="<?= htmlspecialchars($epTitle) ?>"
                     loading="lazy"
-                    onerror="this.src='<?= $posterUrl ?: $baseUrl . 'assets/img/pages/profile-banner.png' ?>';" />
+                    onerror="this.src=<?= htmlspecialchars(json_encode($posterUrl ?: $baseUrl . 'assets/img/pages/profile-banner.png')) ?>;" />
 
                   <div class="series-ep-play-overlay">
                     <div class="series-ep-play-btn">

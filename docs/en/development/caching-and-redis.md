@@ -226,6 +226,9 @@ cold-start window, not a real failure.
 | Stream start (FFprobe) | `{md5(source)}` | 5-minute TTL via file mtime check |
 | Admin flush button | all files in `CACHE_TMP_PATH` | `rm -rf` |
 
+The Cache page and its buttons (regenerate the cache, enable or disable the cache, enable
+or disable the Redis connection handler, clear Redis) need the `database` permission.
+
 ---
 
 ## Streaming vs Admin Path

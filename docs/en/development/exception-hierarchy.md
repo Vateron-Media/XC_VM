@@ -65,8 +65,13 @@ try {
 | `ModuleException` | Base for all module failures |
 | `ModuleNotFoundException` | Required dependency module is missing |
 | `ModuleLoadException` | Module file cannot be loaded or class not found |
-| `ModuleManifestException` | `module.json` is missing, malformed, or fails validation |
-| `ModuleCycleException` | Dependency graph has a cycle — thrown by `ModuleLoader`'s topological sort with the cycle path (`a -> b -> a`) in the message. (Some `@throws` docblocks say `\RuntimeException`; that's just the base type — `ModuleCycleException` extends it via `XcVmException`.) |
+| `ModuleManifestException` | `module.json` cannot be used: it is not a JSON object, `dependencies` or `optional_dependencies` is not a list of names, or `environment` is not `main`, `lb` or `any`. Thrown by `ModuleLoader::readManifest()` and caught by the loader, which logs it and skips the module: it does not escape `loadAll()`. |
+| `ModuleCycleException` | Dependency graph has a cycle — thrown by `ModuleLoader`'s topological sort with the cycle path (`a -> b -> a`) in the message. It escapes `loadAll()` for a cycle already on disk. (Some `@throws` docblocks say `\RuntimeException`; that's just the base type — `ModuleCycleException` extends it via `XcVmException`.) |
+
+`ModuleManager` does not put such a module in place: an upload, a store install and an update
+are refused with a plain `\RuntimeException` — `Module '<name>' has a module.json that cannot
+be loaded (…).` or `Module '<name>' would close a dependency cycle (a -> b -> a).` — and the
+installed files and recorded version are kept.
 
 ---
 
@@ -84,7 +89,8 @@ try {
 try {
     $loader->loadAll();
 } catch (ModuleException $e) {
-    // ModuleNotFoundException | ModuleLoadException | ...
+    // ModuleCycleException: a module with an unusable manifest or a
+    // missing dependency is skipped and logged, not thrown
 }
 
 // Catch container-specific failures

@@ -40,6 +40,16 @@ class CleanupCronJob implements CommandInterface {
 	private const PRUNE_BATCH = 10000;
 	private const PRUNE_SEC = 20;
 
+	/**
+	 * The directories of resized images under IMAGES_PATH, the days a file
+	 * stays in one, and the bytes and the files one holds before its oldest
+	 * files go.
+	 */
+	private const IMAGE_CACHES = ['admin/', 'player/'];
+	private const IMAGE_CACHE_DAYS = 30;
+	private const IMAGE_CACHE_BYTES = 4 * 1024 * 1024 * 1024;
+	private const IMAGE_CACHE_FILES = 250000;
+
 	public function getName(): string {
 		return 'cron:cleanup';
 	}
@@ -75,7 +85,7 @@ class CleanupCronJob implements CommandInterface {
 	 * past their retention, and neither the VOD analysis nor the
 	 * created-channel checks run. Never against an empty or partial list,
 	 * which would delete every file: a check whose list the replica cannot
-	 * give whole is skipped.
+	 * give whole, or MAIN's database did not answer, is skipped.
 	 */
 	protected function streamChecks(): bool {
 		return !NodeRole::refusesConnects() || StreamSource::local();
@@ -254,11 +264,11 @@ class CleanupCronJob implements CommandInterface {
 		}
 		// SSH passwords saved by installs before they moved to one-shot cred files.
 		InstallCredentials::scrubLegacyMetadata();
-		$rTables = ['lines_activity' => ['keep_activity', 'date_end'], 'lines_logs' => ['keep_client', 'date'], 'login_logs' => ['keep_login', 'date'], 'streams_errors' => ['keep_errors', 'date'], 'streams_logs' => ['keep_restarts', 'date'], 'ondemand_check' => ['on_demand_scan_keep', 'date']];
+		$rTables = ['lines_activity' => ['keep_activity', 'date_end'], 'lines_logs' => ['keep_client', 'date'], 'login_logs' => ['keep_login', 'date'], 'streams_errors' => ['keep_errors', 'date'], 'streams_logs' => ['keep_restarts', 'date'], 'ondemand_check' => ['on_demand_scan_keep', 'date'], 'mysql_syslog' => ['keep_syslog', 'date']];
 		foreach ($rTables as $rTable => $rArray) {
-			// lb-settings: keep_activity, keep_client, keep_login, keep_errors, keep_restarts, on_demand_scan_keep
+			// lb-settings: keep_activity, keep_client, keep_login, keep_errors, keep_restarts, on_demand_scan_keep, keep_syslog
 			if (SettingsManager::getAll()[$rArray[0]] && 0 < SettingsManager::getAll()[$rArray[0]]) {
-				$rDeleteBefore = time() - intval(SettingsManager::getAll()[$rArray[0]]); // lb-settings: keep_activity, keep_client, keep_login, keep_errors, keep_restarts, on_demand_scan_keep
+				$rDeleteBefore = time() - intval(SettingsManager::getAll()[$rArray[0]]); // lb-settings: keep_activity, keep_client, keep_login, keep_errors, keep_restarts, on_demand_scan_keep, keep_syslog
 				$db->query('DELETE FROM `' . $rTable . '` WHERE `' . $rArray[1] . '` < ?;', $rDeleteBefore);
 			}
 		}
@@ -278,6 +288,94 @@ class CleanupCronJob implements CommandInterface {
 		if (class_exists(ClusterMaintainStatsCommand::class) && ClusterMaintainStatsCommand::missing($db) !== []) {
 			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'cluster:maintain-stats']);
 		}
+		// The resized images the panels cache: nothing else removes them.
+		if (defined('IMAGES_PATH')) {
+			self::pruneImageCaches(IMAGES_PATH);
+		}
+	}
+
+	/**
+	 * Prune the directories ImageResizeService caches resized images in
+	 * (IMAGE_CACHES under $rImages), where every distinct URL and size leaves
+	 * a file. One last written more than IMAGE_CACHE_DAYS ago goes: it is
+	 * built again when asked for, and browsers are told to keep theirs for 7
+	 * days. A directory still over $rMaxBytes or $rMaxFiles then loses its
+	 * oldest files first: the bytes alone would let any number of small files
+	 * stay.
+	 *
+	 * Only the names the resizer writes are removed ('<md5>_<width>_<height>.png'
+	 * and '<md5>.webp'), and only in those directories, never below them:
+	 * $rImages itself and its other sub-directories hold the icons and logos
+	 * the panel keeps. No more than twice $rMaxFiles names are held while a
+	 * directory is read, however many files it has (some 70 MB at
+	 * IMAGE_CACHE_FILES).
+	 *
+	 * @return int the files deleted
+	 */
+	public static function pruneImageCaches(string $rImages, ?int $rNow = null, int $rMaxBytes = self::IMAGE_CACHE_BYTES, int $rMaxFiles = self::IMAGE_CACHE_FILES): int {
+		$rBefore = ($rNow ?? time()) - self::IMAGE_CACHE_DAYS * 86400;
+		$rDeleted = 0;
+		foreach (self::IMAGE_CACHES as $rCache) {
+			$rDir = $rImages . $rCache;
+			$rHandle = is_dir($rDir) ? @opendir($rDir) : false;
+			if ($rHandle === false) {
+				continue;
+			}
+			$rKept = [];
+			$rBytes = 0;
+			while (($rName = readdir($rHandle)) !== false) {
+				if (!preg_match('/^[0-9a-f]{32}(_\d+_\d+\.png|\.webp)\z/', $rName) || !is_file($rDir . $rName)) {
+					continue;
+				}
+				$rTime = @filemtime($rDir . $rName);
+				if ($rTime === false) {
+					continue;
+				}
+				if ($rTime < $rBefore) {
+					$rDeleted += (int) @unlink($rDir . $rName);
+					continue;
+				}
+				$rKept[$rName] = $rTime;
+				$rBytes += (int) @filesize($rDir . $rName);
+				if (count($rKept) >= 2 * $rMaxFiles) {
+					$rDeleted += self::trimImageCache($rDir, $rKept, $rBytes, $rMaxBytes, $rMaxFiles);
+				}
+			}
+			closedir($rHandle);
+			$rDeleted += self::trimImageCache($rDir, $rKept, $rBytes, $rMaxBytes, $rMaxFiles);
+		}
+		return $rDeleted;
+	}
+
+	/**
+	 * Delete the oldest of $rKept (file name => when it was last written, in
+	 * $rDir, $rBytes in all) until no more than $rMaxFiles of them and
+	 * $rMaxBytes stay. $rKept and $rBytes are left as what stays.
+	 *
+	 * @param array<string, int> $rKept
+	 * @return int the files deleted
+	 */
+	private static function trimImageCache(string $rDir, array &$rKept, int &$rBytes, int $rMaxBytes, int $rMaxFiles): int {
+		$rOver = count($rKept) - $rMaxFiles;
+		if ($rOver <= 0 && $rBytes <= $rMaxBytes) {
+			return 0;
+		}
+		asort($rKept);
+		$rGone = 0;
+		$rDeleted = 0;
+		foreach ($rKept as $rName => $rTime) {
+			if ($rGone >= $rOver && $rBytes <= $rMaxBytes) {
+				break;
+			}
+			$rSize = (int) @filesize($rDir . $rName);
+			if (@unlink($rDir . $rName)) {
+				$rBytes -= $rSize;
+				$rDeleted++;
+			}
+			$rGone++;
+		}
+		$rKept = array_slice($rKept, $rGone, null, true);
+		return $rDeleted;
 	}
 
 	/**

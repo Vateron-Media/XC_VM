@@ -48,7 +48,10 @@ class MovieController extends BaseAdminController {
 		$rPathSources = '';
 
 		if (RequestManager::has('id')) {
-			$rMovie = StreamRepository::getById(RequestManager::get('id'));
+			// The movie as stored: the form escapes what it prints and posts it back,
+			// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+			$db->query('SELECT * FROM `streams` WHERE `id` = ?;', intval(RequestManager::get('id')));
+			$rMovie = $db->get_raw_row();
 			if (!$rMovie || $rMovie['type'] != 2) {
 				$this->redirect('movies');
 				return;

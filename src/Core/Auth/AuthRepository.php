@@ -3,6 +3,7 @@
 namespace XcVm\Core\Auth;
 
 use XcVm\Core\Cluster\NodeRpc;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 
 /**
@@ -117,7 +118,10 @@ class AuthRepository {
 		// Do not rename without regenerating all deployed nginx configs.
 		$rTypeMap = [0 => 'admin', 1 => 'reseller', 2 => 'ministra', 3 => 'includes/api/admin', 4 => 'includes/api/reseller', 5 => 'ministra/new', 6 => 'player', 7 => 'portal', 8 => 'player_v2'];
 		$rAliasMap = [0 => 'Public/Views/admin', 1 => 'reseller', 2 => 'Ministra', 3 => 'includes/api/admin', 4 => 'includes/api/reseller', 5 => 'Ministra', 6 => 'Public/assets/player', 7 => 'Public/Views/portal', 8 => 'Public/Views/player_v2'];
-		$rBurstMap = [0 => 500, 1 => 50, 2 => 50, 3 => 1000, 4 => 1000, 5 => 50, 6 => 500, 7 => 500, 8 => 500];
+		// The burst counts every request the code hands to PHP. A panel's list
+		// page asks at once for itself, its table data and a thumbnail per row
+		// in view, the reseller's as the admin's.
+		$rBurstMap = [0 => 500, 1 => 500, 2 => 50, 3 => 1000, 4 => 1000, 5 => 50, 6 => 500, 7 => 500, 8 => 500];
 
 		return [$rTypeMap[$rCodeType] ?? 'admin', $rAliasMap[$rCodeType] ?? 'Public/Views/admin', $rBurstMap[$rCodeType] ?? 500];
 	}
@@ -134,6 +138,16 @@ class AuthRepository {
 		$rMainHome = MAIN_HOME;
 		$rServerId = SERVER_ID;
 		$rTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template');
+		// An update keeps the installed bin/nginx/conf/codes, the template with
+		// it: one from before the sign-in and the resizer were limited gets
+		// their location here.
+		// ponytail: drop once the updater replaces the templates.
+		if (!str_contains($rTemplate, '(login|resize)')) {
+			$rTemplate = preg_replace('/^\s*#WHITELIST#\s*$/m', '$0' . "\n    location ~ /(login|resize)$ {\n        limit_req zone=#ZONE# burst=#BURST# nodelay;\n        try_files \$uri @fc_#CODE#;\n    }", $rTemplate, 1);
+		}
+		// The zone is declared in nginx.conf; one restored from before it (the
+		// update's own nginx -t fallback) has only the zone the streams use.
+		$rZone = str_contains((string) @file_get_contents($rMainHome . 'bin/nginx/conf/nginx.conf'), 'zone=panel:') ? 'panel' : 'one';
 		$rMinistraTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template_ministra');
 		shell_exec('rm -f ' . $rMainHome . 'bin/nginx/conf/codes/*.conf');
 
@@ -155,16 +169,18 @@ class AuthRepository {
 				$rCurrentTemplate = in_array($rType, ['ministra', 'ministra/new']) ? $rMinistraTemplate : $rTemplate;
 
 				if (in_array($rType, ['ministra', 'ministra/new']) || strlen($rCode['code']) >= 4) {
-					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(['#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'], [implode(' ', $rWhitelist), (string) $rCode['code'], $rType, (string) $rBurst, $rAlias], $rCurrentTemplate));
+					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(['#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#', '#ZONE#'], [implode(' ', $rWhitelist), (string) $rCode['code'], $rType, (string) $rBurst, $rAlias, $rZone], $rCurrentTemplate));
 				} else {
-					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(['#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'], [implode(' ', $rWhitelist), $rCode['code'] . '/', $rType . '/', (string) $rBurst, $rAlias . '/'], $rCurrentTemplate));
+					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(['#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#', '#ZONE#'], [implode(' ', $rWhitelist), $rCode['code'] . '/', $rType . '/', (string) $rBurst, $rAlias . '/', $rZone], $rCurrentTemplate));
 				}
 			}
 		}
 
 		if (count(self::getActiveCodes($rMainHome)) == 0) {
 			if (!file_exists($rMainHome . 'bin/nginx/conf/codes/default.conf')) {
-				file_put_contents($rMainHome . 'bin/nginx/conf/codes/default.conf', str_replace(['alias ', '#WHITELIST#', '#CODE#', '#TYPE#', '#ALIAS#'], ['root ', '', '', 'admin', 'Public/Views/admin'], $rTemplate));
+				// No code: the admin panel at the root. Its XC_CODE is empty, which
+				// nginx takes only quoted.
+				file_put_contents($rMainHome . 'bin/nginx/conf/codes/default.conf', str_replace(['alias ', 'XC_CODE  #CODE#;', '#WHITELIST#', '#CODE#', '#TYPE#', '#ALIAS#', '#BURST#', '#ZONE#'], ['root ', 'XC_CODE "";', '', '', 'admin', 'Public/Views/admin', '500', $rZone], $rTemplate));
 			}
 		} else {
 			if (file_exists($rMainHome . 'bin/nginx/conf/codes/default.conf')) {
@@ -254,7 +270,8 @@ class AuthRepository {
 		$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', $rID);
 
 		if ($db->num_rows() == 1) {
-			$rRow = $db->get_row();
+			// Domain\User is not in the load balancer build: a node reads the row as it is.
+			$rRow = class_exists(UserCredits::class) ? UserCredits::amounts($db->get_row()) : $db->get_row();
 			$rRow['subresellers'] = !empty($rRow['subresellers']) ? json_decode($rRow['subresellers'], true) : [];
 
 			if (count($rRow['subresellers'] ?? []) == 0) {

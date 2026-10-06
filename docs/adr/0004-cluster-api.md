@@ -614,7 +614,7 @@ This increment adds the kept URL most exposed to it: an old `cluster_main_host`,
 {"v":1, "type", ["action",] "exp", "iat", "cmd_id", "seq", "node_uuid", "gen", "dedupe_key", "args"}
 ```
 
-The extension derives the class from `type` (and, for `node.root`, its action: `fence` is restrictive). Kills and stops are restrictive and sign without a licence; the rest need it. The registry is the extension's, and it refuses what it does not list: a type it does not know, an envelope key it does not know, an argument a restrictive type does not take, and a `node.rpc` or `node.root` without a top-level `action`. So `action` is an envelope field, only for those two, never among the `args`: callers hand `CommandBus::enqueue()` their `{action, …}` payload as before, and it lifts the action out. `cluster_commands.class` is the extension's answer (`recordClass`), not a list of MAIN's. `tests/Support/cluster_commands.json` is the registry as the extension generates it (per type: class, whether it needs `action`, a restrictive type's `args` keys, `node.root`'s restrictive actions); `CommandBusRegistryTest` builds every type MAIN sends as `CommandBus` and `ClusterRoute` build it and checks it against the file, and `FakeClusterCrypto` classes and refuses by it as the extension does. A `dedupe_key` replaces a not-yet-acked command for the same desired state; an acked one keeps its outcome but gives up the key, so `UNIQUE(server_id, dedupe_key)` never refuses the next command with it (until the third Phase 4 increment's review, a node's second `config.changed`, or a second drop of the same viewer, within a day of the first one's ack failed to queue on MariaDB). Commands expire (`conn.*` 5 min, `artefact.*` 1 h, `node.root` 24 h, `node.cache` 24 h since the fourteenth Phase 7 increment, default 10 min), and `cron:cluster` prunes them.
+The extension derives the class from `type` (and, for `node.root`, its action: `fence` is restrictive). Kills and stops are restrictive and sign without a licence; the rest need it. The registry is the extension's, and it refuses what it does not list: a type it does not know, an envelope key it does not know, an argument a restrictive type does not take, and a `node.rpc` or `node.root` without a top-level `action`. So `action` is an envelope field, only for those two, never among the `args`: callers hand `CommandBus::enqueue()` their `{action, …}` payload as before, and it lifts the action out. `cluster_commands.class` is the extension's answer (`recordClass`), not a list of MAIN's. `tests/Support/cluster_commands.json` is the registry as the extension generates it (per type: class, whether it needs `action`, a restrictive type's `args` keys, `node.root`'s restrictive actions); `CommandBusRegistryTest` builds every type MAIN sends as `CommandBus` and `ClusterRoute` build it and checks it against the file, and `FakeClusterCrypto` classes and refuses by it as the extension does. A `dedupe_key` replaces a not-yet-acked command for the same desired state; an acked one keeps its outcome but gives up the key, so `UNIQUE(server_id, dedupe_key)` never refuses the next command with it (until the third Phase 4 increment's review, a node's second `config.changed`, or a second drop of the same viewer, within a day of the first one's ack failed to queue on MariaDB). Commands expire (`conn.*` 5 min, `artefact.*` 1 h, `node.root` 24 h, `node.cache` 24 h since the fourteenth Phase 7 increment, default 10 min), and `cron:cluster` prunes them. **Superseded** in part by [Mode 2 after the move, and the credential strip](#mode-2-after-the-move-and-the-credential-strip-2026-10-05) (2026-10-05): a `node.root strip_db_credentials` lives 600 s.
 
 The flow, for a node whose COMMANDS flow is on (toggled per node on the Cluster Nodes page):
 
@@ -883,7 +883,7 @@ The stream endpoints (`live.php`, `vod.php`, `timeshift.php`, `rtmp.php`) now re
 | Operation | What it does |
 | --- | --- |
 | `openRecord($settings, $record, $dbRow)` | Records a viewer. `$record` is the Redis record; `$dbRow` holds exactly the `lines_live` columns each caller wrote before. VOD still leaves `external_device` NULL, and RTMP still writes the node's own `date_start` on the table path. `createLive` goes through it too. |
-| `findByUuid($settings, $uuid, $columns, $fallback)` | Finds a viewer by uuid. On the table path, an HTTP Range request without the uuid falls back to matching line (or HMAC key), container, agent and stream. |
+| `findByUuid($settings, $uuid, $columns, $fallback)` | Finds a viewer by uuid. On the table path, an HTTP Range request without the uuid falls back to matching line (or HMAC key), container, agent and stream. **Superseded** by [Mode 2 after the move, and the credential strip](#mode-2-after-the-move-and-the-credential-strip-2026-10-05) (2026-10-05): only `vod.php` passes the fallback, and it takes the address into account. |
 | `updateLive` | Refreshes and re-opens a viewer (unchanged). |
 | `heartbeat($settings, $uuid, $lastRead)` | The long-running viewers' five-minute check-in. |
 | `acceptedIP($settings, $lineID)` | The IP the first open connection of a line came from (`disallow_2nd_ip_con`). |
@@ -1634,7 +1634,7 @@ since            unix seconds: when this node's audit began
 
 **The root flush.** `NodeActions::flushBlocklist()` already reached a node with the COMMANDS flow and root's pin as a signed `node.root {action: "flush"}` (Phase 4), but `RootSignalsCronJob::executeAction()`, which `cluster:root` runs, had no `flush` case: the command was acked and nothing flushed. Only the `signals` row, matched by its exact payload at the top of `cron:root_signals`, flushed iptables.
 
-- `executeAction()` now handles `flush` as the row did: `iptables -F`, `ip6tables -F`, the flood guard's block files, `iptables-save`, a `FLUSH` line in `mysql_syslog`.
+- `executeAction()` now handles `flush` as the row did: `iptables -F`, `ip6tables -F`, the flood guard's block files, `iptables-save`, a `FLUSH` line in `mysql_syslog`. **Superseded** by [Mode 2 after the move, and the credential strip](#mode-2-after-the-move-and-the-credential-strip-2026-10-05) (2026-10-05): the flush removes the panel's own blocks and no other rule.
 - `cron:root_signals` stops polling the `signals` table for the flush row on a node that takes MAIN's root commands (`RootSignalsCronJob::rootCommandsFromMain()`: COMMANDS on and root's pin in place). A row queued before, or while MAIN lacked `root_ready`, still runs through the same case from the signals loop. Legacy nodes are unchanged.
 - With CONFIG on, the minute's iptables sync follows the replica's `blocked_ips` cache, which drops the flushed addresses at the agent's next `config` pull (the flush logs a `reset`), so an address may be blocked again for up to a minute, as with the row.
 
@@ -1832,7 +1832,7 @@ The eighth increment's refusal stopped the paths a node in mode 2 still took to 
 
 **`log.syslog` on MAIN.** `LogSink::TYPES` gains `syslog` (`mysql_syslog`: `server_id`, `type`, `error`, `username`, `ip`, `database`, `date`). `EventIngest` takes it on P1 with the LOGS flow, as every `log.<type>`, row by row:
 
-- `type` must be one of `LogSink::SYSLOG_TYPES` (`FLUSH`, `REBOOT`, `OPENSSL_EXTRA`, `RESTART`, `STOP`, `RELOAD`, `CERTBOT`, `BINARIES`, `MODULE`, `UPDATE`, `PHP-FPM`) and `error` a string; otherwise the whole event is refused (dropped and counted). `AUTH` never passes: `cron:root_mysql` blocks the addresses of `AUTH` rows, and a node must not be able to have MAIN block one.
+- `type` must be one of `LogSink::SYSLOG_TYPES` (`FLUSH`, `REBOOT`, `OPENSSL_EXTRA`, `RESTART`, `STOP`, `RELOAD`, `CERTBOT`, `BINARIES`, `MODULE`, `UPDATE`, `PHP-FPM`) and `error` a string; otherwise the whole event is refused (dropped and counted). `AUTH` never passes: no node writes it. (Until 2026-10 `cron:root_mysql` blocked the addresses of `AUTH` rows, so a node must not have been able to have MAIN block one; that block is gone, the refusal stays.)
 - `server_id` is the sender's; `username` is `root`, `ip` `localhost` and `database` NULL, whatever the node sent.
 - `date` is the node's when it is an integer of at least 1 and not after MAIN's clock (`ClusterClock::now()`), else MAIN's clock. The newest `date` is `cron:root_mysql`'s watermark for MySQL's own log, which a date in the future would hold back.
 - The row is redacted, as every `log.*` row.
@@ -2112,7 +2112,7 @@ config/cluster/runtime/          0700, the owner of config/cluster/ (xc_vm)
 
 - An update by `server_stream_id` names its stream through the rows this process read (the readers remember each) or the stream caches' index, which now records each stream's `ssid`.
 - Another server's row is never kept. A write for this node that is not kept (an unknown `server_stream_id`, a bound, the store out of reach) is logged, and lapses the store (below) on a node that may still seed it.
-- With STREAMS off, a write goes to MAIN's row alone and lapses the store once it landed; a recording's status written then drops the node's own (under the store's lock). MAIN and mode 0 write exactly the statements they wrote; the writers only look for the store's directory (or the recording's file) first, and a node without one takes no lock.
+- With STREAMS off, a write goes to MAIN's row alone and lapses the store once it landed (**superseded** for mode 2 by [Mode 2 after the move, and the credential strip](#mode-2-after-the-move-and-the-credential-strip-2026-10-05) (2026-10-05): a node in mode 2 does not lapse its store on a write); a recording's status written then drops the node's own (under the store's lock). MAIN and mode 0 write exactly the statements they wrote; the writers only look for the store's directory (or the recording's file) first, and a node without one takes no lock.
 - **Mode 2 without the agent.** A write the spool refuses (the agent silent for over two minutes) fell back to MAIN's row, which mode 2 refuses with an exception in the writer's process. In mode 2 the writer now returns false instead: the store keeps it, its columns marked `unsent` (the `unsent` marker written before the entry). `StreamStateWriter::resend()`, which `cron:streams` runs first every minute whether or not the store answers the readers (a seed waits for it), sends each entry's unsent columns once the agent takes events again: a `stream.state` keyed `{stream_id, server_id}` with the redacted columns, and a `stream.worker` per worker pid. The marker goes only after a walk that left nothing unsent and that no write marked again since it began (its `token`). A recording's status in mode 2 is kept but not resent. A movie's analysis (`vod.analysis`) the spool refuses in mode 2 is not written anywhere: `ContentSink::movieProperties()` returns false, and `cron:vod` and `cron:cleanup` leave the movie due, to analyse it again once the agent is back.
 - **Mode 0 and 1 without the agent** still fall back to MAIN's row, and mark nothing unsent: MAIN's row has it, and resending it later would replay it over whatever MAIN wrote to that row since. The store keeps the write but lapses once MAIN's row has it (MAIN's row alone is then whole): the readers take MAIN's database until the agent is back and a seed runs.
 
@@ -3388,7 +3388,7 @@ One change, as the third increment said it had to be: tickets that nothing verif
 
 Port 31290 is unprivileged: while the agent does not hold it, any local user could bind it, read `k` from the URLs and feed the encoders what it likes. So `DataPlane::loopback()` hands out `k` only while every socket listening on the port (`/proc/net/tcp` and `tcp6`) belongs to the uid that owns `relay.key`, and one of them is on 127.0.0.1 or every address; the verdict is kept 5 s. Otherwise the URL is `DataPlane::UNAVAILABLE` (`http://127.0.0.1:1/…`, a privileged port no local user can listen on): the read fails at once and the monitor retries, and neither the stream secret nor an unauthenticated URL reaches the encoder.
 
-**Mode 2 and the page.** `ClusterAdmin::MODE2_FLOWS` includes DATAPLANE, and the Cluster Nodes page switches it (`dataplane_on`/`off`; it needs STREAMS and CONTENT, and it is switched on only for a node whose agent says `relay` in hello's `features`, `ClusterAdmin::FEATURE_RELAY`: the flow points the node's encoders at the proxy, and without one there every relay and file read would fail). Switching it off needs nothing.
+**Mode 2 and the page.** `ClusterAdmin::MODE2_FLOWS` includes DATAPLANE, and the Cluster Nodes page switches it (`dataplane_on`/`off`; it needs STREAMS and CONTENT, and it is switched on only for a node whose agent says `relay` in hello's `features`, `ClusterAdmin::FEATURE_RELAY`: the flow points the node's encoders at the proxy, and without one there every relay and file read would fail). Switching it off needs nothing. **Superseded** by [Mode 2 after the move, and the credential strip](#mode-2-after-the-move-and-the-credential-strip-2026-10-05) (2026-10-05): no flow is switched off while the node is in mode 2.
 
 **The legacy `/api`** (the second increment's switch). The node's own flow alone no longer turns it off: other servers still read its files with `getFile` (MAIN's source probe, `ServerRepository::checkSource`, and its certbot log, `getSSLLog`; any server whose own flow is off), and each would get a 404. `api_legacy.conf` is `0` only when `DataPlane::legacyApiRetired()`: the node's own flow is on, and every server in the servers list (MAIN included) is a node the signed node list has active with its DATAPLANE flow on, so each reads through `/xfile`. MAIN had no data-plane client and no node entry, so it was `1` on every node; an unreadable servers list keeps it `1`. Since Phase 9's eighth increment MAIN counts once `cluster:main-dataplane on` is set.
 
@@ -3742,7 +3742,10 @@ request, and the cutover's last steps — rotating what legacy nodes sent in cle
 
 - **A quarantined node's long-poll** hands out class R only (`CommandBus::pending(…, restrictive)`);
   the rest stays queued for *Trust again*. Its replica stays refused, and the agent itself runs only
-  restrictive types and skips its replica sync until a reply says `active`.
+  restrictive types and skips its replica sync until a reply says `active`. **Superseded** in part by
+  [Mode 2 after the move, and the credential strip](#mode-2-after-the-move-and-the-credential-strip-2026-10-05) (2026-10-05):
+  a granting command the node's high-water has passed is not handed out after *Trust again*.
+  **Superseded** by [design 3](#three-designs-for-approval-the-line-a-node-names-the-updating-status-commands-across-a-quarantine-2026-10-06) (built 2026-10-06): a quarantine ends every granting command still queued or handed out, and names them in the audit; none is handed out after *Trust again*.
 - **The licence fence is queued by the cron**, not where the refusal is written: that path runs
   before anything is authenticated and changes no state. It rides the sealed `LICENCE_INVALID` with
   the other kills; the agent takes a `licence` fence only from a refused session and lifts it itself
@@ -5521,7 +5524,9 @@ no node could be moved from the page.
   the node has been in mode 2 for `CUTOVER_CLEAN_DAYS`, counted by MAIN's own record
   (`cluster_meta`, `mode2_at.<server id>`), and while the node reports `streams_local` false. It
   does not ask for zero refused connects: a settled mode 2 node still shows some (requests to the
-  viewer APIs it no longer serves boot through `DatabaseStage`).
+  viewer APIs it no longer serves boot through `DatabaseStage`). **Superseded** in part by
+  [Mode 2 after the move, and the credential strip](#mode-2-after-the-move-and-the-credential-strip-2026-10-05) (2026-10-05):
+  the strip asks all the gate asks, and its command lives ten minutes.
 - **The node really stops.** New connects were refused already. The daemons that keep a
   connection (signals, queue, fanout_sync, scanner, on-demand) now leave their loop within a pass
   of the mode crossing 2, in either direction, so `mode_down` is a whole way back. `fanout_sync`
@@ -5546,3 +5551,583 @@ no node could be moved from the page.
 - `ConnectAuditTest`: the window restarts on entering refusal, stays on leaving, and is adopted
   by a release that finds no note.
 - `DaemonModeChangeTest`: each daemon asks every pass.
+
+### Mode 2 after the move, and the credential strip (2026-10-05)
+
+**Problem.** The section above decides once, when a node moves to mode 2. Afterwards nothing held
+the node to what the gate had asked:
+- a flow could be switched off under a node in mode 2, which then had only MAIN's database for
+  that work;
+- *Drop DB credentials* was judged only as it was queued, on less than the gate asks, and its
+  command then waited a day for the node, through a mode down;
+- an enrolment by code put a credential-free node back in mode 1 with no flow, and any enrolment
+  could start a node in mode 2 beside the Redis connection handler;
+- a write MAIN's database refused could unseed the store that a mode 2 node cannot seed again.
+
+Three other statements of this record are corrected here: what the blocklist flush removes, who
+passes `findByUuid` its Range fallback, and what a quarantine leaves queued.
+
+**Decision.**
+- **No flow goes off in mode 2.** `ClusterAdmin::act()` answers `cluster_flow_mode_two` to every
+  `*_off` for a node in mode 2, the data plane's included: mode 2 runs on every flow
+  (`MODE2_FLOWS`). The operator moves the node one mode down first. Switching a flow on is as
+  before. "Switching it off needs nothing" (Phase 8, fourth increment) is superseded.
+- **The strip asks what the gate asks.** `DbCredentials::strip()` keeps mode 2, state `active` and
+  the seven days. It adds every `MODE2_FLOWS` bit (`cluster_mode_needs_flows`), a node heard within
+  `NodeHealth::SUSPECT_AFTER_MS` (`cluster_strip_not_heard`) and `streams_local` true in its last
+  report (`cluster_strip_not_local`). A node that says nothing of its streams is refused, where the
+  section above refused only one that said false.
+- **Its command lives ten minutes.** `ClusterRoute::root()` queues `strip_db_credentials` with
+  `DbCredentials::STRIP_TTL` (600 s): the node was judged as the command was queued, so a node
+  that is away is asked again. Every other `node.root` action keeps the 24 h of the first Phase 4
+  increment.
+  - *The move down.* A mode down from 2 ends every strip the node has not acked:
+    `DbCredentials::cancelStrip()` sets its `exp` to now, so it is handed out no more, also to a
+    node moved back to mode 2 within the ten minutes. One the node was not handed is dropped by
+    the next `cron:cluster` (`CommandBus::prune()`). One it was handed, or was being handed as it
+    was moved, keeps its row: the node may have run it, and its ack says what its config holds.
+    The row is ended and not deleted so that a hand-out that read it just before the move still
+    has a row to mark, and its ack a row to find.
+  - *The hand-out.* `CommandBus::pending()` judges a strip once more as it hands it out, and
+    hands one out only while the node's row (`cluster_nodes.mode`) says 2. This also holds back a
+    strip stored in the instant of a move down. Every other command is handed out as before.
+  - *The ack.* A strip the node was handed keeps its row a day past its `exp`
+    (`CommandBus::prune()`), because root runs a command up to 300 s past `exp`
+    (`RootPin::verify()`) and MAIN revokes the grant on that ack alone (`DbCredentials::acked()`).
+    Past `exp` it is not handed out. A strip never handed out, and every other command handed out
+    or not, is pruned at `exp`. The ack of a strip the node was handed is so accepted for no less
+    than the day in which another `node.root` action's is.
+- **The node judges the strip again.** When root runs it, `NodeCredentials::run()` refuses
+  `strip_db_credentials` unless `NodeRole::refusesConnects()`: the agent's `flows.json` says mode
+  2, state `active` or `quarantined`. The command fails with `strip_db_credentials: refused: this
+  node is not in mode 2, and below it needs MAIN's credentials`, and MAIN revokes nothing.
+  `install_config` is not gated by the mode: a config with credentials is the way back.
+- **Enrolment by code keeps a credential-free node so.** `EnrolCodeService::approve()` asks
+  `DbCredentials::credentialFree()` before the enrolment replaces the node's row, as the SSH path
+  does (`LbInstallFlow::installsInApiMode()`, eighth Phase 9 increment). Such a node is enrolled
+  again in mode 2 with `MODE2_FLOWS`, and `NodeRegistry::startEnrolment()` carries its
+  `db_revoked_at` over. `EnrolmentService::begin()` called with `legacy` still starts a mode 1 row
+  clean.
+- **Not with the Redis connection handler, at enrolment either.** `EnrolmentService::begin()`
+  refuses a mode 2 enrolment while `redis_handler` is on, before the node's row is touched. It
+  throws `ClusterRefusedException` with the reason `REDIS_HANDLER`, which is MAIN's own refusal
+  and not the extension's. Each path reports it before it acts:
+  - the page's approval answers `cluster_mode_redis_handler`, `cluster:enrol-approve` says so in
+    words, and the request stays pending;
+  - `server:install` refuses before the node is contacted, and sets the server's status to 4;
+  - `server:enrol` and `cluster:reenrol` refuse in `LbInstallFlow::provisionCluster()`, before the
+    node's agent is stopped;
+  - the panel's install and reinstall ask `ServerService::modeTwoInstallRefused()` before the
+    server is marked as being installed, so it stays in rotation.
+
+  The other order is the Cache page's. `ClusterAdmin::anyInModeTwo()` also counts a mode 2 node
+  that is still `enrolling`, until its `enrol_deadline` (30 minutes). An enrolment that was never
+  completed and a revoked row do not hold the handler off.
+- **A mode 2 node's store does not lapse on a write.** `StreamStateWriter::write()` and
+  `ContentSink::workerPid()` call `StreamRuntime::lapse()` after a write to MAIN's row alone only
+  where `NodeRole::refusesConnects()` is false. In mode 2 MAIN's database refused that write and
+  no seed can follow, so the store stays seeded. "With STREAMS off, a write goes to MAIN's row
+  alone and lapses the store once it landed" (Phase 7, thirteenth increment) holds for modes 0
+  and 1 only. Of its known limit "a mode 2 node whose store lapsed (STREAMS off and on again in
+  mode 2) or was lost", the lost store remains.
+- **The flush removes the panel's blocks only.** The root action `flush`, and the `signals` row
+  where it is still read, remove the rules the panel added to INPUT (`-s <address> -j DROP`, IPv4
+  and IPv6) through `iptables-restore --noflush`, one commit per family, and rule by rule where
+  the tool refuses the list (`RootSignalsCronJob::unblockAll()`). The flood guard's block files,
+  `iptables-save` and the `FLUSH` log line follow as before. Every other rule, chain and policy
+  stays, the DB allowlist's `XCVM_DB` chain among them. "`iptables -F`, `ip6tables -F`" (Phase 7,
+  eighth increment) is superseded. The allowlist's reconciliation every minute is unchanged.
+- **The Range fallback is `vod.php`'s alone.** Only `vod.php` passes
+  `ConnectionTracker::findByUuid()` a fallback; `timeshift.php` looks a viewer up by uuid alone.
+  `vod.php` passes none where the daemon serves the file: the request keeps a row under its
+  link's own uuid, the one the daemon is handed. The fallback matches line (or HMAC key),
+  container, agent and stream, and the exact address when `ip_subnet_match` is off. With it on,
+  the address is left out of the match for an IPv4 viewer only, and the row found is kept only
+  when it is in the viewer's subnet. Otherwise the viewer gets a row of its own. This supersedes
+  the `findByUuid` row of the seam's table (Phase 6, second increment).
+
+**Not built.**
+- **A strip in the heartbeat after a mode down.** The node knows its mode from the agent's
+  `flows.json`, which follows MAIN at the agent's next heartbeat. A strip root runs before that
+  still runs.
+- **A strip stored just after a move down's withdrawal.** A strip stored just after a concurrent
+  move down withdrew the node's strips stays `queued` for its ten minutes. It is not handed out
+  below mode 2, but is if the node is back in mode 2 within that time.
+- **A strip pruned while it is handed out.** A strip read by a hand-out, ended by a move down
+  and pruned by `cron:cluster` before that hand-out marks it (three requests inside the gap
+  between two statements) reaches the node with no row on MAIN. Its ack is refused and revokes
+  nothing.
+- **Root's late outcome.** When root's runner is more than `ClusterExecCommand::ROOT_WAIT` (5 s)
+  behind, `cluster:exec` acks `{"queued": true}`. What root then does never reaches MAIN, and
+  `DbCredentials::acked()` revokes nothing on that ack.
+- **Binding the line a node names.** MAIN reads a line's limit itself and ignores any a node
+  sends, but takes from the node which line a viewer belongs to (`conn_admit`'s `line_id`, a
+  `conn.upsert` record's `user_id`). That is not bound to an admission MAIN minted for the node.
+- **A status that outlasts a heartbeat.** `HeartbeatService` sets `servers.status` to 1 whatever
+  it was (`WHERE status <> 1`), with each heartbeat or, on the cluster bus, with each flush. The 5
+  a node reports as it starts an update, and an install state MAIN set (3, 4), last only until
+  the node's agent is next heard. "An install state MAIN set (3 installing, 4 failed) is never
+  the node's to leave" ("A node in mode 2 updates, and its status and inventory") holds for the
+  `node.state` event only.
+- **Granting commands across a quarantine.** "The rest stays queued for *Trust again*" (Phase 9,
+  fifth increment) holds only for commands queued after the last restrictive one the node ran.
+  The long-poll hands out `seq` above the node's high-water, which every command it runs raises,
+  and the page's own `node.quarantine` is queued above whatever waited before it. A granting
+  command passed that way expires unsent: `ClusterRoute::trust()` queues `token.rotate_now` and
+  queues no earlier command again.
+
+**Tests.**
+- `AuditClusterFlowsModeTwoTest`: no flow goes off in mode 2, one still goes on there and off
+  below it; a write refused in mode 2 leaves the store seeded, and below mode 2 it still lapses.
+- `AuditClusterStripTest`: a settled node is asked and the command lives minutes; a node not
+  heard, short of a flow or silent about its streams is not; a strip is handed out only while
+  the node's row says mode 2; a mode down ends a strip, handed out or not, which then goes out
+  neither below mode 2 nor after a return to it; one being handed out as the node is moved keeps
+  its row and its ack is accepted; a strip that was handed out keeps its row a day past its life
+  and a late ack still revokes, while any other command goes at its `exp`; the node gives the
+  credentials up only in mode 2; the command line says why in words.
+- `AuditClusterEnrolTest`: a credential-free node enrolled by code stays in mode 2, one whose
+  grant was revoked too, any other enrols as the setting says; no enrolment enters mode 2 with
+  the Redis handler on, and the handler stays off while a node enrols in mode 2.
+- `AuditInstallFollowEnrolRedisTest`, `AuditAdminUsersInstallRefusalTest`: the SSH paths refuse
+  before the node is touched, and the panel starts no install the command would refuse.
+- `AuditRootCronFirewallFlushTest`: only rules of the panel's own form are its blocks; the root
+  action removes them and no other rule, one by one where the list is refused.
+- `AuditSegmentTokenTest`: a movie seek from another address, or from another subnet where a
+  subnet is one viewer, is a connection of its own.
+
+**Since.**
+- **The install form says why.** `post.php?action=server_install` answers an install that
+  `ServerService::modeTwoInstallRefused()` refused with `message`, the translated
+  `cluster_mode_redis_handler` text; every other failure carries `message` null. The reinstall
+  action already answered `{"result":false,"message":"…"}` (`AuditFormRulesMessagesTest`).
+- **A reseller's switch reaches the sessions.** Enabling and disabling a line, a MAG or an
+  Enigma2 device from the reseller panel (`ResellerApiDispatcher`) and the Reseller API
+  (`ResellerAPIWrapper`) send the line's signal (`LineService::updateLineSignal()`).
+  `cluster_kill_on_line_disable` so closes the sessions of a line a reseller switched off, and
+  the line cache follows either switch (`AuditResellerRestLineSwitchSignalTest`).
+
+### Three designs for approval: the line a node names, the updating status, commands across a quarantine (2026-10-06)
+
+**Status.** Designs 2 (option A) and 3 (option c) approved and built; 1 (option B, both stages)
+approved and built on the panel, its agent field waiting for XC_VM_Fanout 0.14.4. Nothing else here is built, and no earlier statement of this record changes until
+the maintainer approves a design or changes it. The three subjects are the last three entries
+under **Not built** in the section above. File and line are those of the tree on this date: the
+panel under `src/`, the agent in XC_VM_Fanout 0.14.0 under `internal/clusteragent/`.
+
+**1. The line a node names.**
+
+*Today.*
+- **`conn_admit`.** `ConnectionAdmission::forNode()` takes `line_id` from the request
+  (`Domain/Cluster/ConnectionAdmission.php:238`), reads that line's state and limit itself
+  (256-268), reserves the uuid for it (279) and queues a cut (285). The cut is dropped only when
+  MAIN's store holds the uuid for another node (`ConnectionLimits.php:119-127`). A uuid the store
+  does not hold passes, since the viewer may not be open yet.
+- **`conn.upsert`.** `ConnectionIngest::write()` keeps the record's `user_id`, or its `hmac_id`
+  and `hmac_identifier` (`ConnectionIngest.php:140-148`). It refuses only a uuid another node
+  holds (157, 174), and an update writes the owner columns again (172-178).
+- **`conn.limit`.** Its owner check (`ConnectionLimits.php:129-135`) compares the event with the
+  row the same node's upsert wrote.
+- **The node's PHP.** The line in the `X-XCVM-Admission` header is the record's `user_id`
+  (`Core/Cluster/AgentConnections.php:92-97`), which the endpoint took from the token.
+- **The agent.** It copies that line into `conn_admit` (`admission.go:212-217`). It asks only
+  for a viewer with no live claim (201-206), on an `active` node with CONNECTIONS (207). It
+  stores a record as it is given and mirrors it whole (`registry.go:136-161`).
+
+On all three paths the line is the node's word. MAIN counts the viewer against that line and
+closes the line's other connections, on other servers too, to make room for it.
+
+*Two bindings that do not hold.*
+- **The mint's reservation.** It ends with the claim, `create_expiration` + 10 s after the mint
+  (`ConnectionAdmission.php:162`, 438-440). A node opens a new record while the token is valid
+  (`live.php:356`, 431; `timeshift.php:164`, 237), and for a movie also later, when it still
+  holds the viewer's marker (`vod.php:150`). So `conn_admit` is asked where the token has no claim,
+  which is where MAIN reserved nothing, or where the reservation has run out. Bound to it, every
+  `conn_admit` would be refused or left uncut, and the two events would be as before.
+- **The token, handed on by the node.** A node's tokens are sealed with a key the node holds:
+  its own `K_n` (`Core/Cluster/ViewerKey.php:57`, delivered in the replica's `secrets`), or the
+  shared secret. A token the node hands MAIN is one the node could have sealed, and proves no
+  mint.
+
+*Options.*
+- **A. MAIN keeps a record of each mint**: uuid to identity, node and time, written at the mint
+  where reservations are kept (the cluster bus, the shared Redis or `cluster_reservations`) and
+  read at `conn_admit` and where a uuid first enters MAIN's store.
+  - *Needs.* Panel on MAIN: the write at the six mint sites, for an HLS viewer under its
+    playlist key too (as `makeWay()` computes it, `ConnectionAdmission.php:193`), and the two
+    reads. Node PHP and agent: nothing, so it works with every node from the day MAIN is updated.
+  - *Its life.* A record is first reported within the token's life while all is well. But P0
+    waits in the node's spool while MAIN is out of reach, and a snapshot brings a node's records
+    back after an orphan purge, hours after their mint. Kept that long, it is one row for every
+    connection opened in that time, written on the mint path.
+  - *Its loss.* It is lost where reservations are lost: a bus restart, an eviction, a store out
+    of reach at the mint, which is the very case in which a token has no claim. MAIN cannot tell
+    "never minted" from "lost", so every doubt must admit, or a valid viewer is refused.
+  - *HLS.* MAIN's key and the node's agree only where both see the same address and agent.
+- **B. MAIN puts a proof of the mint in the token**, and the node hands the proof back.
+  - *The proof.* `prf: {iat, p}` in every viewer token minted for an enrolled node. `p` is the
+    first 16 bytes of HMAC-SHA256 over a domain label, the token's uuid, the identity
+    (`StoredConnections::identity()`), the node and `iat`.
+  - *The key* is `HMAC-SHA256(live_streaming_pass, "xc_vm mint proof v1")`, derived as
+    `ViewerKey::derive()` derives a node's key. Nothing is stored. A stream-secret rotation
+    replaces it, and a proof made under the replaced secret verifies inside that secret's window.
+  - *Needs, panel on MAIN.* The proof at the six viewer mint sites (`admitToken()`), the check
+    in `forNode()` and in `ConnectionIngest::write()`, and an update that no longer writes the
+    owner columns.
+  - *Needs, panel on the node.* `ConnectionTracker::openRecord()` copies the proof into the
+    record as one key, `mint` (`<uuid>.<iat>.<p>`), and into the admission header. `adm_uuid`
+    already travels this way (`ConnectionTracker.php:931-934`).
+  - *Needs, agent.* For the events, nothing: it mirrors a record key it does not know, in
+    `registry.snap` and in snapshots too, and the node's PHP keeps the key across updates
+    (`ConnectionTracker.php:1179`). For `conn_admit`, the header's `mint` copied into the
+    request: one field, in a new release.
+- **C. No binding.** `forNode()` keeps its refusals and stops reserving and cutting. Panel only.
+  A viewer without a claim is then cut for by `conn.limit` after it opens, as before the ninth
+  Phase 6 increment. The two events stay as they are, so the effect stays, a second later.
+
+*What MAIN does with a proof (B).*
+- **`conn_admit`.** A proof that verifies for the named identity and the authenticated node, and
+  is no older than the token's life plus `PAD_SEC`: reserved and cut, as today. Any other
+  request gets the line's own refusals as today, and is otherwise admitted with no reservation
+  and no cut. `conn.limit` follows the open.
+- **A uuid that first enters MAIN's store**, by an event or a snapshot, is stored when its proof
+  verifies for the record's identity and the sending node. Otherwise the record is *unproven*
+  (below).
+- **A uuid the store already holds for that node** keeps the identity it was stored with.
+- **No bound on a proof's age at the events**, at first. The record carries its proof for its
+  life, so one that waited in the spool, a movie opened again, and a record a snapshot brings
+  back after an orphan purge still verify.
+- **HLS.** The proof names the token's uuid, not the record's: an HLS viewer is recorded under
+  the playlist key the node computes (`live.php:327`).
+
+*An unproven record: two stages, one setting* (`cluster_conn_binding`: `observe`, the default,
+or `enforce`).
+- **`observe`.** Nothing changes for a viewer. MAIN counts, per node, the unproven first entries
+  and the `conn_admit`s without a proof, and how old the proofs it verified were. It writes one
+  audit line a minute per node (`conn.unproven`), and the Cluster Nodes page shows the count.
+- **`enforce`.** An unproven record is not stored, and MAIN queues `conn.close {uuid, remove:
+  true}`, so the node's registry drops it and the two digests agree again. MAIN sends no kill
+  with it.
+- **Per node, from its first proof.** Enforcement starts for a node with the first proof MAIN
+  verified for its enrolment (`cluster_meta`, `conn_proven.<server id>`), and does not end with
+  a record that carries none. A node on an older panel release has shown none and is treated as
+  under `observe`. The page says which nodes prove.
+- **Moving to `enforce` is a second approval**, on what `observe` showed over a release.
+
+*Rollout (B).*
+- **MAIN new, the node's PHP older.** It ignores the token's `prf`, and its records carry no
+  proof. Nothing is enforced for it: as today.
+- **MAIN new, the node's PHP new, its agent older.** Records carry the proof. Its `conn_admit`
+  carries none: answered as today under `observe`, admitted with no reservation and no cut under
+  `enforce`.
+- **MAIN new, both new.** `conn_admit` carries the proof too.
+- **MAIN older, the node newer** (a fleet half updated). Tokens carry no `prf`, so the node adds
+  nothing and a newer agent has no `mint` to send. An older MAIN would ignore the key anyway
+  (the ninth increment's **Wire**).
+
+*Stored (B).*
+- **MAIN:** nothing per viewer. Per node, whether it has proved, until its next enrolment. The
+  counts of `observe`, a day, in `TMP_PATH`.
+- **The node:** the proof in the registry record and in `registry.snap`, for the record's life.
+  It is a MAC, not a secret.
+- **The token:** about 60 bytes longer.
+
+*Failure modes (B).*
+- **It holds only where the stream secret is withheld.** A node that holds the stream secret can
+  derive the key: every node below mode 2, and every node before lockdown
+  (`ReplicaBuilder::withholdsStreamPass()`, `ReplicaBuilder.php:607`). Such a node needs no
+  proof: it writes MAIN's store, or seals a token another node accepts. The binding starts where
+  the containment of the per-node keys starts.
+- **A node still speaks for the lines MAIN sent it.** One proof opens more than one record, and
+  with no bound on its age a node can report viewers of any line it was sent since the last
+  stream-secret rotation. Whether a bound can be set is what `observe` measures.
+- **An HMAC identity's limit is still the node's** (`conn.limit`'s `max_connections`).
+- **After a stream-secret rotation**, a record that returns in a snapshot past the window is
+  unproven. Records MAIN's store still holds are not asked again.
+- **Seeded records carry none**: `cluster:seed-connections` sends `RECORD_KEYS` only
+  (`AgentConnections.php:188`, 204). They are in MAIN's store, and unproven only when purged and
+  brought back.
+- **A mint that carries no proof.** A token MAIN minted before its update, for seconds. Any
+  mint outside `admitToken()` whose token opens a record (the admin player's, the off-air
+  redirect a node mints for itself) has to show in `observe` before `enforce` is safe.
+- **A wrongly unproven viewer under `enforce`** loses its record on the node. A TS viewer a PHP
+  worker serves ends at its next check-in, within five minutes (`live.php:770-774`). An HLS
+  viewer's next request finds no record and needs a token that is still valid. What the agent's
+  reconciliation does with one the daemon serves has to be read before the second stage.
+- **A node that misreports** is still the operator's to quarantine: `events` and `conn_admit`
+  take an `active` node only (`ClusterApi.php:82`, 88).
+
+*Tests that would prove it (B).*
+- `ConnectionMintProofTest`, on the panel. Today's code reserves and cuts in its second case,
+  stores in its third and writes the owner in its fourth:
+  - a proof verifies for its uuid, identity and node alone, and under the replaced secret
+    inside its window only;
+  - a `conn_admit` with no proof, another line's, another node's or an old one reserves nothing
+    and queues no cut under `enforce`, and is answered as today under `observe`;
+  - a first entry without a proof is stored and counted under `observe`, and under `enforce` is
+    not stored and has its close queued, but only once the node has proved;
+  - an update cannot change a record's owner;
+  - a record a snapshot brings back verifies however old its proof.
+- `ReplicaBuilderSecretsTest`: no section carries the proof's key.
+- `AgentAdmissionTest`, against the stand-in agent: the record and the header carry `mint`, and
+  a token without `prf` adds nothing.
+- The agent's `admission_test.go`: the header's `mint` is in `conn_admit`, none is sent without
+  one, and an interop case runs against MAIN's real `forNode()`.
+
+*Recommended: B, in its two stages.* It is the only one of the three that binds the op and the
+events alike, it cannot refuse a valid viewer because a store was lost, and it asks the agent
+for one copied field. A's record has no safe life, and C leaves the effect in place.
+
+*Approved and built (B, 2026-10-06).* The maintainer approved B in its two stages, and answered
+question 1: in the second stage MAIN refuses a record that carries no valid proof and has the
+node's registry drop it.
+- **The proof.** `ConnectionAdmission::admitToken()` puts `prf {iat, p}` in every viewer token
+  while the cluster API is on (`mintProof()`), for every node: a node that does not record
+  through its agent ignores it, and no read of `cluster_nodes` is added to the mint. `p` is
+  `proof()`: HMAC-SHA256 under `HMAC-SHA256(live_streaming_pass, PROOF_LABEL)` over
+  `uuid|node|iat|identity`, cut to 16 bytes as hex, the identity last so that no other split
+  of the fields gives the same message. `verifyMint()` takes the stream secret and, inside its
+  window, the replaced one (`StreamSecret::previousEntry()`).
+- **The node.** `ConnectionTracker::openRecord()` keeps it in the registry record as `mint`
+  (`<token uuid>.<iat>.<p>`, the token's uuid also for an HLS viewer, as `adm_uuid` names it),
+  and `AgentConnections::admission()` puts it in the admission header. Neither reaches MAIN's
+  store when the agent does not answer. The endpoints needed no change: live.php, vod.php and
+  timeshift.php already pass their token.
+- **`conn_admit`** (`forNode()`): a `mint` that verifies for the named identity and the
+  authenticated node, no older than the token's life plus `PAD_SEC`, is reserved and cut as
+  before. Any other is counted, and under `enforce` on a node whose stream secret MAIN withholds it gets
+  the line's own refusals and is otherwise admitted with no reservation and no cut.
+- **A first entry** (`ConnectionIngest::admitsFirst()`, events and snapshots alike): a record
+  whose `mint` verifies, at any age, is stored and counted with its age. One that does not is
+  stored and counted under `observe`; under `enforce` on a node whose stream secret MAIN withholds it is
+  not stored (the event is refused, the snapshot's record dropped), and MAIN queues
+  `conn.close {uuid, remove: true}` (`ClusterRoute::closeConnection`, no kill).
+- **The owner.** An update of a uuid the store holds for the node never writes `user_id`,
+  `hmac_id`, `hmac_identifier` or the Redis `identity`.
+- **The gate.** `cluster_conn_binding` (migration 071, `observe` by default; any other value
+  reads as `observe`). Under `enforce` a node is held to the proof when MAIN withholds its
+  stream secret (mode 2, the cluster locked down, the node on its own viewer key:
+  `ReplicaBuilder::withholdsStreamPass()`): only such a node cannot derive the proof's key, and
+  whether it is one is MAIN's to say. (As first built, enforcement started with the first proof
+  the node itself sent, so a node that stripped every proof was never held to it; a review
+  found it, and the maintainer chose this gate on 2026-10-06.) Whether a node has sent proofs
+  (`cluster_meta` `conn_proven.<server id>` = its `gen`) is recorded for the page and decides
+  nothing; the operator switches to `enforce` once `observe` shows every node proving. Every
+  agent release mirrors a record key it does not know (`registry.go` stores and sends the PUT
+  body whole), so a node's records prove once its panel is new, whatever its agent. A conn_admit
+  is never refused for the want of a proof, so an agent that does not copy the field loses only
+  the reservation and the cut. A proof still opens a record at any age, so a node can report a
+  viewer of a line MAIN once sent it (the replay limit above).
+- **Outside the batch.** The mark, the closes, the counts and the audit line are noted during
+  the request and written at its end (`flushBinding()`), never inside an events batch's
+  transaction (EventIngest). The counts of the day are `TMP_PATH/cluster_binding/<server
+  id>.json` (`bindingCounts()`); `conn.unproven` is written at most once a minute per node,
+  when that minute saw a record or a conn_admit without a proof.
+- **Waiting.** The agent's field is XC_VM_Fanout 0.14.4 (`admission.go`: `mint` from the
+  header into `conn_admit`, a malformed one left out). Until a node runs it, its conn_admits
+  carry no proof. Not built on the panel: the Cluster Nodes page's count and which nodes
+  prove, the setting in the settings form and `ClusterSettings::ENUMS`, and the agent's
+  interop case against MAIN's real `forNode()`.
+- **Found while building.** rtmp.php records a viewer the node authenticated itself, with no
+  MAIN mint: under `enforce` every RTMP viewer on a proving node is refused and dropped from
+  its registry, and plays on uncounted. A node rolled back to a panel without the proof after
+  it proved has every new viewer refused under `enforce` until it is enrolled again. Both have
+  to be settled before `enforce` is switched on; `observe` shows the first as `unproven`.
+- Tests: `AuditCluster1MintProofTest`, `AuditCluster1NodeMintTest`, and the agent's
+  `TestAdmissionCopiesTheMintProofIntoConnAdmit`.
+
+**2. The status a node reports as it updates.**
+
+*Today.*
+- **The node's own status.** `NodeStateSink::status()` (`Core/Cluster/NodeStateSink.php:88`)
+  reports 5 (updating) and 1 (back): a P0 `node.state` event with TELEMETRY on, else the row.
+  MAIN takes either over 1 or 5 only (`EventIngest.php:520-527`), and routing reads status 1
+  alone (`ServerRepository.php:81`, 92, 97).
+- **The heartbeat.** It sets the status to 1 whatever it was: `HeartbeatService.php:256` with
+  each heartbeat, and 481 with each flush on the cluster bus.
+- **The update.** `UpdateCommand.php:174` reports 5 and starts the updater at once (179-184; a
+  rollback the same, 299). The updater's first step stops the service (`src/update:85-86`), and
+  the agent with it (`src/service:48-50`, 103). `post-update` reports 1
+  (`UpdateCommand.php:359`) before the service starts again (`src/update:135-139`).
+- **The agent.** It sends P0 every 200 ms (`events.go:50`) and a heartbeat every 2 s
+  (`agent.go:852-870`), which says nothing of an update. It says `hello` at every start
+  (`agent.go:426-449`). The `boot_id` it sends is the machine's (249-255), which a service
+  restart leaves as it was.
+- **So** a 5 that reaches MAIN before the stop is undone by the next heartbeat, or the next
+  flush, while the node is about to stop. A 5 that did not leave the node in time is delivered
+  after the restart.
+- **And 'back' can be lost.** PHP spools only while the agent's `flows.json` is younger than
+  120 s (`EventSpool.php:33`, 102-108), and in mode 2 it has no other way
+  (`NodeStateSink.php:95-97`). A partly copied update runs no `post-update`
+  (`src/update:142-153`). The heartbeat is what brings such a node back today, which is why 5
+  cannot simply be left out of its statement.
+
+*Options.*
+- **A. A 5 holds against the heartbeat for a bounded time.** Panel on MAIN only.
+  - `EventIngest::nodeStatus()` notes when it took a 5 (`cluster_meta`, `updating.<server id>`,
+    its `updated_at`), and drops the note when it takes a 1.
+  - The two heartbeat statements leave a row at 5 alone while its note is younger than
+    `UPDATING_HOLD_SEC` (60). Past that, or with no note, they set 1 as today.
+  - The hold ends nothing by itself: after it, the next heartbeat sets 1, and a stopped agent
+    sends none.
+- **B. The agent says it.** The update tells the agent on its socket. The agent adds `updating:
+  true` to every heartbeat until it stops, kept in memory with a bound of its own. MAIN sets 5
+  on such a heartbeat and 1 on any other. An event and a heartbeat can then no longer disagree,
+  and MAIN stores nothing.
+  - Needs an agent release, the node's PHP and MAIN. With an older agent the node's PHP falls
+    back to today's event, and MAIN to today's behaviour or to A.
+- **C. Only a `hello` leaves 5.** Panel only. Not safe alone: a 5 delivered after the restart
+  follows the `hello` and stays, and an updater that never stops the service says no `hello`.
+  Both need A's bound, and with it the `hello` adds nothing.
+- **D. 'Back' made certain in mode 2 a release ahead, then 5 left out of the heartbeat.** Not
+  safe alone either: an update that ends before `post-update` (a partly copied one, a reboot)
+  sends no 'back', and the node stays at 5 with no control on the page to leave it.
+
+*Rollout (A).* Nothing changes on the wire or on a node. A MAIN on the new panel treats every
+agent and every node release alike, through the event a TELEMETRY node already sends. A node
+that writes its own row (TELEMETRY off, below mode 2) leaves no note and is as today.
+
+*Stored (A).* One `cluster_meta` row per server that reported 5, by MAIN's clock. It means
+nothing once it is a minute old, and the next 5 replaces it.
+
+*Failure modes (A).*
+- **'Back' lost.** The update took longer than the hold, so the first heartbeat after the
+  restart sets 1, as today.
+- **The updater never stopped the service.** The node is out of routing for the hold, then
+  back.
+- **A 5 delivered after the restart.** With 'back' behind it in the lane, it lasts
+  milliseconds. With 'back' lost, the node is out of routing for the hold after it is back.
+- **A partly copied installation** comes back with its first heartbeat after the hold. Today it
+  does within seconds. Keeping it out needs a state the node may report and a control to leave
+  it, and neither exists.
+- **The note not written**, or one ahead of MAIN's clock: no hold, as today.
+- **Install states 3 and 4 are not held.** A heartbeat of the enrolment that was current when
+  MAIN set one still sets 1. Holding them needs the generation they were set under, and the
+  first heartbeat of the next enrolment is by design what marks a new install up
+  (`HeartbeatService.php:254-256`).
+
+*Tests that would prove it (A).* `NodeUpdatingHoldTest`, on the direct path and on the cluster
+bus:
+- a heartbeat after a reported 5 leaves 5 (on today's code it sets 1), and one after the hold
+  sets 1;
+- 'back' sets 1 at once and drops the note;
+- a 5 written to the row with no note, an install state, and a note ahead of the clock are as
+  today;
+- a heartbeat of an enrolment that has ended still marks nothing up.
+
+*Recommended: A.* It needs no release of the agent or of a node, it cannot leave a node at 5
+for good, and every case it does not cover is as today. B is the cleaner model, and can follow
+when the agent's heartbeat next changes.
+
+*Approved and built: A (2026-10-06).* The maintainer's answer to question 2: a node that said
+it was updating and still sends heartbeats a minute later is taken back into routing by
+itself. Built on MAIN's panel alone, with no migration (`cluster_meta` exists since 029):
+- `EventIngest::nodeStatus()` writes the note `updating.<server id>` (`updated_at` by MAIN's
+  clock) in the batch's transaction when it takes a 5, as one `INSERT … ON DUPLICATE KEY
+  UPDATE`, and deletes it when it takes a 1. One statement each, so two nodes reporting at
+  once do not deadlock on the gap's lock.
+- `HeartbeatService::record()` (direct path) and `flushNode()` (cluster bus) add
+  `NOT_HELD` to their `servers.status = 1`: a row at 5 whose note is younger than
+  `HeartbeatService::UPDATING_HOLD_SEC` (60) and not ahead of MAIN's clock is left alone. The
+  flush keeps its `gen` guard.
+- `NodeStateSink`, `UpdateCommand`, `ServerRepository` and the agent are unchanged.
+- Tests: `AuditCluster2UpdatingHoldTest` (the cases listed above, direct path and bus).
+
+**3. Granting commands across a quarantine.**
+
+*Today.*
+- **MAIN.** A quarantined node's long-poll is handed class R only (`ClusterApi.php:770`,
+  `CommandBus.php:196-217`), by `seq` above the `after_seq` it sends. MAIN raises `cmd_seq` to
+  what it handed out (`ClusterApi.php:784`) and to that `after_seq` (766-768).
+- **The agent.** It polls with its high-water (`commands.go:135`), raises it for every command
+  it verified (216-219) and refuses a `seq` at or below it (123).
+- **The four quarantines.** The one from the page queues `node.quarantine` and then sets the
+  state (`ClusterRoute.php:279-286`). MAIN's own three set the state alone
+  (`ClusterApi.php:532`, 649-658, 877).
+- ***Trust again*** sets `active` and queues `token.rotate_now` (`ClusterRoute.php:292-300`).
+- **What can wait.** Every producer of a granting command asks for an `active` node
+  (`ClusterRoute.php:509-516`, `StreamAssign.php:48-56`, `ArtefactGrants.php:71-73`), so a
+  granting row of a quarantined node was queued before the quarantine. It lives 10 minutes, an
+  hour for an artefact or an unfence, a day for `node.root` and `node.cache`
+  (`CommandBus.php:36`).
+- **So** the first restrictive command the node runs while quarantined, the page's own
+  `node.quarantine` among them, takes its high-water past every granting command that waited,
+  and none of those is handed out after *Trust again*. One is handed out only where no
+  restrictive command was run in between.
+
+*Options.*
+- **a. Queue them again at *Trust again*.** Panel only. `trust()` signs each granting command
+  that was passed again under a new `seq`, keeping its `cmd_id`, which `ArtefactGrants` and a
+  waiting caller hold (`ArtefactGrants.php:165`).
+  - It needs a licence at that moment, and rules for what must not come back: a start whose
+    stream was stopped since (their dedupe keys differ, `ClusterRoute.php:143`, 187, where a
+    fence and its unfence share one, 219), and a root action decided up to a day earlier.
+  - Every command type added later has to be placed in those rules.
+- **b. The agent keeps `cmd_id`s while quarantined** and does not raise its high-water, as it
+  does for the commands a `LICENCE_INVALID` carries (`sealed.go:101-143`). The long-poll then
+  hands the waiting commands out after *Trust again* by itself.
+  - Needs an agent release, and a feature word at `hello` so that MAIN knows which nodes do it.
+    An older agent is as today, so MAIN still needs a or c for it.
+  - The order is a's: a command queued before runs after a restrictive one delivered since.
+    The `LICENCE_INVALID` path has that order today.
+- **c. End them at the quarantine, and say so.** Panel only. Each of the four places that set
+  `quarantined` ends every granting command of the node that is not acked: its `exp` becomes
+  now, as a mode down ends a strip (`DbCredentials::cancelStrip()`, `DbCredentials.php:118`).
+  - The quarantine's audit line names them (type, action, `cmd_id`, handed out or not), and the
+    page's confirmation says how many there are.
+  - After *Trust again* the operator sends again what is still wanted. What MAIN produces by
+    itself comes again by itself: an artefact offer at its next retry, a stream's assignment at
+    its next write.
+
+*Rollout (c).* Nothing changes on the wire. An agent of any release is handed the same
+restrictive commands as today.
+
+*Stored (c).* Nothing new. An ended command is not handed out, gives no artefact
+(`ArtefactGrants.php:208-217`) and is pruned by the next `cron:cluster`. A strip the node was
+handed keeps its row a day, as now. An ack that arrives before the prune is recorded.
+
+*Failure modes (c).*
+- **A command the operator still wanted is gone.** It is in the audit line. Today the same
+  command is lost wherever a restrictive one was run meanwhile, up to a day later and unsaid.
+- **One that was handed out and is running** keeps running: MAIN cannot take it back. Its ack
+  is taken until the prune and refused after it.
+- **Quarantined and trusted again within seconds:** the commands are ended all the same.
+- **The licence path is not changed.** A granting command queued before a `LICENCE_INVALID`
+  still comes after the kills that rode it.
+
+*Tests that would prove it (c).* `QuarantineCommandsTest`:
+- a granting command queued before each of the four quarantines is ended and named in the
+  audit, and a restrictive one is not;
+- after *Trust again* the long-poll hands out none of them, whatever the node's high-water
+  (today one comes when no restrictive command was run, and none otherwise);
+- one that was handed out keeps its row for its ack until the prune, and a strip for a day;
+- an artefact's grant ends with its command.
+
+The agent's `TestInteropFence` passes unchanged.
+
+*Recommended: c.* A quarantine is MAIN saying it does not know who holds the node's keys, so a
+command decided before it should be decided again after it, not replayed. It is also the only
+option with no order to get wrong and no release to wait for. When it is built, "the rest stays
+queued for *Trust again*" (Phase 9, fifth increment) is superseded by this section.
+
+*Approved and built: c (2026-10-06).* The maintainer's answer to question 3: "ended at the
+quarantine, named in the audit, sent again by the operator" is the rule. `CommandBus::endGranting()`
+sets `exp` to now on every granting command (class other than R) of the node that is queued or
+handed out and not acked, as the quarantine is set (`ClusterRoute::quarantine()`, the admin's and
+MAIN's own). Its artefact grant ends with it; an ack is still taken until the prune. The quarantine's
+audit line carries `ended` and each command (`type`, `action`, `cmd_id`, `handed_out`), and the
+page says how many were ended (`cluster_quarantine_ended`). Restrictive commands keep their life.
+No migration and no agent change; `TestInteropFence` passes unchanged.
+
+**For the maintainer.**
+- **1.** In the second stage, may MAIN refuse a record that carries no valid proof and have the
+  node's registry drop it, or is such a record only ever counted and audited?
+- **2.** Is a node that said it was updating and still sends heartbeats a minute later taken
+  back into routing by itself, or does it stay out until an operator acts?
+- **3.** After *Trust again*, is "ended at the quarantine, named in the audit, sent again by
+  the operator" the rule, or must what was queued before still run?
+
+**Not built.** Of 1, the agent's field (XC_VM_Fanout 0.14.4) and the page and settings form
+named in its *Approved and built*; 2 and 3 are built, above. The three are independent. 3 and 2
+change MAIN's panel alone. 1 needs the panel release on every node, and one field in the agent,
+before its second stage.

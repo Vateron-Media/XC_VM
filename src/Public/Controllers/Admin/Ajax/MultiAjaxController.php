@@ -13,6 +13,7 @@ use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\User\GroupService;
 use XcVm\Domain\User\UserService;
 use XcVm\Domain\Vod\SeriesService;
 
@@ -74,7 +75,7 @@ class MultiAjaxController extends BaseAjaxController {
 
 	/** Bulk operations on lines. */
 	private function handleLine(array $rRequestIDs, string $rSub): never {
-		$this->gate('adv', 'edit_line');
+		$this->gate('adv', 'edit_user');
 
 		global $db;
 
@@ -155,10 +156,15 @@ class MultiAjaxController extends BaseAjaxController {
 
 		global $db;
 
+		// An administrator's account is switched off or on by a full
+		// administrator (GroupService::reservedGroups): the others are left as they are.
+		$rReserved = GroupService::reservedGroups();
+		$rOthers = (0 < count($rReserved) ? ' AND COALESCE(`member_group_id`, 0) NOT IN (' . implode(',', $rReserved) . ')' : '');
+
 		if ($rSub == 'enable') {
-			$db->query('UPDATE `users` SET `status` = 1 WHERE `id` IN (' . $this->inList($rRequestIDs) . ');');
+			$db->query('UPDATE `users` SET `status` = 1 WHERE `id` IN (' . $this->inList($rRequestIDs) . ')' . $rOthers . ';');
 		} elseif ($rSub == 'disable') {
-			$db->query('UPDATE `users` SET `status` = 0 WHERE `id` IN (' . $this->inList($rRequestIDs) . ');');
+			$db->query('UPDATE `users` SET `status` = 0 WHERE `id` IN (' . $this->inList($rRequestIDs) . ')' . $rOthers . ';');
 		} elseif ($rSub == 'delete') {
 			UserService::deleteRegisteredUsers($rRequestIDs);
 		}
@@ -216,6 +222,8 @@ class MultiAjaxController extends BaseAjaxController {
 
 	/** Bulk delete of series. */
 	private function handleSeries(array $rRequestIDs, string $rSub): never {
+		$this->gate('adv', 'edit_series');
+
 		if ($rSub == 'delete') {
 			SeriesService::deleteSeriesByIds($rRequestIDs);
 		}
@@ -358,7 +366,10 @@ class MultiAjaxController extends BaseAjaxController {
 		return implode(',', array_map('intval', $rIDs));
 	}
 
+	/** Bulk operations on activation codes: the code list's row actions and Mass Edit Active Codes. */
 	private function handleActiveCode(array $rRequestIDs, string $rSub): never {
+		$this->gateAny([['adv', 'edit_user'], ['adv', 'mass_edit_lines']]);
+
 		$extra = [
 			'days' => intval(RequestManager::get('days') ?? 30),
 			'package_id' => intval(RequestManager::get('package_id') ?? 0),

@@ -523,10 +523,10 @@ final class ModeTwoPathsTest extends TestCase {
 			$this->assertTrue(json_decode((string) file_get_contents($rPin . 'inbox/' . $rSeq . '.done'), true)['ok'], 'cluster:root reports it done: ' . $rSeq);
 		}
 		// Each acted.
-		$this->assertSame(['sudo reboot', 'sudo systemctl stop xc_vm', 'sudo systemctl start xc_vm', 'sudo systemctl stop xc_vm', 'sudo iptables -F', 'sudo ip6tables -F'], array_values(preg_grep('/^sudo (reboot|systemctl|ip6?tables -F)/', $this->commands())));
+		$this->assertSame(['sudo reboot', 'sudo systemctl stop xc_vm', 'sudo systemctl start xc_vm', 'sudo systemctl stop xc_vm', 'sudo iptables -S INPUT', 'sudo ip6tables -S INPUT'], array_values(preg_grep('/^sudo (reboot|systemctl|ip6?tables -[FS])/', $this->commands())));
 		// Reboot, restart and stop spool their line before they act, so a
 		// reboot's survives it; the flush logs once it flushed.
-		$this->assertSame([['reboot', 1], ['systemctl stop xc_vm', 2], ['systemctl start xc_vm', 2], ['systemctl stop xc_vm', 3], ['iptables -F', 3]], array_values(array_filter($this->sudoSpooled(), static fn(array $rCall): bool => (bool) preg_match('/^(reboot|systemctl|iptables -F)/', $rCall[0]))));
+		$this->assertSame([['reboot', 1], ['systemctl stop xc_vm', 2], ['systemctl start xc_vm', 2], ['systemctl stop xc_vm', 3], ['iptables -S INPUT', 3]], array_values(array_filter($this->sudoSpooled(), static fn(array $rCall): bool => (bool) preg_match('/^(reboot|systemctl|iptables -[FS])/', $rCall[0]))));
 		// An update and a rollback start the updater: it reports its status
 		// through the agent now (NodeStateSink::status), not MAIN's row. It is
 		// started detached (ProcessRunner::start), so its stand-in may still be

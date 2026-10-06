@@ -8,6 +8,7 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 
 /**
@@ -40,9 +41,18 @@ class PackageAjaxController extends BaseAjaxController {
 			$this->ok();
 		}
 
-		if (in_array($rSub, ['is_trial', 'is_official', 'can_gen_mag', 'can_gen_e2', 'only_mag', 'only_e2'])) {
-			$db->query('UPDATE `users_packages` SET ? = ? WHERE `id` = ?;', $rSub, RequestManager::get('value'), RequestManager::get('package_id'));
-			$this->ok();
+		// The flags that are columns of the table: the name goes into the
+		// statement from this list, and a flag is 0 or 1 as the package form stores it.
+		if (in_array($rSub, ['is_trial', 'is_official'], true)) {
+			$rPackageID = intval(RequestManager::get('package_id'));
+			$rValue = RequestManager::get('value');
+			$rValue = (is_string($rValue) && $rValue !== '' ? filter_var($rValue, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) : null);
+
+			// Success is answered for a change that was made: the value reads as
+			// on or off, the package exists and the statement went through.
+			if ($rValue !== null && PackageService::getById($rPackageID) && $db->query('UPDATE `users_packages` SET `' . $rSub . '` = ? WHERE `id` = ?;', intval($rValue), $rPackageID)) {
+				$this->ok();
+			}
 		}
 
 		$this->fail();
@@ -87,8 +97,20 @@ class PackageAjaxController extends BaseAjaxController {
 			$this->ok();
 		}
 
-		if (in_array($rSub, ['is_admin', 'is_reseller'])) {
-			$db->query('UPDATE `users_groups` SET ? = ? WHERE `group_id` = ?;', $rSub, RequestManager::get('value'), RequestManager::get('group_id'));
+		if (in_array($rSub, ['is_admin', 'is_reseller'], true)) {
+			$rGroupID = intval(RequestManager::get('group_id'));
+			$rGroup = GroupService::getById($rGroupID);
+			$rValue = intval(filter_var(RequestManager::get('value'), FILTER_VALIDATE_BOOLEAN));
+			$rReserved = GroupService::reservedGroups();
+
+			// As on the group form: a group that cannot be deleted keeps its
+			// flags, and an administrator group is changed, or a group made
+			// one, by a full administrator (GroupService::reservedGroups).
+			if (!$rGroup || !$rGroup['can_delete'] || in_array($rGroupID, $rReserved) || ($rSub == 'is_admin' && $rValue && 0 < count($rReserved))) {
+				$this->fail();
+			}
+
+			$db->query('UPDATE `users_groups` SET `' . $rSub . '` = ? WHERE `group_id` = ?;', $rValue, $rGroupID);
 			$this->ok();
 		}
 
@@ -130,7 +152,7 @@ class PackageAjaxController extends BaseAjaxController {
 		$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `can_gen_mag`, `can_gen_e2`, `only_mag`, `only_e2` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 
 		if ($db->num_rows() == 1) {
-			$rData = $db->get_row();
+			$rData = UserCredits::amounts($db->get_row());
 
 			if (isset($rOverride[$rData['id']]['official_credits']) && (string) $rOverride[$rData['id']]['official_credits'] !== '') {
 				$rData['cost_credits'] = $rOverride[$rData['id']]['official_credits'];
@@ -160,7 +182,7 @@ class PackageAjaxController extends BaseAjaxController {
 		$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `can_gen_mag`, `can_gen_e2`, `only_mag`, `only_e2` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 
 		if ($db->num_rows() == 1) {
-			$rData = $db->get_row();
+			$rData = UserCredits::amounts($db->get_row());
 			$rData['exp_date'] = date('Y-m-d', strtotime('+' . intval($rData['trial_duration']) . ' ' . $rData['trial_duration_in']));
 
 			$this->ok(['bouquets' => $this->collectPackageBouquets($rData['bouquets']), 'data' => $rData]);

@@ -20,10 +20,19 @@ class ProxyInstallFlow {
 	}
 
 	public static function installArchive($rConn, callable $rSendFileSSH, callable $rRunSSH, string $rInstallDir, string $rInstallFile, int $rServerID, $db): bool {
-		if (call_user_func($rSendFileSSH, $rConn, $rInstallDir . $rInstallFile, '/tmp/' . $rInstallFile, true)) {
+		// Root unpacks it: it is sent where no other user of the node can reach it (LbInstallFlow::privateDir).
+		$rDir = LbInstallFlow::privateDir($rConn, $rRunSSH);
+		if ($rDir === null) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "Could not create a private directory on the node! Exiting\n";
+			return false;
+		}
+		$rArchive = $rDir . '/' . $rInstallFile;
+		if (call_user_func($rSendFileSSH, $rConn, $rInstallDir . $rInstallFile, $rArchive, true)) {
 			echo "Extracting to directory\n";
 			call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'service');
-			call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf "/tmp/' . $rInstallFile . '" -C "' . MAIN_HOME . '"');
+			call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf "' . $rArchive . '" -C "' . MAIN_HOME . '"');
+			call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
 			$rRemoteCheck = trim(call_user_func($rRunSSH, $rConn, 'test -f ' . MAIN_HOME . 'service && echo OK')['output']);
 			if ($rRemoteCheck !== 'OK') {
 				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -31,6 +40,7 @@ class ProxyInstallFlow {
 				return false;
 			}
 		} else {
+			call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			echo "Invalid MD5 checksum! Exiting\n";
 			return false;
@@ -75,7 +85,8 @@ class ProxyInstallFlow {
 
 		call_user_func($rRunSSH, $rConn, LbInstallFlow::sudoWrite('listen ' . $rHTTPPort . ';', '/home/xc_vm/bin/nginx/conf/ports/http.conf'));
 		call_user_func($rRunSSH, $rConn, LbInstallFlow::sudoWrite('listen ' . $rHTTPSPort . ' ssl;', '/home/xc_vm/bin/nginx/conf/ports/https.conf'));
-		call_user_func($rRunSSH, $rConn, 'sudo chmod 0777 /home/xc_vm/bin');
+		// Only its owner writes to bin/.
+		call_user_func($rRunSSH, $rConn, 'sudo chmod 0755 /home/xc_vm/bin');
 
 		return $rServices;
 	}

@@ -8,7 +8,7 @@ XC_VM uses a file-based DB update system to manage schema changes between versio
 
 ## How It Works
 
-- SQL files for DB updates are stored in `/home/xc_vm/migrations/` (`src/migrations/` in the source repository).
+- SQL files for DB updates are stored in `/home/xc_vm/migrations/database/up/` (`src/migrations/database/up/` in the source repository).
 
 - Each file is named with a sequential number prefix, for example:
 
@@ -18,7 +18,9 @@ XC_VM uses a file-based DB update system to manage schema changes between versio
 003_drop_settings_segment_type.sql
 ```
 
-- Applied DB update steps are tracked in the `migrations` database table. Each step runs **exactly once** — if a step has already been applied, it is skipped. There is no down/rollback path: migrations are forward-only, so keep them backward-compatible where possible.
+- Applied DB update steps are tracked in the `migrations` database table. Each step runs **exactly once** — if a step has already been applied, it is skipped.
+
+- Updates only run forward. A migration may ship a reverse file of the same name in `migrations/database/down/`: when the panel is rolled back to an older version, MAIN runs it for every applied migration that version's `up/` folder does not carry and removes its row from `migrations`; a failing reverse file aborts the rollback, and a migration with no down file stays applied. Keep migrations backward-compatible where possible.
 
 - DB updates are executed automatically by:
   - `console.php update post-update` — after a panel update
@@ -35,7 +37,7 @@ Core logic lives in `MigrationRunner` (`src/Core/Database/MigrationRunner.php`).
 [ CREATE TABLE IF NOT EXISTS `migrations` ]
         │
         ▼
-[ Read all *.sql files from migrations/ ]
+[ Read all *.sql files from migrations/database/up/ ]
         │
         ▼
 [ For each file not in `migrations` table: ]
@@ -116,10 +118,10 @@ WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key
 Copy the SQL file for the DB update step to:
 
 ```text
-/home/xc_vm/migrations/
+/home/xc_vm/migrations/database/up/
 ```
 
-> 💡 In the source repository, this is `src/migrations/`.
+> 💡 In the source repository, this is `src/migrations/database/up/`. A reverse file for a version rollback, if the step has one, goes under the same name in `src/migrations/database/down/`.
 
 ### Step 4. Validate DB Update
 
@@ -144,13 +146,15 @@ Migrations
 
 ```
 
-If a statement fails, the step prints `[FAIL]` and is **not** recorded — so it will be retried on the next run. Review the SQL, fix it, and re-run `db:migrate`.
+If a statement fails, the runner prints the database's message on an `[ERR]` line (the panel log leaves some messages out, such as duplicate entries), the step prints `[FAIL]` and is **not** recorded — so it will be retried on the next run. Review the SQL, fix it, and re-run `db:migrate`.
+
+A step may fail on purpose to wait for the operator: `068_unique_panel_account_names` raises every username used more than once through a temporary procedure (`SIGNAL` cannot run as a prepared statement before MariaDB 10.6.2; a `CALL` can) and stays pending until they are renamed. After a version rollback a step's row is removed and the next update applies it again; `066_hold_unredeemed_activation_codes` relies on that.
 
 ---
 
 ## Applying Migrations Manually
 
-Apply all pending `.sql` files from `/home/xc_vm/migrations/` without a full system update:
+Apply all pending `.sql` files from `/home/xc_vm/migrations/database/up/` without a full system update:
 
 ```bash
 su - xc_vm -c '/home/xc_vm/console.php db:migrate'
@@ -172,6 +176,7 @@ See the [Database Update Guide](../info/migration_guide.md) for details.
 
 | File | Role |
 | --- | --- |
-| `src/migrations/` | Database migration `.sql` files |
+| `src/migrations/database/up/` | Database migration `.sql` files |
+| `src/migrations/database/down/` | Reverse files, run on a version rollback |
 | `src/Core/Database/MigrationRunner.php` | Executes pending migrations, records the `migrations` table |
 | `src/console.php` | `db:migrate` / `status` / `migrate` entry point |

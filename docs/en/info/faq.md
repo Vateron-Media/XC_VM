@@ -90,6 +90,17 @@ If this causes issues for legitimate users (e.g., mobile networks frequently rot
 
 ---
 
+<details>
+<summary><b>❌ A Direct Source stream or radio station shows no connection, and players see its source address</b></summary>
+
+---
+
+That is what *Direct Source* does: the panel checks the line, then sends the player straight to the source. The viewer is not counted against the line's connections, and the source address reaches the player, the web players included. To have a stream or station play through the panel (counted, its source kept from the viewer), untick *Direct Source* and set it on demand; it then starts when its first viewer arrives.
+
+---
+
+</details>
+
 ## Login & Access Issues
 
 <details>
@@ -97,11 +108,21 @@ If this causes issues for legitimate users (e.g., mobile networks frequently rot
 
 ---
 
-XC_VM's brute-force guard blocks IPs after too many failed login attempts. This is controlled by:
+XC_VM's brute-force guard blocks an IP address after too many refused requests. This is controlled by:
 
-- `bruteforce_mac_attempts` — attempts per MAC per time window
-- `bruteforce_username_attempts` — attempts per username per time window
-- `flood_limit` — total requests per window
+- `bruteforce_mac_attempts` — an address is blocked when it fails with this many **different** MAC addresses inside `bruteforce_frequency` seconds (5 by default; it is not a number of attempts per MAC). It counts MAG portal handshakes for a MAC the panel does not know and `get_profile` requests that do not verify the device. Block note: `BRUTEFORCE MAC ATTACK`.
+- `bruteforce_username_attempts` — an address is blocked when it tries this many **different** unknown usernames, tokens or activation codes inside `bruteforce_frequency` seconds (10 by default), or this many **different** wrong passwords for one username. The same wrong password sent again counts once, so a device left with an old password is not blocked by this count (the flood limit still applies to tight loops); a correct sign-in is never counted, and the username's letter case makes no difference. Block note: `BRUTEFORCE USER ATTACK`.
+- `flood_limit` — refused requests in a row, each within `flood_seconds` of the one before. Block note: `FLOOD ATTACK`.
+
+A limit that is 0, empty or not set switches that count off; the other two keep counting.
+
+**Typical causes for a legitimate user:**
+
+- **An app that retries in a tight loop.** Refused sign-ins on `player_api.php` / `panel_api.php` count toward `flood_limit`, as they do on `get.php`, `xmltv.php` and `enigma2.php`: a wrong password, an unknown token or activation code, or a code locked to another device. On `player_api.php`, expired, banned or disabled lines, and activation codes that have run out or been suspended, are answered with their status and are **not** counted.
+- **Someone trying many passwords for a line from one address.** Unblock the address and correct the password saved on the device.
+- **Several set-top boxes set up from one address before their MACs are registered.** Each unknown MAC counts toward `bruteforce_mac_attempts`, so the address can be blocked. Register the devices first, add the address to `flood_ips_exclude`, or set `bruteforce_mac_attempts` to 0.
+
+An address listed in `flood_ips_exclude` is exempt from all three limits.
 
 **To unblock yourself:**
 
@@ -165,6 +186,30 @@ sudo /home/xc_vm/console.php tools rescue
 
 ---
 
+<details>
+<summary><b>❌ Viewers are asked to sign in to the web player again after the update</b></summary>
+
+---
+
+The web players keep their sign-in in a session cookie of their own (`PLAYERSESSID`), separate from the admin and reseller panels' (`PHPSESSID`). A sign-in from before the update is not carried over, so every viewer signs in once. An administrator signed in to both the panel and the player has two separate sessions: signing out of one leaves the other.
+
+---
+
+</details>
+
+<details>
+<summary><b>❌ A playlist or EPG download answers HTTP 429</b></summary>
+
+---
+
+**Max Simultaneous Downloads** (`max_simultaneous_downloads`, default 2) is the number of playlist downloads, and separately the number of XMLTV/EPG downloads, one line may have running at the same moment on one server. A request over the limit is answered with HTTP 429 and an empty body and can simply be retried: it is admitted as soon as one of the running downloads ends. 0 turns the limit off; restreamer lines are never limited. Each server (main and every load balancer) counts its own.
+
+A download counts until the server has finished sending it or has given up on the client. A client that stops receiving without closing the connection (app suspended, coverage lost) keeps its download counted for up to 20 minutes (nginx's `send_timeout`). If lines get 429 with nothing visibly downloading, raise the setting or set it to 0.
+
+---
+
+</details>
+
 ## Database & Configuration
 
 <details>
@@ -224,7 +269,7 @@ See [Database Migrations](../guides/database-migrations.md) for details.
 
 | Error | Cause | Fix |
 |---|---|---|
-| Error 3 | Domain is a bare IP address | Certbot requires a domain name, not an IP |
+| Error 3 | No host name in the server's domain list: IP addresses, names with an underscore and wildcards are left out of the request | Add a domain name that points to the server (an entry written as a URL, `http://name/`, is requested by its host name) |
 | Error 4 | Dry run failed — port 80/443 in use | Stop conflicting service: `sudo lsof -i :80` |
 | Error 0 | Files not found after generation | Check `/home/xc_vm/bin/certbot/logs/xc_vm.log` |
 | Error 2 | Unexpected certbot error | Check logs, ensure DNS resolves to your server |
@@ -270,6 +315,32 @@ sudo /home/xc_vm/console.php tools ports
 ---
 
 ## Updates & Service
+
+<details>
+<summary><b>❌ The update prints "Panel account names used more than once"</b></summary>
+
+---
+
+No two panel accounts (administrators, resellers) may share a username; names are compared without case and trailing spaces, so `Admin` and `admin` are one name. When accounts share a name, the database step `068_unique_panel_account_names` fails and prints every such name on an `[ERR]` line; it changes nothing and the panel works as before. Rename all accounts of each listed name but one (Users page), then run the update again:
+
+```bash
+sudo -u xc_vm /home/xc_vm/console.php update update
+```
+
+---
+
+</details>
+
+<details>
+<summary><b>❌ Panel Logs shows "has held its cron lock since"</b></summary>
+
+---
+
+A cron runs once at a time on each server: while one run holds its lock, the next ones exit. The line appears once a cron has run for an hour. It is harmless for a long backup, clean-up or TMDb scan. If the cron is hung (no progress, usually after a database or network interruption on a node), end it with `sudo kill -9 <pid>` (the PID is in the line); the next cron minute takes over. Nothing else ends it, and that cron does not run on that server meanwhile. `cron:servers` and `cron:streams` are the exception: a run of either that lasts more than ten minutes is ended by the next one, and Panel Logs says so.
+
+---
+
+</details>
 
 <details>
 <summary><b>❌ Update download fails or checksum mismatch</b></summary>

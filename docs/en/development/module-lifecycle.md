@@ -24,7 +24,9 @@ Available `state` values (backed by `ModuleState` enum):
 | `installing` | Transient state set by `ModuleManager` during install |
 | `failed` | Install failed; module skipped (not loaded) |
 
-> **Panel diagnostics.** The **Modules** page shows a yellow **⚠ Dependency issue** badge next to a module's status when a required dependency is missing or not enabled (e.g. `plex` reads `Enabled` but `watch` is `failed`). The badge tooltip lists the concrete problems. This `dependency_warnings` field is computed by `ModuleManager::listModules()`.
+> **Panel diagnostics.** The **Modules** page shows a yellow **⚠ Issue** badge next to a module's status when the module reads `Enabled` but is not loaded: a required dependency is missing or not enabled (e.g. `plex` reads `Enabled` but `watch` is `failed`), its `requires_core` rules out this core, or its `module.json` cannot be loaded. The badge tooltip lists the concrete problems, for example `Not loaded: it has a module.json that cannot be loaded (…).` This `dependency_warnings` field is computed by `ModuleManager::listModules()`.
+>
+> The page, its module list and every module operation (the row actions, a ZIP upload, a store install) need the `settings` permission.
 
 To override the class resolved for a module:
 
@@ -37,6 +39,13 @@ return [
 `config/modules.php` contains only overrides. An empty or missing file means all discovered
 modules load.
 
+`ModuleManager` keeps its own record in the same entry. `installed_version` is the version
+of the module's files on disk. `schema_version` appears beside it only while the schema is
+ahead of those files: after a store **Rollback**, or after an update or an upload that
+failed once some of its deltas had applied. It is the version from which the next update
+selects its deltas, so a delta that has applied is not applied again. It goes away when the
+files catch up, and on uninstall. Do not edit it by hand.
+
 ---
 
 ## How loading works
@@ -45,18 +54,29 @@ modules load.
 `ModuleLoader` follows these steps on every request:
 
 1. Scans `src/Modules/*/module.json`
+   - A module whose `module.json` cannot be used is skipped with an `error_log` line, and
+     the rest still load: the file is not a JSON object, `dependencies` or
+     `optional_dependencies` is not a list of names, or `environment` is not `main`, `lb`
+     or `any`. The modules that require it are skipped with it (step 4)
 2. Applies overrides from `config/modules.php`
 3. Filters by environment (`main` / `lb` / `any`)
 4. Resolves the load order:
    - `pruneUnsatisfiableModules()` drops modules whose required dependencies are unavailable (cascading, with a logged warning) so the load never aborts
    - Topological sort (DFS) over the dependency graph
    - Within the same dependency group, sorts by `priority` descending, then alphabetically
-   - Throws `ModuleCycleException` on cycles (a subclass of `\RuntimeException`; cyclic dependencies remain fatal)
+   - Throws `ModuleCycleException` on cycles (a subclass of `\RuntimeException`; cyclic dependencies remain fatal).
+     `ModuleManager` therefore refuses to put in place (upload, store install, update) a module
+     that would close a cycle with the modules on disk; optional dependencies and disabled
+     modules count
    - Missing optional dependencies are silently skipped
 5. Resolves class name: `my-module` → FQN `XcVm\Module\MyModule\MyModuleModule`
    (kebab-case → PascalCase; can be overridden via `class` key in config)
 6. Registers the module's PSR-4 autoloader (maps `XcVm\Module\<Name>` onto the module directory)
 7. Instantiates the module class
+   - A module whose class file does not parse, or whose constructor throws, is skipped like one
+     with an unusable `module.json`: an `error_log` line gives the reason with its file and
+     line, the modules that require it are skipped with it, and the rest still load.
+     Installing or updating such a module still fails with the reason
 
 In web context:
 
@@ -66,6 +86,9 @@ In web context:
 In CLI context:
 
 - `registerAllCommands($registry)` → calls `registerCommands()` on every loaded module
+- `console.php module:migrate <action> <name>` leaves `<name>` out of the load, and with it
+  the modules that require it: that process runs the module's install or update steps
+  before the module boots
 
 ---
 
@@ -81,9 +104,26 @@ $manager->downloadFromPlatform(slug: 'my-module', version: '1.2.0', apiKey: $key
 Under the hood:
 
 1. `XC_VM::module_install($slug, $version, $apiKey)` — C extension downloads, decrypts, unpacks
-2. `installModule($slug)` — runs `install()` on the module
+2. `installModule($slug)` — applies the schema, then runs `install()` on the module. A first
+   install applies `database.sql` (without one, every delta up to the module's version).
+   Over an existing install (an update or a **Rollback**) it
+   first applies the `migrations/<semver>.sql` deltas and the `getMigrations()` steps in
+   (schema version, served version], then `database.sql` when the module ships one, then
+   `install()`
 3. `EventDispatcher::dispatch(new PackageInstalledEvent(...))` — dispatches the event
 4. `hotReload($slug, $path)` — loads and boots the module in the current request **without PHP-FPM restart**
+
+When the request has already loaded the module's class (an enabled module being updated),
+step 2 runs in a `console.php module:migrate` process of its own — see
+[Versioned migrations](module-extension-points.md#versioned-migrations-migratableinterface).
+
+If a step fails, the previous files and the recorded version are put back. The versions
+whose deltas applied stay on record as `schema_version`, so the next attempt resumes after
+them.
+
+An archive uploaded on the **Modules** page over an installed module is installed the same
+way. An upload that is refused, or that fails to install, leaves the installed copy in
+place: its files, its on/off state and the version shown.
 
 ---
 

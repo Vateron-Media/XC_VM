@@ -146,11 +146,14 @@ final class StreamStateWriter {
 			}
 		}
 		// Legacy backend: merge into the row in MAIN's database directly. MAIN's
-		// row alone has it: once it landed, a store this node kept lapses.
+		// row alone has it: once it landed, a store this node kept lapses. Not in
+		// mode 2: MAIN's database refused the write, and the store cannot be seeded again.
 		try {
 			return StreamRowMerge::apply($rWhere, $rFields, $rWhereValues, $rDb);
 		} finally {
-			StreamRuntime::lapse();
+			if (!NodeRole::refusesConnects()) {
+				StreamRuntime::lapse();
+			}
 		}
 	}
 }
