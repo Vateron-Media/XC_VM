@@ -4,6 +4,7 @@ namespace XcVm\Domain\Cluster;
 
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\Enc;
+use XcVm\Core\Cluster\NodeCredentials;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -185,15 +186,22 @@ final class CommandBus {
 	 * delivered. $rRestrictiveOnly hands out only the restrictive ones (a
 	 * quarantined node: kills, stops and fences still reach it, nothing that
 	 * grants), and leaves the rest queued for when an admin trusts it again.
+	 * A credential strip is judged once more as it is handed out
+	 * (DbCredentials::strip() judged it as it was queued): it goes out only
+	 * while the node's row says mode 2, since below it the node needs those
+	 * credentials. Its row stays for an ack.
 	 *
 	 * @return list<array{doc: string, sig: string, seq: int}>
 	 */
 	public static function pending(int $rServerID, int $rAfterSeq, int $rLimit = 50, bool $rRestrictiveOnly = false): array {
 		self::db()->query(
-			"SELECT `id`, `seq`, `payload`, `sig` FROM `cluster_commands` WHERE `server_id` = ? AND `seq` > ? AND `state` IN ('queued', 'delivered') AND `exp` > ?" . ($rRestrictiveOnly ? " AND `class` = 'R'" : '') . ' ORDER BY `seq` ASC LIMIT ' . max(1, min(200, $rLimit)) . ';',
+			"SELECT `id`, `seq`, `payload`, `sig` FROM `cluster_commands` WHERE `server_id` = ? AND `seq` > ? AND `state` IN ('queued', 'delivered') AND `exp` > ?" . ($rRestrictiveOnly ? " AND `class` = 'R'" : '')
+			. " AND NOT (`type` = 'node.root' AND `action` = ? AND NOT EXISTS (SELECT 1 FROM `cluster_nodes` WHERE `cluster_nodes`.`server_id` = `cluster_commands`.`server_id` AND `cluster_nodes`.`mode` = 2))"
+			. ' ORDER BY `seq` ASC LIMIT ' . max(1, min(200, $rLimit)) . ';',
 			$rServerID,
 			$rAfterSeq,
-			ClusterClock::now()
+			ClusterClock::now(),
+			NodeCredentials::STRIP
 		);
 		$rRows = self::db()->get_raw_rows();
 		$rOut = [];
@@ -315,10 +323,22 @@ final class CommandBus {
 		return self::result($rCmdID);
 	}
 
-	/** Drop expired commands and outcomes older than a day. */
+	/**
+	 * Drop expired commands and outcomes older than a day. A credential strip
+	 * the node was handed keeps its row a day past its exp: root runs a
+	 * command up to 300 s past it (RootPin::verify), and MAIN revokes the
+	 * node's grant on that ack alone (DbCredentials::acked). pending() stops
+	 * handing it out at exp.
+	 */
 	public static function prune(): void {
 		$rNow = ClusterClock::now();
-		self::db()->query("DELETE FROM `cluster_commands` WHERE (`exp` <= ? AND `state` IN ('queued', 'delivered')) OR (`acked_at` IS NOT NULL AND `acked_at` < ?);", $rNow, $rNow - 86400);
+		self::db()->query(
+			"DELETE FROM `cluster_commands` WHERE (`exp` <= ? AND `state` IN ('queued', 'delivered') AND NOT (`state` = 'delivered' AND `type` = 'node.root' AND `action` = ? AND `exp` > ?)) OR (`acked_at` IS NOT NULL AND `acked_at` < ?);",
+			$rNow,
+			NodeCredentials::STRIP,
+			$rNow - 86400,
+			$rNow - 86400
+		);
 	}
 
 	private static function ttl(string $rType): int {

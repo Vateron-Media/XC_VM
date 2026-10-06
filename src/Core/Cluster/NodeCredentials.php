@@ -9,6 +9,8 @@ namespace XcVm\Core\Cluster;
  *
  * - `strip_db_credentials` rewrites the node's config.enc without MAIN's DB
  *   user and password and its Redis password (`\XC_VM::strip_db_credentials`).
+ *   Only on a node in mode 2 (NodeRole::refusesConnects), asked when root
+ *   runs it: MAIN may have moved the node down since it queued the command.
  * - `install_config` installs a config MAIN packed for this node
  *   (`\XC_VM::install_config`), credential-free for a node in API mode or
  *   with credentials for a rollback; the extension verifies the blob before it
@@ -46,13 +48,19 @@ final class NodeCredentials {
 
 	/**
 	 * Run one of the two actions. Returns the result line; throws with the
-	 * reason when the extension lacks the method or refuses.
+	 * reason when the extension lacks the method or refuses, and for a strip
+	 * on a node that is not in mode 2.
 	 *
 	 * @param array<string, mixed> $rData {action, blob?}
 	 */
 	public static function run(array $rData): string {
 		$rAction = $rData['action'] ?? null;
 		if ($rAction === self::STRIP) {
+			// MAIN judged the node as it queued this; root may run it later. Only
+			// mode 2 runs without these credentials, as the agent's file says now.
+			if (!NodeRole::refusesConnects()) {
+				throw new \RuntimeException(self::STRIP . ': refused: this node is not in mode 2, and below it needs MAIN\'s credentials');
+			}
 			$rOut = self::call('strip_db_credentials');
 		} elseif ($rAction === self::INSTALL) {
 			$rBlob = is_string($rData['blob'] ?? null) && strlen($rData['blob']) <= self::MAX_BLOB * 2 ? base64_decode($rData['blob'], true) : false;

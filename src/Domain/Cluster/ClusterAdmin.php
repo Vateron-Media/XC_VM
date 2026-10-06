@@ -127,12 +127,20 @@ final class ClusterAdmin {
 	/**
 	 * Is a node in mode 2? While one is, the Redis connection handler stays
 	 * off (the Cache page asks): that node may not open MAIN's Redis, which
-	 * its stream entry does for every viewer with the handler on. The other
-	 * order is act()'s: no move to mode 2 while the handler is on.
+	 * its stream entry does for every viewer with the handler on. One still
+	 * enrolling counts while it can complete (ClusterApi answers
+	 * ENROL_EXPIRED past `enrol_deadline`): it is active within seconds. A
+	 * revoked one does not (its row stays for good), nor an enrolment left
+	 * unfinished; either meets the handler when it enrols again
+	 * (EnrolmentService::begin). The other order is act()'s: no move to mode
+	 * 2 while the handler is on.
 	 */
 	public static function anyInModeTwo(): bool {
 		try {
-			return self::db()->query("SELECT 1 FROM `cluster_nodes` WHERE `mode` = 2 AND `state` IN ('active', 'quarantined') LIMIT 1;") && self::db()->num_rows() > 0;
+			if (self::db()->query("SELECT 1 FROM `cluster_nodes` WHERE `mode` = 2 AND `state` IN ('active', 'quarantined') LIMIT 1;") && self::db()->num_rows() > 0) {
+				return true;
+			}
+			return self::db()->query("SELECT 1 FROM `cluster_nodes` WHERE `mode` = 2 AND `state` = 'enrolling' AND `enrol_deadline` >= ? LIMIT 1;", ClusterClock::now()) && self::db()->num_rows() > 0;
 		} catch (\Throwable) {
 			return false; // no cluster tables: no nodes
 		}
@@ -294,6 +302,11 @@ final class ClusterAdmin {
 						return ['type' => 'info', 'message' => 'cluster_not_enrolled'];
 					}
 					[$rName, $rSwitch] = explode('_', $rAction);
+					if ($rSwitch === 'off' && (int) $rNode['mode'] === 2) {
+						// Mode 2 runs on every flow (modeGate()): without one the node has
+						// only MAIN's database for that work, which it may not reach.
+						return ['type' => 'warning', 'message' => 'cluster_flow_mode_two'];
+					}
 					if ($rAction === 'dataplane_on' && !self::relayAdvertised($rNode)) {
 						return ['type' => 'warning', 'message' => 'cluster_dataplane_needs_relay'];
 					}
@@ -343,6 +356,8 @@ final class ClusterAdmin {
 						ClusterMeta::set(self::MODE2_AT . $rServerID, (string) ClusterClock::now());
 					} elseif ((int) $rNode['mode'] === 2) {
 						ClusterMeta::delete(self::MODE2_AT . $rServerID);
+						// Below mode 2 the node needs its credentials: a strip it was not handed yet no longer goes out.
+						DbCredentials::cancelStrip($rServerID);
 					}
 					// What it said of its streams, it said in the mode it leaves: it says it again.
 					NodeAudit::forgetStreamsLocal($rServerID);
@@ -410,6 +425,10 @@ final class ClusterAdmin {
 						: ['type' => 'info', 'message' => 'cluster_not_enrolled'];
 			}
 		} catch (ClusterRefusedException $rE) {
+			if ($rE->reason() === 'REDIS_HANDLER') {
+				// An approval that would enrol the node in mode 2 (EnrolmentService::begin).
+				return ['type' => 'warning', 'message' => 'cluster_mode_redis_handler'];
+			}
 			return ['type' => 'danger', 'message' => $rE->reason() === 'LICENCE' ? 'cluster_licence_required' : 'cluster_refused'];
 		}
 		return ['type' => 'danger', 'message' => 'cluster_unknown_action'];

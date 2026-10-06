@@ -8,6 +8,7 @@ use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
 use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
+use XcVm\Core\Cluster\NodeCredentials;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Logging\FileLogger;
 
@@ -437,7 +438,9 @@ final class ClusterRoute {
 	 */
 	public static function root(int $rServerID, array $rPayload): array {
 		return self::command($rServerID, 'node.root', static function (ClusterCrypto $rCrypto) use ($rServerID, $rPayload): bool {
-			CommandBus::enqueue($rCrypto, $rServerID, 'node.root', ArtefactGrants::forRoot($rServerID, $rPayload));
+			// A strip does not wait a day for its node: it was judged as it was queued (DbCredentials::strip).
+			$rTtl = ($rPayload['action'] ?? null) === NodeCredentials::STRIP ? DbCredentials::STRIP_TTL : null;
+			CommandBus::enqueue($rCrypto, $rServerID, 'node.root', ArtefactGrants::forRoot($rServerID, $rPayload), null, $rTtl);
 			return true;
 		}, false, true);
 	}

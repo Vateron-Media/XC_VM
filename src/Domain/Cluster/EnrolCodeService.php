@@ -210,6 +210,13 @@ final class EnrolCodeService {
 			return 'wrong_sas';
 		}
 		$rUuid = (string) $rReq['node_uuid'];
+		// A node MAIN keeps free of its credentials (mode 2, or a revoked grant)
+		// enrols again in mode 2 whatever lb_new_node_mode says, as over SSH
+		// (LbInstallFlow::installsInApiMode): in mode 1 it would have no database.
+		// Asked before the enrolment, which replaces the node's row.
+		if (DbCredentials::credentialFree($rServerID)) {
+			$rSettings['lb_new_node_mode'] = 'api';
+		}
 		[$rGen, $rIssued, $rMode] = EnrolmentService::begin($rCrypto, $rServerID, $rUuid, (string) $rReq['node_sign_pub'], (string) $rReq['node_box_pub'], (string) $rReq['agent_eph_pub'], $rSettings);
 		$rDoc = (string) json_encode([
 			'v' => 1, 'typ' => 'xcvm-enrol-approved', 'node_uuid' => $rUuid, 'server_id' => $rServerID, 'gen' => $rGen,
