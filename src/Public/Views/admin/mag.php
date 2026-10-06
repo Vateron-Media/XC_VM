@@ -162,6 +162,11 @@ if ($rIsEdit && !empty($rUser['custom_data'])) {
                         </div>
                     </div>
 
+                    <div class="mb-6">
+                        <label class="form-label" for="telegram">Telegram <i title="<?= htmlspecialchars($language::get('line_telegram_tooltip'), ENT_QUOTES); ?>" class="icon-base ti tabler-brand-telegram text-info"></i></label>
+                        <input type="text" class="form-control" id="telegram" name="telegram" maxlength="64" placeholder="@username" value="<?= $rIsEdit ? htmlspecialchars((string) ($rUser['telegram'] ?? ''), ENT_QUOTES) : ''; ?>">
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label" for="admin_notes"><?= $language::get('admin_notes'); ?></label>

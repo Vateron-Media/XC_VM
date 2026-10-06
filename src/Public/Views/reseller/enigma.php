@@ -204,6 +204,11 @@ $rStatusMessages = [
                             <input readonly type="text" class="form-control" id="exp_date" name="exp_date" value="<?= isset($rLine) && !is_null($rLine['exp_date']) ? date('Y-m-d H:i', (int) $rLine['exp_date']) : ''; ?>">
                         </div>
 
+                        <div class="mb-6">
+                            <label class="form-label" for="telegram">Telegram <i title="<?= htmlspecialchars($language::get('line_telegram_tooltip'), ENT_QUOTES); ?>" class="icon-base ti tabler-brand-telegram text-info"></i></label>
+                            <input type="text" class="form-control" id="telegram" name="telegram" maxlength="64" placeholder="@username" value="<?= isset($rDevice) ? htmlspecialchars((string) ($rLine['telegram'] ?? ''), ENT_QUOTES) : ''; ?>">
+                        </div>
+
                         <div class="mb-2">
                             <label class="form-label" for="reseller_notes">Reseller Notes</label>
                             <textarea id="reseller_notes" name="reseller_notes" class="form-control" rows="3"><?= isset($rDevice) ? htmlspecialchars((string) $rLine['reseller_notes'], ENT_QUOTES) : ''; ?></textarea>
