@@ -52,6 +52,11 @@ class RootMysqlCronJob implements CommandInterface {
 
 		$db->query('SELECT MAX(`date`) AS `date` FROM `mysql_syslog`;');
 		$rMaxTime = intval($db->get_row()['date']);
+		// A line older than System Logs keep (keep_syslog) is not stored: cron:cleanup
+		// has pruned it, and the rows left no longer say it was read.
+		if (0 < intval(SettingsManager::get('keep_syslog'))) {
+			$rMaxTime = max($rMaxTime, time() - intval(SettingsManager::get('keep_syslog')));
+		}
 
 		// Fast-path: skip expensive syslog tail/grep when file size has not changed.
 		$rSyslogMarker = CRONS_TMP_PATH . 'mysql_syslog_size';
@@ -98,8 +103,9 @@ class RootMysqlCronJob implements CommandInterface {
 				// no address of its own, and no address is blocked for it.
 				$rNote = trim(explode('[Warning]', $rStrip)[1]);
 				$rType = 'WARNING';
-			} elseif (stripos($rStrip, '[Error]') !== false) {
-				$rNote = trim(explode('[Error]', $rStrip)[1]);
+			} elseif (strpos($rStrip, '[ERROR]') !== false) {
+				// MariaDB writes the level of an error in capitals, unlike Note and Warning.
+				$rNote = trim(explode('[ERROR]', $rStrip)[1]);
 				$rType = 'ERROR';
 			}
 
