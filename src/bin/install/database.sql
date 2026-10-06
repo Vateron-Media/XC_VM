@@ -1360,6 +1360,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `stalker_theme` varchar(255) COLLATE utf8_unicode_ci DEFAULT 'digital',
   `rtmp_random` tinyint(4) DEFAULT '1',
   `api_ips` mediumtext COLLATE utf8_unicode_ci,
+  `api_legacy_keys` tinyint(1) DEFAULT '1',
   `shared_mount_prefixes` mediumtext COLLATE utf8_unicode_ci,
   `use_buffer` tinyint(4) DEFAULT '0',
   `restreamer_prebuffer` tinyint(4) DEFAULT '0',
@@ -2083,6 +2084,30 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- --------------------------------------------------------
 
 --
+--
+-- Table structure for table `api_tokens`
+--
+
+CREATE TABLE IF NOT EXISTS `api_tokens` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `hash` char(64) COLLATE utf8_unicode_ci NOT NULL,
+  `prefix` varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  `scope` varchar(16) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'full',
+  `allow_sql` tinyint(1) NOT NULL DEFAULT '0',
+  `ips` text COLLATE utf8_unicode_ci,
+  `expires` int(11) DEFAULT NULL,
+  `last_used` int(11) DEFAULT NULL,
+  `last_ip` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `created` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `hash` (`hash`),
+  KEY `user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
 --
 -- Table structure for table `users_2fa`
 --

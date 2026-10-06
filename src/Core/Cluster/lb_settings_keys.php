@@ -15,6 +15,7 @@ return [
 		'alternative_titles',
 		'api_container',
 		'api_ips',
+		'api_legacy_keys',
 		'api_probe',
 		'api_redirect',
 		'audio_restart_loss',

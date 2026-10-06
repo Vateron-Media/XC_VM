@@ -97,6 +97,11 @@ use XcVm\Core\Util\LayoutRenderer;
 
 <?php require MAIN_HOME . 'Public/Views/layouts/profile_2fa.php'; ?>
 
+<?php if (isset($apiCode)):
+    $rTokensAdmin = false;
+    require MAIN_HOME . 'Public/Views/layouts/profile_api_tokens.php';
+endif; ?>
+
 <?php
 LayoutRenderer::renderFooter('reseller');
 ?>
@@ -111,7 +116,7 @@ LayoutRenderer::renderFooter('reseller');
         if (gen) {
             gen.addEventListener('click', function() {
                 var chars = 'ABCDEF0123456789', out = '';
-                for (var i = 0; i < 32; i++) { out += chars.charAt(Math.floor(Math.random() * chars.length)); }
+                for (var i = 0; i < 32; i++) { out += chars.charAt(crypto.getRandomValues(new Uint8Array(1))[0] % chars.length); }
                 document.getElementById('api_key').value = out;
             });
             document.getElementById('clear-code').addEventListener('click', function() { document.getElementById('api_key').value = ''; });

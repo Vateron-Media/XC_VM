@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Api;
 
+use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Database\DatabaseHandler;
@@ -238,6 +239,14 @@ class ActiveCodeApiController extends BaseApiController {
 		exit();
 	}
 
+	/** The full action name of each short one this endpoint also takes. */
+	private const ACTION_NAMES = [
+		'list' => 'get_active_codes', 'get_codes' => 'get_active_codes', 'get' => 'get_active_code', 'details' => 'get_active_code',
+		'generate' => 'generate_active_codes', 'create' => 'create_active_code', 'edit' => 'edit_active_code', 'update' => 'edit_active_code',
+		'delete' => 'delete_active_code', 'enable' => 'enable_active_code', 'disable' => 'disable_active_code', 'reset_device' => 'reset_active_code_device',
+		'mass' => 'mass_active_codes', 'batches' => 'get_active_codes_batches', 'export' => 'export_active_code_batch',
+	];
+
 	/**
 	 * Dispatch Admin Active Code actions.
 	 */
@@ -328,6 +337,13 @@ class ActiveCodeApiController extends BaseApiController {
 	 * Dispatch Reseller Active Code actions.
 	 */
 	protected function handleResellerAction(string $action, array $data, int $start, int $limit, ?array $showColumns, ?array $hideColumns): void {
+		// A token runs only what its scope allows (ApiTokens::allows()), judged by the
+		// action's full name. The admin path's wrapper methods ask it themselves
+		// (AdminApiController::permitted()).
+		if (!ApiTokens::allows(self::ACTION_NAMES[$action] ?? $action)) {
+			echo json_encode(['status' => 'STATUS_NO_PERMISSIONS'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+			return;
+		}
 		switch ($action) {
 			case 'get_active_codes':
 			case 'list':

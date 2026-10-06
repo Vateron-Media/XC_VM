@@ -92,6 +92,11 @@ foreach (AuthRepository::getAllCodes() as $rCode) {
 
 <?php require MAIN_HOME . 'Public/Views/layouts/profile_2fa.php'; ?>
 
+<?php if ($rApiCode):
+    $rTokensAdmin = true;
+    require MAIN_HOME . 'Public/Views/layouts/profile_api_tokens.php';
+endif; ?>
+
 <?php
 LayoutRenderer::renderFooter('admin');
 ?>
@@ -114,7 +119,7 @@ LayoutRenderer::renderFooter('admin');
                 var chars = 'ABCDEF0123456789',
                     out = '';
                 for (var i = 0; i < 32; i++) {
-                    out += chars.charAt(Math.floor(Math.random() * chars.length));
+                    out += chars.charAt(crypto.getRandomValues(new Uint8Array(1))[0] % chars.length);
                 }
                 document.getElementById('api_key').value = out;
             });

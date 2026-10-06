@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
+use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\SessionManager;
@@ -13,6 +14,7 @@ use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Module\TableRegistry;
 use XcVm\Core\Reference\StatusBadge;
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Epg\EpgService;
@@ -60,13 +62,14 @@ class TableController extends BaseAdminController {
 		$rIsAPI = false;
 		if (RequestManager::has("api_key")) {
 			$rReturn = ["status" => "STATUS_SUCCESS", "data" => []];
-			$db->query("SELECT `id` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `api_key` = ? AND LENGTH(`api_key`) > 0 AND `is_admin` = 1 AND `status` = 1;", RequestManager::get("api_key"));
-			if ($db->num_rows() == 0) {
+			// A token (whose scope must cover reading this table) or a legacy key.
+			$rKeyUser = ApiTokens::userFor((string) RequestManager::get("api_key"), (string) NetworkUtils::getUserIP(), 'admin');
+			if ($rKeyUser === null || !ApiTokens::allows('get_' . RequestManager::get("id"))) {
 				echo json_encode(["status" => "STATUS_FAILURE", "error" => "Invalid API key."]);
 				exit;
 			}
 			$rIsAPI = true;
-			$this->hydrateApiUser((int) $db->get_row()["id"]);
+			$this->hydrateApiUser($rKeyUser);
 		} elseif ($_SERVER["REMOTE_ADDR"] == "127.0.0.1" && RequestManager::has("api_user_id")) {
 			$rIsAPI = true;
 			$this->hydrateApiUser((int) RequestManager::get("api_user_id"));

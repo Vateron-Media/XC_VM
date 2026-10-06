@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Api;
 
+use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 
@@ -233,6 +234,10 @@ class AdminApiController {
 	 * the action asks for (ACTION_PERMISSIONS).
 	 */
 	public static function permitted(string $rAction): bool {
+		// A token runs only what its scope allows (ApiTokens::allows()).
+		if (!ApiTokens::allows($rAction)) {
+			return false;
+		}
 		$rAsked = self::ACTION_PERMISSIONS[$rAction] ?? [];
 		foreach ($rAsked as $rPermission) {
 			if (Authorization::check('adv', $rPermission)) {

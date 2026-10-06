@@ -380,6 +380,7 @@ class UserService {
 
 		$db->query('DELETE FROM `users` WHERE `id` = ?;', $rID);
 		$db->query('DELETE FROM `users_2fa` WHERE `user_id` = ?;', $rID);
+		$db->query('DELETE FROM `api_tokens` WHERE `user_id` = ?;', $rID);
 		$db->query('DELETE FROM `users_credits_logs` WHERE `admin_id` = ?;', $rID);
 		$db->query('DELETE FROM `users_logs` WHERE `owner` = ?;', $rID);
 		$db->query('DELETE FROM `tickets_replies` WHERE `ticket_id` IN (SELECT `id` FROM `tickets` WHERE `member_id` = ?);', $rID);
@@ -430,6 +431,7 @@ class UserService {
 
 		$db->query('DELETE FROM `users` WHERE `id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `users_2fa` WHERE `user_id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `api_tokens` WHERE `user_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `users_credits_logs` WHERE `admin_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `users_logs` WHERE `owner` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `tickets_replies` WHERE `ticket_id` IN (SELECT `id` FROM `tickets` WHERE `member_id` IN (' . implode(',', $rIDs) . '));');

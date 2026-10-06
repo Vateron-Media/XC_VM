@@ -2,8 +2,10 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
+use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\ResellerTableRenderer;
 
@@ -42,9 +44,10 @@ class ResellerTableController extends BaseResellerController {
 
 		if (RequestManager::has('api_key')) {
 			$rReturn = ['status' => 'STATUS_SUCCESS', 'data' => []];
-			$db->query('SELECT `id` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `api_key` = ? AND LENGTH(`api_key`) > 0 AND `is_reseller` = 1 AND `status` = 1;', RequestManager::get('api_key'));
-			if ($db->num_rows() != 0) {
-				$rUserID = $db->get_row()['id'];
+			// A token (whose scope must cover reading this table) or a legacy key.
+			$rKeyUser = ApiTokens::userFor((string) RequestManager::get('api_key'), (string) NetworkUtils::getUserIP(), 'reseller');
+			if ($rKeyUser !== null && ApiTokens::allows('get_' . RequestManager::get('id'))) {
+				$rUserID = $rKeyUser;
 				$rIsAPI = true;
 				require_once MAIN_HOME . 'bootstrap.php';
 				\XC_Bootstrap::boot(\XC_Bootstrap::CONTEXT_ADMIN);

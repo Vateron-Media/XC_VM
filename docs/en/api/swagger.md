@@ -25,6 +25,7 @@ Interactive, always-in-sync Swagger UI for every XC_VM API, generated from OpenA
 
 **Admin API**
 
+- `api_key` takes an account's API key or one of its [API tokens](../guides/permissions-and-rbac.md#api-tokens), which can be limited to reading, or to lines, devices and activation codes.
 - An API key acts with the permissions its holder's group lists. The table under [Admin API keys](../guides/permissions-and-rbac.md#admin-api-keys) names the permission each action asks for; an action the group has no permission for answers `STATUS_NO_PERMISSIONS`. The active-code API answers the same when it is called with an Admin API key.
 - `delete_user`, `disable_user`, `enable_user` and `adjust_credits` answer `STATUS_FAILURE` for an administrator's account unless the key belongs to a full administrator.
 - `get_user`, `create_user` and `edit_user` answer the account without its `password`, and with its `api_key` only when it is the account the calling key belongs to.

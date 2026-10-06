@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\PageAuthorization;
@@ -1449,6 +1450,11 @@ if (1 < $rICount) { ?>
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
+				exit();
+
+			case 'api_tokens':
+				// The signed-in admin's own API tokens (Views/layouts/profile_api_tokens.php).
+				echo json_encode(ApiTokens::manage((int) $GLOBALS['rAdminUserInfo']['id'], $rData, true));
 				exit();
 
 			case 'twofactor':

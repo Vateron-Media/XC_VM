@@ -243,11 +243,12 @@ class NetworkUtils {
 
 	/**
 	 * Возвращает IP-адрес текущего клиента (REMOTE_ADDR).
+	 * Empty on the command line, which has no client.
 	 *
 	 * @return string
 	 */
 	public static function getUserIP() {
-		return $_SERVER['REMOTE_ADDR'];
+		return $_SERVER['REMOTE_ADDR'] ?? '';
 	}
 
 	/**

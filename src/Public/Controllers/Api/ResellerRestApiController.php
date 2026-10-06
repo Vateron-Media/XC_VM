@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Api;
 
+use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Http\RequestManager;
 
 /**
@@ -42,6 +43,11 @@ class ResellerRestApiController {
 				$rHideColumns = explode(',', RequestManager::get('hide_columns'));
 			} else {
 				$rHideColumns = null;
+			}
+			// A token runs only what its scope allows (ApiTokens::allows()).
+			if (!ApiTokens::allows($rAction)) {
+				echo json_encode(['status' => 'STATUS_NO_PERMISSIONS']);
+				return;
 			}
 			switch ($rAction) {
 				case 'packages':
