@@ -5,6 +5,7 @@ namespace XcVm\Domain\Stream;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\ReplicaStreamCache;
 use XcVm\Core\Cluster\ReplicaStreams;
+use XcVm\Core\Cluster\StreamRecords;
 use XcVm\Core\Cluster\StreamRuntime;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
@@ -182,7 +183,8 @@ final class NodeStreams {
 		if (!StreamSource::local()) {
 			$rDb ??= DatabaseFactory::get();
 			$rDb->query('SELECT `streams`.* FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams_servers`.`pid` IS NULL AND `streams_servers`.`on_demand` = 1 AND `streams_servers`.`parent_id` IS NULL AND `streams`.`type` = 1 AND `streams`.`direct_source` = 0 AND `streams_servers`.`server_id` = ? AND (UNIX_TIMESTAMP() - (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) > ? OR (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) IS NULL);', SERVER_ID, $rEvery);
-			return $rDb->num_rows() > 0 ? $rDb->get_rows() : [];
+			// As stored, as the start reads them (StreamSource): the scan probes the source the start opens.
+			return $rDb->num_rows() > 0 ? array_map([StreamRecords::class, 'unescaped'], $rDb->get_raw_rows()) : [];
 		}
 
 		$rOut = [];

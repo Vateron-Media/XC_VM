@@ -5,9 +5,10 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * The node's `probe` action (InternalApiController::probeStream) hands
- * ffprobe the user agent and the cookie MAIN sent with the request as they
- * were typed, each as one argument: what the stream itself will send once it
- * is saved with them.
+ * ffprobe the user agent MAIN sent with the request as it was typed, and the
+ * cookie completed as a stream start completes it (StreamUtils::fixCookie),
+ * each as one argument: what the stream itself will send once it is saved
+ * with them.
  *
  * The action ends its request, so it runs in a child PHP, with a program in
  * ffprobe's place that records what it received.
@@ -69,18 +70,19 @@ final class AuditStreamCmdProbeArgsTest extends TestCase {
 			'a user agent with an apostrophe' => ['user_agent', '-user_agent', "O'Brien Player/1.0"],
 			'a user agent with two apostrophes' => ['user_agent', '-user_agent', "Player' -an 'x"],
 			'a user agent with shell syntax' => ['user_agent', '-user_agent', 'Player "1.0" $HOME $(echo ran) `echo ran`; echo ran \\ #x'],
-			'a plain cookie' => ['cookies', '-cookies', 'session=abc123'],
-			'a cookie with several values' => ['cookies', '-cookies', 'session=abc123; token=x&y=(1); path=/; domain=.example.com;'],
-			'a cookie with an apostrophe' => ['cookies', '-cookies', "name=it's; path=/;"],
-			'a cookie with two apostrophes' => ['cookies', '-cookies', "name=a' -an 'b"],
-			'a cookie with shell syntax' => ['cookies', '-cookies', 'name="q" $(echo ran) `echo ran` | echo ran'],
+			'a plain cookie' => ['cookies', '-cookies', 'session=abc123', 'session=abc123;path=/;domain=;'],
+			'a cookie with several values' => ['cookies', '-cookies', 'session=abc123; token=x&y=(1); path=/; domain=.example.com;', 'session=abc123; token=x&y=(1); path=/; domain=.example.com;path=/;domain=;'],
+			'a cookie with an apostrophe' => ['cookies', '-cookies', "name=it's; path=/;", "name=it's; path=/;path=/;domain=;"],
+			'a cookie with two apostrophes' => ['cookies', '-cookies', "name=a' -an 'b", "name=a' -an 'b;path=/;domain=;"],
+			'a cookie with shell syntax' => ['cookies', '-cookies', 'name="q" $(echo ran) `echo ran` | echo ran', 'name="q" $(echo ran) `echo ran` | echo ran;path=/;domain=;'],
 		];
 	}
 
+	/** A user agent arrives as typed; a cookie arrives as its fourth column, the text a stream start gives ffmpeg. */
 	#[DataProvider('values')]
-	public function testTheValueReachesFfprobeAsTyped(string $rField, string $rOption, string $rValue): void {
+	public function testTheValueReachesFfprobeAsOneArgument(string $rField, string $rOption, string $rValue, ?string $rReceived = null): void {
 		[$rArgv, $rOut] = $this->probe(['url' => self::URL, $rField => $rValue]);
-		$this->assertSame(self::expected([$rOption, $rValue]), $rArgv);
+		$this->assertSame(self::expected([$rOption, $rReceived ?? $rValue]), $rArgv);
 		$this->assertSame(['result' => true, 'data' => ['streams' => []]], json_decode($rOut, true));
 	}
 
@@ -89,7 +91,7 @@ final class AuditStreamCmdProbeArgsTest extends TestCase {
 		[$rArgv] = $this->probe(['url' => self::URL, 'user_agent' => "Mozilla/5.0 (it's)", 'http_proxy' => '1.2.3.4:8080', 'cookies' => 'a=(1); b=2', 'headers' => "Referer: https://example.com/\r\nOrigin: https://example.com"]);
 		$this->assertSame([
 			'-probesize', '5000000', '-analyzeduration', '2000000',
-			'-user_agent', "Mozilla/5.0 (it's)", '-http_proxy', 'http://1.2.3.4:8080', '-cookies', 'a=(1); b=2',
+			'-user_agent', "Mozilla/5.0 (it's)", '-http_proxy', 'http://1.2.3.4:8080', '-cookies', 'a=(1); b=2;path=/;domain=;',
 			'-headers', "Referer: https://example.com/\r\nOrigin: https://example.com\r\nX-XC_VM-Prebuffer:1\r\n",
 			'-i', self::URL, '-v', 'quiet', '-print_format', 'json', '-show_streams', '-show_format',
 		], $rArgv);

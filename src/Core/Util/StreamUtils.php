@@ -27,7 +27,7 @@ class StreamUtils {
 		$rDomain = false;
 		$rSplit = explode(';', $rCookie);
 		foreach ($rSplit as $rPiece) {
-			list($rKey, $rValue) = explode('=', $rPiece, 2);
+			$rKey = explode('=', $rPiece, 2)[0];
 			if (strtolower($rKey) == 'path') {
 				$rPath = true;
 			} else {
@@ -36,7 +36,9 @@ class StreamUtils {
 				}
 			}
 		}
-		if (!substr($rCookie, -1) == ';') {
+		// A cookie typed without its last `;` (blanks after it aside) gets it,
+		// so what is added below does not run into its value.
+		if (substr(rtrim($rCookie), -1) != ';') {
 			$rCookie .= ';';
 		}
 		if (!$rPath) {

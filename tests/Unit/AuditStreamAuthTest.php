@@ -100,15 +100,15 @@ final class AuditStreamAuthTest extends TestCase {
 		$this->assertSame('refused NO_TIMESTAMP', $rOut['none']);
 	}
 
-	public function testCatchUpDurationIsNoLongerThanAUtcLinksWindow(): void {
+	public function testCatchUpDurationIsNoLongerThanFifteenDays(): void {
 		$rOut = $this->catchUp([
 			'programme' => ['start' => '1700000000', 'duration' => '60'],
-			'utc' => ['start' => '1700000000', 'duration' => (string) (3600 * 6)],
+			'fifteen days' => ['start' => '1700000000', 'duration' => (string) (3600 * 6)],
 			'longer' => ['start' => '1700000000', 'duration' => '99999999'],
 		]);
 
 		$this->assertSame(60, $rOut['programme'][1]);
-		$this->assertSame(3600 * 6, $rOut['utc'][1]);
+		$this->assertSame(3600 * 6, $rOut['fifteen days'][1]);
 		$this->assertSame(3600 * 6, $rOut['longer'][1]);
 	}
 

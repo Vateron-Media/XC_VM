@@ -2,6 +2,7 @@
 
 namespace XcVm\Streaming\Codec;
 
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Domain\Stream\StreamProcess;
 
 /**
@@ -22,8 +23,8 @@ class FFmpegCommand {
 	public static function extractSubtitle($rStreamID, $rSourceURL, $rIndex) {
 		global $rSettings, $rFFMPEG_CPU;
 		$rTimeout = 10;
-		$rCommand = 'timeout ' . $rTimeout . ' ' . $rFFMPEG_CPU . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -i "' . $rSourceURL . '" -map 0:s:' . intval($rIndex) . ' ' . VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt';
-		exec($rCommand, $rOutput);
+		// The movie's path ends in its stored container: one argument, no shell.
+		ProcessRunner::run(['timeout', (string) $rTimeout, (string) $rFFMPEG_CPU, '-y', '-nostdin', '-hide_banner', '-loglevel', $rSettings['ffmpeg_warnings'] ? 'warning' : 'error', '-err_detect', 'ignore_err', '-i', (string) $rSourceURL, '-map', '0:s:' . intval($rIndex), VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt']);
 		if (file_exists(VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt')) {
 			if (filesize(VOD_PATH . intval($rStreamID) . '_' . intval($rIndex) . '.srt') != 0) {
 				return true;

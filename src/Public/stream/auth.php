@@ -117,7 +117,8 @@ if (isset($_GET['token']) && !ctype_xdigit($_GET['token'])) {
 if (isset($_GET['utc'])) {
 	$_GET['type'] = 'timeshift';
 	$_GET['start'] = $_GET['utc'];
-	$_GET['duration'] = 3600 * 6;
+	// Six hours from that start, in the minutes a duration is counted in.
+	$_GET['duration'] = 360;
 	unset($_GET['utc']);
 }
 
@@ -507,7 +508,7 @@ if ($rExtension) {
 			}
 		}
 	} else {
-		BruteforceGuard::checkBruteforce($rIP, null, $rUsername);
+		BruteforceGuard::checkBruteforce($rIP, null, $rUsername, false, $rPassword ?? null);
 		DatabaseLogger::clientLog($rStreamID, 0, 'AUTH_FAILED', $rIP);
 		generateError('INVALID_CREDENTIALS');
 	}
@@ -748,8 +749,8 @@ if ($rExtension) {
 				generateError('NO_TIMESTAMP');
 			}
 			// timeshift.php looks for one recording per minute of the duration.
-			// ponytail: one ceiling for every channel, the window a `utc` link asks
-			// for; a channel's own archive length would be the tighter bound.
+			// ponytail: one ceiling for every channel, 15 days of minutes; a
+			// channel's own archive length would be the tighter bound.
 			$rDuration = min(intval($rRequest['duration']), 3600 * 6);
 
 			switch ($rExtension) {

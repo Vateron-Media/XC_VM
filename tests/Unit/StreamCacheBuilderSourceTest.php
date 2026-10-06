@@ -31,6 +31,12 @@ final class StreamCacheBuilderSourceTest extends TestCase {
 			public function get_row(): array {
 				return $this->rRows[0];
 			}
+			public function get_raw_row(): ?array {
+				return $this->rRows[0] ?? null;
+			}
+			public function get_raw_rows(): array {
+				return $this->rRows;
+			}
 			public function get_rows(bool $rKeyed = false, string $rKey = ''): array {
 				return $rKeyed ? array_column($this->rRows, null, $rKey) : $this->rRows;
 			}
