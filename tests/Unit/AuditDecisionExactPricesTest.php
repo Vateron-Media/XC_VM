@@ -153,7 +153,7 @@ final class AuditDecisionExactPricesTest extends TestCase {
 	/** The reseller's balance as the panel reads it. */
 	private function balance(): string {
 		$this->rDb->query('SELECT `credits` FROM `users` WHERE `id` = ?', self::RESELLER);
-		return (string) $this->rDb->get_col();
+		return (string) (0 + $this->rDb->get_col());
 	}
 
 	/** @return array<string, array{0: string, 1: string}> what is bought, and the price it is bought at */

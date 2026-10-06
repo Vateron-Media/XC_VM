@@ -349,7 +349,7 @@ PHP;
 
 		$this->assertSame(STATUS_SUCCESS, $this->buy('line'));
 		$this->rDb->query('SELECT ROUND(`credits`) FROM `users` WHERE `id` = ?', self::RESELLER);
-		$this->assertSame('1234557', (string) $this->rDb->get_col());
+		$this->assertSame('1234557', (string) (0 + $this->rDb->get_col()));
 
 		$this->setBalance(1000000000);
 		$this->startRequest();
@@ -556,7 +556,7 @@ PHP;
 
 		$this->assertSame('SUCCESS', $rResult['status'], $rResult['message']);
 		$this->rDb->query('SELECT `credits` FROM `users` WHERE `id` = ?', self::RESELLER);
-		$this->assertSame('0', (string) $this->rDb->get_col());
+		$this->assertSame('0', (string) (0 + $this->rDb->get_col()));
 	}
 
 	/** Three codes at 0.1 cost 0.3 (0.1 * 3 is 0.30000000000000004): a balance of 0.3 pays for them. */
@@ -571,7 +571,7 @@ PHP;
 		$this->assertSame(0.3, $rResult['total_cost']);
 		$this->assertSame(3, $this->rows('activation_codes'));
 		$this->rDb->query('SELECT `credits` FROM `users` WHERE `id` = ?', self::RESELLER);
-		$this->assertSame('0', (string) $this->rDb->get_col());
+		$this->assertSame('0', (string) (0 + $this->rDb->get_col()));
 		$this->rDb->query('SELECT `amount` FROM `users_credits_logs`');
 		$this->assertEquals([['amount' => -0.3]], $this->rDb->get_rows());
 	}

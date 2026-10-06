@@ -306,6 +306,6 @@ PHP;
 		$this->assertTrue(UserCredits::debit(self::RESELLER, 0.1 * 3));
 		$this->assertSame(0.0, UserCredits::balance(self::RESELLER));
 		$this->rDb->query('SELECT `credits` FROM `users` WHERE `id` = ?', self::RESELLER);
-		$this->assertSame('0', (string) $this->rDb->get_col(), 'nothing is left, and nothing is owed');
+		$this->assertSame('0', (string) (0 + $this->rDb->get_col()), 'nothing is left, and nothing is owed');
 	}
 }

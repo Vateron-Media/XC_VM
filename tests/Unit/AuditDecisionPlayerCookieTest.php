@@ -193,6 +193,8 @@ namespace {
 			break;
 
 		case 'sign-out':
+			// The players sign out with a POST (a GET leads home).
+			$_SERVER['REQUEST_METHOD'] = 'POST';
 			if ($rSecond) {
 				(new \XcVm\Public\Controllers\PlayerV2\PlayerLogoutController())->index();
 			} else {

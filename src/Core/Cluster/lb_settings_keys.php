@@ -107,6 +107,7 @@ return [
 		'keep_login',
 		'keep_protocol',
 		'keep_restarts',
+		'keep_syslog',
 		'kill_rogue_ffmpeg',
 		'language',
 		'lb_digest_nonce_required',

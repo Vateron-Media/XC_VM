@@ -43,6 +43,8 @@ final class AuditPlayerBouquetOrderTest extends TestCase {
 			. '$rServers = [1 => ["is_main" => 1]];'
 			. '\XcVm\Core\Config\SettingsManager::set(["player_allow_bouquet" => ' . $rAllowed . ']);'
 			. '$rUserInfo = ' . var_export($rUserInfo, true) . ';'
+			// The order is saved from the form's POST (a GET only shows the page).
+			. '$_SERVER["REQUEST_METHOD"] = "POST";'
 			. '\XcVm\Core\Http\RequestManager::set(["bouquet_order" => ' . var_export($rOrder, true) . ']);'
 			. 'register_shutdown_function(static function () use ($db) {'
 			. ' $db->query("SELECT `id`, `bouquet` FROM `lines` ORDER BY `id`");'

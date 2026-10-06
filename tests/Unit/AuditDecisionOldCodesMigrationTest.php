@@ -226,7 +226,7 @@ final class AuditDecisionOldCodesMigrationTest extends TestCase {
 		// Nothing but the cost is written, and an active code not at all.
 		$rAfter = $this->rows('activation_codes');
 		foreach ($rBefore as $rID => $rRow) {
-			$rSame = in_array($rID, $rIssued, true) ? ['purchase_cost' => '0.00'] + $rRow : $rRow;
+			$rSame = in_array($rID, $rIssued, true) ? ['purchase_cost' => '0.0000'] + $rRow : $rRow;
 			$this->assertEquals($rSame, $rAfter[$rID]);
 		}
 	}
