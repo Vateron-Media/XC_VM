@@ -20,7 +20,9 @@ XC_VM uses a file-based DB update system to manage schema changes between versio
 
 - Applied DB update steps are tracked in the `migrations` database table. Each step runs **exactly once** — if a step has already been applied, it is skipped.
 
-- Updates only run forward. A migration may ship a reverse file of the same name in `migrations/database/down/`: when the panel is rolled back to an older version, MAIN runs it for every applied migration that version's `up/` folder does not carry and removes its row from `migrations`; a failing reverse file aborts the rollback, and a migration with no down file stays applied. Keep migrations backward-compatible where possible.
+- Updates only run forward. A migration may ship a reverse file of the same name in `migrations/database/down/`: when MAIN is rolled back to a release up to 2.5.3, it runs that file for every applied migration the release does not carry and removes its row from `migrations`; a failing reverse file aborts the rollback, and a migration with no down file stays applied. A rollback to 2.6.0 or later reverses nothing: that release applies the files in `up/`, which the updater leaves in place, again. Keep migrations backward-compatible where possible.
+
+- A migration that fails is not recorded and runs again at the next `console.php status`, boot or update. Its cause is printed on the `[ERR]` line before `[FAIL] <file>`; `update.log`, **Panel Logs** and the dashboard's **Database schema** row say that it failed, and `console.php db:migrate` exits with status 1.
 
 - DB updates are executed automatically by:
   - `console.php update post-update` — after a panel update

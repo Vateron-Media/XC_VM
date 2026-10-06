@@ -2,6 +2,8 @@
 
 namespace XcVm\Core\Database;
 
+use XcVm\Core\Logging\FileLogger;
+
 /**
  * MigrationRunner — migration runner
  *
@@ -19,33 +21,44 @@ class MigrationRunner {
 	 * Ensures the `migrations` tracking table exists, then runs each unapplied
 	 * `*.sql` file (statement by statement) and records successful ones.
 	 *
-	 * @param Database $db Database handle.
+	 * A file that fails is not recorded and runs again next time; each failure
+	 * also goes to the panel log, by name only: the update's output gives its cause.
+	 *
+	 * @param Database    $db          Database handle.
+	 * @param string|null $databaseDir Override for the migrations/database/ directory (tests); defaults to MAIN_HOME . 'migrations/database/'.
+	 * @return string[] The files that failed, each as "<file>: <driver message>"; [] when none did.
 	 */
-	public static function run(Database $db): void {
+	public static function run(Database $db, ?string $databaseDir = null): array {
 		echo "Migrations\n------------------------------\n";
 
 		self::ensureTable($db);
 
 		$rApplied = self::appliedMigrations($db);
 
-		$rPath = MAIN_HOME . 'migrations/database/up/';
+		$rPath = ($databaseDir ?? MAIN_HOME . 'migrations/database/') . 'up/';
 		if (!is_dir($rPath)) {
 			echo "No migrations directory found.\n\n";
-			return;
+			return [];
 		}
 
 		$rFiles = glob($rPath . '*.sql');
 		sort($rFiles);
 
 		$rCount = 0;
+		$rFailed = [];
 		foreach ($rFiles as $rFile) {
 			$rName = basename($rFile);
 			if (in_array($rName, $rApplied)) {
 				continue;
 			}
 
-			if (!self::executeSqlFile($db, $rFile)) {
+			$rError = '';
+			if (!self::executeSqlFile($db, $rFile, $rError)) {
 				echo "  [FAIL] " . $rName . " (not recorded — will retry on next run)\n";
+				$rFailed[] = $rName . ': ' . $rError;
+				// The cause stays out: the panel log drops some driver messages (lock waits,
+				// duplicate entries), and a message can quote the data.
+				FileLogger::log('migration', 'Database migration failed: ' . $rName . ' (run console.php status as root for the cause)');
 			} else {
 				$db->query("INSERT INTO `migrations` (`migration`) VALUES (?);", $rName);
 				echo "  [OK]   " . $rName . "\n";
@@ -57,6 +70,8 @@ class MigrationRunner {
 			echo "No pending migrations.\n";
 		}
 		echo "\n";
+
+		return $rFailed;
 	}
 
 	/**
@@ -149,9 +164,10 @@ class MigrationRunner {
 	 * full-line comments, which may themselves contain a `;`) before
 	 * splitting on `;`, then runs each remaining statement.
 	 *
+	 * @param string $rError Set to the driver's message for the first statement that failed.
 	 * @return bool True if every statement succeeded.
 	 */
-	private static function executeSqlFile(Database $db, string $file): bool {
+	private static function executeSqlFile(Database $db, string $file, string &$rError = ''): bool {
 		$rSQL = trim((string) file_get_contents($file));
 		if ($rSQL === '') {
 			return true;
@@ -177,6 +193,9 @@ class MigrationRunner {
 				// The panel log leaves out some messages (duplicate entries,
 				// timeouts): the output of the update is where the operator reads why.
 				echo '  [ERR]  ' . $db->error() . "\n";
+				if (!$rFailed) {
+					$rError = $db->error();
+				}
 				$rFailed = true;
 			}
 		}

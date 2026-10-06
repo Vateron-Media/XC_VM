@@ -10,6 +10,7 @@ use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\NodeStateSink;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\TreeOwnership;
+use XcVm\Core\Database\Database;
 use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Logging\UpdateLogger;
 use XcVm\Core\Process\ProcessRunner;
@@ -172,6 +173,10 @@ class UpdateCommand implements CommandInterface {
 					return 1;
 				}
 
+				if ($rIsMain) {
+					self::dumpBeforeUpdate($db, $rLatest);
+				}
+
 				// Through the agent where the node reports its row that way (mode 2 has no other).
 				NodeStateSink::status(5, $db);
 				UpdateLogger::info('Server status set to 5 (updating), launching system update...');
@@ -213,19 +218,16 @@ class UpdateCommand implements CommandInterface {
 				// cannot undo them; this backup is the recovery path if the older code
 				// mishandles newer schema. Abort the rollback if the dump fails.
 				if ($rIsMain) {
-					$rBackupFile = MAIN_HOME . 'backups/pre_rollback_' . XC_VM_VERSION . '_to_' . $rTarget . '_' . date('Y-m-d_H-i-s') . '.sql';
-					echo "Backing up database to " . basename($rBackupFile) . "...\n";
-					UpdateLogger::info('Creating pre-rollback DB backup: ' . basename($rBackupFile));
-					$db->close_mysql();
-					BackupService::create($rBackupFile);
-					$db->db_connect();
+					echo "Backing up database...\n";
+					UpdateLogger::info('Creating pre-rollback DB backup');
+					$rBackupFile = BackupService::dumpFor($db, 'pre_rollback_' . XC_VM_VERSION . '_to_' . $rTarget);
 
-					if (!file_exists($rBackupFile) || filesize($rBackupFile) <= 0) {
+					if ($rBackupFile === null) {
 						echo "ERROR: DB backup failed, aborting rollback.\n";
 						UpdateLogger::error('Pre-rollback DB backup failed (empty/missing), aborting');
 						return 1;
 					}
-					UpdateLogger::info('Pre-rollback DB backup OK (' . filesize($rBackupFile) . ' bytes)');
+					UpdateLogger::info('Pre-rollback DB backup OK: ' . basename($rBackupFile) . ' (' . filesize($rBackupFile) . ' bytes)');
 				}
 
 				$UpdateData = $gitRelease->getVersionFile($rIsMain ? 'main' : 'lb_update', $rTarget);
@@ -262,29 +264,34 @@ class UpdateCommand implements CommandInterface {
 				echo "Download OK, MD5 verified (" . filesize($rOutputDir) . " bytes).\n";
 				UpdateLogger::info('Rollback download OK, MD5 verified, size=' . filesize($rOutputDir) . ' bytes');
 
-				// Reverse schema changes the target version's migrations/ folder
-				// doesn't carry (e.g. a column a newer migration dropped), so the
-				// older code about to be installed doesn't hit schema it doesn't
-				// expect. MAIN only — the DB lives there. Abort on failure: the
-				// pre-rollback backup above is still the recovery path.
+				// Reverse schema changes a target up to 2.5.3 doesn't carry (e.g. a
+				// column a newer migration dropped), so the older code about to be
+				// installed doesn't hit schema it doesn't expect. MAIN only — the DB
+				// lives there. Abort on failure: the pre-rollback backup above is
+				// still the recovery path.
 				if ($rIsMain) {
 					echo "Checking for schema changes to reverse...\n";
 					try {
-						$rTargetMigrations = ReleaseArchiveInspector::listSubpathFiles($rOutputDir, 'migrations/database/up');
-						$rMigrationResult = MigrationRunner::rollback($db, $rTargetMigrations);
+						$rTargetMigrations = self::rollbackMigrations($rOutputDir);
+						$rMigrationResult = $rTargetMigrations === null ? null : MigrationRunner::rollback($db, $rTargetMigrations);
 					} catch (\Throwable $e) {
 						echo "ERROR: schema reversal failed: " . $e->getMessage() . "\n";
 						UpdateLogger::error('Rollback aborted: schema reversal failed: ' . $e->getMessage());
 						@unlink($rOutputDir);
 						return 1;
 					}
-					foreach ($rMigrationResult['reversed'] as $rName) {
-						echo "  [DOWN] " . $rName . "\n";
+					if ($rMigrationResult === null) {
+						echo "Schema left as it is: the target release applies its own migration files.\n";
+						UpdateLogger::info('Rollback schema reversal: none, the schema is left as it is');
+					} else {
+						foreach ($rMigrationResult['reversed'] as $rName) {
+							echo "  [DOWN] " . $rName . "\n";
+						}
+						foreach ($rMigrationResult['skipped'] as $rName) {
+							echo "  [SKIP] " . $rName . " (no down migration; left applied)\n";
+						}
+						UpdateLogger::info('Rollback schema reversal: ' . count($rMigrationResult['reversed']) . ' reversed, ' . count($rMigrationResult['skipped']) . ' skipped');
 					}
-					foreach ($rMigrationResult['skipped'] as $rName) {
-						echo "  [SKIP] " . $rName . " (no down migration; left applied)\n";
-					}
-					UpdateLogger::info('Rollback schema reversal: ' . count($rMigrationResult['reversed']) . ' reversed, ' . count($rMigrationResult['skipped']) . ' skipped');
 				}
 
 				// Pre-flight the launcher before flipping status: a missing
@@ -313,9 +320,13 @@ class UpdateCommand implements CommandInterface {
 			case 'post-update':
 				UpdateLogger::info('Post-update started');
 
+				$rFailed = [];
 				if (ServerRepository::getAll()[SERVER_ID]['is_main']) {
 					UpdateLogger::info('Running database migrations...');
-					MigrationRunner::run($db);
+					$rFailed = MigrationRunner::run($db);
+					foreach ($rFailed as $rFailure) {
+						UpdateLogger::error('Database migration failed: ' . $rFailure);
+					}
 				}
 				UpdateLogger::info('Running file cleanup...');
 				MigrationRunner::runFileCleanup();
@@ -416,7 +427,13 @@ class UpdateCommand implements CommandInterface {
 					exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:maxmind --force >/dev/null 2>&1 &');
 				}
 
-				UpdateLogger::info('Post-update completed successfully');
+				if ($rFailed === []) {
+					UpdateLogger::info('Post-update completed successfully');
+				} else {
+					// status above ran them again and marked the schema; say what came of it.
+					$db->query('SELECT `status_uuid` FROM `settings`;');
+					UpdateLogger::error('Post-update completed, but a database migration failed on the first attempt: ' . ((string) $db->get_col() === StatusCommand::schemaMark() ? 'it applied when status ran it again' : 'it still fails, run "sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status" for the cause'));
+				}
 				break;
 		}
 
@@ -427,6 +444,51 @@ class UpdateCommand implements CommandInterface {
 	 * A release version (x.y.z, or a nightly x.y.z-dev.N when MAIN runs the dev
 	 * channel) as an update names it, or null for none or anything else.
 	 */
+
+	/**
+	 * The migration list a rollback reverses to, from the target release's archive.
+	 * Only a release up to 2.5.3 gets one: its runner reads migrations/*.sql, so what is
+	 * reversed stays reversed. A later release runs migrations/database/up/, which the
+	 * updater leaves in place (it copies and deletes nothing), so it would apply every
+	 * reversed file again, with what the reversal dropped gone. null leaves the schema
+	 * as it is, as for an archive that lists no migrations: an empty list must never
+	 * mean "reverse everything".
+	 *
+	 * @return string[]|null
+	 */
+	public static function rollbackMigrations(string $rArchive): ?array {
+		if (ReleaseArchiveInspector::listSubpathFiles($rArchive, 'migrations/database/up') !== []) {
+			return null;
+		}
+		$rOld = array_values(array_filter(ReleaseArchiveInspector::listSubpathFiles($rArchive, 'migrations'), static fn(string $rName): bool => str_ends_with($rName, '.sql')));
+		return $rOld === [] ? null : $rOld;
+	}
+
+	/**
+	 * MAIN keeps a dump of the database from before the update's migrations, the only
+	 * copy of what a migration drops. Best effort: an update is never stopped by it.
+	 * One pre_update file is kept, the newest.
+	 */
+	private static function dumpBeforeUpdate(Database $db, string $rTarget): void {
+		$rNeed = BackupService::estimateSize($db);
+		$rFree = (float) @disk_free_space(MAIN_HOME . 'backups');
+		if (!BackupService::roomForDump($rNeed, $rFree)) {
+			echo "WARNING: no room for a database backup before the update, updating without one.\n";
+			UpdateLogger::error('No room for a pre-update DB backup (about ' . $rNeed . ' bytes, needed twice over plus 512 MiB; ' . (int) $rFree . ' free): updating without one');
+			return;
+		}
+		echo "Backing up database...\n";
+		UpdateLogger::info('Creating pre-update DB backup');
+		$rFile = BackupService::dumpFor($db, 'pre_update_' . XC_VM_VERSION . '_to_' . $rTarget);
+		if ($rFile === null) {
+			echo "WARNING: the database backup before the update failed, updating without one.\n";
+			UpdateLogger::error('Pre-update DB backup failed: updating without one');
+			return;
+		}
+		BackupService::keepOnly(MAIN_HOME . 'backups/', 'pre_update_', $rFile);
+		UpdateLogger::info('Pre-update DB backup OK: ' . basename($rFile) . ' (' . filesize($rFile) . ' bytes)');
+	}
+
 	public static function pinned(mixed $rVersion): ?string {
 		$rVersion = is_string($rVersion) ? trim($rVersion) : '';
 		return preg_match('/^\d+\.\d+\.\d+$/', $rVersion) || GitHubReleases::isDevVersion($rVersion) ? $rVersion : null;

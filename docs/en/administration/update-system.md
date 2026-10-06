@@ -48,7 +48,8 @@ At this stage the following actions are performed:
    - SHA checksum for integrity verification.
 3. Download the archive to a temporary directory.
 4. Verify the downloaded file matches the expected hash.
-5. Hand over control to the system-level updater (Python):
+5. On **MAIN** only: dump the database to `backups/pre_update_<from>_to_<to>_<timestamp>.sql`, the copy of the data from before the migrations. It is best effort: when the disk has no room for it (twice the size of the dumped tables, plus 512 MiB) or the dump fails, the update goes on without one and `update.log` says so. One such file is kept, the newest; it counts toward *Local Backups to Keep*.
+6. Hand over control to the system-level updater (Python):
 
 ```bash
 sudo /usr/bin/python3 /home/xc_vm/update "/home/xc_vm/tmp/.update.tar.gz" "HASH" > /dev/null 2>&1 &
@@ -132,6 +133,15 @@ Final steps are executed in the `post-update` phase of `UpdateCommand`:
 
 7. Mark the update process as complete.
 
+A database migration that fails is not recorded and runs again at every `console.php status` and every boot. It shows in four places:
+
+- the update's output and `sudo /home/xc_vm/console.php status` print `[FAIL] <file>` with the database's message on the `[ERR]` line before it;
+- `update.log` has an `ERROR` line per failed file, and its last line says whether the run of `status` at the end of the update applied it;
+- **Panel Logs** gets a `migration` row naming the file at each failed attempt;
+- the dashboard's **Database schema** row shows a warning until a run applies every migration.
+
+`console.php db:migrate` exits with status 1 when a migration failed.
+
 ---
 
 ## 6. Full Workflow Diagram
@@ -176,13 +186,14 @@ A server can also be rolled back to an **earlier** release. This mirrors the upd
    - Validate the target (`X.Y.Z`, strictly older than the current version).
    - On **MAIN** only: take an automatic database backup to `backups/pre_rollback_<from>_to_<to>_<timestamp>.sql`, aborting if it fails. LB nodes have no database and skip this.
    - Resolve the **exact** version's archive via `GitHubReleases::getVersionFile()` (MAIN → `xc_vm.tar.gz`, LB → `loadbalancer.tar.gz`), download it, and verify the MD5.
+   - On **MAIN**, for a target up to 2.5.3 only: run the `migrations/database/down/` file of every applied migration the target does not carry. A target from 2.6.0 on runs `migrations/database/up/`, which the applier leaves in place, and would apply those files again; its schema is left as it is.
    - Hand over to the same Python updater (`src/update`).
 
 4. **System + completion.** Identical to an update: the Python script stops the panel, replaces the tree (preserving binaries/config/data), and `post-update` sets the version in the database to the rolled-back release and restarts the panel.
 
 The version list is channel-aware: the `stable` channel offers only stable releases, `beta` and `dev` also offer `(beta)` pre-releases. Nightly builds (`X.Y.Z-dev.N`) are never listed: the rollback flow accepts `X.Y.Z` tags only.
 
-> ⚠️ A downgrade **does not undo database migrations** (they are forward-only). The schema is kept backward-compatible, and the automatic MAIN backup is the recovery path. The Python applier copies over the tree (`cp -a`) without deleting files, so files added by a newer release remain until a subsequent update.
+> ⚠️ A downgrade to 2.6.0 or later **does not undo database migrations**. The schema is kept backward-compatible, and the automatic MAIN backup is the recovery path. The Python applier copies over the tree (`cp -a`) without deleting files, so files added by a newer release remain until a subsequent update.
 
 ---
 

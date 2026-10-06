@@ -27,8 +27,6 @@ class DbMigrateCommand implements CommandInterface {
 	public function execute(array $rArgs): int {
 		global $db;
 
-		MigrationRunner::run($db);
-
-		return 0;
+		return MigrationRunner::run($db) === [] ? 0 : 1;
 	}
 }
