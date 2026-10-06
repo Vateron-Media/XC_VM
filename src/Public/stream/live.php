@@ -201,7 +201,7 @@ if ($rChannelInfo) {
 			// Watched = a live PHP monitor, or the fanout supervisor (whose pid
 			// the PHP check rightly rejects). Either way, do not start another.
 			if (!StreamProcess::isWatched($rStreamID, $rChannelInfo["monitor_pid"])) {
-				if (($rActivityStart + $rCreateExpiration) - intval($rServers[SERVER_ID]["time_offset"]) < time()) {
+				if ($rActivityStart + $rCreateExpiration < StreamAuthMiddleware::mainNow($rServers)) {
 					generateError("TOKEN_EXPIRED");
 				}
 
@@ -291,7 +291,8 @@ if ($rChannelInfo) {
 	}
 
 	$rExecutionTime = time() - $rStartTime;
-	$rExpiresAt = ($rActivityStart + $rCreateExpiration + $rExecutionTime) - intval($rServers[SERVER_ID]["time_offset"]);
+	// MAIN's clock, as the token's start (StreamAuthMiddleware::mainNow()).
+	$rExpiresAt = $rActivityStart + $rCreateExpiration + $rExecutionTime;
 
 	if ($rSettings["redis_handler"]) {
 		RedisManager::ensureConnected();
@@ -353,7 +354,7 @@ if ($rChannelInfo) {
 		case "m3u8":
 			$rConnection = ConnectionTracker::lookupLive($rSettings, $rConnCtx, "hls", false, true, true);
 			if (!isset($rConnection)) {
-				if (time() > $rExpiresAt) {
+				if (StreamAuthMiddleware::mainNow($rServers) > $rExpiresAt) {
 					generateError("TOKEN_EXPIRED");
 				}
 
@@ -428,7 +429,7 @@ if ($rChannelInfo) {
 
 			$rConnection = ConnectionTracker::lookupLive($rSettings, $rConnCtx, $rExtension, true, false, false);
 			if (!isset($rConnection)) {
-				if (time() > $rExpiresAt) {
+				if (StreamAuthMiddleware::mainNow($rServers) > $rExpiresAt) {
 					generateError("TOKEN_EXPIRED");
 				}
 				$rResult = ConnectionTracker::createLive($rSettings, $rConnCtx, $rExtension, $rConnPID);

@@ -159,7 +159,7 @@ if ($rUserInfo) {
 			$rConnection = ConnectionTracker::findByUuid($rSettings, $rTokenData['uuid'], '`activity_id`, `pid`, `user_ip`');
 
 			if (!$rConnection) {
-				if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || ($rActivityStart + $rCreateExpiration) - intval($rServers[SERVER_ID]['time_offset']) >= time()) {
+				if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || $rActivityStart + $rCreateExpiration >= StreamAuthMiddleware::mainNow($rServers)) {
 				} else {
 					generateError('TOKEN_EXPIRED');
 				}
@@ -232,7 +232,7 @@ if ($rUserInfo) {
 			if (!$rConnection) {
 				// The connection id is 32 hex characters: decryptToken() refuses any other.
 				// nosemgrep: php.lang.security.injection.tainted-filename.tainted-filename
-				if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || ($rActivityStart + $rCreateExpiration) - intval($rServers[SERVER_ID]['time_offset']) >= time()) {
+				if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || $rActivityStart + $rCreateExpiration >= StreamAuthMiddleware::mainNow($rServers)) {
 				} else {
 					generateError('TOKEN_EXPIRED');
 				}
