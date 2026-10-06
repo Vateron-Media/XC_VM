@@ -247,7 +247,7 @@ $heroPlayUrl = $primaryHero['type'] === 'series'
             <div class="card h-100 border shadow-sm">
               <div class="position-relative overflow-hidden">
                 <img
-                  src="<?= $posterUrl ?>"
+                  src="<?= htmlspecialchars($posterUrl) ?>"
                   alt="<?= htmlspecialchars($item['title']) ?>"
                   class="card-img-top object-fit-cover media-poster-ratio"
                   loading="lazy"
@@ -348,7 +348,7 @@ $heroPlayUrl = $primaryHero['type'] === 'series'
           <div class="card h-100 border shadow-sm channel-card">
             <div class="position-relative overflow-hidden">
               <img
-                src="<?= $posterUrl ?>"
+                src="<?= htmlspecialchars($posterUrl) ?>"
                 alt="<?= htmlspecialchars($m['stream_display_name']) ?>"
                 class="card-img-top object-fit-cover media-poster-ratio"
                 loading="lazy"
@@ -449,7 +449,7 @@ $heroPlayUrl = $primaryHero['type'] === 'series'
           <div class="card h-100 border shadow-sm channel-card">
             <div class="position-relative overflow-hidden">
               <img
-                src="<?= $posterUrl ?>"
+                src="<?= htmlspecialchars($posterUrl) ?>"
                 alt="<?= htmlspecialchars($s['title']) ?>"
                 class="card-img-top object-fit-cover media-poster-ratio"
                 loading="lazy"
@@ -600,5 +600,4 @@ $heroPlayUrl = $primaryHero['type'] === 'series'
 </div>
 <?php endif; ?>
 
-<!-- Netflix Dashboard Engine Runtime -->
-<script src="<?= $assetsPath ?>js/player-home.js"></script>
+<!-- The dashboard engine (player-home.js) is loaded by the layout, once for every page -->

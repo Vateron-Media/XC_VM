@@ -72,19 +72,8 @@ class SeriesController extends BasePlayerV2Controller {
 			}
 
 			if (empty($rUserInfo['series_ids'])) {
-				$where = [];
-				$whereV = [];
-				if (!empty($catId)) {
-					$where[] = "JSON_CONTAINS(`category_id`, ?, '$')";
-					$whereV[] = (string) $catId;
-				}
-				if (!empty($searchBy)) {
-					$where[] = '`title` LIKE ?';
-					$whereV[] = '%' . $searchBy . '%';
-				}
-				$whereStr = $where !== [] ? 'WHERE ' . implode(' AND ', $where) : '';
-				$db->query("SELECT * FROM `streams_series` {$whereStr} ORDER BY `id` DESC LIMIT 1000", ...$whereV);
-				$seriesList = $db->get_rows() ?: [];
+				// No series in the line's bouquets: nothing to list.
+				$seriesList = [];
 			} else {
 				$rSeriesData = getUserSeries(
 					$rUserInfo,
@@ -168,17 +157,9 @@ class SeriesController extends BasePlayerV2Controller {
 		}
 
 		if (empty($rUserInfo['series_ids'])) {
-			$where = [];
-			$whereV = [];
-			if (!empty($firstCatId)) {
-				$where[] = "JSON_CONTAINS(`category_id`, ?, '$')";
-				$whereV[] = (string) $firstCatId;
-			}
-			$whereStr = $where !== [] ? 'WHERE ' . implode(' AND ', $where) : '';
-			$db->query("SELECT * FROM `streams_series` {$whereStr} ORDER BY `id` DESC LIMIT 100", ...$whereV);
-			$initialSeriesRaw = $db->get_rows() ?: [];
-			$db->query('SELECT count(*) as c FROM `streams_series`;');
-			$totalCount = (int) ($db->get_row()['c'] ?? 0);
+			// No series in the line's bouquets: nothing to list.
+			$initialSeriesRaw = [];
+			$totalCount = 0;
 		} else {
 			$rSeriesData = getUserSeries(
 				$rUserInfo,
@@ -330,8 +311,8 @@ class SeriesController extends BasePlayerV2Controller {
 			return;
 		}
 
-		// Access check
-		if (!empty($rUserInfo['series_ids']) && !in_array($seriesId, $rUserInfo['series_ids'], true)) {
+		// Access check: only a series in the line's bouquets
+		if (!in_array($seriesId, $rUserInfo['series_ids'] ?? [], true)) {
 			header('Location: ' . $baseUrl . 'series');
 			exit;
 		}

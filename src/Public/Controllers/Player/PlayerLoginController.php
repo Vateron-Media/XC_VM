@@ -89,6 +89,9 @@ class PlayerLoginController {
 		$rUserAgent = empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlspecialchars(trim($_SERVER['HTTP_USER_AGENT']));
 
 		if (!$rUserInfo) {
+			// The username of a refused sign-in is a guess, as on the client
+			// APIs: counted where the panel sets a limit on them.
+			BruteforceGuard::checkBruteforce(null, null, RequestManager::get('username'));
 			BruteforceGuard::checkFlood();
 			return CLIENT_INVALID;
 		}
@@ -156,7 +159,11 @@ class PlayerLoginController {
 			return CLIENT_DISALLOWED;
 		}
 
-		// Success — set session and redirect
+		// Success — set session and redirect. The session moves to a fresh id
+		// first: the one the visitor arrived with may be known to someone else.
+		if (session_status() === PHP_SESSION_ACTIVE) {
+			session_regenerate_id(true);
+		}
 		$_SESSION['phash'] = $rUserInfo['id'];
 		$_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password']);
 		header('Location: index');

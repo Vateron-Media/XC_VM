@@ -243,6 +243,9 @@ class PlayerLoginController {
 		$rUserAgent = empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlspecialchars(trim($_SERVER['HTTP_USER_AGENT']));
 
 		if (!$rUserInfo) {
+			// The username of a refused sign-in is a guess, as on the client
+			// APIs: counted where the panel sets a limit on them.
+			BruteforceGuard::checkBruteforce(null, null, $username);
 			BruteforceGuard::checkFlood();
 			return ['success' => false, 'status' => self::CLIENT_INVALID, 'message' => $rErrors[self::CLIENT_INVALID]];
 		}
@@ -443,6 +446,7 @@ class PlayerLoginController {
 		$authRes = \XcVm\Domain\External\ExternalXtreamService::testAndAuthenticate($serverUrl, $username, $password);
 
 		if (!$authRes['success']) {
+			BruteforceGuard::checkFlood();
 			return $authRes;
 		}
 

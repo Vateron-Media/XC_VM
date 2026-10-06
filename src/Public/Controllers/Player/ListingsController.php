@@ -22,21 +22,17 @@ class ListingsController extends BasePlayerController {
 	public function index() {
 		global $db, $rUserInfo;
 
+		// Every answer below is JSON: a browser must not read it as a page.
+		header('Content-Type: application/json; charset=utf-8');
+		header('X-Content-Type-Options: nosniff');
+
 		$channelIds = $rUserInfo['channel_ids'] ?? [];
-		if (empty($channelIds) && !empty($rUserInfo['bouquet'])) {
-			global $rBouquets;
-			if (empty($rBouquets)) {
-				$rBouquets = \XcVm\Domain\Bouquet\BouquetService::getAll(true);
-			}
-			$ids = \XcVm\Domain\User\UserRepository::aggregateBouquetIds($rUserInfo['bouquet'], $rBouquets);
-			$channelIds = $ids['channel_ids'] ?? [];
-		}
 		$rFlip = array_flip($channelIds);
 		$rTimezone = (RequestManager::get('timezone') ?? 'Europe/London');
 		date_default_timezone_set($rTimezone);
 
 		if (RequestManager::has('id')) {
-			$rReturn = ['id' => RequestManager::get('id'), 'title' => 'LIVE TV', 'epg_title' => 'No Programme Information...', 'epg_description' => '', 'url' => null];
+			$rReturn = ['id' => intval(RequestManager::get('id')), 'title' => 'LIVE TV', 'epg_title' => 'No Programme Information...', 'epg_description' => '', 'url' => null];
 
 			if (isset($rFlip[RequestManager::get('id')])) {
 				$rStart = intval(RequestManager::get('start') ?? time());

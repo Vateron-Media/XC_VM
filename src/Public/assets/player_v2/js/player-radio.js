@@ -29,6 +29,17 @@ window.RadioApp = (function () {
 
   let eventsBound = false;
 
+  const escapeHtml = (str) => {
+    if (!str) return '';
+    // The panel sends the < and > of a stored name as &lt; and &gt; already: those two stay as they are.
+    return String(str)
+      .replace(/&(?!(?:lt|gt);)/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
   const savePersistedState = () => {
     try {
       if (state.currentStation) {
@@ -523,13 +534,13 @@ window.RadioApp = (function () {
 
       html += `
         <div class="${colClass}">
-          <div class="card h-100 radio-station-card channel-card border shadow-sm" data-station-id="${s.id}">
+          <div class="card h-100 radio-station-card channel-card border shadow-sm" data-station-id="${escapeHtml(s.id)}">
             <div class="position-relative radio-station-logo-box">
-              <a href="javascript:void(0);" class="station-play-trigger d-flex align-items-center justify-content-center w-100 h-100" data-station-id="${s.id}">
+              <a href="javascript:void(0);" class="station-play-trigger d-flex align-items-center justify-content-center w-100 h-100" data-station-id="${escapeHtml(s.id)}">
                 ${hasLogo ? `
                   <img
-                    src="${s.logo}"
-                    alt="${s.name}"
+                    src="${escapeHtml(s.logo)}"
+                    alt="${escapeHtml(s.name)}"
                     class="radio-station-logo-img"
                     loading="lazy"
                     onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');" />
@@ -547,15 +558,15 @@ window.RadioApp = (function () {
               <button
                 type="button"
                 class="btn btn-sm btn-icon btn-text-secondary rounded-pill position-absolute top-0 start-0 m-2 bg-dark bg-opacity-50 text-white"
-                data-fav-radio-id="${s.id}"
+                data-fav-radio-id="${escapeHtml(s.id)}"
                 title="Toggle Favorite">
                 <i class="icon-base ${fav ? 'bx bxs-star text-warning' : 'bx bx-star'}"></i>
               </button>
             </div>
             <div class="card-body p-3 d-flex flex-column justify-content-between">
               <div>
-                <h6 class="card-title text-truncate mb-1 fw-bold" title="${s.name}">
-                  <a href="javascript:void(0);" class="text-heading station-play-trigger" data-station-id="${s.id}">${s.name}</a>
+                <h6 class="card-title text-truncate mb-1 fw-bold" title="${escapeHtml(s.name)}">
+                  <a href="javascript:void(0);" class="text-heading station-play-trigger" data-station-id="${escapeHtml(s.id)}">${escapeHtml(s.name)}</a>
                 </h6>
               </div>
               <div class="d-flex align-items-center justify-content-between text-body-secondary small mt-2 pt-2 border-top">
@@ -563,7 +574,7 @@ window.RadioApp = (function () {
                 <button
                   type="button"
                   class="btn btn-xs btn-primary d-flex align-items-center gap-1 station-play-trigger"
-                  data-station-id="${s.id}">
+                  data-station-id="${escapeHtml(s.id)}">
                   <i class="icon-base bx bx-play"></i> Listen
                 </button>
               </div>
@@ -592,10 +603,10 @@ window.RadioApp = (function () {
         <a
           href="javascript:void(0);"
           class="list-group-item list-group-item-action d-flex align-items-center justify-content-between rounded mb-1 px-3 py-2 ${active ? 'active' : ''}"
-          data-zap-station-id="${s.id}">
+          data-zap-station-id="${escapeHtml(s.id)}">
           <div class="d-flex align-items-center text-truncate me-2">
             <i class="icon-base bx bx-broadcast me-2 ${active ? 'text-white' : 'text-primary'}"></i>
-            <span class="text-truncate fw-medium">${s.name}</span>
+            <span class="text-truncate fw-medium">${escapeHtml(s.name)}</span>
           </div>
           ${active ? `<span class="badge bg-white text-primary rounded-pill px-2">Playing</span>` : ''}
         </a>`;

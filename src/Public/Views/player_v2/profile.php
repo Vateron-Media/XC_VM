@@ -23,7 +23,7 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
       <div class="user-profile-header d-flex flex-column flex-lg-row text-sm-start text-center mb-6">
         <div class="flex-shrink-0 mt-1 mx-sm-0 mx-auto">
           <div class="avatar avatar-xl ms-0 ms-sm-6 rounded-3 user-profile-avatar-initials bg-label-primary text-primary">
-            <?= strtoupper(substr($lineData['username'] ?? 'S', 0, 2)) ?>
+            <?= htmlspecialchars(strtoupper(substr($lineData['username'] ?? 'S', 0, 2))) ?>
           </div>
         </div>
         <div class="flex-grow-1 mt-3 mt-lg-5">
@@ -91,16 +91,20 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
             <i class="icon-base bx bx-user icon-sm me-2"></i> Overview & Subscription
           </button>
         </li>
+        <?php if (SettingsManager::get('player_allow_playlist')): ?>
         <li class="nav-item" role="presentation">
           <button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-playlist" aria-controls="tab-playlist" aria-selected="false">
             <i class="icon-base bx bx-download icon-sm me-2"></i> Playlist & M3U
           </button>
         </li>
+        <?php endif; ?>
+        <?php if (SettingsManager::get('player_allow_bouquet')): ?>
         <li class="nav-item" role="presentation">
           <button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-bouquets" aria-controls="tab-bouquets" aria-selected="false">
             <i class="icon-base bx bx-layer icon-sm me-2"></i> Bouquets Ordering
           </button>
         </li>
+        <?php endif; ?>
         <li class="nav-item" role="presentation">
           <button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-api" aria-controls="tab-api" aria-selected="false">
             <i class="icon-base bx bx-devices icon-sm me-2"></i> Device & API Setup
@@ -427,6 +431,7 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
   <!-- ═════════════════════════════════════════════════════════════════
        TAB 2: PLAYLIST & M3U GENERATOR
   ══════════════════════════════════════════════════════════════════ -->
+  <?php if (SettingsManager::get('player_allow_playlist')): ?>
   <div class="tab-pane fade" id="tab-playlist" role="tabpanel">
     <div class="row g-6">
       <div class="col-12 col-lg-8">
@@ -553,10 +558,12 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
       </div>
     </div>
   </div>
+  <?php endif; ?>
 
   <!-- ═════════════════════════════════════════════════════════════════
        TAB 3: BOUQUETS ORDERING
   ══════════════════════════════════════════════════════════════════ -->
+  <?php if (SettingsManager::get('player_allow_bouquet')): ?>
   <div class="tab-pane fade" id="tab-bouquets" role="tabpanel">
     <div class="row g-6">
       <div class="col-12 col-lg-8">
@@ -648,6 +655,7 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
       </div>
     </div>
   </div>
+  <?php endif; ?>
 
   <!-- ═════════════════════════════════════════════════════════════════
        TAB 4: DEVICE & API SETUP
@@ -796,7 +804,7 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
         <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4">
           <div class="d-flex align-items-center gap-3">
             <div class="avatar avatar-lg bg-label-primary rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4">
-              <?= strtoupper(substr($lineData['username'] ?? 'S', 0, 2)) ?>
+              <?= htmlspecialchars(strtoupper(substr($lineData['username'] ?? 'S', 0, 2))) ?>
             </div>
             <div>
               <div class="d-flex align-items-center gap-2 flex-wrap mb-1">

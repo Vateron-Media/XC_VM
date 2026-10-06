@@ -33,6 +33,11 @@ class RadioController extends BasePlayerV2Controller {
 		// ─── Stream Redirect Endpoint ───────────────────────────────────────
 		if (RequestManager::has('stream')) {
 			$streamId = (int) RequestManager::get('stream');
+			// Only a station in the line's bouquets has a play address.
+			if (!in_array($streamId, $rUserInfo['radio_ids'], true)) {
+				http_response_code(404);
+				exit('Station stream not found');
+			}
 			$db->query('SELECT stream_source, target_container FROM `streams` WHERE `id` = ? AND `type` = 4 LIMIT 1;', $streamId);
 			$row = $db->get_row();
 			if ($row && !empty($row['stream_source'])) {
@@ -58,19 +63,8 @@ class RadioController extends BasePlayerV2Controller {
 			$searchBy = RequestManager::get('search') ?: null;
 
 			if (empty($rUserInfo['radio_ids'])) {
-				$where = ['`type` = 4'];
-				$whereV = [];
-				if (!empty($catId)) {
-					$where[] = "JSON_CONTAINS(`category_id`, ?, '$')";
-					$whereV[] = (string) $catId;
-				}
-				if (!empty($searchBy)) {
-					$where[] = '`stream_display_name` LIKE ?';
-					$whereV[] = '%' . $searchBy . '%';
-				}
-				$whereStr = implode(' AND ', $where);
-				$db->query("SELECT * FROM `streams` WHERE {$whereStr} ORDER BY `id` DESC LIMIT 1000", ...$whereV);
-				$streamList = $db->get_rows() ?: [];
+				// No station in the line's bouquets: nothing to list.
+				$streamList = [];
 			} else {
 				$rStreams = getUserStreams(
 					$rUserInfo,
@@ -125,17 +119,9 @@ class RadioController extends BasePlayerV2Controller {
 		$firstCatId = !empty($rCategories[0]['id']) ? (int) $rCategories[0]['id'] : null;
 
 		if (empty($rUserInfo['radio_ids'])) {
-			$where = ['`type` = 4'];
-			$whereV = [];
-			if (!empty($firstCatId)) {
-				$where[] = "JSON_CONTAINS(`category_id`, ?, '$')";
-				$whereV[] = (string) $firstCatId;
-			}
-			$whereStr = implode(' AND ', $where);
-			$db->query("SELECT * FROM `streams` WHERE {$whereStr} ORDER BY `id` DESC LIMIT 100", ...$whereV);
-			$initialStreams = $db->get_rows() ?: [];
-			$db->query("SELECT count(*) as c FROM `streams` WHERE `type` = 4;");
-			$totalCount = (int) ($db->get_row()['c'] ?? 0);
+			// No station in the line's bouquets: nothing to list.
+			$initialStreams = [];
+			$totalCount = 0;
 		} else {
 			$rStreams = getUserStreams(
 				$rUserInfo,
