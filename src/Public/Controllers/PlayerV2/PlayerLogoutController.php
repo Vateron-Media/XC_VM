@@ -92,9 +92,18 @@ class PlayerLogoutController {
 	 * Handle logout request.
 	 */
 	public function index(): void {
+		$code = $_SERVER['XC_CODE'] ?? '';
+
+		// Signing out runs only on a POST: the player's cookie also comes with a
+		// link from another site (a GET), which leads home instead. Not to the
+		// sign-in form: that ends the sign-in it finds.
+		if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+			header('Location: ' . ($code ? '/' . $code . '/index' : 'index'));
+			exit();
+		}
+
 		self::purgePlayerSession();
 
-		$code = $_SERVER['XC_CODE'] ?? '';
 		$redirectUrl = $code ? '/' . $code . '/login' : 'login';
 
 		$isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')

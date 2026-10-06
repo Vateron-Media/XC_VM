@@ -70,7 +70,7 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
               <button type="button" class="btn btn-primary" id="btn-profile-sync">
                 <i class="icon-base bx bx-refresh icon-sm me-1"></i> Sync Catalog
               </button>
-              <a href="<?= $baseUrl ?>logout" class="btn btn-outline-danger" onclick="if(window.clearUserClientData){window.clearUserClientData();}">
+              <a href="<?= $baseUrl ?>logout" class="btn btn-outline-danger" onclick="if(window.clearUserClientData){window.clearUserClientData();} document.getElementById('player-logout-form').submit(); return false;">
                 <i class="icon-base bx bx-log-out icon-sm me-1"></i> Sign Out
               </a>
             </div>

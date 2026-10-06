@@ -16,6 +16,14 @@ use XcVm\Core\Auth\SessionManager;
 
 class PlayerLogoutController extends BasePlayerController {
 	public function index() {
+		// Signing out runs only on a POST: the player's cookie also comes with a
+		// link from another site (a GET), which leads home instead. Not to the
+		// sign-in form: that ends the sign-in it finds.
+		if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+			header('Location: index');
+			exit();
+		}
+
 		SessionManager::clearContext('player');
 		header('Location: login');
 		exit();

@@ -29,7 +29,9 @@ class PlayerProfileController extends BasePlayerController {
 				}
 			}
 			// An external-server session carries a placeholder id, not a line of this panel.
-			if (RequestManager::has('bouquet_order') && empty($rUserInfo['is_external_xc'])) {
+			// The order is saved only from a POST: a GET (a link from another site
+			// comes with the player's cookie) only shows the page.
+			if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && RequestManager::has('bouquet_order') && empty($rUserInfo['is_external_xc'])) {
 				$rBouquetOrder = json_decode(RequestManager::get('bouquet_order'), true);
 				// The order only rearranges the bouquets stored for the line: the ones it
 				// names come first, every other one stays behind them, and none is added.

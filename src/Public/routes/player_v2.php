@@ -40,7 +40,6 @@ $router->get('player', [PlayerWatchController::class, 'index']);
 $router->get('watch', [PlayerWatchController::class, 'index']);
 $router->get('profile', [ProfileController::class, 'index']);
 $router->post('profile', [ProfileController::class, 'saveBouquets']);
-$router->get('refresh', [RefreshController::class, 'index']);
 $router->post('refresh', [RefreshController::class, 'index']);
 $router->get('search', [SearchController::class, 'index']);
 $router->post('search', [SearchController::class, 'index']);
