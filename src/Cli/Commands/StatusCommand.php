@@ -462,9 +462,9 @@ class StatusCommand implements CommandInterface {
 		$db->query('UPDATE `settings` SET `status_uuid` = ?;', $rCurrent ? self::schemaMark() : null);
 	}
 
-	/** The mark of this release's schema, as the dashboard compares it. */
+	/** The mark of this release's schema, as the dashboard compares it: the release. */
 	public static function schemaMark(): string {
-		return md5(XC_VM_VERSION);
+		return XC_VM_VERSION;
 	}
 
 	private function printStatusReport(array $rServers): void {

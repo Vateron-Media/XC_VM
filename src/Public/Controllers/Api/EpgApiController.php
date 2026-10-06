@@ -71,7 +71,8 @@ class EpgApiController extends BaseApiController {
 		}
 
 		sort($rBouquets);
-		$rBouquetGroup = md5(implode('_', $rBouquets));
+		// The name EpgCronJob::buildXmltv() writes the set's file under.
+		$rBouquetGroup = hash('sha256', implode('_', $rBouquets));
 
 		if (file_exists(EPG_PATH . 'epg_' . $rBouquetGroup . '.xml')) {
 			$rFile = EPG_PATH . 'epg_' . $rBouquetGroup . '.xml';

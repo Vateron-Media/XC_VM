@@ -296,7 +296,8 @@ class EpgCronJob implements CommandInterface {
 				$rSection = $rSections[$rKey];
 			}
 
-			$rName = $rBouquet == 'all' ? 'all' : md5($rBouquet);
+			// The name EpgApiController looks for: the line's sorted bouquets.
+			$rName = $rBouquet == 'all' ? 'all' : hash('sha256', $rBouquet);
 			if (count($rEPGIDs) > 0 && $rSection === null) {
 				$this->keepPrevious($rName);
 				continue;

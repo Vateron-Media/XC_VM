@@ -110,10 +110,10 @@ PHP;
 		$this->assertStringEndsWith('</tv>', $rAll);
 		$this->assertSame(20, substr_count($rAll, '<programme'), 'a channel and start in both sources once');
 		$this->assertStringContainsString('<title>T1 news.fr 0 &amp; &quot;x&quot;</title>', $rAll);
-		$rFuture = (string) file_get_contents($this->rDir . 'epg/epg_' . md5('1') . '.xml');
+		$rFuture = (string) file_get_contents($this->rDir . 'epg/epg_' . hash('sha256', '1') . '.xml');
 		$this->assertSame(12, substr_count($rFuture, '<programme'), 'every channel of source 1, the ended programmes left out');
 		$rExpected = [];
-		foreach (['all', md5('1'), md5('1_2'), md5('1_2_3')] as $rName) {
+		foreach (['all', hash('sha256', '1'), hash('sha256', '1_2'), hash('sha256', '1_2_3')] as $rName) {
 			array_push($rExpected, 'epg_' . $rName . '.xml', 'epg_' . $rName . '.xml.gz');
 		}
 		$rFiles = $this->files();
@@ -147,6 +147,6 @@ PHP;
 		clearstatcache();
 		$this->assertSame($rPrevious, file_get_contents($this->rDir . 'epg/epg_all.xml'));
 		$this->assertGreaterThanOrEqual($rStart, filemtime($this->rDir . 'epg/epg_all.xml'), 'newer than the run: its sweep of old files keeps it');
-		$this->assertStringContainsString('changed', (string) file_get_contents($this->rDir . 'epg/epg_' . md5('1') . '.xml'), 'the other files are rebuilt');
+		$this->assertStringContainsString('changed', (string) file_get_contents($this->rDir . 'epg/epg_' . hash('sha256', '1') . '.xml'), 'the other files are rebuilt');
 	}
 }

@@ -399,7 +399,8 @@ class DashboardController extends BaseAdminController {
 	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
 	 */
 	public static function schemaCheck(string $statusUuid, string $version, array $bin): array {
-		if ($statusUuid !== '' && $statusUuid === md5($version)) {
+		// StatusCommand::schemaMark(): the release whose migrations all applied.
+		if ($statusUuid !== '' && $statusUuid === $version) {
 			return self::check('ok', 'tabler-database', 'dashboard_check_schema', Translator::get('dashboard_check_schema_ok', ['{version}' => $version]));
 		}
 

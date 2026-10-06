@@ -35,9 +35,9 @@ final class DashboardStatusChecksTest extends TestCase {
 	}
 
 	public function testSchemaOkOnlyWhenWatermarkMatchesVersion(): void {
-		$this->assertSame('ok', DashboardController::schemaCheck(md5('2.5.3'), '2.5.3', self::BIN)['state']);
+		$this->assertSame('ok', DashboardController::schemaCheck('2.5.3', '2.5.3', self::BIN)['state']);
 
-		$stale = DashboardController::schemaCheck(md5('2.5.2'), '2.5.3', self::BIN);
+		$stale = DashboardController::schemaCheck('2.5.2', '2.5.3', self::BIN);
 		$this->assertSame('warn', $stale['state']);
 		$this->assertNotSame('', $stale['help']);
 
