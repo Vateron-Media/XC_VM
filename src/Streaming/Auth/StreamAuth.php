@@ -113,7 +113,9 @@ class StreamAuth {
 			// A CONNECTIONS node's viewers live in its agent: MAIN enforces the
 			// line's limit when this request reaches it (conn.limit), so the
 			// request makes no WAN call. If the spool refuses, enforce here.
-			$rLimit = ['uuid' => $rUUID, 'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? $rIP ?? ''), 'user_agent' => (string) $rUserAgent];
+			// The viewer's address is the caller's to say: an RTMP viewer's
+			// request comes from nginx-rtmp, on this server.
+			$rLimit = ['uuid' => $rUUID, 'ip' => (string) ($rIP ?? $_SERVER['REMOTE_ADDR'] ?? ''), 'user_agent' => (string) $rUserAgent];
 			$rLimit += $rIsHMAC ? ['hmac_id' => (int) $rIsHMAC, 'hmac_identifier' => (string) $rIdentifier, 'max_connections' => (int) $rUserInfo['max_connections']] : ['user_id' => (int) $rUserInfo['id']];
 			if (EventSpool::append('p0', [['type' => 'conn.limit', 'd' => $rLimit]])) {
 				return;
@@ -176,5 +178,32 @@ class StreamAuth {
 			'UNKNOWN_LINE', 'UNKNOWN_HMAC' => ['AUTH_FAILED', null, null, 'INVALID_CREDENTIALS'],
 			default => ['USER_ALREADY_CONNECTED', 'show_connected_video', 'connected_video_path', null],
 		};
+	}
+
+	/**
+	 * What nginx-rtmp itself says in a callback (on_play, on_publish,
+	 * on_play_done): the client's address and id, the call and the stream
+	 * name. The arguments the client put on its stream name (username,
+	 * password, token) arrive in the same query string, so these four are
+	 * read from it here, by their exact names, and each has one value: null
+	 * for a query string that gives one of them two. One it does not name is
+	 * null.
+	 *
+	 * @return array{addr: ?string, clientid: ?string, call: ?string, name: ?string}|null
+	 */
+	public static function notifyArguments(string $rQuery): ?array {
+		$rOut = ['addr' => null, 'clientid' => null, 'call' => null, 'name' => null];
+		foreach (explode('&', $rQuery) as $rPair) {
+			$rPair = explode('=', $rPair, 2);
+			$rKey = urldecode($rPair[0]);
+			if (array_key_exists($rKey, $rOut)) {
+				$rValue = urldecode($rPair[1] ?? '');
+				if ($rOut[$rKey] !== null && $rOut[$rKey] !== $rValue) {
+					return null;
+				}
+				$rOut[$rKey] = $rValue;
+			}
+		}
+		return $rOut;
 	}
 }

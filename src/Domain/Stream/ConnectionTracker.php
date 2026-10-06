@@ -1124,7 +1124,7 @@ class ConnectionTracker {
 		}
 
 		$db = self::db();
-		$rCols = $rWithPid ? "`activity_id`, `pid`, `user_ip`" : "`activity_id`, `user_ip`";
+		$rCols = $rWithPid ? "`activity_id`, `pid`, `user_ip`, `hls_end`" : "`activity_id`, `user_ip`";
 		$rOpen = $rOpenOnly ? " AND `hls_end` = 0" : "";
 
 		if ($rAllowAdaptive && !empty($rCtx["adaptive"])) {

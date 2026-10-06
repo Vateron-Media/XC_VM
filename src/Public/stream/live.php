@@ -52,7 +52,8 @@ $rPID = getmypid();
 $rStartTime = time();
 $rVideoCodec = null;
 
-if (isset($rRequest["token"])) {
+// A link is one plain value: a request that sends a list of them has none.
+if (isset($rRequest["token"]) && !is_array($rRequest["token"])) {
 	$rTokenData = StreamAuthMiddleware::decryptToken($rRequest["token"], $rSettings, $rServers, $rIP);
 
 	if (!isset($rTokenData["video_path"]) && !isset($rTokenData["off_air"])) {

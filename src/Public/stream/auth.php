@@ -122,6 +122,12 @@ if (isset($_GET['utc'])) {
 }
 
 $rType = (isset($_GET['type']) ? $_GET['type'] : 'live');
+
+// A stream and its extension are plain values: one sent as a list names no stream.
+if (is_array($_GET['stream'] ?? null) || is_array($_GET['extension'] ?? null)) {
+	generateError('INVALID_STREAM_ID');
+}
+
 $rStreamID = intval($_GET['stream']);
 $rExtension = (isset($_GET['extension']) ? strtolower(preg_replace('/[^A-Za-z0-9 ]/', '', trim($_GET['extension']))) : null);
 if (!$rExtension && in_array($rType, ['movie', 'series', 'subtitle'])) {
@@ -147,7 +153,8 @@ if ($rExtension) {
 				generateError('INVALID_CREDENTIALS');
 			}
 		} else {
-			if ((isset($_GET['username']) && isset($_GET['password']))) {
+			// Only a plain name and password can be a cached line's: a list is left to the lookup's own read below.
+			if (is_string($_GET['username'] ?? null) && is_string($_GET['password'] ?? null)) {
 				if ($rSettings['case_sensitive_line']) {
 					$rPath = LINES_TMP_PATH . 'line_c_' . $_GET['username'] . '_' . $_GET['password'];
 				} else {
@@ -245,6 +252,12 @@ if ($rExtension) {
 
 	if (isset($rRequest['token'])) {
 		$rAccessToken = $rRequest['token'];
+
+		// A line's token is a plain value: one sent as a list is no line's.
+		if (is_array($rAccessToken)) {
+			generateError('INVALID_CREDENTIALS');
+		}
+
 		$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rAccessToken, null, false, false, $rIP);
 	} else {
 		if (isset($rRequest['hmac'])) {
@@ -256,7 +269,13 @@ if ($rExtension) {
 			$rIdentifier = (empty($rRequest['identifier']) ? '' : $rRequest['identifier']);
 			$rHMACIP = (empty($rRequest['ip']) ? '' : $rRequest['ip']);
 			$rMaxConnections = (isset($rRequest['max']) ? intval($rRequest['max']) : 0);
-			$rExpiry = (isset($rRequest['expiry']) ? $rRequest['expiry'] : null);
+			$rExpiry = (isset($rRequest['expiry']) ? $rRequest['expiry'] : '');
+
+			// The signature is over plain values (a link without an expiry signs
+			// an empty one): a parameter sent as a list is not one of them.
+			if (!is_string($rRequest['hmac']) || !is_string($rIdentifier) || !is_string($rHMACIP) || !is_string($rExpiry)) {
+				generateError('INVALID_CREDENTIALS');
+			}
 
 			if (($rExpiry && $rExpiry < time())) {
 				$rDeny = false;
@@ -279,6 +298,12 @@ if ($rExtension) {
 		} else {
 			$rUsername = $rRequest['username'];
 			$rPassword = $rRequest['password'];
+
+			// A line's name and password are plain values: one sent as a list is no line's.
+			if (is_array($rUsername) || is_array($rPassword)) {
+				generateError('INVALID_CREDENTIALS');
+			}
+
 			$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, false, false, $rIP);
 		}
 	}
@@ -664,7 +689,7 @@ if ($rExtension) {
 				if (!$rIsHMAC) {
 					$rTokenData = ['stream_id' => $rStreamID, 'username' => $rUserInfo['username'], 'password' => $rUserInfo['password'], 'extension' => $rExtension, 'type' => $rType, 'pid' => $rPID, 'channel_info' => ['stream_id' => $rChannelInfo['stream_id'], 'bitrate' => $rChannelInfo['bitrate'], 'target_container' => $rChannelInfo['target_container'], 'redirect_id' => $rChannelInfo['redirect_id'], 'originator_id' => ($rChannelInfo['originator_id'] ?? null), 'pid' => $rChannelInfo['pid'], 'proxy' => ($rChannelInfo['direct_proxy'] ? json_decode($rChannelInfo['stream_source'], true)[0] : null)], 'user_info' => ['id' => $rUserInfo['id'], 'max_connections' => $rUserInfo['max_connections'], 'pair_id' => $rUserInfo['pair_id'], 'con_isp_name' => $rUserInfo['con_isp_name'], 'is_restreamer' => $rUserInfo['is_restreamer']], 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'is_mag' => $rIsMag, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null)];
 				} else {
-					$rTokenData = ['stream_id' => $rStreamID, 'hmac_hash' => $rRequest['hmac'], 'hmac_id' => $rIsHMAC, 'identifier' => $rIdentifier, 'extension' => $rExtension, 'type' => $rType, 'pid' => $rPID, 'channel_info' => ['stream_id' => $rChannelInfo['stream_id'], 'bitrate' => $rChannelInfo['bitrate'], 'target_container' => $rChannelInfo['target_container'], 'redirect_id' => $rChannelInfo['redirect_id'], 'originator_id' => ($rChannelInfo['originator_id'] ?? null), 'pid' => $rChannelInfo['pid'], 'proxy_source' => ($rChannelInfo['direct_proxy'] ? json_decode($rChannelInfo['stream_source'], true)[0] : null)], 'user_info' => $rUserInfo, 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'is_mag' => $rIsMag, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null)];
+					$rTokenData = ['stream_id' => $rStreamID, 'hmac_hash' => $rRequest['hmac'], 'hmac_id' => $rIsHMAC, 'identifier' => $rIdentifier, 'extension' => $rExtension, 'type' => $rType, 'pid' => $rPID, 'channel_info' => ['stream_id' => $rChannelInfo['stream_id'], 'bitrate' => $rChannelInfo['bitrate'], 'target_container' => $rChannelInfo['target_container'], 'redirect_id' => $rChannelInfo['redirect_id'], 'originator_id' => ($rChannelInfo['originator_id'] ?? null), 'pid' => $rChannelInfo['pid'], 'proxy' => ($rChannelInfo['direct_proxy'] ? json_decode($rChannelInfo['stream_source'], true)[0] : null)], 'user_info' => $rUserInfo, 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'is_mag' => $rIsMag, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null)];
 				}
 
 				if (isset($_GET['segment'])) {
@@ -715,8 +740,17 @@ if ($rExtension) {
 			}
 
 			$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rRedirectID, ($rOriginatorID ?: null), $rForceHTTP, $rUserID);
-			$rStartDate = $rRequest['start'];
-			$rDuration = intval($rRequest['duration']);
+			// `start` goes into the token and the redirect as it came, so only the
+			// three forms timeshift.php reads pass: a unix time, YYYYMMDD-H, Y-m-d:H-i,
+			// with or without seconds.
+			$rStartDate = $rRequest['start'] ?? '';
+			if (!is_string($rStartDate) || !preg_match('/^(\d{1,10}|\d{8}-\d{1,2}|\d{4}-\d{1,2}-\d{1,2}:\d{1,2}-\d{1,2}(?:[:-]\d{1,2})?)$/D', $rStartDate)) {
+				generateError('NO_TIMESTAMP');
+			}
+			// timeshift.php looks for one recording per minute of the duration.
+			// ponytail: one ceiling for every channel, the window a `utc` link asks
+			// for; a channel's own archive length would be the tighter bound.
+			$rDuration = min(intval($rRequest['duration']), 3600 * 6);
 
 			switch ($rExtension) {
 				case 'm3u8':
