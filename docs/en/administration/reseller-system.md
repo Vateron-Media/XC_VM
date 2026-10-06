@@ -29,7 +29,7 @@ Credits are the currency for all reseller operations. Each action has a cost, an
 
 The price is taken from the balance as it is stored at that moment, before the line, device, sub-reseller or code batch is created. Two requests sent together cannot spend the same credits: the one the balance no longer covers is answered `STATUS_INSUFFICIENT_CREDITS` (a code batch is refused with an *Insufficient balance* message) and creates nothing. When the record cannot be stored after all, the price is returned to the balance.
 
-Prices of lines, MAG devices, Enigma2 devices and sub-resellers are whole credits: the stored price is cut to an integer. A balance keeps its fraction.
+Prices of lines, MAG devices, Enigma2 devices, sub-resellers and activation codes are charged as they are stored, with their fraction, at the four decimals a balance is kept at (a price of 0.5 costs 0.5, 10.9 costs 10.9). The refusal for an insufficient balance, the cost and balance in the reseller log, and the price the REST API lists all go by that charge. Credit transfers move whole credits (see [Credit transfer](#credit-transfer)).
 
 ### Credit costs
 
@@ -52,7 +52,7 @@ Resellers can have custom per-package pricing via `override_packages` JSON on th
 ```php
 $rOverride = json_decode($rUserInfo['override_packages'], true);
 if (isset($rOverride[$rPackage['id']]['official_credits'])) {
-    $rCost = intval($rOverride[$rPackage['id']]['official_credits']);
+    $rCost = ResellerAPI::amount($rOverride[$rPackage['id']]['official_credits']);
 }
 ```
 
@@ -73,10 +73,12 @@ All credit operations are recorded in `users_logs`:
 | `owner` | reseller user ID |
 | `type` | `line`, `mag`, `enigma`, `user`, `active_code` |
 | `action` | `new`, `extend`, `edit`, `enable`, `disable`, `delete`, `convert`, `send_event`, `adjust_credits`, `generate` |
-| `cost` | credits spent |
-| `credits_after` | balance after operation |
+| `cost` | credits spent, with its fraction |
+| `credits_after` | balance after operation, with its fraction |
 | `package_id` | package used |
 | `date` | timestamp |
+
+`cost` and `credits_after` keep fractions since migration `069_exact_reseller_log_amounts`; rows written before it keep the whole values they were stored with.
 
 ---
 
@@ -112,7 +114,8 @@ SELECT id, username FROM `lines` WHERE username LIKE '%/%' OR password LIKE '%/%
 ### Trials
 
 - A trial is made only when a line or device is created, from a package flagged as trial; `trial` on an edit is ignored.
-- A package with *Trial Package* on and *Standard Package* off gives trials only. Creating a line or device from it without `trial` is answered `STATUS_INVALID_PACKAGE`, and so is an edit that names it: the edit is refused, not taken as a purchase. A trial becomes a subscription by buying a package that sells subscriptions (*Standard Package* on, both switches on, or neither).
+- A package with *Trial Package* on and *Standard Package* off gives trials only. Creating a line or device from it without `trial` is answered `STATUS_INVALID_PACKAGE`, and so is an edit that names it: the edit is refused, not taken as a purchase. A trial becomes a subscription by buying a package with *Standard Package* on.
+- A package sells a reseller what its switches say. *Standard Package* sells subscriptions (a line, a MAG or Enigma2 device) and official activation codes; *Trial Package* gives trials. A package with neither switch on sells a reseller nothing: `create_line`/`edit_line`, `create_mag`/`edit_mag` and `create_enigma`/`edit_enigma` answer `STATUS_INVALID_PACKAGE` for it, and it is not listed to the reseller. Administrators are not bound by the switches.
 - *Allowed Trials* N in *Day* / *Month* (group form) means N trials in one rolling day, or in one calendar month back from today (28 to 31 days depending on the date).
 - The allowance counts the trial lines, MAG and Enigma2 devices and trial activation codes the reseller itself holds. Each sub-reseller has its own allowance.
 - The allowance holds for requests sent together as well: one trial request of a reseller is counted and stored at a time (lines, devices and trial activation codes).
@@ -137,7 +140,10 @@ In these cases the request is saved unpaired, without an error.
 
 ### Activation codes
 
-A reseller generates activation codes from a line package offered to its group. Each code has a companion line.
+A reseller generates activation codes from a line package offered to its group that has *Standard Package* or *Trial Package* on. Each code has a companion line.
+
+- *Standard Package* on gives official codes at the official price; *Trial Package* alone gives trial codes at the trial price. With both on, the codes are official unless the request asks for trial codes with `is_trial` (on the form the package is listed twice, the second entry tagged *[Trial]* at the trial price). Trial codes come out of the trial allowance; the trial entry is greyed out without one. Asking for trial codes from a package without *Trial Package* is refused (*Invalid package selected.*).
+- An administrator issues codes from any package; an administrator's codes on a package with *Trial Package* on are trial codes.
 
 - The companion line is created switched off and starts (expiry set, switched on) when the code is redeemed. The credentials and M3U links shown for a code still in stock work only after redemption.
 - Enabling or editing a code in stock does not switch its line on. A redeemed code whose line an administrator set to no expiry is switched on by enabling the code.
@@ -147,6 +153,7 @@ A reseller generates activation codes from a line package offered to its group. 
 - A custom streaming password cannot contain `/`, and a code cannot be renamed to a value containing `/`.
 - A renamed code gives its line the new name as username when the username was the old code or a generated `ac_…` one. The rename is refused (*already taken*) when another line has that username.
 - A code a reseller bought refunds its price once, when that reseller deletes it with the refund option while it is in stock. A disabled code refunds nothing, even one that was never redeemed: enable it first, which returns it to stock. A code deleted by another reseller of the tree, or by an administrator, refunds nothing. A code an administrator generated for a reseller has purchase cost 0 and refunds nothing.
+- The update applies these rules once to the codes generated before them (database migration `066_hold_unredeemed_activation_codes`): the line of a code nobody redeemed is switched off, with a line or device paired with it that took its state (no expiry). A code nobody redeemed, or one back in stock, keeps its purchase cost only while the reseller log (`users_logs`) holds the purchase of its batch by that reseller under the batch's name, so a code whose record was cleared or whose batch was renamed since refunds nothing. The lines of redeemed codes and the cost of active codes are not changed. A version rollback switches the waiting lines back on, except those of suspended codes (a line or device paired with one follows when that line is next saved), and restores no purchase cost; the next update applies the step again.
 
 ---
 
@@ -174,7 +181,7 @@ Resellers can create sub-resellers (if `create_sub_resellers` permission is gran
 - Multi-level: a sub-reseller can create their own sub-resellers.
 - Each creation costs `create_sub_resellers_price` credits.
 - Assigned `member_group_id` must be in the parent's `subresellers` permission array.
-- A sub-reseller cannot be renamed to a username another panel account has (`STATUS_EXISTS_USERNAME`); an empty name on an edit keeps the current one.
+- A sub-reseller cannot be named, or renamed, with a username another panel account has (`STATUS_EXISTS_USERNAME`); an empty name on an edit keeps the current one. Names are compared without case and trailing spaces, and the database holds them unique (migration `068_unique_panel_account_names`), so two requests that create the same name at once store one account and refuse the other.
 - A reseller never gives a user an administrator group, and cannot edit, delete, disable or enable an administrator's account in its tree or move its credits. See [Full administrator](../guides/permissions-and-rbac.md#full-administrator).
 - A reseller cannot delete, disable or enable its own account: the panel's row action answers `result: false`, and the REST API `STATUS_FAILURE`.
 
@@ -279,7 +286,8 @@ Authentication via API key. Actions:
 Answers to know:
 
 - `create_line` / `edit_line` answer `STATUS_INVALID_USERNAME` or `STATUS_INVALID_PASSWORD` for a username or password that contains `/`.
-- `create_line`, `create_mag` and `create_enigma` without `trial` answer `STATUS_INVALID_PACKAGE` for a package that gives trials only, and so do `edit_line`, `edit_mag` and `edit_enigma` when they name such a package (see [Trials](#trials)).
+- `packages` lists only packages with *Standard Package* or *Trial Package* on, at the price a purchase is charged (the reseller's own price where one is set).
+- `create_line`, `create_mag` and `create_enigma` without `trial` answer `STATUS_INVALID_PACKAGE` for a package that does not have *Standard Package* on (trials only, or neither switch), and so do `edit_line`, `edit_mag` and `edit_enigma` when they name such a package (see [Trials](#trials)).
 - `edit_line`, `edit_mag` and `edit_enigma` answer `STATUS_FAILURE`, with nothing stored, when the line's expiry changed after the request read it. Send the request again.
 - `create_line`, `create_mag` and `create_enigma` with `trial` ignore `pair_id` and `member_id`. `edit_mag` and `edit_enigma` ignore `pair_id` while the device is a trial. A `pair_id` that names a trial line, or the line of an activation code that has not been redeemed, is ignored. No error is returned.
 - `enable_line`, `enable_mag` and `enable_enigma` answer `STATUS_FAILURE` for a line that waits for an activation code: the code's own line, or a line or device paired with it that took its state. After the code is redeemed, save the line it is paired with once so the device follows.
@@ -289,6 +297,7 @@ Answers to know:
 - `delete_user`, `disable_user`, `enable_user` and `adjust_credits` answer `STATUS_NO_PERMISSIONS` when the key's group has no `create_sub_resellers`; `delete_user` also needs `delete_users`.
 - `mass_active_codes` answers an error for `extend` and `change_package`. `edit_active_code` ignores `max_connections` and `exp_date`, and a `package_id` of the reseller's group; a `package_id` outside the group's packages answers `STATUS_FAILURE`. The code's package does not change either way.
 - `edit_active_code` answers `STATUS_FAILURE` with an *already taken* error when the new code is another line's username and the code's line would take it. `enable_active_code` and `mass_active_codes` with `enable` change the status of suspended codes only: a code in stock or active keeps its status.
+- `generate_active_codes` takes `is_trial`, read as a switch: `1`, `true`, `on` or `yes` ask for trial codes (the package needs *Trial Package* on and the reseller room in its trial allowance); `0`, `false`, `off`, an empty value or no field ask for the package's official codes. It answers `STATUS_FAILURE` with *Invalid package selected.* for a package with neither switch on.
 - `generate_active_codes` applies `category_template_id` only for a template the reseller can access, and ignores `custom_data`.
 
 The `ResellerAPIWrapper` class validates the API key, initializes a session via `ResellerAPI`, and returns filtered JSON responses.
@@ -305,6 +314,7 @@ File: `src/Infrastructure/Bootstrap/reseller_session.php`
 - IP change detection (if `ip_logout` setting enabled).
 - The account must still be enabled: disabling a reseller ends the session it has open on its next request.
 - Session keys: `reseller` (user ID), `rip`, `rcode`, `rverify`, `rlast_activity`.
+- The cookie is the panels' `PHPSESSID`, `HttpOnly` and `SameSite=Strict`. The web players keep their sign-in in a cookie of their own (see [Session cookies](../guides/authentication-and-sessions.md#cookie-configuration)).
 
 ### Functions bootstrap
 

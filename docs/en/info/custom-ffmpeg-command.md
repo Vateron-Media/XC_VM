@@ -104,6 +104,13 @@ instead of the CPU one.
   none is interpreted. **Force Input Audio Codec** takes one codec name; extra
   ffmpeg options belong in a custom command.
 
+    **Cookie** takes `name=value`; a trailing `;` is not needed. Measured on ffmpeg
+    4.0, 7.1 and 8.0: ffmpeg sends only the first `name=value` pair of the field;
+    an `http` source fetched through the stream's HTTP proxy receives no cookie (an
+    `https` one does on 7.1 and 8.0). The probe button on the stream form sends the
+    same cookie the stream will send, so a probe that fails for lack of a cookie
+    means the stream will fail too.
+
     A channel that already has extra options or quotes stored in that field (for
     example `aac -rtsp_transport tcp` or `'aac'`) does not start: the whole value,
     quotes included, is passed to ffmpeg as one codec name (`Unknown decoder`). To

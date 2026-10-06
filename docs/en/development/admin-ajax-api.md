@@ -137,6 +137,9 @@ Some actions pass the gate and still answer `{"result":false}`:
   that flag, and no other flag is set this way. `value` must read as on or off (`0`, `1`,
   `true`, `false`, `on`, `off`, `yes`, `no`) and is stored as 0 or 1. A missing or other
   `value`, or a `package_id` that does not exist, answers `{"result":false}`.
+  Switching both off withdraws the package from resellers on every path (it sells them
+  nothing). Both on is the only way to get a package that sells subscriptions and gives
+  trials; the package form itself clears one switch when the other is switched on.
 - **`reg_user`** and **`adjust_credits`** leave an administrator's account alone unless the
   caller is a full administrator.
 - **`reinstall_server`** answers `{"result":false,"message":"…"}` when the load balancer

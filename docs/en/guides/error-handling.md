@@ -57,7 +57,7 @@ Use centralized code definitions only. Do not hardcode error text in endpoint ha
 | `CACHE_INCOMPLETE` | Cache is being generated... |
 | `DEVICE_NOT_ALLOWED` | MAG & Enigma devices are not allowed to access this. |
 | `DISABLED` | Line has been disabled. |
-| `DOWNLOAD_LIMIT_REACHED` | Reached the simultaneous download limit. |
+| `DOWNLOAD_LIMIT_REACHED` | Reached the simultaneous download limit. The request is answered with HTTP 429 and an empty body while the line already has `max_simultaneous_downloads` downloads of that kind (playlist or XMLTV) running on the server; the code and its text are shown only with `debug_show_errors` on. |
 | `E2_DEVICE_LOCK_FAILED` | Device lock checks failed. |
 | `E2_DISABLED` | Device has been disabled. |
 | `E2_NO_TOKEN` | No token has been specified. |

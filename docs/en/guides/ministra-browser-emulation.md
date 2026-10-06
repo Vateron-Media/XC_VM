@@ -23,10 +23,15 @@ checklist steps 4-5 concrete:
    The handshake returns a token for any MAC, so a token does not show that the MAC is registered.
    When the database does not answer the device lookup, the handshake replies HTTP 503 with an
    empty body instead: it hands out no token and counts no attempt.
+   For a registered device the handshake writes nothing: the device keeps its token, and the box
+   already verified under it keeps its session. The handshake's token is accepted only by
+   `get_profile`, only for the device it was made for, and for 10 to 20 minutes.
 2. **get_profile** — `GET portal.php?type=stb&action=get_profile` with `Authorization: Bearer <token>`
    and the device identifiers (`mac`, `sn`, `stb_type`, `device_id…`). The server validates the
    device (MAC row, `lock_device` fields, `allowed_stb_types`) and returns the **profile**, whose
-   `status` says whether the box is authorized.
+   `status` says whether the box is authorized. A box verified with a handshake's token makes it
+   the device's token: its stream links are checked against it from then on, and the previous
+   token stops. One such `get_profile` of a device runs at a time; another waits for it.
 3. Subsequent calls (channel list, EPG, create_link) reuse the same Bearer token. They are answered
    only once `get_profile` has verified the device under that token; otherwise the body is empty.
 

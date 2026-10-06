@@ -146,7 +146,9 @@ Migrations
 
 ```
 
-If a statement fails, the step prints `[FAIL]` and is **not** recorded — so it will be retried on the next run. Review the SQL, fix it, and re-run `db:migrate`.
+If a statement fails, the runner prints the database's message on an `[ERR]` line (the panel log leaves some messages out, such as duplicate entries), the step prints `[FAIL]` and is **not** recorded — so it will be retried on the next run. Review the SQL, fix it, and re-run `db:migrate`.
+
+A step may fail on purpose to wait for the operator: `068_unique_panel_account_names` raises every username used more than once through a temporary procedure (`SIGNAL` cannot run as a prepared statement before MariaDB 10.6.2; a `CALL` can) and stays pending until they are renamed. After a version rollback a step's row is removed and the next update applies it again; `066_hold_unredeemed_activation_codes` relies on that.
 
 ---
 

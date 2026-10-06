@@ -71,7 +71,7 @@ Run this **on the silent LB/proxy node itself** — the causes usually live ther
 6. **Babysitter cron** — three sub-checks, because a dead watchdog stays dead only when the babysitter chain is broken:
    - is `cron:servers` present in the **`xc_vm` user's crontab** (if missing, regenerate with `rm -f /home/xc_vm/tmp/crontab` and restart the service);
    - is the system **cron service** active (no cron → the crontab never fires);
-   - is a previous `cron:servers` instance **hung on its cron lock** — a hung instance blocks every subsequent run for up to 30 minutes (`acquireCronLock` stale timeout), which is exactly how one DB blip keeps a node offline for half an hour. The command prints the holding PID and the kill command.
+   - is a previous `cron:servers` instance **hung on its cron lock** — a hung instance blocks every later run until its process is killed; nothing ends it automatically, which is how one DB blip can keep a node offline. The command prints the holding PID and the kill command.
 7. **Clock skew** — `time_offset` vs the panel.
 8. **OPENSSL_EXTRA** — whether this node holds the main's value, as in Mode A.
 9. **Cluster API** (a node with an agent) — the agent's own report, `GET /v1/status` on its socket (`config/cluster/agent.sock`): whether the agent answers; the state, mode and flows of MAIN's latest reply; whether MAIN refuses the session for want of a licence; the last heartbeat MAIN answered; this machine's clock against MAIN's; the token and lease windows (and why the last lease was refused, if it was); each event lane's backlog (files, bytes, oldest, the batch in flight, MAIN's cursor); and the lease verdict the node's PHP acts on (`serving`, `draining` or `fenced`, and why).

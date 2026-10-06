@@ -137,6 +137,8 @@ Every failure triggers `BruteforceGuard::checkFlood()` before returning an error
 
 On success the session moves onto a fresh id (`session_regenerate_id(true)`) before the session keys are written, as at admin and reseller login, so the browser gets a new session cookie at sign-in.
 
+The second web player (`src/Public/Controllers/PlayerV2/PlayerLoginController.php`) also signs in with an account on another Xtream server (the server form, or a playlist address). When that server refuses, the request ends there, for a plain form post as for the page's script: the login page shows that server's answer, the address is counted once by `checkFlood()`, and the username and password are not tried as a line of this panel.
+
 ### Player Error Codes
 
 | Constant | Value | Meaning |
@@ -295,14 +297,15 @@ Rate-limits requests per IP within a configurable time window.
 - **Behavior:** Counts requests in a row, each within `flood_seconds` of the one before; a longer gap starts the count again. If the count exceeds `flood_limit`, the IP is blocked (inserted into `blocked_ips` table or signaled via Redis in cached/streaming mode). The state file is deleted after blocking.
 - **Used by:** Player login (called on every failed login attempt), streaming endpoints, the client APIs (a refused sign-in on `player_api.php` / `panel_api.php` included) and the MAG portal.
 
-### `checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false): void`
+### `checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false, ?string $password = null): void`
 
-Detects brute-force attacks based on the number of unique MAC addresses or usernames seen from a single IP.
+Detects brute-force attacks based on the number of unique MAC addresses or usernames seen from a single IP, and on the number of different passwords tried for one username from it.
 
 - **Settings:** `bruteforce_mac_attempts`, `bruteforce_username_attempts` (max unique values), `bruteforce_frequency` (time window in seconds). A limit that is 0, empty or absent switches that count off: MAC addresses and usernames are counted separately, each against its own limit.
-- **State file:** `FLOOD_TMP_PATH . $ip . '_mac'` or `FLOOD_TMP_PATH . $ip . '_user'` -- stores attempts as `{term: timestamp}` pairs.
-- **Behavior:** Expired attempts (outside the frequency window) are pruned via `truncateAttempts()`. If the number of unique terms reaches the limit, the IP is blocked.
-- **Used by:** Streaming authentication endpoints, the client APIs and web player sign-in (unknown usernames, tokens and activation codes), and the MAG portal. The portal reports a handshake for a MAC the panel does not know and a `get_profile` that does not verify the device: each calls `checkBruteforce()` with `md5()` of the MAC as sent, then `checkFlood()`.
+- **State file:** `FLOOD_TMP_PATH . $ip . '_mac'` stores attempts as `{term: timestamp}` pairs. `FLOOD_TMP_PATH . $ip . '_user'` holds `{"attempts": {term: timestamp}, "passwords": {username: {digest: timestamp}}}`: the `attempts` keys are the usernames as sent; the `passwords` keys are the username in lower case without trailing spaces, and each digest is the first 16 hex characters of HMAC-SHA256 over that username and the password, keyed with the panel's stream secret. The password itself is never stored.
+- **Behavior:** Expired attempts and digests (outside the frequency window) are pruned via `truncateAttempts()`. The IP is blocked when the number of unique terms reaches the limit, or when the different passwords tried for one username reach `bruteforce_username_attempts` (same limit, same note). The same wrong password sent again counts once; an empty or absent password is not counted; a correct sign-in is never counted.
+- **Concurrency:** a call holds an exclusive `flock` on the count file for its read and replace, so requests refused at the same moment for one address are each counted. The file is still replaced by rename; a waiting request locks the file now at the path again (at most 20 turns, then it proceeds without the lock). No lock file is created.
+- **Used by:** Streaming authentication endpoints, the client APIs and web player sign-in (unknown usernames, tokens and activation codes), and the MAG portal. The username and password sign-ins pass the password too (player_api, playlist, EPG, Enigma2, both web players, stream authentication, RTMP and the probe); token, activation-code and MAG portal callers pass none. The portal reports a handshake for a MAC the panel does not know and a `get_profile` that does not verify the device: each calls `checkBruteforce()` with the SHA-256 of the MAC as sent, then `checkFlood()`.
 
 ### `checkAuthFlood(array $user, ?string $ip = null): void`
 
@@ -331,11 +334,21 @@ When an IP is blocked:
 
 ### Cookie Configuration
 
-The session cookie parameters are set in one place, `SessionStage::startSession()` (`src/Core/Bootstrap/Stage/SessionStage.php`): the admin bootstrap context runs it as a boot stage, and the admin, reseller and player scope bootstraps call it for the session they start before the framework boot. The admin session poll (`Public\Controllers\Admin\SessionController`, the `session` route) and `SessionManager::start()` call it too; the latter makes the first start of a form save, because nginx runs `Public/Views/admin/post.php` itself. The session cookie is `SameSite=Strict` and `HttpOnly`, and PHP runs in strict mode, refusing session ids it never issued:
+The session cookie parameters are set in one place, `SessionStage::startSession()` (`src/Core/Bootstrap/Stage/SessionStage.php`): the admin bootstrap context runs it as a boot stage, and the admin, reseller and player scope bootstraps call it for the session they start before the framework boot. The admin session poll (`Public\Controllers\Admin\SessionController`, the `session` route) and `SessionManager::start()` call it too; the latter makes the first start of a form save, because nginx runs `Public/Views/admin/post.php` itself. Every session start of both web players (sign-in, sign-out, external accounts) goes through it as well.
+
+It chooses the cookie from the request's scope (`XC_SCOPE`, set by nginx):
+
+- The admin and reseller panels, the APIs and every other scope keep PHP's `PHPSESSID`, `SameSite=Strict`.
+- The two web players (`player`, `player_v2`) use their own cookie, `PLAYERSESSID` (`SessionStage::PLAYER_COOKIE`), `SameSite=Lax`.
+
+Both are `HttpOnly`, and PHP runs in strict mode, refusing session ids it never issued:
 
 ```php
+if (in_array($_SERVER['XC_SCOPE'] ?? '', ['player', 'player_v2'], true)) {
+    session_name(self::PLAYER_COOKIE);
+}
 $rParams = session_get_cookie_params();
-$rParams['samesite'] = 'Strict';
+$rParams['samesite'] = session_name() === self::PLAYER_COOKIE ? 'Lax' : 'Strict';
 $rParams['httponly'] = true;
 session_set_cookie_params($rParams);
 ini_set('session.use_strict_mode', '1');
@@ -344,7 +357,11 @@ session_start();
 
 No panel script reads the session cookie, so `HttpOnly` costs nothing and keeps an XSS from reading it.
 
-`SameSite=Strict` means a browser does not send the cookie on a request that starts on another website. For the web player, as for the panel, a sign-in that starts on another site (a link or form that carries the credentials to `/CODE/login`) ends on the login form, and a link from another site to the player asks a signed-in viewer to sign in again.
+`SameSite=Strict` means a browser does not send the panels' cookie on a request that starts on another website, so a link from another site never reaches a signed-in panel. The player's cookie is sent on a link from another site (a top-level `GET`), so a viewer who follows one stays signed in; it is not sent on a form post or a script request from another site.
+
+A panel sign-in and a player sign-in in one browser are two sessions: a player request neither reads nor writes the panel's session, and the reverse. Signing out of the player ends the player's session only. A session from before the player had its own cookie is not carried over: viewers sign in to the player once after the update.
+
+The player's `GET` routes that change something, reachable from a link on another site while a viewer is signed in: `logout` (both players) signs the viewer out; `refresh` (second player) rebuilds the line's cache files; `profile` (first player) with `bouquet_order` reorders the line's own bouquets (it adds none).
 
 ### Verify Hash
 

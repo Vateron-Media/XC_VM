@@ -118,20 +118,23 @@ At the end of a pass `cron:streams` kills two kinds of process that no stream of
 ## Cron Locking
 
 ```php
-ProcessManager::acquireCronLock(string $pidFile, int $maxAge = 1800): bool
+ProcessManager::acquireCronLock(string $pidFile): bool
+ProcessManager::cronLockHolder(string $pidFile, bool $pinned = false)
+ProcessManager::exitIfCronLockHeld(string $pidFile)
 ```
 
 Behavior:
 
-- active lock -> exits the current run
-- stale lock (older than `$maxAge` seconds) -> removed and replaced
-- on success -> writes the current PID to the lock file and returns `true`
+- A held lock makes the run exit with `Running...`.
+- The lock file holds `pid starttime` and is held for as long as that very process lives, however long it runs.
+- A lock whose process is gone, whose pid now belongs to another process, or whose process has ended and only waits to be collected by its parent, is taken at once.
+- Nothing in the lock code ever ends a process. A hung cron holds its lock until it is killed (`sudo kill -9 <pid>`); the next cron minute then takes over.
+- A pid-only lock written by 2.6.x is honoured for 30 minutes and swept after 10, as before.
+- Once a cron has held its lock for an hour, the next run that finds it writes one Panel Logs line, `has held its cron lock since …`. It is written as the owner of the logs directory when the run is root (`SettingsAudit::asAgentUser`), and to the cron's stderr when root cannot switch to that owner.
 
-> **Edge case.** `acquireCronLock()` does **not** register a shutdown handler — it never
-> auto-removes the lock on exit. A lock is reclaimed only when a later run finds it older than
-> `$maxAge`. So keep `$maxAge` comfortably above the job's real runtime (a slow-but-live run past
-> `$maxAge` could be wrongly reclaimed), and don't rely on the lock disappearing the moment a job
-> finishes.
+`cron:tmp` leaves the `lock_*` file of a running cron in `tmp/crons` whatever its age. The daemons' `daemon_<name>.lock` files are still removed after ten minutes without a change, on purpose: that sweep is what frees a `flock` inherited by a crashed daemon's child.
+
+For developers: a cron sets its lock path for removal only after the lock is taken (`CronTrait` does), and a run that exits at the lock must not unlink it.
 
 ---
 

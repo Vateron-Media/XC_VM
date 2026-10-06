@@ -237,16 +237,22 @@ Serves archived segments (timeshift / catch-up) from the archive path. A TS requ
 A catch-up link (`/timeshift/…`, or a live link with `?utc=`) is checked by `auth.php` before `/tsauth/{token}` is issued:
 
 - `start` is a Unix time (up to 10 digits), `YYYYMMDD-HH` or `YYYY-MM-DD:HH-MM`. The last form is also read with seconds after it (`:SS` or `-SS`), which are ignored: the archive is read from that minute. Anything else is answered `NO_TIMESTAMP`, by `auth.php` and again by `timeshift.php` when it reads the token.
-- `duration` is in minutes and is served up to 21600 (15 days). `timeshift.php` looks for one recorded minute per minute of it, and never past the present minute.
+- `duration` is in minutes and is served up to 21600 (15 days). `timeshift.php` looks for one recorded minute per minute of it, and never past the present minute. A live link with `?utc=` names no duration: it asks for 360 (six hours from its start), and a `duration` sent with `utc` is ignored. A viewer who keeps watching past those six hours reaches the end of the stream and needs a new link with a later `utc`.
 - In the HLS playlist, each catch-up segment link (`/hls/{token}`) has nine `/`-separated fields: `TS`, username, password, viewer IP, duration, start, `<stream>_<file>_<offset>`, connection uuid and server id. The start is written as a Unix time and the username and password are URL-encoded; `segment.php` answers 404 for a catch-up link with any other number of fields.
 
 ### RTMP (rtmp.php)
 
 nginx-rtmp calls `rtmp.php` on `on_play`, `on_publish` and `on_play_done`. What nginx-rtmp itself says — `addr`, `clientid`, `call` and `name` — is read from the callback's query string by `StreamAuth::notifyArguments()`. A callback that gives one of the four two different values is answered 404. The stream's own arguments (`username`, `password`, `token`) come from the parsed request, as on the other endpoints, so an RTMP URL must not carry arguments named `addr`, `clientid`, `call` or `name`.
 
+### Radio in the second web player
+
+`GET /<code>/radio?stream=<id>` answers `302` to `<domain>/<username>/<password>/<id>.m3u8` (`DomainResolver`, the same form as the live channels) for a station in the signed-in line's `radio_ids`, and `404` otherwise; it never names `stream_source`. The station entries of `radio?ajax=1` and of the page's `initialStations` are `id, name, logo, category_id, direct, url`, where `url` is that play answer, so the page and the script's `localStorage` copy hold neither a source nor the line's credentials. `player-radio.js` plays `url` with hls.js unless the entry says `direct`, then with the audio element. On a fatal hls.js network error it asks the play answer again (2 s apart, at most 3 in a row, counted anew once a fragment is buffered) while the station shows as playing; otherwise it shows the station as paused.
+
+A station therefore plays through the panel like a live channel: it has to be started or set on demand, the line needs the HLS output and HLS must be enabled in settings (otherwise the Radio page is not offered), and a listener shows in connections and counts toward the line's maximum. A station marked *Direct Source* is authorised by the panel and then redirected to its source, so it is not counted and its source reaches the listener.
+
 ### Probe (probe.php)
 
-`/probe/{data}` tells a restreamer whether a channel is up and with which codecs (`codecs`, `container`, `bitrate` as JSON) without opening a connection; `data` is the base64 of a stream link's path. It answers only for a restreamer line that is not expired, banned or disabled, and only for a stream in that line's bouquets; every other request gets a 404. A probe whose username and password match no line counts that username toward the address's bruteforce limit (`bruteforce_username_attempts` different names within `bruteforce_frequency`), the same count a refused `/live/` request adds to. It is not counted when **Ignore Invalid Credentials** is on together with the cache.
+`/probe/{data}` tells a restreamer whether a channel is up and with which codecs (`codecs`, `container`, `bitrate` as JSON) without opening a connection; `data` is the base64 of a stream link's path. It answers only for a restreamer line that is not expired, banned or disabled, and only for a stream in that line's bouquets; every other request gets a 404. A probe whose username and password match no line counts that username, and the password for it, toward the address's bruteforce limit (`bruteforce_username_attempts` different names, or different passwords for one name, within `bruteforce_frequency`), the same count a refused `/live/` request adds to. It is not counted when **Ignore Invalid Credentials** is on together with the cache.
 
 ### Daemon delivery — `xc_fanout`
 
@@ -513,6 +519,8 @@ limit_req zone=one burst=8;
 
 20 requests/second per IP with 8-request burst. 30-minute sliding window.
 
+An access code's sign-in and image resizer (`/CODE/login`, `/CODE/resize`, which carry no `.php`) are limited in a zone of the panel's own, `panel` (`limit_req_zone $binary_remote_addr zone=panel:10m rate=20r/s;`), with the code type's burst (500 for admin, reseller and player codes) and `nodelay`; a refused request answers 503. Being a separate zone, a list of thumbnails never holds back the same address's streams or client API requests. The other pages of a code are not limited by it; its `.php` location keeps its own rule in zone `one`. `AuthRepository::updateCodes()` writes the files from `codes/template`; it names zone `one` when the installed `nginx.conf` does not declare `panel`, adds the location to a template kept from an older release, and post-update runs it whenever at least one code is enabled.
+
 ### 2. StreamingRequestBootstrap (IP block)
 
 ```php
@@ -524,7 +532,7 @@ if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
 
 File-based IP blocking. Block files are created by `BruteforceGuard::checkFlood()` and `checkBruteforce()` (see [Authentication and Sessions](../guides/authentication-and-sessions.md#bruteforceguard)) when an address passes a limit, and for an address put on the blocklist in the panel. The guard is fed by the refused requests of the stream endpoints and of the client APIs, `player_api.php` included.
 
-The flood count is of refused requests in a row, each within `flood_seconds` of the one before; a longer gap starts it again. It is a limit on tight loops. Different usernames or MACs tried over a longer time are what `checkBruteforce()` counts, within `bruteforce_frequency`.
+The flood count is of refused requests in a row, each within `flood_seconds` of the one before; a longer gap starts it again. It is a limit on tight loops. Different usernames or MACs, and different passwords for one username, tried over a longer time are what `checkBruteforce()` counts, within `bruteforce_frequency`.
 
 ### 3. ConnectionLimiter (per-user)
 
@@ -553,7 +561,8 @@ The live playlist's `#EXT-X-MEDIA-SEQUENCE` is re-anchored by `HlsSequence` so i
 
 The source options of the stream form (User Agent, HTTP Proxy, Cookie, Headers, Force Input Audio Codec, Skip FFProbe) are the `fetch` rows of `streams_arguments`. The table also holds `transcode` rows (bitrates, scaling and the rest), which the stream form does not show: a transcoding profile builds those options itself in `ProfileService`. `argument_cmd` is the template `StreamUtils::getArguments()` turns into a piece of the ffmpeg command line, for each row a stream has an option for:
 
-- A text template holds one `%s`, placed bare (`-acodec %s`), inside double quotes (`-user_agent "%s"`) or inside single quotes (`-headers '%s'`). `getArguments()` quotes the value for that place, so the shell hands it to ffmpeg as one argument. Two keys are rewritten before they are quoted: `cookie` by `fixCookie()` (appends `path=/;` and `domain=;` when the value has none) and `proxy` by `proxyURL()` (puts `http://` in front of a value without a scheme); every other value is quoted as stored. A template must not expect a value that is already escaped.
+- A text template holds one `%s`, placed bare (`-acodec %s`), inside double quotes (`-user_agent "%s"`) or inside single quotes (`-headers '%s'`). `getArguments()` quotes the value for that place, so the shell hands it to ffmpeg as one argument. Two keys are rewritten before they are quoted: `cookie` by `fixCookie()` (gives a value typed without its last `;` that `;`, blanks after it aside, then appends `path=/;` and `domain=;` when the value has none) and `proxy` by `proxyURL()` (puts `http://` in front of a value without a scheme); every other value is quoted as stored. A template must not expect a value that is already escaped.
+- ffmpeg's `-cookies` takes Set-Cookie text and sends a cookie only when its path and domain fit the request; ffmpeg 4.0 sends nothing for a cookie without a path, hence the appended `path=/;`. A `path` or `domain` typed after a space (`; path=/`) is deliberately not recognised: the two are appended behind it and the later, empty `domain=` wins. That is required, because ffmpeg compares the cookie domain with `host:port`, so a real domain never matches a source addressed with a port. The node's `probe` action (`InternalApiController::probeStream`) completes the cookie with `fixCookie()` too, so the probe button of the stream form and a stream start hand ffprobe and ffmpeg the same text. The LLOD fetcher, the proxy command and the fan-out daemon's puller send the stored cookie as a `Cookie` header as typed.
 - Numeric options use `%d` (`-b:v %dk`).
 - `StreamUtils::parseTranscode()` merges the `-filter_complex "…"` clauses of the transcode options into one. A clause runs to its closing double quote, and a backslash-escaped quote (`\"`) is part of the clause.
 - A profile that deinterlaces and scales without a logo stores the chain as the command of its scaling option, and ffmpeg gets it as one `-vf "yadif,scale=…"` option. Only a profile with a logo stores a logo entry: the logo is then a second input, and the filters run in `-filter_complex`.

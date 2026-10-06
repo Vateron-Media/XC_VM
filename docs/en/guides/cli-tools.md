@@ -43,6 +43,7 @@ To see all available commands:
 | `certbot` | `CertbotCommand` | Generate SSL certificate via certbot | root |
 | `binaries` | `BinariesCommand` | Update the runtime bundle (php/nginx/…) from the `XC_VM_Binaries` release | xc_vm |
 | `fanout_binary` | `FanoutBinaryCommand` | Install/update the `xc_fanout` daemon binary from its release | root |
+| `root:paths` | `RootPathsCommand` | List what root runs from the tree (its crontab, the service unit, `service`, the updater and the binaries root starts) and, for each path, whether the `xc_vm` user can replace it, following every symbolic link on the way. Changes nothing. | root |
 | `xcvm_core` | `XcvmCoreCommand` | Install/update the `xcvm_core` PHP extension from the binaries repo | root |
 | `ytdlp` | `YtDlpCommand` | Install/update `yt-dlp` from its upstream GitHub release | root |
 | `startup` | `StartupCommand` | System initialization: daemons.sh, crontab, cache | root |
@@ -122,7 +123,7 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:lines_logs` | `LinesLogsCronJob` | Import client request logs into DB |
 | `cron:maxmind` | `MaxMindCronJob` | Update MaxMind GeoIP databases (Tuesdays only; `--force` to run manually) |
 | `cron:providers` | `ProvidersCronJob` | Update providers (optional) |
-| `cron:root_mysql` | `RootMysqlCronJob` | Database maintenance (root, optional) |
+| `cron:root_mysql` | `RootMysqlCronJob` | Collect MariaDB's log lines into System Logs (root, optional). It no longer blocks addresses for refused MySQL logins; blocks it made earlier stay until removed. |
 | `cron:root_signals` | `RootSignalsCronJob` | Process signals, iptables, nginx, service management, and **binary self-heal** (root) |
 | `cron:series` | `SeriesCronJob` | Update series data (optional) |
 | `cron:servers` | `ServersCronJob` | Monitor server, launch daemons, update statistics |
