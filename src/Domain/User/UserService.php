@@ -29,6 +29,34 @@ class UserService {
 	 * @param array $rData Selected user ids.
 	 * @return array ['status' => STATUS_* constant, ...].
 	 */
+
+	/**
+	 * What a reseller action log row says (users_logs): the admin's and the
+	 * reseller's User Logs and the reseller dashboard read it from here. Plain
+	 * text; $rGlue goes between "with Package:" and the package's name, which is
+	 * named only while the package exists.
+	 *
+	 * @param array<string, mixed> $rRow      A users_logs row: type, action, package_id, cost
+	 * @param array<int, array>    $rPackages PackageService::getAll()
+	 */
+	public static function logText(array $rRow, array $rPackages, string $rGlue = ' '): string {
+		$rDevice = ['line' => 'User Line', 'mag' => 'MAG Device', 'enigma' => 'Enigma2 Device', 'user' => 'Reseller'][$rRow['type'] ?? ''] ?? (string) ($rRow['type'] ?? '');
+		$rPackage = !empty($rRow['package_id']) && isset($rPackages[$rRow['package_id']]) ? ' with Package:' . $rGlue . $rPackages[$rRow['package_id']]['package_name'] : '';
+		return match ((string) ($rRow['action'] ?? '')) {
+			'new' => 'Created New ' . $rDevice . $rPackage,
+			'extend' => 'Extended ' . $rDevice . $rPackage,
+			'convert' => 'Converted Device to User Line',
+			'edit' => 'Edited ' . $rDevice,
+			'enable' => 'Enabled ' . $rDevice,
+			'disable' => 'Disabled ' . $rDevice,
+			'delete' => 'Deleted ' . $rDevice,
+			'send_event' => 'Sent Event to ' . $rDevice,
+			'adjust_credits' => 'Adjusted Credits by ' . $rRow['cost'],
+			'connection' => 'Additional Connection Added',
+			default => (string) ($rRow['action'] ?? ''),
+		};
+	}
+
 	public static function massDelete(array $rData) {
 		set_time_limit(0);
 		ini_set('mysql.connect_timeout', 0);

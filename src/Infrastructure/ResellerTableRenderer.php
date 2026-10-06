@@ -12,6 +12,7 @@ use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\ResellerAPI;
 use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\UserService;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Redis\RedisManager;
 
@@ -1467,36 +1468,7 @@ class ResellerTableRenderer {
 						// Direct reports (and the reseller itself) are "owned" rows; anything
 						// deeper in the tree is an indirect report.
 						$rOwnerIndirect = !in_array($rRow['owner'], array_merge($rPermissions['direct_reports'], [$rUserInfo['id']]));
-						$rDevice = ['line' => 'User Line', 'mag' => 'MAG Device', 'enigma' => 'Enigma2 Device', 'user' => 'Reseller'][$rRow['type']] ?? (string) $rRow['type'];
-						$rText = '';
-						switch ($rRow['action']) {
-							case 'new':
-								$rText = $rRow['package_id'] ? 'Created New ' . $rDevice . ' with Package: ' . ($rPackages[$rRow['package_id']]['package_name'] ?? '') : 'Created New ' . $rDevice;
-								break;
-							case 'extend':
-								$rText = $rRow['package_id'] ? 'Extended ' . $rDevice . ' with Package: ' . ($rPackages[$rRow['package_id']]['package_name'] ?? '') : 'Extended ' . $rDevice;
-								break;
-							case 'edit':
-								$rText = 'Edited ' . $rDevice;
-								break;
-							case 'enable':
-								$rText = 'Enabled ' . $rDevice;
-								break;
-							case 'disable':
-								$rText = 'Disabled ' . $rDevice;
-								break;
-							case 'delete':
-								$rText = 'Deleted ' . $rDevice;
-								break;
-							case 'send_event':
-								$rText = 'Sent Event to ' . $rDevice;
-								break;
-							case 'adjust_credits':
-								$rText = 'Adjusted Credits by ' . $rRow['cost'];
-								break;
-							default:
-								$rText = (string) $rRow['action'];
-						}
+						$rText = UserService::logText($rRow, $rPackages);
 						$rLineLabel = null;
 						$rLineUrl = null;
 						switch ($rRow['type']) {
