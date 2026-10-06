@@ -357,8 +357,10 @@ final class AuditModuleMigrateTest extends TestCase {
 	 */
 	private function request(string ...$rArgs): string {
 		// A warm opcode cache, as in a php-fpm worker: a file is served from it
-		// until it is invalidated, config/modules.php included.
-		$rCache = ['-d', 'opcache.enable_cli=1', '-d', 'opcache.revalidate_freq=60', '-d', 'opcache.file_update_protection=0'];
+		// until it is invalidated, config/modules.php included. No JIT: where the
+		// host's ini sets one up beside a coverage extension, PHP warns at start
+		// and the warning would be read as the answer.
+		$rCache = ['-d', 'opcache.enable_cli=1', '-d', 'opcache.revalidate_freq=60', '-d', 'opcache.file_update_protection=0', '-d', 'opcache.jit_buffer_size=0'];
 		[, $rOutput] = $this->child([...xcvm_test_child_php(), ...$rCache, $this->rWork . '/request.php', ...$rArgs]);
 		$rResult = json_decode($rOutput, true);
 		$this->assertIsArray($rResult, $rOutput);
