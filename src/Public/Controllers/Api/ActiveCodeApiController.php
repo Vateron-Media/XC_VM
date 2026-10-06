@@ -6,6 +6,8 @@ use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\DomainResolver;
+use XcVm\Core\Config\Maintenance;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Domain\Line\ActiveCodeService;
 
@@ -343,6 +345,12 @@ class ActiveCodeApiController extends BaseApiController {
 	 * Dispatch Reseller Active Code actions.
 	 */
 	protected function handleResellerAction(string $action, array $data, int $start, int $limit, ?array $showColumns, ?array $hideColumns): void {
+		// Maintenance mode: a reseller's key is refused with the panel.
+		if (Maintenance::active(SettingsManager::getAll())) {
+			http_response_code(503);
+			echo json_encode(['status' => 'STATUS_FAILURE', 'error' => Maintenance::message(SettingsManager::getAll())], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+			return;
+		}
 		// A token runs only what its scope allows (ApiTokens::allows()), judged by the
 		// action's full name. The admin path's wrapper methods ask it themselves
 		// (AdminApiController::permitted()).

@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Api;
 
 use XcVm\Core\Auth\BruteforceGuard;
+use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\Encryption;
@@ -54,6 +55,11 @@ class Enigma2ApiController {
 		if ($rSettings['disable_enigma2']) {
 			$this->deny = false;
 			generateError('E2_DISABLED');
+		}
+
+		if (Maintenance::active($rSettings)) {
+			$this->deny = false;
+			Maintenance::refuse($rSettings);
 		}
 
 		$this->username = $rRequest['username'];

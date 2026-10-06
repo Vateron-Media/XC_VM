@@ -133,6 +133,14 @@ if (!LicenseGate::licensed()):
     </script>
 <?php endif; ?>
 
+<?php // Maintenance mode is on (Core\Config\Maintenance): left on, it is an outage of its own. ?>
+<?php if (isset($rMaintenance)): ?>
+    <div class="alert alert-warning mb-4" role="alert">
+        <i class="icon-base ti tabler-tool me-1"></i><?= htmlspecialchars($rMaintenance > 0 ? $language::get('maintenance_banner_until', ['{until}' => date('Y-m-d H:i', $rMaintenance)]) : $language::get('maintenance_banner'), ENT_QUOTES); ?>
+        <a href="settings" class="alert-link ms-1"><?= $language::get('settings'); ?></a>
+    </div>
+<?php endif; ?>
+
 <?php // The Cluster Nodes page's licence and certificate warnings (ClusterOverview::dashboardBanners). ?>
 <?php foreach ($clusterBanners ?? [] as $rBanner): ?>
     <div class="alert alert-<?= htmlspecialchars($rBanner['type'], ENT_QUOTES); ?> mb-4" role="alert">

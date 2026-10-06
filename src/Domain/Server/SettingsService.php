@@ -225,6 +225,12 @@ class SettingsService {
 			}
 		}
 
+		// Maintenance mode's end: the form sends a local date and time, the column
+		// holds a Unix time (0: no end).
+		if (array_key_exists('maintenance_until', $rArray) && !is_numeric($rArray['maintenance_until'])) {
+			$rArray['maintenance_until'] = (int) (strtotime((string) $rArray['maintenance_until']) ?: 0);
+		}
+
 		// "Responsive Tables" is presented as a positive toggle (on = columns collapse
 		// on narrow screens) but stored in the inverse `disable_table_responsive` column:
 		// checked → responsive on → 0; unchecked → full-width tables → 1.

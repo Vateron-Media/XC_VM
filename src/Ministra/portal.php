@@ -1,6 +1,7 @@
 <?php
 
 use XcVm\Core\Cluster\BlocklistChanges;
+use XcVm\Core\Config\Maintenance;
 use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
@@ -45,6 +46,11 @@ $rLegacyPortalRequest = in_array($rRequestPath, ["/c/portal.php", "/portal.php"]
 if ($rLegacyPortalRequest && empty($rSettings["mag_legacy_redirect"])) {
 	http_response_code(404);
 	exit();
+}
+
+// Maintenance mode: the box shows a server error and retries.
+if (Maintenance::active($rSettings)) {
+	Maintenance::refuse($rSettings);
 }
 
 if (!$rSettings["disable_ministra"]) {

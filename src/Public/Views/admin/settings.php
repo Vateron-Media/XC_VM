@@ -3,6 +3,7 @@
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
+use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Reference\DeviceReference;
 use XcVm\Core\Reference\GeoReference;
 use XcVm\Core\Reference\LocaleReference;
@@ -88,6 +89,34 @@ use XcVm\Domain\Server\ServerRepository;
 				<div class="tab-pane fade show active" id="interface" role="tabpanel">
 					<div class="row">
 						<div class="col-12">
+
+							<?php // Maintenance: the client APIs and resellers are refused; admins and viewers already watching are not. ?>
+							<h5 class="card-title mb-4"><?= $language::get('maintenance_mode') ?></h5>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="maintenance_mode">
+									<?= $language::get('maintenance_mode_on') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('maintenance_mode_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<div class="form-check form-switch"><input name="maintenance_mode" id="maintenance_mode" type="checkbox" <?= !empty($rSettings["maintenance_mode"]) ? ' checked' : '' ?> class="form-check-input"></div>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="maintenance_until"><?= $language::get('maintenance_until') ?></label>
+								<div class="col-md-8">
+									<input type="datetime-local" class="form-control" id="maintenance_until" name="maintenance_until" value="<?= !empty($rSettings["maintenance_until"]) ? date('Y-m-d\TH:i', (int) $rSettings["maintenance_until"]) : '' ?>">
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="maintenance_message"><?= $language::get('maintenance_message') ?></label>
+								<div class="col-md-8">
+									<input type="text" class="form-control" id="maintenance_message" name="maintenance_message" maxlength="255" placeholder="<?= htmlspecialchars(Maintenance::message([]), ENT_QUOTES) ?>" value="<?= htmlspecialchars((string) ($rSettings["maintenance_message"] ?? ''), ENT_QUOTES) ?>">
+								</div>
+							</div>
+
 
 							<h5 class="card-title mb-4"><?= $language::get('preferences') ?></h5>
 

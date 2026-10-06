@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\Reseller;
 
 use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Auth\TwoFactor;
+use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
@@ -53,6 +54,10 @@ class ResellerLoginController {
 			exit();
 		}
 
+		// Maintenance mode: no sign-in, a second factor's code included; the page says why.
+		// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- consumed by required view reseller/login.php
+		$rMaintenance = Maintenance::active($rSettings) ? Maintenance::message($rSettings) : null;
+
 		// Process login POST; a sign-in held for its second factor (TwoFactor)
 		// takes its code here too.
 		$_STATUS = null;
@@ -63,7 +68,7 @@ class ResellerLoginController {
 		if (RequestManager::has('cancel_2fa')) {
 			TwoFactor::cancel();
 		}
-		if (RequestManager::has('verify_2fa')) {
+		if ($rMaintenance === null && RequestManager::has('verify_2fa')) {
 			$rConfirm = TwoFactor::confirm('reseller', (string) RequestManager::get('twofactor_code'));
 			if ($rConfirm['status'] !== STATUS_SUCCESS) {
 				$rTwoFactorStatus = $rConfirm['status'];
@@ -73,7 +78,7 @@ class ResellerLoginController {
 				header('Location: ' . $rContinue);
 				exit();
 			}
-		} elseif (RequestManager::has('login')) {
+		} elseif ($rMaintenance === null && RequestManager::has('login')) {
 			$rReturn = ResellerAPI::processLogin(RequestManager::getAll());
 			$_STATUS = $rReturn['status'];
 

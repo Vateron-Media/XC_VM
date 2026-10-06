@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Admin;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\ClusterSettings;
+use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Enum\Theme;
 use XcVm\Core\Http\RequestManager;
@@ -115,7 +116,7 @@ class DashboardController extends BaseAdminController {
 		)));
 
 		$this->setTitle('Dashboard');
-		$this->render('dashboard', ['rColours' => $rColours, 'rColourMap' => $rColourMap, 'rConnectionMap' => $rConnectionMap, 'rConnectionCount' => $rConnectionCount, 'rServerStats' => $rServerStats, 'rOrderedServers' => $rOrderedServers, 'rStatusChecks' => $rStatusChecks, 'clusterBanners' => ClusterOverview::dashboardBanners($rServers[SERVER_ID] ?? [], SettingsManager::getAll(), time())]);
+		$this->render('dashboard', ['rColours' => $rColours, 'rColourMap' => $rColourMap, 'rConnectionMap' => $rConnectionMap, 'rConnectionCount' => $rConnectionCount, 'rServerStats' => $rServerStats, 'rOrderedServers' => $rOrderedServers, 'rStatusChecks' => $rStatusChecks, 'clusterBanners' => ClusterOverview::dashboardBanners($rServers[SERVER_ID] ?? [], SettingsManager::getAll(), time()), 'rMaintenance' => Maintenance::active(SettingsManager::getAll()) ? (int) SettingsManager::get('maintenance_until') : null]);
 	}
 
 	/** The servers the status rows judge: every row, offline ones too, keyed by id (the view's lists hold the online ones). */

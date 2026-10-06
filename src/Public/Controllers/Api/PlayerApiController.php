@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\Api;
 
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\DomainResolver;
+use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Line\ActiveCodeService;
@@ -94,6 +95,12 @@ class PlayerApiController {
 		if ($rSettings['disable_player_api']) {
 			$this->deny = false;
 			$this->sendAuthError('Disabled', 'Player API has been disabled.');
+		}
+
+		// Maintenance mode: apps show user_info.message.
+		if (Maintenance::active($rSettings)) {
+			$this->deny = false;
+			$this->sendAuthError('Maintenance', Maintenance::message($rSettings));
 		}
 
 		if (strtolower(explode('.', ltrim(parse_url($_SERVER['REQUEST_URI'])['path'] ?? '', '/'))[0]) == 'panel_api') {
