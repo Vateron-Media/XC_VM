@@ -160,6 +160,8 @@ class RootSignalsCronJob implements CommandInterface {
 	public function unblockAll(): void {
 		foreach (['iptables', 'ip6tables'] as $rTool) {
 			$rRules = [];
+			// $rTool is one of the two names of the list above.
+			// nosemgrep: php.lang.security.exec-use.exec-use
 			exec('sudo ' . $rTool . ' -S INPUT', $rRules);
 			$rIPs = self::ownBlocks($rRules);
 			if ($rIPs && !$this->unblockTogether($rTool, $rIPs)) {
@@ -168,6 +170,8 @@ class RootSignalsCronJob implements CommandInterface {
 				}
 			}
 		}
+		// The panel's own directory, a constant, quoted; the pattern is a literal.
+		// nosemgrep: php.lang.security.exec-use.exec-use
 		shell_exec('sudo rm -f ' . escapeshellarg(FLOOD_TMP_PATH) . 'block_*');
 	}
 
@@ -179,6 +183,8 @@ class RootSignalsCronJob implements CommandInterface {
 	 * @param list<string> $rIPs from ownBlocks()
 	 */
 	private function unblockTogether(string $rTool, array $rIPs): bool {
+		// Called by unblockAll() alone, with one of its two tool names.
+		// nosemgrep: php.lang.security.exec-use.exec-use
 		$rPipe = popen('sudo ' . $rTool . '-restore --noflush', 'w');
 		if (!is_resource($rPipe)) {
 			return false;

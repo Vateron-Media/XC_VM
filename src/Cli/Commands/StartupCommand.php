@@ -286,7 +286,9 @@ class StartupCommand implements CommandInterface {
 		}
 		exec('sudo chattr -i /var/spool/cron/crontabs/root');
 		// `crontab <file>` replaces the crontab in one step, and keeps the old
-		// one when it refuses the new: no `crontab -r` before it.
+		// one when it refuses the new: no `crontab -r` before it. The one part of
+		// the command that is not a literal is the name tempnam() gave, quoted.
+		// nosemgrep: php.lang.security.exec-use.exec-use
 		exec('sudo crontab ' . escapeshellarg($rCronFile), $rOut, $rCode);
 		exec('sudo chattr +i /var/spool/cron/crontabs/root');
 		@unlink($rCronFile);
