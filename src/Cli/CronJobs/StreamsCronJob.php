@@ -46,7 +46,8 @@ class StreamsCronJob implements CommandInterface {
 			return 1;
 		}
 
-		$this->initCron('XC_VM[Live Checker]');
+		// A run over ten minutes is hung: the next one ends it and takes over.
+		$this->initCron('XC_VM[Live Checker]', 600);
 		$this->loadCron();
 
 		return 0;

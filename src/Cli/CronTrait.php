@@ -56,12 +56,12 @@ trait CronTrait {
 	 * Получить cron lock (уникальный файл в CRONS_TMP_PATH).
 	 * Если lock уже занят — выходит с кодом 0.
 	 */
-	protected function acquireCronLock(): void {
+	protected function acquireCronLock(int $rLimit = 0): void {
 		ProcessManager::exitIfCronLockHeld(ProcessManager::legacyCronLockPath(static::class, SettingsManager::get('live_streaming_pass')));
 		// The lock is this run's to remove (registerShutdown) only once it has
 		// it: a run turned away here exits and leaves the holder's lock alone.
 		$rIdentifier = ProcessManager::cronLockPath(static::class);
-		ProcessManager::acquireCronLock($rIdentifier);
+		ProcessManager::acquireCronLock($rIdentifier, $rLimit);
 		$this->rIdentifier = $rIdentifier;
 	}
 
@@ -85,10 +85,12 @@ trait CronTrait {
 	 * Стандартная инициализация cron-задачи.
 	 *
 	 * @param string $rTitle Заголовок процесса (например 'XC_VM[Activity]')
+	 * @param int $rLimit Seconds after which a run still holding the lock is
+	 *                    ended by the next run, which takes its place; 0: never.
 	 */
-	protected function initCron(string $rTitle): void {
+	protected function initCron(string $rTitle, int $rLimit = 0): void {
 		$this->registerShutdown();
 		$this->setProcessTitle($rTitle);
-		$this->acquireCronLock();
+		$this->acquireCronLock($rLimit);
 	}
 }

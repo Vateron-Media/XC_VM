@@ -457,17 +457,20 @@ class ProcessManager {
 	 * Exit like acquireCronLock() when $lockFile is held; never takes or
 	 * writes the lock.
 	 *
-	 * The holder is never ended here, however long it has run: a backup or a
-	 * clean-up may take hours. So a cron that hangs keeps its lock, and no new
-	 * run of it starts, until someone ends that process; each run that finds a
-	 * holder over an hour old says so in the panel's log. A root cron writes
-	 * that line as the owner of the logs directory (SettingsAudit::asAgentUser):
-	 * the directory is xc_vm's, where root neither creates a file of its own
-	 * nor follows a link. PHP's error_log (the cron's stderr) only when root
-	 * cannot switch.
+	 * Without a time limit the holder is never ended here, however long it
+	 * has run: a backup or a clean-up may take hours. So a cron that hangs
+	 * keeps its lock, and no new run of it starts, until someone ends that
+	 * process; each run that finds a holder over an hour old says so in the
+	 * panel's log (logCronLine()). With $rLimit (cron:servers and cron:streams,
+	 * whose hang stops a node's watchdog chain or stream supervision) a holder
+	 * that has run longer is ended (endOverdueHolder()) and this run takes its
+	 * place.
 	 */
-	public static function exitIfCronLockHeld(string $lockFile): void {
+	public static function exitIfCronLockHeld(string $lockFile, int $rLimit = 0): void {
 		$pid = self::cronLockHolder($lockFile);
+		if ($pid !== 0 && $rLimit > 0 && self::endOverdueHolder($lockFile, $pid, $rLimit)) {
+			$pid = self::cronLockHolder($lockFile);
+		}
 		if ($pid === 0) {
 			return;
 		}
@@ -476,33 +479,84 @@ class ProcessManager {
 		if ($mtime !== false && time() - $mtime >= 3600) {
 			// The same text for every run: cron:errors folds the runs of one pass into one row.
 			$rName = trim(str_replace("\0", ' ', (string) @file_get_contents('/proc/' . $pid . '/cmdline')));
-			$rLine = ($rName !== '' ? $rName : 'A cron') . ' (pid ' . $pid . ') has held its cron lock since ' . date('Y-m-d H:i:s', $mtime) . ': no new run starts while it lives, and nothing ends it. If it hangs, kill it';
-			$rKept = SettingsAudit::asAgentUser(static function () use ($rLine, $lockFile): bool {
-				FileLogger::log('cron', $rLine, $lockFile);
-				return true;
-			}, dirname(FileLogger::getLogFile()));
-			if (!$rKept) {
-				error_log('XC_VM ' . $rLine);
-			}
+			self::logCronLine(($rName !== '' ? $rName : 'A cron') . ' (pid ' . $pid . ') has held its cron lock since ' . date('Y-m-d H:i:s', $mtime) . ': no new run starts while it lives, and nothing ends it. If it hangs, kill it', $lockFile);
 		}
 
 		exit('Running...');
 	}
 
 	/**
+	 * End $pid, the holder of $lockFile, when it has run longer than $rLimit
+	 * seconds by its own start time; true when it was signalled. Only the very
+	 * process the lock names by pid and start time is signalled, and only
+	 * while the lock still names it: a pid the system has handed to another
+	 * process, or a lock of the previous release (a pid alone), is never
+	 * touched. SIGTERM first, SIGKILL when it is still there after a few
+	 * seconds.
+	 */
+	private static function endOverdueHolder(string $lockFile, int $pid, int $rLimit): bool {
+		$rLock = (string) @file_get_contents($lockFile);
+		$rStart = (int) (explode(' ', trim($rLock))[1] ?? 0);
+		$rNamed = static function () use ($lockFile, $rLock, $pid, $rStart): bool {
+			self::clearCache();
+			$rSample = self::resourceSample($pid);
+			return $rStart > 0 && $rSample !== null && $rSample['start'] === $rStart && @file_get_contents($lockFile) === $rLock && self::cronLockHolder($lockFile, true) === $pid;
+		};
+		// /proc counts the start time in USER_HZ (100) ticks after boot, /proc/uptime in seconds.
+		$rUptime = (float) strtok((string) @file_get_contents('/proc/uptime'), ' ');
+		if ($rUptime <= 0 || $rUptime - $rStart / 100 <= $rLimit || !$rNamed()) {
+			return false;
+		}
+
+		$rName = trim(str_replace("\0", ' ', (string) @file_get_contents('/proc/' . $pid . '/cmdline')));
+		// SIGTERM, then SIGKILL: numbers, the constants come with pcntl.
+		foreach ([15, 9] as $rSignal) {
+			if (!$rNamed()) {
+				break;
+			}
+			posix_kill($pid, $rSignal);
+			for ($i = 0; $i < 50 && $rNamed(); $i++) {
+				usleep(100000);
+			}
+		}
+		self::clearCache();
+		self::logCronLine(($rName !== '' ? $rName : 'A cron') . ' (pid ' . $pid . ') ran for more than ' . $rLimit . ' seconds and was ended; the next run took its place', $lockFile);
+
+		return true;
+	}
+
+	/**
+	 * One line in the panel's log. A root cron writes it as the owner of the
+	 * logs directory (SettingsAudit::asAgentUser): the directory is xc_vm's,
+	 * where root neither creates a file of its own nor follows a link. PHP's
+	 * error_log (the cron's stderr) only when root cannot switch.
+	 */
+	private static function logCronLine(string $rLine, string $lockFile): void {
+		$rKept = SettingsAudit::asAgentUser(static function () use ($rLine, $lockFile): bool {
+			FileLogger::log('cron', $rLine, $lockFile);
+			return true;
+		}, dirname(FileLogger::getLogFile()));
+		if (!$rKept) {
+			error_log('XC_VM ' . $rLine);
+		}
+	}
+
+	/**
 	 * Acquire a cron lock (PID file)
 	 *
 	 * If the lock is held (cronLockHolder()), exits with 'Running...'; the
-	 * holder is left alone. Otherwise writes the lock with the current PID and
-	 * its start time.
+	 * holder is left alone unless it has run longer than $rLimit seconds
+	 * (exitIfCronLockHeld()). Otherwise writes the lock with the current PID
+	 * and its start time.
 	 *
 	 * This replaces CoreUtilities::checkCron().
 	 *
 	 * @param string $lockFile Path to PID lock file
+	 * @param int $rLimit Seconds after which a holder is ended; 0: never.
 	 * @return bool Always returns true (exits on conflict)
 	 */
-	public static function acquireCronLock(string $lockFile) {
-		self::exitIfCronLockHeld($lockFile);
+	public static function acquireCronLock(string $lockFile, int $rLimit = 0) {
+		self::exitIfCronLockHeld($lockFile, $rLimit);
 
 		// Write our PID
 		$lockDir = dirname($lockFile);
