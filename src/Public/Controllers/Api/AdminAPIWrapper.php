@@ -163,11 +163,69 @@ class AdminAPIWrapper {
 		}
 		// A request that leaves out the username or the password keeps the line's own.
 		$rData += ['username' => $rLine['data']['username'], 'password' => $rLine['data']['password']];
-		$rReturn = parseerror(LineService::process($rData));
+		$rReturn = parseerror(LineService::process(self::keepLineFields($rData, $rLine['data'])));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getLine($rReturn['data']['insert_id'])['data'];
 		}
 		return $rReturn;
+	}
+
+	/**
+	 * LineService::process() takes the whole line form, where a field that is
+	 * not posted is switched off or emptied. An edit through the API keeps
+	 * every field the request leaves out: each is added here from the stored
+	 * line, in the shape the form posts it. A request clears a field by sending
+	 * it empty; a switch is off at 0 as well.
+	 *
+	 * @param array $rData The request.
+	 * @param array $rLine The line as stored.
+	 * @return array The request with the fields it left out.
+	 */
+	private static function keepLineFields(array $rData, array $rLine) {
+		$rList = static fn($rJSON) => is_array($rDecoded = json_decode((string) $rJSON, true)) ? $rDecoded : [];
+
+		// `isp_clear` empties the stored ISP when it is posted empty.
+		$rData += [
+			'max_connections' => $rLine['max_connections'],
+			'enabled' => $rLine['enabled'],
+			'admin_enabled' => $rLine['admin_enabled'],
+			'isp_clear' => '1',
+			'bouquets_selected' => json_encode($rList($rLine['bouquet'])),
+			'allowed_ips' => $rList($rLine['allowed_ips']),
+			'allowed_ua' => $rList($rLine['allowed_ua']),
+			'access_output' => $rList($rLine['allowed_outputs']),
+		];
+
+		// A list sent empty is the empty list.
+		foreach (['bouquets_selected' => '[]', 'allowed_ips' => [], 'allowed_ua' => [], 'access_output' => []] as $rKey => $rEmpty) {
+			if ($rData[$rKey] === '') {
+				$rData[$rKey] = $rEmpty;
+			}
+		}
+
+		// The form posts a switch only when it is on.
+		foreach (['is_stalker', 'is_restreamer', 'is_trial', 'is_isplock', 'bypass_ua'] as $rKey) {
+			$rOn = !empty($rData[$rKey] ?? $rLine[$rKey]);
+			unset($rData[$rKey]);
+			if ($rOn) {
+				$rData[$rKey] = 1;
+			}
+		}
+
+		// `no_expire` counts when it is on, as the form's checkbox does.
+		if (empty($rData['no_expire'])) {
+			unset($rData['no_expire']);
+		}
+
+		// A request without a date is read as no expiry: left out, the date is
+		// the stored one; sent empty, there is none.
+		if (!isset($rData['exp_date']) && !is_null($rLine['exp_date'])) {
+			$rData['exp_date'] = '@' . intval($rLine['exp_date']);
+		} elseif (($rData['exp_date'] ?? null) === '') {
+			unset($rData['exp_date']);
+		}
+
+		return $rData;
 	}
 
 	public static function deleteLine($rID) {
