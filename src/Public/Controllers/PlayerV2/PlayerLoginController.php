@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\PlayerV2;
 
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Bootstrap\Stage\SessionStage;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\GeoIP;
@@ -59,7 +60,7 @@ class PlayerLoginController {
 
 		// Start session
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-			session_start();
+			SessionStage::startSession();
 		}
 
 		// Destroy existing session for player context
@@ -102,14 +103,19 @@ class PlayerLoginController {
 
 				if ($extResult['success']) {
 					if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-						@session_start();
+						@SessionStage::startSession();
 					}
 					$_SESSION['saved_account_sync'] = $extResult['account'];
 					header('Location: ' . $extResult['redirect']);
 					exit;
 				}
 
+				// A sign-in the other server refused ends here, as it does for the
+				// page's script: its name and password are that server's, and are
+				// not tried as a line of this panel.
 				$_ERROR_MSG = $extResult['message'] ?? 'Connection to external server failed.';
+				require MAIN_HOME . 'Public/Views/player_v2/login.php';
+				return;
 			}
 		}
 
@@ -146,14 +152,17 @@ class PlayerLoginController {
 
 			if ($extResult['success']) {
 				if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-					@session_start();
+					@SessionStage::startSession();
 				}
 				$_SESSION['saved_account_sync'] = $extResult['account'];
 				header('Location: ' . $extResult['redirect']);
 				exit;
 			}
 
+			// Refused: the request ends here, as for a playlist address above.
 			$_ERROR_MSG = $extResult['message'] ?? 'Connection to external server failed.';
+			require MAIN_HOME . 'Public/Views/player_v2/login.php';
+			return;
 		} elseif ($isExternalAction && empty($serverUrl)) {
 			$err = 'Please enter a valid server URL (Host:Port).';
 			if ($isAjax) {
@@ -179,7 +188,7 @@ class PlayerLoginController {
 
 			if ($codeResult['success']) {
 				if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-					@session_start();
+					@SessionStage::startSession();
 				}
 				$_SESSION['saved_account_sync'] = $codeResult['account'];
 				header('Location: ' . $codeResult['redirect']);
@@ -212,7 +221,7 @@ class PlayerLoginController {
 
 			if ($credResult['success']) {
 				if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-					@session_start();
+					@SessionStage::startSession();
 				}
 				$_SESSION['saved_account_sync'] = $credResult['account'];
 				header('Location: ' . $credResult['redirect']);
@@ -243,9 +252,10 @@ class PlayerLoginController {
 		$rUserAgent = empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlspecialchars(trim($_SERVER['HTTP_USER_AGENT']));
 
 		if (!$rUserInfo) {
-			// The username of a refused sign-in is a guess, as on the client
-			// APIs: counted where the panel sets a limit on them.
-			BruteforceGuard::checkBruteforce(null, null, $username);
+			// The username of a refused sign-in is a guess, and so is its
+			// password, as on the client APIs: counted where the panel sets a
+			// limit on them.
+			BruteforceGuard::checkBruteforce(null, null, $username, false, $password);
 			BruteforceGuard::checkFlood();
 			return ['success' => false, 'status' => self::CLIENT_INVALID, 'message' => $rErrors[self::CLIENT_INVALID]];
 		}
@@ -317,7 +327,7 @@ class PlayerLoginController {
 		// Success - Purge any previous session and regenerate session ID
 		PlayerLogoutController::purgePlayerSession();
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-			@session_start();
+			@SessionStage::startSession();
 		}
 		@session_regenerate_id(true);
 
@@ -392,7 +402,7 @@ class PlayerLoginController {
 		// Authenticate session - Purge any previous session and regenerate session ID
 		PlayerLogoutController::purgePlayerSession();
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-			@session_start();
+			@SessionStage::startSession();
 		}
 		@session_regenerate_id(true);
 
@@ -457,7 +467,7 @@ class PlayerLoginController {
 		// Purge old session before establishing external session
 		PlayerLogoutController::purgePlayerSession();
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-			@session_start();
+			@SessionStage::startSession();
 		}
 		@session_regenerate_id(true);
 

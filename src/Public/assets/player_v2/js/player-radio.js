@@ -24,7 +24,8 @@ window.RadioApp = (function () {
     baseUrl: '',
     currentStation: null,
     isPlaying: false,
-    hls: null
+    hls: null,
+    retryTimer: null
   };
 
   let eventsBound = false;
@@ -845,10 +846,11 @@ window.RadioApp = (function () {
     });
   };
 
-  const startAudio = (station) => {
+  const startAudio = (station, tries = 0) => {
     const audio = getAudio();
     if (!audio || !station) return;
 
+    clearTimeout(state.retryTimer);
     if (state.hls) {
       try {
         state.hls.destroy();
@@ -862,14 +864,17 @@ window.RadioApp = (function () {
       audio.load();
     } catch (e) {}
 
-    const streamUrl = station.url || station.direct_source || '';
+    const streamUrl = station.url || '';
     if (!streamUrl) {
       console.warn('Radio station has no stream URL:', station);
       setPlayingState(false);
       return;
     }
 
-    const isHls = streamUrl.includes('.m3u8') || (station.container && station.container.includes('m3u8'));
+    // How a station plays is what the list the page holds says of it now: the station kept from an earlier visit may be out of date.
+    const listed = (state.allStations || []).find((s) => Number(s.id) === Number(station.id)) || station;
+    // The panel serves a station as HLS, unless it passes the station on to its source: that one is plain audio.
+    const isHls = !listed.direct;
 
     if (isHls && typeof Hls !== 'undefined' && Hls.isSupported()) {
       const hls = new Hls({
@@ -889,11 +894,24 @@ window.RadioApp = (function () {
             });
         }
       });
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        tries = 0;
+      });
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data && data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
+              // A play address is only good for the connection it opened. While the listener is told the station plays,
+              // the play answer is asked for a new one, a few times; otherwise the station is shown as stopped.
+              try { hls.destroy(); } catch (e) {}
+              state.hls = null;
+              if (state.isPlaying && tries < 3) {
+                state.retryTimer = setTimeout(() => {
+                  if (state.isPlaying) startAudio(state.currentStation, tries + 1);
+                }, 2000);
+              } else {
+                setPlayingState(false);
+              }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               hls.recoverMediaError();

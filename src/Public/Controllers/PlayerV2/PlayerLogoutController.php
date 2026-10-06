@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\PlayerV2;
 
 use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Bootstrap\Stage\SessionStage;
 use XcVm\Domain\External\ExternalXtreamService;
 
 /**
@@ -15,8 +16,10 @@ class PlayerLogoutController {
 	 * Completely purge all player session data, external caches, and session files.
 	 */
 	public static function purgePlayerSession(): void {
+		// The sign-out page starts no session before this one: it is the
+		// player's own only when the session stage starts it.
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-			@session_start();
+			@SessionStage::startSession();
 		}
 
 		// 1. Clear external Xtream session caches (all ext_* keys)

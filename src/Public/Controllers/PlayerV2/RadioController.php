@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\PlayerV2;
 
 use XcVm\Core\Config\DomainResolver;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 
 /**
@@ -15,7 +16,13 @@ use XcVm\Core\Http\RequestManager;
  */
 class RadioController extends BasePlayerV2Controller {
 	public function index() {
-		global $db, $rUserInfo;
+		global $rUserInfo;
+
+		// The stations play as HLS, like the live channels: without that output the page is not offered.
+		if (!in_array(1, $rUserInfo['allowed_outputs'], true) || SettingsManager::getBool('disable_hls')) {
+			header('Location: index');
+			exit;
+		}
 
 		// Ensure safe array
 		if (!isset($rUserInfo['radio_ids']) || !is_array($rUserInfo['radio_ids'])) {
@@ -25,7 +32,7 @@ class RadioController extends BasePlayerV2Controller {
 		$code = $_SERVER['XC_CODE'] ?? '';
 		$baseUrl = $code ? '/' . $code . '/' : '/';
 
-		DomainResolver::resolve(
+		$domainName = DomainResolver::resolve(
 			SERVER_ID,
 			(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443)
 		);
@@ -38,17 +45,9 @@ class RadioController extends BasePlayerV2Controller {
 				http_response_code(404);
 				exit('Station stream not found');
 			}
-			$db->query('SELECT stream_source, target_container FROM `streams` WHERE `id` = ? AND `type` = 4 LIMIT 1;', $streamId);
-			$row = $db->get_row();
-			if ($row && !empty($row['stream_source'])) {
-				$srcs = is_array($row['stream_source']) ? $row['stream_source'] : json_decode($row['stream_source'], true);
-				if (!empty($srcs[0])) {
-					header('Location: ' . $srcs[0]);
-					exit;
-				}
-			}
-			http_response_code(404);
-			exit('Station stream not found');
+			// It is the panel's own, as for a live channel: there the line is authorised and its connection counted.
+			header('Location: ' . $domainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $streamId . '.m3u8');
+			exit;
 		}
 
 		// ─── Mode A: AJAX Station Retrieval Endpoint ────────────────────────
@@ -81,30 +80,7 @@ class RadioController extends BasePlayerV2Controller {
 				$streamList = isset($rStreams['streams']) ? $rStreams['streams'] : (is_array($rStreams) ? $rStreams : []);
 			}
 
-			$stations = [];
-			foreach ($streamList as $stream) {
-				if (!is_array($stream) || empty($stream['id'])) {
-					continue;
-				}
-				$streamId = (int) $stream['id'];
-				$container = !empty($stream['target_container']) ? (string) $stream['target_container'] : '';
-				$directUrl = '';
-				if (!empty($stream['stream_source'])) {
-					$srcList = is_array($stream['stream_source']) ? $stream['stream_source'] : json_decode($stream['stream_source'], true);
-					if (!empty($srcList[0])) {
-						$directUrl = $srcList[0];
-					}
-				}
-				$stations[] = [
-					'id'            => $streamId,
-					'name'          => $stream['stream_display_name'] ?? 'Station #' . $streamId,
-					'logo'          => !empty($stream['stream_icon']) ? $stream['stream_icon'] : '',
-					'category_id'   => $stream['category_id'] ?? 0,
-					'container'     => $container,
-					'direct_source' => $directUrl,
-					'url'           => !empty($directUrl) ? $directUrl : ($baseUrl . 'radio?stream=' . $streamId),
-				];
-			}
+			$stations = $this->stations($streamList, $baseUrl);
 
 			echo json_encode([
 				'status'   => 'success',
@@ -139,30 +115,7 @@ class RadioController extends BasePlayerV2Controller {
 			$totalCount = count($rUserInfo['radio_ids']);
 		}
 
-		$initialStations = [];
-		foreach ($initialStreams as $stream) {
-			if (!is_array($stream) || empty($stream['id'])) {
-				continue;
-			}
-			$streamId = (int) $stream['id'];
-			$container = !empty($stream['target_container']) ? (string) $stream['target_container'] : '';
-			$directUrl = '';
-			if (!empty($stream['stream_source'])) {
-				$srcList = is_array($stream['stream_source']) ? $stream['stream_source'] : json_decode($stream['stream_source'], true);
-				if (!empty($srcList[0])) {
-					$directUrl = $srcList[0];
-				}
-			}
-			$initialStations[] = [
-				'id'            => $streamId,
-				'name'          => $stream['stream_display_name'] ?? 'Station #' . $streamId,
-				'logo'          => !empty($stream['stream_icon']) ? $stream['stream_icon'] : '',
-				'category_id'   => $stream['category_id'] ?? 0,
-				'container'     => $container,
-				'direct_source' => $directUrl,
-				'url'           => !empty($directUrl) ? $directUrl : ($baseUrl . 'radio?stream=' . $streamId),
-			];
-		}
+		$initialStations = $this->stations($initialStreams, $baseUrl);
 
 		$GLOBALS['_TITLE'] = 'Radio Stations';
 		$GLOBALS['_PAGE']  = 'radio';
@@ -174,5 +127,40 @@ class RadioController extends BasePlayerV2Controller {
 			'totalRadioCount'    => $totalCount,
 			'baseUrl'            => $baseUrl,
 		]);
+	}
+
+	/**
+	 * The stations of a list as the page plays them: each from this controller's
+	 * play answer, which names the panel's own play address and never the source.
+	 */
+	private function stations(array $streamList, string $baseUrl): array {
+		global $db;
+
+		$stations = [];
+		foreach ($streamList as $stream) {
+			if (!is_array($stream) || empty($stream['id'])) {
+				continue;
+			}
+			$streamId = (int) $stream['id'];
+			$stations[$streamId] = [
+				'id'          => $streamId,
+				'name'        => $stream['stream_display_name'] ?? 'Station #' . $streamId,
+				'logo'        => !empty($stream['stream_icon']) ? $stream['stream_icon'] : '',
+				'category_id' => $stream['category_id'] ?? 0,
+				'direct'      => false,
+				'url'         => $baseUrl . 'radio?stream=' . $streamId,
+			];
+		}
+
+		// The panel serves a station it runs as HLS and passes a direct one on to
+		// its source: the page plays that one as plain audio.
+		if ($stations !== []) {
+			$db->query('SELECT `id` FROM `streams` WHERE `direct_source` = 1 AND `direct_proxy` = 0 AND `id` IN (' . implode(',', array_fill(0, count($stations), '?')) . ');', ...array_keys($stations));
+			foreach ($db->get_rows() as $row) {
+				$stations[(int) $row['id']]['direct'] = true;
+			}
+		}
+
+		return array_values($stations);
 	}
 }

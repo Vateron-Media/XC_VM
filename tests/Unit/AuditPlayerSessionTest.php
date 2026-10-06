@@ -66,9 +66,10 @@ final class AuditPlayerSessionTest extends TestCase {
 		$rLogin->invoke(new \XcVm\Public\Controllers\Player\PlayerLoginController());
 		PHP;
 
-	/** Opens a player page with the session cookie $rId. */
+	/** Opens a player page with the player's session cookie $rId. */
 	private const PAGE = <<<'PHP'
-		$_COOKIE[session_name()] = $rId;
+		$_SERVER['XC_SCOPE'] = 'player';
+		$_COOKIE[\XcVm\Core\Bootstrap\Stage\SessionStage::PLAYER_COOKIE] = $rId;
 		(new \XcVm\Infrastructure\Bootstrap\PlayerScopeBootstrap())->boot();
 		PHP;
 
@@ -127,13 +128,14 @@ final class AuditPlayerSessionTest extends TestCase {
 		$this->assertSame(self::KNOWN, $rEnd['id']);
 	}
 
-	public function testAPlayerPageStartsTheSessionWithThePanelsCookieFlags(): void {
+	/** The player's own cookie (AuditDecisionPlayerCookieTest), with the panel's other flags. */
+	public function testAPlayerPageStartsTheSessionWithThePlayersCookieFlags(): void {
 		$rEnd = $this->child(self::PAGE, ['rId' => self::UNKNOWN]);
 
 		$this->assertNotSame(self::UNKNOWN, $rEnd['id'], 'the page took a session id this server never issued');
 		$this->assertNotSame('', $rEnd['id']);
 		$this->assertTrue($rEnd['cookie']['httponly'], 'scripts can read the session cookie');
-		$this->assertSame('Strict', $rEnd['cookie']['samesite']);
+		$this->assertSame('Lax', $rEnd['cookie']['samesite']);
 	}
 
 	/** The id a player page issued on the way to the login form is the one the visitor comes back with. */
