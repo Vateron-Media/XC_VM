@@ -8,6 +8,12 @@ This guide explains how to create a self-signed SSL certificate to enable secure
 > it with a real Let's Encrypt certificate. Follow this guide only to **regenerate
 > or replace** the certificate manually.
 >
+> The Let's Encrypt certificate is requested only for the host names in the
+> server's domain list (**Domain Names** on the main server's form, **Domains &
+> IP's** on a load balancer's or proxy's). Addresses, names with an underscore and
+> wildcards are left out of the request. An entry written as a URL
+> (`http://name/`) is requested by its host name.
+>
 > A load balancer, or an older install, that still has the placeholder key from
 > the archive gets its own key and certificate at its next start
 > (`console.php startup`, which then reloads Nginx). The placeholder key is in the

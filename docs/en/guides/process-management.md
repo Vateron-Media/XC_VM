@@ -106,6 +106,13 @@ ProcessManager::kill(int $pid, int $signal = SIGKILL): bool
 
 Use `SIGTERM` for graceful shutdown when possible.
 
+### What `cron:streams` kills on its own
+
+At the end of a pass `cron:streams` kills two kinds of process that no stream of this server accounts for:
+
+- **Leftover monitors.** An `XC_VM[<id>]` process whose stream is neither among the streams the pass checked nor on demand is killed with its producer, and the stream's `<id>_*` files are removed. A monitor that is still probing its sources is not a leftover: the process is left alone while this server's row for the stream names it as `monitor_pid` and shows nothing started yet (no `pid`, `stream_status` 0). Nor is a monitor that started its stream while the pass ran: the row names it and shows a `pid` or a status, and the stream is a live stream that is not a direct source, so the next pass checks it.
+- **Rogue producers** (the `kill_rogue_ffmpeg` setting). A producer writing an `<id>_.m3u8` that no running stream's pid names is killed, but only if it was already running when the pass started, judged by the start time in `/proc/PID/stat`. A producer started during a pass is judged by the next one, so an orphaned encoder can live for up to two passes. The running producer of a stream for which the pass has just started a monitor (the pid in `<id>_.pid`, else the pid of this server's row) is not a rogue: the new monitor takes it over.
+
 ---
 
 ## Cron Locking

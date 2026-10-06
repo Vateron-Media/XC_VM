@@ -20,11 +20,15 @@ checklist steps 4-5 concrete:
 1. **handshake** — `GET portal.php?type=stb&action=handshake&mac=…&prehash=…` → the server returns
    a **token**. `prehash` is a client-computed handshake hash (derived by the box/emulator from its
    identity + the MAC); you do **not** set it in the URL — the client generates it per request.
+   The handshake returns a token for any MAC, so a token does not show that the MAC is registered.
+   When the database does not answer the device lookup, the handshake replies HTTP 503 with an
+   empty body instead: it hands out no token and counts no attempt.
 2. **get_profile** — `GET portal.php?type=stb&action=get_profile` with `Authorization: Bearer <token>`
    and the device identifiers (`mac`, `sn`, `stb_type`, `device_id…`). The server validates the
    device (MAC row, `lock_device` fields, `allowed_stb_types`) and returns the **profile**, whose
    `status` says whether the box is authorized.
-3. Subsequent calls (channel list, EPG, create_link) reuse the same Bearer token.
+3. Subsequent calls (channel list, EPG, create_link) reuse the same Bearer token. They are answered
+   only once `get_profile` has verified the device under that token; otherwise the body is empty.
 
 Server side, `PortalHandler.php` orchestrates handshake/get_profile and `portal.php` runs the device
 checks. (In some builds the box first hits `/server/load.php` for a load-balancer handshake before
@@ -128,7 +132,10 @@ Common causes:
 1. MAC is not found in `mag_devices`.
 2. `sn`, `device_id`, `device_id2`, `hw_version` do not match when `lock_device = 1`.
 3. STB model does not pass `allowed_stb_types` whitelist.
-4. Handshake token is invalid or rejected on `get_profile`.
+4. The token sent with `get_profile` is not the one the last handshake for this MAC returned (a
+   second handshake replaces it), or it does not reach PHP.
+
+A handshake that returns a token is not a check for any of these: read the `status` of `get_profile`.
 
 ---
 
@@ -137,7 +144,7 @@ Common causes:
 1. Open portal with a correct prefix (`/ACCESS_CODE/` or `/c/`).
 2. In STB Emulator, do not use URL with `action=handshake` as portal URL.
 3. Pass all required fields (`mac`, `sn`, `stb_type`, `device_id`, `device_id2`, `hw_version`).
-4. Verify handshake returns token and the next `get_profile` sends Authorization Bearer.
+4. Verify the `get_profile` that follows the handshake sends Authorization Bearer, and read its `status`: `0` verified, `1` not. (The handshake returns a token for any MAC.)
 5. If Authorization does not reach PHP, temporarily enable `auth_via_query=1`.
 6. If STB type restrictions apply, add `debug_key=1`.
 7. If issue persists, verify the device in the admin panel: **MAG Devices** page (the `mag_devices` row, MAC + `lock_device` toggle) and the Ministra settings' **allowed STB types** list (`allowed_stb_types`).

@@ -33,6 +33,9 @@ nginx rewrites all streaming URLs to PHP entry points under `Public/stream/`:
 | `/hls/{token}` | `segment.php` | HLS segment delivery |
 | `/key/{token}` | `key.php` | AES-128 encryption key |
 | `/subauth/{token}` | `subtitle.php` | Subtitle delivery |
+| `/thauth/{token}` | `thumb.php` | Thumbnail delivery |
+
+`/thauth/` and `/subauth/` accept only a token that carries `expires` and has not passed it; any other token is answered `TOKEN_EXPIRED`.
 
 ---
 
@@ -189,6 +192,17 @@ X-Content-Type-Options: nosniff
 Alt-Svc: h3-29, h3-T051, h3-Q050 (HTTP/3 hints)
 ```
 
+### HMAC-signed links
+
+A request that reaches `auth.php` with an `hmac` parameter is checked by `AuthService::validateHMAC()` instead of a line lookup. It is accepted for live, movie and series links only; any other type is answered `INVALID_TYPE_TOKEN`. The signature is an HMAC-SHA256, under one of the enabled HMAC keys, of
+
+```text
+<stream>##<extension>##<expiry>##<ip>##<identifier>##<max>
+```
+
+- `expiry` is optional. A link without it is signed with that field empty (`<stream>##<extension>####<ip>##<identifier>##<max>`); a link with it is answered `TOKEN_EXPIRED` once that time has passed.
+- Each of `hmac`, `identifier`, `ip` and `expiry` must be a single value. A request that sends one of them as a list is answered `INVALID_CREDENTIALS`.
+
 ---
 
 ## Stream Delivery
@@ -210,6 +224,8 @@ Main delivery endpoint (~650 lines):
      segments only through the daemon (`/xc_fanout_hls/<id>_<seq>`), else `404`.
 6. On exit: `ShutdownHandler::handle()` → close connection record.
 
+Before it issues a live link, `auth.php` may show the expiring notice (**Expiring Video**, `show_expiring_video`) in place of the stream: once a day to a line that is not a trial, from seven days before it expires. The notice is shown to non-restreamer lines only, and it is a notice, not a refusal: when no clip is configured or found, or the server that would show it has no free proxy, the line gets its stream instead of an error.
+
 ### VOD (vod.php)
 
 Same auth flow as live. Reads from `VOD_PATH` instead of `STREAMS_PATH`. Byte ranges (seeking) are resolved by `Streaming\Delivery\HttpRange` (RFC 7233 single ranges, suffix ranges included). A direct-proxy movie is relayed with cURL, asking the source for exactly the requested range.
@@ -217,6 +233,20 @@ Same auth flow as live. Reads from `VOD_PATH` instead of `STREAMS_PATH`. Byte ra
 ### Timeshift (timeshift.php)
 
 Serves archived segments (timeshift / catch-up) from the archive path. A TS request streams the minute files back to back; a byte range (a seek) is mapped onto them — files before the start are skipped, the first is entered at the right offset and delivery stops at the range end.
+
+A catch-up link (`/timeshift/…`, or a live link with `?utc=`) is checked by `auth.php` before `/tsauth/{token}` is issued:
+
+- `start` is a Unix time (up to 10 digits), `YYYYMMDD-HH` or `YYYY-MM-DD:HH-MM`. The last form is also read with seconds after it (`:SS` or `-SS`), which are ignored: the archive is read from that minute. Anything else is answered `NO_TIMESTAMP`, by `auth.php` and again by `timeshift.php` when it reads the token.
+- `duration` is in minutes and is served up to 21600 (15 days). `timeshift.php` looks for one recorded minute per minute of it, and never past the present minute.
+- In the HLS playlist, each catch-up segment link (`/hls/{token}`) has nine `/`-separated fields: `TS`, username, password, viewer IP, duration, start, `<stream>_<file>_<offset>`, connection uuid and server id. The start is written as a Unix time and the username and password are URL-encoded; `segment.php` answers 404 for a catch-up link with any other number of fields.
+
+### RTMP (rtmp.php)
+
+nginx-rtmp calls `rtmp.php` on `on_play`, `on_publish` and `on_play_done`. What nginx-rtmp itself says — `addr`, `clientid`, `call` and `name` — is read from the callback's query string by `StreamAuth::notifyArguments()`. A callback that gives one of the four two different values is answered 404. The stream's own arguments (`username`, `password`, `token`) come from the parsed request, as on the other endpoints, so an RTMP URL must not carry arguments named `addr`, `clientid`, `call` or `name`.
+
+### Probe (probe.php)
+
+`/probe/{data}` tells a restreamer whether a channel is up and with which codecs (`codecs`, `container`, `bitrate` as JSON) without opening a connection; `data` is the base64 of a stream link's path. It answers only for a restreamer line that is not expired, banned or disabled, and only for a stream in that line's bouquets; every other request gets a 404. A probe whose username and password match no line counts that username toward the address's bruteforce limit (`bruteforce_username_attempts` different names within `bruteforce_frequency`), the same count a refused `/live/` request adds to. It is not counted when **Ignore Invalid Credentials** is on together with the cache.
 
 ### Daemon delivery — `xc_fanout`
 
@@ -423,6 +453,8 @@ Settings:
 - `ip_subnet_match` — match by /24 subnet instead of exact IP
 - `restrict_same_ip` — return error on IP mismatch instead of killing
 
+The connection that has just been admitted is never the one closed: `StreamAuth::validateConnections()` passes its uuid, and only connections older than it are candidates. An RTMP viewer is treated the same way (its uuid is `ConnectionTracker::rtmpUuid()`): admitted on a full line, it stays and an older connection of the line is closed, chosen by the priority above (the RTMP callback passes no user agent, so: one from the same IP first, otherwise the oldest). On a node whose CONNECTIONS flow is on, the check goes to MAIN as a `conn.limit` event carrying the connection's uuid and the viewer's address — for RTMP the address nginx-rtmp reported, since the callback itself comes from the server. The node makes the check itself only when the event cannot be queued.
+
 ### ShutdownHandler
 
 File: `src/Streaming/Lifecycle/ShutdownHandler.php`
@@ -490,7 +522,9 @@ if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
 }
 ```
 
-File-based IP blocking. Block files are created by upstream flood detection logic.
+File-based IP blocking. Block files are created by `BruteforceGuard::checkFlood()` and `checkBruteforce()` (see [Authentication and Sessions](../guides/authentication-and-sessions.md#bruteforceguard)) when an address passes a limit, and for an address put on the blocklist in the panel. The guard is fed by the refused requests of the stream endpoints and of the client APIs, `player_api.php` included.
+
+The flood count is of refused requests in a row, each within `flood_seconds` of the one before; a longer gap starts it again. It is a limit on tight loops. Different usernames or MACs tried over a longer time are what `checkBruteforce()` counts, within `bruteforce_frequency`.
 
 ### 3. ConnectionLimiter (per-user)
 
@@ -512,6 +546,17 @@ Client HLS is served by the `xc_fanout` daemon (see [Daemon delivery](#daemon-de
 4. The AES key is delivered to players by `key.php` (`src/Public/stream/key.php`) using the same token mechanism.
 
 The live playlist's `#EXT-X-MEDIA-SEQUENCE` is re-anchored by `HlsSequence` so it never steps back across an off-air ↔ live transition, without renumbering a stream that is playing (its state lives in `tmp/signals/hlsseq_<id>`, so it survives a stream restart).
+
+---
+
+## Stream Argument Templates
+
+The source options of the stream form (User Agent, HTTP Proxy, Cookie, Headers, Force Input Audio Codec, Skip FFProbe) are the `fetch` rows of `streams_arguments`. The table also holds `transcode` rows (bitrates, scaling and the rest), which the stream form does not show: a transcoding profile builds those options itself in `ProfileService`. `argument_cmd` is the template `StreamUtils::getArguments()` turns into a piece of the ffmpeg command line, for each row a stream has an option for:
+
+- A text template holds one `%s`, placed bare (`-acodec %s`), inside double quotes (`-user_agent "%s"`) or inside single quotes (`-headers '%s'`). `getArguments()` quotes the value for that place, so the shell hands it to ffmpeg as one argument. Two keys are rewritten before they are quoted: `cookie` by `fixCookie()` (appends `path=/;` and `domain=;` when the value has none) and `proxy` by `proxyURL()` (puts `http://` in front of a value without a scheme); every other value is quoted as stored. A template must not expect a value that is already escaped.
+- Numeric options use `%d` (`-b:v %dk`).
+- `StreamUtils::parseTranscode()` merges the `-filter_complex "…"` clauses of the transcode options into one. A clause runs to its closing double quote, and a backslash-escaped quote (`\"`) is part of the clause.
+- A profile that deinterlaces and scales without a logo stores the chain as the command of its scaling option, and ffmpeg gets it as one `-vf "yadif,scale=…"` option. Only a profile with a logo stores a logo entry: the logo is then a second input, and the filters run in `-filter_complex`.
 
 ---
 

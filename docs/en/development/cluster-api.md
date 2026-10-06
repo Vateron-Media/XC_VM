@@ -122,13 +122,53 @@ state is seeded. It says it again at once whenever that stops being true (`Strea
 refuses the move while `redis_handler` is on: the node's stream entry opens MAIN's Redis at every
 viewer, which mode 2 refuses.
 
+A node in mode 2 keeps every flow. `act()` refuses to switch one off there
+(`cluster_flow_mode_two`): without it the node has only MAIN's database for that work, which it may
+not reach. The operator moves the node one mode down first.
+
+An enrolment that would start a node in mode 2 (a node MAIN keeps credential-free, see
+[Limits](#limits)) meets the Redis handler too. `EnrolmentService::begin()` refuses it while
+`redis_handler` is on, before the node's row is touched: `ClusterRefusedException` with the reason
+`REDIS_HANDLER`, which is MAIN's own refusal and not the extension's. Every path says so before it
+acts:
+
+- the page's approval of a code and `cluster:enrol-approve` leave the request pending;
+- `server:install` refuses before the node is contacted, and marks the server's install as failed;
+- `server:enrol` and `cluster:reenrol` refuse before the node's agent is stopped;
+- the panel's install and reinstall refuse before the server is marked as being installed
+  (`ServerService::modeTwoInstallRefused()`), so a running load balancer stays in rotation. The
+  install form's failed answer (`post.php?action=server_install`) carries the reason, translated,
+  in `message`; for any other failure `message` is null.
+
+In the other direction, the Cache page does not switch the handler on while a node is in mode 2
+(`ClusterAdmin::anyInModeTwo()`). That counts a node still enrolling in mode 2 until its
+`enrol_deadline` (30 minutes), but neither an enrolment that was never completed nor a revoked
+node.
+
 The connect audit is **not** part of the gate. A node in mode 1 reads MAIN's database by design
 (its crons, its signals daemon, viewer authentication), so the zero the gate once waited seven
 days for could only come in mode 2. The move takes nothing from the node, so `mode_down` undoes
 it, and it is always allowed. The seven days (`ClusterAdmin::CUTOVER_CLEAN_DAYS`) stand before the
 step with no way back: `DbCredentials::strip()` refuses until the node has been in mode 2 that
-long (MAIN notes when in `cluster_meta`, `mode2_at.<server id>`), and while it reports
-`streams_local` false.
+long (MAIN notes when in `cluster_meta`, `mode2_at.<server id>`). It also asks what the gate asks,
+at that moment: every flow (`ClusterAdmin::MODE2_FLOWS`), a node heard within
+`NodeHealth::SUSPECT_AFTER_MS`, and `streams_local` true in its last report. A node that says
+nothing of its streams is refused.
+
+The strip is judged again after it is queued:
+
+- its command lives `DbCredentials::STRIP_TTL` (600 s), not the day another `node.root` command
+  lives: a node that is away when it is asked is asked again. A strip the node was handed keeps
+  its row a day past its `exp` (`CommandBus::prune()`), so a late ack still revokes the grant;
+  past `exp` it is not handed out;
+- `CommandBus::pending()` hands a strip out only while the node's row says mode 2;
+- `mode_down` from 2 ends every strip the node has not acked (`DbCredentials::cancelStrip()` sets
+  its `exp` to now), so it is handed out no more, also if the node returns to mode 2; one the node
+  was not handed goes at the next `cron:cluster`, one it was handed keeps its row for its ack,
+  which says what the node's config holds;
+- root on the node runs it only while the node is in mode 2: `NodeCredentials::run()` refuses
+  `strip_db_credentials` unless `NodeRole::refusesConnects()`. The command then fails with
+  `strip_db_credentials: refused: this node is not in mode 2 ...`, and MAIN revokes nothing.
 
 On the node, a move into or out of mode 2 is followed within a pass: the signals, queue and
 fanout_sync daemons (`DaemonTrait::refreshOrBreak()`), the scanner and the on-demand daemon leave
@@ -170,7 +210,7 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 | `cluster_offline_after_sec` | 10–300 (30) | silence before MAIN marks a node offline |
 | `cluster_orphan_conn_ttl_sec` | 30–3600 (120) | silence before MAIN purges a node's viewers |
 | `lb_offline_admission` | local \| allow \| deny | admitting viewers while MAIN is unreachable |
-| `cluster_kill_on_line_disable` | 0/1 (1) | a disabled, locked or expired line loses its sessions |
+| `cluster_kill_on_line_disable` | 0/1 (1) | a disabled, locked or expired line loses its sessions; a reseller's disable (panel or Reseller API) counts too |
 | `cluster_ingest_concurrency` | 1–64 (6) | MAIN's ingest permits; half reserved for P0 |
 | `lb_new_node_mode` | legacy \| api | the mode a newly installed LB enrols at |
 | `servers_stats_retention_days` | 1–365 (30) | `cron:cleanup` prunes `servers_stats` |
@@ -261,6 +301,10 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
 10. *Drop DB credentials* on the node (or `cluster:strip-credentials`): the node's
     `config.enc` loses MAIN's DB and Redis credentials, then MAIN revokes its grant. There is
     no undo from the page: rolling back needs a config with credentials and a new grant.
+    MAIN sends it only after seven days in mode 2, to a node that has every flow on, was heard
+    in the last ten seconds and reports `streams_local`. The command waits ten minutes for the
+    node, and root on the node runs it only while the node is in mode 2. A drop that was
+    refused or that expired changed nothing: send it again.
 
 ## Limits
 
@@ -337,13 +381,21 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
   credentials with a signed `node.root strip_db_credentials` (or a credential-free
   `node.root install_config`), run by `xcvm_core` as root; when its ack reports a config
   without credentials, MAIN revokes the node's grant (`XC_VM::db_revoke`) and records
-  `cluster_nodes.db_revoked_at` (`Domain\Cluster\DbCredentials`). Only an operator sends
+  `cluster_nodes.db_revoked_at` (`Domain\Cluster\DbCredentials`). Root runs the strip only
+  while the node is in mode 2 (`NodeCredentials::run()`; `install_config` is not gated by
+  the mode). Two limits remain there. The node learns of a `mode_down` at its agent's next
+  heartbeat, so a strip root runs before that still runs. And when root's runner is more
+  than `ClusterExecCommand::ROOT_WAIT` (5 s) behind, the command is acked
+  `{"queued": true}` and root's later outcome does not reach MAIN, which then revokes
+  nothing. Only an operator sends
   the strip (*Drop DB credentials*, `cluster:strip-credentials`), and
   `lb_new_node_mode=api` is still refused (`api_mode_allowed` is false): the cutover stays
   the operator's decision. A node MAIN already keeps credential-free (mode 2, or a revoked
   grant) stays so: a reinstall over SSH packs it a credential-free config, re-enrols it in
-  mode 2 and grants it nothing, and no grant path (*Re-authorise MySQL*, `tools mysql`)
-  reaches its host. `cluster:rotate-db-password` rotates the panel's DB password
+  mode 2 and grants it nothing, an enrolment by code re-enrols it in mode 2 as well, with
+  every flow on and its `db_revoked_at` kept (`EnrolCodeService::approve()`), and no grant
+  path (*Re-authorise MySQL*, `tools mysql`) reaches its host.
+  `cluster:rotate-db-password` rotates the panel's DB password
   through `XC_VM::db_set_password` and sends each node below mode 2 that takes root
   commands a signed `node.root rotate_db` with the new password SEALed to its box key,
   which its root side opens and hands to `XC_VM::config_set_db` (only `db.pass` changes).
@@ -356,3 +408,12 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
   — is Phase 9's.
 - A node's `whitelist_ips` is the admin's: a node no longer publishes its own addresses,
   because that column grants the legacy `/api` allowlist.
+- A command queued for a node before it was quarantined may never reach it. A quarantined
+  node is handed only the commands that restrict it (kills, stops, a fence, the
+  quarantine itself), and it asks only for commands above the highest `seq` it has run. A
+  command that waited below that `seq` is not handed out after *Trust again*: it expires
+  unsent, and the operator sends the action again.
+- A node's heartbeat sets `servers.status` to 1, whatever it was: at once, or with the next
+  flush of the heartbeats the cluster bus holds (every 5 s). The status 5 a node reports as
+  it starts an update, and an install state MAIN set (3 or 4), last only until the node's
+  agent is next heard.

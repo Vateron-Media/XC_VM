@@ -165,14 +165,16 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 ### Automatic update
 
 The databases are updated by the `cron:maxmind` cron job (`src/Cli/CronJobs/MaxMindCronJob.php`).
-It runs **only on Tuesdays** — the day MaxMind publishes new releases. The logic branches on panel settings:
+It runs from the `xc_vm` crontab on every node (MAIN and load balancers), **only on Tuesdays** — the day MaxMind publishes new releases. The logic branches on panel settings:
 
 - if `maxmind_account_id` + `maxmind_license_key` + `maxmind_editions` are set, databases are pulled straight from the MaxMind API (`MaxMindUpdater`, only the configured editions are downloaded);
 - if MaxMind credentials are **not** set, it falls back to the GitHub GeoLite2 releases (free databases).
 
+A file from the GitHub release replaces the database in use only when the answer is HTTP 200 and the file opens as a MaxMind database; otherwise the current database stays. A checksum mismatch alone does not stop it: the file is saved with a `[WARN]`. `geolite2_version` is recorded only when both GeoLite2 files are in place. On MAIN the job also refreshes the ASN catalogue, which is replaced only by an HTTP 200 answer; otherwise the previous catalogue stays.
+
 ### Manual (forced) update
 
-To refresh the `.mmdb` databases immediately on a running panel, run the cron job by hand **as root** with the `--force` flag (it lifts the "Tuesday only" restriction):
+To refresh the `.mmdb` databases immediately on a running panel, run the cron job by hand **as root or as `xc_vm`** with the `--force` flag (it lifts the "Tuesday only" restriction):
 
 ```bash
 /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:maxmind --force
@@ -182,7 +184,9 @@ Output statuses:
 
 - `[OK]` — database updated;
 - `[SKIP]` — already up to date;
-- `[WARN]` / `[ERROR]` — with details (bad credentials, HTTP error, network unavailable).
+- `[WARN]` / `[ERROR]` — with details (bad credentials, HTTP error, network unavailable);
+- `[ERROR] <path>: download failed (HTTP <code>)` — the release file was not answered with HTTP 200; the current database is kept;
+- `[ERROR] <path>: not a MaxMind database, kept the current one` — the answer was HTTP 200 but the file does not open as a MaxMind database.
 
 > ⚠️ The MaxMind API path sends an `If-Modified-Since` header, so an already-fresh database returns HTTP 304 and a `[SKIP]` status. To force a re-download, first delete (or rename) the corresponding `.mmdb` in `BIN_PATH/maxmind/` so the header is not sent. The GitHub fallback has no such behavior — it compares md5 and re-downloads on mismatch.
 

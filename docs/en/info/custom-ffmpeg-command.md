@@ -43,6 +43,9 @@ The placeholders `{GPU}`, `{INPUT_CODEC}` and `{LOGO}` are also recognised but a
 become empty for a custom command, because they come from the transcoding profile,
 which a custom command does not use.
 
+Placeholders are read only in the command itself. A source URL or an external push
+URL that contains `{...}` text is passed to ffmpeg as typed.
+
 ---
 
 ## Examples
@@ -94,7 +97,30 @@ instead of the CPU one.
   use H.264 or HEVC video and AAC, MP3 or AC-3 audio.
 - **Quote for the shell.** The command is passed to the shell as written, so wrap
   filter graphs and values with spaces or special characters (`;`, `[`, `]`, `&`,
-  `|`) in single quotes, as in the examples above.
+  `|`) in single quotes, as in the examples above. This applies to the custom
+  command only. The channel's own source fields (**User Agent**, **HTTP Proxy**,
+  **Cookie**, **Headers**, **Force Input Audio Codec**) are quoted by the panel: type
+  their values plainly, because no shell quoting or escaping is needed there and
+  none is interpreted. **Force Input Audio Codec** takes one codec name; extra
+  ffmpeg options belong in a custom command.
+
+    A channel that already has extra options or quotes stored in that field (for
+    example `aac -rtsp_transport tcp` or `'aac'`) does not start: the whole value,
+    quotes included, is passed to ffmpeg as one codec name (`Unknown decoder`). To
+    find such values, run this on the main server's database:
+
+    ```sql
+    SELECT o.stream_id, a.argument_key, o.value
+    FROM streams_options o
+    INNER JOIN streams_arguments a ON a.id = o.argument_id
+    WHERE a.argument_type = 'text'
+      AND a.argument_cmd REGEXP '(^| )%s( |$)'
+      AND o.value REGEXP '[^[:alnum:]_.:/-]';
+    ```
+
+    Move the extra options to a custom command and leave only the codec name,
+    without quotes, in the field.
+
 - **Mind extra outputs.** Your codec options apply to the HLS output only. If the
   channel also has **RTMP output** enabled or external RTMP pushes, those outputs use
   ffmpeg's defaults. Test such channels carefully, or leave those options off.

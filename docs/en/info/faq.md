@@ -97,11 +97,20 @@ If this causes issues for legitimate users (e.g., mobile networks frequently rot
 
 ---
 
-XC_VM's brute-force guard blocks IPs after too many failed login attempts. This is controlled by:
+XC_VM's brute-force guard blocks an IP address after too many refused requests. This is controlled by:
 
-- `bruteforce_mac_attempts` — attempts per MAC per time window
-- `bruteforce_username_attempts` — attempts per username per time window
-- `flood_limit` — total requests per window
+- `bruteforce_mac_attempts` — an address is blocked when it fails with this many **different** MAC addresses inside `bruteforce_frequency` seconds (5 by default; it is not a number of attempts per MAC). It counts MAG portal handshakes for a MAC the panel does not know and `get_profile` requests that do not verify the device. Block note: `BRUTEFORCE MAC ATTACK`.
+- `bruteforce_username_attempts` — an address is blocked when it tries this many **different** unknown usernames, tokens or activation codes inside `bruteforce_frequency` seconds (10 by default). Block note: `BRUTEFORCE USER ATTACK`.
+- `flood_limit` — refused requests in a row, each within `flood_seconds` of the one before. Block note: `FLOOD ATTACK`.
+
+A limit that is 0, empty or not set switches that count off; the other two keep counting.
+
+**Typical causes for a legitimate user:**
+
+- **An app that retries in a tight loop.** Refused sign-ins on `player_api.php` / `panel_api.php` count toward `flood_limit`, as they do on `get.php`, `xmltv.php` and `enigma2.php`: a wrong password, an unknown token or activation code, or a code locked to another device. On `player_api.php`, expired, banned or disabled lines, and activation codes that have run out or been suspended, are answered with their status and are **not** counted.
+- **Several set-top boxes set up from one address before their MACs are registered.** Each unknown MAC counts toward `bruteforce_mac_attempts`, so the address can be blocked. Register the devices first, add the address to `flood_ips_exclude`, or set `bruteforce_mac_attempts` to 0.
+
+An address listed in `flood_ips_exclude` is exempt from all three limits.
 
 **To unblock yourself:**
 
@@ -224,7 +233,7 @@ See [Database Migrations](../guides/database-migrations.md) for details.
 
 | Error | Cause | Fix |
 |---|---|---|
-| Error 3 | Domain is a bare IP address | Certbot requires a domain name, not an IP |
+| Error 3 | No host name in the server's domain list: IP addresses, names with an underscore and wildcards are left out of the request | Add a domain name that points to the server (an entry written as a URL, `http://name/`, is requested by its host name) |
 | Error 4 | Dry run failed — port 80/443 in use | Stop conflicting service: `sudo lsof -i :80` |
 | Error 0 | Files not found after generation | Check `/home/xc_vm/bin/certbot/logs/xc_vm.log` |
 | Error 2 | Unexpected certbot error | Check logs, ensure DNS resolves to your server |

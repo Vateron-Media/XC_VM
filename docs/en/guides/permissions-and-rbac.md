@@ -19,6 +19,8 @@ user -> member_group_id -> group
 
 Permission state is loaded into the `$rPermissions` global during session initialization and remains available throughout the request lifecycle.
 
+A session needs an enabled account (`status = 1`), as the login does: disabling an admin or reseller ends the session the account has open on its next request, without waiting for the idle timeout.
+
 Key fields in `$rPermissions`:
 
 | Field | Type | Description |
@@ -118,6 +120,147 @@ return true;
 
 This means super admins pass all `adv` checks regardless of which keys are assigned to their group.
 
+#### Full administrator
+
+A *full administrator* is a member of group 1, or of an administrator group whose permission list is empty: both pass every `adv` check. A group that stores no list at all (`allowed_pages` is NULL or empty text) is read as one with an empty list, in the panel, in the tables and for an Admin API key alike. Administrator accounts and administrator groups are managed by a full administrator only. Anyone else cannot:
+
+- edit, mass-edit, delete, disable or enable an administrator's account, or adjust its credits, in the admin panel, the reseller panel, the Admin API or the Reseller API;
+- assign an administrator group to a user;
+- create, edit or delete an administrator group, or turn a group into one (the *Is Admin* switch of the group form and the group flag action).
+
+A reseller never gives a user an administrator group and cannot edit, delete, disable or enable an administrator's account in its tree.
+
+`GroupService::reservedGroups()` is the single rule: it returns the group ids reserved from the acting user, and an empty list for a full administrator. What a request on a reserved account or group answers depends on where it is made:
+
+- The Admin API and the admin panel's user and group forms answer `STATUS_INVALID_GROUP` when a user or a group is created or edited: an administrator's account, an administrator group, or a user given one. The mass edit answers the same when it assigns an administrator group.
+- The Admin API answers `STATUS_FAILURE` for `delete_user`, `disable_user`, `enable_user`, `adjust_credits` and `delete_group`.
+- The Reseller API answers `STATUS_FAILURE` for `delete_user`, `disable_user`, `enable_user` and `adjust_credits`, and `STATUS_NO_PERMISSIONS` for `edit_user`. A key whose group lacks the flag the action asks for is answered `STATUS_NO_PERMISSIONS` before that; see [Reseller Page Permission Mappings](#reseller-page-permission-mappings).
+- A row action on a user (delete, disable, enable, adjust credits) in either panel, and the group flag action, answer `result: false`.
+- Bulk enable, disable and delete, the mass edit of other fields and the group delete action leave reserved accounts and groups as they are and answer success.
+
+The user lists offer no row action on a reserved account, and the group list none on a reserved group.
+
+#### Admin API keys
+
+An Admin API key acts with the permissions its holder's group lists, as the holder does in the panel. A key of group 1, or of an administrator group with an empty permission list, keeps everything. For a key of a restricted group every action asks for a permission of the group, the one the panel asks for the same operation (`AdminApiController::ACTION_PERMISSIONS`): reads, tables and logs, delete, enable/disable and start/stop as well as create, edit and install. Where an action lists several permissions, any one is enough; `user_info` asks for none. A refused action answers `{"status":"STATUS_NO_PERMISSIONS"}`. The list covers the core actions: an action or a table a module registers is not in it and is checked by the module's own handler.
+
+The permission each action asks for (`OR`: any one of the keys is enough):
+
+| Area | Actions | Permission |
+| --- | --- | --- |
+| Own account | `user_info` | None: every key |
+| Database | `mysql_query`, `reload_cache` | `database` |
+| Settings | `get_settings`, `edit_settings` | `settings` |
+| Lines | `get_lines` | `users` OR `mass_edit_lines` |
+|  | `get_line`, `edit_line`, `delete_line`, `disable_line`, `enable_line`, `ban_line`, `unban_line` | `edit_user` |
+|  | `create_line` | `add_user` |
+| Activation codes | `get_active_codes` | `users` OR `mass_edit_lines` |
+|  | `get_active_code`, `get_active_codes_batches`, `export_active_code_batch`, `check_active_code` | `users` |
+|  | `generate_active_codes`, `create_active_code` | `add_user` |
+|  | `edit_active_code` | `edit_user` |
+|  | `delete_active_code`, `disable_active_code`, `enable_active_code`, `reset_active_code_device`, `mass_active_codes` | `edit_user` OR `mass_edit_lines` |
+| Users | `get_users` | `mng_regusers` OR `mass_edit_users` |
+|  | `get_user`, `edit_user`, `delete_user`, `disable_user`, `enable_user`, `adjust_credits` | `edit_reguser` |
+|  | `create_user` | `add_reguser` |
+| MAG devices | `get_mags` | `manage_mag` OR `mass_edit_mags` |
+|  | `get_mag`, `edit_mag`, `delete_mag`, `disable_mag`, `enable_mag`, `ban_mag`, `unban_mag`, `convert_mag` | `edit_mag` |
+|  | `create_mag` | `add_mag` |
+| Enigma devices | `get_enigmas` | `manage_e2` OR `mass_edit_enigmas` |
+|  | `get_enigma`, `edit_enigma`, `delete_enigma`, `disable_enigma`, `enable_enigma`, `ban_enigma`, `unban_enigma`, `convert_enigma` | `edit_e2` |
+|  | `create_enigma` | `add_e2` |
+| Groups | `get_groups` | `mng_groups` |
+|  | `get_group` | `mng_groups` OR `edit_group` |
+|  | `create_group` | `add_group` |
+|  | `edit_group`, `delete_group` | `edit_group` |
+| Packages | `get_packages` | `mng_packages` |
+|  | `get_package` | `mng_packages` OR `edit_package` |
+|  | `create_package` | `add_packages` |
+|  | `edit_package`, `delete_package` | `edit_package` |
+| Bouquets | `get_bouquets` | `bouquets` |
+|  | `get_bouquet` | `bouquets` OR `edit_bouquet` |
+|  | `create_bouquet` | `add_bouquet` |
+|  | `edit_bouquet`, `delete_bouquet` | `edit_bouquet` |
+| Categories | `get_categories`, `get_category` | `categories` |
+|  | `create_category`, `edit_category` | `add_cat` |
+|  | `delete_category` | `edit_cat` |
+| Streams | `get_streams` | `streams` OR `mass_edit_streams` |
+|  | `get_stream`, `edit_stream`, `delete_stream`, `start_stream`, `stop_stream` | `edit_stream` |
+|  | `create_stream` | `add_stream` |
+| Created channels | `get_channels` | `streams` OR `mass_edit_streams` |
+|  | `get_channel`, `edit_channel` | `edit_cchannel` |
+|  | `create_channel` | `create_channel` |
+|  | `delete_channel`, `start_channel`, `stop_channel` | `edit_cchannel` OR `edit_stream` |
+| Stations | `get_stations` | `radio` OR `mass_edit_radio` |
+|  | `get_station`, `edit_station` | `edit_radio` |
+|  | `create_station` | `add_radio` |
+|  | `delete_station`, `start_station`, `stop_station` | `edit_radio` OR `edit_stream` |
+| Movies | `get_movies` | `movies` OR `mass_sedits_vod` |
+|  | `get_movie`, `edit_movie`, `delete_movie`, `start_movie`, `stop_movie` | `edit_movie` |
+|  | `create_movie` | `add_movie` |
+| Series | `get_series_list` | `series` OR `mass_sedits` |
+|  | `get_series`, `edit_series`, `delete_series` | `edit_series` |
+|  | `create_series` | `add_series` |
+| Episodes | `get_episodes` | `episodes` OR `mass_sedits` |
+|  | `get_episode`, `edit_episode`, `delete_episode`, `start_episode`, `stop_episode` | `edit_episode` |
+|  | `create_episode` | `add_episode` |
+| Providers | `get_providers`, `get_provider`, `create_provider`, `edit_provider`, `delete_provider`, `reload_provider` | `streams` |
+|  | `get_provider_streams` | `streams` OR `add_stream` OR `edit_stream` OR `add_movie` OR `edit_movie` |
+| EPG | `get_epgs` | `epg` |
+|  | `get_epg`, `reload_epg` | `epg` OR `epg_edit` |
+|  | `create_epg` | `add_epg` |
+|  | `edit_epg`, `delete_epg` | `epg_edit` |
+| Transcode profiles | `get_transcode_profiles`, `delete_transcode_profile` | `tprofiles` |
+|  | `get_transcode_profile` | `tprofiles` OR `tprofile` |
+|  | `create_transcode_profile`, `edit_transcode_profile` | `tprofile` |
+| RTMP IPs | `get_rtmp_ips` | `rtmp` |
+|  | `get_rtmp_ip` | `rtmp` OR `add_rtmp` |
+|  | `create_rtmp_ip`, `edit_rtmp_ip`, `delete_rtmp_ip` | `add_rtmp` |
+| Access codes | `get_access_codes`, `get_access_code`, `create_access_code`, `edit_access_code`, `delete_access_code` | `add_code` |
+| HMAC keys | `get_hmacs`, `get_hmac`, `create_hmac`, `edit_hmac`, `delete_hmac` | `add_hmac` |
+| Blocklists | `get_blocked_isps`, `add_blocked_isp`, `delete_blocked_isp` | `block_isps` |
+|  | `get_blocked_uas`, `add_blocked_ua`, `delete_blocked_ua` | `block_uas` |
+|  | `get_blocked_ips`, `add_blocked_ip`, `delete_blocked_ip`, `flush_blocked_ips` | `block_ips` |
+| Servers | `get_servers` | `servers` |
+|  | `get_server`, `get_certificate_info` | `servers` OR `edit_server` |
+|  | `install_server`, `install_proxy` | `add_server` |
+|  | `edit_server`, `edit_proxy`, `delete_server`, `reload_nginx` | `edit_server` |
+|  | `get_server_stats` | `index` OR `add_server` OR `edit_server` |
+|  | `get_fpm_status` | `add_server` OR `edit_server` |
+|  | `get_free_space` | `process_monitor` OR `edit_server` |
+|  | `get_pids`, `kill_pid`, `clear_temp`, `clear_streams` | `process_monitor` |
+|  | `get_rtmp_stats` | `rtmp` |
+|  | `get_directory` | `add_episode` OR `edit_episode` OR `add_movie` OR `edit_movie` OR `create_channel` OR `edit_cchannel` |
+| Connections and logs | `live_connections` | `live_connections` |
+|  | `activity_logs`, `kill_connection` | `connection_logs` |
+|  | `credit_logs` | `credits_log` |
+|  | `client_logs` | `client_request_log` |
+|  | `user_logs` | `reg_userlog` |
+|  | `stream_errors` | `stream_errors` |
+|  | `system_logs` | `panel_logs` |
+|  | `login_logs` | `login_logs` |
+|  | `restream_logs` | `restream_logs` |
+|  | `mag_events` | `manage_events` |
+
+Action names and permission keys share words that do not mean the same thing. The action `edit_user` edits a panel user and asks for `edit_reguser`; the permission `edit_user` is the one for lines (`edit_line`). Likewise `get_users` asks for `mng_regusers`, and `get_lines` for `users`.
+
+The active-code API (`/api/active_code`, `/active_code.php`) follows the same rule when it is called with an Admin API key: each of its actions asks for the permission of the Admin API action it stands for, and answers `STATUS_NO_PERMISSIONS` without it. It takes the Admin API names in the right column and these short ones:
+
+| Short name | Admin API action |
+| --- | --- |
+| `list`, `get_codes` | `get_active_codes` |
+| `get`, `details` | `get_active_code` |
+| `generate`, `create` | `generate_active_codes` |
+| `edit`, `update` | `edit_active_code` |
+| `delete` | `delete_active_code` |
+| `enable` | `enable_active_code` |
+| `disable` | `disable_active_code` |
+| `reset_device` | `reset_active_code_device` |
+| `mass` | `mass_active_codes` |
+| `batches` | `get_active_codes_batches` |
+| `export` | `export_active_code_batch` |
+
+A request that sends an activation code and no key (a device activating its code, or `check`) asks for no permission.
+
 #### Reseller helper
 
 ```php
@@ -139,11 +282,11 @@ PageAuthorization::checkPermissions(?string $page = null): bool
 PageAuthorization::checkResellerPermissions(?string $page = null): bool
 ```
 
-If `$page` is omitted, the page name is inferred from `SCRIPT_FILENAME` (basename without `.php` extension, lowercased).
+If `$page` is omitted, the page name is taken from the request (`AdminHelpers::getPageName()`: the `PAGE_NAME` constant, else the entry script's basename, lowercased). A page's rule is looked up under its underscore name whatever the URL spelling: `line/mass`, `line_mass` and `line_mass.php` all resolve to the rule for `line_mass`.
 
 #### Default-allow behavior
 
-Both methods return `true` for any page not explicitly listed in their switch statements. This means pages without a mapping are accessible to all authorized users of the appropriate type (admin or reseller). Only pages with explicit entries are restricted.
+Both methods return `true` for any page not explicitly listed in their switch statements. This means pages without a mapping are accessible to all authorized users of the appropriate type (admin or reseller). Only pages with explicit entries are restricted. A new admin or reseller page that needs a permission must get a case in `PageAuthorization`.
 
 ---
 
@@ -161,11 +304,15 @@ Many entity pages use conditional logic based on request parameters:
 
 When neither condition is met, behavior depends on the page: some fall through to a related listing permission, others fall through to the switch default (which returns `true`).
 
+### Tables behind the mass-edit pages
+
+A mass-edit page shows the list it edits, so that table is read with the list page's key or the mass-edit page's own: lines with `users` OR `mass_edit_lines`, users with `mng_regusers` OR `mass_edit_users`, MAG devices with `manage_mag` OR `mass_edit_mags`, Enigma devices with `manage_e2` OR `mass_edit_enigmas`. A mass-edit key reads its own list only: `mass_edit_users` does not read the lines table. The provider streams table is read with `streams`, `add_stream`, `edit_stream`, `add_movie` or `edit_movie`.
+
 ### Streams and Content
 
 | Page | Permission | Notes |
 | --- | --- | --- |
-| `streams`, `stream_view`, `provider`, `providers`, `epg_view`, `created_channels`, `stream_rank`, `archive` | `streams` | |
+| `streams`, `stream_view`, `provider`, `providers`, `epg_view`, `created_channels`, `stream_rank`, `archive` | `streams` | On `created_channels`, the list inside the page is shown with `manage_cchannels` or `edit_cchannel` |
 | `stream` | `edit_stream` | When `id` is present |
 | `stream` | `add_stream` | When no `id` |
 | `stream` | `import_streams` | When `import` param is present (in addition to `add_stream`) |
@@ -201,7 +348,7 @@ When neither condition is met, behavior depends on the page: some fall through t
 | `series_order` | `edit_series` | |
 | `episodes` | `episodes` | |
 | `episode` | `edit_episode` | When `id` is present |
-| `episode` | `add_episode` | When no `id`; falls through to `episodes` on denial |
+| `episode` | `add_episode` | When no `id` |
 | `series_mass`, `episodes_mass` | `mass_sedits` | |
 
 ### Radio
@@ -221,6 +368,9 @@ When neither condition is met, behavior depends on the page: some fall through t
 | `line` | `edit_user` | When `id` is present |
 | `line` | `add_user` | When no `id` |
 | `line_mass` | `mass_edit_lines` | |
+| `active_codes`, `active_codes_batch` | `users` | Manage Active Codes and the Batch Manager. The controls that change codes (enable, disable, extend, reset device, delete) are shown only with `edit_user` or `mass_edit_lines` |
+| `active_code` | `add_user` | Generate Codes |
+| `active_codes_mass` | `mass_edit_lines` | Mass Edit Active Codes; the same key also reads the list of codes |
 | `line_activity`, `theft_detection`, `line_ips` | `connection_logs` | |
 | `live_connections` | `live_connections` | |
 
@@ -304,7 +454,8 @@ When neither condition is met, behavior depends on the page: some fall through t
 | Page | Permission | Notes |
 | --- | --- | --- |
 | `settings` | `settings` | |
-| `backups`, `cache`, `setup` | `database` | |
+| `modules` | `settings` | Checked by the page itself; covers the module list and every module operation, ZIP upload and store install included |
+| `backups`, `cache`, `setup` | `database` | The *Backup Settings* and *Cache Settings* topbar links follow the same key |
 | `settings_watch`, `settings_plex` | `folder_watch_settings` | |
 | `plex`, `watch` | `folder_watch` | |
 | `plex_add`, `watch_add` | `folder_watch_add` | |
@@ -342,6 +493,23 @@ When neither condition is met, behavior depends on the page: some fall through t
 | `login_logs` | `login_logs` | |
 | `restream_logs` | `restream_logs` | |
 
+### Actions
+
+The actions below check their own key, whatever page the button is on:
+
+| Action | Permission | Notes |
+| --- | --- | --- |
+| Generate activation codes | `add_user` | |
+| Enable, disable, extend or delete activation codes and whole batches | `edit_user` OR `mass_edit_lines` | Access with either key |
+| Open a code's details, export a batch | `users` | |
+| Bulk actions on the Lines page | `edit_user` | |
+| Bulk series delete | `edit_series` | |
+| Cache and Redis buttons (regenerate cache, enable or disable the cache, enable or disable the Redis handler, clear Redis) | `database` | |
+| Report export (*Export as CSV* / *Export as JSON*) | `database` | The buttons are shown with the same key |
+| EPG grid and programme popup on the EPG view, provider stream list, importing a provider's EPG | `streams` | |
+| Clear Logs | The key of the log page the button is on | `client_request_log`, `connection_logs`, `stream_errors`, `credits_log`, `reg_userlog`, `panel_logs` |
+| Download the panel log | `panel_logs` | Empties the table after collecting it |
+
 ---
 
 ## Reseller Page Permission Mappings
@@ -358,6 +526,16 @@ The `checkResellerPermissions()` method maps reseller panel pages to boolean fla
 | `live_connections`, `line_activity` | `reseller_client_connection_logs` |
 
 Any reseller page not listed above returns `true` (accessible by default).
+
+The row actions of the reseller panel and the Reseller API ask for the same flags. Without the flag, the Reseller API answers `STATUS_NO_PERMISSIONS`:
+
+| Reseller API actions | Required permission |
+| --- | --- |
+| `delete_line`, `disable_line`, `enable_line` | `create_line` |
+| `delete_mag`, `disable_mag`, `enable_mag`, `convert_mag` | `create_mag` |
+| `delete_enigma`, `disable_enigma`, `enable_enigma`, `convert_enigma` | `create_enigma` |
+| `disable_user`, `enable_user`, `adjust_credits` | `create_sub_resellers` |
+| `delete_user` | `create_sub_resellers` and `delete_users` |
 
 ---
 

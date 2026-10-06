@@ -53,18 +53,27 @@ A module owns its schema through **three roles that mirror core** (`bin/install/
 
 | File | Role | Runs on |
 | ---- | ---- | ------- |
-| `database.sql` | **One** master schema — the full current `CREATE`/seed | fresh **install** |
+| `database.sql` | **One** master schema — the full current `CREATE`/seed | fresh **install**; again, after the deltas, when a store update or an uploaded archive replaces an installed copy |
 | `database_drop.sql` | **One** teardown — `DROP TABLE` for every table the module owns | **uninstall** |
-| `migrations/<semver>.sql` | **Folder** of forward deltas between versions | **update**, for versions in `(installed, current]` |
+| `migrations/<semver>.sql` | **Folder** of forward deltas between versions | **update** (bundled, git, url, store, or an archive uploaded over an installed module), for versions in `(installed, current]` |
 
 Rules:
 
 - **Fresh install runs only `database.sql`**, so it must always reflect the LATEST
   schema (every delta folded in). The recorded `installed_version` is the watermark —
   deltas never replay on a fresh install.
+- **A store update and an archive uploaded over an installed module** apply the new deltas
+  first, then `database.sql` and `install()` again, so both must leave the tables and rows
+  of an existing install as they are (`CREATE TABLE IF NOT EXISTS`, `INSERT IGNORE`). A
+  module with no `database.sql` gets only the new deltas.
 - **Deltas are forward-only** (`ALTER`/`INSERT`), named `<semver>.sql` — teardown is the
   single `database_drop.sql`, so there are no per-version `.down` files.
-- Keep deltas **idempotent** (`ADD COLUMN IF NOT EXISTS`, `INSERT IGNORE`) so re-runs are safe.
+- **A delta that has applied is not applied again**: not after a store Rollback followed
+  by an Update, and not when a failed update is retried. The version the schema reached
+  stays on record (`schema_version`, see [Module Lifecycle](module-lifecycle.md#enable-disable-modules)).
+- Keep deltas **idempotent** (`ADD COLUMN IF NOT EXISTS`, `INSERT IGNORE`) all the same: a
+  delta file that fails part-way is run again from its first statement on the retry, and a
+  delta-only module replays every delta on a fresh install.
 - A module with no schema ships none of these files. A delta-only module (no `database.sql`)
   still installs by replaying every delta ≤ its version.
 
@@ -120,6 +129,12 @@ Rules:
 
 > **Guard against drift.** A module that still-enabled modules depend on cannot be `disabled` via the panel / `ModuleManager::setState()` — the operation is rejected with the list of dependents (mirroring the `uninstallModule()` guard). This prevents the "`plex` enabled but its `watch` dependency disabled" state.
 
+**Unusable manifest, dependency cycle:**
+
+- A `module.json` that is not a JSON object, whose `dependencies` or `optional_dependencies` is not a list of names, or whose `environment` is not `main`, `lb` or `any` cannot be loaded. An upload, a store install and an update refuse such a module and keep the installed files and recorded version; a module already on disk with such a file is skipped at load (see [Module Lifecycle](module-lifecycle.md#how-loading-works)).
+- A module whose dependencies would lead back to itself through the modules on disk is refused the same way. Optional dependencies count, and so do disabled modules.
+- A module whose class file does not parse, or whose constructor throws, is skipped at load in the same way: the reason is logged with its file and line, the modules that require it are skipped with it, and the panel and the CLI keep working. Installing or updating such a module still fails with the reason.
+
 **Priority:**
 
 - Topological sort respects the dependency graph first, then within the same group sorts by `priority` descending (higher number = loaded earlier), then alphabetically
@@ -149,6 +164,8 @@ The block is normalized by `ModuleLoader` and exposed via `ModuleManager::listMo
 - `url` — re-reads `version.json` for its `download` (https) + optional `md5`.
 
 For `git`/`url` the fetched `module.json` **`hash_id` must equal the installed one** (identity pinning — a repo/URL can't impersonate another module), then: backup → replace files → migrate → **roll back on any failure** → distribute to LB.
+
+A rolled-back `git`, `url` or store update leaves the module in the state it had before the attempt: a module that was switched off stays off, and one left `failed` stays `failed`.
 
 **Standard set & provisioning.** The modules the panel installs by default are listed in `config/bundled_modules.php`, keyed by `hash_id` (stable across renames). Today all are `bundled` (their files are in the panel archive). When a module is extracted into its own repository, flip its entry to a `git`/`url`/`platform` source — `syncBundledModules()` then fetches + installs it automatically via `provisionStandardSet()` (a no-op while everything is bundled on-disk). `ModuleManager::findModuleByHashId()` resolves a module by its stable id regardless of directory/name.
 
@@ -288,7 +305,7 @@ class MyModuleModule extends BaseModule {
 | `registerPermissions(PermissionRegistry $registry)` | `PermissionProviderInterface` *(optional)* | Reseller sub-permission keys for the group editor |
 | `registerQuickTools(QuickToolsRegistry $registry)` | `QuickToolsProviderInterface` *(optional)* | One-shot Quick Tools actions (button + handler) |
 | `getCronEntries(): array` | `CronProviderInterface` *(optional)* | Crontab lines gathered by startup/status |
-| `install(): void` | `ModuleInterface` | Run on module install (migrations, seed) |
+| `install(): void` | `ModuleInterface` | Run on module install (migrations, seed), and again when a store update or an uploaded archive replaces the installed copy |
 | `uninstall(): void` | `ModuleInterface` | Run on module remove (cleanup) |
 
 > **Important — the version lives in two places.** A module declares its version
@@ -412,7 +429,7 @@ class MyController {
 - [ ] (If crons) Create `MyCron.php` + `MyCronJob.php`, register in `registerCommands()`
 - [ ] (If crons) Override `getCronEntries()` in the module class (no core file changes)
 - [ ] (If schema) Ship `database.sql` (master), `database_drop.sql` (teardown), and `migrations/<semver>.sql` deltas
-- [ ] (If PHP-logic migrations) Implement `MigratableInterface::getMigrations()`
+- [ ] (If PHP-logic migrations) Implement `MigratableInterface::getMigrations()`; the callables and `install()` must run from the CLI and must not rely on the module's own `boot()` (see [Versioned migrations](module-extension-points.md#versioned-migrations-migratableinterface))
 - [ ] (If pages) Create controller using `renderUnifiedLayoutHeader/Footer`
 - [ ] Verify: `php -l src/Modules/<name>/<PascalName>Module.php`
 - [ ] Verify: `php console.php --list` shows the module's commands

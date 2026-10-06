@@ -65,7 +65,7 @@ Used for support/telemetry workflows.
 | --- | --- | --- |
 | `type` | string | event type |
 | `log_message` | string | main message |
-| `log_extra` | string | extra context |
+| `log_extra` | string | extra context; for `pdo` entries the failed SQL statement as written, with its `?` placeholders in place of the bound values. The driver's own message is in `log_message`: the text MySQL quotes after `value: ` or after a syntax error's `near ` is exported and submitted as `?`; any other message, and the message of a statement run through `simple_query()`, is exported and submitted as MySQL wrote it and can still quote a value |
 | `line` | int | source line |
 | `date` | int | UNIX timestamp |
 
