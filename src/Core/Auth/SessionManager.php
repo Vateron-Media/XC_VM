@@ -2,6 +2,7 @@
 
 namespace XcVm\Core\Auth;
 
+use XcVm\Core\Bootstrap\Stage\SessionStage;
 use XcVm\Core\Util\NetworkUtils;
 
 /**
@@ -87,7 +88,9 @@ class SessionManager {
 	];
 
 	/**
-	 * Start a session for the given context
+	 * Start a session for the given context. post.php, which nginx runs itself
+	 * for a form save, makes the request's first start here, so the session is
+	 * started the way the session stage starts it.
 	 *
 	 * @param string $context 'admin' or 'reseller'
 	 * @param int $timeout Timeout in minutes (default: 60)
@@ -97,7 +100,7 @@ class SessionManager {
 		self::$timeout = $timeout;
 
 		if (session_status() === PHP_SESSION_NONE) {
-			session_start();
+			SessionStage::startSession();
 		}
 
 		self::$started = true;
@@ -242,10 +245,11 @@ class SessionManager {
 	 * Integrity check for an authenticated admin session. The single definition
 	 * shared by the HTML bootstrap (AdminScopeBootstrap::hydrateAdminContext) and
 	 * the JSON table endpoint (Admin\TableController). Returns true only when the
-	 * user and permissions exist, the account is an admin, the login IP still
-	 * matches (when ip_logout is enabled), and the stored verify hash matches the
-	 * user's current credentials. Callers act on `false` themselves (redirect for
-	 * HTML, JSON error for AJAX) after SessionManager::clearContext('admin').
+	 * user and permissions exist, the account is an admin and still enabled, the
+	 * login IP still matches (when ip_logout is enabled), and the stored verify
+	 * hash matches the user's current credentials. Callers act on `false`
+	 * themselves (redirect for HTML, JSON error for AJAX) after
+	 * SessionManager::clearContext('admin').
 	 *
 	 * @param array|null $rUserInfo    Registered-user row, or null when not found.
 	 * @param array|null $rPermissions Resolved permissions, or null.
@@ -264,14 +268,20 @@ class SessionManager {
 	}
 
 	/**
-	 * Identity side of the admin session guard: a user row and permissions exist
-	 * and the account is flagged as an admin.
+	 * Identity side of the admin session guard: a user row and permissions exist,
+	 * the account is flagged as an admin and it is still enabled. A login needs
+	 * status 1 (Authenticator), and so does the session it opened: disabling an
+	 * account ends it.
 	 *
 	 * @param array|null $rUserInfo    Registered-user row, or null when not found.
 	 * @param array|null $rPermissions Resolved permissions, or null.
 	 */
 	private static function adminIdentityValid(?array $rUserInfo, ?array $rPermissions): bool {
-		return $rUserInfo && $rPermissions && !empty($rPermissions['is_admin']);
+		if (!$rUserInfo || !$rPermissions || empty($rPermissions['is_admin'])) {
+			return false;
+		}
+
+		return $rUserInfo['status'] == 1;
 	}
 
 	/**

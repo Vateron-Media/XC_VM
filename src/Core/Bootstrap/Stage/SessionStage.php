@@ -22,18 +22,26 @@ class SessionStage implements BootStageInterface {
 		}
 
 		if (session_status() === PHP_SESSION_NONE) {
-			$rParams = session_get_cookie_params();
-			$rParams['samesite'] = 'Strict';
-			// The panel's scripts never read the session cookie, so an XSS must
-			// not be able to either.
-			$rParams['httponly'] = true;
-			session_set_cookie_params($rParams);
-			// Refuse session ids this server never issued, so a visitor cannot
-			// arrive carrying one an attacker chose.
-			ini_set('session.use_strict_mode', '1');
-			session_start();
+			self::startSession();
 		}
 
 		$state->sessionStarted = true;
+	}
+
+	/**
+	 * Start the session with the panel's cookie parameters. The scope
+	 * bootstraps call it too: they start the session before the framework boot.
+	 */
+	public static function startSession(): void {
+		$rParams = session_get_cookie_params();
+		$rParams['samesite'] = 'Strict';
+		// The panel's scripts never read the session cookie, so an XSS must
+		// not be able to either.
+		$rParams['httponly'] = true;
+		session_set_cookie_params($rParams);
+		// Refuse session ids this server never issued, so a visitor cannot
+		// arrive carrying one an attacker chose.
+		ini_set('session.use_strict_mode', '1');
+		session_start();
 	}
 }
