@@ -169,31 +169,39 @@ class SignalsCommand implements CommandInterface {
 
 					// ── Redis kill-сигналы ──────────────────────
 					if (SettingsManager::get('redis_handler')) {
-						$rSignals = [];
-						foreach (RedisManager::instance()->sMembers('SIGNALS#' . SERVER_ID) as $rKey) {
-							$rSignals[] = $rKey;
-						}
-						if (count($rSignals) > 0) {
-							$rSignalData = RedisManager::instance()->mGet($rSignals);
-							$rIDs = [];
-							foreach ($rSignalData as $rData) {
-								if (!is_string($rData)) {
-									continue; // expired unread (ConnectionTracker::SIGNAL_TTL)
-								}
-								$rRow = igbinary_unserialize($rData);
-								$rIDs[] = $rRow['key'];
-								$rPID = $rRow['pid'];
-								if (is_array($rRow['custom_data'] ?? null) && ($rRow['custom_data']['type'] ?? '') === 'drop_con') {
-									FanoutClient::dropConnection((string) ($rRow['custom_data']['uuid'] ?? ''));
-								} elseif ($rRow['rtmp'] == 0) {
-									if (!empty($rPID) && file_exists('/proc/' . $rPID) && is_numeric($rPID) && 0 < $rPID) {
-										shell_exec('kill -9 ' . intval($rPID));
-									}
-								} else {
-									shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rPID) . '" >/dev/null 2>/dev/null &');
-								}
+						// A read can drop mid-pass (a node reaches MAIN's Redis over the
+						// WAN): restart as a failed health check does, not die uncaught.
+						// Unremoved signals stay in the set for the next generation.
+						try {
+							$rSignals = [];
+							foreach (RedisManager::instance()->sMembers('SIGNALS#' . SERVER_ID) as $rKey) {
+								$rSignals[] = $rKey;
 							}
-							RedisManager::instance()->multi()->del($rIDs)->sRem('SIGNALS#' . SERVER_ID, ...$rSignals)->exec();
+							if (count($rSignals) > 0) {
+								$rSignalData = RedisManager::instance()->mGet($rSignals);
+								$rIDs = [];
+								foreach ($rSignalData as $rData) {
+									if (!is_string($rData)) {
+										continue; // expired unread (ConnectionTracker::SIGNAL_TTL)
+									}
+									$rRow = igbinary_unserialize($rData);
+									$rIDs[] = $rRow['key'];
+									$rPID = $rRow['pid'];
+									if (is_array($rRow['custom_data'] ?? null) && ($rRow['custom_data']['type'] ?? '') === 'drop_con') {
+										FanoutClient::dropConnection((string) ($rRow['custom_data']['uuid'] ?? ''));
+									} elseif ($rRow['rtmp'] == 0) {
+										if (!empty($rPID) && file_exists('/proc/' . $rPID) && is_numeric($rPID) && 0 < $rPID) {
+											shell_exec('kill -9 ' . intval($rPID));
+										}
+									} else {
+										shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rPID) . '" >/dev/null 2>/dev/null &');
+									}
+								}
+								RedisManager::instance()->multi()->del($rIDs)->sRem('SIGNALS#' . SERVER_ID, ...$rSignals)->exec();
+							}
+						} catch (\RedisException $e) {
+							echo 'Redis signals: ' . $e->getMessage() . "\n";
+							break;
 						}
 					}
 				}
