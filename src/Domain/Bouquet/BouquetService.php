@@ -55,7 +55,7 @@ class BouquetService {
 			$rBouquetStreams = $rBouquetData['stream'];
 			$rBouquetMovies = $rBouquetData['movies'];
 			$rBouquetRadios = $rBouquetData['radios'];
-			$rBouquetSeries = $rBouquetData['series'];
+			$rBouquetSeries = AdminHelpers::confirmIDs($rBouquetData['series']);
 			$rRequiredIDs = AdminHelpers::confirmIDs(array_merge($rBouquetStreams, $rBouquetMovies, $rBouquetRadios));
 			$rStreams = [];
 
@@ -95,11 +95,23 @@ class BouquetService {
 		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
-		if ($db->query($rQuery, ...$rPrepare['data'])) {
-			$rInsertID = $db->last_insert_id();
-			self::scan();
+		// An edit replaces the lists another writer may be changing: see lock().
+		if (isset($rData['edit'])) {
+			self::lock((int) $rData['edit']);
+		}
 
-			return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rInsertID]];
+		try {
+			if ($db->query($rQuery, ...$rPrepare['data'])) {
+				// Read before the bouquet is given back: any later statement resets it.
+				$rInsertID = $db->last_insert_id();
+				self::scan();
+
+				return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rInsertID]];
+			}
+		} finally {
+			if (isset($rData['edit'])) {
+				self::unlock((int) $rData['edit']);
+			}
 		}
 
 		return ['status' => STATUS_FAILURE, 'data' => $rData];
@@ -118,7 +130,13 @@ class BouquetService {
 		$rOrder['series'] = AdminHelpers::confirmIDs($rOrder['series']);
 		$rOrder['movie'] = AdminHelpers::confirmIDs($rOrder['movie']);
 		$rOrder['radio'] = AdminHelpers::confirmIDs($rOrder['radio']);
-		$db->query('UPDATE `bouquets` SET `bouquet_channels` = ?, `bouquet_series` = ?, `bouquet_movies` = ?, `bouquet_radios` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rOrder['stream'])) . ']', '[' . implode(',', array_map('intval', $rOrder['series'])) . ']', '[' . implode(',', array_map('intval', $rOrder['movie'])) . ']', '[' . implode(',', array_map('intval', $rOrder['radio'])) . ']', $rData['reorder']);
+		self::lock((int) $rData['reorder']);
+
+		try {
+			$db->query('UPDATE `bouquets` SET `bouquet_channels` = ?, `bouquet_series` = ?, `bouquet_movies` = ?, `bouquet_radios` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rOrder['stream'])) . ']', '[' . implode(',', array_map('intval', $rOrder['series'])) . ']', '[' . implode(',', array_map('intval', $rOrder['movie'])) . ']', '[' . implode(',', array_map('intval', $rOrder['radio'])) . ']', $rData['reorder']);
+		} finally {
+			self::unlock((int) $rData['reorder']);
+		}
 
 		return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rData['reorder']]];
 	}
@@ -445,6 +463,33 @@ class BouquetService {
 	}
 
 	/**
+	 * Hold a bouquet for one writer. Changing one of its lists reads the list
+	 * and writes it back whole, so of two writers at once (a folder import
+	 * runs several) the later write would drop the other's change: each takes
+	 * the bouquet before it reads and gives it back with unlock() after it
+	 * wrote. A save that replaces the lists (process(), reorder()) takes it
+	 * for its write, so that it does not land between another writer's read
+	 * and write. A writer waits its turn for ten seconds, then goes on without
+	 * it; a connection that ends gives back what it held.
+	 *
+	 * @param int $rBouquetID Bouquet id.
+	 * @return void
+	 */
+	public static function lock(int $rBouquetID) {
+		self::db()->query("SELECT GET_LOCK(CONCAT(DATABASE(), '.bouquet_', ?), 10);", $rBouquetID);
+	}
+
+	/**
+	 * Give a bouquet taken with lock() back to the other writers.
+	 *
+	 * @param int $rBouquetID Bouquet id.
+	 * @return void
+	 */
+	public static function unlock(int $rBouquetID) {
+		self::db()->query("SELECT RELEASE_LOCK(CONCAT(DATABASE(), '.bouquet_', ?));", $rBouquetID);
+	}
+
+	/**
 	 * Add items of a given type to a bouquet.
 	 *
 	 * @param string $rType      Item type (stream/movie/series/radio).
@@ -459,34 +504,42 @@ class BouquetService {
 			$rIDs = [$rIDs];
 		}
 
-		$rBouquet = self::getById($rBouquetID);
+		self::lock($rBouquetID);
 
-		if (!$rBouquet) {
-			return;
-		}
+		try {
+			$rBouquet = self::getById($rBouquetID);
 
-		if ($rType == 'stream') {
-			$rColumn = 'bouquet_channels';
-		} elseif ($rType == 'movie') {
-			$rColumn = 'bouquet_movies';
-		} elseif ($rType == 'radio') {
-			$rColumn = 'bouquet_radios';
-		} else {
-			$rColumn = 'bouquet_series';
-		}
-
-		$rChanged = false;
-		$rChannels = AdminHelpers::confirmIDs(json_decode($rBouquet[$rColumn], true));
-
-		foreach ($rIDs as $rID) {
-			if (0 < intval($rID) && !in_array($rID, $rChannels)) {
-				$rChannels[] = $rID;
-				$rChanged = true;
+			if (!$rBouquet) {
+				return;
 			}
-		}
 
-		if ($rChanged) {
-			$db->query('UPDATE `bouquets` SET `' . $rColumn . '` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rChannels)) . ']', $rBouquetID);
+			if ($rType == 'stream') {
+				$rColumn = 'bouquet_channels';
+			} elseif ($rType == 'movie') {
+				$rColumn = 'bouquet_movies';
+			} elseif ($rType == 'radio') {
+				$rColumn = 'bouquet_radios';
+			} else {
+				$rColumn = 'bouquet_series';
+			}
+
+			$rChanged = false;
+			// A column that is empty or holds no list is a list with nothing in it.
+			$rChannels = json_decode((string) $rBouquet[$rColumn], true);
+			$rChannels = AdminHelpers::confirmIDs(is_array($rChannels) ? $rChannels : []);
+
+			foreach ($rIDs as $rID) {
+				if (0 < intval($rID) && !in_array($rID, $rChannels)) {
+					$rChannels[] = $rID;
+					$rChanged = true;
+				}
+			}
+
+			if ($rChanged) {
+				$db->query('UPDATE `bouquets` SET `' . $rColumn . '` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rChannels)) . ']', $rBouquetID);
+			}
+		} finally {
+			self::unlock($rBouquetID);
 		}
 	}
 
@@ -505,34 +558,42 @@ class BouquetService {
 			$rIDs = [$rIDs];
 		}
 
-		$rBouquet = self::getById($rBouquetID);
+		self::lock($rBouquetID);
 
-		if (!$rBouquet) {
-			return;
-		}
+		try {
+			$rBouquet = self::getById($rBouquetID);
 
-		if ($rType == 'stream') {
-			$rColumn = 'bouquet_channels';
-		} elseif ($rType == 'movie') {
-			$rColumn = 'bouquet_movies';
-		} elseif ($rType == 'radio') {
-			$rColumn = 'bouquet_radios';
-		} else {
-			$rColumn = 'bouquet_series';
-		}
-
-		$rChanged = false;
-		$rChannels = AdminHelpers::confirmIDs(json_decode($rBouquet[$rColumn], true));
-
-		foreach ($rIDs as $rID) {
-			if (($rKey = array_search($rID, $rChannels)) !== false) {
-				unset($rChannels[$rKey]);
-				$rChanged = true;
+			if (!$rBouquet) {
+				return;
 			}
-		}
 
-		if ($rChanged) {
-			$db->query('UPDATE `bouquets` SET `' . $rColumn . '` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rChannels)) . ']', $rBouquetID);
+			if ($rType == 'stream') {
+				$rColumn = 'bouquet_channels';
+			} elseif ($rType == 'movie') {
+				$rColumn = 'bouquet_movies';
+			} elseif ($rType == 'radio') {
+				$rColumn = 'bouquet_radios';
+			} else {
+				$rColumn = 'bouquet_series';
+			}
+
+			$rChanged = false;
+			// A column that is empty or holds no list is a list with nothing in it.
+			$rChannels = json_decode((string) $rBouquet[$rColumn], true);
+			$rChannels = AdminHelpers::confirmIDs(is_array($rChannels) ? $rChannels : []);
+
+			foreach ($rIDs as $rID) {
+				if (($rKey = array_search($rID, $rChannels)) !== false) {
+					unset($rChannels[$rKey]);
+					$rChanged = true;
+				}
+			}
+
+			if ($rChanged) {
+				$db->query('UPDATE `bouquets` SET `' . $rColumn . '` = ? WHERE `id` = ?;', '[' . implode(',', array_map('intval', $rChannels)) . ']', $rBouquetID);
+			}
+		} finally {
+			self::unlock($rBouquetID);
 		}
 	}
 }

@@ -610,7 +610,8 @@ class SeriesService {
 		$db->query('SELECT `stream_id` FROM `streams_episodes` WHERE `series_id` = ?;', $rID);
 
 		foreach ($db->get_rows() as $rRow) {
-			StreamRepository::deleteStream($rRow['stream_id'], -1, $rDeleteFiles);
+			// One bouquet scan for the series, below: not one per episode.
+			StreamRepository::deleteStream($rRow['stream_id'], -1, $rDeleteFiles, true, false);
 		}
 		$db->query('DELETE FROM `streams_episodes` WHERE `series_id` = ?;', $rID);
 		$db->query('DELETE FROM `streams_series` WHERE `id` = ?;', $rID);
