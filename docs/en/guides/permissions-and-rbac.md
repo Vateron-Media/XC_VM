@@ -51,7 +51,7 @@ Categories:
 | Import | `import_streams`, `import_movies`, `import_episodes` |
 | Security/Blocking | `block_ips`, `block_isps`, `block_uas`, `block_asns`, `fingerprint` |
 | Section visibility | `streams`, `movies`, `series`, `episodes`, `radio`, `users`, `servers`, `bouquets`, `epg`, `settings`, `database` |
-| Logs | `connection_logs`, `live_connections`, `client_request_log`, `credits_log`, `login_logs`, `panel_logs`, `reg_userlog`, `restream_logs` |
+| Logs | `connection_logs`, `live_connections`, `client_request_log`, `credits_log`, `login_logs`, `admin_audit`, `panel_logs`, `reg_userlog`, `restream_logs` |
 | Tools | `quick_tools`, `stream_tools`, `process_monitor`, `stream_errors` |
 | Management | `mng_regusers`, `mng_groups`, `mng_packages`, `manage_mag`, `manage_e2`, `manage_events`, `manage_tickets` |
 | Other | `categories`, `channel_order`, `player`, `tprofile`, `tprofiles`, `rtmp`, `folder_watch`, `folder_watch_add`, `folder_watch_output`, `folder_watch_settings`, `ticket`, `add_code`, `add_hmac` |
@@ -505,7 +505,11 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `credit_logs` | `credits_log` | |
 | `mysql_syslog`, `panel_logs` | `panel_logs` | |
 | `login_logs` | `login_logs` | |
+| `admin_actions` | `admin_audit` | The admin action trail; see below |
 | `restream_logs` | `restream_logs` | |
+
+#### Admin action trail
+
 **Logs → System → Admin Actions** lists what admins changed: every admin form save (`post.php`), every admin panel Ajax action except those that only read (`AdminAudit::PANEL_READS`: stats, searches, lookups), and every Admin API and activation-code API action except reads (`ApiTokens::isRead()`), refused ones included. Each entry (`admin_audit`, migration `077_add_admin_audit.sql`) has the date, the account, its address, the source (`panel` or `api`), the action and its outcome: **OK** or **Failed** when the answer is the panel's JSON (`result`, or a `STATUS_*` status), blank otherwise (an export, a download). Its detail keeps only the fields that name what was acted on (every id: `id`, `ids`, `edit`, `pid` and any field ending in `_id`; the names in `AdminAudit::DETAIL_KEYS`; the sub-action), at most 20, never a password, key, code or other value sent with the request; a settings save adds the names of the settings it changed, not their values.
 
 The page searches the account, action, address and detail, and exports as CSV or JSON. The trail is kept by backups, and nothing in the panel clears it.

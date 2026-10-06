@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Server;
 
+use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\CredentialFreeConfig;
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
@@ -52,6 +53,9 @@ class SettingsService {
 	 * @param array<string, mixed> $rSaved The keys saved.
 	 */
 	private static function saved(array $rPrevious, array $rSaved): void {
+		// The admin action trail names the settings a save changed, never their values.
+		$rChanged = array_keys(array_filter($rSaved, static fn($rValue, $rKey): bool => (string) json_encode($rValue) !== (string) json_encode($rPrevious[$rKey] ?? null), ARRAY_FILTER_USE_BOTH));
+		AdminAudit::note(['changed' => mb_substr(implode(',', $rChanged), 0, 1000)]);
 		EventDispatcher::dispatch(new SettingsChangedEvent($rPrevious, array_merge($rPrevious, $rSaved), (int) ($GLOBALS['rUserInfo']['id'] ?? 0), microtime(true)));
 	}
 

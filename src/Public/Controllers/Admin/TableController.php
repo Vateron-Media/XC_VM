@@ -184,6 +184,9 @@ class TableController extends BaseAdminController {
 			case "login_logs":
 				$this->handleLoginLogs($rReturn, $rStart, $rLimit, $rIsAPI);
 				return;
+			case "admin_actions":
+				$this->handleAdminActions($rReturn, $rStart, $rLimit, $rIsAPI);
+				return;
 			case "queue":
 				$this->handleQueue($rReturn, $rStart, $rLimit, $rIsAPI);
 				return;
@@ -4027,6 +4030,49 @@ class TableController extends BaseAdminController {
 					"code"     => $rRow["code"],
 					"login_ip" => $rIp,
 					"blocked"  => isset($rBlocked[$rIp]),
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
+			}
+		}
+		echo json_encode($rReturn);
+		exit;
+	}
+
+	/** The admin action trail (Core\Audit\AdminAudit), newest first; the search box matches the account, action, address and detail. */
+	private function handleAdminActions($rReturn, $rStart, $rLimit, $rIsAPI) {
+		global $db, $rPermissions;
+		if (!$rPermissions["is_admin"] || !Authorization::check("adv", "admin_audit")) {
+			exit;
+		}
+		$rOrderBy = $this->dtOrderBy([false, "`date`", "`username`", "`ip`", "`source`", "`action`", "`result`", false]);
+		$rWhere = $rWhereV = [];
+		$rSearch = $this->dtSearch();
+		if ($rSearch !== '') {
+			foreach (range(1, 4) as $rInt) {
+				$rWhereV[] = "%" . $rSearch . "%";
+			}
+			$rWhere[] = "(`username` LIKE ? OR `action` LIKE ? OR `ip` LIKE ? OR `detail` LIKE ?)";
+		}
+		$rWhereString = $rWhere !== [] ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `admin_audit` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+		if (0 < $rReturn["recordsTotal"]) {
+			$db->query("SELECT `id`, `date`, `user_id`, `username`, `ip`, `source`, `action`, `result`, `detail` FROM `admin_audit` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";", ...$rWhereV);
+			foreach ($db->get_raw_rows() as $rRow) {
+				$rItem = [
+					"id"       => (int) $rRow["id"],
+					"date"     => (int) $rRow["date"],
+					"user_id"  => (int) $rRow["user_id"],
+					"username" => $rRow["username"],
+					"ip"       => $rRow["ip"],
+					"source"   => $rRow["source"],
+					"action"   => $rRow["action"],
+					"result"   => $rRow["result"] === null ? null : (int) $rRow["result"],
+					"detail"   => json_decode((string) $rRow["detail"], true) ?: new \stdClass(),
 				];
 				$rReturn["data"][] = $rIsAPI
 					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')

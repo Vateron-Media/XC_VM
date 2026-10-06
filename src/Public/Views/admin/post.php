@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\AuthService;
@@ -452,6 +453,9 @@ if (1 < $rICount) { ?>
 			echo json_encode(array('result' => false));
 			exit();
 		}
+
+		// The admin action trail: who saved what, and whether it was saved.
+		AdminAudit::start('panel', (string) $rAction, $GLOBALS['rAdminUserInfo'] ?? [], $rData);
 
 		switch ($rAction) {
 			case 'quick_tools':

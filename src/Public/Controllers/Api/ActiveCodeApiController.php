@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Api;
 
+use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\DomainResolver;
@@ -251,6 +252,11 @@ class ActiveCodeApiController extends BaseApiController {
 	 * Dispatch Admin Active Code actions.
 	 */
 	protected function handleAdminAction(string $action, array $data, int $start, int $limit, ?array $showColumns, ?array $hideColumns): void {
+		// The admin action trail, under the action's full name.
+		$rName = self::ACTION_NAMES[$action] ?? $action;
+		if (!ApiTokens::isRead($rName)) {
+			AdminAudit::start('api', $rName, $GLOBALS['rAdminUserInfo'] ?? [], $data);
+		}
 		switch ($action) {
 			case 'get_active_codes':
 			case 'list':

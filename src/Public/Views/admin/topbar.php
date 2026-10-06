@@ -45,6 +45,7 @@ if (!empty($xmTopbarItems)):
         'live_connections',
         'stream_errors',
         'login_logs',
+        'admin_actions',
         'mysql_syslog',
         'mag_events',
         'panel_logs',

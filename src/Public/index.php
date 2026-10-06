@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Infrastructure\Bootstrap\ScopeBootstrapFactory;
@@ -302,6 +303,10 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 // dispatchApi must run BEFORE dispatch('api') because dispatch() exits inside AjaxController.
 if ($pageName === 'api' && !empty($_REQUEST['action'])) {
 	$action = $_REQUEST['action'];
+	// The admin action trail: a signed-in admin's Ajax action, unless it only reads.
+	if ($scope === 'admin' && isset($_SESSION['hash']) && !in_array($action, AdminAudit::PANEL_READS, true)) {
+		AdminAudit::start('panel', (string) $action, $GLOBALS['rUserInfo'] ?? ['id' => $_SESSION['hash']], $_REQUEST);
+	}
 	if ($router->dispatchApi($action)) {
 		exit;
 	}

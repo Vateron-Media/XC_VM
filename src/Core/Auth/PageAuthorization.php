@@ -448,6 +448,8 @@ class PageAuthorization {
 
 			case 'login_logs':
 				return Authorization::check('adv', 'login_logs');
+			case 'admin_actions':
+				return Authorization::check('adv', 'admin_audit');
 
 			case 'restream_logs':
 				return Authorization::check('adv', 'restream_logs');

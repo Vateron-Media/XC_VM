@@ -403,7 +403,7 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 		NavbarRegistry::add((new NavbarItem('logs'))
 			->url('#')->label('logs')
 			->icon('fas fa-clipboard-list')
-			->permissions(['movies', 'streams', 'connection_logs', 'client_request_log', 'login_logs', 'panel_logs', 'credits_log', 'live_connections', 'manage_events', 'reg_userlog', 'stream_errors', 'restream_logs', 'episodes', 'series'])
+			->permissions(['movies', 'streams', 'connection_logs', 'client_request_log', 'login_logs', 'admin_audit', 'panel_logs', 'credits_log', 'live_connections', 'manage_events', 'reg_userlog', 'stream_errors', 'restream_logs', 'episodes', 'series'])
 			->order(500));
 
 		// Connections
@@ -443,7 +443,7 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 		// System
 		NavbarRegistry::add((new NavbarItem('logs.system'))
 			->parent('logs')->url('#')
-			->label('logs_group_system')->permissions(['panel_logs', 'login_logs', 'streams', 'episodes', 'series'])->order(30));
+			->label('logs_group_system')->permissions(['panel_logs', 'login_logs', 'admin_audit', 'streams', 'episodes', 'series'])->order(30));
 		NavbarRegistry::add((new NavbarItem('logs.system.panel'))
 			->parent('logs.system')->url('panel_logs')
 			->label('', 'Panel Errors')->permissions(['panel_logs'])->order(10));
@@ -453,6 +453,9 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 		NavbarRegistry::add((new NavbarItem('logs.system.login'))
 			->parent('logs.system')->url('login_logs')
 			->label('', 'Login Logs')->permissions(['login_logs'])->order(30));
+		NavbarRegistry::add((new NavbarItem('logs.system.admin'))
+			->parent('logs.system')->url('admin_actions')
+			->label('', 'Admin Actions')->permissions(['admin_audit'])->order(35));
 		NavbarRegistry::add((new NavbarItem('logs.system.queue'))
 			->parent('logs.system')->url('queue')
 			->label('', 'Encoding Queue')->permissions(['streams', 'episodes', 'series'])->order(40));

@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Api;
 
+use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
@@ -274,6 +275,10 @@ class AdminApiController {
 				$rHideColumns = explode(',', RequestManager::get('hide_columns'));
 			} else {
 				$rHideColumns = null;
+			}
+			// The admin action trail: every action but a read, refused ones too.
+			if (!ApiTokens::isRead($rAction)) {
+				AdminAudit::start('api', (string) $rAction, $GLOBALS['rAdminUserInfo'] ?? [], $rData);
 			}
 			// An action runs with a permission of the key's group (ACTION_PERMISSIONS).
 			if (!self::permitted($rAction)) {
