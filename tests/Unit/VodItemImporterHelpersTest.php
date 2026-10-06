@@ -137,4 +137,15 @@ final class VodItemImporterHelpersTest extends TestCase {
     public function testParseTitleCollapsesRepeatedWhitespace(): void {
         $this->assertSame('the matrix', VodItemImporter::parseTitle('The   Matrix'));
     }
+
+    // --- parserelease ---------------------------------------------------------
+
+    public function testParsereleaseDropsProviderPipeTags(): void {
+        // An M3U series import: "|FHD|" stayed in the title, TMDb found nothing.
+        $rRelease = VodItemImporter::parserelease('|FHD| Les Psys (2026) - S01E01 - |FHD| Les Psys (2026) - S01E01 - Épisode 1', 'ptn');
+        $this->assertSame('Les Psys', $rRelease['title']);
+        $this->assertSame(2026, $rRelease['year']);
+        $this->assertSame(1, $rRelease['season']);
+        $this->assertSame(1, $rRelease['episode']);
+    }
 }
