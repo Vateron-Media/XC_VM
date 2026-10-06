@@ -271,16 +271,21 @@ final class ClusterRoute {
 	 * Quarantine a node on the operator's word: `node.quarantine {reason}`
 	 * (restrictive) is queued while the node still takes commands, then its
 	 * state becomes `quarantined`, which hands it the restrictive commands
-	 * only (ClusterApi::commands()) and stops the replica and every granting
-	 * command until trust().
+	 * only (ClusterApi::commands()) and stops the replica until trust(). Every
+	 * granting command of the node not acked is ended with it
+	 * (CommandBus::endGranting()), and $rEnded says which, for the audit line.
 	 *
+	 * @param-out array{ended?: int, commands?: list<array<string, mixed>>} $rEnded
 	 * @return array{0: bool, 1: bool}
 	 */
-	public static function quarantine(int $rServerID, string $rReason): array {
+	public static function quarantine(int $rServerID, string $rReason, ?array &$rEnded = null): array {
+		$rEnded = [];
 		$rReason = substr($rReason, 0, 64);
 		$rOut = self::enqueue($rServerID, 'node.quarantine', ['reason' => $rReason], 'node.quarantine', true);
 		if ($rOut[0]) {
 			NodeRegistry::update($rServerID, ['state' => 'quarantined', 'quarantine_reason' => $rReason]);
+			// After the state: no producer queues a granting command for a quarantined node.
+			$rEnded = CommandBus::endGranting($rServerID);
 		}
 		return $rOut;
 	}
@@ -288,6 +293,8 @@ final class ClusterRoute {
 	/**
 	 * *Trust again* (plan, section 4, "Quarantine"): back to `active`, and a
 	 * forced token rotation, so whatever held the quarantined token loses it.
+	 * Nothing that grants is handed out again: the quarantine ended it, and
+	 * the operator sends again what is still wanted.
 	 */
 	public static function trust(int $rServerID): bool {
 		$rNode = NodeRegistry::byServer($rServerID);

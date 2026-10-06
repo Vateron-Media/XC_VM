@@ -185,7 +185,8 @@ final class CommandBus {
 	 * Commands for a node after its high-water, oldest first; marks them
 	 * delivered. $rRestrictiveOnly hands out only the restrictive ones (a
 	 * quarantined node: kills, stops and fences still reach it, nothing that
-	 * grants), and leaves the rest queued for when an admin trusts it again.
+	 * grants). What granted and was queued before the quarantine was ended
+	 * by it (endGranting()), so Trust again hands none of it out.
 	 * A credential strip is judged once more as it is handed out
 	 * (DbCredentials::strip() judged it as it was queued): it goes out only
 	 * while the node's row says mode 2, since below it the node needs those
@@ -214,6 +215,39 @@ final class CommandBus {
 			self::db()->query("UPDATE `cluster_commands` SET `state` = 'delivered', `delivered_at` = ? WHERE `state` = 'queued' AND `id` IN (" . implode(',', $rIDs) . ');', ClusterClock::now());
 		}
 		return $rOut;
+	}
+
+	/**
+	 * End every granting command of a node that is not acked, handed out or
+	 * not, as the node is quarantined (ADR 0004, "Granting commands across a
+	 * quarantine"): MAIN no longer knows who holds the node's keys, so what
+	 * was decided before is decided again after Trust again, not replayed.
+	 * Its exp becomes now, as a mode down ends a strip
+	 * (DbCredentials::cancelStrip()): it is handed out no more, its artefact
+	 * grant ends with it (ArtefactGrants::live()), and an ack is taken until
+	 * the next prune(), which keeps a strip that was handed out a day.
+	 * Restrictive commands keep their life. Answers, for the quarantine's
+	 * audit line, how many were ended and which (nothing when none was).
+	 * Never throws: the quarantine stands.
+	 *
+	 * @return array{ended?: int, commands?: list<array{type: string, action: ?string, cmd_id: string, handed_out: bool}>}
+	 */
+	public static function endGranting(int $rServerID): array {
+		try {
+			$rNow = ClusterClock::now();
+			self::db()->query("SELECT `cmd_id`, `type`, `action`, `state` FROM `cluster_commands` WHERE `server_id` = ? AND `class` <> 'R' AND `state` IN ('queued', 'delivered') AND `exp` > ? ORDER BY `seq` ASC;", $rServerID, $rNow);
+			$rEnded = array_map(static fn(array $rRow): array => [
+				'type' => (string) $rRow['type'], 'action' => $rRow['action'] === null ? null : (string) $rRow['action'], 'cmd_id' => (string) $rRow['cmd_id'], 'handed_out' => $rRow['state'] === 'delivered',
+			], self::db()->get_raw_rows());
+			if ($rEnded === []) {
+				return [];
+			}
+			self::db()->query("UPDATE `cluster_commands` SET `exp` = ? WHERE `server_id` = ? AND `class` <> 'R' AND `state` IN ('queued', 'delivered') AND `exp` > ?;", $rNow, $rServerID, $rNow);
+			// The count first: the audit keeps 4000 characters, about 45 named commands.
+			return ['ended' => count($rEnded), 'commands' => $rEnded];
+		} catch (\Throwable) {
+			return []; // no command table: nothing was queued
+		}
 	}
 
 	/**

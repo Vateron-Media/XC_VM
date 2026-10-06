@@ -384,16 +384,21 @@ final class ClusterAdmin {
 					// its lifting, a quarantine and a resync all go to a node that
 					// takes commands, and none of them stops it.
 					$rActor = $rUserID === null ? 'admin' : 'admin:' . $rUserID;
+					$rEnded = [];
 					[$rRouted, $rQueued] = match ($rAction) {
 						'fence' => ClusterRoute::fence($rServerID, 'admin', ClusterSettings::int('lb_fence_drain_min', $rSettings['lb_fence_drain_min'] ?? null)),
 						'unfence' => ClusterRoute::unfence($rServerID),
-						'quarantine' => ClusterRoute::quarantine($rServerID, 'admin'),
+						'quarantine' => ClusterRoute::quarantine($rServerID, 'admin', $rEnded),
 						default => ClusterRoute::resync($rServerID),
 					};
 					if (!$rRouted) {
 						return ['type' => 'info', 'message' => 'cluster_rotate_no_commands'];
 					}
-					ClusterAudit::log('node.' . $rAction, $rServerID, ['queued' => $rQueued], $rActor);
+					// A quarantine names the granting commands it ended; the operator sends again what is still wanted.
+					ClusterAudit::log('node.' . $rAction, $rServerID, ['queued' => $rQueued] + $rEnded, $rActor);
+					if ($rQueued && !empty($rEnded['ended'])) {
+						return ['type' => 'success', 'message' => 'cluster_quarantine_ended', 'vars' => ['{ENDED}' => (string) $rEnded['ended']]];
+					}
 					return $rQueued
 						? ['type' => 'success', 'message' => 'cluster_' . $rAction . '_done']
 						: ['type' => 'danger', 'message' => 'cluster_command_failed'];
