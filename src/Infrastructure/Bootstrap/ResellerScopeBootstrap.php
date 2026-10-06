@@ -121,7 +121,11 @@ final class ResellerScopeBootstrap implements ScopeBootstrap {
 			$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $_SESSION['rip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $_SESSION['rip'] == $rIP);
 
 			// A login needs an enabled account (status 1), and so does the session it opened.
-			if (!$rUserInfo || !$rPermissions['is_reseller'] || $rUserInfo['status'] != 1 || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['rverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {
+			if ($rUserInfo && $rUserInfo['status'] != 1) {
+				$rUserInfo = null;
+			}
+
+			if (!$rUserInfo || !$rPermissions['is_reseller'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['rverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {
 				unset($rUserInfo, $rPermissions);
 
 				SessionManager::clearContext('reseller');

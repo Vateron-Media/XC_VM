@@ -36,15 +36,16 @@ final class AuditAdminAuthzSessionTest extends TestCase {
 	}
 
 	public function testADisabledResellerLosesItsSession(): void {
-		// The reseller bootstrap decides it in one condition, after a framework
-		// boot: that condition is run here as it stands there.
+		// The reseller bootstrap decides it after a framework boot, in two
+		// statements: an account that is not enabled is no account, then the
+		// condition that ends a session. Both are run here as they stand there.
 		$rSource = (string) file_get_contents(MAIN_HOME . 'Infrastructure/Bootstrap/ResellerScopeBootstrap.php');
-		$this->assertSame(1, preg_match('/^\t+if \((!\$rUserInfo \|\| !\$rPermissions\[\'is_reseller\'\] .*)\) \{$/m', $rSource, $rGuard));
+		$this->assertSame(1, preg_match('/^\t+(if \(\$rUserInfo && \$rUserInfo\[\'status\'\] != 1\) \{\n\t+\$rUserInfo = null;\n\t+\})\n\n\t+if \((!\$rUserInfo \|\| !\$rPermissions\[\'is_reseller\'\] .*)\) \{$/m', $rSource, $rGuard));
 
 		$rEnds = static function (array $rUserInfo, array $rPermissions = ['is_reseller' => 1]) use ($rGuard): bool {
 			$rIPMatch = true;
 			$rSettings = ['ip_logout' => 0, 'ip_subnet_match' => 0];
-			return (bool) eval('return ' . $rGuard[1] . ';');
+			return (bool) eval($rGuard[1] . ' return ' . $rGuard[2] . ';');
 		};
 
 		$this->assertFalse($rEnds(self::USER), 'an enabled account');
