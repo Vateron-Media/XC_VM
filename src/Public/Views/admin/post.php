@@ -1,9 +1,12 @@
 <?php
 
+use XcVm\Core\Audit\AdminAudit;
+use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Cluster\NodeActions;
@@ -450,6 +453,9 @@ if (1 < $rICount) { ?>
 			echo json_encode(array('result' => false));
 			exit();
 		}
+
+		// The admin action trail: who saved what, and whether it was saved.
+		AdminAudit::start('panel', (string) $rAction, $GLOBALS['rAdminUserInfo'] ?? [], $rData);
 
 		switch ($rAction) {
 			case 'quick_tools':
@@ -1448,6 +1454,16 @@ if (1 < $rICount) { ?>
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
+				exit();
+
+			case 'api_tokens':
+				// The signed-in admin's own API tokens (Views/layouts/profile_api_tokens.php).
+				echo json_encode(ApiTokens::manage((int) $GLOBALS['rAdminUserInfo']['id'], $rData, true));
+				exit();
+
+			case 'twofactor':
+				// The signed-in admin's own second factor (Views/layouts/profile_2fa.php).
+				echo json_encode(TwoFactor::manage((int) $GLOBALS['rAdminUserInfo']['id'], $rData));
 				exit();
 
 			case 'edit_profile':

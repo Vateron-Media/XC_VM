@@ -91,6 +91,7 @@ final class PermissionReference {
 		'mng_groups',
 		'live_connections',
 		'login_logs',
+		'admin_audit',
 		'manage_mag',
 		'manage_events',
 		'movies',

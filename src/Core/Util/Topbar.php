@@ -42,6 +42,7 @@ class Topbar {
 	private const EXPORT_PAGES = [
 		'panel_logs',
 		'login_logs',
+		'admin_actions',
 		'mysql_syslog',
 		'client_logs',
 		'credit_logs',
@@ -150,6 +151,7 @@ class Topbar {
 			'episodes_mass' => ['Manage Episodes' => ['episodes', 'episodes'], 'Manage Series' => ['series', 'series'], 'Mass Delete' => ['mass_delete', 'mass_delete'], 'Quick Tools' => ['quick_tools', 'quick_tools'], 'Stream Tools' => ['stream_tools', 'stream_tools']],
 			'mag_events' => ['Export as CSV' => [null, null, 'id="btn-export-csv"'], 'Export as JSON' => [null, null, 'id="btn-export-json"'], 'MAG Devices' => ['mags', 'manage_mag']],
 			'login_logs' => ['Export as CSV' => [null, null, 'id="btn-export-csv"'], 'Export as JSON' => [null, null, 'id="btn-export-json"']],
+			'admin_actions' => ['Export as CSV' => [null, null, 'id="btn-export-csv"'], 'Export as JSON' => [null, null, 'id="btn-export-json"']],
 			'mysql_syslog' => ['Export as CSV' => [null, null, 'id="btn-export-csv"'], 'Export as JSON' => [null, null, 'id="btn-export-json"']],
 			'mass_delete' => ['Manage Streams' => ['streams', 'streams'], 'Manage Channels' => ['created_channels', 'streams'], 'Manage Series' => ['series', 'series'], 'Manage Episodes' => ['episodes', 'episodes'], 'Manage Stations' => ['radios', 'radio'], 'Manage Lines' => ['lines', 'users'], 'Manage Users' => ['users', 'mng_regusers'], 'Manage MAGs' => ['mags', 'manage_mag'], 'Manage Enigmas' => ['enigmas', 'manage_e2']],
 			'quick_tools' => ['Stream Tools' => ['stream_tools', 'stream_tools']],

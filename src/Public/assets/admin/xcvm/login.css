@@ -703,6 +703,87 @@ body {
 	color: var(--red-soft);
 }
 
+/* ===== TWO-FACTOR STEP (Views/layouts/login_2fa.php) ===== */
+.twofactor {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.twofactor-heading {
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-size: 14px;
+	letter-spacing: 3px;
+	text-transform: uppercase;
+	text-align: center;
+}
+
+.twofactor-text {
+	margin: 0;
+	color: var(--muted);
+	font-size: 14px;
+	line-height: 1.5;
+	text-align: center;
+}
+
+.twofactor-qr {
+	align-self: center;
+	line-height: 0;
+	background: #fff;
+}
+
+.twofactor-qr svg {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+.twofactor-key {
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-size: 15px;
+	letter-spacing: 2px;
+	text-align: center;
+	word-break: break-all;
+	user-select: all;
+}
+
+.twofactor-codes {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 8px 16px;
+	margin: 0;
+	padding: 14px;
+	border: 1px solid var(--line);
+	list-style: none;
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-size: 16px;
+	letter-spacing: 1px;
+	text-align: center;
+	user-select: all;
+}
+
+.twofactor a.login-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-decoration: none;
+}
+
+.twofactor-cancel {
+	color: var(--muted);
+	font-family: var(--font-mono);
+	font-size: 13px;
+	text-align: center;
+	text-decoration: none;
+}
+
+.twofactor-cancel:hover {
+	color: var(--red-soft);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 540px) {
 	body {

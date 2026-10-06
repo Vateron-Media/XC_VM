@@ -58,7 +58,7 @@ class GroupService {
 				}
 			}
 
-			foreach (['is_admin', 'is_reseller', 'allow_restrictions', 'create_sub_resellers', 'delete_users', 'allow_download', 'can_view_vod', 'reseller_client_connection_logs', 'allow_change_bouquets', 'allow_change_username', 'allow_change_password'] as $rSelection) {
+			foreach (['is_admin', 'is_reseller', 'allow_restrictions', 'create_sub_resellers', 'delete_users', 'allow_download', 'can_view_vod', 'reseller_client_connection_logs', 'allow_change_bouquets', 'allow_change_username', 'allow_change_password', 'require_2fa'] as $rSelection) {
 				if (isset($rData[$rSelection])) {
 					$rArray[$rSelection] = 1;
 				} else {

@@ -1360,6 +1360,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `stalker_theme` varchar(255) COLLATE utf8_unicode_ci DEFAULT 'digital',
   `rtmp_random` tinyint(4) DEFAULT '1',
   `api_ips` mediumtext COLLATE utf8_unicode_ci,
+  `api_legacy_keys` tinyint(1) DEFAULT '1',
   `shared_mount_prefixes` mediumtext COLLATE utf8_unicode_ci,
   `use_buffer` tinyint(4) DEFAULT '0',
   `restreamer_prebuffer` tinyint(4) DEFAULT '0',
@@ -2083,6 +2084,67 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `admin_audit`
+--
+
+CREATE TABLE IF NOT EXISTS `admin_audit` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `date` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `username` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `ip` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `source` varchar(8) COLLATE utf8_unicode_ci NOT NULL,
+  `action` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `result` tinyint(1) DEFAULT NULL,
+  `detail` text COLLATE utf8_unicode_ci,
+  PRIMARY KEY (`id`),
+  KEY `date` (`date`),
+  KEY `user_id` (`user_id`),
+  KEY `action` (`action`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `api_tokens`
+--
+
+CREATE TABLE IF NOT EXISTS `api_tokens` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `hash` char(64) COLLATE utf8_unicode_ci NOT NULL,
+  `prefix` varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  `scope` varchar(16) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'full',
+  `allow_sql` tinyint(1) NOT NULL DEFAULT '0',
+  `ips` text COLLATE utf8_unicode_ci,
+  `expires` int(11) DEFAULT NULL,
+  `last_used` int(11) DEFAULT NULL,
+  `last_ip` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `created` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `hash` (`hash`),
+  KEY `user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users_2fa`
+--
+
+CREATE TABLE IF NOT EXISTS `users_2fa` (
+  `user_id` int(11) NOT NULL,
+  `secret` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `recovery` text COLLATE utf8_unicode_ci,
+  `last_step` int(11) NOT NULL DEFAULT '0',
+  `created` int(11) DEFAULT NULL,
+  PRIMARY KEY (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users_credits_logs`
 --
 
@@ -2126,6 +2188,7 @@ CREATE TABLE IF NOT EXISTS `users_groups` (
   `minimum_username_length` int(16) DEFAULT '8',
   `minimum_password_length` int(16) DEFAULT '8',
   `allow_change_bouquets` tinyint(1) DEFAULT '0',
+  `require_2fa` tinyint(1) DEFAULT '0',
   `notice_html` mediumtext COLLATE utf8_unicode_ci,
   `subresellers` mediumtext COLLATE utf8_unicode_ci,
   PRIMARY KEY (`group_id`),

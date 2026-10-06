@@ -5,6 +5,7 @@ namespace XcVm\Cli\Commands;
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronJobs\RootSignalsCronJob;
 use XcVm\Core\Auth\AuthRepository;
+use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Cluster\SignalDispatcher;
@@ -46,7 +47,7 @@ class ToolsCommand implements CommandInterface {
 		$rMethod = (!empty($rArgs[0]) ? $rArgs[0] : null);
 		$rUser = posix_getpwuid(posix_geteuid())['name'];
 
-		$rRootMethods = ['rescue', 'recaptcha', 'access', 'ports', 'migration', 'user', 'mysql', 'database', 'flush'];
+		$rRootMethods = ['rescue', 'recaptcha', 'access', 'ports', 'migration', 'user', 'mysql', 'database', 'flush', 'twofactor'];
 		$rUserMethods = ['images', 'duplicates', 'bouquets'];
 
 		// No or unknown subcommand → show the full help to any user (root or xc_vm)
@@ -83,6 +84,8 @@ class ToolsCommand implements CommandInterface {
 					return $this->processDatabase($rArgs);
 				case 'flush':
 					return $this->processFlush();
+				case 'twofactor':
+					return $this->processTwoFactor((string) ($rArgs[1] ?? ''));
 			}
 		}
 
@@ -269,6 +272,20 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
+	/** Turn off the second factor of an admin or reseller locked out of it (Core\Auth\TwoFactor). */
+	private function processTwoFactor(string $rUsername): int {
+		$db = self::db();
+		$db->query('SELECT `id` FROM `users` WHERE `username` = ?;', $rUsername);
+		$rRow = $db->num_rows() === 1 ? $db->get_raw_row() : null;
+		if ($rUsername === '' || !$rRow) {
+			echo "Usage: console.php tools twofactor <username>  (no such user)\n";
+			return 1;
+		}
+		TwoFactor::disable((int) $rRow['id']);
+		echo "Two-factor sign-in turned off for {$rUsername}. If the user's group requires it, the next sign-in sets it up again.\n";
+		return 0;
+	}
+
 	private function processFlush(): int {
 		$db = self::db();
 		echo "Flushing iptables rules...\n";
@@ -297,6 +314,7 @@ class ToolsCommand implements CommandInterface {
 		echo "  mysql       Reauthorise load balancers on MySQL\n";
 		echo "  database    Restore blank XC_VM database (requires --confirm)\n";
 		echo "  flush       Flush all blocked IPs (iptables + database)\n";
+		echo "  twofactor <username>  Turn off a user's two-factor sign-in (lost authenticator)\n";
 	}
 
 	private function processRecaptcha(): int {

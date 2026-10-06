@@ -5,6 +5,7 @@ use XcVm\Public\Controllers\Admin\ActiveCodeDetailsController;
 use XcVm\Public\Controllers\Admin\ActiveCodesBatchController;
 use XcVm\Public\Controllers\Admin\ActiveCodesController;
 use XcVm\Public\Controllers\Admin\ActiveCodesMassController;
+use XcVm\Public\Controllers\Admin\AdminActionController;
 use XcVm\Public\Controllers\Admin\AdminLogoutController;
 use XcVm\Public\Controllers\Admin\AdminResizeController;
 use XcVm\Public\Controllers\Admin\Ajax\ActiveCodeAjaxController;
@@ -189,6 +190,7 @@ $router->get('bouquet_sort', [BouquetSortController::class, 'index']);
 // ─── Simple Listings ───────────────────────────────
 
 $router->get('login_logs', [LoginLogController::class, 'index']);
+$router->get('admin_actions', [AdminActionController::class, 'index']);
 $router->get('mysql_syslog', [MysqlSyslogController::class, 'index']);
 $router->get('mag_events', [MagEventController::class, 'index']);
 $router->get('restream_logs', [RestreamLogController::class, 'index']);

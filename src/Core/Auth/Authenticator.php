@@ -139,6 +139,11 @@ class Authenticator {
 			$_SESSION['code'] = AuthRepository::getCurrentCode();
 			$_SESSION['verify'] = md5($rUserInfo['username'] . '||' . $rCrypt);
 
+			// An account with two factors, or whose group requires them, is held until its code.
+			if (TwoFactor::hold('admin', $rUserInfo, $rPermissions, isset($rAccessCode['id']) ? (int) $rAccessCode['id'] : null)) {
+				return ['status' => STATUS_2FA_REQUIRED];
+			}
+
 			if (!empty($rSettings['save_login_logs'])) {
 				$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('ADMIN', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'SUCCESS', $rIP, time());
 			}
@@ -204,6 +209,10 @@ class Authenticator {
 			$_SESSION['rcode'] = AuthRepository::getCurrentCode();
 			$_SESSION['rverify'] = md5($rUserInfo['username'] . '||' . $rCrypt);
 
+			if (TwoFactor::hold('reseller', $rUserInfo, $rPermissions, isset($rAccessCode['id']) ? (int) $rAccessCode['id'] : null)) {
+				return ['status' => STATUS_2FA_REQUIRED];
+			}
+
 			if (!empty($rSettings['save_login_logs'])) {
 				$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'SUCCESS', $rIP, time());
 			}
@@ -236,7 +245,8 @@ class Authenticator {
 		if ($rLimit <= 0) {
 			return false;
 		}
-		$db->query("SELECT COUNT(`id`) AS `count` FROM `login_logs` WHERE `status` = 'INVALID_LOGIN' AND `login_ip` = ? AND `date` >= ?;", $rIP, time() - 86400);
+		// A wrong second-factor code counts as a failed sign-in (TwoFactor::confirm()).
+		$db->query("SELECT COUNT(`id`) AS `count` FROM `login_logs` WHERE `status` IN ('INVALID_LOGIN', 'INVALID_2FA') AND `login_ip` = ? AND `date` >= ?;", $rIP, time() - 86400);
 		return $db->num_rows() === 1 && intval($db->get_row()['count']) >= $rLimit;
 	}
 

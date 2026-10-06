@@ -51,7 +51,7 @@ Categories:
 | Import | `import_streams`, `import_movies`, `import_episodes` |
 | Security/Blocking | `block_ips`, `block_isps`, `block_uas`, `block_asns`, `fingerprint` |
 | Section visibility | `streams`, `movies`, `series`, `episodes`, `radio`, `users`, `servers`, `bouquets`, `epg`, `settings`, `database` |
-| Logs | `connection_logs`, `live_connections`, `client_request_log`, `credits_log`, `login_logs`, `panel_logs`, `reg_userlog`, `restream_logs` |
+| Logs | `connection_logs`, `live_connections`, `client_request_log`, `credits_log`, `login_logs`, `admin_audit`, `panel_logs`, `reg_userlog`, `restream_logs` |
 | Tools | `quick_tools`, `stream_tools`, `process_monitor`, `stream_errors` |
 | Management | `mng_regusers`, `mng_groups`, `mng_packages`, `manage_mag`, `manage_e2`, `manage_events`, `manage_tickets` |
 | Other | `categories`, `channel_order`, `player`, `tprofile`, `tprofiles`, `rtmp`, `folder_watch`, `folder_watch_add`, `folder_watch_output`, `folder_watch_settings`, `ticket`, `add_code`, `add_hmac` |
@@ -260,6 +260,20 @@ The active-code API (`/api/active_code`, `/active_code.php`) follows the same ru
 | `export` | `export_active_code_batch` |
 
 A request that sends an activation code and no key (a device activating its code, or `check`) asks for no permission.
+
+#### API tokens
+
+Each admin and reseller can make named tokens on their profile page (**Edit Profile → API Tokens**), up to 20, in place of the account's single API key. A token is sent where a key is, as `api_key`, to the Admin API, the Reseller REST API, the activation-code API and the table endpoints. It acts with its account's group permissions, as a key does, narrowed by its scope (`Core\Auth\ApiTokens::allows()`):
+
+| Scope | Runs |
+| --- | --- |
+| Full | Every action the group allows, except `mysql_query`. An admin can make a full token that also runs `mysql_query`. |
+| Read only | Every `get_*` action, the logs (`activity_logs`, `live_connections`, `credit_logs`, `client_logs`, `user_logs`, `stream_errors`, `system_logs`, `login_logs`, `restream_logs`, `mag_events`), `user_info`, `packages`, `check_active_code` and `export_active_code_batch`. |
+| Lines, devices and activation codes | The actions on lines, MAG and Enigma2 devices and activation codes, with `user_info`, `packages`, `get_packages`, `get_package`, `get_bouquets` and `get_bouquet`. |
+
+An action outside the scope answers `{"status":"STATUS_NO_PERMISSIONS"}`; a table outside it answers as an invalid key. A token can also be limited to a list of IP addresses and given an expiry; the profile shows each token's first characters, scope, addresses, expiry and last use (to the minute, with the address). The token itself (`xct_` and 40 hexadecimal digits) is shown once, when it is made: the panel keeps a SHA-256 hash of it (`api_tokens`, migration `076_add_api_tokens.sql`). Revoking one stops it at once. Deleting an account deletes its tokens.
+
+The account's single key keeps working while **Settings → API → Accept Legacy API Keys** (`api_legacy_keys`) is on, the default. Turned off, no API takes a legacy key; tokens are unaffected.
 
 #### Reseller helper
 
@@ -491,7 +505,14 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `credit_logs` | `credits_log` | |
 | `mysql_syslog`, `panel_logs` | `panel_logs` | |
 | `login_logs` | `login_logs` | |
+| `admin_actions` | `admin_audit` | The admin action trail; see below |
 | `restream_logs` | `restream_logs` | |
+
+#### Admin action trail
+
+**Logs → System → Admin Actions** lists what admins changed: every admin form save (`post.php`), every admin panel Ajax action except those that only read (`AdminAudit::PANEL_READS`: stats, searches, lookups), and every Admin API and activation-code API action except reads (`ApiTokens::isRead()`), refused ones included. Each entry (`admin_audit`, migration `077_add_admin_audit.sql`) has the date, the account, its address, the source (`panel` or `api`), the action and its outcome: **OK** or **Failed** when the answer is the panel's JSON (`result`, or a `STATUS_*` status), blank otherwise (an export, a download). Its detail keeps only the fields that name what was acted on (every id: `id`, `ids`, `edit`, `pid` and any field ending in `_id`; the names in `AdminAudit::DETAIL_KEYS`; the sub-action), at most 20, never a password, key, code or other value sent with the request; a settings save adds the names of the settings it changed, not their values.
+
+The page searches the account, action, address and detail, and exports as CSV or JSON. The trail is kept by backups, and nothing in the panel clears it.
 
 ### Actions
 

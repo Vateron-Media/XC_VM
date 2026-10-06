@@ -980,6 +980,17 @@ use XcVm\Domain\Server\ServerRepository;
 							</div>
 
 							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="api_legacy_keys">
+									<?= $language::get('api_legacy_keys') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('api_legacy_keys_tooltip') ?>"></i>
+								</label>
+
+								<div class="col-md-8">
+									<div class="form-check form-switch"><input name="api_legacy_keys" id="api_legacy_keys" type="checkbox" <?= ($rSettings["api_legacy_keys"] ?? 1) == 1 ? ' checked' : '' ?> class="form-check-input"></div>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="api_pass">
 									<?= $language::get('api_password') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('password_required_to_access_the_tooltip') ?>"></i>

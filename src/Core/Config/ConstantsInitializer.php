@@ -247,6 +247,9 @@ class ConstantsInitializer {
 			'STATUS_NO_TITLE'            => 47,
 			'STATUS_NO_SOURCE'           => 48,
 			'STATUS_PORT_IN_USE'         => 49,
+			'STATUS_2FA_REQUIRED'        => 50,
+			'STATUS_2FA_INVALID'         => 51,
+			'STATUS_2FA_LOCKED'          => 52,
 		];
 	}
 

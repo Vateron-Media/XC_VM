@@ -2,12 +2,14 @@
 
 namespace XcVm\Public\Controllers\Api;
 
+use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
@@ -111,11 +113,11 @@ class AdminAPIWrapper {
 	public static function createSession() {
 		global $rUserInfo;
 		global $rPermissions;
-		self::$db->query('SELECT * FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `api_key` = ? AND LENGTH(`api_key`) > 0 AND `is_admin` = 1 AND `status` = 1;', self::$rKey);
-		if (0 >= self::$db->num_rows()) {
+		// A token or a legacy key (ApiTokens): a token's scope then narrows what it runs.
+		$rUserID = ApiTokens::userFor((string) self::$rKey, (string) NetworkUtils::getUserIP(), 'admin');
+		if ($rUserID === null) {
 			return false;
 		}
-		$rUserID = self::$db->get_row()['id'];
 		$GLOBALS['rAdminUserInfo'] = UserRepository::getRegisteredUserById($rUserID);
 		unset($GLOBALS['rAdminUserInfo']['password']);
 		$rUserInfo = $GLOBALS['rAdminUserInfo'];

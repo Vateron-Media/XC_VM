@@ -17,7 +17,7 @@ streams_errors, streams_logs, streams_stats, syskill_log,
 users_credits_logs, users_logs, watch_logs
 ```
 
-> **Note:** Restoring a backup clears all log data. These tables are excluded to keep backup sizes manageable.
+> **Note:** Restoring a backup clears all log data. These tables are excluded to keep backup sizes manageable. The admin action trail (`admin_audit`) is not one of them: a backup keeps it.
 
 Backups do **not** include:
 

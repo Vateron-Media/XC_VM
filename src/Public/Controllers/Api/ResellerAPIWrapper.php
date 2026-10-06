@@ -2,7 +2,9 @@
 
 namespace XcVm\Public\Controllers\Api;
 
+use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Line\ActiveCodeService;
@@ -84,11 +86,12 @@ class ResellerAPIWrapper {
 	public static function createSession() {
 		global $rUserInfo;
 		global $rPermissions;
-		self::$db->query('SELECT * FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `api_key` = ? AND LENGTH(`api_key`) > 0 AND `is_reseller` = 1 AND `status` = 1;', self::$rKey);
-		if (0 >= self::$db->num_rows()) {
+		// A token or a legacy key (ApiTokens): a token's scope then narrows what it runs.
+		$rUserID = ApiTokens::userFor((string) self::$rKey, (string) NetworkUtils::getUserIP(), 'reseller');
+		if ($rUserID === null) {
 			return false;
 		}
-		ResellerAPI::init(self::$db->get_row()['id']);
+		ResellerAPI::init($rUserID);
 		unset(ResellerAPI::$rUserInfo['password']);
 		$rUserInfo = ResellerAPI::$rUserInfo;
 		$rPermissions = ResellerAPI::$rPermissions;

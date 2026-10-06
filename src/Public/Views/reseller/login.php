@@ -54,6 +54,9 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
                     </div>
                 <?php endif; ?>
 
+                <?php if ($rTwoFactor !== null || $rRecovery !== null): ?>
+                    <?php require MAIN_HOME . 'Public/Views/layouts/login_2fa.php'; ?>
+                <?php else: ?>
                 <form id="loginForm" method="POST" action="./login">
                     <input type="hidden" name="referrer" value="<?= $referrer ?? '' ?>">
 
@@ -104,6 +107,7 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
                         <span class="arrow">→</span>
                     </button>
                 </form>
+                <?php endif; ?>
 
                 <span class="panel-divider" aria-hidden="true"></span>
 

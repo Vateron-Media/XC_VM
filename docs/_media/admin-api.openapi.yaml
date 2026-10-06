@@ -5295,7 +5295,9 @@ components:
       in: query
       name: api_key
       description: |
-        API key for authentication. Generate from your admin profile.
+        API key for authentication: the account's API key, or one of its API tokens
+        (`xct_…`, made on the profile page, each limited to a scope). Generate either
+        from your admin profile.
         
         **Example:** `8D3135D30437F86EAE2FA4A2A8345000`
 

@@ -256,7 +256,7 @@ What resellers **cannot** do:
 
 File: `src/Public/Controllers/Api/ResellerRestApiController.php`
 
-Authentication via API key. Actions:
+Authentication via the reseller's API key, or one of its [API tokens](../guides/permissions-and-rbac.md#api-tokens) (`api_key`): a token can be limited to reading, or to lines, devices and activation codes. Actions:
 
 | Action | Description |
 | --- | --- |
