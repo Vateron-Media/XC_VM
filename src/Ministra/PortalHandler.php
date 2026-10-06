@@ -1837,9 +1837,91 @@ class PortalHandler {
 		exit();
 	}
 
+	/** Seconds in the period a handshake's token is made in: get_profile takes the token in that period and in the next. */
+	private const HANDSHAKE_PERIOD = 600;
+
+	/**
+	 * The token a handshake hands a registered device: eight random bytes, then a
+	 * keyed digest of them, of the device's number and of the period it is made
+	 * in. Nothing is kept for it: by the digest get_profile tells that a handshake
+	 * made the token for this device, and not long ago.
+	 *
+	 * @param string|null $rRandom The random part of a token, to make that token again
+	 * @param int         $rAgo    How many periods ago that token was made
+	 */
+	private static function handshakeToken($rMagID, ?string $rRandom = null, int $rAgo = 0): string {
+		global $rSettings;
+
+		$rRandom ??= strtoupper(bin2hex(random_bytes(8)));
+		$rPeriod = intdiv(time(), self::HANDSHAKE_PERIOD) - $rAgo;
+		$rDigest = hash_hmac("sha256", $rMagID . "|" . $rRandom . "|" . $rPeriod, "mag handshake|" . $rSettings["live_streaming_pass"]);
+
+		return $rRandom . strtoupper(substr($rDigest, 0, 16));
+	}
+
+	/**
+	 * The device a handshake made $rToken for, as the panel has it now: what
+	 * get_profile verifies a box that comes with that token against. The token is
+	 * not the device's yet, and the device's entry is neither read nor written.
+	 *
+	 * @return array The device, not verified; [] when no handshake made the token, lately, for a device the panel has
+	 */
+	public static function handshakeDevice($rMagID, $rToken) {
+		global $db;
+
+		if (!is_scalar($rMagID) || !is_string($rToken) || strlen($rToken) != 32) {
+			return [];
+		}
+		$rRandom = substr($rToken, 0, 16);
+		if (!hash_equals(self::handshakeToken($rMagID, $rRandom), $rToken)
+			&& !hash_equals(self::handshakeToken($rMagID, $rRandom, 1), $rToken)
+		) {
+			return [];
+		}
+		// As in the handshake: a lookup that failed says nothing about the device.
+		if (!$db->query("SELECT `mac` FROM `mag_devices` WHERE `mag_id` = ? LIMIT 1", $rMagID)) {
+			http_response_code(503);
+			exit();
+		}
+		$rRow = $db->get_row();
+		$rDevice = empty($rRow["mac"]) ? null : getdevice(null, $rRow["mac"]);
+		if (!is_array($rDevice) && !empty($rRow["mac"])) {
+			http_response_code(503);
+			exit();
+		}
+
+		return is_array($rDevice) && (string) $rDevice["mag_id"] === (string) $rMagID ? $rDevice : [];
+	}
+
+	/**
+	 * A box get_profile has verified came with a handshake's token: from here on
+	 * that is the device's token, the one its stream links are checked against,
+	 * and the one before it stops.
+	 */
+	public static function adoptToken(string $rToken) {
+		global $db, $rDevice;
+		static $rLock = null;
+
+		// One verified get_profile of a device at a time stores its token and
+		// writes the device's entry: two at once would leave the entry under one
+		// token and the database under the other. Held until the request ends.
+		$rLock = @fopen(MINISTRA_TMP_PATH . "ministra_" . intval($rDevice["mag_id"]) . ".lock", "c");
+		if ($rLock) {
+			flock($rLock, LOCK_EX);
+		}
+		// Not stored, the token is not the device's: the box comes again, and the device keeps the one it has.
+		if (!$db->query("UPDATE `mag_devices` SET `token` = ? WHERE `mag_id` = ?", $rToken, $rDevice["mag_id"])) {
+			http_response_code(503);
+			exit();
+		}
+		$rDevice["token"] = $rToken;
+		SignalDispatcher::cache(intval(SERVER_ID), ["type" => "update_line", "id" => $rDevice["user_id"]], false, false, $db);
+	}
+
 	/**
 	 * Phase 7: Handshake — token generation.
-	 * Generates a new token for the device identified by MAC, updates DB, and exits with token.
+	 * Hands the device identified by MAC a token to come to get_profile with, and exits with it.
+	 * The device keeps the token and the entry it has until get_profile has verified that box.
 	 *
 	 */
 	public static function handleHandshake(string $rMAC) {
@@ -1849,21 +1931,16 @@ class PortalHandler {
 		$rVerifyToken = null;
 
 		if ($rDevice) {
-			$rDevice["token"] = strtoupper(bin2hex(random_bytes(16)));
 			$rVerifyToken = Encryption::mintToken(
-				igbinary_serialize(["id" => $rDevice["mag_id"], "token" => $rDevice["token"]]),
+				igbinary_serialize(["id" => $rDevice["mag_id"], "token" => self::handshakeToken($rDevice["mag_id"])]),
 				$rSettings["live_streaming_pass"],
 				OPENSSL_EXTRA,
 				!empty($rSettings["secure_stream_tokens"]),
 			);
-			$rDevice["authenticated"] = false;
-			$db->query(
-				"UPDATE `mag_devices` SET `token` = ? WHERE `mag_id` = ?",
-				$rDevice["token"],
-				$rDevice["mag_id"],
-			);
-			SignalDispatcher::cache(intval(SERVER_ID), ["type" => "update_line", "id" => $rDevice["user_id"]], false, false, $db);
-			updatecache();
+			// A device that has no entry gets one, not verified, under the token it has.
+			if (!file_exists(MINISTRA_TMP_PATH . "ministra_" . intval($rDevice["mag_id"]))) {
+				updatecache();
+			}
 		} else {
 			$rDevice = [];
 			// getDevice() answers a MAC the panel does not have and a lookup that failed

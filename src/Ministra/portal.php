@@ -120,8 +120,13 @@ if (!$rSettings["disable_ministra"]) {
 					$rDevice = [];
 				}
 
-				if (!isset($rDevice["token"]) || $rDevice["token"] != $rVerify["token"]) {
-					$rDevice = [];
+				if (!isset($rDevice["token"]) || $rDevice["token"] !== $rVerify["token"]) {
+					// Not the device's token. A handshake's token is put to get_profile below,
+					// with the device as the panel has it now; whatever get_profile says of that
+					// box, the device keeps the token and the entry it has until it is verified.
+					$rDevice = $rReqType == "stb" && $rReqAction == "get_profile"
+						? PortalHandler::handshakeDevice($rVerify["id"], $rVerify["token"])
+						: [];
 				} elseif (!empty($rDevice["authenticated"])) {
 					// The token names the device; only get_profile below verifies it.
 					updatecache();
@@ -217,7 +222,13 @@ if (!$rSettings["disable_ministra"]) {
 				$rVerified = true;
 			}
 
+			// The device's own token, or a handshake's that is not the device's yet.
+			$rOwnToken = ($rDevice["token"] ?? null) === $rVerify["token"];
+
 			if ($rVerified) {
+				if (!$rOwnToken) {
+					PortalHandler::adoptToken($rVerify["token"]);
+				}
 				$rDevice["ip"] = $rIP;
 				$rDevice["stb_type"] = $rSTBType;
 				$rDevice["sn"] = $rSerialNumber;
@@ -245,8 +256,11 @@ if (!$rSettings["disable_ministra"]) {
 				);
 				updatecache();
 			} else {
-				// Entries are named by device number, as updateCache() writes them.
-				if (!empty($rDevice["mag_id"])
+				// Entries are named by device number, as updateCache() writes them. The
+				// entry goes with the box that held the device's token: a box refused with
+				// a handshake's token ends no session but its own.
+				if ($rOwnToken
+					&& !empty($rDevice["mag_id"])
 					&& file_exists(MINISTRA_TMP_PATH . "ministra_" . intval($rDevice["mag_id"]))
 				) {
 					unlink(MINISTRA_TMP_PATH . "ministra_" . intval($rDevice["mag_id"]));
