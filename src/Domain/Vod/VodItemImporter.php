@@ -61,6 +61,10 @@ class VodItemImporter {
 	 * @return array|null
 	 */
 	public static function parserelease($rRelease, $rType = 'guessit') {
+		// IPTV providers tag names "|FHD| Title", "|FR| Title": never part of
+		// the title, and "|" is \p{Sm}, which parseTitle() keeps, so a tag left
+		// in sinks both the TMDb search and the similarity check (No match).
+		$rRelease = trim(preg_replace('/\|[^\s|][^|]{0,10}\|/u', ' ', (string) $rRelease));
 		if ($rType == 'guessit') {
 			$rCommand = MAIN_HOME . 'bin/guess ' . escapeshellarg($rRelease . '.mkv');
 		} else {
