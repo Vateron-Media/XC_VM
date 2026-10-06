@@ -14,6 +14,7 @@ use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Signal\SignalQueue;
+use XcVm\Streaming\Auth\StreamAuthMiddleware;
 use XcVm\Streaming\Balancer\ProxySelector;
 use XcVm\Streaming\Delivery\OffAirHandler;
 use XcVm\Streaming\Delivery\StreamRedirector;
@@ -245,7 +246,8 @@ if ($rExtension) {
 	$rUserAgent = (empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlentities(trim($_SERVER['HTTP_USER_AGENT'])));
 	$rDeny = true;
 	$rExternalDevice = null;
-	$rActivityStart = time();
+	// MAIN's clock, as every server that checks the token reads it (StreamAuthMiddleware::mainNow()).
+	$rActivityStart = StreamAuthMiddleware::mainNow($rServers);
 
 	if (!isset($rExpiry)) {
 		$rExpiry = null;
@@ -778,7 +780,7 @@ if ($rExtension) {
 						generateError('TS_DISABLED');
 					}
 
-					$rActivityStart = time();
+					$rActivityStart = StreamAuthMiddleware::mainNow($rServers);
 					$rTokenData = ['stream' => $rStreamID, 'username' => $rUserInfo['username'], 'password' => $rUserInfo['password'], 'extension' => $rExtension, 'pid' => $rPID, 'start' => $rStartDate, 'duration' => $rDuration, 'redirect_id' => $rRedirectID, 'originator_id' => $rOriginatorID, 'user_info' => ['id' => $rUserInfo['id'], 'max_connections' => $rUserInfo['max_connections'], 'pair_id' => $rUserInfo['pair_id'], 'con_isp_name' => $rUserInfo['con_isp_name'], 'is_restreamer' => $rUserInfo['is_restreamer']], 'country_code' => $rCountryCode, 'activity_start' => $rActivityStart, 'uuid' => $rUUID, 'http_range' => (isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null)];
 					$rTokenData = ConnectionAdmission::admitToken($rSettings, $rTokenData, $rIP, $rUserAgent);
 					$rToken = ViewerKey::mint(json_encode($rTokenData), $rServers, (int) ($rOriginatorID ?: $rRedirectID), $rSettings);

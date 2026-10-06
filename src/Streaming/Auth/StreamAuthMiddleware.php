@@ -67,6 +67,15 @@ class StreamAuthMiddleware {
 	}
 
 	/**
+	 * MAIN's clock as this server sees it. A token's times are MAIN's (auth.php
+	 * mints them so, wherever it runs), and this server's clock is ahead of
+	 * MAIN's by its time_offset (node − MAIN, measured each minute).
+	 */
+	public static function mainNow(array $rServers, ?int $rNow = null): int {
+		return ($rNow ?? time()) - intval($rServers[SERVER_ID]['time_offset'] ?? 0);
+	}
+
+	/**
 	 * Дешифровка токена и базовая валидация (формат + срок действия).
 	 *
 	 * @param string $rToken       Зашифрованный токен из запроса
@@ -94,7 +103,7 @@ class StreamAuthMiddleware {
 			generateError('LB_TOKEN_INVALID');
 		}
 
-		if (isset($rTokenData['expires']) && $rTokenData['expires'] < time() - intval($rServers[SERVER_ID]['time_offset'])) {
+		if (isset($rTokenData['expires']) && $rTokenData['expires'] < self::mainNow($rServers)) {
 			generateError('TOKEN_EXPIRED');
 		}
 

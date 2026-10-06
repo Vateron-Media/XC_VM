@@ -95,8 +95,10 @@ needs MAIN's database at all. In the end you can remove the database password fr
   - each server needs outbound HTTPS to GitHub to download its updates;
   - MAIN needs SSH access to a new load balancer for the install. A server behind NAT can join
     with a code instead (see below).
-- **Correct time** on every server (NTP). The panel warns when a server's clock is more than
-  30 seconds off.
+- **Correct time** on every server (NTP). The dashboard warns when a server's clock is more than
+  5 seconds off MAIN's, and the *Cluster Nodes* page from 30 seconds. At power-on, XC_VM waits up
+  to 30 seconds for NTP's first synchronisation, then starts anyway with a warning in its journal
+  (`journalctl -u xc_vm`).
 
 ## Setting it up
 

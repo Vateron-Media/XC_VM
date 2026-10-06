@@ -162,7 +162,7 @@ Token contents:
 Validation:
 
 1. Read the token with `Encryption::readToken()` under `live_streaming_pass`.
-2. Check expiration: `$rTokenData['expires'] < time() - $rServers[SERVER_ID]['time_offset']`.
+2. Check expiration: `$rTokenData['expires'] < StreamAuthMiddleware::mainNow($rServers)`, that is `time()` less this server's `time_offset`. A token's times (`expires`, `activity_start`) are MAIN's clock wherever `auth.php` minted it, and every check of them (`live.php`, `vod.php`, `timeshift.php`) reads them through `mainNow()`.
 3. Return parsed token data or trigger error.
 
 ### Token format

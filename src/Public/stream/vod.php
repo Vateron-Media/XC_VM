@@ -147,7 +147,7 @@ if ($rChannelInfo) {
 	}
 
 	if (!isset($rConnection)) {
-		if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || ($rActivityStart + $rCreateExpiration) - intval($rServers[SERVER_ID]['time_offset']) >= time()) {
+		if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || $rActivityStart + $rCreateExpiration >= StreamAuthMiddleware::mainNow($rServers)) {
 		} else {
 			generateError('TOKEN_EXPIRED');
 		}
