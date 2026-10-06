@@ -33,7 +33,8 @@ use XcVm\Infrastructure\Redis\RedisManager;
  * the line identity is recomputed from the record's owner, and a uuid another
  * node holds is refused. The owner is the one the record first entered the
  * store with, and that entry must prove its mint (admitsFirst()) under
- * `cluster_conn_binding` = `enforce`.
+ * `cluster_conn_binding` = `enforce`, from a node whose stream secret MAIN
+ * withholds (ConnectionAdmission::enforces()).
  *
  * In an events batch a store that fails a read or a write throws rather
  * than answer false: false is an event refused (dropped and counted, and the

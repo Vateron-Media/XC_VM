@@ -5895,23 +5895,29 @@ node's registry drop it.
   timeshift.php already pass their token.
 - **`conn_admit`** (`forNode()`): a `mint` that verifies for the named identity and the
   authenticated node, no older than the token's life plus `PAD_SEC`, is reserved and cut as
-  before. Any other is counted, and under `enforce` on a node that proves its records it gets
+  before. Any other is counted, and under `enforce` on a node whose stream secret MAIN withholds it gets
   the line's own refusals and is otherwise admitted with no reservation and no cut.
 - **A first entry** (`ConnectionIngest::admitsFirst()`, events and snapshots alike): a record
   whose `mint` verifies, at any age, is stored and counted with its age. One that does not is
-  stored and counted under `observe`; under `enforce` on a node that proves its records it is
+  stored and counted under `observe`; under `enforce` on a node whose stream secret MAIN withholds it is
   not stored (the event is refused, the snapshot's record dropped), and MAIN queues
   `conn.close {uuid, remove: true}` (`ClusterRoute::closeConnection`, no kill).
 - **The owner.** An update of a uuid the store holds for the node never writes `user_id`,
   `hmac_id`, `hmac_identifier` or the Redis `identity`.
 - **The gate.** `cluster_conn_binding` (migration 071, `observe` by default; any other value
-  reads as `observe`). Enforcement for a node starts with the first record of its enrolment
-  whose proof MAIN verified (`cluster_meta` `conn_proven.<server id>` = its `gen`), so it is
-  gated on what the node's agent actually sends: every agent release mirrors a record key it
-  does not know (`registry.go` stores and sends the PUT body whole; no release ever filtered
-  it), so a node proves once its panel is new, whatever its agent. A conn_admit is never
-  refused for the want of a proof, so an agent that does not copy the field loses only the
-  reservation and the cut, as the rollout above says.
+  reads as `observe`). Under `enforce` a node is held to the proof when MAIN withholds its
+  stream secret (mode 2, the cluster locked down, the node on its own viewer key:
+  `ReplicaBuilder::withholdsStreamPass()`): only such a node cannot derive the proof's key, and
+  whether it is one is MAIN's to say. (As first built, enforcement started with the first proof
+  the node itself sent, so a node that stripped every proof was never held to it; a review
+  found it, and the maintainer chose this gate on 2026-10-06.) Whether a node has sent proofs
+  (`cluster_meta` `conn_proven.<server id>` = its `gen`) is recorded for the page and decides
+  nothing; the operator switches to `enforce` once `observe` shows every node proving. Every
+  agent release mirrors a record key it does not know (`registry.go` stores and sends the PUT
+  body whole), so a node's records prove once its panel is new, whatever its agent. A conn_admit
+  is never refused for the want of a proof, so an agent that does not copy the field loses only
+  the reservation and the cut. A proof still opens a record at any age, so a node can report a
+  viewer of a line MAIN once sent it (the replay limit above).
 - **Outside the batch.** The mark, the closes, the counts and the audit line are noted during
   the request and written at its end (`flushBinding()`), never inside an events batch's
   transaction (EventIngest). The counts of the day are `TMP_PATH/cluster_binding/<server

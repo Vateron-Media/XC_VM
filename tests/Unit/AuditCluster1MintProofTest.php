@@ -107,6 +107,13 @@ final class AuditCluster1MintProofTest extends TestCase {
 		return ConnectionAdmission::forNode(['cluster_api_enabled' => 1, 'create_expiration' => 5, 'redis_handler' => 0], $rServerID, $rRequest);
 	}
 
+	/** MAIN withholds node $rServerID's stream secret: mode 2 (setUp), the cluster locked down, the node on its own viewer key. */
+	private function withhold(int $rServerID = 5): void {
+		$this->rDb->exec('CREATE TABLE IF NOT EXISTS `servers` (`id` int PRIMARY KEY, `viewer_key_fp` varchar(64))');
+		$this->rDb->query('REPLACE INTO `servers` (`id`, `viewer_key_fp`) VALUES (?, ?)', $rServerID, \XcVm\Core\Cluster\ViewerKey::kid(\XcVm\Core\Cluster\ViewerKey::derive(self::SECRET, $rServerID)));
+		$this->rDb->query("INSERT IGNORE INTO `cluster_meta` (`name`, `value`, `updated_at`) VALUES (?, '1', 0)", \XcVm\Domain\Cluster\DbAllowlist::LOCKDOWN_META);
+	}
+
 	private function prove(int $rServerID = 5): void {
 		$rToken = $this->mint($this->token('proof' . $rServerID, $rServerID));
 		$this->assertTrue(ConnectionIngest::upsert($rServerID, $this->record('proof' . $rServerID, 42, $this->mintOf($rToken))));
@@ -151,6 +158,7 @@ final class AuditCluster1MintProofTest extends TestCase {
 
 	public function testUnderEnforceAConnAdmitWithoutAValidProofReservesAndCutsNothing(): void {
 		SettingsManager::set(['redis_handler' => 0, 'live_streaming_pass' => self::SECRET, ConnectionAdmission::BINDING => 'enforce']);
+		$this->withhold();
 		$this->prove();
 		$rToken = $this->mint($this->token('t0', 5));
 		$this->rDb->exec('DELETE FROM `cluster_reservations`');
@@ -185,7 +193,7 @@ final class AuditCluster1MintProofTest extends TestCase {
 		$this->assertSame(1, ConnectionAdmission::bindingCounts(5)['admit_unproven'] ?? null);
 	}
 
-	public function testAFirstEntryWithoutAProofIsStoredUnderObserveAndRefusedUnderEnforceOnceTheNodeProves(): void {
+	public function testAFirstEntryWithoutAProofIsStoredUnderObserveAndRefusedUnderEnforceWhereTheSecretIsWithheld(): void {
 		// observe: stored and counted, and one audit line for the minute.
 		$this->assertTrue(ConnectionIngest::upsert(5, $this->record('x1')));
 		ConnectionAdmission::flushBinding();
@@ -202,34 +210,35 @@ final class AuditCluster1MintProofTest extends TestCase {
 		$this->assertSame(1, (int) $this->rDb->get_row()['n'], 'one line a minute at most');
 		$this->assertSame(2, ConnectionAdmission::bindingCounts(5)['unproven']);
 
-		// enforce, but the node has shown no proof (an older panel or agent): as observe.
+		// enforce, on a node that holds the stream secret (it could forge a proof): as observe.
 		SettingsManager::set(['redis_handler' => 0, 'live_streaming_pass' => self::SECRET, ConnectionAdmission::BINDING => 'enforce']);
 		$this->assertTrue(ConnectionIngest::upsert(5, $this->record('x3')));
 		ConnectionAdmission::flushBinding();
 		$this->assertArrayHasKey('x3', $this->stored());
 		$this->assertSame([], $this->rClosed);
 
-		// Its first proof marks it for its enrolment; from then on an unproven record is refused, its close queued.
-		$this->prove();
-		$this->rDb->query("SELECT `value` FROM `cluster_meta` WHERE `name` = 'conn_proven.5'");
-		$this->assertSame('3', (string) $this->rDb->get_row()['value'], 'the gen of its enrolment');
+		// Once MAIN withholds its secret, an unproven record is refused and its close queued, though
+		// the node never sent a proof: a node that strips them is refused all the same.
+		$this->withhold();
+		ConnectionAdmission::useBinding(fn(int $rS, string $rU) => $this->rClosed[] = [$rS, $rU], $this->rDir . 'binding/');
 		$this->assertFalse(ConnectionIngest::upsert(5, $this->record('x4')));
 		$this->assertFalse(ConnectionIngest::upsert(5, $this->record('x5', 43, $this->mintOf($this->mint($this->token('x5', 5))))), 'a proof of another line');
 		ConnectionAdmission::flushBinding();
 		$this->assertArrayNotHasKey('x4', $this->stored());
 		$this->assertArrayNotHasKey('x5', $this->stored());
 		$this->assertSame([[5, 'x4'], [5, 'x5']], $this->rClosed, 'the node\'s registry drops them: conn.close {remove: true}');
-		// Records the store already holds are not asked again; another node is not enforced.
+		// Records the store already holds are not asked again; a node holding the secret is not enforced.
 		$this->assertTrue(ConnectionIngest::upsert(5, ['hls_end' => 1] + $this->record('x1')));
 		$this->assertTrue(ConnectionIngest::upsert(6, $this->record('y1')));
-		// A new enrolment starts it again.
-		$this->rDb->exec('UPDATE `cluster_nodes` SET `gen` = 4 WHERE `server_id` = 5');
+		// A node below mode 2 holds the secret: not enforced.
+		$this->rDb->exec('UPDATE `cluster_nodes` SET `mode` = 1 WHERE `server_id` = 5');
 		ConnectionAdmission::useBinding(fn(int $rS, string $rU) => $this->rClosed[] = [$rS, $rU], $this->rDir . 'binding/');
 		$this->assertTrue(ConnectionIngest::upsert(5, $this->record('x6')));
 	}
 
 	public function testAProofOfAnyAgeIsAcceptedAtTheEvents(): void {
 		SettingsManager::set(['redis_handler' => 0, 'live_streaming_pass' => self::SECRET, ConnectionAdmission::BINDING => 'enforce']);
+		$this->withhold();
 		$this->prove();
 		$rMint = $this->mintOf($this->mint($this->token('z1', 5)));
 		// A record a snapshot brings back after an orphan purge, a day later.

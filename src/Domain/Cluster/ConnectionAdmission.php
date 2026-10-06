@@ -187,6 +187,9 @@ LUA;
 	/** @var array<int, array{0: bool, 1: int}> server id => [proven for its enrolment, when read] */
 	private static array $rProven = [];
 
+	/** @var array<int, array{0: bool, 1: int}> server id => [its records are refused without a proof, when read] (enforces()) */
+	private static array $rEnforced = [];
+
 	/**
 	 * @var array<int, array{unproven: int, admit_unproven: int, proven: int, age_max: int, mark: bool, close: list<string>}>
 	 *      what this request noted per node, written at its end (flushBinding)
@@ -201,25 +204,28 @@ LUA;
 	private static ?string $rBindingDir = null;
 
 	/**
-	 * Is a record that proves no mint refused for node $rServerID? Only under
-	 * `enforce`, and only once MAIN verified a proof in a record of the node's
-	 * present enrolment (`cluster_meta` `conn_proven.<server id>` = its gen):
-	 * until then its records may come from a panel or an agent that does not
-	 * carry the proof, and are handled as under `observe`. A read that fails
-	 * throws (the batch is not applied).
+	 * Is a record that proves no mint refused for node $rServerID? Under
+	 * `enforce`, for a node whose stream secret MAIN withholds (mode 2, the
+	 * cluster locked down, the node on its own viewer key:
+	 * ReplicaBuilder::withholdsStreamPass()): only such a node cannot derive
+	 * the proof's key, and whether it is one is MAIN's to say, not the node's.
+	 * A node that holds the secret could forge a proof, so it is handled as
+	 * under `observe`. Whether a node has sent proofs (proved()) is shown, and
+	 * decides nothing. A read that fails throws (the batch is not applied).
 	 */
 	public static function enforces(int $rServerID): bool {
 		if (SettingsManager::get(self::BINDING) !== 'enforce') {
 			return false;
 		}
 		$rNow = time();
-		if (!isset(self::$rProven[$rServerID]) || $rNow - self::$rProven[$rServerID][1] >= 60) {
+		if (!isset(self::$rEnforced[$rServerID]) || $rNow - self::$rEnforced[$rServerID][1] >= 60) {
 			$rDb = self::db();
-			StrictQuery::orThrow($rDb, 'db', 'SELECT `n`.`gen`, `m`.`value` FROM `cluster_nodes` `n` LEFT JOIN `cluster_meta` `m` ON `m`.`name` = ? WHERE `n`.`server_id` = ?;', 'conn_proven.' . $rServerID, $rServerID);
+			StrictQuery::orThrow($rDb, 'db', 'SELECT `mode` FROM `cluster_nodes` WHERE `server_id` = ?;', $rServerID);
 			$rRow = $rDb->num_rows() > 0 ? $rDb->get_row() : null;
-			self::$rProven[$rServerID] = [is_array($rRow) && $rRow['value'] !== null && (string) $rRow['value'] === (string) $rRow['gen'], $rNow];
+			$rWithheld = is_array($rRow) && ReplicaBuilder::withholdsStreamPass(['mode' => (int) $rRow['mode'], 'server_id' => $rServerID], (string) SettingsManager::get('live_streaming_pass'));
+			self::$rEnforced[$rServerID] = [$rWithheld, $rNow];
 		}
-		return self::$rProven[$rServerID][0];
+		return self::$rEnforced[$rServerID][0];
 	}
 
 	/** A record of node $rServerID proved its mint, $rAge seconds old: counted, and the node marked as proving. */
@@ -346,6 +352,7 @@ LUA;
 		self::$rCloser = $rCloser;
 		self::$rBindingDir = $rDir;
 		self::$rProven = [];
+		self::$rEnforced = [];
 		self::$rNoted = [];
 	}
 
