@@ -258,6 +258,41 @@ class BouquetService {
 
 	private static int $rMapEntriesMtime = 0;
 
+	/** The marker of the bouquet map's shards: its mtime is when the last complete set was written. */
+	public const MAP_SHARDS = 'bouquet_map_shards';
+
+	/** A shard holds the ids with the same id >> MAP_SHARD_BITS: 1,024 of them. */
+	private const MAP_SHARD_BITS = 10;
+
+	/**
+	 * Write the bouquet map again as shards, bouquet_map_<id >> 10>, after the whole
+	 * map. A range without a stream loses its file; the marker is written last, and
+	 * removed when a shard could not be written, so readers then use the whole map.
+	 *
+	 * @param array<int, array> $rMap The whole map, as just written.
+	 * @return bool Whether every shard and the marker were written
+	 */
+	public static function writeMapShards(FileCache $rCache, array $rMap): bool {
+		$rShards = [];
+		foreach ($rMap as $rStreamID => $rEntry) {
+			$rShards[intval($rStreamID) >> self::MAP_SHARD_BITS][$rStreamID] = $rEntry;
+		}
+		$rWritten = true;
+		foreach ($rShards as $rShard => $rEntries) {
+			$rWritten = $rCache->set('bouquet_map_' . $rShard, $rEntries) && $rWritten;
+		}
+		foreach (glob(CACHE_TMP_PATH . 'bouquet_map_*') ?: [] as $rFile) {
+			if (preg_match('/^bouquet_map_(-?\d+)$/', basename($rFile), $rMatch) && !isset($rShards[(int) $rMatch[1]])) {
+				@unlink($rFile);
+			}
+		}
+		if (!$rWritten) {
+			@unlink(CACHE_TMP_PATH . self::MAP_SHARDS);
+			return false;
+		}
+		return $rCache->set(self::MAP_SHARDS, time());
+	}
+
 	/**
 	 * Get the bouquet-map entry for a stream.
 	 *
@@ -274,6 +309,21 @@ class BouquetService {
 		}
 		if (array_key_exists($rStreamID, self::$rMapEntries)) {
 			return self::$rMapEntries[$rStreamID];
+		}
+
+		// The stream's shard, while the shards are at least as new as the whole map
+		// (writeMapShards() writes its marker last): one small file instead of all of it.
+		$rMarker = CACHE_TMP_PATH . self::MAP_SHARDS;
+		clearstatcache(true, $rMarker);
+		if (0 < $rMtime && $rMtime <= (int) @filemtime($rMarker)) {
+			$rShard = CACHE_TMP_PATH . 'bouquet_map_' . ($rStreamID >> self::MAP_SHARD_BITS);
+			if (!file_exists($rShard)) {
+				return self::$rMapEntries[$rStreamID] = [];
+			}
+			$rData = @igbinary_unserialize((string) @file_get_contents($rShard));
+			if (is_array($rData)) {
+				return self::$rMapEntries[$rStreamID] = ($rData[$rStreamID] ?? []);
+			}
 		}
 
 		$rBouquetMap = [];

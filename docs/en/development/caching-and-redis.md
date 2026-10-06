@@ -186,6 +186,8 @@ cold-start window, not a real failure.
 | `bouquets` | `array[bouquet_id]` → bouquet definition |
 | `categories` | `array[category_id]` → category data |
 | `bouquet_map` | `array[stream_id]` → `array[bouquet_id]` |
+| `bouquet_map_{n}` | the entries of `bouquet_map` for the stream ids with `id >> 10 = n` (MAIN). A stream open reads its shard instead of the whole map while `bouquet_map_shards` is at least as new as `bouquet_map` |
+| `bouquet_map_shards` | marker written after the last complete set of shards; removed when a shard could not be written |
 | `category_map` | `array[bouquet_id]` → `array[category_id]` |
 | `permissions_{group_id}` | group permission set |
 | `cache_complete` | `time()` timestamp of last full build |
@@ -195,7 +197,6 @@ cold-start window, not a real failure.
 | Key | Contents |
 | --- | --- |
 | `stream_{id}` | stream info + bouquets + per-server state |
-| `channels_categories` | `array[stream_id]` → `array[category_id]` |
 
 ### Line keys (LINES_TMP_PATH)
 
@@ -228,6 +229,18 @@ cold-start window, not a real failure.
 
 The Cache page and its buttons (regenerate the cache, enable or disable the cache, enable
 or disable the Redis connection handler, clear Redis) need the `database` permission.
+
+---
+
+## Playlist Cache (`content/playlists`)
+
+*Cache Playlists for* (`cache_playlists`, seconds, 0 by default) keeps each playlist a line downloads (`get.php`, `playlist`) for that long. `cron:tmp` removes a stored list once it is older than the setting (checked every minute).
+
+- **Name.** A stored list is named after everything the list is built from: the line (id, username, password, access token, bouquets assigned, restreamer flag, forced server, category template), the request (device, output, `key`, the domain name with its scheme and host, whether the client is a proxy) and what a stream token is minted from (encryption on or off, the stream secret). A change to any of these gets a list of its own at once.
+- **Catalogue changes** (a new or renamed channel or movie, a category change, a change to a bouquet's contents) reach a stored list only when it expires, or at once with `&nocache=1`, which rebuilds the list and replaces the stored one.
+- **Writing.** A list is written to `.<name>.<pid>.tmp` and renamed when complete; a download its client abandons, or a write that fails, leaves no stored list.
+- **Disk.** Nothing is stored while the disk holding `content/playlists` has 2 GiB free or less. Each line stores one list per device, output, `key` and host it asks for, so one subscriber varying `key` can fill the disk down to that floor for the length of the setting.
+- A stored list is sent as `audio/mpegurl` with a `Content-Length`; a list built for the request as `application/octet-stream`, without one.
 
 ---
 
@@ -266,12 +279,13 @@ FileCache::setCache('bouquets', $rOutput);
 ├── bouquets
 ├── categories
 ├── bouquet_map
+├── bouquet_map_{n}
+├── bouquet_map_shards
 ├── category_map
 ├── cache_complete
 ├── heavy_cache_built
 ├── streams/
-│   ├── stream_{id}
-│   └── channels_categories
+│   └── stream_{id}
 ├── lines/
 │   ├── line_i_{user_id}
 │   ├── line_c_{username_password}

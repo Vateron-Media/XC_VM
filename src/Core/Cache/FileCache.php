@@ -126,6 +126,23 @@ class FileCache implements CacheInterface {
 	 * @param string $contents Bytes to write.
 	 * @return bool False when the temp file could not be written or renamed.
 	 */
+
+	/**
+	 * $key's value while it is younger than $maxAge seconds, else what $read returns,
+	 * stored. $read answers false for a read that failed: it is returned and not
+	 * stored, so the next call reads again.
+	 */
+	public function remember(string $key, int $maxAge, callable $read): mixed {
+		$value = $this->get($key, $maxAge);
+		if ($value === false) {
+			$value = $read();
+			if ($value !== false) {
+				$this->set($key, $value);
+			}
+		}
+		return $value;
+	}
+
 	public static function writeAtomic(string $path, string $contents): bool {
 		$tmp = dirname($path) . '/.' . basename($path) . '.' . getmypid() . '.tmp';
 		if (@file_put_contents($tmp, $contents) !== strlen($contents)) {

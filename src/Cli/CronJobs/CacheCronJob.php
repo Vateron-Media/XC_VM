@@ -11,6 +11,7 @@ use XcVm\Core\Cluster\ReplicaApply;
 use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Logging\FileLogger;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Server\ServerRepository;
@@ -195,6 +196,41 @@ class CacheCronJob implements CommandInterface {
 			}
 		}
 
+		$rMaps = $this->catalogMaps();
+		if ($rMaps === null) {
+			// The previous maps stay, and the next minute tries again.
+			FileLogger::log('cron', 'The bouquet or episode list could not be read: the catalogue maps were not rebuilt', 'cron:cache');
+			return;
+		}
+
+		$rResellerDomains = [];
+		$db->query('SELECT `reseller_dns` FROM `users` WHERE `status` = 1 AND `reseller_dns` IS NOT NULL;');
+		foreach ($db->get_rows() as $rRow) {
+			$rResellerDomains[] = strtolower($rRow['reseller_dns']);
+		}
+
+		$rCache->set('reseller_domains', $rResellerDomains);
+		$rCache->set('channel_order', $rMaps['channel_order']);
+		$rCache->set('bouquet_map', $rMaps['bouquet_map']);
+		BouquetService::writeMapShards($rCache, $rMaps['bouquet_map']);
+		$rCache->set('category_map', $rMaps['category_map']);
+		if ($rMaps['series_order'] !== null) {
+			$rCache->set('series_order', $rMaps['series_order']);
+		}
+		@touch($rHeavyMarker);
+	}
+
+	/**
+	 * The maps a stream open and the lists read: channel_order, bouquet_map,
+	 * category_map and, with vod_sort_newest, series_order (null when not built).
+	 * null when the bouquets or the episodes could not be read: an empty
+	 * bouquet_map would refuse every stream until the next pass.
+	 *
+	 * @return array{channel_order: array, bouquet_map: array, category_map: array, series_order: ?array}|null
+	 */
+	private function catalogMaps(): ?array {
+		$db = self::db();
+
 		$rChannelOrder = [];
 		if (SettingsManager::get('channel_number_type') == 'manual') {
 			$db->query('SELECT `id`, `order` FROM `streams` ORDER BY `order` ASC;');
@@ -205,14 +241,27 @@ class CacheCronJob implements CommandInterface {
 
 		$rCategoryMap = [];
 		$rBouquetMap = [];
-		$rStreamIDs = ['channels' => [], 'radios' => [], 'movies' => [], 'episodes' => [], 'series' => []];
+		$rStreamIDs = ['channels' => [], 'radios' => [], 'movies' => [], 'episodes' => []];
+		$rSeen = ['channels' => [], 'radios' => [], 'movies' => []];
+		$rSeriesOrder = null;
 
-		$db->query('SELECT *, IF(`bouquet_order` > 0, `bouquet_order`, 999) AS `order` FROM `bouquets` ORDER BY `order` ASC;');
+		// Every series' episodes in one read, in the order the per-series read gave them.
+		if (!$db->query('SELECT `series_id`, `stream_id` FROM `streams_episodes` ORDER BY `series_id` ASC, `season_num` ASC, `episode_num` ASC, `id` ASC;')) {
+			return null;
+		}
+		$rEpisodes = [];
+		foreach ($db->get_rows() as $rRow) {
+			$rEpisodes[intval($rRow['series_id'])][] = $rRow['stream_id'];
+		}
+
+		if (!$db->query('SELECT *, IF(`bouquet_order` > 0, `bouquet_order`, 999) AS `order` FROM `bouquets` ORDER BY `order` ASC;')) {
+			return null;
+		}
 		foreach ($db->get_rows(true, 'id') as $rID => $rChannels) {
 			$rAllowedCategories = [];
 
-			foreach ((json_decode($rChannels['bouquet_channels'], true) ?: []) as $rStreamID) {
-				if (0 < intval($rStreamID) && !in_array($rStreamID, $rStreamIDs['channels'])) {
+			foreach ((json_decode((string) $rChannels['bouquet_channels'], true) ?: []) as $rStreamID) {
+				if (0 < intval($rStreamID) && !self::listed($rSeen['channels'], $rStreamIDs['channels'], $rStreamID)) {
 					$rStreamIDs['channels'][] = $rStreamID;
 				}
 				if (!isset($rBouquetMap[intval($rStreamID)])) {
@@ -221,8 +270,8 @@ class CacheCronJob implements CommandInterface {
 				$rBouquetMap[intval($rStreamID)][] = $rID;
 			}
 
-			foreach ((json_decode($rChannels['bouquet_radios'], true) ?: []) as $rStreamID) {
-				if (0 < intval($rStreamID) && !in_array($rStreamID, $rStreamIDs['radios'])) {
+			foreach ((json_decode((string) $rChannels['bouquet_radios'], true) ?: []) as $rStreamID) {
+				if (0 < intval($rStreamID) && !self::listed($rSeen['radios'], $rStreamIDs['radios'], $rStreamID)) {
 					$rStreamIDs['radios'][] = $rStreamID;
 				}
 				if (!isset($rBouquetMap[intval($rStreamID)])) {
@@ -231,8 +280,8 @@ class CacheCronJob implements CommandInterface {
 				$rBouquetMap[intval($rStreamID)][] = $rID;
 			}
 
-			foreach ((json_decode($rChannels['bouquet_movies'], true) ?: []) as $rStreamID) {
-				if (0 < intval($rStreamID) && !in_array($rStreamID, $rStreamIDs['movies'])) {
+			foreach ((json_decode((string) $rChannels['bouquet_movies'], true) ?: []) as $rStreamID) {
+				if (0 < intval($rStreamID) && !self::listed($rSeen['movies'], $rStreamIDs['movies'], $rStreamID)) {
 					$rStreamIDs['movies'][] = $rStreamID;
 				}
 				if (!isset($rBouquetMap[intval($rStreamID)])) {
@@ -241,35 +290,35 @@ class CacheCronJob implements CommandInterface {
 				$rBouquetMap[intval($rStreamID)][] = $rID;
 			}
 
-			foreach ((json_decode($rChannels['bouquet_series'], true) ?: []) as $rSeriesID) {
-				if (0 < intval($rSeriesID) && !in_array($rSeriesID, $rStreamIDs['series'])) {
-					$db->query('SELECT `stream_id` FROM `streams_episodes` WHERE `series_id` = ? ORDER BY `season_num` ASC, `episode_num` ASC;', $rSeriesID);
-					foreach ($db->get_rows() as $rEpisode) {
-						if (0 < intval($rEpisode['stream_id'])) {
-							$rStreamIDs['episodes'][] = $rEpisode['stream_id'];
+			foreach ((json_decode((string) $rChannels['bouquet_series'], true) ?: []) as $rSeriesID) {
+				// A series in two bouquets maps its episodes to both.
+				if (0 < intval($rSeriesID)) {
+					foreach ($rEpisodes[intval($rSeriesID)] ?? [] as $rEpisodeID) {
+						if (0 < intval($rEpisodeID)) {
+							$rStreamIDs['episodes'][] = $rEpisodeID;
 						}
-						if (!isset($rBouquetMap[intval($rEpisode['stream_id'])])) {
-							$rBouquetMap[intval($rEpisode['stream_id'])] = [];
+						if (!isset($rBouquetMap[intval($rEpisodeID)])) {
+							$rBouquetMap[intval($rEpisodeID)] = [];
 						}
-						$rBouquetMap[intval($rEpisode['stream_id'])][] = $rID;
+						$rBouquetMap[intval($rEpisodeID)][] = $rID;
 					}
 				}
 			}
 
-			$rAllChannels = array_map('intval', array_unique(array_merge((json_decode($rChannels['bouquet_channels'], true) ?: []), (json_decode($rChannels['bouquet_radios'], true) ?: []), (json_decode($rChannels['bouquet_movies'], true) ?: []))));
-			$rAllSeries = array_map('intval', array_unique((json_decode($rChannels['bouquet_series'], true) ?: [])));
+			$rAllChannels = array_map('intval', array_unique(array_merge((json_decode((string) $rChannels['bouquet_channels'], true) ?: []), (json_decode((string) $rChannels['bouquet_radios'], true) ?: []), (json_decode((string) $rChannels['bouquet_movies'], true) ?: []))));
+			$rAllSeries = array_map('intval', array_unique((json_decode((string) $rChannels['bouquet_series'], true) ?: [])));
 
 			if (count($rAllChannels) > 0) {
 				$db->query('SELECT DISTINCT(`category_id`) AS `category_id` FROM `streams` WHERE `id` IN (' . implode(',', $rAllChannels) . ');');
 				foreach ($db->get_rows() as $rRow) {
-					$rAllowedCategories = array_merge($rAllowedCategories, (json_decode($rRow['category_id'], true) ?: []));
+					$rAllowedCategories = array_merge($rAllowedCategories, (json_decode((string) $rRow['category_id'], true) ?: []));
 				}
 			}
 
 			if (count($rAllSeries) > 0) {
 				$db->query('SELECT DISTINCT(`category_id`) AS `category_id` FROM `streams_series` WHERE `id` IN (' . implode(',', $rAllSeries) . ');');
 				foreach ($db->get_rows() as $rRow) {
-					$rAllowedCategories = array_merge($rAllowedCategories, (json_decode($rRow['category_id'], true) ?: []));
+					$rAllowedCategories = array_merge($rAllowedCategories, (json_decode((string) $rRow['category_id'], true) ?: []));
 				}
 			}
 
@@ -317,7 +366,6 @@ class CacheCronJob implements CommandInterface {
 				foreach ($db->get_rows() as $rRow) {
 					$rSeriesOrder[] = intval($rRow['id']);
 				}
-				$rCache->set('series_order', $rSeriesOrder);
 			}
 
 			foreach (['channels', 'radios', 'movies', 'episodes'] as $rKey) {
@@ -327,28 +375,23 @@ class CacheCronJob implements CommandInterface {
 			}
 			$rChannelOrder = array_unique($rChannelOrder);
 		}
+		return ['channel_order' => $rChannelOrder, 'bouquet_map' => $rBouquetMap, 'category_map' => $rCategoryMap, 'series_order' => $rSeriesOrder];
+	}
 
-		$rCategoryChannels = [];
-		$db->query('SELECT `id`, `category_id` FROM `streams`;');
-		if ($db->dbh && $db->result) {
-			if ($db->result->rowCount() > 0) {
-				foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rStreamInfo) {
-					$rCategoryChannels[$rStreamInfo['id']] = json_decode($rStreamInfo['category_id'] ?? '[]', true);
-				}
-			}
+	/**
+	 * Whether $rValue is already in $rList, as in_array() answers it, through $rSet
+	 * (an index of the list) for the numbers and strings a bouquet list holds; any
+	 * other value is looked up in the list itself.
+	 */
+	private static function listed(array &$rSet, array $rList, mixed $rValue): bool {
+		if (!is_int($rValue) && !is_float($rValue) && !is_string($rValue)) {
+			return in_array($rValue, $rList);
 		}
-
-		$rResellerDomains = [];
-		$db->query('SELECT `reseller_dns` FROM `users` WHERE `status` = 1 AND `reseller_dns` IS NOT NULL;');
-		foreach ($db->get_rows() as $rRow) {
-			$rResellerDomains[] = strtolower($rRow['reseller_dns']);
+		$rKey = is_numeric($rValue) ? 'n' . ($rValue + 0) : 's' . $rValue;
+		if (isset($rSet[$rKey])) {
+			return true;
 		}
-
-		$rCache->set('reseller_domains', $rResellerDomains);
-		$rCache->set('channel_order', $rChannelOrder);
-		$rCache->set('bouquet_map', $rBouquetMap);
-		$rCache->set('category_map', $rCategoryMap);
-		(new FileCache(STREAMS_TMP_PATH))->set('channels_categories', $rCategoryChannels);
-		@touch($rHeavyMarker);
+		$rSet[$rKey] = true;
+		return false;
 	}
 }
