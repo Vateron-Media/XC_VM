@@ -128,6 +128,7 @@ LayoutRenderer::renderFooter('admin');
             error: <?= json_encode($language::get('error_occured')); ?>,
             confirmDelete: 'Are you sure you want to delete this backup?',
             confirmRestore: 'Are you sure you want to restore from this backup? This will erase your current database.',
+            noSafetyDump: <?= json_encode($language::get('backup_restore_no_safety_dump')); ?>,
             saved: 'Settings saved.',
             creating: 'Creating backup in background, this may take a few minutes.',
             deleted: 'Backup successfully deleted.'
@@ -198,8 +199,8 @@ LayoutRenderer::renderFooter('admin');
             }
         });
 
-        var apiCall = function(id, sub) {
-            return fetch('./api?action=backup&sub=' + encodeURIComponent(sub) + '&filename=' + encodeURIComponent(id), {
+        var apiCall = function(id, sub, extra) {
+            return fetch('./api?action=backup&sub=' + encodeURIComponent(sub) + '&filename=' + encodeURIComponent(id) + (extra || ''), {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
@@ -231,12 +232,22 @@ LayoutRenderer::renderFooter('admin');
                 if (!ok) {
                     return;
                 }
-                apiCall(id, 'restore').then(function(dt) {
-                    if (!dt || dt.result !== true) {
-                        throw new Error('fail');
-                    }
-                    table.ajax.reload(null, false);
-                }).catch(function() {
+                // The live database is dumped before it is replaced; when that fails, nothing
+                // was touched and the operator decides whether to restore anyway.
+                var restore = function(extra) {
+                    return apiCall(id, 'restore', extra).then(function(dt) {
+                        if (dt && dt.error === 'safety_dump' && !extra) {
+                            return window.xcConfirm(lang.noSafetyDump).then(function(force) {
+                                return force ? restore('&force=1') : null;
+                            });
+                        }
+                        if (!dt || dt.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.ajax.reload(null, false);
+                    });
+                };
+                restore('').catch(function() {
                     xcToast(lang.error, 'error');
                 });
             });

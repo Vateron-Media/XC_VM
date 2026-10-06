@@ -55,7 +55,7 @@ class BackupsCronJob implements CommandInterface {
 
 		$rBackups = SettingsManager::get('automatic_backups');
 		$rLastBackup = intval(SettingsManager::get('last_backup'));
-		$rPeriod = ['hourly' => 3600, 'daily' => 86400, 'weekly' => 604800, 'monthly' => 2419200];
+		$rPeriod = BackupService::PERIODS;
 
 		if (!$rForce) {
 			$rPID = getmypid();
@@ -73,11 +73,9 @@ class BackupsCronJob implements CommandInterface {
 				}
 				$db->close_mysql();
 				$rFilename = MAIN_HOME . 'backups/backup_' . date('Y-m-d_H:i:s') . '.sql';
-				$rCreated = basename($rFilename);
 
-				BackupService::create($rFilename);
-
-				if (0 < filesize($rFilename)) {
+				if (BackupService::create($rFilename)) {
+					$rCreated = basename($rFilename);
 					if (SettingsManager::get('dropbox_remote')) {
 						file_put_contents($rFilename . '.uploading', time());
 						$rResponse = BackupService::uploadRemote(basename($rFilename), $rFilename);
@@ -97,13 +95,12 @@ class BackupsCronJob implements CommandInterface {
 						}
 						unlink($rFilename . '.uploading');
 					}
-				} else {
-					unlink($rFilename);
 				}
 			}
 		}
 
-		$rBackups = BackupService::getLocal();
+		// A restore's dump of the live database is its way back: neither counted nor removed here.
+		$rBackups = array_values(array_filter(BackupService::getLocal(), static fn(array $rItem): bool => !str_starts_with($rItem['filename'], BackupService::PRE_RESTORE)));
 		if (intval(SettingsManager::get('backups_to_keep')) < count($rBackups) && 0 < intval(SettingsManager::get('backups_to_keep'))) {
 			$rDelete = array_slice($rBackups, 0, count($rBackups) - intval(SettingsManager::get('backups_to_keep')));
 			foreach ($rDelete as $rItem) {
@@ -117,7 +114,8 @@ class BackupsCronJob implements CommandInterface {
 			}
 		}
 
-		if (SettingsManager::get('dropbox_remote')) {
+		// Dropbox is asked for its list only after a backup was made, not every minute.
+		if ($rCreated !== null && SettingsManager::get('dropbox_remote')) {
 			$rRemoteBackups = BackupService::getRemote();
 			if (intval(SettingsManager::get('dropbox_keep')) < count($rRemoteBackups) && 0 < intval(SettingsManager::get('dropbox_keep'))) {
 				$rDelete = array_slice($rRemoteBackups, 0, count($rRemoteBackups) - intval(SettingsManager::get('dropbox_keep')));
