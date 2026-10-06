@@ -72,11 +72,7 @@ LayoutRenderer::renderFooter('admin');
 ?>
 <script>
     (function() {
-        var esc = function(s) {
-            var d = document.createElement('div');
-            d.textContent = (s == null ? '' : String(s));
-            return d.innerHTML;
-        };
+        var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
         var lang = {
             blocked: <?= json_encode($language::get('blocked_btn')); ?>,
             allowed: <?= json_encode($language::get('allowed')); ?>,
@@ -116,10 +112,12 @@ LayoutRenderer::renderFooter('admin');
                     responsivePriority: 1
                 },
                 {
-                    data: 'isp'
+                    data: 'isp',
+                    render: esc
                 },
                 {
-                    data: 'domain'
+                    data: 'domain',
+                    render: esc
                 },
                 {
                     data: 'country',
@@ -137,7 +135,8 @@ LayoutRenderer::renderFooter('admin');
                 },
                 {
                     data: 'type',
-                    className: 'text-center'
+                    className: 'text-center',
+                    render: esc
                 },
                 {
                     data: 'blocked',

@@ -17,6 +17,9 @@ use XcVm\Core\Module\ModuleUpdateChecker;
 class ModulesController extends BaseAdminController {
 	public function index() {
 		$this->requirePermission();
+		// Installing or removing a module is system-level: the page takes the
+		// permission of the settings page, as its menu links and row actions do.
+		$this->requireAdvPermission('adv', 'settings');
 
 		$manager = new ModuleManager(container: ServiceContainer::getInstance());
 		$flash = null;

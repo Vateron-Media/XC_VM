@@ -236,7 +236,8 @@ LayoutRenderer::renderFooter('admin');
                     if (btn) {
                         btn.disabled = false;
                     }
-                    toast(<?= json_encode($language::get('error_occured')) ?>, 'error');
+                    // A refused install is answered with its reason.
+                    toast((d && d.message) || <?= json_encode($language::get('error_occured')) ?>, 'error');
                 })
                 .catch(function() {
                     if (btn) {

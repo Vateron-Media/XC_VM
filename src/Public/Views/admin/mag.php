@@ -359,6 +359,8 @@ LayoutRenderer::renderFooter('admin');
 <script>
     (function() {
         var errText = <?= json_encode($language::get('error_occured')); ?>;
+        // The refusals the save answers with a status of their own.
+        var statusText = <?= json_encode([STATUS_INVALID_USERNAME => $language::get('line_username_no_slash'), STATUS_INVALID_PASSWORD => $language::get('line_password_no_slash')]); ?>;
         var $ = window.jQuery;
 
         // select2 owner (registered users) + paired-user (all lines) remote search.
@@ -628,7 +630,7 @@ LayoutRenderer::renderFooter('admin');
                     }
                     btn.disabled = false;
                     applyPair();
-                    xcToast(errText, 'error');
+                    xcToast((dt && statusText[dt.status]) || errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;

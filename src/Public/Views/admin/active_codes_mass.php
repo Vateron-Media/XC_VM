@@ -1,4 +1,5 @@
 <?php
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Util\LayoutRenderer;
 
 
@@ -20,9 +21,11 @@ $resellers = $resellers ?? [];
                     <h5 class="card-title mb-1"><i class="ti tabler-adjustments text-primary me-2"></i><?= $language::get('mass_edit_active_codes') ?></h5>
                     <p class="text-muted small mb-0"><?= $language::get('ac_mass_edit_subtitle') ?></p>
                 </div>
-                <a href="active_codes" class="btn btn-sm btn-label-secondary">
-                    <i class="ti tabler-arrow-left me-1"></i><?= $language::get('ac_back_to_codes') ?>
-                </a>
+                <?php if (Authorization::check('adv', 'users')): ?>
+                    <a href="active_codes" class="btn btn-sm btn-label-secondary">
+                        <i class="ti tabler-arrow-left me-1"></i><?= $language::get('ac_back_to_codes') ?>
+                    </a>
+                <?php endif; ?>
             </div>
 
             <div class="card-body p-4">
@@ -194,7 +197,8 @@ LayoutRenderer::renderFooter('admin');
                             }
                             if (aRes.result) {
                                 xcToast(aRes.message || L.success, 'success');
-                                window.location.href = 'active_codes';
+                                // On to the list of codes, or back here when the group may not open it.
+                                window.location.href = <?= json_encode(Authorization::check('adv', 'users') ? 'active_codes' : 'active_codes_mass'); ?>;
                             } else {
                                 xcToast(aRes.message || L.failed, 'error');
                             }

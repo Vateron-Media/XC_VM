@@ -1,4 +1,5 @@
 <?php
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Util\LayoutRenderer;
 
 
@@ -57,9 +58,11 @@ $rResellers = $rResellers ?? [];
                     <h5 class="card-title mb-1"><i class="ti tabler-sparkles text-primary me-2"></i><?= $language::get('ac_generate_active_codes_admin') ?></h5>
                     <p class="text-muted small mb-0"><?= $language::get('ac_help_admin_provision') ?></p>
                 </div>
-                <a href="active_codes" class="btn btn-sm btn-label-secondary">
-                    <i class="ti tabler-arrow-left me-1"></i><?= $language::get('ac_back_to_codes') ?>
-                </a>
+                <?php if (Authorization::check('adv', 'users')): ?>
+                    <a href="active_codes" class="btn btn-sm btn-label-secondary">
+                        <i class="ti tabler-arrow-left me-1"></i><?= $language::get('ac_back_to_codes') ?>
+                    </a>
+                <?php endif; ?>
             </div>
 
             <div class="card-body p-4">
@@ -392,7 +395,9 @@ $rResellers = $rResellers ?? [];
                 <span class="mx-2">•</span>
                 <strong><?= $language::get('ac_count') ?>:</strong> <span class="fw-bold" id="admin-res-count"></span>
             </div>
-            <a href="active_codes_batch" class="btn btn-sm btn-primary"><?= $language::get('ac_open_batch_manager') ?></a>
+            <?php if (Authorization::check('adv', 'users')): ?>
+                <a href="active_codes_batch" class="btn btn-sm btn-primary"><?= $language::get('ac_open_batch_manager') ?></a>
+            <?php endif; ?>
         </div>
         <div class="table-responsive">
             <table class="table table-bordered table-hover">

@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 
 /**
@@ -28,6 +29,12 @@ class UserController extends BaseAdminController {
 		if ($rUser === false) {
 			$this->redirect('users');
 			return;
+		}
+
+		// The form shows the balance, and posts it back as `credits_shown`, as it is
+		// stored: SELECT * reads a FLOAT at six significant digits (1234567 as 1234570).
+		if ($rUser) {
+			$rUser['credits'] = UserCredits::balance((int) $rUser['id']);
 		}
 
 		$rPackages = $rUser ? PackageService::getAll($rUser['member_group_id']) : [];

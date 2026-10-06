@@ -45,7 +45,7 @@ class ProviderAjaxController extends BaseAjaxController {
 	public function providerStreams(): never {
 		$this->requireXhr();
 
-		if (!Authorization::check('adv', 'providers')) {
+		if (!Authorization::check('adv', 'streams')) {
 			$this->json(['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []]);
 		}
 

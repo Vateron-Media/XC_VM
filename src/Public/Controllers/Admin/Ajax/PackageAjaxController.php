@@ -40,9 +40,18 @@ class PackageAjaxController extends BaseAjaxController {
 			$this->ok();
 		}
 
-		if (in_array($rSub, ['is_trial', 'is_official', 'can_gen_mag', 'can_gen_e2', 'only_mag', 'only_e2'])) {
-			$db->query('UPDATE `users_packages` SET ? = ? WHERE `id` = ?;', $rSub, RequestManager::get('value'), RequestManager::get('package_id'));
-			$this->ok();
+		// The flags that are columns of the table: the name goes into the
+		// statement from this list, and a flag is 0 or 1 as the package form stores it.
+		if (in_array($rSub, ['is_trial', 'is_official'], true)) {
+			$rPackageID = intval(RequestManager::get('package_id'));
+			$rValue = RequestManager::get('value');
+			$rValue = (is_string($rValue) && $rValue !== '' ? filter_var($rValue, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) : null);
+
+			// Success is answered for a change that was made: the value reads as
+			// on or off, the package exists and the statement went through.
+			if ($rValue !== null && PackageService::getById($rPackageID) && $db->query('UPDATE `users_packages` SET `' . $rSub . '` = ? WHERE `id` = ?;', intval($rValue), $rPackageID)) {
+				$this->ok();
+			}
 		}
 
 		$this->fail();
@@ -87,8 +96,20 @@ class PackageAjaxController extends BaseAjaxController {
 			$this->ok();
 		}
 
-		if (in_array($rSub, ['is_admin', 'is_reseller'])) {
-			$db->query('UPDATE `users_groups` SET ? = ? WHERE `group_id` = ?;', $rSub, RequestManager::get('value'), RequestManager::get('group_id'));
+		if (in_array($rSub, ['is_admin', 'is_reseller'], true)) {
+			$rGroupID = intval(RequestManager::get('group_id'));
+			$rGroup = GroupService::getById($rGroupID);
+			$rValue = intval(filter_var(RequestManager::get('value'), FILTER_VALIDATE_BOOLEAN));
+			$rReserved = GroupService::reservedGroups();
+
+			// As on the group form: a group that cannot be deleted keeps its
+			// flags, and an administrator group is changed, or a group made
+			// one, by a full administrator (GroupService::reservedGroups).
+			if (!$rGroup || !$rGroup['can_delete'] || in_array($rGroupID, $rReserved) || ($rSub == 'is_admin' && $rValue && 0 < count($rReserved))) {
+				$this->fail();
+			}
+
+			$db->query('UPDATE `users_groups` SET `' . $rSub . '` = ? WHERE `group_id` = ?;', $rValue, $rGroupID);
 			$this->ok();
 		}
 

@@ -28,6 +28,7 @@ use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Domain\Stream\StreamService;
 use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\User\UserService;
 use XcVm\Domain\Vod\EpisodeService;
@@ -119,7 +120,9 @@ class AdminAPIWrapper {
 		unset($GLOBALS['rAdminUserInfo']['password']);
 		$rUserInfo = $GLOBALS['rAdminUserInfo'];
 		$rPermissions = AuthRepository::getPermissions($rUserInfo['member_group_id']);
-		$rPermissions['advanced'] = [];
+		// A key acts with the permissions its group lists, as its holder does in
+		// the panel (and as TableController applies them to the API's tables).
+		$rPermissions['advanced'] = json_decode((string) $rPermissions['allowed_pages'], true) ?: [];
 		if ((string) $rUserInfo['timezone'] !== '') {
 			date_default_timezone_set($rUserInfo['timezone']);
 		}
@@ -158,6 +161,8 @@ class AdminAPIWrapper {
 		if (isset($rData['isp_clear'])) {
 			$rData['isp_clear'] = '';
 		}
+		// A request that leaves out the username or the password keeps the line's own.
+		$rData += ['username' => $rLine['data']['username'], 'password' => $rLine['data']['password']];
 		$rReturn = parseerror(LineService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getLine($rReturn['data']['insert_id'])['data'];
@@ -207,8 +212,15 @@ class AdminAPIWrapper {
 	}
 
 	public static function getUser($rID) {
+		global $rUserInfo;
 		if (!($rUser = UserRepository::getRegisteredUserById($rID))) {
 			return ['status' => 'STATUS_FAILURE'];
+		}
+		// As the panel shows an account: its password hash nowhere, its API key
+		// on its holder's own profile only.
+		unset($rUser['password']);
+		if (intval($rUser['id']) != intval($rUserInfo['id'] ?? 0)) {
+			unset($rUser['api_key']);
 		}
 		return ['status' => 'STATUS_SUCCESS', 'data' => $rUser];
 	}
@@ -246,7 +258,8 @@ class AdminAPIWrapper {
 	}
 
 	public static function disableUser($rID) {
-		if (!($rUser = self::getUser($rID)) || !isset($rUser['data'])) {
+		// An administrator's account is switched off or on by a full administrator (GroupService::reservedGroups).
+		if (!($rUser = self::getUser($rID)) || !isset($rUser['data']) || in_array(intval($rUser['data']['member_group_id']), GroupService::reservedGroups())) {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		self::$db->query('UPDATE `users` SET `status` = 0 WHERE `id` = ?;', $rID);
@@ -254,7 +267,8 @@ class AdminAPIWrapper {
 	}
 
 	public static function enableUser($rID) {
-		if (!($rUser = self::getUser($rID)) || !isset($rUser['data'])) {
+		// An administrator's account is switched off or on by a full administrator (GroupService::reservedGroups).
+		if (!($rUser = self::getUser($rID)) || !isset($rUser['data']) || in_array(intval($rUser['data']['member_group_id']), GroupService::reservedGroups())) {
 			return ['status' => 'STATUS_FAILURE'];
 		}
 		self::$db->query('UPDATE `users` SET `status` = 1 WHERE `id` = ?;', $rID);
@@ -1462,11 +1476,13 @@ class AdminAPIWrapper {
 	public static function adjustCredits($rID, $rCredits, $rReason = '') {
 		global $db;
 		global $rUserInfo;
-		if (is_numeric($rCredits) && ($rUser = self::getUser($rID)) && isset($rUser['data'])) {
-			$rCredits = intval($rUser['data']['credits']) + intval($rCredits);
-			if (0 <= $rCredits) {
-				$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rCredits, $rID);
-				$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rID, $rUserInfo['id'], $rCredits, time(), $rReason);
+		// The credits of an administrator's account are adjusted by a full administrator (GroupService::reservedGroups).
+		if (is_numeric($rCredits) && ($rUser = self::getUser($rID)) && isset($rUser['data']) && !in_array(intval($rUser['data']['member_group_id']), GroupService::reservedGroups())) {
+			$rAmount = intval($rCredits);
+			// The balance changes by the amount on the row as it is stored now: an
+			// amount is taken only from a balance that covers it. The log carries the amount.
+			if ($rAmount < 0 ? UserCredits::debit($rUser['data']['id'], -$rAmount) : UserCredits::credit($rUser['data']['id'], $rAmount)) {
+				$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rID, $rUserInfo['id'], $rAmount, time(), $rReason);
 				return ['status' => 'STATUS_SUCCESS'];
 			}
 		}
@@ -1487,8 +1503,13 @@ class AdminAPIWrapper {
 	}
 
 	// ─── Active Codes API Handlers ──────────────────────────────────────────
+	// The active-code API calls these as well, so each asks for the permission
+	// of its action itself (AdminApiController::ACTION_PERMISSIONS).
 
 	public static function getActiveCodes($rStart = 0, $rLimit = 50, $rData = [], $rShowColumns = null, $rHideColumns = null) {
+		if (!AdminApiController::permitted('get_active_codes')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		$res = ActiveCodeService::listCodes($rData, $user, true, (int) $rStart, (int) $rLimit);
 		return [
@@ -1502,6 +1523,9 @@ class AdminAPIWrapper {
 	}
 
 	public static function getActiveCode($rID) {
+		if (!AdminApiController::permitted('get_active_code')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		$code = ActiveCodeService::getCodeDetails($rID, $user, true);
 		if (!$code) {
@@ -1511,6 +1535,9 @@ class AdminAPIWrapper {
 	}
 
 	public static function generateActiveCodes($rData) {
+		if (!AdminApiController::permitted('generate_active_codes')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		$res = ActiveCodeService::generateCodes($rData, $user, true);
 		if ($res['status'] !== 'SUCCESS') {
@@ -1526,6 +1553,9 @@ class AdminAPIWrapper {
 	}
 
 	public static function editActiveCode($rID, $rData) {
+		if (!AdminApiController::permitted('edit_active_code')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		$res = ActiveCodeService::updateCode((int) $rID, $rData, $user, true);
 		if ($res['status'] !== 'SUCCESS') {
@@ -1539,6 +1569,9 @@ class AdminAPIWrapper {
 	}
 
 	public static function deleteActiveCode($rID) {
+		if (!AdminApiController::permitted('delete_active_code')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		$res = ActiveCodeService::deleteCode((int) $rID, $user, true, false);
 		if ($res['status'] !== 'SUCCESS') {
@@ -1548,6 +1581,9 @@ class AdminAPIWrapper {
 	}
 
 	public static function enableActiveCode($rID) {
+		if (!AdminApiController::permitted('enable_active_code')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		$res = ActiveCodeService::massAction('enable', [(int) $rID], $user, true);
 		if ($res['status'] !== 'SUCCESS') {
@@ -1557,6 +1593,9 @@ class AdminAPIWrapper {
 	}
 
 	public static function disableActiveCode($rID) {
+		if (!AdminApiController::permitted('disable_active_code')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		$res = ActiveCodeService::massAction('disable', [(int) $rID], $user, true);
 		if ($res['status'] !== 'SUCCESS') {
@@ -1566,6 +1605,9 @@ class AdminAPIWrapper {
 	}
 
 	public static function resetActiveCodeDevice($rID) {
+		if (!AdminApiController::permitted('reset_active_code_device')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		$res = ActiveCodeService::resetDevice($rID, $user, true);
 		if ($res['status'] !== 'SUCCESS') {
@@ -1575,6 +1617,9 @@ class AdminAPIWrapper {
 	}
 
 	public static function massActiveCodes($rAction, $rIDs, $rExtra = []) {
+		if (!AdminApiController::permitted('mass_active_codes')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		if (is_string($rIDs)) {
 			$rIDs = explode(',', $rIDs);
@@ -1591,12 +1636,18 @@ class AdminAPIWrapper {
 	}
 
 	public static function getActiveCodesBatches($rBatchName = null) {
+		if (!AdminApiController::permitted('get_active_codes_batches')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		$batches = ActiveCodeService::getBatchSummary($user, true, $rBatchName);
 		return ['status' => 'STATUS_SUCCESS', 'data' => $batches];
 	}
 
 	public static function exportActiveCodeBatch($rBatchName, $rFormat = 'json') {
+		if (!AdminApiController::permitted('export_active_code_batch')) {
+			return ['status' => 'STATUS_NO_PERMISSIONS'];
+		}
 		$user = $GLOBALS['rAdminUserInfo'] ?? ['id' => 1, 'username' => 'Admin'];
 		if (empty($rBatchName)) {
 			return ['status' => 'STATUS_FAILURE', 'error' => 'Batch name is required.'];

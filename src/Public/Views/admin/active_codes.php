@@ -1,4 +1,5 @@
 <?php
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Util\LayoutRenderer;
 
 
@@ -12,6 +13,10 @@ use XcVm\Core\Util\LayoutRenderer;
  * server-rendered voucher-details modal are wired in the script.
  */
 
+// The row actions and the mass bar change codes (MultiAjaxController::handleActiveCode):
+// a group that may only list them is not offered what it would be refused.
+$rCanEdit = Authorization::check('adv', 'edit_user') || Authorization::check('adv', 'mass_edit_lines');
+
 ?>
 
 <div class="card mb-4">
@@ -21,12 +26,16 @@ use XcVm\Core\Util\LayoutRenderer;
             <a href="active_codes_batch" class="btn btn-sm btn-label-secondary">
                 <i class="ti tabler-folders me-1"></i><?= $language::get('batch_manager') ?>
             </a>
-            <a href="active_codes_mass" class="btn btn-sm btn-label-info">
-                <i class="ti tabler-adjustments me-1"></i><?= $language::get('ac_mass_edit') ?>
-            </a>
-            <a href="active_code" class="btn btn-sm btn-primary">
-                <i class="ti tabler-plus me-1"></i><?= $language::get('generate_codes') ?>
-            </a>
+            <?php if (Authorization::check('adv', 'mass_edit_lines')): ?>
+                <a href="active_codes_mass" class="btn btn-sm btn-label-info">
+                    <i class="ti tabler-adjustments me-1"></i><?= $language::get('ac_mass_edit') ?>
+                </a>
+            <?php endif; ?>
+            <?php if (Authorization::check('adv', 'add_user')): ?>
+                <a href="active_code" class="btn btn-sm btn-primary">
+                    <i class="ti tabler-plus me-1"></i><?= $language::get('generate_codes') ?>
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -78,7 +87,7 @@ use XcVm\Core\Util\LayoutRenderer;
             <thead>
                 <tr>
                     <th></th>
-                    <th style="width: 35px;"><input type="checkbox" id="select-all" class="form-check-input"></th>
+                    <th style="width: 35px;"><?php if ($rCanEdit): ?><input type="checkbox" id="select-all" class="form-check-input"><?php endif; ?></th>
                     <th><?= $language::get('ac_code') ?></th>
                     <th><?= $language::get('ac_batch') ?></th>
                     <th><?= $language::get('package') ?></th>
@@ -96,6 +105,7 @@ use XcVm\Core\Util\LayoutRenderer;
     </div>
 </div>
 
+<?php if ($rCanEdit): ?>
 <!-- Floating Mass Actions Bar -->
 <div id="mass-action-bar" class="position-fixed bottom-0 start-50 translate-middle-x p-3 bg-dark text-white rounded-4 shadow-lg d-none align-items-center gap-3" style="z-index: 1080; min-width: 480px; max-width: 90%;">
     <div class="d-flex align-items-center gap-2">
@@ -112,6 +122,7 @@ use XcVm\Core\Util\LayoutRenderer;
         <button type="button" class="btn btn-sm btn-outline-light" id="btn-mass-cancel"><i class="ti tabler-x"></i></button>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- Code Details Modal -->
 <div class="modal fade" id="codeDetailsModal" tabindex="-1" aria-hidden="true">
@@ -197,6 +208,7 @@ LayoutRenderer::renderFooter('admin');
     $(function() {
         const tableEl = $('#admin-active-codes-table');
         let selectedIds = new Set();
+        const canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>;
 
         // Cell renderers (server returns a clean keyed payload; badges / status /
         // actions are built here).
@@ -207,6 +219,7 @@ LayoutRenderer::renderFooter('admin');
             });
         }
         function renderCheckbox(d, type, row) {
+            if (!canEdit) return '';
             return '<input type="checkbox" class="form-check-input row-select" value="' + row.id + '">';
         }
         function renderCode(d, type, row) {
@@ -251,9 +264,10 @@ LayoutRenderer::renderFooter('admin');
             const enable = (status == 0);
             return '<div class="d-inline-block text-nowrap">' +
                 '<button class="btn btn-sm btn-icon btn-label-secondary me-1 btn-view-code" data-id="' + id + '" title="View Details"><i class="ti tabler-eye"></i></button>' +
+                (!canEdit ? '' :
                 '<button class="btn btn-sm btn-icon ' + (enable ? 'btn-label-success' : 'btn-label-warning') + ' me-1 btn-toggle-code" data-id="' + id + '" data-status="' + status + '" title="' + (enable ? 'Enable' : 'Disable') + '"><i class="ti ' + (enable ? 'tabler-check' : 'tabler-ban') + '"></i></button>' +
                 '<button class="btn btn-sm btn-icon btn-label-secondary me-1 btn-reset-code-device" data-id="' + id + '" title="Reset Device Lock"><i class="ti tabler-device-desktop-off"></i></button>' +
-                '<button class="btn btn-sm btn-icon btn-label-danger btn-delete-code" data-id="' + id + '" title="Delete Code"><i class="ti tabler-trash"></i></button>' +
+                '<button class="btn btn-sm btn-icon btn-label-danger btn-delete-code" data-id="' + id + '" title="Delete Code"><i class="ti tabler-trash"></i></button>') +
                 '</div>';
         }
 

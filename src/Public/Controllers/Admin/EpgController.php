@@ -19,6 +19,8 @@ use XcVm\Domain\Epg\EpgService;
 
 class EpgController extends BaseAdminController {
 	public function index() {
+		$this->requirePermission();
+
 		$rEPGArr = null;
 		if (RequestManager::has('id')) {
 			$rEPGArr = EpgService::getById(RequestManager::get('id'));

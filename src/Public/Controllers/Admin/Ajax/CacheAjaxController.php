@@ -9,7 +9,8 @@ use XcVm\Infrastructure\Redis\RedisManager;
 /**
  * Admin-ajax controller for cache and connection-handler operations:
  * regenerate_cache, enable_cache, disable_cache, enable_handler,
- * disable_handler, clear_redis. Every action is gated on `adv/backups`.
+ * disable_handler, clear_redis. Every action is gated on `adv/database`,
+ * the permission of the cache page.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -21,7 +22,7 @@ class CacheAjaxController extends BaseAjaxController {
 	/** action=regenerate_cache — force a run of the cache engine. */
 	public function regenerate(): never {
 		$this->requireXhr();
-		$this->gate('adv', 'backups');
+		$this->gate('adv', 'database');
 
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine "force"');
 
@@ -31,7 +32,7 @@ class CacheAjaxController extends BaseAjaxController {
 	/** action=enable_cache — enable the cache and start cache_handler if not running. */
 	public function enableCache(): never {
 		$this->requireXhr();
-		$this->gate('adv', 'backups');
+		$this->gate('adv', 'database');
 
 		global $db;
 		$db->query('UPDATE `settings` SET `enable_cache` = 1;');
@@ -53,7 +54,7 @@ class CacheAjaxController extends BaseAjaxController {
 	/** action=disable_cache — disable the cache. */
 	public function disableCache(): never {
 		$this->requireXhr();
-		$this->gate('adv', 'backups');
+		$this->gate('adv', 'database');
 
 		global $db;
 		$db->query('UPDATE `settings` SET `enable_cache` = 0;');
@@ -70,7 +71,7 @@ class CacheAjaxController extends BaseAjaxController {
 	/** action=enable_handler — enable the Redis handler and restart redis/signals/watchdog. */
 	public function enableHandler(): never {
 		$this->requireXhr();
-		$this->gate('adv', 'backups');
+		$this->gate('adv', 'database');
 
 		global $db;
 		// A node in mode 2 may not open MAIN's Redis, and with this handler its
@@ -103,7 +104,7 @@ class CacheAjaxController extends BaseAjaxController {
 	/** action=disable_handler — disable the Redis handler and stop redis/signals/watchdog. */
 	public function disableHandler(): never {
 		$this->requireXhr();
-		$this->gate('adv', 'backups');
+		$this->gate('adv', 'database');
 
 		global $db;
 		$db->query('UPDATE `settings` SET `redis_handler` = 0;');
@@ -126,7 +127,7 @@ class CacheAjaxController extends BaseAjaxController {
 	/** action=clear_redis — flush the entire Redis store. */
 	public function clearRedis(): never {
 		$this->requireXhr();
-		$this->gate('adv', 'backups');
+		$this->gate('adv', 'database');
 
 		$rRedis = RedisManager::instance();
 

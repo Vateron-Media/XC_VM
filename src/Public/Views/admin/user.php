@@ -19,6 +19,9 @@ use XcVm\Core\Util\LayoutRenderer;
 $rIsEdit    = (bool) ($rUser ?? null);
 $rOverrides = ($rIsEdit && !empty($rUser['override_packages'])) ? (json_decode((string) $rUser['override_packages'], true) ?: []) : [];
 $rMinPwLen  = max(10, (int) ($rPermissions['minimum_password_length'] ?? 10));
+// An administrator group is given out by a full administrator: the others are
+// offered the groups a save takes from them (and the one the user is in).
+$rReserved  = GroupService::reservedGroups();
 ?>
 
 <?php if (!isset($_GET['modal'])): ?>
@@ -31,6 +34,7 @@ $rMinPwLen  = max(10, (int) ($rPermissions['minimum_password_length'] ?? 10));
 <form id="user-form" autocomplete="off">
     <?php if ($rIsEdit): ?>
         <input type="hidden" name="edit" value="<?= (int) $rUser['id']; ?>">
+        <input type="hidden" name="credits_shown" value="<?= htmlspecialchars((string) $rUser['credits'], ENT_QUOTES); ?>">
     <?php endif; ?>
 
     <div class="card mb-6">
@@ -63,6 +67,9 @@ $rMinPwLen  = max(10, (int) ($rPermissions['minimum_password_length'] ?? 10));
                             <label class="form-label" for="member_group_id"><?= $language::get('member_group'); ?></label>
                             <select name="member_group_id" id="member_group_id" class="form-select">
                                 <?php foreach (GroupService::getAll() as $rGroup): ?>
+                                    <?php if (in_array((int) $rGroup['group_id'], $rReserved) && !($rIsEdit && (int) $rUser['member_group_id'] === (int) $rGroup['group_id'])) {
+                                        continue;
+                                    } ?>
                                     <option value="<?= (int) $rGroup['group_id']; ?>" <?= ($rIsEdit && (int) $rUser['member_group_id'] === (int) $rGroup['group_id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES); ?></option>
                                 <?php endforeach; ?>
                             </select>
