@@ -40,3 +40,4 @@ graphify-out/
 .cache/*
 coverage/*
 src/bin/xc_fanout/disabled
+.playwright-mcp/
