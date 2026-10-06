@@ -13,6 +13,7 @@ use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Server\ServerSavedEvent;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Cluster\ClusterEndpoint;
+use XcVm\Domain\Cluster\DbCredentials;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -124,6 +125,9 @@ class ServerService {
 		}
 
 		if (isset($rData['domain_name'])) {
+			if (!self::domainNamesValid($rData['domain_name'], (string) $rServer['domain_name'])) {
+				return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+			}
 			$rArray['domain_name'] = implode(',', $rData['domain_name']);
 		} else {
 			$rArray['domain_name'] = '';
@@ -201,6 +205,30 @@ class ServerService {
 	}
 
 	/**
+	 * Whether a server's domain list holds only what the form adds to it:
+	 * addresses, and names made of letters, digits, hyphens and underscores
+	 * in labels joined by dots. An entry the server already has is kept as it
+	 * is (a migrated row may hold a name written as a URL). The list is stored
+	 * joined by commas and goes into URLs, the allowed hosts and certbot's
+	 * request.
+	 *
+	 * @param mixed  $rNames  The posted `domain_name` list.
+	 * @param string $rStored The server's `domain_name` as stored.
+	 */
+	public static function domainNamesValid(mixed $rNames, string $rStored = ''): bool {
+		if (!is_array($rNames)) {
+			return false;
+		}
+		$rKept = array_filter(explode(',', $rStored));
+		foreach ($rNames as $rName) {
+			if (!is_string($rName) || !(in_array($rName, $rKept, true) || filter_var($rName, FILTER_VALIDATE_IP) || preg_match('/^[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?(\.[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?)*$/iD', $rName))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
 	 * The ports of $rPorts this server does not listen on yet (its row's
 	 * HTTP, HTTPS and RTMP ports) that something on this machine already
 	 * accepts connections on.
@@ -266,7 +294,8 @@ class ServerService {
 			exit();
 		}
 
-		$rArray = AdminHelpers::overwriteData(ServerRepository::getById($rData['edit']), $rData);
+		$rServer = ServerRepository::getById($rData['edit']);
+		$rArray = AdminHelpers::overwriteData($rServer, $rData);
 		foreach (['enable_https', 'random_ip', 'enable_geoip', 'enabled'] as $rKey) {
 			$rArray[$rKey] = isset($rData[$rKey]);
 		}
@@ -281,6 +310,9 @@ class ServerService {
 		}
 
 		if (isset($rData['domain_name'])) {
+			if (!self::domainNamesValid($rData['domain_name'], (string) $rServer['domain_name'])) {
+				return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+			}
 			$rArray['domain_name'] = implode(',', $rData['domain_name']);
 		} else {
 			$rArray['domain_name'] = '';
@@ -348,6 +380,11 @@ class ServerService {
 				return ['status' => STATUS_FAILURE, 'data' => $rData];
 			}
 
+			// Said before the row says the server is being installed.
+			if ($rData['type'] != 1 && self::modeTwoInstallRefused(intval($rServer['id']))) {
+				return ['status' => STATUS_FAILURE, 'data' => $rData, 'message' => 'cluster_mode_redis_handler'];
+			}
+
 			$db->query('UPDATE `servers` SET `status` = 3, `parent_id` = ? WHERE `id` = ?;', '[' . implode(',', $rParentIDs) . ']', $rServer['id']);
 			if ($rData['type'] == 1) {
 				$rCommand = InstallCredentials::command(intval($rData['type']), intval($rServer['id']), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], [(string) intval($rData['http_broadcast_port']), (string) intval($rData['https_broadcast_port']), (string) intval($rUpdateSysctl), (string) intval($rPrivateIP), escapeshellarg(json_encode($rParentIDs))], (string) ($rData['expected_hostkey'] ?? ''), !empty($rData['forget_hostkey']));
@@ -370,6 +407,10 @@ class ServerService {
 		// machine, and deleting the stale one revoked the live node's database grant.
 		if (QueryHelper::checkExists('servers', 'server_ip', $rArray['server_ip'])) {
 			return ['status' => STATUS_EXISTS_IP, 'data' => $rData];
+		}
+		// No row is added for an install that would be refused.
+		if ($rData['type'] != 1 && self::modeTwoInstallRefused()) {
+			return ['status' => STATUS_FAILURE, 'data' => $rData, 'message' => 'cluster_mode_redis_handler'];
 		}
 
 		if ($rData['type'] == 1) {
@@ -403,6 +444,25 @@ class ServerService {
 
 		shell_exec($rCommand);
 		return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rInsertID]];
+	}
+
+	/**
+	 * Would `server:install` refuse this load balancer because it installs in
+	 * cluster mode 2 while the Redis connection handler is on (the command's
+	 * own check, LbInstallFlow::installsInApiMode)? The panel asks before it
+	 * marks the server as being installed: a server marked so is out of
+	 * rotation, and after the command's refusal only an install that succeeds
+	 * brings it back.
+	 *
+	 * @param int $rServerID The load balancer; 0 for one that has no row yet.
+	 */
+	public static function modeTwoInstallRefused(int $rServerID = 0): bool {
+		$rSettings = SettingsManager::getAll();
+		if (empty($rSettings['redis_handler'])) {
+			return false;
+		}
+
+		return ClusterSettings::newNodesInApiMode($rSettings) || (!empty($rSettings['cluster_api_enabled']) && class_exists(DbCredentials::class) && DbCredentials::credentialFree($rServerID));
 	}
 
 	/**

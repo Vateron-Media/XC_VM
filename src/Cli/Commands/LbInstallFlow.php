@@ -466,7 +466,9 @@ class LbInstallFlow {
 			call_user_func($rSendFileSSH, $rConn, $rTmpPath, $rPath, false);
 		}
 		call_user_func($rRunSSH, $rConn, 'sudo chmod +x ' . MAIN_HOME . 'bin/daemons.sh');
-		call_user_func($rRunSSH, $rConn, 'sudo chmod 0777 /home/xc_vm/bin');
+		// Only its owner writes to bin/. An update closes it to others again
+		// (0750): what the flows check in it, they check as root.
+		call_user_func($rRunSSH, $rConn, 'sudo chmod 0755 /home/xc_vm/bin');
 
 		return $rServices;
 	}
@@ -608,7 +610,9 @@ class LbInstallFlow {
 			}
 			echo "MD5 verification passed for {$rBinaryName}\n";
 		} else {
-			echo "Warning: Could not retrieve MD5 hash for {$rBinaryName}, skipping verification\n";
+			echo "No MD5 hash for {$rBinaryName} in the hashes.md5 of release {$rTag} (or the node could not fetch it): the bundle is not installed unverified\n";
+			call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
+			return false;
 		}
 
 		echo "Extracting distribution binaries\n";
@@ -678,7 +682,9 @@ class LbInstallFlow {
 	 *    and completes enrolment itself (`enrol_complete`).
 	 *
 	 * Only a refusal by an available extension, or a node that cannot reach
-	 * MAIN's API, stops the install (status 4).
+	 * MAIN's API, stops the install (status 4). So does a mode 2 enrolment
+	 * while the Redis connection handler is on, before anything runs on the
+	 * node.
 	 *
 	 * @param bool $rMarkFailed Set status 4 on failure (a fresh install); false for `server:enrol` on a live node.
 	 */
@@ -702,6 +708,12 @@ class LbInstallFlow {
 		// An API-mode node holds no DB grant and no credentials: without its
 		// enrolment it could reach nothing, so it never "stays legacy".
 		$rApiMode = self::apiMode($rSettings);
+		// MAIN takes no mode 2 enrolment while the Redis connection handler is
+		// on (EnrolmentService::begin): said before the node's agent is stopped
+		// and its keys replaced for an enrolment that cannot be finished.
+		if ($rApiMode && !empty($rSettings['redis_handler'])) {
+			return $rFail('This node enrols in mode 2, which is not available while the Redis connection handler is on: switch the handler off first. Exiting');
+		}
 		if (!$rCrypto instanceof \XcVm\Core\Cluster\Crypto\ClusterCrypto) {
 			$rCrypto = ClusterCli::crypto($rApiMode ? "Cluster API unavailable (%s)\n" : "Cluster API unavailable (%s); the node stays legacy\n");
 			if ($rCrypto === null) {
@@ -715,7 +727,7 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, 'sudo pkill -u xc_vm -f ' . escapeshellarg(dirname(self::AGENT_BIN) . '/run.sh') . '; sudo pkill -u xc_vm -x xc_agent; true');
 		call_user_func($rRunSSH, $rConn, 'sudo mkdir -p ' . escapeshellarg(dirname(self::AGENT_BIN)) . ' ' . escapeshellarg(dirname(self::AGENT_STATE)) . ' && sudo rm -f ' . escapeshellarg(dirname(self::AGENT_BIN) . '/stopped') . ' && sudo chown -R xc_vm:xc_vm ' . escapeshellarg(dirname(self::AGENT_BIN)) . ' ' . escapeshellarg(dirname(self::AGENT_STATE)) . ' && sudo chmod 0700 ' . escapeshellarg(dirname(self::AGENT_STATE)));
 		// The node takes the agent from its GitHub release itself, as it keeps it current.
-		$rGot = trim((string) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_binary agent 2>&1; test -x ' . escapeshellarg(self::AGENT_BIN) . ' && echo AGENT_OK')['output']);
+		$rGot = trim((string) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_binary agent 2>&1; sudo test -x ' . escapeshellarg(self::AGENT_BIN) . ' && echo AGENT_OK')['output']);
 		if (!str_ends_with($rGot, 'AGENT_OK')) {
 			$rWhy = trim((string) strrchr("\n" . $rGot, "\n")) ?: 'it could not install one';
 			if ($rApiMode) {
@@ -797,7 +809,7 @@ class LbInstallFlow {
 		// Started, and seen running: a release without run.sh, or an agent that
 		// exits at once, would otherwise leave a node that never completes.
 		$rRunSh = escapeshellarg(MAIN_HOME . 'bin/xc_agent/run.sh');
-		$rStart = call_user_func($rRunSSH, $rConn, 'if [ ! -f ' . $rRunSh . ' ]; then echo NO_RUNSH; else sudo -u xc_vm bash ' . $rRunSh . ' </dev/null >/dev/null 2>&1 & sleep 3; pgrep -u xc_vm -x xc_agent >/dev/null && echo STARTED; fi');
+		$rStart = call_user_func($rRunSSH, $rConn, 'if ! sudo test -f ' . $rRunSh . '; then echo NO_RUNSH; else sudo -u xc_vm bash ' . $rRunSh . ' </dev/null >/dev/null 2>&1 & sleep 3; pgrep -u xc_vm -x xc_agent >/dev/null && echo STARTED; fi');
 		$rStarted = trim((string) ($rStart['output'] ?? ''));
 		if ($rStarted === 'NO_RUNSH') {
 			return $rFail('The node has no bin/xc_agent/run.sh: its release predates the cluster agent. Install a newer release, then retry. Exiting');

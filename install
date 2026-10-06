@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import urllib.request
 import zipfile
@@ -466,8 +467,9 @@ def compute_md5(file_path):
 
 
 def download_release_hash(repo, release_tag, file_name):
-    """Download hashes.md5 from a GitHub release and return the hash for file_name"""
-    hash_url = f"https://github.com/Vateron-Media/{repo}/releases/download/{release_tag}/hashes.md5"
+    """Download hashes.md5 from a GitHub release (the latest one when release_tag is None) and return the hash for file_name"""
+    release_path = f"download/{release_tag}" if release_tag else "latest/download"
+    hash_url = f"https://github.com/Vateron-Media/{repo}/releases/{release_path}/hashes.md5"
     try:
         req = urllib.request.Request(hash_url)
         req.add_header("User-Agent", "XC_VM-Installer/1.0")
@@ -478,7 +480,14 @@ def download_release_hash(repo, release_tag, file_name):
                 if not line:
                     continue
                 parts = line.split(None, 1)
-                if len(parts) == 2 and parts[1] == file_name:
+                if len(parts) != 2:
+                    continue
+                # The name as md5sum may write it ("*name", "./name"), as the
+                # updater and a node's install read it.
+                name = parts[1].lstrip("*")
+                if name.startswith("./"):
+                    name = name[2:]
+                if name == file_name:
                     return parts[0]
     except Exception as e:
         printc(f"Warning: Could not download hash file: {e}", col.WARNING)
@@ -564,10 +573,15 @@ def install_distribution_binaries(dist_id, version):
         return False
 
     remote_url = f"https://github.com/Vateron-Media/XC_VM_Binaries/releases/download/{release_tag}/{patch_name}"
-    temp_tar_file = f"/tmp/{patch_name}"
-    temp_extract_dir = f"/tmp/{patch_name.replace('.tar.gz', '_extract')}"
+    temp_dir = None
 
     try:
+        # A directory of root's own: no other user can put a file where the
+        # bundle is checked and unpacked.
+        temp_dir = tempfile.mkdtemp(prefix="xcvm.")
+        temp_tar_file = os.path.join(temp_dir, patch_name)
+        temp_extract_dir = os.path.join(temp_dir, "extract")
+
         # Always download fresh binaries from GitHub
         printc(
             f"Downloading {display_name} binaries from GitHub release {release_tag}...",
@@ -607,7 +621,9 @@ def install_distribution_binaries(dist_id, version):
                 return False
             printc(f"MD5 verification passed for {patch_name}", col.OKGREEN)
         else:
-            printc(f"Warning: Could not retrieve MD5 hash for {patch_name}, skipping verification", col.WARNING)
+            printc(f"Could not retrieve MD5 hash for {patch_name}: not installed unverified", col.FAIL)
+            os.remove(temp_tar_file)
+            return False
 
         file_size_mb = os.path.getsize(temp_tar_file) / (1024 * 1024)
         printc(
@@ -771,12 +787,11 @@ def install_distribution_binaries(dist_id, version):
 
     except Exception as e:
         printc(f"Error installing {display_name} binaries: {e}", col.FAIL)
-        # Clean up archive files on error
-        if os.path.exists(temp_tar_file):
-            os.remove(temp_tar_file)
-        if os.path.exists(temp_extract_dir):
-            shutil.rmtree(temp_extract_dir)
         return False
+    finally:
+        # The archive and what was unpacked of it, however the step ended
+        if temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def detect_distribution():
@@ -996,7 +1011,9 @@ def download_xc_vm():
                     return False
                 printc("MD5 verification passed for XC_VM.zip", col.OKGREEN)
             else:
-                printc("Warning: Could not retrieve MD5 hash for XC_VM.zip, skipping verification", col.WARNING)
+                printc("Could not retrieve MD5 hash for XC_VM.zip: not used unverified", col.FAIL)
+                os.remove("XC_VM.zip")
+                return False
 
             # Validate ZIP file
             if is_valid_zip("XC_VM.zip"):
@@ -1022,12 +1039,22 @@ def download_xc_vm():
             printc(f"Trying alternative: {alt_url}", col.OKBLUE)
             urllib.request.urlretrieve(alt_url, "XC_VM.zip")
 
-            if os.path.exists("XC_VM.zip") and is_valid_zip("XC_VM.zip"):
+            # Checked against the latest release's own hashes.md5, like the download above.
+            expected_hash = download_release_hash("XC_VM", None, "XC_VM.zip")
+            if (
+                expected_hash
+                and compute_md5("XC_VM.zip") == expected_hash
+                and is_valid_zip("XC_VM.zip")
+            ):
                 printc("Alternative download successful", col.OKGREEN)
                 return True
+            printc("Alternative download failed MD5 verification", col.FAIL)
         except Exception:
             pass
 
+        # Not left behind: the next run would take it for a local archive.
+        if os.path.exists("XC_VM.zip"):
+            os.remove("XC_VM.zip")
         return False
 
 
@@ -1551,26 +1578,47 @@ _PACKAGE_KEY_MAP = {
 # Distros that need OpenSSL 3 compatibility library
 _NEEDS_OPENSSL3 = {"ubuntu_20"}
 
+# The package, the SHA-256 Ubuntu's signed index lists for it (jammy,
+# main/binary-amd64/Packages), and the library it puts in place.
+_OPENSSL3_DEB_URL = "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb"
+_OPENSSL3_DEB_SHA256 = "11a83260542e05aebbbafce9164d594287d2584be80972e08708528fe06f80d3"
+_OPENSSL3_LIB = "/usr/lib/x86_64-linux-gnu/libssl.so.3"
+
 
 def _install_openssl3_compat(dist_id, major):
     """Download and install OpenSSL 3 compatibility .deb for older distros."""
     label = f"{dist_id}_{major}"
-    tmp_file = f"/tmp/libssl3_{label}.deb"
     printc("Installing OpenSSL 3 compatibility library for PHP binaries...", col.OKBLUE)
+    tmp_dir = None
     try:
+        # dpkg runs a package's scripts as root: it is handed this one only when
+        # it is the pinned build, from a directory no other user can write to.
+        tmp_dir = tempfile.mkdtemp(prefix="xcvm.")
+        tmp_file = os.path.join(tmp_dir, f"libssl3_{label}.deb")
+        run_command(f'wget -qO "{tmp_file}" "{_OPENSSL3_DEB_URL}"')
+        actual_hash = None
+        if os.path.exists(tmp_file):
+            with open(tmp_file, "rb") as f:
+                actual_hash = hashlib.sha256(f.read()).hexdigest()
+        if actual_hash != _OPENSSL3_DEB_SHA256:
+            printc("OpenSSL 3 library not installed: download failed or is not the expected package", col.WARNING)
+            printc("PHP binaries may not work without libssl.so.3", col.WARNING)
+            return
         run_command(
-            f"wget -qO {tmp_file} "
-            '"http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb"'
+            f'dpkg --force-depends -i "{tmp_file}" 2>/dev/null '
+            f'|| dpkg -i "{tmp_file}" 2>/dev/null || true'
         )
-        run_command(
-            f"dpkg --force-depends -i {tmp_file} 2>/dev/null "
-            f"|| dpkg -i {tmp_file} 2>/dev/null || true"
-        )
-        run_command(f"rm -f {tmp_file}")
-        printc("OpenSSL 3 library installation completed", col.OKGREEN)
+        if os.path.exists(_OPENSSL3_LIB):
+            printc("OpenSSL 3 library installation completed", col.OKGREEN)
+        else:
+            printc("OpenSSL 3 library not installed: dpkg could not unpack it", col.WARNING)
+            printc("PHP binaries may not work without libssl.so.3", col.WARNING)
     except Exception as e:
         printc(f"OpenSSL 3 installation warning: {e}", col.WARNING)
         printc("PHP binaries may not work without libssl.so.3", col.WARNING)
+    finally:
+        if tmp_dir:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def _apt_install_framed(packages):
