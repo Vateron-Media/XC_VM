@@ -11,6 +11,7 @@ use XcVm\Public\Controllers\Admin\AdminResizeController;
 use XcVm\Public\Controllers\Admin\Ajax\ActiveCodeAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\AlertAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BackupAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\BackupTargetAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CategoryTemplateAjaxController;
@@ -425,6 +426,13 @@ $router->api('alert_channel_save', [AlertAjaxController::class, 'saveChannel']);
 $router->api('alert_channel_delete', [AlertAjaxController::class, 'deleteChannel']);
 $router->api('alert_channel_test', [AlertAjaxController::class, 'testChannel']);
 $router->api('alert_rules_save', [AlertAjaxController::class, 'saveRules']);
+
+// Off-site backups (Domain\\Backup): targets, recovery bundle, restore test.
+$router->api('backup_target_save', [BackupTargetAjaxController::class, 'save']);
+$router->api('backup_target_delete', [BackupTargetAjaxController::class, 'delete']);
+$router->api('backup_target_test', [BackupTargetAjaxController::class, 'test']);
+$router->api('backup_bundle_passphrase', [BackupTargetAjaxController::class, 'passphrase']);
+$router->api('backup_verify_now', [BackupTargetAjaxController::class, 'verifyNow']);
 
 $router->api('clear_logs', [BackupAjaxController::class, 'clearLogs']);
 $router->api('backup', [BackupAjaxController::class, 'backup']);

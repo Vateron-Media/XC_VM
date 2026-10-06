@@ -172,7 +172,7 @@ class BackupService {
 	 * The newest backup a backup run made (backup_*.sql, scheduled or manual), and
 	 * whether its Dropbox upload failed (the .error file beside it).
 	 *
-	 * @return array{timestamp: int, upload_failed: bool}|null null when there is none
+	 * @return array{timestamp: int, upload_failed: bool, filename: string}|null null when there is none
 	 */
 	public static function newestBackup(): ?array {
 		if (!is_dir(MAIN_HOME . 'backups/')) {
@@ -183,7 +183,7 @@ class BackupService {
 			return null;
 		}
 		$rNewest = end($rRuns);
-		return ['timestamp' => (int) $rNewest['timestamp'], 'upload_failed' => is_file(MAIN_HOME . 'backups/' . $rNewest['filename'] . '.error')];
+		return ['timestamp' => (int) $rNewest['timestamp'], 'upload_failed' => is_file(MAIN_HOME . 'backups/' . $rNewest['filename'] . '.error'), 'filename' => (string) $rNewest['filename']];
 	}
 
 	/**

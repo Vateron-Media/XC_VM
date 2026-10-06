@@ -11,6 +11,7 @@ use XcVm\Core\Enum\Theme;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Reference\GeoReference;
+use XcVm\Domain\Backup\BackupVerifier;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterOverview;
 use XcVm\Domain\Server\ServerRepository;
@@ -171,7 +172,7 @@ class DashboardController extends BaseAdminController {
 			self::fanoutCheck(FanoutMode::enabled(), array_filter($servers, static fn(array $rServer): bool => (int) ($rServer['server_type'] ?? 0) === 0), $now, $bin),
 			self::clusterCheck($rClusterOn, $rNodes, $rPending, $bin),
 			self::diskCheck(['panel' => self::usage(MAIN_HOME), 'tmp' => self::usage(TMP_PATH)]),
-			self::backupCheck($rSchedule, isset(BackupService::PERIODS[$rSchedule]) ? BackupService::newestBackup() : null, $now),
+			self::backupCheck($rSchedule, isset(BackupService::PERIODS[$rSchedule]) ? BackupService::newestBackup() : null, $now, class_exists(BackupVerifier::class) ? BackupVerifier::last((string) SettingsManager::get('backup_verify')) : null),
 			self::certificateCheck($servers, $now, $bin),
 			self::cacheCheck(!empty(SettingsManager::get('enable_cache')), file_exists(CACHE_TMP_PATH . 'cache_complete'), $rCache['failed'], $rCache['stalled'], (int) SettingsManager::get('last_cache'), $now),
 		];
@@ -224,13 +225,14 @@ class DashboardController extends BaseAdminController {
 
 	/**
 	 * Automatic backups: red with none, or the newest more than a quarter of a period
-	 * late; yellow when its Dropbox upload failed (the error is on the Backups page).
+	 * late; yellow when its upload (Dropbox, a backup target) failed (the error is
+	 * on the Backups page), or when the last weekly restore test failed.
 	 *
 	 * @param array{timestamp: int, upload_failed: bool}|null $newest
 	 * @param array{state: string, error: string}|null $verify BackupVerifier's last result
 	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
-	public static function backupCheck(string $schedule, ?array $newest, int $now): array {
+	public static function backupCheck(string $schedule, ?array $newest, int $now, ?array $verify = null): array {
 		if (!isset(BackupService::PERIODS[$schedule])) {
 			return self::check('off', 'tabler-database-export', 'dashboard_check_backups', Translator::get('dashboard_check_backups_off'));
 		}
@@ -243,6 +245,9 @@ class DashboardController extends BaseAdminController {
 		}
 		if ($newest['upload_failed']) {
 			return self::check('warn', 'tabler-database-export', 'dashboard_check_backups', $rDetail . ' · ' . Translator::get('dashboard_check_backups_upload'), Translator::get('dashboard_status_backups_text'));
+		}
+		if (($verify['state'] ?? '') === 'failed') {
+			return self::check('warn', 'tabler-database-export', 'dashboard_check_backups', $rDetail . ' · ' . Translator::get('dashboard_check_backups_verify', ['{error}' => (string) ($verify['error'] ?? '')]), Translator::get('dashboard_status_backups_text'));
 		}
 		return self::check('ok', 'tabler-database-export', 'dashboard_check_backups', $rDetail);
 	}

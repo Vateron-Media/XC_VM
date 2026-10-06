@@ -124,6 +124,23 @@ CREATE TABLE IF NOT EXISTS `blocked_uas` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `backup_targets`
+--
+
+CREATE TABLE IF NOT EXISTS `backup_targets` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT '1',
+  `keep` int(11) NOT NULL DEFAULT '0',
+  `config` text COLLATE utf8_unicode_ci,
+  `created` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `bouquets`
 --
 
@@ -469,7 +486,7 @@ CREATE TABLE IF NOT EXISTS `crontab` (
   PRIMARY KEY (`id`),
   KEY `enabled` (`enabled`),
   KEY `filename` (`filename`)
-) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 --
 -- Dumping data for table `crontab`
@@ -501,7 +518,10 @@ INSERT INTO `crontab` (`id`, `filename`, `time`, `enabled`, `role`) VALUES
 (27, 'plex', '*/5 * * * *', 1, 'main'),
 (28, 'maxmind', '0 4 * * 2', 1, 'all'),
 (29, 'proxy', '0 5 * * *', 1, 'main'),
-(30, 'cluster', '* * * * *', 1, 'main');
+(30, 'cluster', '* * * * *', 1, 'main'),
+(31, 'alerts', '* * * * *', 1, 'main'),
+(32, 'reminders', '0 9 * * *', 1, 'main'),
+(33, 'backup_verify', '0 5 * * 0', 1, 'main');
 
 -- --------------------------------------------------------
 
@@ -1612,6 +1632,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `reminders_webhook` tinyint(1) DEFAULT '0',
   `reminders_message` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `reminders_telegram` int(11) DEFAULT '0',
+  `backup_verify` text COLLATE utf8_unicode_ci,
   `ignore_keyframes` int(11) DEFAULT '0',
   `seg_delete_threshold` int(11) DEFAULT '4',
   `fails_per_time` int(11) DEFAULT '86400',
