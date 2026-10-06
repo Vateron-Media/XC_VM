@@ -237,7 +237,7 @@ class BruteforceGuard {
 		$term = (!is_null($mac) ? $mac : $username);
 		// The count is kept as JSON, which holds valid UTF-8 only: any other term is counted by its digest.
 		if (json_encode($term) === false) {
-			$term = md5($term);
+			$term = hash('sha256', $term);
 		}
 		$ipFile = FLOOD_TMP_PATH . $ip . '_' . $floodType;
 		$floodRow = (file_exists($ipFile) ? json_decode(file_get_contents($ipFile), true) : null);

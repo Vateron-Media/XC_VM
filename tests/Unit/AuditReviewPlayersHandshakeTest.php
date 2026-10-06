@@ -169,7 +169,7 @@ PHP;
 		foreach ([0, 1] as $rFail) {
 			$rReply = $this->handshake(self::UNKNOWN_MAC, $rFail);
 
-			$this->assertSame([['bruteforce', [self::IP, md5(self::UNKNOWN_MAC)]], ['flood', []]], $rReply['guard']);
+			$this->assertSame([['bruteforce', [self::IP, hash('sha256', self::UNKNOWN_MAC)]], ['flood', []]], $rReply['guard']);
 			$this->assertIsString($rReply['token'], 'the answer tells an unknown MAC from a registered one');
 			$this->assertNotSame(503, $rReply['status']);
 		}

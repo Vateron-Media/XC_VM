@@ -304,7 +304,7 @@ PHP;
 		$rKnownToken = json_decode($rKnown['body'], true)['js']['token'];
 
 		$rUnknown = $this->portal('stb', 'handshake', null, [], self::UNKNOWN_MAC);
-		$this->assertSame([['bruteforce', [self::IP, md5(self::UNKNOWN_MAC)]], ['flood', []]], $rUnknown['guard']);
+		$this->assertSame([['bruteforce', [self::IP, hash('sha256', self::UNKNOWN_MAC)]], ['flood', []]], $rUnknown['guard']);
 
 		$rToken = json_decode($rUnknown['body'], true)['js']['token'];
 		$this->assertIsString($rToken, 'the answer tells an unknown MAC from a registered one');
@@ -335,7 +335,7 @@ PHP;
 		$rReply = $this->portal('stb', 'get_profile', null, self::BOX, self::UNKNOWN_MAC);
 
 		$this->assertSame(1, json_decode($rReply['body'], true)['js']['status']);
-		$this->assertSame([['bruteforce', [self::IP, md5(self::UNKNOWN_MAC)]], ['flood', []]], $rReply['guard']);
+		$this->assertSame([['bruteforce', [self::IP, hash('sha256', self::UNKNOWN_MAC)]], ['flood', []]], $rReply['guard']);
 	}
 
 	public function testTheNextPartIsTheProgrammeAfterTheOneOnScreen(): void {

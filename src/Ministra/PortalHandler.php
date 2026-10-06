@@ -148,7 +148,7 @@ class PortalHandler {
 				// guard keeps what it counts as JSON keys: it gets a digest of the MAC,
 				// whatever bytes the request carried.
 				if (!$ctx["authenticated"]) {
-					BruteforceGuard::checkBruteforce($ctx["ip"], is_string($ctx["mac"]) ? md5($ctx["mac"]) : null);
+					BruteforceGuard::checkBruteforce($ctx["ip"], is_string($ctx["mac"]) ? hash("sha256", $ctx["mac"]) : null);
 					BruteforceGuard::checkFlood();
 				}
 
@@ -1849,7 +1849,7 @@ class PortalHandler {
 		$rVerifyToken = null;
 
 		if ($rDevice) {
-			$rDevice["token"] = strtoupper(md5(uniqid((string) rand(), true)));
+			$rDevice["token"] = strtoupper(bin2hex(random_bytes(16)));
 			$rVerifyToken = Encryption::mintToken(
 				igbinary_serialize(["id" => $rDevice["mag_id"], "token" => $rDevice["token"]]),
 				$rSettings["live_streaming_pass"],
@@ -1879,13 +1879,13 @@ class PortalHandler {
 			// same form. Its number is derived from the MAC as sent, so the token is as
 			// long each time and as long as a device's, and starts with 0, so it is no
 			// device's number.
-			BruteforceGuard::checkBruteforce($rIP, md5($rMAC));
+			BruteforceGuard::checkBruteforce($rIP, hash("sha256", $rMAC));
 			BruteforceGuard::checkFlood();
 			$db->query("SELECT MAX(`mag_id`) AS `last` FROM `mag_devices`");
 			$rLastID = max(1, intval($db->get_row()["last"]));
 			$rNumber = 1 + hexdec(substr(hash_hmac("sha256", $rMAC, (string) $rSettings["live_streaming_pass"]), 0, 8)) % $rLastID;
 			$rVerifyToken = Encryption::mintToken(
-				igbinary_serialize(["id" => "0" . substr((string) $rNumber, 1), "token" => strtoupper(md5(uniqid((string) rand(), true)))]),
+				igbinary_serialize(["id" => "0" . substr((string) $rNumber, 1), "token" => strtoupper(bin2hex(random_bytes(16)))]),
 				$rSettings["live_streaming_pass"],
 				OPENSSL_EXTRA,
 				!empty($rSettings["secure_stream_tokens"]),
