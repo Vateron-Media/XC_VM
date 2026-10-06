@@ -211,8 +211,9 @@ PHP;
 	/** True when the portal answers a request only a verified device gets an answer to. */
 	private function served(?string $rToken): bool {
 		$rReply = $this->portal('radio', 'get_fav_ids', $rToken);
-		$this->assertContains($rReply['body'], ['', '{"js":[]}']);
-		$this->assertSame($rReply['body'] !== '', $rReply['authenticated']);
+		// Not served: Stalker's plain-text cue to handshake again (handleUnauthenticated).
+		$this->assertContains($rReply['body'], ['Authorization failed.', '{"js":[]}']);
+		$this->assertSame($rReply['body'] !== 'Authorization failed.', $rReply['authenticated']);
 
 		return $rReply['authenticated'];
 	}
