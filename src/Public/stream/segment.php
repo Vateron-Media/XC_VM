@@ -94,7 +94,9 @@ if (isset($_GET['token'])) {
 				$rSegment = ARCHIVE_PATH . $rStreamID . '/' . $rSegmentID;
 
 				// Only a recorded minute (the name ArchiveCommand gives it) is served,
-				// and only to a viewer whose marker a connection id names.
+				// and only to a viewer whose marker a connection id names. The path is
+				// an integer id and that name, checked before the file is looked at.
+				// nosemgrep: php.lang.security.injection.tainted-filename.tainted-filename
 				if (!preg_match('/^\d{4}-\d{2}-\d{2}:\d{2}-\d{2}\.ts\z/', (string) $rSegmentID) || !preg_match('/^[0-9a-f]{32}\z/', $rUUID) || !file_exists($rSegment)) {
 					generate404();
 				}
