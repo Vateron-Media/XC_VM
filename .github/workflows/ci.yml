@@ -181,12 +181,20 @@ jobs:
         with:
           php-version: '8.1'
           coverage: pcov
-          extensions: pdo_mysql
+          extensions: pdo_mysql, redis, igbinary
+
+      # The connection store, the cluster bus and their tests start a redis-server
+      # of their own; without one they are skipped.
+      - name: Install redis-server
+        run: sudo apt-get update -q && sudo apt-get install -y -q redis-server
 
       - name: Run unit tests
         run: php tests/phpunit.phar -c tests/phpunit.xml.dist
 
+      # A second run of the suite, for the coverage artifact: on pushes to main
+      # only, so a pull request runs the suite once.
       - name: Coverage report
+        if: github.event_name == 'push'
         run: |
           php tests/phpunit.phar -c tests/phpunit.xml.dist \
             --coverage-text \
@@ -194,7 +202,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload coverage artifact
-        if: always()
+        if: always() && github.event_name == 'push'
         uses: actions/upload-artifact@v7
         with:
           name: coverage

@@ -202,6 +202,23 @@ final class LbArchiveGateTest extends TestCase {
 	}
 
 	/** @return string[] The current value of a Makefile list. */
+	public function testEntriesAreReadAsTheUpdaterReadsThem(): void {
+		// runFileCleanup() trims each line: a stray space, a tab, a CRLF or a last
+		// line without a newline still names the file it deletes.
+		$rDir = $this->tempDir();
+		mkdir($rDir . '/migrations');
+		$rFiles = ['Public/Controllers/Admin/ActiveCodeController.php', 'Public/Controllers/Admin/ActiveCodeDetailsController.php', 'Public/Controllers/Admin/ActiveCodesBatchController.php', 'Public/Controllers/Admin/ActiveCodesController.php'];
+		file_put_contents($rDir . '/migrations/deleted_files.txt', $rFiles[0] . " \n\t" . $rFiles[1] . "\nwww/old.php\r\n" . $rFiles[2] . "\r\n" . $rFiles[3]);
+
+		[$rCode, $rOutput] = $this->runGate(['MAIN_DIR' => [$rDir]]);
+
+		$this->assertSame(1, $rCode, $rOutput);
+		foreach ($rFiles as $rFile) {
+			$this->assertStringContainsString("deleted_files.txt lists '" . $rFile . "', which is tracked in src/", $rOutput);
+		}
+		$this->assertStringNotContainsString("lists 'www/old.php'", $rOutput);
+	}
+
 	private function makeList(string $rName): array {
 		[$rCode, $rOutput] = $this->runProcess(['make', '-s', 'print-' . $rName], []);
 		$this->assertSame(0, $rCode, $rOutput);

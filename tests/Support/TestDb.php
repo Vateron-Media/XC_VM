@@ -70,7 +70,11 @@ final class TestDb extends DatabaseHandler {
 		}
 		// An explicit connect timeout: a boot under test (AdminGlobalsStage) can leave
 		// default_socket_timeout at 0, which mysqlnd takes for a TCP connect's.
-		$rPdo = new PDO($rDsn, $rUser, self::env()['XCVM_TEST_DB_PASS'] ?? null, [PDO::ATTR_TIMEOUT => 10]);
+		try {
+			$rPdo = new PDO($rDsn, $rUser, self::env()['XCVM_TEST_DB_PASS'] ?? null, [PDO::ATTR_TIMEOUT => 10]);
+		} catch (PDOException $e) {
+			throw new PDOException($e->getMessage() . ' (no test database at ' . $rDsn . ' as ' . $rUser . ': without a local server `make test-db` starts one; a server that refuses this user needs XCVM_TEST_DB_DSN, XCVM_TEST_DB_USER and XCVM_TEST_DB_PASS, see docs/en/guides/phpunit-phar.md section 2)', (int) $e->getCode(), $e);
+		}
 		$rPdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		$rPdo->exec("SET SESSION sql_mode = '" . self::SQL_MODE . "'");
 		return $rPdo;

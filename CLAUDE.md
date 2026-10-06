@@ -26,8 +26,8 @@ make dev-clean        # prune src/vendor back to production-only (composer insta
 # They need MariaDB/MySQL (no SQLite): XCVM_TEST_DB_DSN/_USER/_PASS, default root over /run/mysqld/mysqld.sock,
 # else 127.0.0.1:3306 — `make test-db` starts a throwaway MariaDB there in Docker.
 # On a panel host add --exclude-group skip-on-panel (docs/en/guides/phpunit-phar.md).
-php tests/phpunit.phar -c tests/phpunit.xml.dist
-php tests/phpunit.phar -c tests/phpunit.xml.dist --filter SomeTestName   # single test
+make test                                          # = php tests/phpunit.phar -c tests/phpunit.xml.dist
+php tests/phpunit.phar -c tests/phpunit.xml.dist --filter SomeTestName   # single test (or make test ARGS="--filter SomeTestName")
 
 php -l path/to/File.php   # quick syntax check (used constantly; no DB needed)
 ```

@@ -30,7 +30,7 @@ Run these before pushing — CI runs the same set:
 | `make cs` | Code style — import/namespace hygiene (phpcs + Slevomat) |
 | `make cs-fix` | Apply the style fixes in place |
 | `make gates` | PSR-4 regression gates (below) |
-| `php tests/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests, on MariaDB (`make test-db` if you have none) — see [Unit Tests](phpunit-phar.md) |
+| `make test` | Unit tests, on MariaDB (`make test-db` if you have none; `make test ARGS="--filter SomeTest"` for one) — see [Unit Tests](phpunit-phar.md) |
 | `make e2e` | Browser tests against a live test panel — see [End-to-End Tests](#end-to-end-tests) |
 | `make rector` | Dry-run automated refactoring — see [Automated Refactoring (Rector)](refactoring.md) |
 

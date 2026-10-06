@@ -19,6 +19,7 @@ You need PHP 8.1 with `pdo_mysql`, and a MariaDB/MySQL server (section 2). On a 
 
 ```bash
 make test-db                                                         # MariaDB in Docker, once per boot
+make test                                                             # the whole suite (the same as the next line)
 php tests/phpunit.phar -c tests/phpunit.xml.dist                     # the whole suite
 php tests/phpunit.phar -c tests/phpunit.xml.dist --filter SomeTest   # one class or method
 php tests/phpunit.phar -c tests/phpunit.xml.dist --display-skipped   # with each skip's reason
