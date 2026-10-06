@@ -175,8 +175,12 @@ class EnigmaService {
 		if (InputValidator::validate('processEnigma', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_e2')) {
-					$rArray = AdminHelpers::overwriteData(self::getById($rData['edit']), $rData);
-					$rUser = UserRepository::getLineById($rArray['user_id']);
+					// The edit starts from the device and its line as stored: the row
+					// cleaner's escaping would be written back into every field not sent.
+					$db->query('SELECT * FROM `enigma2_devices` WHERE `device_id` = ?;', intval($rData['edit']));
+					$rArray = AdminHelpers::overwriteData($db->get_raw_row() ?? [], $rData);
+					$db->query('SELECT * FROM `lines` WHERE `id` = ?;', intval($rArray['user_id']));
+					$rUser = $db->get_raw_row();
 
 					if ($rUser) {
 						$rUserArray = AdminHelpers::overwriteData($rUser, $rData);

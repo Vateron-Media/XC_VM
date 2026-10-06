@@ -42,7 +42,10 @@ class EpisodeController extends BaseAdminController {
 		$rStreamSys = [];
 
 		if (RequestManager::has('id')) {
-			$rEpisode = StreamRepository::getById(RequestManager::get('id'));
+			// The episode as stored: the form escapes what it prints and posts it back,
+			// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+			$db->query('SELECT * FROM `streams` WHERE `id` = ?;', intval(RequestManager::get('id')));
+			$rEpisode = $db->get_raw_row();
 			if (!$rEpisode || $rEpisode['type'] != 5) {
 				$this->redirect('episodes');
 				return;

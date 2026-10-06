@@ -39,6 +39,7 @@ final class AuditBouquetSaveTest extends TestCase {
 			. ' public function query($query, ...$args): bool { return $this->rDb->query($query, ...$args); }'
 			. ' public function get_rows($use_id = false, $column_as_id = "", $unique_row = true, $sub_row_id = "") { return $this->rDb->get_rows($use_id, $column_as_id, $unique_row, $sub_row_id); }'
 			. ' public function get_row() { return $this->rDb->get_row(); }'
+			. ' public function get_raw_row(): ?array { return $this->rDb->get_raw_row(); }'
 			. ' public function num_rows() { return $this->rDb->num_rows(); }'
 			. ' public function last_insert_id() { return (int) $this->rDb->pdo->lastInsertId(); }'
 			. '};'

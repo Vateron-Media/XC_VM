@@ -32,7 +32,10 @@ class CreatedChannelController extends BaseAdminController {
 		if (!RequestManager::has('id')) {
 			$rChannel = null;
 		} else {
-			$rChannel = StreamRepository::getById(RequestManager::get('id'));
+			// The channel as stored: the form escapes what it prints and posts it back,
+			// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+			$db->query('SELECT * FROM `streams` WHERE `id` = ?;', intval(RequestManager::get('id')));
+			$rChannel = $db->get_raw_row();
 
 			if (!$rChannel || $rChannel['type'] != 3) {
 				AdminHelpers::goHome();

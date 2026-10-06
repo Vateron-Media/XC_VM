@@ -4,7 +4,6 @@ namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Domain\Stream\CategoryService;
 
 /**
  * StreamCategoryController — редактирование категории стрима.
@@ -24,7 +23,11 @@ class StreamCategoryController extends BaseAdminController {
 		$rCategoryArr = null;
 
 		if (RequestManager::has('id')) {
-			$rCategoryArr = CategoryService::getById(RequestManager::get('id'));
+			// The category as stored: the form escapes what it prints and posts it back,
+			// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+			$db = $GLOBALS['db'];
+			$db->query('SELECT * FROM `streams_categories` WHERE `id` = ?;', intval(RequestManager::get('id')));
+			$rCategoryArr = $db->get_raw_row();
 			if (!$rCategoryArr || !Authorization::check('adv', 'edit_cat')) {
 				exit();
 			}

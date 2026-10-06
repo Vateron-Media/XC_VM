@@ -34,7 +34,10 @@ class PackageService {
 			if (!Authorization::check('adv', 'edit_package')) {
 				exit();
 			}
-			$rArray = AdminHelpers::overwriteData(self::getById($rData['edit']), $rData);
+			// The edit starts from the package as stored: the row cleaner's
+			// escaping would be written back into every field not sent.
+			$db->query('SELECT * FROM `users_packages` WHERE `id` = ?;', intval($rData['edit']));
+			$rArray = AdminHelpers::overwriteData(($rStored = $db->get_raw_row()) ? UserCredits::amounts($rStored) : null, $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_packages')) {
 				exit();

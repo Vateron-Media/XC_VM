@@ -3,7 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\UserCredits;
 
 /**
  * GroupEditController — add/edit member group.
@@ -32,7 +32,10 @@ class GroupEditController extends BaseAdminController {
 
 		$id = $this->input('id');
 		if ($id !== null) {
-			$rGroup = GroupService::getById($id);
+			// The group as stored: the form escapes what it prints and posts it back,
+			// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+			$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', intval($id));
+			$rGroup = ($rStored = $db->get_raw_row()) ? UserCredits::amounts($rStored) : null;
 			if (!$rGroup) {
 				AdminHelpers::goHome();
 				return;

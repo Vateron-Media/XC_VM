@@ -36,10 +36,14 @@ class GroupService {
 
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_group')) {
-					// An edit is of a group that exists.
-					if (!($rGroup = self::getById(intval($rData['edit'])))) {
+					// An edit is of a group that exists, and starts from the group as
+					// stored: the row cleaner's escaping would be written back.
+					$db->query('SELECT * FROM `users_groups` WHERE `group_id` = ?;', intval($rData['edit']));
+					if (!($rGroup = $db->get_raw_row())) {
 						return ['status' => STATUS_INVALID_GROUP, 'data' => $rData];
 					}
+
+					$rGroup = UserCredits::amounts($rGroup);
 
 					$rArray = AdminHelpers::overwriteData($rGroup, $rData, ['group_id']);
 				} else {

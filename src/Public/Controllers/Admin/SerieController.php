@@ -4,7 +4,6 @@ namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Stream\StreamConfigRepository;
-use XcVm\Domain\Vod\SeriesService;
 
 /**
  * SerieController — редактирование/добавление сериала.
@@ -25,9 +24,14 @@ class SerieController extends BaseAdminController {
 		global $rServers;
 
 		$rSeriesArr = null;
-		if (RequestManager::has('id') && !($rSeriesArr = SeriesService::getById(RequestManager::get('id')))) {
-			$this->redirect('series');
-			return;
+		// The series as stored: the form escapes what it prints and posts it back,
+		// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+		if (RequestManager::has('id')) {
+			$GLOBALS['db']->query('SELECT * FROM `streams_series` WHERE `id` = ?;', intval(RequestManager::get('id')));
+			if (!($rSeriesArr = $GLOBALS['db']->get_raw_row())) {
+				$this->redirect('series');
+				return;
+			}
 		}
 
 		if (isset($rSeriesArr) && RequestManager::has('import')) {

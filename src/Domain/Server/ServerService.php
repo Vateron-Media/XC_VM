@@ -294,7 +294,10 @@ class ServerService {
 			exit();
 		}
 
-		$rServer = ServerRepository::getById($rData['edit']);
+		// The edit starts from the proxy as stored: the row cleaner's
+		// escaping would be written back into every field not sent.
+		$db->query('SELECT * FROM `servers` WHERE `id` = ?;', intval($rData['edit']));
+		$rServer = $db->get_raw_row();
 		$rArray = AdminHelpers::overwriteData($rServer, $rData);
 		foreach (['enable_https', 'random_ip', 'enable_geoip', 'enabled'] as $rKey) {
 			$rArray[$rKey] = isset($rData[$rKey]);

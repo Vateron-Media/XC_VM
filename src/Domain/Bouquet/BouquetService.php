@@ -40,7 +40,10 @@ class BouquetService {
 				exit();
 			}
 
-			$rArray = AdminHelpers::overwriteData(self::getById($rData['edit']), $rData);
+			// The edit starts from the bouquet as stored: the row cleaner's
+			// escaping would be written back into every field not sent.
+			$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', intval($rData['edit']));
+			$rArray = AdminHelpers::overwriteData($db->get_raw_row(), $rData);
 		} else {
 			if (!Authorization::check('adv', 'add_bouquet')) {
 				exit();

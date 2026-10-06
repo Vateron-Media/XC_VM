@@ -135,7 +135,10 @@ class UserService {
 		if (InputValidator::validate('processUser', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_reguser') || $rBypassAuth) {
-					$rUser = UserRepository::getRegisteredUserById($rData['edit']);
+					// The edit starts from the user as stored: the row cleaner's
+					// escaping would be written back into every field not sent.
+					$db->query('SELECT * FROM `users` WHERE `id` = ?;', intval($rData['edit']));
+					$rUser = ($rStored = $db->get_raw_row()) ? UserCredits::amounts($rStored) : null;
 					$rArray = AdminHelpers::overwriteData($rUser, $rData, ['password']);
 				} else {
 					exit();

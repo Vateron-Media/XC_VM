@@ -5,7 +5,6 @@ namespace XcVm\Public\Controllers\Admin;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\User\UserCredits;
-use XcVm\Domain\User\UserRepository;
 
 /**
  * Контроллер редактирования пользователя (admin/user.php)
@@ -25,7 +24,13 @@ class UserController extends BaseAdminController {
 
 		global $db;
 
-		$rUser = RequestManager::has('id') ? UserRepository::getRegisteredUserById(RequestManager::get('id')) : null;
+		// The user as stored: the form escapes what it prints and posts it back,
+		// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+		$rUser = null;
+		if (RequestManager::has('id')) {
+			$db->query('SELECT * FROM `users` WHERE `id` = ?;', intval(RequestManager::get('id')));
+			$rUser = ($rStored = $db->get_raw_row()) ? UserCredits::amounts($rStored) : null;
+		}
 		if ($rUser === false) {
 			$this->redirect('users');
 			return;

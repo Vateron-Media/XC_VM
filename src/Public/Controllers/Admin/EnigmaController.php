@@ -3,7 +3,6 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Http\RequestManager;
-use XcVm\Domain\Device\EnigmaService;
 
 /**
  * Контроллер редактирования Enigma-устройства (admin/enigma.php)
@@ -23,8 +22,16 @@ class EnigmaController extends BaseAdminController {
 
 		$rDevice = null;
 		if (RequestManager::has('id')) {
-			$rDevice = EnigmaService::getById(RequestManager::get('id'));
-			if (!$rDevice['user_id']) {
+			// The device and its lines as stored: the form escapes what it prints and
+			// posts it back, so text read through the row cleaner ('&lt;' for '<')
+			// would be saved escaped.
+			$db = $GLOBALS['db'];
+			$db->query('SELECT * FROM `enigma2_devices` WHERE `device_id` = ?;', intval(RequestManager::get('id')));
+			if ($rDevice = $db->get_raw_row()) {
+				$rDevice['user'] = LineController::storedLine($rDevice['user_id']);
+				$rDevice['paired'] = LineController::storedLine($rDevice['user']['pair_id'] ?? null);
+			}
+			if (!($rDevice['user_id'] ?? null)) {
 				exit();
 			}
 		}

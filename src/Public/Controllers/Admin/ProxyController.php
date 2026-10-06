@@ -23,8 +23,11 @@ class ProxyController extends BaseAdminController {
 		$this->requirePermission();
 
 		if (RequestManager::has('id') && isset($rProxyServers[RequestManager::get('id')])) {
-			$rServerArr = $rProxyServers[RequestManager::get('id')];
-			if ($rServerArr['server_type'] != 1) {
+			// The proxy as stored: the form escapes what it prints and posts it back,
+			// so text read through the row cleaner ('&lt;' for '<') would be saved escaped.
+			$GLOBALS['db']->query('SELECT * FROM `servers` WHERE `id` = ?;', intval(RequestManager::get('id')));
+			$rServerArr = $GLOBALS['db']->get_raw_row();
+			if (($rServerArr['server_type'] ?? null) != 1) {
 				$this->redirect('proxies');
 				return;
 			}
