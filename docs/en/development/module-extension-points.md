@@ -393,6 +393,9 @@ A module can add its own tab to the admin Add/Edit Stream page and store what th
 posts in its own tables. Register the tab from `boot()`. `bootAll()` resets the registry
 on every boot, so a tab exists only while its module is loaded.
 
+The renderer receives the stream row as stored (or `null` for a new stream): its text is not
+escaped, so escape every value the tab prints (`htmlspecialchars($value, ENT_QUOTES)`).
+
 ```php
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Events\ListensTo;

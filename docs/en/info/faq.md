@@ -90,6 +90,17 @@ If this causes issues for legitimate users (e.g., mobile networks frequently rot
 
 ---
 
+<details>
+<summary><b>❌ A Direct Source stream or radio station shows no connection, and players see its source address</b></summary>
+
+---
+
+That is what *Direct Source* does: the panel checks the line, then sends the player straight to the source. The viewer is not counted against the line's connections, and the source address reaches the player, the web players included. To have a stream or station play through the panel (counted, its source kept from the viewer), untick *Direct Source* and set it on demand; it then starts when its first viewer arrives.
+
+---
+
+</details>
+
 ## Login & Access Issues
 
 <details>
