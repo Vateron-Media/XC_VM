@@ -194,7 +194,7 @@ if ($rUserInfo) {
 				DatabaseFactory::close();
 			}
 
-			// The uuid is the token's, and the token opens only with the stream secret.
+			// The connection id is 32 hex characters: decryptToken() refuses any other.
 			// nosemgrep: php.lang.security.injection.tainted-filename.tainted-filename
 			touch(CONS_TMP_PATH . $rTokenData['uuid']);
 			$rOutput = "#EXTM3U\n";
@@ -210,7 +210,7 @@ if ($rUserInfo) {
 				$rOutput .= (($rProxyID ? '/' . ProxyRoute::segment((int) $rProxyID, (int) $rServerID, $rServers) : '')) . '/hls/' . ViewerKey::mintOwn('TS/' . rawurlencode((string) $rUsername) . '/' . rawurlencode((string) $rPassword) . '/' . $rIP . '/' . $rDuration . '/' . $rTimestamp . '/' . $rStreamID . '_' . basename($rQueue[$i]['filename']) . '_' . (($i == 0 ? $rOffset : 0)) . '/' . $rTokenData['uuid'] . '/' . $rServerID, $rSettings) . "\n";
 			}
 			$rOutput .= '#EXT-X-ENDLIST';
-			// The uuid is the token's, and the token opens only with the stream secret.
+			// The connection id is 32 hex characters: decryptToken() refuses any other.
 			// nosemgrep: php.lang.security.injection.tainted-filename.tainted-filename
 			touch(CONS_TMP_PATH . $rTokenData['uuid']);
 			ob_end_clean();
@@ -230,7 +230,7 @@ if ($rUserInfo) {
 			$rConnection = ConnectionTracker::findByUuid($rSettings, $rTokenData['uuid'], '`server_id`, `activity_id`, `pid`, `user_ip`, `hls_end`');
 
 			if (!$rConnection) {
-				// The uuid is the token's, and the token opens only with the stream secret.
+				// The connection id is 32 hex characters: decryptToken() refuses any other.
 				// nosemgrep: php.lang.security.injection.tainted-filename.tainted-filename
 				if (file_exists(CONS_TMP_PATH . $rTokenData['uuid']) || ($rActivityStart + $rCreateExpiration) - intval($rServers[SERVER_ID]['time_offset']) >= time()) {
 				} else {
@@ -288,7 +288,7 @@ if ($rUserInfo) {
 				}
 			}
 
-			// The uuid is the token's, and the token opens only with the stream secret.
+			// The connection id is 32 hex characters: decryptToken() refuses any other.
 			// nosemgrep: php.lang.security.injection.tainted-filename.tainted-filename
 			touch(CONS_TMP_PATH . $rTokenData['uuid']);
 			header('Content-Type: video/mp2t');
@@ -388,7 +388,7 @@ if ($rUserInfo) {
 					}
 					if (30 > time() - $rTimeStart) {
 					} else {
-						// A file named by the token's uuid, under the server's own directory.
+						// Named by the connection id, 32 hex characters (decryptToken() refuses any other).
 						// nosemgrep: php.lang.security.injection.tainted-filename.tainted-filename
 						file_put_contents($rConSpeedFile, intval($rBytesRead / 1024 / 30));
 						$rTimeStart = time();
