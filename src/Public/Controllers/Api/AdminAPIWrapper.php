@@ -1711,8 +1711,13 @@ class AdminAPIWrapper {
 		if (!($rServer = self::getServer($rID)) || !isset($rServer['data'])) {
 			return ['status' => 'STATUS_FAILURE'];
 		}
+		$rStored = self::storedRow('SELECT * FROM `servers` WHERE `id` = ?;', $rID);
+		// A proxy is edited with edit_proxy: this one would save it as a server.
+		if ((int) ($rStored['server_type'] ?? 0) === 1) {
+			return ['status' => 'STATUS_FAILURE'];
+		}
 		$rData['edit'] = $rID;
-		$rData = self::keepServerFields($rData, self::storedRow('SELECT * FROM `servers` WHERE `id` = ?;', $rID), false);
+		$rData = self::keepServerFields($rData, $rStored, false);
 		$rReturn = parseerror(ServerService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getServer($rReturn['data']['insert_id'])['data'];
@@ -1724,8 +1729,13 @@ class AdminAPIWrapper {
 		if (!($rServer = self::getServer($rID)) || !isset($rServer['data'])) {
 			return ['status' => 'STATUS_FAILURE'];
 		}
+		$rStored = self::storedRow('SELECT * FROM `servers` WHERE `id` = ?;', $rID);
+		// Only a proxy: processProxy() saves what it edits as one (server_type 1).
+		if ((int) ($rStored['server_type'] ?? 0) !== 1) {
+			return ['status' => 'STATUS_FAILURE'];
+		}
 		$rData['edit'] = $rID;
-		$rData = self::keepServerFields($rData, self::storedRow('SELECT * FROM `servers` WHERE `id` = ?;', $rID), true);
+		$rData = self::keepServerFields($rData, $rStored, true);
 		$rReturn = parseerror(ServerService::processProxy($rData));
 		if (isset($rReturn['data']['insert_id'])) {
 			$rReturn['data'] = self::getServer($rReturn['data']['insert_id'])['data'];

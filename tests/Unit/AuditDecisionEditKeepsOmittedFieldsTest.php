@@ -43,7 +43,7 @@ final class AuditDecisionEditKeepsOmittedFieldsTest extends TestCase {
 		}
 
 		$this->rDb = new TestDb();
-		foreach (['users', 'users_groups', 'lines', 'lines_live', 'bouquets', 'signals', 'mag_devices', 'enigma2_devices', 'users_packages', 'providers', 'hmac_keys', 'rtmp_ips', 'streams_categories', 'profiles', 'streams', 'streams_servers', 'streams_options', 'streams_episodes', 'streams_series'] as $rTable) {
+		foreach (['users', 'users_groups', 'lines', 'lines_live', 'bouquets', 'signals', 'mag_devices', 'enigma2_devices', 'users_packages', 'providers', 'hmac_keys', 'rtmp_ips', 'streams_categories', 'profiles', 'streams', 'streams_servers', 'streams_options', 'streams_episodes', 'streams_series', 'servers'] as $rTable) {
 			$this->rDb->exec(InstallSchema::table($rTable));
 		}
 		$this->rDb->exec(InstallSchema::migration('024_add_custom_data_to_lines'));
@@ -382,5 +382,16 @@ final class AuditDecisionEditKeepsOmittedFieldsTest extends TestCase {
 
 		$this->assertSame('[]', $this->row('streams_series', 'id', 70)['category_id']);
 		$this->assertSame([[], []], array_map(fn(array $rBouquet): array => json_decode($rBouquet['bouquet_series'], true), array_slice($this->streamParts(70)['bouquets'], 1)));
+	}
+
+	/** edit_proxy edits a proxy, edit_server a server: neither turns one into the other. */
+	public function testAServerAndAProxyAreEachEditedOnlyByTheirOwnAction(): void {
+		$this->rDb->exec("INSERT INTO `servers` (`id`, `server_name`, `server_type`, `server_ip`) VALUES (2, 'Server', 0, '192.0.2.2'), (3, 'Proxy', 1, '192.0.2.3')");
+
+		$this->assertSame('STATUS_FAILURE', $this->edit('edit_proxy', 2, ['server_name' => 'Renamed']));
+		$this->assertSame('STATUS_FAILURE', $this->edit('edit_server', 3, ['server_name' => 'Renamed']));
+
+		$this->assertSame(['Server', 0], [$this->row('servers', 'id', 2)['server_name'], (int) $this->row('servers', 'id', 2)['server_type']]);
+		$this->assertSame(['Proxy', 1], [$this->row('servers', 'id', 3)['server_name'], (int) $this->row('servers', 'id', 3)['server_type']]);
 	}
 }
