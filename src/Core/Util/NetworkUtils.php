@@ -215,9 +215,10 @@ class NetworkUtils {
 		if (filter_var($rIP, FILTER_VALIDATE_IP) === false) {
 			return true;
 		}
-		// ::ffff:127.0.0.1 and friends: judge the embedded IPv4.
-		if (preg_match('/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i', $rIP, $rMatch)) {
-			$rIP = $rMatch[1];
+		// ::ffff:127.0.0.1 and friends, however written (::ffff:7f00:1): judge the embedded IPv4.
+		$rBin = (string) @inet_pton($rIP);
+		if (strlen($rBin) === 16 && substr($rBin, 0, 12) === "\0\0\0\0\0\0\0\0\0\0\xff\xff") {
+			$rIP = (string) inet_ntop(substr($rBin, 12));
 		}
 
 		$rBlocked = ['127.0.0.0/8', '0.0.0.0/8', '169.254.0.0/16', '224.0.0.0/4', '::1/128', '::/128', 'fe80::/10', 'ff00::/8'];

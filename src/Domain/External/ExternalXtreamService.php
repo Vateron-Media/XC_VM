@@ -2,6 +2,8 @@
 
 namespace XcVm\Domain\External;
 
+use XcVm\Core\Util\PublicAddress;
+
 /**
  * ExternalXtreamService — Integration Service for External Xtream Codes Servers.
  *
@@ -18,6 +20,12 @@ class ExternalXtreamService {
 	private string $password;
 
 	private int $timeout;
+
+	/** Fields of the remote server's answers that carry an image address. */
+	private const IMAGE_FIELDS = ['stream_icon', 'cover', 'cover_big', 'movie_image'];
+
+	/** Fields of the remote server's answers the pages calculate with. */
+	private const NUMBER_FIELDS = ['category_id', 'duration_secs'];
 
 	/**
 	 * Constructor. If credentials omitted, loads from active external session.
@@ -54,7 +62,9 @@ class ExternalXtreamService {
 	 * Normalize URL string to include standard scheme and remove trailing slashes.
 	 */
 	public static function normalizeUrl(string $url): string {
-		$url = trim($url);
+		// A query or fragment is dropped: the API and stream paths are appended to
+		// this string, and behind either they would no longer be the path requested.
+		$url = trim(substr($url, 0, strcspn($url, '?#')));
 		if ($url === '') {
 			return '';
 		}
@@ -116,15 +126,7 @@ class ExternalXtreamService {
 		}
 
 		foreach ($ips as $ip) {
-			// filter_var returns false for private (RFC1918, fc00::/7) or reserved
-			// (loopback, link-local, 0.0.0.0/8, 240/4, …) addresses.
-			if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-				return null;
-			}
-			// filter_var misses CGNAT shared space (RFC 6598, 100.64.0.0/10).
-			if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false
-				&& (ip2long($ip) & 0xffc00000) === (ip2long('100.64.0.0') & 0xffc00000)
-			) {
+			if (!PublicAddress::isPublic($ip)) {
 				return null;
 			}
 		}
@@ -334,6 +336,39 @@ class ExternalXtreamService {
 	}
 
 	/**
+	 * One record of the remote server's answer, down to what the pages can
+	 * show: a text or a number as it came, an image address only when it is an
+	 * http(s) one. A field of any other type is left out, so the caller's
+	 * default for a missing field applies.
+	 */
+	private static function fields(mixed $record): array {
+		$fields = [];
+
+		foreach (is_array($record) ? $record : [] as $name => $value) {
+			if ($name === 'backdrop_path') {
+				// One address or a list of them; the pages take either.
+				$fields[$name] = array_values(array_filter((array) $value, [self::class, 'isImageUrl']));
+			} elseif (in_array($name, self::IMAGE_FIELDS, true)) {
+				if ($value === '' || self::isImageUrl($value)) {
+					$fields[$name] = $value;
+				}
+			} elseif (in_array($name, self::NUMBER_FIELDS, true)) {
+				if (is_numeric($value)) {
+					$fields[$name] = (int) $value;
+				}
+			} elseif (is_scalar($value)) {
+				$fields[$name] = $value;
+			}
+		}
+
+		return $fields;
+	}
+
+	private static function isImageUrl(mixed $value): bool {
+		return is_string($value) && preg_match('#^\s*https?://#i', $value) === 1;
+	}
+
+	/**
 	 * Fetch Live Categories with in-session caching.
 	 */
 	public function getLiveCategories(): array {
@@ -381,6 +416,7 @@ class ExternalXtreamService {
 
 		$result = [];
 		foreach ($streams as $s) {
+			$s = self::fields($s);
 			if (empty($s['stream_id'])) {
 				continue;
 			}
@@ -388,8 +424,8 @@ class ExternalXtreamService {
 			$result[] = [
 				'id' => $streamId,
 				'stream_id' => $streamId,
-				'name' => $s['name'] ?? ('Channel #' . $streamId),
-				'stream_display_name' => $s['name'] ?? ('Channel #' . $streamId),
+				'name' => (string) ($s['name'] ?? ('Channel #' . $streamId)),
+				'stream_display_name' => (string) ($s['name'] ?? ('Channel #' . $streamId)),
 				'logo' => $s['stream_icon'] ?? '',
 				'stream_icon' => $s['stream_icon'] ?? '',
 				'category_id' => (int) ($s['category_id'] ?? 0),
@@ -450,6 +486,7 @@ class ExternalXtreamService {
 
 		$result = [];
 		foreach ($streams as $m) {
+			$m = self::fields($m);
 			if (empty($m['stream_id'])) {
 				continue;
 			}
@@ -458,8 +495,8 @@ class ExternalXtreamService {
 			$result[] = [
 				'id' => $streamId,
 				'stream_id' => $streamId,
-				'title' => $m['name'] ?? ('Movie #' . $streamId),
-				'stream_display_name' => $m['name'] ?? ('Movie #' . $streamId),
+				'title' => (string) ($m['name'] ?? ('Movie #' . $streamId)),
+				'stream_display_name' => (string) ($m['name'] ?? ('Movie #' . $streamId)),
 				'poster' => $m['stream_icon'] ?? '',
 				'stream_icon' => $m['stream_icon'] ?? '',
 				'category_id' => (int) ($m['category_id'] ?? 0),
@@ -483,7 +520,10 @@ class ExternalXtreamService {
 			'vod_id' => $vodId,
 		], 10);
 
-		return is_array($data) ? $data : [];
+		return [
+			'info' => self::fields($data['info'] ?? null),
+			'movie_data' => self::fields($data['movie_data'] ?? null),
+		];
 	}
 
 	/**
@@ -533,6 +573,7 @@ class ExternalXtreamService {
 
 		$result = [];
 		foreach ($seriesList as $s) {
+			$s = self::fields($s);
 			if (empty($s['series_id'])) {
 				continue;
 			}
@@ -540,8 +581,8 @@ class ExternalXtreamService {
 			$result[] = [
 				'id' => $seriesId,
 				'series_id' => $seriesId,
-				'title' => $s['name'] ?? ('Series #' . $seriesId),
-				'stream_display_name' => $s['name'] ?? ('Series #' . $seriesId),
+				'title' => (string) ($s['name'] ?? ('Series #' . $seriesId)),
+				'stream_display_name' => (string) ($s['name'] ?? ('Series #' . $seriesId)),
 				'cover' => $s['cover'] ?? '',
 				'plot' => $s['plot'] ?? '',
 				'cast' => $s['cast'] ?? '',
@@ -558,7 +599,7 @@ class ExternalXtreamService {
 	}
 
 	/**
-	 * Fetch Series detailed info, seasons and episodes.
+	 * Fetch Series detailed info and its episodes, by season.
 	 */
 	public function getSeriesInfo(int $seriesId): array {
 		$data = $this->request([
@@ -566,7 +607,20 @@ class ExternalXtreamService {
 			'series_id' => $seriesId,
 		], 12);
 
-		return is_array($data) ? $data : [];
+		$episodes = [];
+		foreach (is_array($data['episodes'] ?? null) ? $data['episodes'] : [] as $season => $list) {
+			$episodes[$season] = [];
+			foreach (is_array($list) ? $list : [] as $episode) {
+				if (is_array($episode)) {
+					$episodes[$season][] = ['info' => self::fields($episode['info'] ?? null)] + self::fields($episode);
+				}
+			}
+		}
+
+		return [
+			'info' => self::fields($data['info'] ?? null),
+			'episodes' => $episodes,
+		];
 	}
 
 	/**
