@@ -29,6 +29,7 @@ final class VodImportResultEvent {
 	 * @param string $filename Source file path or URL, raw (not HTML-escaped).
 	 * @param int    $status   One of the STATUS_* constants.
 	 * @param int    $streamId Created stream id (STATUS_IMPORTED only, else 0).
+	 * @param string $title    The entry's name from an M3U import, raw; '' for a folder scan.
 	 */
 	public function __construct(
 		public readonly int $type,
@@ -36,6 +37,7 @@ final class VodImportResultEvent {
 		public readonly string $filename,
 		public readonly int $status,
 		public readonly int $streamId = 0,
+		public readonly string $title = '',
 	) {
 	}
 }
