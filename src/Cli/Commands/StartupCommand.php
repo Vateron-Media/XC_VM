@@ -247,43 +247,50 @@ class StartupCommand implements CommandInterface {
 			$rCrons[] = $rEntry;
 		}
 
-		$rWrite = false;
-		$rOutput = [];
-		exec('sudo crontab -l', $rOutput);
+		$rInstalled = [];
+		exec('sudo crontab -l', $rInstalled);
 
 		// Удаляем старые записи XC_VM: путь v1.x.x (crons/root_) и любые
 		// строки с нашим маркером — включая старый '# \XC_VM' от прошлой
 		// миграции — чтобы при апгрейде не появлялись дубликаты.
-		$rFiltered = [];
-		foreach ($rOutput as $rLine) {
+		$rOutput = [];
+		foreach ($rInstalled as $rLine) {
 			if (strpos($rLine, MAIN_HOME . 'crons/root_') !== false
 				|| strpos($rLine, '# XC_VM') !== false
 				|| strpos($rLine, '# \XC_VM') !== false
 			) {
-				$rWrite = true;
 				continue;
 			}
-			$rFiltered[] = $rLine;
+			$rOutput[] = $rLine;
 		}
-		$rOutput = $rFiltered;
 
 		foreach ($rCrons as $rCron) {
 			if (!in_array($rCron, $rOutput)) {
 				$rOutput[] = $rCron;
-				$rWrite = true;
 			}
 		}
-		if ($rWrite) {
-			$rCronFile = tempnam(TMP_PATH, 'crontab');
-			file_put_contents($rCronFile, implode("\n", $rOutput) . "\n");
-			exec('sudo chattr -i /var/spool/cron/crontabs/root');
-			exec('sudo crontab -r');
-			exec('sudo crontab ' . $rCronFile);
-			exec('sudo chattr +i /var/spool/cron/crontabs/root');
-			echo "Crontab installed\n";
-		} else {
+		// Written only when the list changed: every `startup` and `status` comes here.
+		if ($rOutput === $rInstalled) {
 			echo "Crontab already installed\n";
+			return;
 		}
+		// The whole list in a file before root's crontab is touched. Not in
+		// tmp/: that tmpfs can be full, and in the system's temporary
+		// directory only root replaces a file of root's.
+		$rText = implode("\n", $rOutput) . "\n";
+		$rCronFile = tempnam(sys_get_temp_dir(), 'crontab');
+		if ($rCronFile === false || @file_put_contents($rCronFile, $rText) !== strlen($rText)) {
+			@unlink((string) $rCronFile);
+			echo "Crontab not installed: its new list could not be written\n";
+			return;
+		}
+		exec('sudo chattr -i /var/spool/cron/crontabs/root');
+		// `crontab <file>` replaces the crontab in one step, and keeps the old
+		// one when it refuses the new: no `crontab -r` before it.
+		exec('sudo crontab ' . escapeshellarg($rCronFile), $rOut, $rCode);
+		exec('sudo chattr +i /var/spool/cron/crontabs/root');
+		@unlink($rCronFile);
+		echo $rCode === 0 ? "Crontab installed\n" : "Crontab not installed: crontab refused its new list\n";
 	}
 
 	private function generateCacheIfNeeded(): void {

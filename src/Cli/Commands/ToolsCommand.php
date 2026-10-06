@@ -3,6 +3,7 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronJobs\RootSignalsCronJob;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cluster\BlocklistChanges;
@@ -12,6 +13,7 @@ use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsDeletedEvent;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
@@ -270,8 +272,8 @@ class ToolsCommand implements CommandInterface {
 	private function processFlush(): int {
 		$db = self::db();
 		echo "Flushing iptables rules...\n";
-		exec('sudo iptables -F && sudo ip6tables -F');
-		shell_exec('sudo rm -f ' . escapeshellarg(FLOOD_TMP_PATH) . 'block_*');
+		// The panel's own blocks only, as the Flush button's root action does.
+		(new RootSignalsCronJob())->unblockAll();
 		exec('sudo iptables-save && sudo ip6tables-save');
 		$db->query('TRUNCATE `blocked_ips`;');
 		BlocklistChanges::reset('ip', $db);
@@ -484,45 +486,65 @@ class ToolsCommand implements CommandInterface {
 
 	private function processBouquets(): void {
 		$db = self::db();
-		$rStreamIDs = [[], []];
-		$db->query('SELECT `id` FROM `streams`;');
-		if ($db->num_rows() > 0) {
-			foreach ($db->get_rows() as $rRow) {
-				$rStreamIDs[0][] = intval($rRow['id']);
-			}
+		// Every delete starts a scan, and each holds every bouquet in turn: one scan runs and one waits for it
+		// (five minutes, then it goes on, as a writer does in BouquetService::lock()). A scan that finds one
+		// waiting leaves it the work: that one starts later than this one was asked for.
+		if ($db->query("SELECT GET_LOCK(CONCAT(DATABASE(), '.bouquet_scan_next'), 0);") && (string) $db->get_col() === '0') {
+			return;
 		}
-		$db->query('SELECT `id` FROM `streams_series`;');
-		if ($db->num_rows() > 0) {
-			foreach ($db->get_rows() as $rRow) {
-				$rStreamIDs[1][] = intval($rRow['id']);
+		$db->query("SELECT GET_LOCK(CONCAT(DATABASE(), '.bouquet_scan'), 300);");
+		$db->query("SELECT RELEASE_LOCK(CONCAT(DATABASE(), '.bouquet_scan_next'));");
+		try {
+			$rColumns = ['bouquet_channels', 'bouquet_movies', 'bouquet_radios', 'bouquet_series'];
+			$db->query('SELECT `id` FROM `bouquets` ORDER BY `bouquet_order` ASC;');
+			foreach (($db->get_rows() ?: []) as $rRow) {
+				// The lists are read and written back whole: the bouquet is held from the read to the write (BouquetService::lock()).
+				BouquetService::lock(intval($rRow['id']));
+				try {
+					$rBouquet = BouquetService::getById(intval($rRow['id']));
+					if (!$rBouquet) {
+						continue;
+					}
+					$rLists = [];
+					foreach ($rColumns as $rColumn) {
+						$rLists[$rColumn] = [];
+						$rIDs = json_decode((string) $rBouquet[$rColumn], true);
+						foreach ((is_array($rIDs) ? $rIDs : []) as $rID) {
+							if (0 < intval($rID)) {
+								$rLists[$rColumn][] = intval($rID);
+							}
+						}
+					}
+					// What exists is asked with the bouquet held: an item made since the scan began is in its list by now, and stays.
+					// ponytail: so the bouquet is held as long as the lookup takes, eight of lock()'s ten seconds at a million ids. Ask before taking it and re-ask only the ids that came since, if a bouquet ever grows near that.
+					$rExisting = [];
+					foreach (['streams' => array_merge($rLists['bouquet_channels'], $rLists['bouquet_movies'], $rLists['bouquet_radios']), 'streams_series' => $rLists['bouquet_series']] as $rTable => $rIDs) {
+						$rExisting[$rTable] = [];
+						if (0 < count($rIDs)) {
+							if (!$db->query('SELECT `id` FROM `' . $rTable . '` WHERE `id` IN (' . implode(',', $rIDs) . ');')) {
+								// What exists is not known: the bouquet stays as it is.
+								continue 2;
+							}
+							foreach (($db->get_rows() ?: []) as $rFound) {
+								$rExisting[$rTable][intval($rFound['id'])] = true;
+							}
+						}
+					}
+					$UpdateData = [];
+					foreach ($rColumns as $rColumn) {
+						$rExist = $rExisting[$rColumn == 'bouquet_series' ? 'streams_series' : 'streams'];
+						$UpdateData[] = json_encode(array_values(array_filter($rLists[$rColumn], static fn(int $rID): bool => isset($rExist[$rID]))));
+					}
+					// Written only when a list changes.
+					if ($UpdateData !== [$rBouquet['bouquet_channels'], $rBouquet['bouquet_movies'], $rBouquet['bouquet_radios'], $rBouquet['bouquet_series']]) {
+						$db->query('UPDATE `bouquets` SET `bouquet_channels` = ?, `bouquet_movies` = ?, `bouquet_radios` = ?, `bouquet_series` = ? WHERE `id` = ?;', $UpdateData[0], $UpdateData[1], $UpdateData[2], $UpdateData[3], $rBouquet['id']);
+					}
+				} finally {
+					BouquetService::unlock(intval($rRow['id']));
+				}
 			}
-		}
-		$db->query('SELECT * FROM `bouquets` ORDER BY `bouquet_order` ASC;');
-		if ($db->num_rows() > 0) {
-			foreach ($db->get_rows() as $rBouquet) {
-				$UpdateData = [[], [], [], []];
-				foreach ((json_decode($rBouquet['bouquet_channels'], true) ?: []) as $rID) {
-					if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
-						$UpdateData[0][] = intval($rID);
-					}
-				}
-				foreach ((json_decode($rBouquet['bouquet_movies'], true) ?: []) as $rID) {
-					if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
-						$UpdateData[1][] = intval($rID);
-					}
-				}
-				foreach ((json_decode($rBouquet['bouquet_radios'], true) ?: []) as $rID) {
-					if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[0])) {
-						$UpdateData[2][] = intval($rID);
-					}
-				}
-				foreach ((json_decode($rBouquet['bouquet_series'], true) ?: []) as $rID) {
-					if (0 < intval($rID) && in_array(intval($rID), $rStreamIDs[1])) {
-						$UpdateData[3][] = intval($rID);
-					}
-				}
-				$db->query('UPDATE `bouquets` SET `bouquet_channels` = ?, `bouquet_movies` = ?, `bouquet_radios` = ?, `bouquet_series` = ? WHERE `id` = ?;', json_encode(array_map('intval', $UpdateData[0])), json_encode(array_map('intval', $UpdateData[1])), json_encode(array_map('intval', $UpdateData[2])), json_encode(array_map('intval', $UpdateData[3])), $rBouquet['id']);
-			}
+		} finally {
+			$db->query("SELECT RELEASE_LOCK(CONCAT(DATABASE(), '.bouquet_scan'));");
 		}
 	}
 

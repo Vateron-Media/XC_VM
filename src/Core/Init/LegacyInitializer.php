@@ -115,7 +115,8 @@ class LegacyInitializer {
 			return false;
 		}
 
-		shell_exec("crontab -r");
+		// `crontab -u xc_vm <file>` replaces that crontab whole. No `crontab -r`
+		// first: it removes the crontab of whoever boots, root's included.
 		$rTempName = tempnam("/tmp", "crontab");
 		$rHandle = fopen($rTempName, "w");
 		fwrite($rHandle, $rCrontab . "\n");

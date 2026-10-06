@@ -21,6 +21,11 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  * files by come from the agent's whole section (ReplicaStreams): null when
  * the section is not whole, and the caller then skips that check.
  *
+ * The lists whose callers delete or kill what they do not name (cron:cleanup's
+ * three, cron:streams' live and on-demand streams) are null, never empty,
+ * when MAIN's database did not answer the read: unknown, and the caller
+ * does nothing by that list.
+ *
  * The lists that walk every stream the node holds or keeps state for read
  * a stream's cache entry and its state only when the stream caches' index
  * (ReplicaStreamCache::meta, the last apply's copy of what they filter on)
@@ -53,16 +58,20 @@ final class NodeStreams {
 	 * thumbnail workers, and in MySQL mode its viewers (`online_clients`,
 	 * `online_clients_hls`: from the replica only for on-demand streams,
 	 * the only ones cron:streams asks it for; `online_clients_hls` is null).
+	 * Null when MAIN's database did not answer.
 	 *
-	 * @return list<array<string, mixed>>
+	 * @return list<array<string, mixed>>|null
 	 */
-	public static function liveChecks(bool $rRedis, ?object $rDb = null): array {
+	public static function liveChecks(bool $rRedis, ?object $rDb = null): ?array {
 		if (!StreamSource::local()) {
 			$rDb ??= DatabaseFactory::get();
 			if ($rRedis) {
-				$rDb->query('SELECT t2.stream_display_name, t2.delay_minutes, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0 GROUP BY `stream_id`) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1', SERVER_ID, SERVER_ID);
+				$rRead = $rDb->query('SELECT t2.stream_display_name, t2.delay_minutes, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0 GROUP BY `stream_id`) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1', SERVER_ID, SERVER_ID);
 			} else {
-				$rDb->query("SELECT t2.stream_display_name, t2.delay_minutes, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, clients.online_clients, clients_hls.online_clients_hls, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients FROM `lines_live` WHERE `server_id` = ? AND `hls_end` = 0 GROUP BY stream_id) AS clients ON clients.stream_id = t1.stream_id LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0 GROUP BY `stream_id`) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients_hls FROM `lines_live` WHERE `server_id` = ? AND `container` = 'hls' AND `hls_end` = 0 GROUP BY stream_id) AS clients_hls ON clients_hls.stream_id = t1.stream_id WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1", SERVER_ID, SERVER_ID, SERVER_ID, SERVER_ID);
+				$rRead = $rDb->query("SELECT t2.stream_display_name, t2.delay_minutes, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, clients.online_clients, clients_hls.online_clients_hls, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients FROM `lines_live` WHERE `server_id` = ? AND `hls_end` = 0 GROUP BY stream_id) AS clients ON clients.stream_id = t1.stream_id LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0 GROUP BY `stream_id`) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients_hls FROM `lines_live` WHERE `server_id` = ? AND `container` = 'hls' AND `hls_end` = 0 GROUP BY stream_id) AS clients_hls ON clients_hls.stream_id = t1.stream_id WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1", SERVER_ID, SERVER_ID, SERVER_ID, SERVER_ID);
+			}
+			if (!$rRead) {
+				return null;
 			}
 			return $rDb->num_rows() > 0 ? self::remembered($rDb->get_rows()) : [];
 		}
@@ -131,14 +140,17 @@ final class NodeStreams {
 	}
 
 	/**
-	 * cron:streams: the streams this node runs on demand.
+	 * cron:streams: the streams this node runs on demand. Null when MAIN's
+	 * database did not answer.
 	 *
-	 * @return list<int|string>
+	 * @return list<int|string>|null
 	 */
-	public static function onDemandIDs(?object $rDb = null): array {
+	public static function onDemandIDs(?object $rDb = null): ?array {
 		if (!StreamSource::local()) {
 			$rDb ??= DatabaseFactory::get();
-			$rDb->query('SELECT `stream_id` FROM `streams_servers` WHERE `on_demand` = 1 AND `server_id` = ?;', SERVER_ID);
+			if (!$rDb->query('SELECT `stream_id` FROM `streams_servers` WHERE `on_demand` = 1 AND `server_id` = ?;', SERVER_ID)) {
+				return null;
+			}
 			return array_keys($rDb->get_rows(true, 'stream_id'));
 		}
 		$rOut = [];
@@ -406,7 +418,8 @@ final class NodeStreams {
 
 	/**
 	 * cron:cleanup: the live, created and radio streams assigned to this
-	 * node (their files stay). Null without the whole section.
+	 * node (their files stay). Null without the whole section, or when
+	 * MAIN's database did not answer.
 	 *
 	 * @return list<int>|null
 	 */
@@ -414,7 +427,9 @@ final class NodeStreams {
 		if (!StreamSource::local()) {
 			$rDb ??= DatabaseFactory::get();
 			$rStreams = [];
-			$rDb->query('SELECT `id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`type` IN (1,3,4) AND `streams_servers`.`server_id` = ?;', SERVER_ID);
+			if (!$rDb->query('SELECT `id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`type` IN (1,3,4) AND `streams_servers`.`server_id` = ?;', SERVER_ID)) {
+				return null;
+			}
 			foreach ($rDb->get_rows() as $rRow) {
 				$rStreams[] = intval($rRow['id']);
 			}
@@ -426,7 +441,7 @@ final class NodeStreams {
 
 	/**
 	 * cron:cleanup: the TV archives this node records: stream id => days.
-	 * Null without the whole section.
+	 * Null without the whole section, or when MAIN's database did not answer.
 	 *
 	 * @return array<int, mixed>|null
 	 */
@@ -434,7 +449,9 @@ final class NodeStreams {
 		if (!StreamSource::local()) {
 			$rDb ??= DatabaseFactory::get();
 			$rArchive = [];
-			$rDb->query('SELECT `id`, `tv_archive_duration` FROM `streams` WHERE `type` = 1 AND `tv_archive_server_id` = ? AND `tv_archive_duration` > 0;', SERVER_ID);
+			if (!$rDb->query('SELECT `id`, `tv_archive_duration` FROM `streams` WHERE `type` = 1 AND `tv_archive_server_id` = ? AND `tv_archive_duration` > 0;', SERVER_ID)) {
+				return null;
+			}
 			foreach ($rDb->get_rows() as $rRow) {
 				$rArchive[intval($rRow['id'])] = $rRow['tv_archive_duration'];
 			}
@@ -445,7 +462,8 @@ final class NodeStreams {
 
 	/**
 	 * cron:cleanup: the created channels assigned to this node (their files
-	 * stay). Null without the whole section.
+	 * stay). Null without the whole section, or when MAIN's database did not
+	 * answer.
 	 *
 	 * @return list<int>|null
 	 */
@@ -453,7 +471,9 @@ final class NodeStreams {
 		if (!StreamSource::local()) {
 			$rDb ??= DatabaseFactory::get();
 			$rCreated = [];
-			$rDb->query('SELECT `id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`type` = 3 AND `streams_servers`.`server_id` = ?;', SERVER_ID);
+			if (!$rDb->query('SELECT `id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`type` = 3 AND `streams_servers`.`server_id` = ?;', SERVER_ID)) {
+				return null;
+			}
 			foreach ($rDb->get_rows() as $rRow) {
 				$rCreated[] = intval($rRow['id']);
 			}

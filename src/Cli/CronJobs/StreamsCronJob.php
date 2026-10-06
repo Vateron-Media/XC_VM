@@ -157,6 +157,13 @@ class StreamsCronJob implements CommandInterface {
 		// checks below treat as "not supervised" exactly as before this existed.
 		$rStates = FanoutClient::monitorStates();
 		$rSupervised = StreamProcess::reconcileSupervised($rStates);
+		// Not read is not none: the daemon answered, the rows it is compared
+		// with did not. The checks below would take each stream it supervises
+		// for unwatched and start a monitor for it, so the pass ends here.
+		if ($rStates !== null && $rSupervised === null) {
+			echo 'The supervised streams could not be read: nothing is checked this pass.' . "\n";
+			return;
+		}
 		$rSupervisedSet = array_flip($rSupervised ?? []);
 		// While the daemon takes hand-overs, streams still under a PHP monitor
 		// (started before supervision was on, or while the daemon was down) are
@@ -169,6 +176,13 @@ class StreamsCronJob implements CommandInterface {
 		$rFenced = NodeLease::refusesEverything();
 
 		$rRows = NodeStreams::liveChecks($rRedis, $db);
+		// Not read is not none: the checks at the end kill every monitor and
+		// producer the lists do not name, so a pass that could not read them
+		// ends here and does nothing by them.
+		if ($rRows === null) {
+			echo 'The streams could not be read: nothing is checked this pass.' . "\n";
+			return;
+		}
 		if (count($rRows) > 0) {
 			foreach ($rRows as $rStream) {
 				echo 'Stream ID: ' . $rStream['stream_id'] . "\n";
@@ -380,6 +394,10 @@ class StreamsCronJob implements CommandInterface {
 					echo "\n";
 				} else {
 					echo 'Start monitor...' . "\n\n";
+					// A producer still running is the stream's own: the new monitor
+					// takes it as it is (it reads the same pid), so the last check of
+					// this pass does not take it for a leftover.
+					$rActivePIDs[] = file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.pid') ? intval(file_get_contents(STREAMS_PATH . $rStream['stream_id'] . '_.pid')) : intval($rStream['pid']);
 					if (StreamProcess::startMonitor($rStream['stream_id'], $this->handOverNeedsRestart($rStream)) === StreamProcess::MONITOR_PHP) {
 						usleep(50000); // stagger PHP monitor spawns
 					}
@@ -434,12 +452,28 @@ class StreamsCronJob implements CommandInterface {
 		}
 
 		$rOnDemandIDs = NodeStreams::onDemandIDs($db);
+		if ($rOnDemandIDs === null) {
+			echo 'The on-demand streams could not be read: nothing is killed this pass.' . "\n";
+			return;
+		}
 		$rProcesses = shell_exec('ps aux | grep XC_VM');
 		if (preg_match_all('/XC_VM\\[(.*)\\]/', $rProcesses, $rMatches)) {
 			$rRemove = array_diff($rMatches[1], $rStreamIDs);
 			$rRemove = array_diff($rRemove, $rOnDemandIDs);
 			foreach ($rRemove as $rStreamID) {
 				if (is_numeric($rStreamID)) {
+					// A monitor puts its pid in its stream's row, then probes the
+					// sources and starts the producer: only from then on do the
+					// streams read above name the stream. A monitor its row names is
+					// not a leftover while nothing has started, nor once the row says
+					// it has and that read would name the stream now (a live stream,
+					// not a direct source): it started since, and the next pass has it.
+					// The row is read as the monitor and that read take it (nodeRow):
+					// in MAIN's database until the node's own store is seeded.
+					$rRow = StreamSource::nodeRow(intval($rStreamID), $db);
+					if ($rRow !== null && ProcessManager::isMonitorAlive(intval($rRow['monitor_pid'] ?? 0), intval($rStreamID)) && ((($rRow['pid'] ?? null) === null && intval($rRow['stream_status'] ?? 0) === 0) || StreamSource::streamRow(intval($rStreamID), true, $db) !== null)) {
+						continue;
+					}
 					echo 'Kill Stream ID: ' . $rStreamID . "\n";
 					shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . '_.m3u8\\|XC_VM\\[' . intval($rStreamID) . "\\]' | grep -v grep | awk '{print \$2}'`;");
 					shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*');
@@ -457,9 +491,18 @@ class StreamsCronJob implements CommandInterface {
 					$rActivePIDs[] = intval($rState['pid']);
 				}
 			}
+			// A producer that started after this pass did (an on-demand stream a
+			// viewer has just opened, a restart by its PHP monitor) was not there
+			// when the streams above were read: the next pass judges it. Both
+			// start times are /proc's own, in ticks after boot.
+			$rPassStart = ProcessManager::resourceSample(intval(getmypid()))['start'] ?? null;
 			exec("ps aux | grep -v grep | grep '/*_.m3u8' | awk '{print \$2}'", $rRoguePIDs);
 			foreach ($rRoguePIDs as $rPID) {
 				if (is_numeric($rPID) && intval($rPID) > 0 && !in_array($rPID, $rActivePIDs)) {
+					$rStart = ProcessManager::resourceSample(intval($rPID))['start'] ?? null;
+					if ($rPassStart === null || $rStart === null || $rStart >= $rPassStart) {
+						continue;
+					}
 					echo 'Kill Roque PID: ' . $rPID . "\n";
 					shell_exec('kill -9 ' . $rPID . ';');
 				}

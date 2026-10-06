@@ -144,10 +144,68 @@ class RootSignalsCronJob implements CommandInterface {
 		}
 	}
 
-	/** Flush iptables and the flood guard's block files (protected: a test records the call). */
+	/** Flush the panel's blocks from iptables and the flood guard's block files (protected: a test records the call). */
 	protected function flushIPs(): void {
-		exec('sudo iptables -F && sudo ip6tables -F');
-		shell_exec('sudo rm ' . FLOOD_TMP_PATH . 'block_*');
+		$this->unblockAll();
+	}
+
+	/**
+	 * Remove every block blockip() added, and the flood guard's block files.
+	 * The host's other rules, chains and policies are not the panel's and
+	 * stay: an operator's DROP policy with its ACCEPT rules, ufw's and
+	 * Docker's chains, the DB allowlist's. One commit per address family, so
+	 * a long list is gone in seconds; rule by rule, as the minute's sync
+	 * removes them, where the tool refuses the list.
+	 */
+	public function unblockAll(): void {
+		foreach (['iptables', 'ip6tables'] as $rTool) {
+			$rRules = [];
+			exec('sudo ' . $rTool . ' -S INPUT', $rRules);
+			$rIPs = self::ownBlocks($rRules);
+			if ($rIPs && !$this->unblockTogether($rTool, $rIPs)) {
+				foreach ($rIPs as $rIP) {
+					$this->unblockip($rIP);
+				}
+			}
+		}
+		shell_exec('sudo rm -f ' . escapeshellarg(FLOOD_TMP_PATH) . 'block_*');
+	}
+
+	/**
+	 * Remove these blocks in one commit: `--noflush` leaves every other rule
+	 * and chain alone. False when the tool refuses the list, and then none
+	 * of it was applied.
+	 *
+	 * @param list<string> $rIPs from ownBlocks()
+	 */
+	private function unblockTogether(string $rTool, array $rIPs): bool {
+		$rPipe = popen('sudo ' . $rTool . '-restore --noflush', 'w');
+		if (!is_resource($rPipe)) {
+			return false;
+		}
+		// A refusal closes the pipe early: the exit status says so.
+		@fwrite($rPipe, "*filter\n-D INPUT -s " . implode(" -j DROP\n-D INPUT -s ", $rIPs) . " -j DROP\nCOMMIT\n");
+		return pclose($rPipe) === 0;
+	}
+
+	/**
+	 * The addresses blockip() blocked, from `iptables -S INPUT` (or
+	 * ip6tables'): one per `-A INPUT -s <address> -j DROP` rule, so an address
+	 * blocked twice is there twice. A rule with a network (any prefix but the
+	 * family's single-address one: /32 of an IPv6 address is a network),
+	 * another match or another target is not the panel's.
+	 *
+	 * @param list<string> $rRules
+	 * @return list<string>
+	 */
+	public static function ownBlocks(array $rRules): array {
+		$rIPs = [];
+		foreach ($rRules as $rRule) {
+			if (preg_match('#^-A INPUT -s (\S+?)(?:/(\d+))? -j DROP$#', trim($rRule), $rMatch) && filter_var($rMatch[1], FILTER_VALIDATE_IP) && in_array($rMatch[2] ?? '', ['', str_contains($rMatch[1], ':') ? '128' : '32'], true)) {
+				$rIPs[] = $rMatch[1];
+			}
+		}
+		return $rIPs;
 	}
 
 	protected function saveiptables(): void {
