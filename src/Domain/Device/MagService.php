@@ -258,6 +258,16 @@ class MagService {
 				$rUserArray['password'] = AdminHelpers::generateString(32);
 			}
 
+			// Neither holds the separator of the line's playback addresses; the
+			// device's line keeps the value it has until it is changed.
+			if (!LineService::credentialAllowed($rUserArray['username'], $rUser['username'] ?? null)) {
+				return ['status' => STATUS_INVALID_USERNAME, 'data' => $rData];
+			}
+
+			if (!LineService::credentialAllowed($rUserArray['password'], $rUser['password'] ?? null)) {
+				return ['status' => STATUS_INVALID_PASSWORD, 'data' => $rData];
+			}
+
 			if (strlen($rData['isp_clear']) == 0) {
 				$rUserArray['isp_desc'] = '';
 				$rUserArray['as_number'] = null;

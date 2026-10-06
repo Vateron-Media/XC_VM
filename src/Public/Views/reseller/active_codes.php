@@ -101,9 +101,6 @@ use XcVm\Core\Util\LayoutRenderer;
         <button type="button" class="btn btn-sm btn-warning" id="btn-mass-disable">
             <i class="ti tabler-ban me-1"></i><?= $language::get('disable') ?>
         </button>
-        <button type="button" class="btn btn-sm btn-info" id="btn-mass-extend">
-            <i class="ti tabler-calendar-plus me-1"></i><?= $language::get('ac_extend') ?>
-        </button>
         <button type="button" class="btn btn-sm btn-secondary" id="btn-mass-reset">
             <i class="ti tabler-device-desktop-off me-1"></i><?= $language::get('ac_reset_device') ?>
         </button>
@@ -136,26 +133,6 @@ use XcVm\Core\Util\LayoutRenderer;
             </div>
             <div class="modal-footer border-top">
                 <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal"><?= $language::get('close') ?></button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Extend Days Modal -->
-<div class="modal fade" id="extendModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><?= $language::get('ac_extend_active_codes') ?></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <label class="form-label" for="extend-days"><?= $language::get('ac_number_of_days') ?></label>
-                <input type="number" id="extend-days" class="form-control" value="30" min="1" max="365">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal"><?= $language::get('cancel') ?></button>
-                <button type="button" class="btn btn-primary" id="btn-confirm-extend"><?= $language::get('ac_extend_now') ?></button>
             </div>
         </div>
     </div>
@@ -455,17 +432,6 @@ LayoutRenderer::renderFooter('reseller');
         selectedIds.clear();
         selectedIds.add(id);
         deleteModal.show();
-    });
-
-    // Mass Extend Modal
-    const extendModal = new bootstrap.Modal(document.getElementById('extendModal'));
-    jQuery('#btn-mass-extend').on('click', function() {
-        extendModal.show();
-    });
-    jQuery('#btn-confirm-extend').on('click', function() {
-        const days = jQuery('#extend-days').val();
-        execMassAction('mass_extend', { days: days });
-        extendModal.hide();
     });
 
     // Mass Delete Modal

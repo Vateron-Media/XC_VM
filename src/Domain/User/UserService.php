@@ -36,7 +36,7 @@ class UserService {
 		ini_set('default_socket_timeout', 0);
 
 		$rUsers = json_decode($rData['users'], true);
-		self::deleteRegisteredUser($rUsers);
+		self::deleteRegisteredUsers($rUsers);
 
 		return ['status' => STATUS_SUCCESS];
 	}
@@ -68,6 +68,14 @@ class UserService {
 
 			if (isset($rData['c_member_group_id'])) {
 				$rArray['member_group_id'] = intval($rData['member_group_id']);
+			}
+
+			// An administrator group is given out, and an administrator's account
+			// changed, by a full administrator (GroupService::reservedGroups).
+			$rReserved = GroupService::reservedGroups();
+
+			if (isset($rArray['member_group_id']) && in_array($rArray['member_group_id'], $rReserved)) {
+				return ['status' => STATUS_INVALID_GROUP, 'data' => $rData];
 			}
 
 			if (isset($rData['c_reseller_dns'])) {
@@ -105,7 +113,7 @@ class UserService {
 				$rPrepare = QueryHelper::prepareArray($rArray);
 
 				if (count($rPrepare['data']) > 0) {
-					$rQuery = 'UPDATE `users` SET ' . $rPrepare['update'] . ' WHERE `id` IN (' . implode(',', $rUsers) . ');';
+					$rQuery = 'UPDATE `users` SET ' . $rPrepare['update'] . ' WHERE `id` IN (' . implode(',', $rUsers) . ')' . (0 < count($rReserved) ? ' AND COALESCE(`member_group_id`, 0) NOT IN (' . implode(',', $rReserved) . ')' : '') . ';';
 					$db->query($rQuery, ...$rPrepare['data']);
 				}
 			}
@@ -140,6 +148,17 @@ class UserService {
 				} else {
 					exit();
 				}
+			}
+
+			// The group is stored as the number it is checked as.
+			$rArray['member_group_id'] = intval($rArray['member_group_id']);
+
+			// An administrator's account is changed, and an administrator group
+			// given out, by a full administrator (GroupService::reservedGroups).
+			$rReserved = ($rBypassAuth ? [] : GroupService::reservedGroups());
+
+			if (in_array($rArray['member_group_id'], $rReserved) || (isset($rUser) && in_array(intval($rUser['member_group_id']), $rReserved))) {
+				return ['status' => STATUS_INVALID_GROUP, 'data' => $rData];
 			}
 
 			if (!empty($rData['member_group_id'])) {
@@ -177,18 +196,36 @@ class UserService {
 					$rArray['override_packages'] = json_encode($rOverride);
 					$rReason = '';
 
-					if (isset($rUser) && $rUser['credits'] != $rData['credits']) {
-						$rCreditsAdjustment = $rData['credits'] - $rUser['credits'];
-						$rReason = $rData['credits_reason'];
+					if (isset($rUser)) {
+						// An edit moves the balance by what the form changed it by: the
+						// posted balance against the one the form was opened with
+						// (`credits_shown`; a caller that sends none means the stored one).
+						// The balance itself is not written back: it may have moved since.
+						if (is_numeric($rData['credits'] ?? null)) {
+							// A caller shown no balance: one that sends back the balance as the
+							// panel reads it (six significant digits) changes nothing; any other
+							// figure is set against the balance as it is stored.
+							$rShown = (is_numeric($rData['credits_shown'] ?? null) ? $rData['credits_shown'] : ($rData['credits'] == $rUser['credits'] ? $rData['credits'] : UserCredits::balance((int) $rUser['id'])));
+
+							if ($rShown != $rData['credits']) {
+								$rCreditsAdjustment = $rData['credits'] - $rShown;
+								$rReason = $rData['credits_reason'] ?? '';
+							}
+						}
+
+						$rPrepare = QueryHelper::prepareArray(array_diff_key($rArray, ['id' => 0, 'credits' => 0]));
+						$rQuery = 'UPDATE `users` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
+						$rPrepare['data'][] = $rUser['id'];
+					} else {
+						$rPrepare = QueryHelper::prepareArray($rArray);
+						$rQuery = 'REPLACE INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 					}
 
-					$rPrepare = QueryHelper::prepareArray($rArray);
-					$rQuery = 'REPLACE INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
 					if ($db->query($rQuery, ...$rPrepare['data'])) {
-						$rInsertID = $db->last_insert_id();
+						$rInsertID = (isset($rUser) ? $rUser['id'] : $db->last_insert_id());
 
-						if (isset($rCreditsAdjustment)) {
+						// The log holds the adjustments that were made.
+						if (isset($rCreditsAdjustment) && UserCredits::credit($rInsertID, $rCreditsAdjustment)) {
 							$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rInsertID, $GLOBALS['rAdminUserInfo']['id'], $rCreditsAdjustment, time(), $rReason);
 						}
 
@@ -299,7 +336,8 @@ class UserService {
 		$db = self::db();
 		$rUser = UserRepository::getRegisteredUserById($rID);
 
-		if (!$rUser) {
+		// An administrator's account is deleted by a full administrator.
+		if (!$rUser || in_array(intval($rUser['member_group_id']), GroupService::reservedGroups())) {
 			return false;
 		}
 
@@ -341,6 +379,12 @@ class UserService {
 	public static function deleteRegisteredUsers(array $rIDs) {
 		$db = self::db();
 		$rIDs = AdminHelpers::confirmIDs($rIDs);
+
+		// An administrator's account is deleted by a full administrator.
+		if (0 < count($rIDs) && 0 < count($rReserved = GroupService::reservedGroups())) {
+			$db->query('SELECT `id` FROM `users` WHERE `id` IN (' . implode(',', $rIDs) . ') AND `member_group_id` IN (' . implode(',', $rReserved) . ');');
+			$rIDs = array_values(array_diff($rIDs, array_column($db->get_rows(), 'id')));
+		}
 
 		if (0 >= count($rIDs)) {
 			return false;

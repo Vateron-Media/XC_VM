@@ -58,6 +58,14 @@ final class QueryLogDb extends DatabaseHandler {
 		return $this->rInner->get_raw_row();
 	}
 
+	public function get_col() {
+		return $this->rInner->get_col();
+	}
+
+	public function get_column() {
+		return $this->rInner->get_column();
+	}
+
 	public function num_rows() {
 		return $this->rInner->num_rows();
 	}

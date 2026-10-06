@@ -3,6 +3,9 @@
 namespace XcVm\Domain\Line;
 
 use XcVm\Core\Config\DomainResolver;
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 
 /**
@@ -18,6 +21,14 @@ use XcVm\Domain\User\UserRepository;
  */
 class ActiveCodeService {
 	use \XcVm\Infrastructure\Database\DatabaseAware;
+
+	/**
+	 * A code's subscription starts when the code is redeemed. Until then its
+	 * line has no expiry and is kept switched off: enabling or editing a code
+	 * switches on only a line whose countdown has started. A redeemed code's
+	 * line with no expiry was given none by an administrator: it is switched on.
+	 */
+	private const SWITCH_LINE_ON = '`enabled` = IF(`exp_date` IS NULL AND NOT EXISTS (SELECT 1 FROM `activation_codes` WHERE `subscriber_id` = `lines`.`id` AND `activated_at` IS NOT NULL), `enabled`, 1)';
 
 	/**
 	 * Generate unique collision-free code string.
@@ -74,6 +85,11 @@ class ActiveCodeService {
 		// package that is not a trial one: a reseller sending is_trial=1 used to pay
 		// the trial price (usually 0) for official codes.
 		$isTrial = !empty($package['is_trial']) || ($isAdmin && !empty($data['is_trial']));
+		// A reseller's trial codes come out of its group's trial allowance, as
+		// its trial lines do.
+		if ($isTrial && !$isAdmin && !LineService::canGenerateTrials((int) $user['id'], $qty)) {
+			return ['status' => 'ERROR', 'message' => 'You cannot generate this many trial codes at this time.'];
+		}
 		if ($isTrial) {
 			$costPerCode = floatval($package['trial_credits'] ?? 0);
 		} else {
@@ -86,7 +102,8 @@ class ActiveCodeService {
 			}
 		}
 
-		$totalCost = $qty * $costPerCode;
+		// At the four decimals a balance is read at: 3 codes at 0.1 cost 0.3.
+		$totalCost = round($qty * $costPerCode, 4);
 
 		// Balance check for non-admin
 		if (!$isAdmin) {
@@ -111,15 +128,23 @@ class ActiveCodeService {
 		}
 
 		// Bouquets determination
-		if (!empty($data['bouquets_selected']) && is_array($data['bouquets_selected'])) {
-			$selectedBouquets = array_map('intval', $data['bouquets_selected']);
-		} else {
-			$selectedBouquets = json_decode((string) ($package['bouquets'] ?? '[]'), true) ?: [];
+		$packageBouquets = json_decode((string) ($package['bouquets'] ?? '[]'), true) ?: [];
+		$selectedBouquets = (!empty($data['bouquets_selected']) && is_array($data['bouquets_selected'])) ? array_map('intval', $data['bouquets_selected']) : [];
+		if (!$isAdmin && $selectedBouquets !== []) {
+			// A reseller's codes carry bouquets of the package, as its lines do:
+			// a selection among them when its group may change bouquets.
+			$group = GroupService::getById(intval($user['member_group_id'] ?? 0)) ?: [];
+			$selectedBouquets = empty($group['allow_change_bouquets']) ? [] : array_values(array_intersect($selectedBouquets, array_map('intval', $packageBouquets)));
+		}
+		if ($selectedBouquets === []) {
+			$selectedBouquets = $packageBouquets;
 		}
 		$bouquetsJson = '[' . implode(',', array_map('intval', $selectedBouquets)) . ']';
 
 		$dnsBase = trim($data['dns_base'] ?? '') ?: null;
-		$forcedCountry = array_key_exists('forced_country', $data)
+		// The package's country lock is part of what a reseller sells; an
+		// administrator sets another or lifts it.
+		$forcedCountry = ($isAdmin && array_key_exists('forced_country', $data))
 			? (trim((string) $data['forced_country']) ?: null)
 			: (trim((string) ($package['forced_country'] ?? '')) ?: null);
 		// The reseller form has no connection count; the package decides it.
@@ -128,6 +153,16 @@ class ActiveCodeService {
 			: intval($package['max_connections'] ?: 1);
 		$isAdult = !empty($data['is_adult']) ? 1 : 0;
 		$outputFormats = $package['output_formats'] ?? '[]';
+
+		// A reseller's codes take a category template the reseller may use, as
+		// its lines do, and no layout sent as raw data.
+		if (!$isAdmin) {
+			$template = empty($data['category_template_id']) ? null : \XcVm\Domain\Stream\CategoryTemplateService::getTemplateById(intval($data['category_template_id']));
+			if (!$template || !\XcVm\Domain\Stream\CategoryTemplateService::canAccessTemplate($template, $user, false)) {
+				unset($data['category_template_id']);
+			}
+			unset($data['custom_data']);
+		}
 
 		$customDataJson = null;
 		if (!empty($data['category_template_id']) && intval($data['category_template_id']) > 0) {
@@ -151,16 +186,40 @@ class ActiveCodeService {
 			if (UserRepository::getLineByUsername($customUsername)) {
 				return ['status' => 'ERROR', 'message' => "The streaming username '{$customUsername}' already exists. Please choose a different username."];
 			}
+			// The password is one segment of the line's playback addresses.
+			if (str_contains($customPassword, '/')) {
+				return ['status' => 'ERROR', 'message' => 'Streaming password cannot contain a slash (/).'];
+			}
 		}
 
 		$generatedCodes = [];
+
+		// A reseller's trial codes are counted against the allowance again with
+		// its trials held, and stored before they are given back: of two requests
+		// at once the later one counts the codes the earlier one made.
+		$holdsTrials = $isTrial && !$isAdmin;
+		if ($holdsTrials) {
+			LineService::lockTrials((int) $user['id']);
+			if (!LineService::canGenerateTrials((int) $user['id'], $qty)) {
+				LineService::unlockTrials((int) $user['id']);
+				return ['status' => 'ERROR', 'message' => 'You cannot generate this many trial codes at this time.'];
+			}
+		}
 
 		$db->beginTransaction();
 		try {
 			// 1. Deduct reseller credits if non-admin
 			if (!$isAdmin && $totalCost > 0) {
-				$newCredits = floatval($user['credits']) - $totalCost;
-				$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $newCredits, $user['id']);
+				// The balance pays as it is stored now: the copy in $user was read
+				// when the request started and may be spent since.
+				if (!UserCredits::debit((int) $user['id'], $totalCost)) {
+					$db->rollback();
+					return [
+						'status' => 'INSUFFICIENT_CREDITS',
+						'message' => "Insufficient balance. Required: {$totalCost} credits, Available: " . UserCredits::balance((int) $user['id']) . ' credits.'
+					];
+				}
+				$newCredits = UserCredits::balance((int) $user['id']);
 
 				// Audit logging
 				$db->query(
@@ -201,13 +260,15 @@ class ActiveCodeService {
 					}
 				}
 
+				// The line is created switched off: redeeming the code starts its
+				// countdown and switches it on.
 				$insertResult = $db->query(
 					"INSERT INTO `lines` (
                         `member_id`, `username`, `password`, `exp_date`, `admin_enabled`, `enabled`,
                         `bouquet`, `allowed_outputs`, `max_connections`, `is_restreamer`, `is_trial`,
                         `is_mag`, `is_e2`, `forced_country`, `package_id`, `is_activecode`, `created_at`,
                         `reseller_notes`, `custom_data`
-                    ) VALUES (?, ?, ?, NULL, 1, 1, ?, ?, ?, 0, ?, 0, 0, ?, ?, 1, ?, ?, ?);",
+                    ) VALUES (?, ?, ?, NULL, 1, 0, ?, ?, ?, 0, ?, 0, 0, ?, ?, 1, ?, ?, ?);",
 					$targetOwnerId,
 					$lineUsername,
 					$linePassword,
@@ -243,7 +304,9 @@ class ActiveCodeService {
 					$bouquetsJson,
 					$isAdult,
 					$isTrial ? 1 : 0,
-					$costPerCode,
+					// What the code was paid for, and what deleting it unused refunds:
+					// an administrator issues codes without charging anyone.
+					$isAdmin ? 0 : $costPerCode,
 					$dnsBase,
 					$forcedCountry,
 					$maxConnections,
@@ -281,6 +344,10 @@ class ActiveCodeService {
 				'status' => 'ERROR',
 				'message' => 'Failed to generate codes: ' . $e->getMessage()
 			];
+		} finally {
+			if ($holdsTrials) {
+				LineService::unlockTrials((int) $user['id']);
+			}
 		}
 	}
 
@@ -358,10 +425,11 @@ class ActiveCodeService {
 			$claimed = $db->num_rows() > 0;
 
 			if ($claimed) {
-				// Update companion line
+				// Update companion line: its countdown starts and it is switched on
 				$db->query(
 					"UPDATE `lines` SET
                         `exp_date` = ?,
+                        `enabled` = 1,
                         `last_ip` = ?,
                         `last_activity` = ?
                     WHERE `id` = ?;",
@@ -372,6 +440,16 @@ class ActiveCodeService {
 				);
 
 				$line['exp_date'] = $expDate;
+				$line['enabled'] = 1;
+
+				// The cached line is still off and without an expiry: the request
+				// that redeems the code reads it next.
+				if (SettingsManager::get('enable_cache')) {
+					if (defined('LINES_TMP_PATH')) {
+						@unlink(LINES_TMP_PATH . 'line_i_' . $line['id']);
+					}
+					LineService::updateLineSignal((int) $line['id']);
+				}
 				$codeRow['status'] = 2;
 				$codeRow['activated_at'] = $now;
 				if (!empty($mac)) {
@@ -531,6 +609,21 @@ class ActiveCodeService {
 	}
 
 	/**
+	 * Whether a line waits for an activation code to be redeemed: a code's
+	 * line with no expiry whose code nobody redeemed, or a line that took that
+	 * state from one it is paired with. Redeeming the code is what switches
+	 * such a line on; the line and device switches ask first.
+	 *
+	 * @param array $line A `lines` row.
+	 */
+	public static function lineAwaitsRedemption(array $line): bool {
+		if (empty($line['is_activecode']) || ($line['exp_date'] ?? null) !== null) {
+			return false;
+		}
+		return !self::db()->fetchOne('SELECT `id` FROM `activation_codes` WHERE `subscriber_id` = ? AND `activated_at` IS NOT NULL LIMIT 1;', (int) ($line['id'] ?? 0));
+	}
+
+	/**
 	 * Look up activation code record by code string.
 	 */
 	public static function getByCode(string $code): ?array {
@@ -605,6 +698,11 @@ class ActiveCodeService {
 			return ['status' => 'ERROR', 'message' => 'No codes selected.'];
 		}
 
+		// The term and the package a code was sold with are an administrator's to change.
+		if (!$isAdmin && in_array($action, ['extend', 'mass_extend', 'change_package', 'mass_change_package'], true)) {
+			return ['status' => 'ERROR', 'message' => 'Only an administrator can extend activation codes or change their package.'];
+		}
+
 		$cleanIds = array_map('intval', $codeIds);
 		$idList = implode(',', $cleanIds);
 
@@ -626,22 +724,26 @@ class ActiveCodeService {
 		$targetIdList = implode(',', $targetIds);
 		$subscriberIds = array_filter(array_column($codes, 'subscriber_id'));
 		$subIdList = $subscriberIds !== [] ? implode(',', $subscriberIds) : '0';
+		// After a change to the lines, the signal every writer of a line sends:
+		// a line that is now off loses its sessions and the line cache follows.
+		$lineIds = array_values(array_map('intval', $subscriberIds));
 
 		switch ($action) {
 			case 'enable':
 			case 'mass_enable':
-				// Set status: 1 if never activated, 2 if activated
-				$db->query("UPDATE `activation_codes` SET `status` = IF(`activated_at` IS NULL, 1, 2) WHERE `id` IN ({$targetIdList});");
+				// Set status: 1 if never activated, 2 if activated. Only a suspended
+				// code changes: one that is in stock or active keeps its status.
+				$db->query("UPDATE `activation_codes` SET `status` = IF(`activated_at` IS NULL, 1, 2) WHERE `id` IN ({$targetIdList}) AND `status` = 0;");
 				// admin_enabled is the administrator's ban; only an admin lifts it.
-				$db->query($isAdmin
-					? "UPDATE `lines` SET `enabled` = 1, `admin_enabled` = 1 WHERE `id` IN ({$subIdList});"
-					: "UPDATE `lines` SET `enabled` = 1 WHERE `id` IN ({$subIdList});");
+				$db->query('UPDATE `lines` SET ' . ($isAdmin ? '`admin_enabled` = 1, ' : '') . self::SWITCH_LINE_ON . " WHERE `id` IN ({$subIdList});");
+				LineService::updateLinesSignal($lineIds);
 				return ['status' => 'SUCCESS', 'message' => count($targetIds) . ' codes successfully enabled.'];
 
 			case 'disable':
 			case 'mass_disable':
 				$db->query("UPDATE `activation_codes` SET `status` = 0 WHERE `id` IN ({$targetIdList});");
 				$db->query("UPDATE `lines` SET `enabled` = 0 WHERE `id` IN ({$subIdList});");
+				LineService::updateLinesSignal($lineIds);
 				return ['status' => 'SUCCESS', 'message' => count($targetIds) . ' codes suspended.'];
 
 			case 'extend':
@@ -653,6 +755,7 @@ class ActiveCodeService {
 					$seconds,
 					$seconds
 				);
+				LineService::updateLinesSignal($lineIds);
 				return ['status' => 'SUCCESS', 'message' => "Extended expiration of selected active codes by {$days} days."];
 
 			case 'reset_device':
@@ -670,6 +773,7 @@ class ActiveCodeService {
 				$newBouquets = $newPackage['bouquets'];
 				$db->query("UPDATE `activation_codes` SET `package_id` = ?, `bouquets` = ? WHERE `id` IN ({$targetIdList});", $newPackageId, $newBouquets);
 				$db->query("UPDATE `lines` SET `package_id` = ?, `bouquet` = ? WHERE `id` IN ({$subIdList});", $newPackageId, $newBouquets);
+				LineService::updateLinesSignal($lineIds);
 				return ['status' => 'SUCCESS', 'message' => 'Updated package on selected codes.'];
 
 			case 'delete':
@@ -680,15 +784,26 @@ class ActiveCodeService {
 				$db->beginTransaction();
 				try {
 					if ($refund && !$isAdmin) {
+						// The refund is counted on the codes as they are stored now, held
+						// until they are deleted: a code another request has just deleted,
+						// or a subscriber has just activated, pays nothing back.
+						$held = $db->fetchAll("SELECT `status`, `purchase_cost`, `created_by` FROM `activation_codes` WHERE `id` IN ({$targetIdList}) FOR UPDATE;");
+						if ($held === false) {
+							throw new \RuntimeException('Database error');
+						}
+
 						// Calculate refund only on stock/unactivated codes (status = 1)
-						foreach ($codes as $c) {
+						foreach ($held as $c) {
 							if ($c['status'] == 1 && $c['purchase_cost'] > 0 && $c['created_by'] == $user['id']) {
 								$totalRefunded += floatval($c['purchase_cost']);
 							}
 						}
 
 						if ($totalRefunded > 0) {
-							$db->query("UPDATE `users` SET `credits` = `credits` + ? WHERE `id` = ?;", $totalRefunded, $user['id']);
+							// No refund, no delete: the codes stay until their price is back.
+							if (!UserCredits::credit((int) $user['id'], $totalRefunded)) {
+								throw new \RuntimeException('Database error');
+							}
 							$db->query(
 								"INSERT INTO `users_credits_logs` (`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES (?, ?, ?, ?, ?);",
 								$user['id'],
@@ -701,7 +816,12 @@ class ActiveCodeService {
 					}
 
 					$db->query("DELETE FROM `activation_codes` WHERE `id` IN ({$targetIdList});");
-					$db->query("DELETE FROM `lines` WHERE `id` IN ({$subIdList});");
+					// Each line leaves as lines do: its sessions are closed, its cache
+					// entry and its logs go with it, the pairing is undone. A line that
+					// was never on can still have refused attempts in the logs.
+					foreach ($lineIds as $lineId) {
+						LineService::deleteLineById($lineId);
+					}
 					$db->commit();
 
 					$msg = count($targetIds) . ' code(s) deleted successfully.';
@@ -748,6 +868,12 @@ class ActiveCodeService {
 			return ['status' => 'ERROR', 'message' => 'Activation code not found or access denied.'];
 		}
 
+		// The package, connections and expiry of a code are what it was sold
+		// with: an administrator's to change, not read from a reseller's edit.
+		if (!$isAdmin) {
+			unset($data['package_id'], $data['max_connections'], $data['exp_date']);
+		}
+
 		// 1. Activation code string validation
 		$newCode = trim((string) ($data['activation_code'] ?? $code['activation_code']));
 		if (empty($newCode)) {
@@ -756,6 +882,10 @@ class ActiveCodeService {
 
 		// Check uniqueness if changed
 		if (strcasecmp($newCode, (string) $code['activation_code']) !== 0) {
+			// A renamed code names its line: one segment of the line's playback addresses.
+			if (str_contains($newCode, '/')) {
+				return ['status' => 'ERROR', 'message' => 'Activation code cannot contain a slash (/).'];
+			}
 			$exists = $db->fetchOne("SELECT `id` FROM `activation_codes` WHERE `activation_code` = ? AND `id` != ? LIMIT 1;", $newCode, $codeId);
 			if ($exists) {
 				return ['status' => 'ERROR', 'message' => 'Activation code "' . $newCode . '" is already taken. Please choose another.'];
@@ -778,6 +908,12 @@ class ActiveCodeService {
 		if (!in_array($status, [0, 1, 2], true)) {
 			$status = (int) $code['status'];
 		}
+		// The term of a redeemed code has started: its reseller restores it as
+		// an active code, not as stock. One an administrator returned to stock
+		// stays there through an edit.
+		if (!$isAdmin && $status === 1 && (int) $code['status'] !== 1 && !empty($code['activated_at'])) {
+			$status = 2;
+		}
 
 		// 4. Device lock / MAC & Device ID
 		$mac = isset($data['mac']) ? trim((string) $data['mac']) : (string) $code['mac'];
@@ -785,6 +921,11 @@ class ActiveCodeService {
 
 		$deviceId = isset($data['device_id']) ? trim((string) $data['device_id']) : (string) $code['device_id'];
 		$deviceId = ($deviceId !== '' && $deviceId !== 'None') ? $deviceId : null;
+
+		// The password is one segment of the line's playback addresses.
+		if (!empty($data['password']) && str_contains((string) $data['password'], '/')) {
+			return ['status' => 'ERROR', 'message' => 'Streaming password cannot contain a slash (/).'];
+		}
 
 		// 5. Batch name
 		$batchName = isset($data['batch_name']) ? trim((string) $data['batch_name']) : (string) $code['batch_name'];
@@ -842,6 +983,11 @@ class ActiveCodeService {
 				if (strcasecmp($newCode, (string) $code['activation_code']) !== 0) {
 					$line = $db->fetchOne("SELECT `username` FROM `lines` WHERE `id` = ? LIMIT 1;", $subId);
 					if ($line && (strcasecmp((string) $line['username'], (string) $code['activation_code']) === 0 || str_starts_with((string) $line['username'], 'ac_'))) {
+						// The line takes the code as its username, and no two lines share one.
+						if ($db->fetchOne("SELECT `id` FROM `lines` WHERE `username` = ? AND `id` != ? LIMIT 1;", $newCode, $subId)) {
+							$db->rollback();
+							return ['status' => 'ERROR', 'message' => 'Activation code "' . $newCode . '" is already taken. Please choose another.'];
+						}
 						$lineUpdates[] = "`username` = ?";
 						$lineParams[] = $newCode;
 					}
@@ -875,7 +1021,8 @@ class ActiveCodeService {
 				if ($status === 0) {
 					$lineUpdates[] = "`enabled` = 0";
 				} elseif ($status === 1 || $status === 2) {
-					$lineUpdates[] = "`enabled` = 1";
+					// After the expiry above: an expiry set here starts the countdown.
+					$lineUpdates[] = self::SWITCH_LINE_ON;
 				}
 				$lineParams[] = $subId;
 				$db->query("UPDATE `lines` SET " . implode(', ', $lineUpdates) . " WHERE `id` = ?;", ...$lineParams);

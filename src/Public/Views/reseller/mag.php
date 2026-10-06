@@ -127,7 +127,8 @@ $rStatusMessages = [
                             <input type="text" class="form-control" id="mac" name="mac" value="<?= isset($rDevice) ? htmlspecialchars((string) $rDevice['mac'], ENT_QUOTES) : '00:1A:79:'; ?>">
                         </div>
 
-                        <?php if (count($rPermissions['all_reports']) > 0): ?>
+                        <?php // A new trial is held by the reseller that makes it: there is no owner to pick.
+                        if (count($rPermissions['all_reports']) > 0 && ($rIsEdit || !$rIsTrial)): ?>
                             <div class="mb-6">
                                 <label class="form-label" for="member_id">Owner</label>
                                 <select name="member_id" id="member_id" class="form-select select2">
@@ -153,6 +154,10 @@ $rStatusMessages = [
                                         </optgroup>
                                     <?php endif; ?>
                                 </select>
+                                <?php // A trial stays with its holder: the owner picked applies once a package makes the device official.
+                                if (isset($rLine) && $rLine['is_trial']): ?>
+                                    <div class="form-text small"><?= $language::get('trial_owner_kept'); ?></div>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
 
