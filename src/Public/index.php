@@ -11,6 +11,7 @@ use XcVm\Public\Controllers\Api\AdminApiController;
 use XcVm\Public\Controllers\Api\Enigma2ApiController;
 use XcVm\Public\Controllers\Api\EpgApiController;
 use XcVm\Public\Controllers\Api\InternalApiController;
+use XcVm\Public\Controllers\Api\MetricsController;
 use XcVm\Public\Controllers\Api\PlayerApiController;
 use XcVm\Public\Controllers\Api\PlaylistApiController;
 use XcVm\Public\Controllers\Api\ResellerRestApiController;
@@ -177,6 +178,9 @@ if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
 		'internal'     => [InternalApiController::class,     'web'],
 		'active_code'  => [ActiveCodeApiController::class,   'web'],
 		'active_codes' => [ActiveCodeApiController::class,   'web'],
+		// MAIN only: nginx routes them there, and the load balancer build has no controller.
+		'metrics'      => [MetricsController::class,         'web'],
+		'healthz'      => [MetricsController::class,         'web'],
 	];
 
 	if (!isset($rApiEndpoints[$rApiName])) {

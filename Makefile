@@ -76,6 +76,7 @@ LB_FILES_TO_REMOVE := \
 	Public/Controllers/Api/ActiveCodeApiController.php \
 	Public/Controllers/Api/ResellerRestApiController.php \
 	Public/Controllers/Api/ResellerAPIWrapper.php \
+	Public/Controllers/Api/MetricsController.php \
 	Infrastructure/ResellerApiDispatcher.php \
 	Infrastructure/ResellerTableRenderer.php \
 	config/rclone.conf \

@@ -1030,6 +1030,21 @@ use XcVm\Domain\Server\ServerRepository;
 								</div>
 							</div>
 
+							<?php // Public/Controllers/Api/MetricsController: /metrics answers this token; empty, it is off. ?>
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="metrics_token">
+									<?= $language::get('metrics_token') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('metrics_token_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-8">
+									<div class="input-group">
+										<input type="text" readonly class="form-control" id="metrics_token" name="metrics_token" autocomplete="off" value="<?= htmlspecialchars((string) ($rSettings["metrics_token"] ?? ''), ENT_QUOTES) ?>">
+										<button class="btn btn-outline-danger" type="button" id="metrics-token-clear"><i class="icon-base ti tabler-x"></i></button>
+										<button class="btn btn-outline-info" type="button" id="metrics-token-new"><i class="icon-base ti tabler-refresh"></i></button>
+									</div>
+								</div>
+							</div>
+
 							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="platform_api_key">
 									<?= $language::get('modules_api_key') ?>
@@ -3226,6 +3241,22 @@ LayoutRenderer::renderFooter('admin');
 		}
 
 		// Address helpers (crypto-donation table on the Info tab).
+		// Metrics Token: 40 hexadecimal digits from the browser's cryptographic source.
+		(function() {
+			var field = document.getElementById('metrics_token');
+			if (!field) {
+				return;
+			}
+			document.getElementById('metrics-token-new').addEventListener('click', function() {
+				field.value = Array.from(crypto.getRandomValues(new Uint8Array(20)), function(b) {
+					return ('0' + b.toString(16)).slice(-2);
+				}).join('');
+			});
+			document.getElementById('metrics-token-clear').addEventListener('click', function() {
+				field.value = '';
+			});
+		})();
+
 		window.showQR = function(btnEl) {
 			var row = btnEl.closest('tr');
 			var addrCell = row ? row.querySelector('td.text-monospace') : null;

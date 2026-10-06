@@ -102,7 +102,7 @@ class DashboardController extends BaseAdminController {
 
 		// Service-status checklist (prepared here so the view stays free of
 		// filesystem / watchdog probes).
-		$rStatusChecks = $this->buildStatusChecks(self::statusServers());
+		$rStatusChecks = self::statusChecks(self::statusServers());
 
 		// The Bootstrap 5 dashboard renders CPU/network/connection charts with ApexCharts,
 		// and (when enabled and there is data) a jsvectormap world map.
@@ -139,9 +139,9 @@ class DashboardController extends BaseAdminController {
 	 * its state, so a healthy panel shows what was checked instead of nothing.
 	 *
 	 * @param array<int,array<string,mixed>> $servers every server, keyed by id
-	 * @return list<array{state:string,icon:string,title:string,detail:string,help:string}>
+	 * @return list<array{state:string,icon:string,title:string,detail:string,help:string,key:string}>
 	 */
-	private function buildStatusChecks(array $servers): array {
+	public static function statusChecks(array $servers): array {
 		$bin = ['{bin}' => htmlspecialchars(defined('PHP_BIN') ? PHP_BIN : 'php')];
 		$signals = CONFIG_PATH . 'signals.last';
 		$now = time();
@@ -188,7 +188,7 @@ class DashboardController extends BaseAdminController {
 	 * content; tmp holds the cache, which stops being written when it is full.
 	 *
 	 * @param array<string, array{0: int, 1: float}|null> $volumes 'panel' / 'tmp' => [used %, free bytes], null unknown
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function diskCheck(array $volumes): array {
 		$rState = 'ok';
@@ -227,7 +227,8 @@ class DashboardController extends BaseAdminController {
 	 * late; yellow when its Dropbox upload failed (the error is on the Backups page).
 	 *
 	 * @param array{timestamp: int, upload_failed: bool}|null $newest
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @param array{state: string, error: string}|null $verify BackupVerifier's last result
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function backupCheck(string $schedule, ?array $newest, int $now): array {
 		if (!isset(BackupService::PERIODS[$schedule])) {
@@ -252,7 +253,7 @@ class DashboardController extends BaseAdminController {
 	 *
 	 * @param array<int,array<string,mixed>> $servers
 	 * @param array<string,string> $bin
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function certificateCheck(array $servers, int $now, array $bin = []): array {
 		$rExpired = $rSoon = [];
@@ -285,7 +286,7 @@ class DashboardController extends BaseAdminController {
 	 * The cache engine's scheduled runs: red when the last one failed or one never
 	 * finished (CacheRunState), yellow until the first build completes.
 	 *
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function cacheCheck(bool $enabled, bool $complete, bool $failed, bool $stalled, int $lastGood, int $now): array {
 		if (!$enabled) {
@@ -316,7 +317,7 @@ class DashboardController extends BaseAdminController {
 	 * @param list<array<string,mixed>> $nodes   ClusterAdmin::nodes() rows
 	 * @param list<array<string,mixed>> $pending ClusterAdmin::pending() rows
 	 * @param array<string,string> $bin
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function clusterCheck(bool $enabled, array $nodes, array $pending, array $bin): array {
 		if (!$enabled) {
@@ -363,7 +364,7 @@ class DashboardController extends BaseAdminController {
 
 	/**
 	 * @param array<int,array<string,mixed>> $servers
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function serversCheck(array $servers): array {
 		// A server installing (3) or updating (5) is neither counted nor down, as in the header.
@@ -383,7 +384,7 @@ class DashboardController extends BaseAdminController {
 	 * against its own: yellow past CLOCK_WARN_SEC, naming the server and its offset.
 	 *
 	 * @param array<int,array<string,mixed>> $servers
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function clockCheck(array $servers): array {
 		$rOff = [];
@@ -422,7 +423,7 @@ class DashboardController extends BaseAdminController {
 
 	/**
 	 * @param array<string,string> $bin
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function schemaCheck(string $statusUuid, string $version, array $bin): array {
 		// StatusCommand::schemaMark(): the release whose migrations all applied.
@@ -437,7 +438,7 @@ class DashboardController extends BaseAdminController {
 	 * Root crons touch config/signals.last each run; stale after 10 minutes.
 	 *
 	 * @param array<string,string> $bin
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function cronCheck(?int $lastRun, int $now, array $bin): array {
 		if ($lastRun === null) {
@@ -456,7 +457,7 @@ class DashboardController extends BaseAdminController {
 	 *
 	 * @param array<int,array<string,mixed>> $servers
 	 * @param array<string,string> $bin
-	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
 	 */
 	public static function fanoutCheck(bool $enabled, array $servers, int $now, array $bin): array {
 		if (!$enabled) {
@@ -497,9 +498,10 @@ class DashboardController extends BaseAdminController {
 		return $down !== [] ? $detail . ' · ' . Translator::get('dashboard_check_servers_down', ['{names}' => implode(', ', $down)]) : $detail;
 	}
 
-	/** @return array{state:string,icon:string,title:string,detail:string,help:string} */
+	/** @return array{state:string,icon:string,title:string,detail:string,help:string,key:string} */
 	private static function check(string $state, string $icon, string $titleKey, string $detail, string $help = ''): array {
-		return ['state' => $state, 'icon' => $icon, 'title' => Translator::get($titleKey), 'detail' => $detail, 'help' => $help];
+		// `key`: the check's name without its prefix (servers, disk, backups…), for /metrics and /healthz.
+		return ['state' => $state, 'icon' => $icon, 'title' => Translator::get($titleKey), 'detail' => $detail, 'help' => $help, 'key' => substr($titleKey, strlen('dashboard_check_'))];
 	}
 
 	private static function formatAgo(int $seconds): string {

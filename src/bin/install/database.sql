@@ -1508,6 +1508,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `maintenance_mode` tinyint(1) DEFAULT '0',
   `maintenance_until` int(11) DEFAULT '0',
   `maintenance_message` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `metrics_token` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
   `ignore_keyframes` int(11) DEFAULT '0',
   `seg_delete_threshold` int(11) DEFAULT '4',
   `fails_per_time` int(11) DEFAULT '86400',
