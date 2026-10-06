@@ -213,6 +213,19 @@ Probable cause(s):
 
 ---
 
+## The dashboard's Service Status card
+
+The admin dashboard lists one row per check, failing and warning rows first. Every admin who can open the dashboard sees it.
+
+- **Servers**: enabled servers that stopped reporting, proxies included; a server installing or updating is not counted. While one is down, a red icon also shows in the top bar of every admin page.
+- **Database schema**: a migration failed (see [Database migrations](../guides/database-migrations.md)).
+- **Root cron jobs**: the root crontab has not run for ten minutes.
+- **Live delivery (xc_fanout)** and **Cluster API**: the daemon and the cluster nodes.
+- **Disk space**: MAIN's tmp mount from 90 % used (red from 95 %), where the cache is written; the panel disk at the same points, but only once less than 10 GiB is free, since it also holds VOD, archives and created channels.
+- **Backups**: with automatic backups on, red when there is no backup or the newest is more than a quarter of a period late, yellow when its Dropbox upload failed (the error is on the Backups page).
+- **HTTPS certificates**: the certificates `cron:certbot` keeps for enabled servers with HTTPS; yellow with under 5 days left (two daily renewals missed), red once one expired.
+- **Cache**: red when the last scheduled run of `cron:cache_engine` failed or one never finished (killed by the next, a restart or an update), until a run finishes cleanly; yellow until the first build after a boot completes. The Cache page's *Last complete run* stops moving while runs fail, and each failed run leaves a `cron` row in Panel Logs.
+
 ## Related files
 
 | File | Role |

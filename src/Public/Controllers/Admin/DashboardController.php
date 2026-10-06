@@ -2,6 +2,8 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
+use XcVm\Core\Backup\BackupService;
+use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Enum\Theme;
@@ -10,6 +12,8 @@ use XcVm\Core\Localization\Translator;
 use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterOverview;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Infrastructure\Cache\CacheRunState;
 use XcVm\Streaming\Fanout\FanoutMode;
 
 /**
@@ -51,16 +55,12 @@ class DashboardController extends BaseAdminController {
 		// Connection map
 		$rConnectionMap = [];
 		$rConnectionCount = 0;
+		$rMapOn = SettingsManager::get('save_closed_connection') && SettingsManager::get('dashboard_map');
+		$rCountryRows = self::connectionRows($db, $rMapOn, intval(RequestManager::get('server_id')));
 
-		if (RequestManager::has('server_id')) {
-			$db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` WHERE (`server_id` = ? OR `proxy_id` = ?) GROUP BY `geoip_country_code` ORDER BY `count` DESC;', intval(RequestManager::get('server_id')), intval(RequestManager::get('server_id')));
-		} else {
-			$db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` GROUP BY `geoip_country_code` ORDER BY `count` DESC;');
-		}
-
-		if (0 < $db->num_rows()) {
+		if ($rCountryRows !== []) {
 			$i = 0;
-			foreach ($db->get_rows() as $rRow) {
+			foreach ($rCountryRows as $rRow) {
 				if ($i < count($rColourMap)) {
 					$rRow['colour'] = $rColourMap[$i];
 				} else {
@@ -101,12 +101,12 @@ class DashboardController extends BaseAdminController {
 
 		// Service-status checklist (prepared here so the view stays free of
 		// filesystem / watchdog probes).
-		$rStatusChecks = $this->buildStatusChecks($rOrderedServers);
+		$rStatusChecks = $this->buildStatusChecks(self::statusServers());
 
 		// The Bootstrap 5 dashboard renders CPU/network/connection charts with ApexCharts,
 		// and (when enabled and there is data) a jsvectormap world map.
 		$rVendors = ['apexcharts'];
-		if (SettingsManager::get('save_closed_connection') && SettingsManager::get('dashboard_map') && $rConnectionCount > 0) {
+		if ($rMapOn && $rConnectionCount > 0) {
 			$rVendors[] = 'jsvectormap';
 		}
 		$GLOBALS['xmNewuiVendors'] = array_values(array_unique(array_merge(
@@ -118,14 +118,29 @@ class DashboardController extends BaseAdminController {
 		$this->render('dashboard', ['rColours' => $rColours, 'rColourMap' => $rColourMap, 'rConnectionMap' => $rConnectionMap, 'rConnectionCount' => $rConnectionCount, 'rServerStats' => $rServerStats, 'rOrderedServers' => $rOrderedServers, 'rStatusChecks' => $rStatusChecks, 'clusterBanners' => ClusterOverview::dashboardBanners($rServers[SERVER_ID] ?? [], SettingsManager::getAll(), time())]);
 	}
 
+	/** The servers the status rows judge: every row, offline ones too, keyed by id (the view's lists hold the online ones). */
+	public static function statusServers(): array {
+		return ServerRepository::getAll();
+	}
+
+	/** Free bytes below which MAIN's panel disk is judged: it also holds VOD, archives and created channels. */
+	private const DISK_FLOOR = 10 * 1024 ** 3;
+
+	private const DISK_WARN = 90;
+
+	private const DISK_FAIL = 95;
+
+	/** A certificate is renewed from 7 days before it expires, once a day: under 5, two renewals failed. */
+	private const CERT_WARN_SEC = 432000;
+
 	/**
 	 * Build the "Service Status" checklist: every probe is always listed with
 	 * its state, so a healthy panel shows what was checked instead of nothing.
 	 *
-	 * @param array<int,array<string,mixed>> $orderedServers
+	 * @param array<int,array<string,mixed>> $servers every server, keyed by id
 	 * @return list<array{state:string,icon:string,title:string,detail:string,help:string}>
 	 */
-	private function buildStatusChecks(array $orderedServers): array {
+	private function buildStatusChecks(array $servers): array {
 		$bin = ['{bin}' => htmlspecialchars(defined('PHP_BIN') ? PHP_BIN : 'php')];
 		$signals = CONFIG_PATH . 'signals.last';
 		$now = time();
@@ -135,8 +150,8 @@ class DashboardController extends BaseAdminController {
 		if ($rClusterOn) {
 			try {
 				$rOfflineAfter = ClusterSettings::int('cluster_offline_after_sec', SettingsManager::get('cluster_offline_after_sec'));
-				$rNodes = ClusterAdmin::nodes($orderedServers, $rOfflineAfter);
-				$rPending = ClusterAdmin::pending($orderedServers);
+				$rNodes = ClusterAdmin::nodes($servers, $rOfflineAfter);
+				$rPending = ClusterAdmin::pending($servers);
 			} catch (\Throwable) {
 				// The cluster tables are MAIN's and created by cluster:init: a
 				// dashboard never fails over a checklist row.
@@ -144,13 +159,144 @@ class DashboardController extends BaseAdminController {
 			}
 		}
 
-		return [
-			self::serversCheck($orderedServers),
+		$rSchedule = (string) SettingsManager::get('automatic_backups');
+		$rCache = CacheRunState::state(CACHE_TMP_PATH);
+		$rChecks = [
+			self::serversCheck($servers),
 			self::schemaCheck((string) SettingsManager::get('status_uuid'), XC_VM_VERSION, $bin),
 			self::cronCheck(file_exists($signals) ? filemtime($signals) : null, $now, $bin),
-			self::fanoutCheck(FanoutMode::enabled(), $orderedServers, $now, $bin),
+			// A proxy's watchdog blob is its own: the daemon runs on streaming servers.
+			self::fanoutCheck(FanoutMode::enabled(), array_filter($servers, static fn(array $rServer): bool => (int) ($rServer['server_type'] ?? 0) === 0), $now, $bin),
 			self::clusterCheck($rClusterOn, $rNodes, $rPending, $bin),
+			self::diskCheck(['panel' => self::usage(MAIN_HOME), 'tmp' => self::usage(TMP_PATH)]),
+			self::backupCheck($rSchedule, isset(BackupService::PERIODS[$rSchedule]) ? BackupService::newestBackup() : null, $now),
+			self::certificateCheck($servers, $now, $bin),
+			self::cacheCheck(!empty(SettingsManager::get('enable_cache')), file_exists(CACHE_TMP_PATH . 'cache_complete'), $rCache['failed'], $rCache['stalled'], (int) SettingsManager::get('last_cache'), $now),
 		];
+		// Failing and warning rows first: the card scrolls, and a red row below
+		// the fold would only be a number in the badge. The sort is stable.
+		$rRank = ['fail' => 0, 'warn' => 1, 'ok' => 2, 'off' => 3];
+		usort($rChecks, static fn(array $a, array $b): int => ($rRank[$a['state']] ?? 4) <=> ($rRank[$b['state']] ?? 4));
+		return $rChecks;
+	}
+
+	/**
+	 * MAIN's panel disk and its tmp tmpfs: yellow from 90 %, red from 95 % used. The
+	 * panel disk counts only under DISK_FLOOR free, as a large one is often mostly
+	 * content; tmp holds the cache, which stops being written when it is full.
+	 *
+	 * @param array<string, array{0: int, 1: float}|null> $volumes 'panel' / 'tmp' => [used %, free bytes], null unknown
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 */
+	public static function diskCheck(array $volumes): array {
+		$rState = 'ok';
+		$rParts = [];
+		foreach ($volumes as $rKey => $rVolume) {
+			if ($rVolume === null) {
+				continue;
+			}
+			[$rUsed, $rFree] = $rVolume;
+			$rParts[] = Translator::get('dashboard_check_disk_volume', ['{name}' => Translator::get('dashboard_check_disk_' . $rKey), '{used}' => (string) $rUsed]);
+			$rJudged = $rKey !== 'panel' || $rFree < self::DISK_FLOOR;
+			if ($rJudged && self::DISK_FAIL <= $rUsed) {
+				$rState = 'fail';
+			} elseif ($rJudged && self::DISK_WARN <= $rUsed && $rState === 'ok') {
+				$rState = 'warn';
+			}
+		}
+		if ($rParts === []) {
+			return self::check('off', 'tabler-device-sd-card', 'dashboard_check_disk', Translator::get('dashboard_check_disk_nodata'));
+		}
+		return self::check($rState, 'tabler-device-sd-card', 'dashboard_check_disk', implode(' · ', $rParts), $rState === 'ok' ? '' : Translator::get('dashboard_status_disk_text'));
+	}
+
+	/** @return array{0: int, 1: float}|null used % as the Cache page computes it, and free bytes */
+	private static function usage(string $rPath): ?array {
+		$rTotal = @disk_total_space($rPath);
+		$rFree = @disk_free_space($rPath);
+		if (!$rTotal || $rFree === false) {
+			return null;
+		}
+		return [100 - (int) ($rFree / $rTotal * 100), (float) $rFree];
+	}
+
+	/**
+	 * Automatic backups: red with none, or the newest more than a quarter of a period
+	 * late; yellow when its Dropbox upload failed (the error is on the Backups page).
+	 *
+	 * @param array{timestamp: int, upload_failed: bool}|null $newest
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 */
+	public static function backupCheck(string $schedule, ?array $newest, int $now): array {
+		if (!isset(BackupService::PERIODS[$schedule])) {
+			return self::check('off', 'tabler-database-export', 'dashboard_check_backups', Translator::get('dashboard_check_backups_off'));
+		}
+		if ($newest === null) {
+			return self::check('fail', 'tabler-database-export', 'dashboard_check_backups', Translator::get('dashboard_check_backups_none'), Translator::get('dashboard_status_backups_text'));
+		}
+		$rDetail = Translator::get('dashboard_check_backups_ok', ['{ago}' => self::formatAgo($now - $newest['timestamp'])]);
+		if (BackupService::PERIODS[$schedule] * 1.25 < $now - $newest['timestamp']) {
+			return self::check('fail', 'tabler-database-export', 'dashboard_check_backups', $rDetail, Translator::get('dashboard_status_backups_text'));
+		}
+		if ($newest['upload_failed']) {
+			return self::check('warn', 'tabler-database-export', 'dashboard_check_backups', $rDetail . ' · ' . Translator::get('dashboard_check_backups_upload'), Translator::get('dashboard_status_backups_text'));
+		}
+		return self::check('ok', 'tabler-database-export', 'dashboard_check_backups', $rDetail);
+	}
+
+	/**
+	 * The certificates cron:certbot keeps (servers.certbot_ssl) of enabled servers with
+	 * HTTPS: red when one expired, yellow under 5 days left.
+	 *
+	 * @param array<int,array<string,mixed>> $servers
+	 * @param array<string,string> $bin
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 */
+	public static function certificateCheck(array $servers, int $now, array $bin = []): array {
+		$rExpired = $rSoon = [];
+		$rNext = null;
+		foreach ($servers as $rServer) {
+			$rExpires = (int) ((json_decode((string) ($rServer['certbot_ssl'] ?? ''), true) ?: [])['expiration'] ?? 0);
+			if (empty($rServer['enabled']) || empty($rServer['enable_https']) || $rExpires <= 0) {
+				continue;
+			}
+			$rNext = $rNext === null ? $rExpires : min($rNext, $rExpires);
+			if ($rExpires <= $now) {
+				$rExpired[] = (string) $rServer['server_name'];
+			} elseif ($rExpires - $now < self::CERT_WARN_SEC) {
+				$rSoon[] = $rServer['server_name'] . ' (' . intdiv($rExpires - $now, 86400) . ' d)';
+			}
+		}
+		if ($rNext === null) {
+			return self::check('off', 'tabler-certificate', 'dashboard_check_certs', Translator::get('dashboard_check_certs_none'));
+		}
+		if ($rExpired !== []) {
+			return self::check('fail', 'tabler-certificate', 'dashboard_check_certs', Translator::get('dashboard_check_certs_expired', ['{names}' => implode(', ', $rExpired)]), Translator::get('dashboard_status_certs_text', $bin));
+		}
+		if ($rSoon !== []) {
+			return self::check('warn', 'tabler-certificate', 'dashboard_check_certs', Translator::get('dashboard_check_certs_expiring', ['{names}' => implode(', ', $rSoon)]), Translator::get('dashboard_status_certs_text', $bin));
+		}
+		return self::check('ok', 'tabler-certificate', 'dashboard_check_certs', Translator::get('dashboard_check_certs_ok', ['{days}' => (string) intdiv($rNext - $now, 86400)]));
+	}
+
+	/**
+	 * The cache engine's scheduled runs: red when the last one failed or one never
+	 * finished (CacheRunState), yellow until the first build completes.
+	 *
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
+	 */
+	public static function cacheCheck(bool $enabled, bool $complete, bool $failed, bool $stalled, int $lastGood, int $now): array {
+		if (!$enabled) {
+			return self::check('off', 'tabler-bolt', 'dashboard_check_cache', Translator::get('dashboard_check_cache_off'));
+		}
+		$rDetail = Translator::get('dashboard_check_cache_ok', ['{ago}' => self::formatAgo($now - $lastGood)]);
+		if ($failed || $stalled) {
+			return self::check('fail', 'tabler-bolt', 'dashboard_check_cache', $rDetail, Translator::get('dashboard_status_cache_text'));
+		}
+		if (!$complete) {
+			return self::check('warn', 'tabler-bolt', 'dashboard_check_cache', Translator::get('dashboard_check_cache_building'));
+		}
+		return self::check('ok', 'tabler-bolt', 'dashboard_check_cache', $rDetail);
 	}
 
 	/**
@@ -218,12 +364,34 @@ class DashboardController extends BaseAdminController {
 	 * @return array{state:string,icon:string,title:string,detail:string,help:string}
 	 */
 	public static function serversCheck(array $servers): array {
-		$enabled = array_filter($servers, fn($s) => !empty($s['enabled']));
+		// A server installing (3) or updating (5) is neither counted nor down, as in the header.
+		$enabled = array_filter($servers, fn($s) => !empty($s['enabled']) && !in_array((int) ($s['status'] ?? 0), [3, 5], true));
 		$offline = array_column(array_filter($enabled, fn($s) => empty($s['server_online'])), 'server_name');
 		$total = count($enabled);
 		$detail = Translator::get('dashboard_check_servers_ok', ['{online}' => (string) ($total - count($offline)), '{total}' => (string) $total]);
 
 		return self::check($offline !== [] ? 'fail' : 'ok', 'tabler-server-2', 'dashboard_check_servers', self::withDown($detail, $offline));
+	}
+
+	/**
+	 * Connections by country for the map: one aggregate over every closed
+	 * connection, so it is only run when the map is drawn, and kept five minutes.
+	 *
+	 * @param int $rServerID One server's (as streaming or proxy server), or 0 for all
+	 * @return list<array{geoip_country_code: ?string, count: int}>
+	 */
+	public static function connectionRows(object $db, bool $rMapOn, int $rServerID = 0, ?FileCache $rCache = null): array {
+		if (!$rMapOn) {
+			return [];
+		}
+		return ($rCache ?? new FileCache(CACHE_TMP_PATH))->remember('dashboard_map_' . $rServerID, 300, static function () use ($db, $rServerID): array|false {
+			if (0 < $rServerID) {
+				$rOk = $db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` WHERE (`server_id` = ? OR `proxy_id` = ?) GROUP BY `geoip_country_code` ORDER BY `count` DESC;', $rServerID, $rServerID);
+			} else {
+				$rOk = $db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` GROUP BY `geoip_country_code` ORDER BY `count` DESC;');
+			}
+			return $rOk ? ($db->get_rows() ?: []) : false;
+		}) ?: [];
 	}
 
 	/**

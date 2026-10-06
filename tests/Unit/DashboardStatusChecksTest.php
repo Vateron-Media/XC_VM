@@ -147,6 +147,67 @@ final class DashboardStatusChecksTest extends TestCase {
 		$this->assertStringContainsString('2', $rCheck['detail']);
 	}
 
+	public function testAServerInstallingOrUpdatingIsNeitherCountedNorDown(): void {
+		$rCheck = DashboardController::serversCheck([
+			1 => ['server_name' => 'MAIN', 'enabled' => 1, 'server_online' => true, 'status' => 1],
+			2 => ['server_name' => 'LB-2', 'enabled' => 1, 'server_online' => false, 'status' => 5],
+			3 => ['server_name' => 'LB-3', 'enabled' => 1, 'server_online' => false, 'status' => 3],
+			4 => ['server_name' => 'LB-4', 'enabled' => 1, 'server_online' => false, 'status' => 1],
+		]);
+
+		$this->assertSame('fail', $rCheck['state']);
+		$this->assertStringContainsString('LB-4', $rCheck['detail']);
+		$this->assertStringNotContainsString('LB-2', $rCheck['detail']);
+		$this->assertStringNotContainsString('LB-3', $rCheck['detail']);
+		$this->assertStringContainsString('1 of 2', $rCheck['detail']);
+	}
+
+	public function testTheDiskRowJudgesTmpByPercentAndThePanelDiskAlsoByWhatIsLeft(): void {
+		$rGiB = 1024 ** 3;
+		$this->assertSame('off', DashboardController::diskCheck([])['state']);
+		$this->assertSame('off', DashboardController::diskCheck(['panel' => null, 'tmp' => null])['state']);
+		$this->assertSame('ok', DashboardController::diskCheck(['panel' => [41, 500 * $rGiB], 'tmp' => [3, $rGiB]])['state']);
+		$this->assertSame('warn', DashboardController::diskCheck(['panel' => [89, 5 * $rGiB], 'tmp' => [90, $rGiB]])['state']);
+		$rFull = DashboardController::diskCheck(['panel' => [95, 2 * $rGiB], 'tmp' => [3, $rGiB]]);
+		$this->assertSame('fail', $rFull['state']);
+		$this->assertNotSame('', $rFull['help']);
+		$this->assertStringContainsString('95', $rFull['detail']);
+		$this->assertStringContainsString('3', $rFull['detail'], 'every volume listed');
+		$this->assertSame('ok', DashboardController::diskCheck(['panel' => [96, 160 * $rGiB], 'tmp' => [3, $rGiB]])['state'], 'a large disk mostly content');
+		$this->assertSame('fail', DashboardController::diskCheck(['panel' => [96, 2 * $rGiB], 'tmp' => [3, $rGiB]])['state']);
+	}
+
+	public function testTheBackupsRow(): void {
+		$rHour = 3600;
+		$this->assertSame('off', DashboardController::backupCheck('off', null, self::NOW)['state']);
+		$this->assertSame('fail', DashboardController::backupCheck('daily', null, self::NOW)['state']);
+		$this->assertSame('ok', DashboardController::backupCheck('daily', ['timestamp' => self::NOW - 25 * $rHour, 'upload_failed' => false], self::NOW)['state']);
+		$this->assertSame('fail', DashboardController::backupCheck('daily', ['timestamp' => self::NOW - 30 * $rHour - 1, 'upload_failed' => false], self::NOW)['state']);
+		$this->assertSame('fail', DashboardController::backupCheck('hourly', ['timestamp' => self::NOW - 75 * 60 - 1, 'upload_failed' => false], self::NOW)['state']);
+		$this->assertSame('warn', DashboardController::backupCheck('daily', ['timestamp' => self::NOW - $rHour, 'upload_failed' => true], self::NOW)['state']);
+	}
+
+	public function testTheCertificatesRow(): void {
+		$rServer = static fn(string $rName, int $rLeft, int $rHttps = 1, int $rEnabled = 1): array => ['server_name' => $rName, 'enabled' => $rEnabled, 'enable_https' => $rHttps, 'certbot_ssl' => json_encode(['expiration' => self::NOW + $rLeft])];
+		$rDay = 86400;
+		$this->assertSame('ok', DashboardController::certificateCheck([1 => $rServer('MAIN', 6 * $rDay)], self::NOW)['state']);
+		$rSoon = DashboardController::certificateCheck([1 => $rServer('MAIN', 6 * $rDay), 2 => $rServer('LB-2', $rDay + 60)], self::NOW, self::BIN);
+		$this->assertSame('warn', $rSoon['state']);
+		$this->assertStringContainsString('LB-2 (1 d)', $rSoon['detail']);
+		$this->assertStringNotContainsString('MAIN', $rSoon['detail']);
+		$this->assertSame('warn', DashboardController::certificateCheck([1 => $rServer('MAIN', 5 * $rDay - 1)], self::NOW)['state']);
+		$this->assertSame('fail', DashboardController::certificateCheck([1 => $rServer('MAIN', -1)], self::NOW)['state']);
+		$this->assertSame('off', DashboardController::certificateCheck([1 => $rServer('MAIN', -1, 0), 2 => $rServer('LB-2', -1, 1, 0), 3 => ['server_name' => 'LB-3', 'enabled' => 1, 'enable_https' => 1, 'certbot_ssl' => null]], self::NOW)['state']);
+	}
+
+	public function testTheCacheRow(): void {
+		$this->assertSame('off', DashboardController::cacheCheck(false, true, true, true, 0, self::NOW)['state']);
+		$this->assertSame('ok', DashboardController::cacheCheck(true, true, false, false, self::NOW - 120, self::NOW)['state']);
+		$this->assertSame('warn', DashboardController::cacheCheck(true, false, false, false, 0, self::NOW)['state']);
+		$this->assertSame('fail', DashboardController::cacheCheck(true, true, true, false, self::NOW - 600, self::NOW)['state']);
+		$this->assertSame('fail', DashboardController::cacheCheck(true, true, false, true, self::NOW - 600, self::NOW)['state']);
+	}
+
 	/** @return array<string,mixed> A ClusterAdmin::nodes() row, as the checklist reads it. */
 	private function node(string $name, string $state, string $health): array {
 		return ['server_id' => 5, 'server_name' => $name, 'state' => $state, 'health' => $health];
