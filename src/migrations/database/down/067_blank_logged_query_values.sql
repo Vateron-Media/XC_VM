@@ -1,0 +1,4 @@
+-- Reverse 067_blank_logged_query_values.sql. A blanked statement and a
+-- shortened message do not come back: nothing is written here.
+-- A rollback forgets the step: the older version logs a failed query with its
+-- values again, and the next update applies the step to those rows.

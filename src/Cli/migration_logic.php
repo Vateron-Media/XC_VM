@@ -98,7 +98,11 @@ if ($odb->num_rows() > 0) {
 						$rResult = QueryHelper::verifyPostTable('users', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						// A name is one account's: another of the same name (case and
+						// trailing spaces aside) is not imported, and is named here.
+						if (!$db->query($rQuery, ...$rPrepare['data'])) {
+							echo 'Account not imported: ' . $rResult['username'] . ' (' . $db->error() . ")\n";
+						}
 					}
 				} catch (\Exception $e) {
 					echo 'Error: ' . $e . "\n";
@@ -682,7 +686,11 @@ if ($odb->num_rows() > 0) {
 						$rResult = QueryHelper::verifyPostTable('users', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						// A name is one account's: another of the same name (case and
+						// trailing spaces aside) is not imported, and is named here.
+						if (!$db->query($rQuery, ...$rPrepare['data'])) {
+							echo 'Account not imported: ' . $rResult['username'] . ' (' . $db->error() . ")\n";
+						}
 					}
 				} catch (\Exception $e) {
 					echo 'Error: ' . $e . "\n";
@@ -713,7 +721,11 @@ if ($odb->num_rows() > 0) {
 						$rResult = QueryHelper::verifyPostTable('users', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						// A name is one account's: another of the same name (case and
+						// trailing spaces aside) is not imported, and is named here.
+						if (!$db->query($rQuery, ...$rPrepare['data'])) {
+							echo 'Account not imported: ' . $rResult['username'] . ' (' . $db->error() . ")\n";
+						}
 					}
 				} catch (\Exception $e) {
 					echo 'Error: ' . $e . "\n";
