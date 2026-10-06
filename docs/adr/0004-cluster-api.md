@@ -5709,7 +5709,8 @@ passes `findByUuid` its Range fallback, and what a quarantine leaves queued.
 
 ### Three designs for approval: the line a node names, the updating status, commands across a quarantine (2026-10-06)
 
-**Status.** Designs 2 (option A) and 3 (option c) approved and built; 1 proposed. Nothing else here is built, and no earlier statement of this record changes until
+**Status.** Designs 2 (option A) and 3 (option c) approved and built; 1 (option B, both stages)
+approved and built on the panel, its agent field waiting for XC_VM_Fanout 0.14.4. Nothing else here is built, and no earlier statement of this record changes until
 the maintainer approves a design or changes it. The three subjects are the last three entries
 under **Not built** in the section above. File and line are those of the tree on this date: the
 panel under `src/`, the agent in XC_VM_Fanout 0.14.0 under `internal/clusteragent/`.
@@ -5876,6 +5877,58 @@ or `enforce`).
 *Recommended: B, in its two stages.* It is the only one of the three that binds the op and the
 events alike, it cannot refuse a valid viewer because a store was lost, and it asks the agent
 for one copied field. A's record has no safe life, and C leaves the effect in place.
+
+*Approved and built (B, 2026-10-06).* The maintainer approved B in its two stages, and answered
+question 1: in the second stage MAIN refuses a record that carries no valid proof and has the
+node's registry drop it.
+- **The proof.** `ConnectionAdmission::admitToken()` puts `prf {iat, p}` in every viewer token
+  while the cluster API is on (`mintProof()`), for every node: a node that does not record
+  through its agent ignores it, and no read of `cluster_nodes` is added to the mint. `p` is
+  `proof()`: HMAC-SHA256 under `HMAC-SHA256(live_streaming_pass, PROOF_LABEL)` over
+  `uuid|node|iat|identity`, cut to 16 bytes as hex, the identity last so that no other split
+  of the fields gives the same message. `verifyMint()` takes the stream secret and, inside its
+  window, the replaced one (`StreamSecret::previousEntry()`).
+- **The node.** `ConnectionTracker::openRecord()` keeps it in the registry record as `mint`
+  (`<token uuid>.<iat>.<p>`, the token's uuid also for an HLS viewer, as `adm_uuid` names it),
+  and `AgentConnections::admission()` puts it in the admission header. Neither reaches MAIN's
+  store when the agent does not answer. The endpoints needed no change: live.php, vod.php and
+  timeshift.php already pass their token.
+- **`conn_admit`** (`forNode()`): a `mint` that verifies for the named identity and the
+  authenticated node, no older than the token's life plus `PAD_SEC`, is reserved and cut as
+  before. Any other is counted, and under `enforce` on a node that proves its records it gets
+  the line's own refusals and is otherwise admitted with no reservation and no cut.
+- **A first entry** (`ConnectionIngest::admitsFirst()`, events and snapshots alike): a record
+  whose `mint` verifies, at any age, is stored and counted with its age. One that does not is
+  stored and counted under `observe`; under `enforce` on a node that proves its records it is
+  not stored (the event is refused, the snapshot's record dropped), and MAIN queues
+  `conn.close {uuid, remove: true}` (`ClusterRoute::closeConnection`, no kill).
+- **The owner.** An update of a uuid the store holds for the node never writes `user_id`,
+  `hmac_id`, `hmac_identifier` or the Redis `identity`.
+- **The gate.** `cluster_conn_binding` (migration 071, `observe` by default; any other value
+  reads as `observe`). Enforcement for a node starts with the first record of its enrolment
+  whose proof MAIN verified (`cluster_meta` `conn_proven.<server id>` = its `gen`), so it is
+  gated on what the node's agent actually sends: every agent release mirrors a record key it
+  does not know (`registry.go` stores and sends the PUT body whole; no release ever filtered
+  it), so a node proves once its panel is new, whatever its agent. A conn_admit is never
+  refused for the want of a proof, so an agent that does not copy the field loses only the
+  reservation and the cut, as the rollout above says.
+- **Outside the batch.** The mark, the closes, the counts and the audit line are noted during
+  the request and written at its end (`flushBinding()`), never inside an events batch's
+  transaction (EventIngest). The counts of the day are `TMP_PATH/cluster_binding/<server
+  id>.json` (`bindingCounts()`); `conn.unproven` is written at most once a minute per node,
+  when that minute saw a record or a conn_admit without a proof.
+- **Waiting.** The agent's field is XC_VM_Fanout 0.14.4 (`admission.go`: `mint` from the
+  header into `conn_admit`, a malformed one left out). Until a node runs it, its conn_admits
+  carry no proof. Not built on the panel: the Cluster Nodes page's count and which nodes
+  prove, the setting in the settings form and `ClusterSettings::ENUMS`, and the agent's
+  interop case against MAIN's real `forNode()`.
+- **Found while building.** rtmp.php records a viewer the node authenticated itself, with no
+  MAIN mint: under `enforce` every RTMP viewer on a proving node is refused and dropped from
+  its registry, and plays on uncounted. A node rolled back to a panel without the proof after
+  it proved has every new viewer refused under `enforce` until it is enrolled again. Both have
+  to be settled before `enforce` is switched on; `observe` shows the first as `unproven`.
+- Tests: `AuditCluster1MintProofTest`, `AuditCluster1NodeMintTest`, and the agent's
+  `TestAdmissionCopiesTheMintProofIntoConnAdmit`.
 
 **2. The status a node reports as it updates.**
 
@@ -6068,5 +6121,7 @@ No migration and no agent change; `TestInteropFence` passes unchanged.
 - **3.** After *Trust again*, is "ended at the quarantine, named in the audit, sent again by
   the operator" the rule, or must what was queued before still run?
 
-**Not built.** 1 (2 and 3 are built, above). The three are independent. 3 and 2 change MAIN's panel alone.
-1 needs the panel release on every node, and one field in the agent, before its second stage.
+**Not built.** Of 1, the agent's field (XC_VM_Fanout 0.14.4) and the page and settings form
+named in its *Approved and built*; 2 and 3 are built, above. The three are independent. 3 and 2
+change MAIN's panel alone. 1 needs the panel release on every node, and one field in the agent,
+before its second stage.
