@@ -300,6 +300,7 @@ The `tools` command provides system maintenance utilities.
 | `mysql` | Reauthorise MySQL privileges for all load balancer servers. |
 | `database` | Restore a blank XC_VM database from `database.sql`. **Erases ALL data!** Requires `--confirm` flag. |
 | `flush` | Flush all blocked IPs — removes the panel's own block rules (`-s <address> -j DROP` in `INPUT`, IPv4 and IPv6) in one commit per address family, removes the block files, and truncates the `blocked_ips` table. Every other firewall rule, chain and policy is left alone. |
+| `twofactor <username>` | Turn off a user's two-factor sign-in, for an admin or reseller who lost their authenticator app and recovery codes. If the user's group requires it, the next sign-in sets it up again. |
 
 ### Subcommands (run as `xc_vm`)
 
@@ -332,6 +333,9 @@ sudo /home/xc_vm/console.php tools migration /path/to/backup.sql
 
 # Create rescue admin user (root)
 sudo /home/xc_vm/console.php tools user
+
+# Turn off two-factor sign-in for a locked-out admin (root)
+sudo /home/xc_vm/console.php tools twofactor admin
 
 # Reauthorise MySQL privileges on all servers (root)
 sudo /home/xc_vm/console.php tools mysql

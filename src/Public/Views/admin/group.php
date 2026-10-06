@@ -79,6 +79,15 @@ $rReserved     = GroupService::reservedGroups();
                             </div>
                         </div>
                     </div>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <?php // Core\Auth\TwoFactor: a member without it sets it up at the next sign-in. ?>
+                                <input class="form-check-input" type="checkbox" id="require_2fa" name="require_2fa" value="1" <?= ($rIsEdit && !empty($rGroup['require_2fa'])) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="require_2fa"><?= $language::get('require_2fa'); ?></label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="tab-pane fade" id="tab-packages" role="tabpanel">
                     <div class="d-flex justify-content-end mb-4">

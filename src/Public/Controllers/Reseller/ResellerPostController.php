@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
+use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Localization\Translator;
 use XcVm\Domain\User\ResellerAPI;
@@ -10,7 +11,7 @@ use XcVm\Domain\User\ResellerAPI;
  * ResellerPostController — POST form handler for reseller panel.
  *
  * Migrated from reseller/post.php.
- * Handles: edit_profile, line, mag, enigma, ticket, user.
+ * Handles: edit_profile, twofactor, api_tokens, line, mag, enigma, ticket, user.
  *
  * Called via: POST post?action=line (or via submitForm/callbackForm JS).
  *
@@ -44,6 +45,11 @@ class ResellerPostController extends BaseResellerController {
 		$language = Translator::class;
 
 		switch ($rAction) {
+			case 'twofactor':
+				// The signed-in reseller's own second factor (Views/layouts/profile_2fa.php).
+				echo json_encode(TwoFactor::manage((int) ResellerAPI::$rUserInfo['id'], $rData));
+				exit();
+
 			case 'edit_profile':
 				$rReturn = ResellerAPI::editResellerProfile($rData);
 				setcookie('hue', $rData['hue'], time() + 315360000);

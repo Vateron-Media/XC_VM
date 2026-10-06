@@ -2083,6 +2083,22 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- --------------------------------------------------------
 
 --
+--
+-- Table structure for table `users_2fa`
+--
+
+CREATE TABLE IF NOT EXISTS `users_2fa` (
+  `user_id` int(11) NOT NULL,
+  `secret` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `recovery` text COLLATE utf8_unicode_ci,
+  `last_step` int(11) NOT NULL DEFAULT '0',
+  `created` int(11) DEFAULT NULL,
+  PRIMARY KEY (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users_credits_logs`
 --
 
@@ -2126,6 +2142,7 @@ CREATE TABLE IF NOT EXISTS `users_groups` (
   `minimum_username_length` int(16) DEFAULT '8',
   `minimum_password_length` int(16) DEFAULT '8',
   `allow_change_bouquets` tinyint(1) DEFAULT '0',
+  `require_2fa` tinyint(1) DEFAULT '0',
   `notice_html` mediumtext COLLATE utf8_unicode_ci,
   `subresellers` mediumtext COLLATE utf8_unicode_ci,
   PRIMARY KEY (`group_id`),

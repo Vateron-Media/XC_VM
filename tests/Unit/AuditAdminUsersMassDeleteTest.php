@@ -23,7 +23,7 @@ final class AuditAdminUsersMassDeleteTest extends TestCase {
 		}
 
 		$this->rDb = new TestDb();
-		foreach (['users', 'users_groups', 'users_packages', 'users_credits_logs', 'users_logs', 'tickets', 'tickets_replies', 'lines'] as $rTable) {
+		foreach (['users', 'users_2fa', 'api_tokens', 'users_groups', 'users_packages', 'users_credits_logs', 'users_logs', 'tickets', 'tickets_replies', 'lines'] as $rTable) {
 			$this->rDb->exec(InstallSchema::table($rTable));
 		}
 		$this->rDb->exec("INSERT INTO `users_groups` (`group_id`, `group_name`, `is_admin`, `is_reseller`, `allowed_pages`, `can_delete`, `subresellers`) VALUES"

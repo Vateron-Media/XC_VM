@@ -60,7 +60,7 @@ namespace {
 	\XcVm\Core\Localization\Translator::init($rIn['dir']);
 
 	$db = new \TestDb();
-	foreach (['users', 'users_groups', 'users_packages'] as $rTable) {
+	foreach (['users', 'users_2fa', 'users_groups', 'users_packages'] as $rTable) {
 		$db->exec(\XcVm\Tests\Support\InstallSchema::table($rTable));
 	}
 	$db->exec("INSERT INTO `users_groups` (`group_id`, `group_name`, `is_admin`, `is_reseller`, `allowed_pages`, `can_delete`, `subresellers`, `create_sub_resellers`, `delete_users`) VALUES"

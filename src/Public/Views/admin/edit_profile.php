@@ -90,6 +90,8 @@ foreach (AuthRepository::getAllCodes() as $rCode) {
     </div>
 </div>
 
+<?php require MAIN_HOME . 'Public/Views/layouts/profile_2fa.php'; ?>
+
 <?php
 LayoutRenderer::renderFooter('admin');
 ?>

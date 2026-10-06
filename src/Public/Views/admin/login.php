@@ -2,6 +2,7 @@
 
 use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Auth\AuthRepository;
+use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\NetworkUtils;
@@ -41,30 +42,41 @@ if (!isset($_SESSION['hash'])) {
         exit();
     }
 
-    if (!RequestManager::has('login')) {
-    } else {
+    // Where a completed sign-in goes: the access codes page on the setup code,
+    // else the page the sign-in was asked from.
+    $rContinue = AuthRepository::getCurrentCode() == 'setup' ? 'codes' : AdminHelpers::loginRedirectTarget(RequestManager::get('referrer'));
+    $rReferrer = (string) (RequestManager::get('referrer') ?? '');
+    $rTwoFactorStatus = null;
+    $rRecovery = null;
+
+    if (RequestManager::has('cancel_2fa')) {
+        TwoFactor::cancel();
+    }
+
+    if (RequestManager::has('verify_2fa')) {
+        // The second step of a sign-in its password started (TwoFactor::hold()).
+        $rConfirm = TwoFactor::confirm('admin', (string) RequestManager::get('twofactor_code'));
+        if ($rConfirm['status'] != STATUS_SUCCESS) {
+            $rTwoFactorStatus = $rConfirm['status'];
+        } elseif (!empty($rConfirm['recovery'])) {
+            // A first setup: its recovery codes are shown once, below.
+            $rRecovery = $rConfirm['recovery'];
+        } else {
+            header('Location: ' . $rContinue);
+
+            exit();
+        }
+    } elseif (RequestManager::has('login')) {
         $rReturn = Authenticator::login(RequestManager::getAll(), $rBypassRecaptcha);
         $_STATUS = $rReturn['status'];
 
-        if ($_STATUS != STATUS_SUCCESS) {
-        } else {
-            if (AuthRepository::getCurrentCode() == 'setup') {
-                header('Location: codes');
-
-                exit();
-            }
-
-            if (0 < strlen((string) RequestManager::get('referrer'))) {
-                header('Location: ' . AdminHelpers::loginRedirectTarget(RequestManager::get('referrer')));
-
-                exit();
-            }
-
-            header('Location: dashboard');
+        if ($_STATUS == STATUS_SUCCESS) {
+            header('Location: ' . $rContinue);
 
             exit();
         }
     }
+    $rTwoFactor = $rRecovery === null ? TwoFactor::pending('admin') : null;
 
     // Bootstrap 5 (new-UI) login — XC_VM "Core Access" HUD: a full-bleed sci-fi
     // backdrop with a single angular, red-accented sign-in console in the centre.
@@ -127,6 +139,9 @@ if (!isset($_SESSION['hash'])) {
                         </div>
                     <?php endif; ?>
 
+                    <?php if ($rTwoFactor !== null || $rRecovery !== null): ?>
+                        <?php require MAIN_HOME . 'Public/Views/layouts/login_2fa.php'; ?>
+                    <?php else: ?>
                     <form id="loginForm" method="POST" action="./login">
                         <input type="hidden" name="referrer" value="<?= htmlspecialchars(RequestManager::get('referrer') ?? '', ENT_QUOTES) ?>">
 
@@ -177,6 +192,7 @@ if (!isset($_SESSION['hash'])) {
                             <span class="arrow">→</span>
                         </button>
                     </form>
+                    <?php endif; ?>
 
                     <span class="panel-divider" aria-hidden="true"></span>
 

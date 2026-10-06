@@ -4,6 +4,7 @@ use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Cluster\NodeActions;
@@ -1448,6 +1449,11 @@ if (1 < $rICount) { ?>
 				}
 
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
+				exit();
+
+			case 'twofactor':
+				// The signed-in admin's own second factor (Views/layouts/profile_2fa.php).
+				echo json_encode(TwoFactor::manage((int) $GLOBALS['rAdminUserInfo']['id'], $rData));
 				exit();
 
 			case 'edit_profile':

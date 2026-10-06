@@ -11,6 +11,7 @@
  * the list.
  */
 
+use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\User\GroupService;
 use XcVm\Domain\User\UserRepository;
@@ -118,6 +119,14 @@ $rReserved  = GroupService::reservedGroups();
                         <label class="form-label" for="notes"><?= $language::get('notes'); ?></label>
                         <textarea id="notes" name="notes" class="form-control" rows="3"><?= $rIsEdit ? htmlspecialchars((string) $rUser['notes'], ENT_QUOTES) : ''; ?></textarea>
                     </div>
+
+                    <?php if ($rIsEdit && TwoFactor::of((int) $rUser['id']) !== null): ?>
+                        <div class="form-check form-switch mt-6">
+                            <?php // For an account that lost its authenticator app and recovery codes. ?>
+                            <input class="form-check-input" type="checkbox" id="reset_2fa" name="reset_2fa" value="1">
+                            <label class="form-check-label" for="reset_2fa"><?= $language::get('twofactor_reset'); ?></label>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <?php if ($rIsEdit): ?>

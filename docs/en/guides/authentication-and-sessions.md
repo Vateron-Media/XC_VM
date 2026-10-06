@@ -18,7 +18,10 @@ POST request with credentials
   -> Access code / group validation
   -> Permission check (is_admin or is_reseller)
   -> User status check (enabled/disabled)
-  -> Password re-hash + session write + login log
+  -> Password re-hash + session write
+  -> Two-factor sign-in, when the account has it or its group requires it:
+     the session is held until a code (see Two-Factor Sign-In)
+  -> Login log
 ```
 
 ### Player Flow
@@ -93,6 +96,9 @@ Defined in `src/bootstrap.php` via `XC_Bootstrap::defineStatusConstants()`:
 | `STATUS_INVALID_CAPTCHA` | 12 | reCAPTCHA verification failed |
 | `STATUS_INVALID_CODE` | 13 | Access code / group mismatch |
 | `STATUS_NOT_RESELLER` | 35 | User lacks reseller permission |
+| `STATUS_2FA_REQUIRED` | 50 | Password accepted; the sign-in is held until a second-factor code |
+| `STATUS_2FA_INVALID` | 51 | Wrong second-factor code |
+| `STATUS_2FA_LOCKED` | 52 | Too many wrong codes for the account (10 in 15 minutes) |
 
 ### Password Hashing
 
@@ -109,6 +115,20 @@ Authenticator::checkPassword(string $password, string $storedHash): bool
 Verifies a plaintext password against a stored hash using `crypt($password, $storedHash)` with timing-safe comparison via `hash_equals()`. The stored hash contains the algorithm, rounds, and salt, so `crypt()` reproduces the correct hash for comparison.
 
 ---
+
+## Two-Factor Sign-In
+
+Admins and resellers can add a second factor to their password: a 6-digit code from an authenticator app (TOTP, RFC 6238: HMAC-SHA1, 30-second steps), or one of ten one-time recovery codes. `src/Core/Auth/Totp.php` computes the codes; `src/Core/Auth/TwoFactor.php` keeps the secrets and runs the sign-in step.
+
+- **Turning it on.** Each user turns it on from their own profile page (**Edit Profile → Two-factor sign-in**): the page shows a QR code and the key, drawn in the browser (`assets/vendor/libs/qrcode-generator`), and the first code from the app stores it. Ten recovery codes are then shown once. The same card makes new recovery codes or turns it off, each with a current code.
+- **Requiring it.** A group's **Require two-factor sign-in** switch (`users_groups.require_2fa`) makes it compulsory: a member without it sets it up at the next sign-in, between the password and the panel.
+- **Signing in.** `Authenticator::login()` and `resellerLogin()` call `TwoFactor::hold()` once the password is accepted. When the account has a second factor (or must set one up), the session keys the sign-in wrote are moved aside under `$_SESSION['2fa']` and the login answers `STATUS_2FA_REQUIRED`, so no page sees a signed-in session yet. The login page then asks for the code (`Views/layouts/login_2fa.php`); `TwoFactor::confirm()` puts the keys back on a good code, under a new session id. A held sign-in lasts 5 minutes and only from the address that started it.
+- **Each code once.** A TOTP code is taken one step either side of the current one, and `users_2fa.last_step` refuses any step at or before the last one used, so a code cannot be replayed. A recovery code is spent when used; only SHA-256 hashes of the recovery codes are stored.
+- **Wrong codes.** Every wrong code is recorded in `login_logs` as `INVALID_2FA`. Ten within 15 minutes lock the account's second step for the rest of that window, and they count toward the address's login flood limit like `INVALID_LOGIN`.
+- **Lost authenticator.** An admin turns it off for a user on the user's edit form (**Turn off two-factor sign-in**), or root runs `console.php tools twofactor <username>`. If the user's group requires it, the next sign-in sets it up again.
+- **Not covered.** The Admin and Reseller API keys and [API tokens](permissions-and-rbac.md#api-tokens) sign in without a second factor.
+
+The secrets are in `users_2fa` (`user_id`, `secret`, `recovery`, `last_step`, `created`; migration `075_add_two_factor.sql`), apart from the `users` rows that pages and APIs read whole. Deleting a user deletes its row.
 
 ## Player Authentication
 
@@ -399,10 +419,10 @@ VALUES($type, $codeId, $userId, $status, $ip, $timestamp);
 
 | Column | Description |
 | --- | --- |
-| `type` | `ADMIN` or `RESELLER` |
+| `type` | `ADMIN` or `RESELLER`; `PROFILE` for a wrong code given on a profile page |
 | `access_code` | ID of the current access code |
 | `user_id` | User ID (0 for invalid credentials) |
-| `status` | `SUCCESS`, `INVALID_LOGIN`, `INVALID_CODE`, `NOT_ADMIN`, `DISABLED` |
+| `status` | `SUCCESS`, `INVALID_LOGIN`, `INVALID_CODE`, `NOT_ADMIN`, `DISABLED`, `INVALID_2FA` |
 | `login_ip` | Client IP address |
 | `date` | Unix timestamp |
 
@@ -410,7 +430,7 @@ Player logins do not write to `login_logs`.
 
 ### Login Flood Limit
 
-The admin and reseller login pages call `Authenticator::loginFloodExceeded($ip, $rSettings['login_flood'])` before processing a login. When an address has `login_flood` or more `INVALID_LOGIN` rows dated within the last 24 hours, it is added to the blocklist (`LOGIN FLOOD ATTACK`) and the request ends. A `login_flood` of 0 turns the limit off. **Quick Tools → Clear login flood** deletes the counted rows.
+The admin and reseller login pages call `Authenticator::loginFloodExceeded($ip, $rSettings['login_flood'])` before processing a login. When an address has `login_flood` or more `INVALID_LOGIN` and `INVALID_2FA` rows dated within the last 24 hours, it is added to the blocklist (`LOGIN FLOOD ATTACK`) and the request ends. A `login_flood` of 0 turns the limit off. **Quick Tools → Clear login flood** deletes the counted rows.
 
 `date` is a Unix timestamp, so the window is `date >= time() - 86400`. The pages used to filter it with `TIME_TO_SEC(TIMEDIFF(NOW(), date))`, which is NULL for an integer column, so no address was ever blocked.
 
@@ -446,6 +466,8 @@ A page's rule is looked up under its underscore name, whichever way the URL spel
 | File | Purpose |
 | --- | --- |
 | `src/Core/Auth/Authenticator.php` | Admin and reseller login logic, password hashing |
+| `src/Core/Auth/TwoFactor.php`, `src/Core/Auth/Totp.php` | Two-factor sign-in: held sign-ins, codes, recovery codes |
+| `src/Public/Views/layouts/login_2fa.php`, `src/Public/Views/layouts/profile_2fa.php` | The sign-in code step and the profile card |
 | `src/Core/Auth/SessionManager.php` | Unified session API with context key mapping |
 | `src/Core/Auth/BruteforceGuard.php` | Rate-limiting and brute-force protection |
 | `src/Core/Auth/Authorization.php` | Object-level authorization checks |

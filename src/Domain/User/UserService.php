@@ -4,6 +4,7 @@ namespace XcVm\Domain\User;
 
 use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Validation\InputValidator;
@@ -255,6 +256,11 @@ class UserService {
 					if ($db->query($rQuery, ...$rPrepare['data'])) {
 						$rInsertID = (isset($rUser) ? $rUser['id'] : $db->last_insert_id());
 
+						// The second factor of an account that lost it, turned off by an admin.
+						if (isset($rUser) && !empty($rData['reset_2fa'])) {
+							TwoFactor::disable((int) $rInsertID);
+						}
+
 						// The log holds the adjustments that were made.
 						if (isset($rCreditsAdjustment) && UserCredits::credit($rInsertID, $rCreditsAdjustment)) {
 							$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rInsertID, $GLOBALS['rAdminUserInfo']['id'], $rCreditsAdjustment, time(), $rReason);
@@ -373,6 +379,7 @@ class UserService {
 		}
 
 		$db->query('DELETE FROM `users` WHERE `id` = ?;', $rID);
+		$db->query('DELETE FROM `users_2fa` WHERE `user_id` = ?;', $rID);
 		$db->query('DELETE FROM `users_credits_logs` WHERE `admin_id` = ?;', $rID);
 		$db->query('DELETE FROM `users_logs` WHERE `owner` = ?;', $rID);
 		$db->query('DELETE FROM `tickets_replies` WHERE `ticket_id` IN (SELECT `id` FROM `tickets` WHERE `member_id` = ?);', $rID);
@@ -422,6 +429,7 @@ class UserService {
 		}
 
 		$db->query('DELETE FROM `users` WHERE `id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `users_2fa` WHERE `user_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `users_credits_logs` WHERE `admin_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `users_logs` WHERE `owner` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `tickets_replies` WHERE `ticket_id` IN (SELECT `id` FROM `tickets` WHERE `member_id` IN (' . implode(',', $rIDs) . '));');

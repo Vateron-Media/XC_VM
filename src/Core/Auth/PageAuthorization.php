@@ -476,7 +476,8 @@ class PageAuthorization {
 			return self::checkPermissions('mass_delete', $rIsEdit, false);
 		}
 
-		$rPage = ['import_tmdb_categories' => 'stream_categories'][$rAction] ?? $rAction;
+		// twofactor and api_tokens are the administrator's own, part of the profile.
+		$rPage = ['import_tmdb_categories' => 'stream_categories', 'twofactor' => 'edit_profile', 'api_tokens' => 'edit_profile'][$rAction] ?? $rAction;
 		if ($rPage === '' || $rPage === 'edit_profile') {
 			return $rPage === 'edit_profile';
 		}

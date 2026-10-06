@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Reseller;
 
 use XcVm\Core\Auth\Authenticator;
+use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
@@ -52,17 +53,37 @@ class ResellerLoginController {
 			exit();
 		}
 
-		// Process login POST
+		// Process login POST; a sign-in held for its second factor (TwoFactor)
+		// takes its code here too.
 		$_STATUS = null;
-		if (RequestManager::has('login')) {
+		$rContinue = AdminHelpers::loginRedirectTarget(RequestManager::get('referrer'));
+		$rReferrer = (string) (RequestManager::get('referrer') ?? '');
+		$rTwoFactorStatus = null;
+		$rRecovery = null;
+		if (RequestManager::has('cancel_2fa')) {
+			TwoFactor::cancel();
+		}
+		if (RequestManager::has('verify_2fa')) {
+			$rConfirm = TwoFactor::confirm('reseller', (string) RequestManager::get('twofactor_code'));
+			if ($rConfirm['status'] !== STATUS_SUCCESS) {
+				$rTwoFactorStatus = $rConfirm['status'];
+			} elseif (!empty($rConfirm['recovery'])) {
+				$rRecovery = $rConfirm['recovery'];
+			} else {
+				header('Location: ' . $rContinue);
+				exit();
+			}
+		} elseif (RequestManager::has('login')) {
 			$rReturn = ResellerAPI::processLogin(RequestManager::getAll());
 			$_STATUS = $rReturn['status'];
 
 			if ($_STATUS === STATUS_SUCCESS) {
-				header('Location: ' . AdminHelpers::loginRedirectTarget(RequestManager::get('referrer')));
+				header('Location: ' . $rContinue);
 				exit();
 			}
 		}
+		// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- consumed by required view reseller/login.php
+		$rTwoFactor = $rRecovery === null ? TwoFactor::pending('reseller') : null;
 
 		// Render login view
 		$__viewFile = MAIN_HOME . 'Public/Views/reseller/login.php';
