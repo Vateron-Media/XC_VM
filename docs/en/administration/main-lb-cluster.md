@@ -283,7 +283,7 @@ The buttons:
 | --- | --- |
 | **Rotate token** / **Rotate all tokens now** | Issues a new token, for example if you think one leaked. The LB keeps working |
 | **Fence** / **Unfence** | Stops new viewers on that LB at once, and drops the rest after a short drain. Unfence puts it back on air |
-| **Quarantine** / **Trust again** | Freezes the LB's trust: it keeps serving but takes no new instructions. MAIN also does this by itself if it suspects a cloned server |
+| **Quarantine** / **Trust again** | Freezes the LB's trust: it keeps serving but takes no new instructions. MAIN also does this by itself if it suspects a cloned server. Commands queued for it that grant something are ended by the quarantine (the page says how many, the audit log names them): after *Trust again*, send again what is still wanted |
 | **Resync** | The LB fetches its copy of the configuration and its viewer list again from scratch |
 | **Revoke** | Removes the LB from the cluster. Its tokens stop working at once; it must join again |
 | **Mode up** / **Mode down** | Moves the LB between modes 0, 1 and 2 |

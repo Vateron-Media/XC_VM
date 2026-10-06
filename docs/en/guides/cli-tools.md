@@ -123,7 +123,7 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:lines_logs` | `LinesLogsCronJob` | Import client request logs into DB |
 | `cron:maxmind` | `MaxMindCronJob` | Update MaxMind GeoIP databases (Tuesdays only; `--force` to run manually) |
 | `cron:providers` | `ProvidersCronJob` | Update providers (optional) |
-| `cron:root_mysql` | `RootMysqlCronJob` | Collect MariaDB's log lines into System Logs (root, optional). It no longer blocks addresses for refused MySQL logins; blocks it made earlier stay until removed. |
+| `cron:root_mysql` | `RootMysqlCronJob` | Collect MariaDB's log lines (notes, warnings and `[ERROR]` lines) into System Logs (root, optional); `cron:cleanup` prunes them by *Keep Logs For* of System Logs (`keep_syslog`, 0 keeps them). It no longer blocks addresses for refused MySQL logins; blocks it made earlier stay until removed. |
 | `cron:root_signals` | `RootSignalsCronJob` | Process signals, iptables, nginx, service management, and **binary self-heal** (root) |
 | `cron:series` | `SeriesCronJob` | Update series data (optional) |
 | `cron:servers` | `ServersCronJob` | Monitor server, launch daemons, update statistics |

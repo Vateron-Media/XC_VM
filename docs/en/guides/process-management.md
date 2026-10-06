@@ -118,9 +118,9 @@ At the end of a pass `cron:streams` kills two kinds of process that no stream of
 ## Cron Locking
 
 ```php
-ProcessManager::acquireCronLock(string $pidFile): bool
+ProcessManager::acquireCronLock(string $pidFile, int $rLimit = 0): bool
 ProcessManager::cronLockHolder(string $pidFile, bool $pinned = false)
-ProcessManager::exitIfCronLockHeld(string $pidFile)
+ProcessManager::exitIfCronLockHeld(string $pidFile, int $rLimit = 0)
 ```
 
 Behavior:
@@ -128,7 +128,8 @@ Behavior:
 - A held lock makes the run exit with `Running...`.
 - The lock file holds `pid starttime` and is held for as long as that very process lives, however long it runs.
 - A lock whose process is gone, whose pid now belongs to another process, or whose process has ended and only waits to be collected by its parent, is taken at once.
-- Nothing in the lock code ever ends a process. A hung cron holds its lock until it is killed (`sudo kill -9 <pid>`); the next cron minute then takes over.
+- Without a limit nothing in the lock code ends a process: a hung cron holds its lock until it is killed (`sudo kill -9 <pid>`), and the next cron minute then takes over.
+- `cron:servers` and `cron:streams` pass a limit of 600 seconds (`initCron($title, 600)`): the first run that finds the holder older than that (by the process's own start time) ends it, SIGTERM then SIGKILL, and takes its place, with one Panel Logs line. Only the very process the lock names by pid and start time is signalled, so a pid the system has given to another process is never touched. A hang of either would stop a node's watchdog chain or its stream supervision.
 - A pid-only lock written by 2.6.x is honoured for 30 minutes and swept after 10, as before.
 - Once a cron has held its lock for an hour, the next run that finds it writes one Panel Logs line, `has held its cron lock since …`. It is written as the owner of the logs directory when the run is root (`SettingsAudit::asAgentUser`), and to the cron's stderr when root cannot switch to that owner.
 

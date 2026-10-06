@@ -29,7 +29,7 @@ Credits are the currency for all reseller operations. Each action has a cost, an
 
 The price is taken from the balance as it is stored at that moment, before the line, device, sub-reseller or code batch is created. Two requests sent together cannot spend the same credits: the one the balance no longer covers is answered `STATUS_INSUFFICIENT_CREDITS` (a code batch is refused with an *Insufficient balance* message) and creates nothing. When the record cannot be stored after all, the price is returned to the balance.
 
-Prices of lines, MAG devices, Enigma2 devices, sub-resellers and activation codes are charged as they are stored, with their fraction, at the four decimals a balance is kept at (a price of 0.5 costs 0.5, 10.9 costs 10.9). The refusal for an insufficient balance, the cost and balance in the reseller log, and the price the REST API lists all go by that charge. Credit transfers move whole credits (see [Credit transfer](#credit-transfer)).
+Prices of lines, MAG devices, Enigma2 devices, sub-resellers and activation codes are charged as they are stored, with their fraction, at the four decimals a balance is kept at (a price of 0.5 costs 0.5, 10.9 costs 10.9). The refusal for an insufficient balance, the cost and balance in the reseller log, and the price the REST API lists all go by that charge. Credit transfers move whole credits (see [Credit transfer](#credit-transfer)). Balances, prices, the credits log and activation codes' purchase cost are stored as `DECIMAL(16,4)` (migration `070`; they were FLOAT, exact for whole credits only up to 16,777,216); a whole amount is shown and answered as the integer it always was.
 
 ### Credit costs
 
@@ -143,7 +143,7 @@ In these cases the request is saved unpaired, without an error.
 A reseller generates activation codes from a line package offered to its group that has *Standard Package* or *Trial Package* on. Each code has a companion line.
 
 - *Standard Package* on gives official codes at the official price; *Trial Package* alone gives trial codes at the trial price. With both on, the codes are official unless the request asks for trial codes with `is_trial` (on the form the package is listed twice, the second entry tagged *[Trial]* at the trial price). Trial codes come out of the trial allowance; the trial entry is greyed out without one. Asking for trial codes from a package without *Trial Package* is refused (*Invalid package selected.*).
-- An administrator issues codes from any package; an administrator's codes on a package with *Trial Package* on are trial codes.
+- An administrator issues codes from any package; an administrator's codes on a package with *Trial Package* on are trial codes. Through the admin API, `is_trial` is read as a switch as for resellers (`false`, `off`, `no` ask for official codes).
 
 - The companion line is created switched off and starts (expiry set, switched on) when the code is redeemed. The credentials and M3U links shown for a code still in stock work only after redemption.
 - Enabling or editing a code in stock does not switch its line on. A redeemed code whose line an administrator set to no expiry is switched on by enabling the code.

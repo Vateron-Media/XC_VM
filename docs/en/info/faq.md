@@ -325,7 +325,7 @@ sudo -u xc_vm /home/xc_vm/console.php update update
 
 ---
 
-A cron runs once at a time on each server: while one run holds its lock, the next ones exit. The line appears once a cron has run for an hour. It is harmless for a long backup, clean-up or TMDb scan. If the cron is hung (no progress, usually after a database or network interruption on a node), end it with `sudo kill -9 <pid>` (the PID is in the line); the next cron minute takes over. Nothing else ends it, and that cron does not run on that server meanwhile.
+A cron runs once at a time on each server: while one run holds its lock, the next ones exit. The line appears once a cron has run for an hour. It is harmless for a long backup, clean-up or TMDb scan. If the cron is hung (no progress, usually after a database or network interruption on a node), end it with `sudo kill -9 <pid>` (the PID is in the line); the next cron minute takes over. Nothing else ends it, and that cron does not run on that server meanwhile. `cron:servers` and `cron:streams` are the exception: a run of either that lasts more than ten minutes is ended by the next one, and Panel Logs says so.
 
 ---
 

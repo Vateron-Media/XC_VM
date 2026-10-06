@@ -3745,6 +3745,7 @@ request, and the cutover's last steps — rotating what legacy nodes sent in cle
   restrictive types and skips its replica sync until a reply says `active`. **Superseded** in part by
   [Mode 2 after the move, and the credential strip](#mode-2-after-the-move-and-the-credential-strip-2026-10-05) (2026-10-05):
   a granting command the node's high-water has passed is not handed out after *Trust again*.
+  **Superseded** by [design 3](#three-designs-for-approval-the-line-a-node-names-the-updating-status-commands-across-a-quarantine-2026-10-06) (built 2026-10-06): a quarantine ends every granting command still queued or handed out, and names them in the audit; none is handed out after *Trust again*.
 - **The licence fence is queued by the cron**, not where the refusal is written: that path runs
   before anything is authenticated and changes no state. It rides the sealed `LICENCE_INVALID` with
   the other kills; the agent takes a `licence` fence only from a refused session and lifts it itself
@@ -5708,7 +5709,7 @@ passes `findByUuid` its Range fallback, and what a quarantine leaves queued.
 
 ### Three designs for approval: the line a node names, the updating status, commands across a quarantine (2026-10-06)
 
-**Status.** Proposed. Nothing here is built, and no earlier statement of this record changes until
+**Status.** Designs 2 (option A) and 3 (option c) approved and built; 1 proposed. Nothing else here is built, and no earlier statement of this record changes until
 the maintainer approves a design or changes it. The three subjects are the last three entries
 under **Not built** in the section above. File and line are those of the tree on this date: the
 panel under `src/`, the agent in XC_VM_Fanout 0.14.0 under `internal/clusteragent/`.
@@ -5959,6 +5960,20 @@ bus:
 for good, and every case it does not cover is as today. B is the cleaner model, and can follow
 when the agent's heartbeat next changes.
 
+*Approved and built: A (2026-10-06).* The maintainer's answer to question 2: a node that said
+it was updating and still sends heartbeats a minute later is taken back into routing by
+itself. Built on MAIN's panel alone, with no migration (`cluster_meta` exists since 029):
+- `EventIngest::nodeStatus()` writes the note `updating.<server id>` (`updated_at` by MAIN's
+  clock) in the batch's transaction when it takes a 5, as one `INSERT … ON DUPLICATE KEY
+  UPDATE`, and deletes it when it takes a 1. One statement each, so two nodes reporting at
+  once do not deadlock on the gap's lock.
+- `HeartbeatService::record()` (direct path) and `flushNode()` (cluster bus) add
+  `NOT_HELD` to their `servers.status = 1`: a row at 5 whose note is younger than
+  `HeartbeatService::UPDATING_HOLD_SEC` (60) and not ahead of MAIN's clock is left alone. The
+  flush keeps its `gen` guard.
+- `NodeStateSink`, `UpdateCommand`, `ServerRepository` and the agent are unchanged.
+- Tests: `AuditCluster2UpdatingHoldTest` (the cases listed above, direct path and bus).
+
 **3. Granting commands across a quarantine.**
 
 *Today.*
@@ -6036,6 +6051,15 @@ command decided before it should be decided again after it, not replayed. It is 
 option with no order to get wrong and no release to wait for. When it is built, "the rest stays
 queued for *Trust again*" (Phase 9, fifth increment) is superseded by this section.
 
+*Approved and built: c (2026-10-06).* The maintainer's answer to question 3: "ended at the
+quarantine, named in the audit, sent again by the operator" is the rule. `CommandBus::endGranting()`
+sets `exp` to now on every granting command (class other than R) of the node that is queued or
+handed out and not acked, as the quarantine is set (`ClusterRoute::quarantine()`, the admin's and
+MAIN's own). Its artefact grant ends with it; an ack is still taken until the prune. The quarantine's
+audit line carries `ended` and each command (`type`, `action`, `cmd_id`, `handed_out`), and the
+page says how many were ended (`cluster_quarantine_ended`). Restrictive commands keep their life.
+No migration and no agent change; `TestInteropFence` passes unchanged.
+
 **For the maintainer.**
 - **1.** In the second stage, may MAIN refuse a record that carries no valid proof and have the
   node's registry drop it, or is such a record only ever counted and audited?
@@ -6044,5 +6068,5 @@ queued for *Trust again*" (Phase 9, fifth increment) is superseded by this secti
 - **3.** After *Trust again*, is "ended at the quarantine, named in the audit, sent again by
   the operator" the rule, or must what was queued before still run?
 
-**Not built.** All of the above. The three are independent. 3 and 2 change MAIN's panel alone.
+**Not built.** 1 (2 and 3 are built, above). The three are independent. 3 and 2 change MAIN's panel alone.
 1 needs the panel release on every node, and one field in the agent, before its second stage.

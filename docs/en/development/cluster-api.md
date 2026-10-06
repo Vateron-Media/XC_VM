@@ -408,12 +408,17 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
   — is Phase 9's.
 - A node's `whitelist_ips` is the admin's: a node no longer publishes its own addresses,
   because that column grants the legacy `/api` allowlist.
-- A command queued for a node before it was quarantined may never reach it. A quarantined
-  node is handed only the commands that restrict it (kills, stops, a fence, the
-  quarantine itself), and it asks only for commands above the highest `seq` it has run. A
-  command that waited below that `seq` is not handed out after *Trust again*: it expires
-  unsent, and the operator sends the action again.
-- A node's heartbeat sets `servers.status` to 1, whatever it was: at once, or with the next
-  flush of the heartbeats the cluster bus holds (every 5 s). The status 5 a node reports as
-  it starts an update, and an install state MAIN set (3 or 4), last only until the node's
-  agent is next heard.
+- A quarantine ends every command queued for the node that grants something (handed out
+  or not, not yet acked): MAIN no longer knows who holds the node's keys, so what was
+  decided before is decided again after *Trust again*, not replayed. The quarantine's audit
+  line names each ended command, and the page says how many; the operator sends again what
+  is still wanted. A quarantined node is handed only the commands that restrict it (kills,
+  stops, a fence, the quarantine itself).
+- A node's heartbeat sets `servers.status` to 1: at once, or with the next flush of the
+  heartbeats the cluster bus holds (every 5 s). The status 5 (updating) a node reports
+  through its `node.state` event holds against its heartbeats for 60 seconds after MAIN took
+  it (`cluster_meta`, `updating.<server id>`), so the node stays out of routing while its
+  update stops the service. Its "back" (1) ends the hold at once. A node that still sends
+  heartbeats after the 60 seconds is taken back into routing by itself. A 5 a node wrote to
+  its own row (TELEMETRY off), and an install state MAIN set (3 or 4), last only until the
+  node's agent is next heard.

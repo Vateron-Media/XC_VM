@@ -361,7 +361,7 @@ No panel script reads the session cookie, so `HttpOnly` costs nothing and keeps 
 
 A panel sign-in and a player sign-in in one browser are two sessions: a player request neither reads nor writes the panel's session, and the reverse. Signing out of the player ends the player's session only. A session from before the player had its own cookie is not carried over: viewers sign in to the player once after the update.
 
-The player's `GET` routes that change something, reachable from a link on another site while a viewer is signed in: `logout` (both players) signs the viewer out; `refresh` (second player) rebuilds the line's cache files; `profile` (first player) with `bouquet_order` reorders the line's own bouquets (it adds none).
+The players' actions that change something run only on a `POST`, which a browser does not send with the player's cookie from another site: `logout` (both players; a `GET` leads to the home page), `refresh` (second player; `GET` is not routed) and the bouquet order of `profile` (first player; a `GET` only shows the page). The players' own links and scripts send `POST`.
 
 ### Verify Hash
 
