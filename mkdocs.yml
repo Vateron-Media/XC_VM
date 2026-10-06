@@ -99,6 +99,7 @@ plugins:
             Update Mechanism: Механизм обновлений
             Reseller System: Система реселлеров
             Backup Strategy: Стратегия резервного копирования
+            Operations: Эксплуатация
             API Reference: Справочник API
             Interactive API (Swagger): Интерактивный API (Swagger)
             Customization: Кастомизация
@@ -164,6 +165,7 @@ nav:
           - Update Mechanism: en/administration/update-system.md
           - Reseller System: en/administration/reseller-system.md
           - Backup Strategy: en/administration/backup-strategy.md
+          - Operations: en/administration/operations.md
       - API Reference:
           - Interactive API (Swagger): en/api/swagger.md
       - Customization:
