@@ -144,6 +144,14 @@ class PortalHandler {
 
 		switch ($rReqAction) {
 			case "get_profile":
+				// A get_profile that does not verify the device is a failed attempt. The
+				// guard keeps what it counts as JSON keys: it gets a digest of the MAC,
+				// whatever bytes the request carried.
+				if (!$ctx["authenticated"]) {
+					BruteforceGuard::checkBruteforce($ctx["ip"], is_string($ctx["mac"]) ? md5($ctx["mac"]) : null);
+					BruteforceGuard::checkFlood();
+				}
+
 				$rTotal = $ctx["authenticated"]
 					? array_merge($ctx["profile"], $ctx["device"]["get_profile_vars"])
 					: $ctx["profile"];
@@ -1457,10 +1465,17 @@ class PortalHandler {
 				if (!empty($rRequest["id"])) {
 					$rID = $rRequest["id"];
 					$rStreamID = substr($rID, 0, strpos($rID, "_"));
-					$rDate = strtotime(substr($rID, strpos($rID, "_") + 1));
-					$rRow = getepg($rStreamID, $rDate, $rDate + 86400)[0] ?: null;
+					// The id is an EPG item's real_id, "<stream>_<start of the programme on
+					// screen>": the next part is the first programme that starts after it.
+					$rDate = intval(substr($rID, strpos($rID, "_") + 1));
+					$rRow = null;
+					foreach (getepg($rStreamID, $rDate, $rDate + 86400) as $rProgramme) {
+						if (0 < $rDate && $rDate < $rProgramme["start"]) {
+							$rRow = $rProgramme;
+							break;
+						}
+					}
 					if ($rRow) {
-						$rRow = $db->get_row();
 						$rProgramStart = $rRow["start"];
 						$rDuration = intval(($rRow["end"] - $rRow["start"]) / 60);
 						$rTitle = $rRow["title"];
@@ -1483,6 +1498,8 @@ class PortalHandler {
 							OPENSSL_EXTRA,
 							!empty($rSettings["secure_stream_tokens"]),
 						);
+						// The box decodes the title as a URL component, and asks for the part
+						// after this one with the real_id it reads here.
 						$rURL =
 							($rSettings["mag_disable_ssl"]
 								? $rServers[SERVER_ID]["http_url"]
@@ -1490,7 +1507,11 @@ class PortalHandler {
 							"play/" .
 							$rToken .
 							"?&osd_title=" .
-							$rTitle;
+							rawurlencode($rTitle) .
+							"&real_id=" .
+							intval($rStreamID) .
+							"_" .
+							$rProgramStart;
 						if ($rSettings["mag_keep_extension"]) {
 							$rURL .= "&ext=.ts";
 						}
@@ -1807,17 +1828,12 @@ class PortalHandler {
 
 	/**
 	 * Phase 6: Unauthenticated fallthrough handler.
-	 * If not authenticated and action is stb/get_profile, performs bruteforce check.
-	 * Then exits.
+	 * Exits: stb/get_profile, the request the bruteforce check counts, is answered
+	 * in handleStbPublic() and never gets here.
 	 *
 	 * @param array  &$ctx Context array
 	 */
 	public static function handleUnauthenticated(string $rReqType, string $rReqAction, array &$ctx) {
-		if ($rReqType == "stb" && $rReqAction == "get_profile") {
-			BruteforceGuard::checkBruteforce($ctx["ip"], $ctx["mac"]);
-			BruteforceGuard::checkFlood();
-		}
-
 		exit();
 	}
 
@@ -1827,7 +1843,7 @@ class PortalHandler {
 	 *
 	 */
 	public static function handleHandshake(string $rMAC) {
-		global $db, $rSettings, $rDevice;
+		global $db, $rSettings, $rDevice, $rIP;
 
 		$rDevice = getdevice(null, $rMAC);
 		$rVerifyToken = null;
@@ -1850,6 +1866,30 @@ class PortalHandler {
 			updatecache();
 		} else {
 			$rDevice = [];
+			// getDevice() answers a MAC the panel does not have and a lookup that failed
+			// alike, and a failed lookup says nothing about the device. The MAC is
+			// unknown once the database has said so: until then nothing is counted and
+			// no token goes out.
+			if (!$db->query("SELECT `mag_id` FROM `mag_devices` WHERE `mac` = ? LIMIT 1", $rMAC) || 0 < $db->num_rows()) {
+				http_response_code(503);
+				exit();
+			}
+			// An unknown MAC is a failed attempt (counted by its digest, as in
+			// get_profile). It is answered as a registered one is: with a token of the
+			// same form. Its number is derived from the MAC as sent, so the token is as
+			// long each time and as long as a device's, and starts with 0, so it is no
+			// device's number.
+			BruteforceGuard::checkBruteforce($rIP, md5($rMAC));
+			BruteforceGuard::checkFlood();
+			$db->query("SELECT MAX(`mag_id`) AS `last` FROM `mag_devices`");
+			$rLastID = max(1, intval($db->get_row()["last"]));
+			$rNumber = 1 + hexdec(substr(hash_hmac("sha256", $rMAC, (string) $rSettings["live_streaming_pass"]), 0, 8)) % $rLastID;
+			$rVerifyToken = Encryption::mintToken(
+				igbinary_serialize(["id" => "0" . substr((string) $rNumber, 1), "token" => strtoupper(md5(uniqid((string) rand(), true)))]),
+				$rSettings["live_streaming_pass"],
+				OPENSSL_EXTRA,
+				!empty($rSettings["secure_stream_tokens"]),
+			);
 		}
 
 		exit(json_encode(["js" => ["token" => $rVerifyToken]]));
