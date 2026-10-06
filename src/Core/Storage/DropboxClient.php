@@ -620,7 +620,7 @@ class DropboxClient {
 	 */
 	private function createCurl(string $url, array $http_context) {
 		$ch = curl_init($url);
-		$curl_opts = [CURLOPT_HEADER => false, CURLOPT_RETURNTRANSFER => true, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_BINARYTRANSFER => true];
+		$curl_opts = [CURLOPT_HEADER => false, CURLOPT_RETURNTRANSFER => true, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_SSL_VERIFYHOST => 2, CURLOPT_BINARYTRANSFER => true];
 		$curl_opts[CURLOPT_CUSTOMREQUEST] = $http_context['method'];
 
 		if (!empty($http_context['content'])) {

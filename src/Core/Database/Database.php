@@ -277,19 +277,17 @@ class Database {
 			$this->result = $this->dbh->prepare($query);
 			$this->result->execute($next_arg_list);
 		} catch (\Exception $e) {
-			$rDebugParts = explode('Sent SQL:', $this->debugString($this->result));
-			$actual_query = isset($rDebugParts[1]) ? trim(explode("\n", $rDebugParts[1])[0]) : '';
-
-			if (strlen($actual_query) == 0) {
-				$actual_query = $query;
-			}
-
 			// Keep the raw driver message so callers can surface the real cause
 			// of a failed write (e.g. LINE_CREATE_FAIL) even when FileLogger's
 			// noise filter drops the 'pdo' entry (duplicate entry / timeouts).
 			$this->lastError = $e->getMessage();
 
-			FileLogger::log('pdo', $e->getMessage(), $actual_query, $e->getLine());
+			// The statement with its placeholders: bound values stay out of the log.
+			// So does what the server quotes of them in its message ("Incorrect
+			// integer value: 'x'", a syntax error's "near '... 'x''"): masked up to
+			// the last quote, as a quote inside the value is not escaped there.
+			// error() keeps the message whole for the caller.
+			FileLogger::log('pdo', (string) preg_replace("/\\b(value: |near )'.*'/s", "$1'?'", $e->getMessage()), $query, $e->getLine());
 
 			return false;
 		} finally {
