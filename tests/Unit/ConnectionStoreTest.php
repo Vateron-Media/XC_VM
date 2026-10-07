@@ -228,6 +228,13 @@ final class ConnectionStoreTest extends TestCase {
 			// The player comes back: a new connection under its playlist key.
 			$this->assertTrue(ConnectionIngest::upsert(5, ['date_start' => 1800000020, 'hls_last_read' => 1800000020] + $rRec));
 			$this->assertSame(1800000020, (int) $this->row('tttt')['date_start']);
+			// MAIN closes that one too; an upsert of either connection still on its way opens neither.
+			ClusterRoute::tombstone(5, 'tttt', 1800000020);
+			$this->rDb->query("DELETE FROM `lines_live` WHERE `uuid` = 'tttt'");
+			$this->assertTrue(ConnectionIngest::upsert(5, ['hls_last_read' => 1800000015] + $rRec));
+			$this->assertNull($this->row('tttt'), 'the first connection stays closed');
+			$this->assertTrue(ConnectionIngest::upsert(5, ['date_start' => 1800000020, 'hls_last_read' => 1800000025] + $rRec));
+			$this->assertNull($this->row('tttt'), 'and so does the second');
 		} finally {
 			ClusterBus::useSocket(null);
 			$rBus->stop();

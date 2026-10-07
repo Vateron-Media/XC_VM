@@ -217,35 +217,40 @@ final class ClusterBus {
 	/**
 	 * MAIN closed one of a node's viewers (a kick, a limit, its sweep): an
 	 * upsert of that same connection, its `date_start`, already on its way
-	 * from the node is not to open it again (ConnectionIngest). False without
-	 * the bus: the node's digest then corrects MAIN's store, as before.
+	 * from the node is not to open it again (ConnectionIngest). Each
+	 * connection closed under the uuid is kept (`tombs:<sid>:<uuid>`, a set,
+	 * for TOMB_TTL after the last close): a player that came back under the
+	 * same uuid and was closed again may still have the first one's upsert on
+	 * its way. False without the bus: the node's digest then corrects MAIN's
+	 * store, as before.
 	 */
 	public static function tomb(int $rServerID, string $rUUID, int $rDateStart): bool {
 		$rRedis = self::client();
 		if ($rRedis === null) {
 			return false;
 		}
+		$rKey = 'tombs:' . $rServerID . ':' . $rUUID;
 		try {
-			return (bool) $rRedis->set('tomb:' . $rServerID . ':' . $rUUID, (string) $rDateStart, ['ex' => self::TOMB_TTL]);
+			$rOut = $rRedis->multi()->sAdd($rKey, (string) $rDateStart)->expire($rKey, self::TOMB_TTL)->exec();
 		} catch (\Throwable) {
 			self::drop();
 			return false;
 		}
+		return is_array($rOut) && ($rOut[1] ?? false) === true;
 	}
 
-	/** The `date_start` of a node's viewer MAIN closed in the last TOMB_TTL, or null (none, or no bus). */
-	public static function tombOf(int $rServerID, string $rUUID): ?int {
+	/** Did MAIN close this connection of a node's (its uuid and `date_start`) in the last TOMB_TTL? False without the bus. */
+	public static function tombed(int $rServerID, string $rUUID, int $rDateStart): bool {
 		$rRedis = self::client();
 		if ($rRedis === null) {
-			return null;
+			return false;
 		}
 		try {
-			$rValue = $rRedis->get('tomb:' . $rServerID . ':' . $rUUID);
+			return (bool) $rRedis->sIsMember('tombs:' . $rServerID . ':' . $rUUID, (string) $rDateStart);
 		} catch (\Throwable) {
 			self::drop();
-			return null;
+			return false;
 		}
-		return is_string($rValue) && ctype_digit($rValue) ? (int) $rValue : null;
 	}
 
 	/**

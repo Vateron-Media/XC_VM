@@ -6150,10 +6150,12 @@ heard of a `mode_down` leaves it below mode 2 without credentials, and MAIN send
 
 **An upsert in flight after MAIN's close** (the *Known gap* of Phase 6's third increment). Before
 MAIN closes a viewer another node serves (`ConnectionTracker::closeConnection`,
-`ConnectionLimiter::closeConnection`), it keeps `tomb:<sid>:<uuid>` = its `date_start` on the
-cluster bus for an hour (`ClusterRoute::tombstone`). `ConnectionIngest::write` skips an upsert of
-that connection (same `uuid` and `date_start`); a reconnect is a new connection with a
-`date_start` of its own. Without the bus nothing is kept, and the node's digest corrects MAIN's
+`ConnectionLimiter::closeConnection`), it adds its `date_start` to `tombs:<sid>:<uuid>` on the
+cluster bus, a set kept for an hour after the last close (`ClusterRoute::tombstone`).
+`ConnectionIngest::write` skips an upsert of a connection in it (same `uuid` and `date_start`); a
+reconnect is a new connection with a `date_start` of its own. Every close under the uuid is kept,
+not only the last: a player that came back under the same uuid and was closed again may still
+have the first connection's upsert on its way. Without the bus nothing is kept, and the node's digest corrects MAIN's
 store as before.
 
 **A close's activity row on a resent batch** (the *Known gap* of `ConnectionIngestIdempotencyTest`).

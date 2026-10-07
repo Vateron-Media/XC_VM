@@ -152,7 +152,7 @@ final class ConnectionIngest {
 		// A viewer MAIN closed while this upsert was on its way (a kick, a limit,
 		// its sweep): the same connection is not opened again. A reconnect is a
 		// new connection, with a date_start of its own.
-		if (isset($rRecord['date_start']) && ClusterBus::tombOf($rServerID, $rUUID) === (int) $rRecord['date_start']) {
+		if (isset($rRecord['date_start']) && ClusterBus::tombed($rServerID, $rUUID, (int) $rRecord['date_start'])) {
 			return true;
 		}
 		$rRecord += ['user_id' => null, 'proxy_id' => null]; // the store reads both
