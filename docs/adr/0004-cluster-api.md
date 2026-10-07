@@ -5373,7 +5373,7 @@ The design is `docs/superpowers/specs/2026-10-01-per-node-viewer-keys-design.md`
 - **Then rotate the stream secret** (`cluster:rotate-stream-secret`, D20). MAIN itself still reads tokens under the shared secret, and a value taken from a node before lockdown keeps working on MAIN until the rotation.
 
 **Not built yet.**
-- **The RTMP and Ministra tokens** still use the shared secret. They are minted on MAIN and read on MAIN, or on a node that still holds the value.
+- **The RTMP and Ministra tokens** still use the shared secret, and only MAIN reads them (checked 2026-10-07). A Ministra link points to MAIN's `/play/` (`stream/auth.php`, which the load balancer build strips; a load balancer answers the portal with 404), which sends the viewer on with a token under the node's own key. A load balancer hands an RTMP viewer's token to MAIN with `rtmp_auth` ([RTMP viewers on a load balancer](#rtmp-viewers-on-a-load-balancer-2026-10-07)). No node needs the value for either.
 - **Legacy uses of the value on a node without it.**
   - The legacy-password fallback of `DataPlane::relayUrl` and `admin/live`'s password links, which only legacy children use; lockdown leaves none.
   - The recorder's fallback when its loopback token can't be issued.
