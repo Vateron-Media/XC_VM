@@ -321,6 +321,39 @@ PHP);
 		$this->assertGreaterThan(AgentConnections::TIMEOUT, AgentConnections::ADMIT_TIMEOUT);
 	}
 
+	/** This node in mode 2: its agent is the only store (NodeRole::refusesConnects()). */
+	private function modeTwo(): void {
+		file_put_contents($this->rDir . '/flows.json', json_encode(['mode' => 2, 'flows' => NodeFlows::COMMANDS | NodeFlows::STREAMS | NodeFlows::CONNECTIONS, 'state' => 'active']));
+		clearstatcache();
+		NodeRole::useMainBuild(false);
+	}
+
+	public function testInModeTwoALateAgentIsWaitedFor(): void {
+		// A one-core load balancer's agent took up to 1 s while the minute's
+		// crons started: past the hot path's 1 s, a node in mode 2 had no
+		// store to turn to and its viewer got an HTTP 500.
+		$this->agent([[200, (string) json_encode($this->record('h1')), 1300], [200, (string) json_encode($this->record('h1')), 1300]]);
+		$this->assertNull(AgentConnections::get('h1'), 'mode 1: MAIN\'s store stands in after 1 s');
+		$this->modeTwo();
+		$this->assertSame('h1', AgentConnections::get('h1')['uuid'] ?? null);
+	}
+
+	public function testInModeTwoAnAgentThatDoesNotAnswerLeavesNoOtherStoreAsked(): void {
+		// No agent listens, and there is no database: any other store would throw.
+		$this->modeTwo();
+		DatabaseFactory::reset();
+		$rSettings = ['redis_handler' => 0];
+		$rConnection = $this->record('k1');
+		$rCtx = ['uuid' => 'k1', 'is_hmac' => null, 'identifier' => null, 'user_id' => 42, 'server_id' => 5, 'stream_id' => 100, 'adaptive' => false];
+		$this->assertNull(ConnectionTracker::lookupLive($rSettings, $rCtx, 'ts', true, false, false));
+		$this->assertFalse(ConnectionTracker::updateLive($rSettings, $rConnection, ['pid' => 1]), 'the endpoint answers LINE_CREATE_FAIL');
+		$this->assertFalse(ConnectionTracker::openRecord($rSettings, $rConnection, ['uuid' => 'k1']));
+		$this->assertNull(ConnectionTracker::refusedAdmission(), 'not the agent\'s refusal');
+		$this->assertNull(ConnectionTracker::findByUuid($rSettings, 'k1', '`pid`'));
+		$this->assertNull(ConnectionTracker::acceptedIP($rSettings, 42));
+		$this->assertNull(ConnectionTracker::heartbeat($rSettings, 'k1', self::MAIN_NOW));
+	}
+
 	private function rows(): int {
 		$this->rDb->query('SELECT COUNT(*) AS `n` FROM `lines_live`');
 		return (int) $this->rDb->get_row()['n'];

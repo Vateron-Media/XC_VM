@@ -483,6 +483,10 @@ class ConnectionTracker {
 				return $rOldest ? (string) $rOldest['user_ip'] : null;
 			}
 		}
+		// A node in mode 2 has no other store: its agent did not answer.
+		if (NodeRole::refusesConnects()) {
+			return null;
+		}
 		if ($rSettings['redis_handler']) {
 			// The LINE# set holds connection keys; the oldest connection's IP is
 			// read from the rows behind them.
@@ -950,6 +954,10 @@ class ConnectionTracker {
 			}
 			unset($rRecord['adm_uuid'], $rRecord['mint']);
 		}
+		// A node in mode 2 has no other store: its agent did not answer.
+		if (NodeRole::refusesConnects()) {
+			return false;
+		}
 		if ($rSettings['redis_handler']) {
 			return self::createConnection($rRecord);
 		}
@@ -976,6 +984,10 @@ class ConnectionTracker {
 			if ($rFound !== null) {
 				return $rFound ?: null;
 			}
+		}
+		// A node in mode 2 has no other store: its agent did not answer.
+		if (NodeRole::refusesConnects()) {
+			return null;
 		}
 		if ($rSettings['redis_handler']) {
 			$rConnection = self::getConnection($rUUID);
@@ -1010,6 +1022,10 @@ class ConnectionTracker {
 			if ($rTouched !== null) {
 				return $rTouched ?: null;
 			}
+		}
+		// A node in mode 2 has no other store: its agent did not answer.
+		if (NodeRole::refusesConnects()) {
+			return null;
 		}
 		$rConnection = null;
 		if ($rSettings['redis_handler']) {
@@ -1118,6 +1134,10 @@ class ConnectionTracker {
 				return $rFound !== false && self::liveMatches($rFound, $rCtx, $rContainer, $rOpenOnly, $rAllowAdaptive) ? $rFound : null;
 			}
 		}
+		// A node in mode 2 has no other store: its agent did not answer.
+		if (NodeRole::refusesConnects()) {
+			return null;
+		}
 		if ($rSettings["redis_handler"]) {
 			$rConnection = self::getConnection($rCtx["uuid"]);
 			// Same meaning as `hls_end = 0` on the table path: a connection that was
@@ -1189,6 +1209,10 @@ class ConnectionTracker {
 				$rConnection = $rUpdated;
 				return true;
 			}
+		}
+		// A node in mode 2 has no other store: its agent did not answer.
+		if (NodeRole::refusesConnects()) {
+			return false;
 		}
 		if ($rSettings["redis_handler"]) {
 			$rUpdated = self::updateConnection($rConnection, $rChanges, "open");

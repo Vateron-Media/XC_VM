@@ -98,6 +98,11 @@ action.
   in the node's own store in mode 2 (`StreamStateWriter::resend()` sends it
   later) instead of falling back to MAIN's row; in mode 0 and 1 it falls back,
   and the store lapses once MAIN's row has it (`StreamRuntime::lapse()`).
+  A viewer's connection record has only the node's agent in mode 2: its calls
+  wait `AgentConnections::SOLE_TIMEOUT` (3 s, not the 1 s that mode 0 and 1
+  wait before MAIN's store stands in), and one the agent does not answer reads
+  as no record or a failed write in `ConnectionTracker`, so the endpoint
+  answers `LINE_CREATE_FAIL` instead of an HTTP 500.
   A node in mode 2 never lapses its store on a write
   (`StreamStateWriter::write()`, `ContentSink::workerPid()`): MAIN's database
   refused that write, and the store cannot be seeded again.
