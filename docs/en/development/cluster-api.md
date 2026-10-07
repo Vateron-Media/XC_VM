@@ -200,7 +200,7 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 | `lb_telemetry_interval_sec` | 1–3 (2) | the fleet's heartbeat, carried by the policy |
 | `cluster_offline_after_sec` | 10–300 (30) | silence before MAIN marks a node offline |
 | `cluster_orphan_conn_ttl_sec` | 30–3600 (120) | silence before MAIN purges a node's viewers |
-| `lb_offline_admission` | local \| allow \| deny | admitting viewers while MAIN is unreachable |
+| `lb_offline_admission` | local \| allow \| deny | admitting viewers while MAIN is unreachable; unless deny, an RTMP viewer is taken on MAIN's last yes for its credentials, stream and address within ten minutes while the agent cannot reach MAIN (`RtmpOffline`) |
 | `cluster_kill_on_line_disable` | 0/1 (1) | a disabled, locked or expired line loses its sessions; a reseller's disable (panel or Reseller API) counts too |
 | `cluster_conn_binding` | observe \| enforce (observe); Settings → Cluster, *Viewer Record Proof*, and the Cluster Nodes page's *Viewer record proof* card (which nodes prove, the day's counts, ready or not: `ClusterOverview::binding`) | a node's record of a viewer, and its `conn_admit`, must prove MAIN minted the viewer's token; `observe` counts those that do not (`conn.unproven` in the audit), `enforce` refuses such a record from a node whose stream secret MAIN withholds (mode 2, locked down, on its own viewer key), and reserves and cuts nothing for such a `conn_admit` (ADR 0004, "The line a node names") |
 | `cluster_ingest_concurrency` | 1–64 (6) | MAIN's ingest permits; half reserved for P0 |
