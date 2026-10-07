@@ -883,7 +883,8 @@ CREATE TABLE IF NOT EXISTS `lines_logs` (
   `date` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `stream_id` (`stream_id`),
-  KEY `user_id` (`user_id`)
+  KEY `user_id` (`user_id`),
+  KEY `date` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
@@ -901,7 +902,8 @@ CREATE TABLE IF NOT EXISTS `login_logs` (
   `login_ip` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `date` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `user_id` (`user_id`)
+  KEY `user_id` (`user_id`),
+  KEY `date` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1088,7 +1090,8 @@ CREATE TABLE IF NOT EXISTS `ondemand_check` (
   `fps` int(11) DEFAULT NULL,
   `errors` mediumtext COLLATE utf8_unicode_ci,
   `date` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `date` (`date`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1426,7 +1429,9 @@ CREATE TABLE IF NOT EXISTS `servers_stats` (
   `iostat_info` mediumtext COLLATE utf8_unicode_ci,
   `time` int(16) DEFAULT '0',
   `total_users` int(11) DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `time` (`time`) USING BTREE,
+  KEY `server_time` (`server_id`, `time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1965,7 +1970,8 @@ CREATE TABLE IF NOT EXISTS `streams_errors` (
   `error` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   KEY `stream_id` (`stream_id`) USING BTREE,
-  KEY `server_id` (`server_id`) USING BTREE
+  KEY `server_id` (`server_id`) USING BTREE,
+  KEY `date` (`date`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -1982,7 +1988,8 @@ CREATE TABLE IF NOT EXISTS `streams_logs` (
   `source` varchar(1024) DEFAULT NULL,
   `date` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `stream_id` (`stream_id`)
+  KEY `stream_id` (`stream_id`),
+  KEY `date` (`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -2354,7 +2361,8 @@ CREATE TABLE IF NOT EXISTS `users_logs` (
   `credits_after` double DEFAULT NULL,
   `date` int(30) DEFAULT NULL,
   `deleted_info` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `owner_date` (`owner`, `date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------
