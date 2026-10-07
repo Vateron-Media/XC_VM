@@ -92,7 +92,7 @@ In CLI context:
 
 ---
 
-## Marketplace: install via C extension
+## Marketplace: install via the core extension
 
 
 Modules from the platform are installed via `ModuleManager::downloadFromPlatform()`:
@@ -103,7 +103,7 @@ $manager->downloadFromPlatform(slug: 'my-module', version: '1.2.0', apiKey: $key
 
 Under the hood:
 
-1. `XC_VM::module_install($slug, $version, $apiKey)` — C extension downloads, decrypts, unpacks
+1. `XC_VM::module_install($slug, $version, $apiKey)` — the core extension downloads, decrypts, unpacks
 2. `installModule($slug)` — applies the schema, then runs `install()` on the module. A first
    install applies `database.sql` (without one, every delta up to the module's version).
    Over an existing install (an update or a **Rollback**) it
@@ -124,6 +124,37 @@ them.
 An archive uploaded on the **Modules** page over an installed module is installed the same
 way. An upload that is refused, or that fails to install, leaves the installed copy in
 place: its files, its on/off state and the version shown.
+
+### The Modules page
+
+The page (`ModulesController` renders it, `ModuleAjaxController` answers it) has two tabs:
+
+- **Installed** — every module with its status (`enabled`, `disabled`, `not_installed`,
+  `installing`, `failed`) and its actions.
+- **Store** — the official store's modules (`ModuleStore`): `XC_VM::extensions_list()` gives the
+  catalogue, `XC_VM::plugins_check()` tells whether the Modules API key bought a paid one. Every
+  module is listed, marked **Free**, **Purchased** or **Paid**; a paid one not bought links to its
+  store page (`<store>/extensions/<slug>`) instead of installing. The list can be searched and
+  sorted by name, version, price or status, 50 rows a page. The answer is cached for 5 minutes per
+  API key (**Refresh** asks again).
+
+Enable and disable are applied at once. Every other action (install, update, uninstall, delete,
+rollback, license renewal, store install, archive upload, update check) is a **background job**
+(`ModuleJob`): the request queues it and starts `console.php module:job`, which runs it and records
+how it ended in `CACHE_TMP_PATH/module_job.json`. One job runs at a time. The page polls
+`api?action=module_status` (the modules and the job) until the job ends, and draws only what that
+answers.
+
+| Action (`api?action=`) | Method | Does |
+|------------------------|--------|------|
+| `module_status` | GET | Every module's state and the current job |
+| `module` (`sub`, `name`) | POST | `enable`/`disable` at once; any other `sub` queues a job |
+| `module_upload` (`module_zip`) | POST | Installs an uploaded archive as a job |
+| `module_store` (`refresh=1`) | GET | The store's modules this panel may install |
+
+`config/modules.php` is read with `require`, which OPcache caches in each of the four PHP-FPM
+masters. Every read first drops the cached copy if the file changed on disk
+(`ModuleManager::revalidate()`), so a change made by one master is what the others serve and boot.
 
 ---
 
