@@ -5,7 +5,7 @@ use XcVm\Core\Util\StreamUtils;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers StreamUtils
+ * @covers \XcVm\Core\Util\StreamUtils
  */
 final class StreamUtilsTest extends TestCase {
 

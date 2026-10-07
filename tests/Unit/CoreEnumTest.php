@@ -5,8 +5,8 @@ use XcVm\Core\Enum\BootContext;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers BootContext
- * @covers ServerEnvironment
+ * @covers \XcVm\Core\Enum\BootContext
+ * @covers \XcVm\Core\Enum\ServerEnvironment
  */
 final class CoreEnumTest extends TestCase {
 

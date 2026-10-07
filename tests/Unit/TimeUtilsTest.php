@@ -4,7 +4,7 @@ use XcVm\Core\Util\TimeUtils;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers TimeUtils
+ * @covers \XcVm\Core\Util\TimeUtils
  */
 final class TimeUtilsTest extends TestCase {
 

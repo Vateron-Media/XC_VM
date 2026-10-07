@@ -4,7 +4,7 @@ use XcVm\Core\Util\ImageUtils;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers ImageUtils
+ * @covers \XcVm\Core\Util\ImageUtils
  */
 final class ImageUtilsTest extends TestCase {
 

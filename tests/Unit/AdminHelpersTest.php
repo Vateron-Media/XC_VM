@@ -4,7 +4,7 @@ use XcVm\Core\Util\AdminHelpers;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers AdminHelpers
+ * @covers \XcVm\Core\Util\AdminHelpers
  */
 final class AdminHelpersTest extends TestCase {
 
