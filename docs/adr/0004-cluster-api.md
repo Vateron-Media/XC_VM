@@ -5637,7 +5637,8 @@ release that fails slowly, or only under real load, reached the whole fleet with
 
 **Not built / limits.**
 - The canary is judged by its agent's version and its being heard, not by the fanout daemon's
-  own health; both binaries come from the one release.
+  own health; both binaries come from the one release. (Built since: see
+  [Cluster alerts and metrics, and a canary that checks its fanout daemon](#cluster-alerts-and-metrics-and-a-canary-that-checks-its-fanout-daemon-2026-10-07).)
 - A canary that is no enrolled node never proves anything: the fleet stays where it is.
 - No page shows the pin yet: the cluster audit does. (Built since: see
   [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07).)
@@ -5887,6 +5888,41 @@ parts asked in order and stored with the reply's `seq`; `gone` and no parts refu
 held kept), `TestAnUnchangedBlocklistDropsTheDeltasOverIt`. On the test pair, with this panel and
 agent: a block reaches the node as a delta within a minute and its `iptables` follows; the flushed
 block the older agent had kept went with Resync; and the agent of 0.14.5 runs against this MAIN.
+
+### Cluster alerts and metrics, and a canary that checks its fanout daemon (2026-10-07)
+
+The Cluster Nodes page flagged a node's troubles, but only for whoever opened it; `/metrics` and the
+alerts knew servers, not nodes. And the release canary judged a release by its agent alone, though the
+fanout daemon comes in the same release.
+
+**Built.**
+- **Alerts.** The rule *A load balancer needs attention* (`Alerts::RULES` `cluster`, on by default,
+  5 minutes) fires per node and problem, read as the page reads it (`ClusterAdmin::nodes()`,
+  `Alerts::clusterTroubles()`): quarantined, a lane's events delayed (`p0_lag_since`,
+  `p1_lag_since`), in mode 2 but not reading its streams on itself, its clock off
+  (`ClusterOverview::clockBadge()`), MAIN URLs it cannot reach, its relay proxy down with the data
+  plane on. Only enabled servers, active or quarantined nodes, and while the cluster API is on; a node
+  that stopped answering stays *A server is down*'s.
+- **Metrics.** `/metrics` adds, while the cluster API is on (`MetricsController::cluster()`), per node:
+  `xcvm_cluster_node` (state, health and mode as labels), seconds since MAIN last heard it, its clock
+  offset, each lane's lag (0 when none), the MAIN URLs it cannot reach, whether it reads its streams
+  on itself, its queued commands; and `xcvm_cluster_command_latency_seconds`
+  (`ClusterOverview::commandMetrics()`). A cluster read that fails leaves the rest of the scrape.
+- **The canary.** `ReleaseCanary::tick()` also needs the canary's fanout daemon running, as its
+  watchdog last reported it (`servers.watchdog_data` `fanout.running`, kept by the node's telemetry
+  every half minute): a release whose daemon does not start starts the count again, as a silent
+  canary does. A node that reports nothing of it holds nothing back.
+
+**Not built / limits.**
+- **The canary judges running, not serving well**: a daemon that runs but drops viewers still passes.
+  Its error counts are not in the watchdog data.
+- **An alert per node and problem**, each a subject of the one rule: switching the rule off silences
+  them all.
+
+**Tests.** `ClusterApiTest::testMetricsAndAlertsReportANodeAsTheClusterPageDoes` (a node in mode 2
+with its clock off, its P0 lagging and two URLs unreachable, in the metrics and as three troubles;
+quarantined; a disabled server; the cluster API off), `ReleaseCanaryTest` (a canary whose daemon is
+down starts again; one that reports nothing is not held back).
 
 ### The move to mode 2 without the connect audit (2026-10-05)
 

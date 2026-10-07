@@ -1623,6 +1623,36 @@ final class ClusterApiTest extends TestCase {
 		}
 	}
 
+	/** The metrics and the cluster alert read a node as the Cluster Nodes page shows it. */
+	public function testMetricsAndAlertsReportANodeAsTheClusterPageDoes(): void {
+		$this->active();
+		// Migration 056's columns (its AFTER names one this table, from 029, does not have).
+		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN IF NOT EXISTS `p0_lag_since` int DEFAULT NULL, ADD COLUMN IF NOT EXISTS `p1_lag_since` int DEFAULT NULL, ADD COLUMN IF NOT EXISTS `unreachable_urls` varchar(1024) DEFAULT NULL');
+		SettingsManager::set($this->rSettings);
+		$rNow = time();
+		NodeRegistry::update(self::SID, ['mode' => 2, 'clock_offset_ms' => -125000, 'p0_lag_since' => $rNow - 90, 'unreachable_urls' => 'http://a.invalid:1/ http://b.invalid:2/']);
+		$rServers = [self::SID => ['server_name' => 'LB 7', 'enabled' => 1]];
+		$rNode = '{server="' . self::SID . '",name="LB 7"}';
+
+		$rText = \XcVm\Public\Controllers\Api\MetricsController::cluster($rServers, $rNow);
+		$this->assertMatchesRegularExpression('/^xcvm_cluster_node\{server="' . self::SID . '",name="LB 7",state="active",health="\w+",mode="2"\} 1$/m', $rText);
+		foreach (['xcvm_cluster_node_clock_offset_seconds' . $rNode . ' -125', 'xcvm_cluster_node_unreachable_urls' . $rNode . ' 2', 'xcvm_cluster_node_commands_queued' . $rNode . ' 0'] as $rLine) {
+			$this->assertStringContainsString("\n" . $rLine . "\n", $rText);
+		}
+		$this->assertStringContainsString('xcvm_cluster_node_lane_lag_seconds{server="' . self::SID . '",name="LB 7",lane="p0"} 90' . "\n", $rText);
+		$this->assertStringContainsString('xcvm_cluster_node_lane_lag_seconds{server="' . self::SID . '",name="LB 7",lane="p1"} 0' . "\n", $rText);
+
+		$rTroubles = \XcVm\Domain\Alert\Alerts::clusterTroubles($rServers, $rNow);
+		$this->assertSame([self::SID . ':lag_p0', self::SID . ':clock', self::SID . ':urls'], array_keys($rTroubles));
+		$this->assertSame('LB 7: its clock is off by -125s', $rTroubles[self::SID . ':clock']);
+		NodeRegistry::update(self::SID, ['state' => 'quarantined', 'p0_lag_since' => null, 'clock_offset_ms' => 0, 'unreachable_urls' => null]);
+		$this->assertSame([self::SID . ':quarantined'], array_keys(\XcVm\Domain\Alert\Alerts::clusterTroubles($rServers, $rNow)));
+		$this->assertSame([], \XcVm\Domain\Alert\Alerts::clusterTroubles([self::SID => ['server_name' => 'LB 7', 'enabled' => 0]], $rNow), 'a disabled server: none');
+
+		SettingsManager::set(['cluster_api_enabled' => 0] + $this->rSettings);
+		$this->assertSame('', \XcVm\Public\Controllers\Api\MetricsController::cluster($rServers, $rNow), 'the cluster API off: nothing');
+	}
+
 	/** A node in mode 2 reads no signals row: a root action it cannot take is not queued at all. */
 	public function testARootActionANodeInModeTwoCannotTakeIsNotQueued(): void {
 		$this->active();

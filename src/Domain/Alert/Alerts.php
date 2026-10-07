@@ -2,7 +2,13 @@
 
 namespace XcVm\Domain\Alert;
 
+use XcVm\Core\Cluster\ClusterDiagnosis;
+use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Cluster\ClusterAdmin;
+use XcVm\Domain\Cluster\ClusterOverview;
+use XcVm\Domain\Cluster\NodeLag;
+use XcVm\Domain\Cluster\NodeRegistry;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Public\Controllers\Admin\DashboardController;
@@ -32,6 +38,7 @@ final class Alerts {
 		'memory' => ['Memory use is high', 90, 10, 1],
 		'disk' => ['Disk use is high', 90, 0, 1],
 		'checks' => ['A Service Status check is failing', null, 0, 1],
+		'cluster' => ['A load balancer needs attention', null, 5, 1],
 	];
 
 	/** Seconds a subject that fired is not announced again. */
@@ -125,12 +132,65 @@ final class Alerts {
 				}
 			}
 		}
+		if (!empty($rRules['cluster']['enabled']) && !empty(SettingsManager::get('cluster_api_enabled'))) {
+			$rOut['cluster'] = self::clusterTroubles($rServers, time());
+		}
 		if (!empty($rRules['checks']['enabled'])) {
 			foreach (DashboardController::statusChecks($rServers) as $rCheck) {
 				// A server down is the server_down rule's.
 				if ($rCheck['state'] === 'fail' && $rCheck['key'] !== 'servers') {
 					$rOut['checks'][$rCheck['key']] = $rCheck['title'] . ': ' . strip_tags($rCheck['detail']);
 				}
+			}
+		}
+		return $rOut;
+	}
+
+	/**
+	 * What the Cluster Nodes page flags on an enabled load balancer, by node
+	 * and kind: quarantined, a lane's events delayed, in mode 2 but not reading
+	 * its streams on itself, its clock off, MAIN URLs it cannot reach, its
+	 * relay proxy down with the data plane on. A node that stopped answering
+	 * is server_down's.
+	 *
+	 * @param array<int, array<string, mixed>> $rServers
+	 * @return array<string, string> "<server id>:<kind>" => label
+	 */
+	public static function clusterTroubles(array $rServers, int $rNow): array {
+		try {
+			$rNodes = ClusterAdmin::nodes($rServers, ClusterSettings::int('cluster_offline_after_sec', SettingsManager::get('cluster_offline_after_sec')));
+		} catch (\Throwable) {
+			return [];
+		}
+		$rOut = [];
+		foreach ($rNodes as $rNode) {
+			$rID = (int) $rNode['server_id'];
+			if (empty($rServers[$rID]['enabled']) || !in_array($rNode['state'], ['active', 'quarantined'], true)) {
+				continue;
+			}
+			$rFound = [];
+			if ($rNode['state'] === 'quarantined') {
+				$rFound['quarantined'] = 'quarantined: it takes only kills and stops until it is trusted again';
+			}
+			foreach (NodeLag::LANES as $rLane) {
+				if (($rNode[$rLane . '_lag_since'] ?? null) !== null) {
+					$rFound['lag_' . $rLane] = 'its ' . strtoupper($rLane) . ' events are delayed (' . ClusterDiagnosis::span(max(0, $rNow - (int) $rNode[$rLane . '_lag_since'])) . ')';
+				}
+			}
+			if ((int) $rNode['mode'] === 2 && $rNode['streams_local'] === false) {
+				$rFound['streams_local'] = 'in mode 2 but not reading its streams on itself';
+			}
+			if (($rClock = ClusterOverview::clockBadge($rNode['clock_offset_ms'] ?? null)) !== null) {
+				$rFound['clock'] = 'its clock is off by ' . $rClock['vars']['{OFFSET}'];
+			}
+			if ((string) ($rNode['unreachable_urls'] ?? '') !== '') {
+				$rFound['urls'] = 'cannot reach MAIN at ' . $rNode['unreachable_urls'];
+			}
+			if (((int) $rNode['flows'] & NodeRegistry::FLOW_DATAPLANE) !== 0 && $rNode['relay_down_since'] !== null) {
+				$rFound['relay'] = 'its relay proxy is down' . ($rNode['relay_error'] !== '' ? ': ' . $rNode['relay_error'] : '');
+			}
+			foreach ($rFound as $rKind => $rText) {
+				$rOut[$rID . ':' . $rKind] = $rNode['server_name'] . ': ' . $rText;
 			}
 		}
 		return $rOut;
