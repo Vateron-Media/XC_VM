@@ -2379,8 +2379,23 @@ class ModuleManager {
 			return [];
 		}
 
+		self::revalidate($this->overridesPath);
 		$data = require $this->overridesPath;
 		return is_array($data) ? $data : [];
+	}
+
+	/**
+	 * Drop OPcache's copy of a state file that changed on disk, before a require.
+	 *
+	 * nginx spreads the panel over four PHP-FPM masters, each with an OPcache of
+	 * its own (revalidate_freq 20). writeOverrides() invalidates only the master
+	 * that wrote, so the other three served, and booted, the old module state
+	 * for up to 20 s. Not forced: recompiled only when the mtime changed.
+	 */
+	public static function revalidate(string $rPath): void {
+		if (function_exists('opcache_invalidate')) {
+			opcache_invalidate($rPath);
+		}
 	}
 
 	/**
