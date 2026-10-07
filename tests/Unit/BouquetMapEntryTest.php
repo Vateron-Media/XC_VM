@@ -11,7 +11,7 @@ use XcVm\Domain\Bouquet\BouquetService;
  * 1,024 ids, and its marker is as new as the whole map, it reads only the
  * stream's shard.
  *
- * @covers BouquetService
+ * @covers \XcVm\Domain\Bouquet\BouquetService
  */
 final class BouquetMapEntryTest extends TestCase {
 

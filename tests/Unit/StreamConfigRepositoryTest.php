@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
  * Sample of the TestDb harness: exercises a real repository against an
  * in-memory database injected via setDb().
  *
- * @covers StreamConfigRepository
+ * @covers \XcVm\Domain\Stream\StreamConfigRepository
  */
 final class StreamConfigRepositoryTest extends TestCase {
 
