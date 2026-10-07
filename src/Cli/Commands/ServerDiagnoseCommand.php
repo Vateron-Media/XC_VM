@@ -3,6 +3,7 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronJobs\RootSignalsCronJob;
 use XcVm\Cli\CronJobs\ServersCronJob;
 use XcVm\Core\Cluster\AgentClient;
 use XcVm\Core\Cluster\AgentPaths;
@@ -548,11 +549,17 @@ class ServerDiagnoseCommand implements CommandInterface {
 				return true;
 			}
 		}
-		// The blocks RootSignalsCronJob::syncSets() keeps in an ipset set, one rule matching each.
+		// The blocks RootSignalsCronJob::syncSets() keeps in an ipset set, one rule matching each:
+		// the set listed by a fixed command, the address looked for here.
 		$rSetOut = [];
 		$rSetCode = 1;
-		exec('sudo -n ipset test ' . (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? 'xcvm_block6' : 'xcvm_block4') . ' ' . escapeshellarg($rIP) . ' 2>/dev/null', $rSetOut, $rSetCode);
-		return $rSetCode === 0;
+		$rV6 = filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+		if ($rV6) {
+			exec('sudo -n ipset list xcvm_block6 -output save 2>/dev/null', $rSetOut, $rSetCode);
+		} else {
+			exec('sudo -n ipset list xcvm_block4 -output save 2>/dev/null', $rSetOut, $rSetCode);
+		}
+		return $rSetCode === 0 && RootSignalsCronJob::inSet($rSetOut, $rV6 ? 'xcvm_block6' : 'xcvm_block4', $rIP);
 	}
 
 	private function crontabHas(string $rNeedle): bool {

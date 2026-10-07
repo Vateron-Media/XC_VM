@@ -162,6 +162,14 @@ final class AuditRootCronFirewallFlushTest extends TestCase {
 		$this->assertSame(0, (int) $rDb->get_row()['count']);
 	}
 
+	public function testAnAddressIsFoundInASetHoweverItIsWritten(): void {
+		$rList = ['create xcvm_block6 hash:ip family inet6 hashsize 1024 maxelem 1048576', 'add xcvm_block6 2001:4860:4860::8888', 'add xcvm_block4 203.0.113.7'];
+		$this->assertTrue(RootSignalsCronJob::inSet($rList, 'xcvm_block6', '2001:4860:4860:0:0:0:0:8888'), 'the same IPv6 address written out');
+		$this->assertFalse(RootSignalsCronJob::inSet($rList, 'xcvm_block6', '2001:4860:4860::8844'));
+		$this->assertFalse(RootSignalsCronJob::inSet($rList, 'xcvm_block6', '203.0.113.7'), 'another set\'s line');
+		$this->assertFalse(RootSignalsCronJob::inSet($rList, 'xcvm_block4', 'not an address'));
+	}
+
 	/** syncSets() on this test's stand-ins: true when it synced, with what it asked of the firewall and ipset. */
 	private function syncSets(array $rBlocked): bool {
 		$rJob = new RootSignalsCronJob();

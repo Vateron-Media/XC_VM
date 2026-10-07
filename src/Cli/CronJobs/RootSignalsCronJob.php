@@ -115,12 +115,13 @@ class RootSignalsCronJob implements CommandInterface {
 
 	private function blockip($rIP): bool {
 		$rTool = self::blockTool((string) $rIP);
-		if ($rTool === 'iptables') {
-			exec('sudo iptables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
-		} elseif ($rTool === 'ip6tables') {
-			exec('sudo ip6tables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
-		}
 		if ($rTool !== null) {
+			// A fixed command; the address, an IP blockTool() checked, on its standard input.
+			$rPipe = $rTool === 'iptables' ? popen('sudo iptables-restore --noflush', 'w') : popen('sudo ip6tables-restore --noflush', 'w');
+			if (is_resource($rPipe)) {
+				@fwrite($rPipe, "*filter\n-I INPUT -s " . $rIP . " -j DROP\nCOMMIT\n");
+				pclose($rPipe);
+			}
 			touch(FLOOD_TMP_PATH . 'block_' . $rIP);
 			return true;
 		}
@@ -306,6 +307,25 @@ class RootSignalsCronJob implements CommandInterface {
 			}
 		}
 		return $rIPs;
+	}
+
+	/**
+	 * Whether `ipset list <set> -output save` names $rIP, compared as binary
+	 * addresses: an IPv6 address written another way is the same address.
+	 *
+	 * @param list<string> $rLines
+	 */
+	public static function inSet(array $rLines, string $rSet, string $rIP): bool {
+		$rWant = @inet_pton($rIP);
+		if ($rWant === false) {
+			return false;
+		}
+		foreach (self::setMembers($rLines, $rSet) as $rMember) {
+			if (@inet_pton($rMember) === $rWant) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -713,7 +733,7 @@ class RootSignalsCronJob implements CommandInterface {
 			// The list's content, not its size: a ban and an unban in one minute change it too.
 			$rSorted = $rBlocked ?? [];
 			sort($rSorted);
-			$rHash = md5(implode("\n", $rSorted));
+			$rHash = hash('sha256', implode("\n", $rSorted));
 
 			if ($rRunFullSync && file_exists($rSyncMarker)) {
 				$rLastSyncData = json_decode(@file_get_contents($rSyncMarker), true);
