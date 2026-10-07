@@ -443,6 +443,49 @@ $rWhen = static fn(?int $rTs): string => $rTs ? gmdate('Y-m-d H:i:s', $rTs) . ' 
     </div>
 <?php endif; ?>
 
+<?php if (!empty($clusterBinding)): ?>
+    <?php // Viewer record proof (cluster_conn_binding): which nodes prove, and whether enforce is safe yet (ClusterOverview::binding). ?>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="icon-base ti tabler-certificate me-1"></i><?= $language::get('cluster_binding'); ?></h5>
+        </div>
+        <div class="card-body">
+            <p class="text-body-secondary"><?= $language::get('cluster_binding_help'); ?></p>
+            <p><?= $language::get('cluster_binding_mode'); ?>: <span class="badge bg-label-<?= $clusterBinding['mode'] === 'enforce' ? 'primary' : 'secondary'; ?>"><?= htmlspecialchars($clusterBinding['mode'], ENT_QUOTES); ?></span></p>
+            <?php if (!$clusterBinding['held']): ?>
+                <div class="text-body-secondary mb-3"><?= htmlspecialchars($language::get('cluster_binding_none_held'), ENT_QUOTES); ?></div>
+            <?php elseif ($clusterBinding['ready']): ?>
+                <div class="text-success mb-3"><?= htmlspecialchars($language::get('cluster_binding_ready'), ENT_QUOTES); ?></div>
+            <?php else: ?>
+                <div class="text-warning mb-3"><?= htmlspecialchars($language::get('cluster_binding_not_ready'), ENT_QUOTES); ?></div>
+            <?php endif; ?>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th><?= $language::get('server_name'); ?></th>
+                            <th><?= $language::get('cluster_binding_proves'); ?></th>
+                            <th><?= $language::get('cluster_binding_held'); ?></th>
+                            <th><?= $language::get('cluster_binding_today'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($clusterBinding['nodes'] as $rRow): ?>
+                            <?php $rCounts = $rRow['counts']; ?>
+                            <tr>
+                                <td><?= htmlspecialchars($rRow['server_name'] !== '' ? $rRow['server_name'] : '#' . $rRow['server_id'], ENT_QUOTES); ?></td>
+                                <td><span class="badge bg-label-<?= $rRow['proves'] ? 'success' : 'secondary'; ?>"><?= $language::get($rRow['proves'] ? 'label_yes' : 'label_no'); ?></span></td>
+                                <td><?= $language::get($rRow['held'] ? 'label_yes' : 'label_no'); ?></td>
+                                <td class="small"><?= $rCounts === null ? htmlspecialchars($language::get('cluster_binding_none'), ENT_QUOTES) : htmlspecialchars($language::get('cluster_binding_counts', ['{UNPROVEN}' => (string) (int) $rCounts['unproven'], '{ADMIT}' => (string) (int) $rCounts['admit_unproven'], '{PROVEN}' => (string) (int) $rCounts['proven']]), ENT_QUOTES); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <div class="card mb-4">
     <div class="card-header">
         <h5 class="card-title mb-0"><i class="icon-base ti tabler-key me-1"></i><?= $language::get('cluster_enrol_by_code'); ?></h5>
