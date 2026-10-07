@@ -71,6 +71,13 @@ class WatchdogCommand implements CommandInterface {
 		$rCPUAverage = ($rWatchdog['cpu_average_array'] ?? []);
 
 		while (true) {
+			// Mode 2 is decided at the start: a generation that began on the
+			// other side of the move ends here, and the next one starts right.
+			if ($rApi !== NodeRole::refusesConnects()) {
+				echo "Mode changed! Break.\n";
+				break;
+			}
+
 			// Survive a MariaDB outage on the main: WAIT for the DB instead of
 			// exiting. A respawned process dies in bootstrap while the DB is
 			// down, which used to break the heartbeat chain on every node
@@ -125,7 +132,10 @@ class WatchdogCommand implements CommandInterface {
 			if (NodeFlows::on(NodeFlows::TELEMETRY) || $rApi) {
 				self::writeLocalTelemetry($rRequestsPerSecond);
 				sleep(2);
-				break;
+				// The next pass, in this process: a `break` here ended the
+				// generation after every pass, and restartDaemon() booted a new
+				// PHP process every 2 s on every node with TELEMETRY.
+				continue;
 			}
 
 			// ── CPU stats ────────────────────────────────────────

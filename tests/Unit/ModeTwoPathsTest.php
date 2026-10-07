@@ -580,6 +580,7 @@ final class ModeTwoPathsTest extends TestCase {
 		$this->assertSame([0, 1], [$rResult['code'], $rResult['restarts']]);
 		$this->assertStringNotContainsString('waiting', $rResult['output']);
 		$this->assertStringNotContainsString('Not running', $rResult['output'], 'the pass reached its settings refresh');
+		$this->assertSame(1, substr_count($rResult['output'], 'File changed! Break.'), 'a second pass ran in the same process, and the code change ended it');
 		$this->assertFileExists($this->rHome . 'config/cluster/local.json', 'what PHP samples, for the agent');
 	}
 
