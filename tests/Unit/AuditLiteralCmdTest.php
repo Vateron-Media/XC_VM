@@ -22,6 +22,8 @@ final class AuditLiteralCmdTest extends TestCase {
 			'the install of root\'s crontab' => [StartupCommand::class, 'installRootCrontab'],
 			'the flush of the panel\'s blocks' => [RootSignalsCronJob::class, 'unblockAll'],
 			'the removal of the blocks in one commit' => [RootSignalsCronJob::class, 'unblockTogether'],
+			'the sync of the blocks into ipset' => [RootSignalsCronJob::class, 'syncSets'],
+			'the refill of a set' => [RootSignalsCronJob::class, 'restoreSet'],
 		];
 	}
 

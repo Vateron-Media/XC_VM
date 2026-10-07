@@ -96,41 +96,37 @@ class RootSignalsCronJob implements CommandInterface {
 		return 0;
 	}
 
-	private function blockip($rIP): bool {
-		$isPrivate = false;
-
+	/**
+	 * The tool that blocks an address of the panel's list: iptables or
+	 * ip6tables, or null for one never blocked (private, reserved, loopback,
+	 * documentation) or not an address.
+	 */
+	public static function blockTool(string $rIP): ?string {
 		if (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-			$isPrivate = filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
-			$isPrivate = !$isPrivate;
-
-			if (!$isPrivate) {
-				$isPrivate = (strpos($rIP, '127.') === 0) || ($rIP === '0.0.0.0');
-			}
-
-			if (!$isPrivate) {
-				exec('sudo iptables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
-			}
-		} elseif (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-			$isPrivate = (strpos($rIP, 'fc') === 0 ||
-				strpos($rIP, 'fd') === 0 ||
-				strpos($rIP, 'fe80') === 0 ||
-				$rIP === '::1' ||
-				strpos($rIP, '2001:db8') === 0);
-
-			if (!$isPrivate) {
-				exec('sudo ip6tables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
-			}
+			$rPublic = filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+			return $rPublic && strpos($rIP, '127.') !== 0 && $rIP !== '0.0.0.0' ? 'iptables' : null;
 		}
-		if (!$isPrivate && $rIP) {
+		if (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+			$rPrivate = strpos($rIP, 'fc') === 0 || strpos($rIP, 'fd') === 0 || strpos($rIP, 'fe80') === 0 || $rIP === '::1' || strpos($rIP, '2001:db8') === 0;
+			return $rPrivate ? null : 'ip6tables';
+		}
+		return null;
+	}
+
+	private function blockip($rIP): bool {
+		$rTool = self::blockTool((string) $rIP);
+		if ($rTool === 'iptables') {
+			exec('sudo iptables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
+		} elseif ($rTool === 'ip6tables') {
+			exec('sudo ip6tables -I INPUT -s ' . escapeshellcmd($rIP) . ' -j DROP');
+		}
+		if ($rTool !== null) {
 			touch(FLOOD_TMP_PATH . 'block_' . $rIP);
 			return true;
 		}
-
-		if ($isPrivate) {
+		if (filter_var($rIP, FILTER_VALIDATE_IP)) {
 			error_log("Block attempt denied for private IP: " . $rIP);
-			return false;
 		}
-
 		return false;
 	}
 
@@ -173,6 +169,12 @@ class RootSignalsCronJob implements CommandInterface {
 				}
 			}
 		}
+		// The sets syncSets() fills, where the host has them: their INPUT rules stay, matching nothing.
+		exec('command -v ipset', $rFound, $rCode);
+		if ($rCode === 0) {
+			exec('sudo ipset flush xcvm_block4 2>/dev/null');
+			exec('sudo ipset flush xcvm_block6 2>/dev/null');
+		}
 		// Root runs this (this cron, cluster:root, `tools flush`): no file is another user's to keep.
 		foreach (glob(FLOOD_TMP_PATH . 'block_*') ?: [] as $rFile) {
 			@unlink($rFile);
@@ -194,6 +196,116 @@ class RootSignalsCronJob implements CommandInterface {
 		// A refusal closes the pipe early: the exit status says so.
 		@fwrite($rPipe, "*filter\n-D INPUT -s " . implode(" -j DROP\n-D INPUT -s ", $rIPs) . " -j DROP\nCOMMIT\n");
 		return pclose($rPipe) === 0;
+	}
+
+	/** The ipset sets the panel's blocks live in, by tool: [set, family]. One INPUT rule drops what each holds. */
+	public const IPSETS = ['iptables' => ['xcvm_block4', 'inet'], 'ip6tables' => ['xcvm_block6', 'inet6']];
+
+	/** The most addresses a set takes (ipset's own default is 65,536). */
+	public const IPSET_MAX = 1048576;
+
+	/**
+	 * Block exactly $rBlocked with ipset, where the host has it: each address
+	 * family's set refilled in one `ipset restore` into a fresh set swapped in
+	 * (it never stands half-built), and one INPUT rule per family that drops
+	 * what the set holds. A per-address rule blockip() added before goes, in
+	 * one commit; the flood guard's block files follow the change as
+	 * blockip() and unblockip() kept them. Where ipset is missing or refuses,
+	 * false, and the caller blocks rule by rule as before. A rule per address
+	 * cost a `sudo` each to add and a check of every packet against each.
+	 *
+	 * @param list<string> $rBlocked
+	 */
+	protected function syncSets(array $rBlocked): bool {
+		exec('command -v ipset', $rFound, $rCode);
+		if ($rCode !== 0) {
+			return false;
+		}
+		$rWant = ['iptables' => [], 'ip6tables' => []];
+		foreach (array_unique(array_map('strval', $rBlocked)) as $rIP) {
+			if (($rTool = self::blockTool($rIP)) !== null) {
+				$rWant[$rTool][] = $rIP;
+			}
+		}
+		foreach (self::IPSETS as $rTool => [$rSet, $rFamily]) {
+			$rRules = [];
+			$rMembers = [];
+			if ($rTool === 'iptables') {
+				exec('sudo iptables -S INPUT', $rRules);
+				exec('sudo ipset list xcvm_block4 -output save 2>/dev/null', $rMembers);
+			} else {
+				exec('sudo ip6tables -S INPUT', $rRules);
+				exec('sudo ipset list xcvm_block6 -output save 2>/dev/null', $rMembers);
+			}
+			$rOld = self::ownBlocks($rRules);
+			$rHave = array_merge(self::setMembers($rMembers, $rSet), $rOld);
+			if (!$this->restoreSet($rSet, $rFamily, $rWant[$rTool])) {
+				return false;
+			}
+			if (!in_array('-A INPUT -m set --match-set ' . $rSet . ' src -j DROP', array_map('trim', $rRules), true)) {
+				if ($rTool === 'iptables') {
+					exec('sudo iptables -I INPUT -m set --match-set xcvm_block4 src -j DROP', $rOut, $rCode);
+				} else {
+					exec('sudo ip6tables -I INPUT -m set --match-set xcvm_block6 src -j DROP', $rOut, $rCode);
+				}
+				if ($rCode !== 0) {
+					return false;
+				}
+			}
+			if ($rOld && !$this->unblockTogether($rTool, $rOld)) {
+				foreach ($rOld as $rIP) {
+					$this->unblockip($rIP);
+				}
+			}
+			foreach (array_diff($rHave, $rWant[$rTool]) as $rIP) {
+				@unlink(FLOOD_TMP_PATH . 'block_' . $rIP);
+			}
+			foreach ($rWant[$rTool] as $rIP) {
+				@touch(FLOOD_TMP_PATH . 'block_' . $rIP);
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Refill $rSet with exactly $rIPs: a fresh set filled, swapped in and
+	 * destroyed, in one `ipset restore` that takes the list on its standard
+	 * input. False when ipset refuses it, and then the set holds what it held.
+	 *
+	 * @param list<string> $rIPs
+	 */
+	private function restoreSet(string $rSet, string $rFamily, array $rIPs): bool {
+		$rPipe = popen('sudo ipset restore', 'w');
+		if (!is_resource($rPipe)) {
+			return false;
+		}
+		$rNew = $rSet . '_new';
+		$rCreate = ' hash:ip family ' . $rFamily . ' maxelem ' . self::IPSET_MAX . " -exist\n";
+		$rList = 'create ' . $rSet . $rCreate . 'create ' . $rNew . $rCreate . 'flush ' . $rNew . "\n";
+		foreach ($rIPs as $rIP) {
+			$rList .= 'add ' . $rNew . ' ' . $rIP . "\n";
+		}
+		// A refusal closes the pipe early: the exit status says so.
+		@fwrite($rPipe, $rList . 'swap ' . $rNew . ' ' . $rSet . "\ndestroy " . $rNew . "\n");
+		return pclose($rPipe) === 0;
+	}
+
+	/**
+	 * The addresses `ipset list <set> -output save` names: one `add <set>
+	 * <address>` line each.
+	 *
+	 * @param list<string> $rLines
+	 * @return list<string>
+	 */
+	public static function setMembers(array $rLines, string $rSet): array {
+		$rIPs = [];
+		foreach ($rLines as $rLine) {
+			$rParts = explode(' ', trim($rLine));
+			if (count($rParts) >= 3 && $rParts[0] === 'add' && $rParts[1] === $rSet && filter_var($rParts[2], FILTER_VALIDATE_IP)) {
+				$rIPs[] = $rParts[2];
+			}
+		}
+		return $rIPs;
 	}
 
 	/**
@@ -226,6 +338,9 @@ class RootSignalsCronJob implements CommandInterface {
 		// chain ends in a DROP that must not read as a banned 0.0.0.0/0.
 		exec('sudo iptables -nL INPUT --line-numbers -t filter', $rLines);
 		foreach ($rLines as $rLine) {
+			if (str_contains($rLine, 'match-set')) {
+				continue; // syncSets()' rule: the set holds the addresses, not the rule
+			}
 			$rLine = explode(' ', preg_replace('!\\s+!', ' ', $rLine));
 			if (isset($rLine[1], $rLine[4]) && $rLine[1] == 'DROP') {
 				$rReturn[] = $rLine[4];
@@ -234,6 +349,9 @@ class RootSignalsCronJob implements CommandInterface {
 		$rLines = '';
 		exec('sudo ip6tables -nL INPUT --line-numbers -t filter', $rLines);
 		foreach ($rLines as $rLine) {
+			if (str_contains($rLine, 'match-set')) {
+				continue;
+			}
 			$rLine = explode(' ', preg_replace('!\\s+!', ' ', $rLine));
 			if (isset($rLine[1], $rLine[3]) && $rLine[1] == 'DROP') {
 				$rReturn[] = $rLine[3];
@@ -592,17 +710,23 @@ class RootSignalsCronJob implements CommandInterface {
 			$rBlocked = self::blockedIPs($db);
 			$rRunFullSync = $rBlocked !== null;
 			$rCurrentIPCount = count($rBlocked ?? []);
+			// The list's content, not its size: a ban and an unban in one minute change it too.
+			$rSorted = $rBlocked ?? [];
+			sort($rSorted);
+			$rHash = md5(implode("\n", $rSorted));
 
 			if ($rRunFullSync && file_exists($rSyncMarker)) {
 				$rLastSyncData = json_decode(@file_get_contents($rSyncMarker), true);
-				if (is_array($rLastSyncData) && isset($rLastSyncData['count'], $rLastSyncData['time'])) {
-					if (intval($rLastSyncData['count']) == $rCurrentIPCount && (time() - intval($rLastSyncData['time'])) < 300) {
+				if (is_array($rLastSyncData) && isset($rLastSyncData['hash'], $rLastSyncData['time'])) {
+					if ($rLastSyncData['hash'] === $rHash && (time() - intval($rLastSyncData['time'])) < 300) {
 						$rRunFullSync = false;
 					}
 				}
 			}
 
-			if ($rRunFullSync) {
+			if ($rRunFullSync && $this->syncSets($rBlocked)) {
+				@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
+			} elseif ($rRunFullSync) {
 				$rActualBlocked = $this->getBlockedIPs();
 				$rActualBlockedFlip = array_flip($rActualBlocked);
 				$rBlockedFlip = array_flip($rBlocked);
@@ -643,7 +767,7 @@ class RootSignalsCronJob implements CommandInterface {
 					$this->saveiptables();
 					$this->rSaveIPTables = false;
 				}
-				@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'time' => time()]));
+				@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
 			}
 		}
 		$rReload = false;
