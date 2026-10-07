@@ -28,6 +28,27 @@ Step-by-step guide to updating an XC_VM server. For the internals of the update 
 
 Clicking the button inserts an `update` signal into the database. Within a minute, CRON picks it up and the update runs automatically: the panel is stopped, updated, and restarted. You can track progress via the server version in the **Manage Servers** table.
 
+## Updating Every Load Balancer: Rolling Update
+
+**Servers → Bulk → Update All Servers** sends the update to every server at once, so every load
+balancer restarts at the same time. **Servers → Bulk → Rolling Update** updates them **one at a
+time** instead, to MAIN's release:
+
+1. Update MAIN first.
+2. Click **Rolling Update** and confirm. The load balancers that are online and not on MAIN's
+   release are updated in turn, by server ID.
+3. Each one must be back online on MAIN's release within 20 minutes, and stay online for a minute,
+   before the next one starts. A load balancer that does not stops the rolling update: the ones
+   after it are left as they are, and the page says what happened.
+
+A card above the servers table shows each load balancer's progress. **Cancel** stops the update
+before the next load balancer; the one updating at that moment finishes by itself. Proxies run their
+own release and are not part of it. From the command line on MAIN:
+
+```bash
+sudo -u xc_vm /home/xc_vm/console.php cluster:rolling-update
+```
+
 ## Manual Update (CLI)
 
 ```bash

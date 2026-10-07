@@ -45,12 +45,13 @@ final class LogSink {
 
 	/**
 	 * `syslog`: the types a node's root side writes (RootSignalsCronJob, with
-	 * CONFIG for its credential actions, and ARTEFACT for an artefact it
-	 * refused, ArtefactStage), and the only ones
+	 * CONFIG for its credential actions, CLUSTER for the guided cutover's
+	 * seed_connections, and ARTEFACT for an artefact it refused,
+	 * ArtefactStage), and the only ones
 	 * MAIN takes from a node. Not `AUTH`: no node writes it, and old rows of
 	 * that type on MAIN are MariaDB's own refused sign-ins.
 	 */
-	public const SYSLOG_TYPES = ['FLUSH', 'REBOOT', 'OPENSSL_EXTRA', 'RESTART', 'STOP', 'RELOAD', 'CERTBOT', 'BINARIES', 'MODULE', 'UPDATE', 'PHP-FPM', 'ARTEFACT', 'CONFIG'];
+	public const SYSLOG_TYPES = ['FLUSH', 'REBOOT', 'OPENSSL_EXTRA', 'RESTART', 'STOP', 'RELOAD', 'CERTBOT', 'BINARIES', 'MODULE', 'UPDATE', 'PHP-FPM', 'ARTEFACT', 'CONFIG', 'CLUSTER'];
 
 	/** @var (callable(string, list<array<string, mixed>>, ?object): bool)|null */
 	private static $rSink;

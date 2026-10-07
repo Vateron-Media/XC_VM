@@ -263,7 +263,7 @@ A request that sends an activation code and no key (a device activating its code
 
 #### API tokens
 
-Each admin and reseller can make named tokens on their profile page (**Edit Profile → API Tokens**), up to 20, in place of the account's single API key. A token is sent where a key is, as `api_key`, to the Admin API, the Reseller REST API, the activation-code API and the table endpoints. It acts with its account's group permissions, as a key does, narrowed by its scope (`Core\Auth\ApiTokens::allows()`):
+Each admin and reseller can make named tokens on their profile page (**Edit Profile → API Tokens**), up to 20, in place of the account's single API key (the **API Key** field on **Edit Profile**, shown only when an API access code covers the account's group: an *Admin API* code for an admin, a *Reseller API* code for a reseller, made on **Access Codes**). A token needs no such code to be made. A token is sent where a key is, as `api_key`, to the Admin API, the Reseller REST API, the activation-code API and the table endpoints. It acts with its account's group permissions, as a key does, narrowed by its scope (`Core\Auth\ApiTokens::allows()`):
 
 | Scope | Runs |
 | --- | --- |

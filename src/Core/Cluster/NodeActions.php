@@ -28,7 +28,20 @@ final class NodeActions {
 		'set_services', 'set_governor', 'set_sysctl', 'set_port', 'flush',
 		OpensslExtra::SIGNAL_ACTION, 'rotate_redis', 'rotate_db', 'rotate_sign_key',
 		NodeCredentials::STRIP, NodeCredentials::INSTALL, NodeCorePin::ACTION,
+		self::SEED_CONNECTIONS,
 	];
+
+	/**
+	 * Load the node's viewers from MAIN's store into its agent
+	 * (`cluster:seed-connections` on the node), the guided cutover's step
+	 * before CONNECTIONS. The node's `CLUSTER` system log line starts with
+	 * SEEDED or NOT_SEEDED.
+	 */
+	public const SEED_CONNECTIONS = 'seed_connections';
+
+	public const SEEDED = 'Connections seeded: ';
+
+	public const NOT_SEEDED = 'Connections not seeded: ';
 
 	/**
 	 * Actions that run only over the cluster API: never queued as a `signals`
@@ -61,6 +74,10 @@ final class NodeActions {
 
 	public static function rollback(int $rServerID, string $rVersion, ?object $rDb = null): bool {
 		return self::send($rServerID, ['action' => 'rollback', 'version' => $rVersion], $rDb);
+	}
+
+	public static function seedConnections(int $rServerID, ?object $rDb = null): bool {
+		return self::send($rServerID, ['action' => self::SEED_CONNECTIONS], $rDb);
 	}
 
 	public static function updateBinaries(int $rServerID, ?object $rDb = null): bool {

@@ -30,6 +30,17 @@ $rBar = static function (int $pct): string {
 };
 ?>
 
+<?php // The rolling update's progress (Domain\Cluster\RollingUpdate), filled by the script below. ?>
+<div class="card mb-4 d-none" id="rolling-update-card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="card-title mb-0"><i class="icon-base ti tabler-stairs-up me-1"></i><span id="rolling-update-title"></span> <span class="badge ms-1" id="rolling-update-status"></span></h5>
+        <button type="button" class="btn btn-sm btn-label-danger d-none" id="rolling-update-cancel"><?= $language::get('rolling_update_cancel'); ?></button>
+    </div>
+    <div class="card-body pt-0">
+        <ul class="list-group list-group-flush" id="rolling-update-nodes"></ul>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="card-title mb-0"><?= $language::get('servers'); ?></h5>
@@ -60,6 +71,7 @@ $rBar = static function (int $pct): string {
                     <button type="button" class="btn btn-sm btn-label-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="icon-base ti tabler-tool me-1"></i>Bulk</button>
                     <div class="dropdown-menu dropdown-menu-end">
                         <button type="button" class="dropdown-item" id="op-update-all"><i class="icon-base ti tabler-download me-2"></i>Update All Servers</button>
+                        <button type="button" class="dropdown-item" id="op-rolling-update"><i class="icon-base ti tabler-stairs-up me-2"></i><?= $language::get('rolling_update'); ?></button>
                         <button type="button" class="dropdown-item" id="op-restart-services"><i class="icon-base ti tabler-refresh me-2"></i>Restart All Services</button>
                         <button type="button" class="dropdown-item" id="op-update-binaries"><i class="icon-base ti tabler-package me-2"></i>Update All Binaries</button>
                     </div>
@@ -246,6 +258,18 @@ $rBar = static function (int $pct): string {
             </tbody>
         </table>
     </div>
+</div>
+
+<?php // Placement advice (Domain\Cluster\PlacementAdvice): read only, fetched when asked. ?>
+<div class="card mt-4">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h5 class="card-title mb-0"><i class="icon-base ti tabler-chart-arrows me-1"></i><?= $language::get('placement_advice'); ?></h5>
+            <small class="text-body-secondary"><?= $language::get('placement_advice_intro'); ?></small>
+        </div>
+        <button type="button" class="btn btn-sm btn-label-primary" id="placement-show"><?= $language::get('placement_advice_show'); ?></button>
+    </div>
+    <div class="card-body pt-0 d-none" id="placement-body"></div>
 </div>
 
 <?php if ($rCanEdit): ?>
@@ -477,6 +501,113 @@ LayoutRenderer::renderFooter('admin');
                             toast('Servers are being updated in the background…');
                         });
                     }
+                });
+            });
+            // The rolling update: one load balancer at a time (RollingUpdate).
+            var rollingText = <?= json_encode([
+                'title' => $language::get('rolling_update_title'),
+                'none' => $language::get('rolling_update_none'),
+                'busy' => $language::get('rolling_update_busy'),
+                'started' => $language::get('rolling_update_started'),
+                'status' => ['starting' => $language::get('rolling_update_starting'), 'running' => $language::get('rolling_update_running'), 'done' => $language::get('rolling_update_done'), 'failed' => $language::get('rolling_update_failed'), 'cancelled' => $language::get('rolling_update_cancelled')],
+                'node' => ['waiting' => $language::get('rolling_update_waiting'), 'updating' => $language::get('rolling_update_updating'), 'soaking' => $language::get('rolling_update_soaking'), 'done' => $language::get('rolling_update_node_done'), 'failed' => $language::get('rolling_update_node_failed')],
+            ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+            var rollingTones = {starting: 'info', running: 'info', done: 'success', failed: 'danger', cancelled: 'secondary', waiting: 'secondary', updating: 'info', soaking: 'warning'};
+            var rollingTimer = null;
+
+            function showRolling(d) {
+                var state = d && d.state;
+                if (!state || !state.status) {
+                    return;
+                }
+                $('#rolling-update-card').removeClass('d-none');
+                $('#rolling-update-title').text(rollingText.title.replace('{version}', state.version || ''));
+                $('#rolling-update-status').attr('class', 'badge ms-1 bg-label-' + (rollingTones[state.status] || 'secondary')).text(rollingText.status[state.status] || state.status);
+                $('#rolling-update-cancel').toggleClass('d-none', !d.running);
+                var list = $('#rolling-update-nodes').empty();
+                if (!state.nodes || !state.nodes.length) {
+                    if (state.status !== 'starting') {
+                        list.append($('<li class="list-group-item px-0 text-body-secondary">').text(rollingText.none));
+                    }
+                }
+                (state.nodes || []).forEach(function(n) {
+                    var item = $('<li class="list-group-item px-0 d-flex justify-content-between align-items-center gap-2">');
+                    var name = $('<span>').text(n.name);
+                    if (n.error) {
+                        name.append($('<small class="d-block text-danger">').text(n.error));
+                    }
+                    item.append(name).append($('<span class="badge bg-label-' + (n.state === 'done' ? 'success' : (n.state === 'failed' ? 'danger' : (rollingTones[n.state] || 'secondary'))) + '">').text(rollingText.node[n.state] || n.state));
+                    list.append(item);
+                });
+                clearTimeout(rollingTimer);
+                if (d.running || state.status === 'starting') {
+                    rollingTimer = setTimeout(pollRolling, 5000);
+                }
+            }
+
+            function pollRolling() {
+                getJSON('./api?action=rolling_update_status').then(showRolling);
+            }
+            pollRolling();
+
+            $('#op-rolling-update').on('click', function() {
+                confirmSwal(<?= json_encode($language::get('rolling_update_confirm')); ?>).then(function(ok) {
+                    if (ok) {
+                        getJSON('./api?action=rolling_update_start').then(function(d) {
+                            toast(d && d.result ? rollingText.started : rollingText.busy, d && d.result ? 'success' : 'warning');
+                            setTimeout(pollRolling, 1000);
+                        });
+                    }
+                });
+            });
+            $('#rolling-update-cancel').on('click', function() {
+                confirmSwal(<?= json_encode($language::get('rolling_update_cancel_confirm')); ?>).then(function(ok) {
+                    if (ok) {
+                        getJSON('./api?action=rolling_update_cancel').then(pollRolling);
+                    }
+                });
+            });
+            // Placement advice: busy servers and where their busiest streams could also run.
+            var placementText = <?= json_encode([
+                'none' => $language::get('placement_advice_none'),
+                'busy' => $language::get('placement_advice_busy'),
+                'add' => $language::get('placement_advice_add'),
+                'noHelper' => $language::get('placement_advice_no_helper'),
+                'noStreams' => $language::get('placement_advice_no_streams'),
+                'viewers' => $language::get('placement_viewers'),
+                'by' => ['clients' => $language::get('placement_by_clients'), 'network' => $language::get('placement_by_network'), 'cpu' => $language::get('placement_by_cpu')],
+            ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+            $('#placement-show').on('click', function() {
+                var body = $('#placement-body').removeClass('d-none').empty();
+                getJSON('./api?action=placement_advice').then(function(d) {
+                    if (!d || !d.result) {
+                        body.text(errText);
+                        return;
+                    }
+                    if (!d.advice.length) {
+                        body.append($('<p class="mb-0 text-body-secondary">').text(placementText.none));
+                        return;
+                    }
+                    var name = function(id) {
+                        return d.names[id] || ('#' + id);
+                    };
+                    d.advice.forEach(function(a) {
+                        var block = $('<div class="border-bottom py-2">');
+                        block.append($('<div class="fw-medium">').text(placementText.busy.replace('{server}', name(a.from)).replace('{load}', Math.round(a.load * 100)).replace('{by}', placementText.by[a.by] || a.by)));
+                        if (a.to === null) {
+                            block.append($('<div class="text-body-secondary">').text(placementText.noHelper));
+                        } else if (!a.streams.length) {
+                            block.append($('<div class="text-body-secondary">').text(placementText.noStreams.replace('{server}', name(a.to))));
+                        } else {
+                            block.append($('<div>').text(placementText.add.replace('{server}', name(a.to)).replace('{load}', Math.round(a.to_load * 100))));
+                            var list = $('<ul class="mb-0">');
+                            a.streams.forEach(function(st) {
+                                list.append($('<li>').append($('<a>').attr('href', './stream?id=' + st.id).text(d.streams[st.id] || ('#' + st.id))).append(document.createTextNode(' · ' + placementText.viewers.replace('{n}', st.viewers))));
+                            });
+                            block.append(list);
+                        }
+                        body.append(block);
+                    });
                 });
             });
             $('#op-restart-services').on('click', function() {
