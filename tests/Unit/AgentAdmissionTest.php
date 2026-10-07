@@ -10,6 +10,7 @@ use XcVm\Core\Error\ErrorResponseException;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Streaming\Auth\StreamAuth;
+use XcVm\Streaming\Protection\ConnectionLimiter;
 
 /**
  * The LB half of admission (cluster plan, Phase 6, steps 4-6): a new viewer's
@@ -196,6 +197,25 @@ PHP);
 		$this->assertSame(['user_info' => ['max_connections' => 2]], ConnectionTracker::rtmpToken(['ok' => true, 'user' => $rUser, 'country_code' => '']));
 	}
 
+	/** An RTMP viewer that leaves (play_done) ends in the agent's registry, which tells MAIN: MAIN's store is not written. */
+	public function testAnRtmpViewerThatLeavesEndsWithTheAgent(): void {
+		defined('SERVER_ID') || define('SERVER_ID', 5);
+		$rUUID = ConnectionTracker::rtmpUuid('17');
+		$rRecord = $this->record($rUUID, ['user_agent' => '', 'container' => 'rtmp', 'pid' => '17']);
+		$this->agent([[200, (string) json_encode($rRecord)], [200, '{}']]);
+		$GLOBALS['rSettings'] = ['redis_handler' => 0];
+		$GLOBALS['rServers'] = [SERVER_ID => ['time_offset' => 0]];
+		try {
+			$this->assertTrue(ConnectionLimiter::closeRTMP('17'));
+		} finally {
+			unset($GLOBALS['rSettings'], $GLOBALS['rServers']);
+		}
+		$rReqs = $this->requests();
+		$this->assertSame(['GET /v1/conn/' . $rUUID . ' HTTP/1.0', 'PUT /v1/conn/' . $rUUID . ' HTTP/1.0'], array_column($rReqs, 'line'));
+		$this->assertSame(1, $rReqs[1]['body']['hls_end'], 'ended');
+		$this->assertSame(0, $this->rows(), 'MAIN\'s store is not written');
+	}
+
 	public function testNoAdmissionForAnUnlimitedLineARefreshOrAnEndpointWithoutAToken(): void {
 		$this->agent([[200, '{}'], [200, '{}'], [200, '{}']]);
 		$this->assertTrue($this->open($this->record('c1'), $this->token('c1', ['user_info' => ['id' => 42, 'max_connections' => 0]])));
@@ -371,6 +391,15 @@ PHP);
 		$this->assertFalse(ConnectionTracker::openRecord($rSettings, $rConnection, ['uuid' => 'k1']));
 		$this->assertNull(ConnectionTracker::refusedAdmission(), 'not the agent\'s refusal');
 		$this->assertNull(ConnectionTracker::heartbeat($rSettings, 'k1', self::MAIN_NOW));
+		// An RTMP viewer that leaves: its agent alone could end it.
+		defined('SERVER_ID') || define('SERVER_ID', 5);
+		$GLOBALS['rSettings'] = $rSettings;
+		$GLOBALS['rServers'] = [SERVER_ID => ['time_offset' => 0]];
+		try {
+			$this->assertFalse(ConnectionLimiter::closeRTMP('17'));
+		} finally {
+			unset($GLOBALS['rSettings'], $GLOBALS['rServers']);
+		}
 		// A read a check depends on refuses the request: "none" would skip the
 		// address checks (restrict_same_ip, disallow_2nd_ip_con).
 		$rReads = [
