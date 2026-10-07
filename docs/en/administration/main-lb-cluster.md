@@ -137,9 +137,7 @@ appears there as **active**.
 *legacy* (the default) it joins in mode 1 and you move it on (Steps 3 and 4). With *api* it joins
 straight in **mode 2**, every flow on, and gets none of MAIN's database or Redis credentials, as
 if it had already gone through Step 5's first part. *api* needs the cluster API on (without it a
-new load balancer installs the old way) and the **Redis connection handler** off (a node in
-mode 2 turns every viewer away with it); the Cache page then refuses the handler until New Node
-Mode is *legacy* again.
+new load balancer installs the old way).
 
 !!! note "A load balancer that is already installed, or that MAIN cannot reach over SSH (NAT)"
     The server must already be in **Servers → Manage Servers**.
@@ -249,9 +247,10 @@ that way right now:
 - the LB is **active** (not quarantined) and MAIN heard it in the last ten seconds;
 - the LB itself says that it runs from its own copy: it starts from its local settings and reads
   its streams by itself. That takes a minute or two after the flows are switched on. If it is not
-  there yet, the page tells you so: try again shortly;
-- the panel does not use the **Redis connection handler**. With it, a load balancer in mode 2
-  would turn every viewer away, so the page refuses the move.
+  there yet, the page tells you so: try again shortly.
+
+The **Redis connection handler** (Cache) may be on or off: a load balancer in mode 2 keeps its
+viewers on itself either way, and MAIN keeps its copy in whichever store the handler says.
 
 The page asks you to confirm first. From its next heartbeat (about two seconds) the load balancer
 opens no connection to MAIN's MySQL or Redis, and its background services restart within a minute
@@ -281,15 +280,6 @@ cannot read its streams any more: press **Mode down**, wait a minute or two, the
 
     With the **DB Allowlist** on (Step 5), MAIN's firewall lets the load balancer back in up to a
     minute after **Mode down**. Its services may fail and restart once during that minute.
-
-    Do not switch the **Redis connection handler** on while a load balancer is in mode 2, or is
-    joining in mode 2. The Cache page refuses it.
-
-    The other way round, while the handler is on the panel refuses to install or reinstall a load
-    balancer that would join in mode 2 (one that is in mode 2, or whose DB credentials were
-    dropped), and to approve its enrolment by code. An install is refused before the panel touches
-    the server, so a running load balancer stays in rotation; a request by code stays pending.
-    Switch the handler off first.
 
 ### Step 5 (optional): lock everything down
 

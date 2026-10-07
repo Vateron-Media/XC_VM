@@ -13,7 +13,6 @@ use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Server\ServerSavedEvent;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Cluster\ClusterEndpoint;
-use XcVm\Domain\Cluster\DbCredentials;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -383,11 +382,6 @@ class ServerService {
 				return ['status' => STATUS_FAILURE, 'data' => $rData];
 			}
 
-			// Said before the row says the server is being installed.
-			if ($rData['type'] != 1 && self::modeTwoInstallRefused(intval($rServer['id']))) {
-				return ['status' => STATUS_FAILURE, 'data' => $rData, 'message' => 'cluster_mode_redis_handler'];
-			}
-
 			$db->query('UPDATE `servers` SET `status` = 3, `parent_id` = ? WHERE `id` = ?;', '[' . implode(',', $rParentIDs) . ']', $rServer['id']);
 			if ($rData['type'] == 1) {
 				$rCommand = InstallCredentials::command(intval($rData['type']), intval($rServer['id']), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], [(string) intval($rData['http_broadcast_port']), (string) intval($rData['https_broadcast_port']), (string) intval($rUpdateSysctl), (string) intval($rPrivateIP), escapeshellarg(json_encode($rParentIDs))], (string) ($rData['expected_hostkey'] ?? ''), !empty($rData['forget_hostkey']));
@@ -411,11 +405,6 @@ class ServerService {
 		if (QueryHelper::checkExists('servers', 'server_ip', $rArray['server_ip'])) {
 			return ['status' => STATUS_EXISTS_IP, 'data' => $rData];
 		}
-		// No row is added for an install that would be refused.
-		if ($rData['type'] != 1 && self::modeTwoInstallRefused()) {
-			return ['status' => STATUS_FAILURE, 'data' => $rData, 'message' => 'cluster_mode_redis_handler'];
-		}
-
 		if ($rData['type'] == 1) {
 			$rArray['server_type'] = 1;
 			$rArray['parent_id'] = '[' . implode(',', $rParentIDs) . ']';
@@ -447,25 +436,6 @@ class ServerService {
 
 		shell_exec($rCommand);
 		return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rInsertID]];
-	}
-
-	/**
-	 * Would `server:install` refuse this load balancer because it installs in
-	 * cluster mode 2 while the Redis connection handler is on (the command's
-	 * own check, LbInstallFlow::installsInApiMode)? The panel asks before it
-	 * marks the server as being installed: a server marked so is out of
-	 * rotation, and after the command's refusal only an install that succeeds
-	 * brings it back.
-	 *
-	 * @param int $rServerID The load balancer; 0 for one that has no row yet.
-	 */
-	public static function modeTwoInstallRefused(int $rServerID = 0): bool {
-		$rSettings = SettingsManager::getAll();
-		if (empty($rSettings['redis_handler'])) {
-			return false;
-		}
-
-		return ClusterSettings::newNodesInApiMode($rSettings) || (!empty($rSettings['cluster_api_enabled']) && class_exists(DbCredentials::class) && DbCredentials::credentialFree($rServerID));
 	}
 
 	/**

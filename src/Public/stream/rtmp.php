@@ -10,7 +10,6 @@ use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSource;
 use XcVm\Domain\User\RtmpViewerAuth;
-use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Auth\RtmpOffline;
 use XcVm\Streaming\Auth\StreamAuth;
 use XcVm\Streaming\Protection\ConnectionLimiter;
@@ -134,9 +133,7 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 			if ($rUserInfo !== null) {
 				$rExtension = 'rtmp';
 				$rExternalDevice = '';
-				if ($rSettings['redis_handler']) {
-					RedisManager::ensureConnected();
-				}
+				ConnectionTracker::openStore($rSettings);
 				$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
 				$rConnectionData = ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'date_start' => $rLastRead, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => $rChannelInfo['on_demand'], 'identity' => $rUserInfo['id'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid'])];
 				// The table path keeps its own date_start (the node's clock), as it always did.
