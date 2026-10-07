@@ -281,6 +281,26 @@ final class ClusterAdmin {
 						? ['type' => 'warning', 'message' => 'cluster_enrol_rejected']
 						: ['type' => 'info', 'message' => 'cluster_nothing_pending'];
 
+				case 'cutover_start':
+					// The guided cutover (ClusterCutover): every flow, watched, up to mode 1.
+					$rNode = NodeRegistry::byServer($rServerID);
+					if ($rNode === null || $rNode['state'] !== 'active') {
+						return ['type' => 'info', 'message' => 'cluster_not_enrolled'];
+					}
+					if ((int) $rNode['mode'] === 2) {
+						return ['type' => 'info', 'message' => 'cluster_cutover_mode_two'];
+					}
+					if (!ClusterCutover::start($rServerID, $rUserID)) {
+						return ['type' => 'warning', 'message' => 'cluster_cutover_busy'];
+					}
+					ClusterAudit::log('node.cutover', $rServerID, ['flows' => (int) $rNode['flows']], $rUserID === null ? 'admin' : 'admin:' . $rUserID);
+					return ['type' => 'success', 'message' => 'cluster_cutover_started'];
+
+				case 'cutover_cancel':
+					ClusterCutover::cancel($rServerID);
+					ClusterAudit::log('node.cutover_cancel', $rServerID, [], $rUserID === null ? 'admin' : 'admin:' . $rUserID);
+					return ['type' => 'info', 'message' => 'cluster_cutover_cancel_done'];
+
 				case 'telemetry_on':
 				case 'telemetry_off':
 				case 'commands_on':

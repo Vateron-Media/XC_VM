@@ -11,6 +11,7 @@ use XcVm\Core\Cluster\ArtefactStage;
 use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Cluster\DataPlane;
 use XcVm\Core\Cluster\LogSink;
+use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeCredentials;
 use XcVm\Core\Cluster\NodeCorePin;
 use XcVm\Core\Cluster\NodeFlows;
@@ -1211,6 +1212,19 @@ class RootSignalsCronJob implements CommandInterface {
 					}
 					ProcessRunner::start(['sudo', PHP_BIN, MAIN_HOME . 'console.php', 'update', 'rollback', $rRbVersion]);
 				}
+				break;
+			case 'seed_connections':
+				// MAIN's guided cutover, before it switches CONNECTIONS on
+				// (ClusterCutover): this node's viewers from MAIN's store into its
+				// agent, as xc_vm, so its first digest agrees with MAIN's and none
+				// is dropped. Its line tells MAIN how it went (SEEDED / NOT_SEEDED).
+				[$rSeedCode, $rSeedOut] = self::run(['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'cluster:seed-connections']);
+				$rSeedLines = preg_split('/\R/', trim($rSeedOut)) ?: [];
+				$rSeedLine = ($rSeedCode === 0 ? NodeActions::SEEDED : NodeActions::NOT_SEEDED) . substr(trim((string) end($rSeedLines)), 0, 200);
+				if (!LogSink::syslog('CLUSTER', $rSeedLine)) {
+					$db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'CLUSTER', ?, 'root', 'localhost', NULL, ?);", SERVER_ID, $rSeedLine, time());
+				}
+				echo $rSeedLine . "\n";
 				break;
 			case 'set_services':
 				echo 'Setting PHP Services' . "\n";

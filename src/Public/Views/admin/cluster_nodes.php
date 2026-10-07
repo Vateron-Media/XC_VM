@@ -10,6 +10,8 @@
 
 use XcVm\Core\Cluster\ClusterHealth;
 use XcVm\Core\Util\LayoutRenderer;
+use XcVm\Domain\Cluster\ClusterAdmin;
+use XcVm\Domain\Cluster\ClusterCutover;
 use XcVm\Domain\Cluster\ClusterOverview;
 
 $rBadge = static fn(string $rState): string => match ($rState) {
@@ -293,6 +295,36 @@ $rWhen = static fn(?int $rTs): string => $rTs ? gmdate('Y-m-d H:i:s', $rTs) . ' 
                                     <input type="hidden" name="server_id" value="<?= (int) $rNode['server_id']; ?>">
                                     <button type="submit" name="cluster_action" value="revoke" class="btn btn-sm btn-label-danger"><?= $language::get('cluster_revoke'); ?></button>
                                 </form>
+                                <?php // The guided cutover (ClusterCutover): every flow, watched, up to mode 1. ?>
+                                <?php $rCut = ClusterCutover::state((int) $rNode['server_id']); ?>
+                                <?php $rCutRunning = $rCut !== null && ClusterCutover::running((int) $rNode['server_id'], $rCut); ?>
+                                <?php $rCutAny = $rCutAny ?? false; $rCutAny = $rCutAny || $rCutRunning || ($rCut['status'] ?? '') === 'starting'; ?>
+                                <?php if ($rNode['state'] === 'active' && (int) $rNode['mode'] < 2 && !$rCutRunning && ((int) $rNode['flows'] & ClusterAdmin::MODE2_FLOWS) !== ClusterAdmin::MODE2_FLOWS): ?>
+                                    <form method="POST" class="d-inline js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get('cluster_cutover_confirm'), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="server_id" value="<?= (int) $rNode['server_id']; ?>">
+                                        <button type="submit" name="cluster_action" value="cutover_start" class="btn btn-sm btn-label-primary" title="<?= htmlspecialchars($language::get('cluster_cutover_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_cutover'); ?></button>
+                                    </form>
+                                <?php endif; ?>
+                                <?php if ($rCut !== null): ?>
+                                    <?php $rCutTone = ['starting' => 'info', 'running' => 'info', 'done' => 'success', 'failed' => 'danger', 'cancelled' => 'secondary', 'waiting' => 'secondary', 'seeding' => 'info', 'switching' => 'info', 'watching' => 'warning', 'on' => 'success', 'skipped' => 'secondary']; ?>
+                                    <?php $rCutStatus = ['starting' => $language::get('cluster_cutover_starting'), 'running' => $language::get('cluster_cutover_running'), 'done' => $language::get('cluster_cutover_done'), 'failed' => $language::get('cluster_cutover_failed'), 'cancelled' => $language::get('cluster_cutover_cancelled')]; ?>
+                                    <?php $rCutStep = ['waiting' => $language::get('cluster_cutover_step_waiting'), 'seeding' => $language::get('cluster_cutover_step_seeding'), 'switching' => $language::get('cluster_cutover_step_switching'), 'watching' => $language::get('cluster_cutover_step_watching'), 'on' => $language::get('cluster_cutover_step_on'), 'failed' => $language::get('cluster_cutover_step_failed'), 'skipped' => $language::get('cluster_cutover_step_skipped')]; ?>
+                                    <div class="mt-2 small text-wrap" style="min-width:260px">
+                                        <span class="badge bg-label-<?= $rCutTone[$rCut['status']] ?? 'secondary'; ?>"><?= $language::get('cluster_cutover'); ?>: <?= $rCutStatus[$rCut['status']] ?? htmlspecialchars((string) $rCut['status'], ENT_QUOTES); ?></span>
+                                        <?php foreach ($rCut['steps'] ?? [] as $rCutFlow): ?>
+                                            <span class="badge bg-label-<?= $rCutTone[$rCutFlow['state']] ?? 'secondary'; ?>" title="<?= htmlspecialchars(($rCutStep[$rCutFlow['state']] ?? (string) $rCutFlow['state']) . ($rCutFlow['note'] !== '' ? ': ' . $rCutFlow['note'] : ''), ENT_QUOTES); ?>"><?= $language::get('cluster_' . $rCutFlow['flow'] . '_flow'); ?></span>
+                                        <?php endforeach; ?>
+                                        <?php if (($rCut['note'] ?? '') !== ''): ?>
+                                            <div class="text-body-secondary mt-1"><?= htmlspecialchars((string) $rCut['note'], ENT_QUOTES); ?></div>
+                                        <?php endif; ?>
+                                        <?php if ($rCutRunning): ?>
+                                            <form method="POST" class="d-inline">
+                                                <input type="hidden" name="server_id" value="<?= (int) $rNode['server_id']; ?>">
+                                                <button type="submit" name="cluster_action" value="cutover_cancel" class="btn btn-sm btn-label-danger mt-1"><?= $language::get('cluster_cutover_cancel'); ?></button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -432,6 +464,12 @@ document.querySelectorAll('.js-cluster-revoke').forEach(function (f) {
         }
     });
 });
+<?php if (!empty($rCutAny)): ?>
+// A guided cutover is running: show its progress again shortly (a GET, never the last POST again).
+setTimeout(function () {
+    window.location.href = window.location.pathname + window.location.search;
+}, 15000);
+<?php endif; ?>
 </script>
 
 <?php
