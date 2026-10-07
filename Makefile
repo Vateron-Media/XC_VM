@@ -93,6 +93,7 @@ LB_FILES_TO_REMOVE := \
 	Cli/Commands/CacheHandlerCommand.php \
 	Cli/Commands/ServerInstallCommand.php \
 	Cli/Commands/ClusterInitCommand.php \
+	Cli/Commands/ClusterRollingUpdateCommand.php \
 	Cli/Commands/ClusterExportKeysCommand.php \
 	Cli/Commands/ClusterImportKeysCommand.php \
 	Cli/Commands/ClusterPassphrase.php \

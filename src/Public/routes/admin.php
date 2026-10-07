@@ -362,6 +362,9 @@ $router->api('install_status', [ServerAjaxController::class, 'installStatus']);
 $router->api('reinstall_server', [ServerAjaxController::class, 'reinstallServer']);
 $router->api('fpm_status', [ServerAjaxController::class, 'fpmStatus']);
 $router->api('update_all_servers', [ServerAjaxController::class, 'updateAllServers']);
+$router->api('rolling_update_start', [ServerAjaxController::class, 'rollingUpdateStart']);
+$router->api('rolling_update_cancel', [ServerAjaxController::class, 'rollingUpdateCancel']);
+$router->api('rolling_update_status', [ServerAjaxController::class, 'rollingUpdateStatus']);
 $router->api('update_all_binaries', [ServerAjaxController::class, 'updateAllBinaries']);
 
 // ─── Blocklists & Security ─────────────────────────
