@@ -70,7 +70,7 @@ final class RtmpViewerAuthTest extends TestCase {
 			'an access token' => ['request' => ['token' => str_repeat('ab', 16)]],
 			'a playlist token' => ['request' => ['token' => Encryption::mintToken('viewer/secret', 'stream-secret', OPENSSL_EXTRA, true)]],
 		]);
-		$this->assertSame(['ok' => true, 'user' => ['id' => 42, 'max_connections' => 2, 'pair_id' => null, 'con_isp_name' => 'Example ISP', 'is_restreamer' => 0], 'country_code' => 'FR', 'channel' => [
+		$this->assertSame(['ok' => true, 'user' => ['id' => 42, 'max_connections' => 2, 'pair_id' => null, 'con_isp_name' => 'Example ISP', 'is_restreamer' => 0, 'exp_date' => null], 'country_code' => 'FR', 'channel' => [
 			'stream_id' => 100, 'redirect_id' => 7, 'originator_id' => null, 'pid' => null, 'on_demand' => 0, 'llod' => 0, 'monitor_pid' => null, 'proxy' => 0,
 		]], $rOut['plain']['answer'], 'the channel on the viewer\'s server, as a token\'s channel_info, for MAIN\'s mint');
 		$this->assertSame(['viewer', 'secret'], $rOut['plain']['asked']);

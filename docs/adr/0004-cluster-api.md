@@ -5540,11 +5540,39 @@ second was chosen: a line disabled on MAIN is refused at its next connect.
 
 **Not built / limits.**
 - **No answer refuses.** A node without an agent, an agent that predates the op, or MAIN
-  unreachable: the viewer is refused. RTMP has no offline policy, unlike `conn_admit`.
+  unreachable: the viewer is refused. RTMP has no offline policy, unlike `conn_admit`. (Built
+  since: see [An RTMP viewer while MAIN does not answer](#an-rtmp-viewer-while-main-does-not-answer-2026-10-07).)
 - **A refusal's client log on MAIN** carries the agent's request, not nginx-rtmp's: no query
   string, the agent's user agent.
 - **One round trip per connect** on MAIN's control lane, on top of `conn_admit` for a limited
   line. An RTMP connect is not a playlist refresh, so this is once per viewer.
+
+### An RTMP viewer while MAIN does not answer (2026-10-07)
+
+An HTTP viewer brings a token the node reads with its own key, so MAIN's absence touches only its
+admission (`lb_offline_admission`, the agent's). An RTMP viewer brings only its line's credentials,
+which MAIN alone can check (`rtmp_auth`): with MAIN unreachable, every RTMP viewer was refused.
+
+**Built.**
+- `RtmpOffline::ask()` makes the node's `rtmp_auth` call. A yes from MAIN is kept for the same
+  credentials, stream, viewer address and restream flag. It stands in for MAIN for ten minutes
+  (`TTL`), and only when the agent could not reach MAIN (its 502): never when MAIN refused (409:
+  a quarantined, revoked or refused node), nor when the agent did not answer. Any other answer
+  from MAIN forgets it, so a line refused since is refused again as soon as MAIN answers.
+- It is not taken under `lb_offline_admission = deny` (the setting now reaches the node's PHP
+  with its replica), on a node whose state is not `active` (`flows.json`), on a node whose lease
+  refuses new sessions (`NodeLease`, a lapsed lease or a fence), or past the line's expiry
+  (`exp_date`, which MAIN's answer now carries).
+- Kept as files in `TMP_PATH/rtmp_offline/`, named by an HMAC under a key of the node's own
+  (`.key`, 0600): no credential is written. `cron:cleanup` drops what is past the window.
+- Such a viewer is recorded without MAIN's mint, with its line's limit, so its admission is the
+  agent's offline policy's, as an HTTP viewer's is. Under `cluster_conn_binding = enforce` its
+  record is unproven when MAIN hears of it.
+
+**Not built / limits.**
+- A viewer MAIN never said yes to on this node, at this address, in the last ten minutes is
+  refused, as before.
+- A line disabled or banned while MAIN cannot be reached plays on for at most the ten minutes.
 
 ### The move to mode 2 without the connect audit (2026-10-05)
 
