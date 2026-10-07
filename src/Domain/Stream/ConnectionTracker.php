@@ -47,6 +47,11 @@ class ConnectionTracker {
 	 */
 	public static function getCapacity(bool $rProxy = false): array {
 		global $rSettings, $rServers;
+		// The cluster API sets no servers of its own: rtmp_auth places a load
+		// balancer's RTMP viewer through here (StreamRedirector).
+		if (!is_array($rServers)) {
+			$rServers = ServerRepository::getAll();
+		}
 		$db = self::db();
 		$rRedis = RedisManager::instance();
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
