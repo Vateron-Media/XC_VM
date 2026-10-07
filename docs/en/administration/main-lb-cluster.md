@@ -185,6 +185,10 @@ the warnings on Cluster Nodes) before going on:
 | 7 | **Connections** | The LB keeps its viewer list itself, and the agent mirrors it to MAIN. Needs Commands and Streams |
 | 8 | **Data plane** | Relays and files from other servers go through the agent with signed tickets instead of the stream password. Needs Streams and Content |
 
+Streams the LB already relays from another server when you switch **Data plane** on keep
+pulling the old way, with the stream password, until they restart. To move them over at once,
+restart them: on **Streams**, filter **Server** to the LB, select them and click **Restart**.
+
 Every flow can be switched off again: the load balancer then goes back to the old way for that
 part. The exception is a load balancer in mode 2 (Step 4), which needs every flow: the page refuses
 to switch one off, and you press **Mode down** first. Before switching **Connections** on by hand,
