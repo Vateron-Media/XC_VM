@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterMeta;
 use XcVm\Domain\Cluster\ClusterOverview;
+use XcVm\Domain\Cluster\MainDataPlane;
 use XcVm\Domain\Server\ServerRepository;
 
 /**
@@ -49,11 +50,14 @@ class ClusterNodesController extends BaseAdminController {
 
 		$rNodes = ClusterAdmin::nodes($rServers, self::offlineAfter($rSettings));
 		$rNow = time();
+		$rMainDataPlane = $rEnabled && $rAvailable && !empty(MainDataPlane::identity()['on']);
 		$this->render('cluster_nodes', [
 			'clusterEnabled' => $rEnabled && $rAvailable,
 			'clusterNodes' => $rNodes,
 			'clusterFences' => ClusterOverview::fenceWindows($rNodes, $rSettings),
 			'clusterDigestN1' => ClusterOverview::digestN1($rNodes),
+			'clusterMainDataPlane' => $rMainDataPlane,
+			'clusterLegacyApiOpenBy' => ClusterOverview::legacyApiOpenBy($rServers, $rNodes, (int) SERVER_ID, $rMainDataPlane),
 			'clusterBanners' => ClusterOverview::banners(ClusterOverview::licensed($rEnabled && $rAvailable), $rServers[(int) SERVER_ID] ?? [], $rSettings, $rNodes, $rNow),
 			'clusterMetrics' => $rEnabled ? self::metrics($rSettings, $rNow) : null,
 			'clusterNames' => array_map(static fn(array $rServer): string => (string) ($rServer['server_name'] ?? ''), $rServers),

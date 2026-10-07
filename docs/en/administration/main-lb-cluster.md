@@ -188,8 +188,23 @@ the warnings on Cluster Nodes) before going on:
 | 8 | **Data plane** | Relays and files from other servers go through the agent with signed tickets instead of the stream password. Needs Streams and Content |
 
 Streams the LB already relays from another server when you switch **Data plane** on keep
-pulling the old way, with the stream password, until they restart. To move them over at once,
-restart them: on **Streams**, filter **Server** to the LB, select them and click **Restart**.
+pulling the old way, with the stream password, until they restart. Nothing new goes out meanwhile:
+a parent no longer takes the password from a server with Data plane on, so such a relay that
+reconnects is refused. To move them over at once, restart them: on **Streams**, filter **Server**
+to the LB, select them and click **Restart**.
+
+Once every load balancer has **Data plane** on, close the data plane on MAIN's side too, on
+**Cluster Nodes → MAIN's data plane**:
+
+1. Click **Switch on**. MAIN then reads load balancers' files and relays with tickets as well,
+   through an agent of its own (the same as `console.php cluster:main-dataplane on`). If it
+   answers that there is no agent binary yet, run `console.php fanout_binary agent` as root on
+   MAIN first.
+2. The same card says whether **the load balancers' legacy `/api`** is closed. It closes by
+   itself, within a minute, once every server, MAIN included, has its data plane on; until then
+   the card names the servers that keep it open. A proxy always does.
+3. When it says *Closed*, rotate the stream secret (`console.php cluster:rotate-stream-secret`
+   on MAIN), so the old one opens nothing.
 
 Every flow can be switched off again: the load balancer then goes back to the old way for that
 part. The exception is a load balancer in mode 2 (Step 4), which needs every flow: the page refuses

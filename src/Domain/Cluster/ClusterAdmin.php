@@ -5,6 +5,7 @@ namespace XcVm\Domain\Cluster;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -230,6 +231,24 @@ final class ClusterAdmin {
 	}
 
 	/**
+	 * MAIN's data-plane client on or off from the page: the
+	 * `cluster:main-dataplane` the CLI runs, as the panel's own user (xc_vm),
+	 * so the key, the files and the audit are the command's. A refusal is
+	 * the command's own reason (no agent binary yet, no panel key, ...).
+	 *
+	 * @return array{type: string, message: string, vars?: array<string, string>}
+	 */
+	private static function mainDataPlane(bool $rOn, ?int $rUserID): array {
+		[$rCode, $rOut] = ProcessRunner::capture([PHP_BIN, MAIN_HOME . 'console.php', 'cluster:main-dataplane', $rOn ? 'on' : 'off']);
+		ClusterAudit::log('cluster.main_dataplane_asked', null, ['on' => $rOn, 'exit' => $rCode], $rUserID === null ? 'admin' : 'admin:' . $rUserID);
+		if ($rCode === 0) {
+			return ['type' => 'success', 'message' => $rOn ? 'cluster_main_dataplane_on_done' : 'cluster_main_dataplane_off_done'];
+		}
+		$rWhy = preg_match('/^Refused: (.+)$/m', $rOut, $rMatch) === 1 ? $rMatch[1] : trim($rOut);
+		return ['type' => 'warning', 'message' => 'cluster_main_dataplane_refused', 'vars' => ['{WHY}' => mb_strimwidth($rWhy !== '' ? $rWhy : 'exit ' . $rCode, 0, 300, '…')]];
+	}
+
+	/**
 	 * Perform one action from the page.
 	 *
 	 * @param array<string, mixed> $rInput cluster_action, server_id, sas, url
@@ -247,6 +266,9 @@ final class ClusterAdmin {
 				'message' => 'cluster_rotate_all_done',
 				'vars' => ['{QUEUED}' => (string) $rDone['queued'], '{SKIPPED}' => (string) $rDone['no_commands'], '{FAILED}' => (string) $rDone['failed']],
 			];
+		}
+		if ($rAction === 'main_dataplane_on' || $rAction === 'main_dataplane_off') {
+			return self::mainDataPlane($rAction === 'main_dataplane_on', $rUserID);
 		}
 		$rServerID = (int) ($rInput['server_id'] ?? 0);
 		$rMain = $rServers[$rMainID] ?? [];
