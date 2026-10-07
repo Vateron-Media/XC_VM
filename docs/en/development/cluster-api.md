@@ -335,7 +335,9 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
     the password only when the node cannot write the token's key). MAIN's admin player
     sends a node no password either: an on-demand stream starts on the browser's own
     `uitoken` request.
-  - MAIN pulls through it only once an operator runs `cluster:main-dataplane on`: MAIN then
+  - MAIN pulls through it only once an operator runs `cluster:main-dataplane on`, or presses
+    **Switch on** under *MAIN's data plane* on Cluster Nodes, which runs that command as the
+    panel's user (`ClusterAdmin::act`, audited `cluster.main_dataplane_asked`): MAIN then
     gets a data-plane key of its own and an entry in the signed node list, and its source
     probe, a node's certbot log, and the relays and files of the streams it runs go through
     `xc_agent run -role main`. Off (the default), MAIN keeps the legacy URLs. MAIN's key sits
@@ -348,7 +350,8 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
     legacy `getFile` URL any more: its own flow on, and every server of the cluster, MAIN
     included, an active node with its data plane on. MAIN counts once
     `cluster:main-dataplane on` is set. A proxy is never a node, so a cluster with a proxy
-    keeps every node's `/api`.
+    keeps every node's `/api`. The Cluster Nodes page names the servers that keep it open
+    (`ClusterOverview::legacyApiOpenBy`).
   - The flow can be switched on only for a node whose agent runs the loopback relay proxy
     (it says `relay` at hello): update `xc_agent` first. The agent publishes the loopback
     key (`relay.key`) only while it holds `127.0.0.1:31290`, and the node's PHP checks

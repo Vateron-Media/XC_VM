@@ -29,6 +29,35 @@ use XcVm\Infrastructure\Database\DatabaseAware;
 final class ClusterOverview {
 	use DatabaseAware;
 
+	/**
+	 * The servers that keep every load balancer's legacy `/api` open
+	 * (DataPlane::legacyApiRetired(), which each node judges from its signed
+	 * node list): MAIN while its data-plane client is off, and every other
+	 * server that is not a node active in mode 1 or 2 with its DATAPLANE flow
+	 * (a load balancer not enrolled or without the flow, a proxy). None: the
+	 * legacy `/api` answers 404 on every node with DATAPLANE from its next
+	 * root pass.
+	 *
+	 * @param array<int, array<string, mixed>> $rServers ServerRepository::getAll()
+	 * @param list<array<string, mixed>> $rNodes ClusterAdmin::nodes()
+	 * @return list<int> Server ids, as the servers list orders them.
+	 */
+	public static function legacyApiOpenBy(array $rServers, array $rNodes, int $rMainID, bool $rMainDataPlane): array {
+		$rReady = [];
+		foreach ($rNodes as $rNode) {
+			if (($rNode['state'] ?? null) === 'active' && (int) ($rNode['mode'] ?? 0) >= 1 && ((int) ($rNode['flows'] ?? 0) & NodeRegistry::FLOW_DATAPLANE) !== 0) {
+				$rReady[(int) $rNode['server_id']] = true;
+			}
+		}
+		$rOut = [];
+		foreach (array_keys($rServers) as $rID) {
+			if ((int) $rID === $rMainID ? !$rMainDataPlane : !isset($rReady[(int) $rID])) {
+				$rOut[] = (int) $rID;
+			}
+		}
+		return $rOut;
+	}
+
 	/** Days before MAIN's certificate expires that the page warns, when the nodes dial HTTPS. */
 	public const CERT_WARN_DAYS = 14;
 
