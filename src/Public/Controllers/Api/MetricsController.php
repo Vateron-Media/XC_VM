@@ -4,7 +4,11 @@ namespace XcVm\Public\Controllers\Api;
 
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cache\FileCache;
+use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Cluster\ClusterAdmin;
+use XcVm\Domain\Cluster\ClusterOverview;
+use XcVm\Domain\Cluster\NodeLag;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Public\Controllers\Admin\DashboardController;
@@ -15,7 +19,8 @@ use XcVm\Public\Controllers\Admin\DashboardController;
  * /metrics answers Prometheus text to a bearer token (Settings → API →
  * Metrics Token; empty, it answers 404): each server's state and load, the
  * lines by state, the age of the root cron, the newest backup and the last
- * cache run, and the dashboard's status checks. /healthz needs nothing and
+ * cache run, the dashboard's status checks, and with the cluster API on its
+ * nodes and commands (cluster()). /healthz needs nothing and
  * says only 200 `ok` or 503 `fail`: a dashboard status check failing, or the
  * database not answering. Both are computed at most every 15 seconds.
  *
@@ -143,7 +148,63 @@ class MetricsController {
 			$rChecks[] = [['check' => (string) $rCheck['key']], self::STATES[$rCheck['state']] ?? -1];
 		}
 		$rOut .= self::family('xcvm_status_check', 'The dashboard\'s status checks: -1 off, 0 ok, 1 warning, 2 failing.', $rChecks);
-		return $rOut;
+		return $rOut . self::cluster($rServers, $rNow);
+	}
+
+	/**
+	 * The load balancers enrolled in the cluster API, as Cluster Nodes shows
+	 * them (ClusterAdmin::nodes): each one's state, health and mode, seconds
+	 * since MAIN last heard it, its clock offset, how long each event lane has
+	 * lagged (0: not lagging), the MAIN URLs it cannot reach, whether it reads
+	 * its streams on itself, its queued commands, and MAIN's command latency.
+	 * Nothing while the cluster API is off.
+	 *
+	 * @param array<int, array<string, mixed>> $rServers
+	 */
+	public static function cluster(array $rServers, int $rNow): string {
+		if (empty(SettingsManager::get('cluster_api_enabled'))) {
+			return '';
+		}
+		try {
+			$rNodes = ClusterAdmin::nodes($rServers, ClusterSettings::int('cluster_offline_after_sec', SettingsManager::get('cluster_offline_after_sec')));
+			$rCommands = ClusterOverview::commandMetrics($rNow);
+		} catch (\Throwable) {
+			return ''; // the cluster tables or the bus not there: the rest still answers
+		}
+		$rSeries = ['node' => [], 'seen' => [], 'clock' => [], 'lag' => [], 'urls' => [], 'local' => [], 'queued' => []];
+		foreach ($rNodes as $rNode) {
+			$rLabels = ['server' => (string) $rNode['server_id'], 'name' => (string) $rNode['server_name']];
+			$rSeries['node'][] = [$rLabels + ['state' => (string) $rNode['state'], 'health' => (string) $rNode['health'], 'mode' => (string) (int) $rNode['mode']], 1];
+			if ($rNode['last_seen_at'] !== null) {
+				$rSeries['seen'][] = [$rLabels, max(0, $rNow - intdiv((int) $rNode['last_seen_at'], 1000))];
+			}
+			$rSeries['clock'][] = [$rLabels, round((int) ($rNode['clock_offset_ms'] ?? 0) / 1000, 3)];
+			foreach (NodeLag::LANES as $rLane) {
+				$rSince = $rNode[$rLane . '_lag_since'] ?? null;
+				$rSeries['lag'][] = [$rLabels + ['lane' => $rLane], $rSince === null ? 0 : max(0, $rNow - (int) $rSince)];
+			}
+			$rSeries['urls'][] = [$rLabels, count(array_filter(explode(' ', (string) ($rNode['unreachable_urls'] ?? ''))))];
+			if ($rNode['streams_local'] !== null) {
+				$rSeries['local'][] = [$rLabels, $rNode['streams_local'] ? 1 : 0];
+			}
+			$rSeries['queued'][] = [$rLabels, (int) ($rCommands['per_node'][(int) $rNode['server_id']] ?? 0)];
+		}
+		$rLatency = [];
+		foreach (['deliver', 'ack'] as $rStage) {
+			foreach (['0.5' => 'p50', '0.99' => 'p99'] as $rQuantile => $rKey) {
+				if ($rCommands[$rStage . '_' . $rKey] !== null) {
+					$rLatency[] = [['stage' => $rStage, 'quantile' => (string) $rQuantile], (int) $rCommands[$rStage . '_' . $rKey]];
+				}
+			}
+		}
+		return self::family('xcvm_cluster_node', 'A load balancer enrolled in the cluster API, with its state, health and mode as labels.', $rSeries['node'])
+			. self::family('xcvm_cluster_node_last_seen_seconds', 'Seconds since MAIN last heard the node.', $rSeries['seen'])
+			. self::family('xcvm_cluster_node_clock_offset_seconds', 'The node\'s clock less MAIN\'s.', $rSeries['clock'])
+			. self::family('xcvm_cluster_node_lane_lag_seconds', 'How long the node\'s oldest unsent event on the lane has waited past the lag threshold; 0 when not lagging.', $rSeries['lag'])
+			. self::family('xcvm_cluster_node_unreachable_urls', 'MAIN URLs the node reports it cannot reach.', $rSeries['urls'])
+			. self::family('xcvm_cluster_node_streams_local', 'Whether the node reads its streams on itself (1) or not (0), as it reports.', $rSeries['local'])
+			. self::family('xcvm_cluster_node_commands_queued', 'Commands queued for the node and not yet acknowledged.', $rSeries['queued'])
+			. self::family('xcvm_cluster_command_latency_seconds', 'MAIN\'s commands over the last window: seconds from queued to delivered or acknowledged.', $rLatency);
 	}
 
 	/**
