@@ -244,8 +244,14 @@ console.php cluster:pools            # start or resize the API's FPM pools
 console.php cluster:endpoint list    # old ports and URLs still served
 console.php cluster:maintain-stats   # servers_stats and log table indexes, built online (cron:cleanup starts it)
 
-# Before switching CONNECTIONS on: load the node's viewers into its agent
-console.php cluster:seed-connections <serverID>
+# Before switching CONNECTIONS on: load the node's viewers into its agent (on the node;
+# MAIN's guided cutover asks it with the `seed_connections` root action, cluster:cutover)
+console.php cluster:seed-connections
+
+# MAIN: a load balancer's flows on one at a time, watched, up to mode 1; the load
+# balancers updated to MAIN's release one at a time
+console.php cluster:cutover <serverID> [admin user id]
+console.php cluster:rolling-update
 
 # Every node (MAIN too, any mode) keeps the agent, the fanout daemon and xcvm_core
 # current from GitHub itself, hourly from cron:root_signals; by hand, as root:

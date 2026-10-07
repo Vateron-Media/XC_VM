@@ -180,12 +180,35 @@ the warnings on Cluster Nodes) before going on:
 
 Every flow can be switched off again: the load balancer then goes back to the old way for that
 part. The exception is a load balancer in mode 2 (Step 4), which needs every flow: the page refuses
-to switch one off, and you press **Mode down** first. Before switching **Connections** on, load the
-LB's current viewers into its agent with one command on MAIN:
+to switch one off, and you press **Mode down** first. Before switching **Connections** on by hand,
+load the LB's current viewers into its agent with one command **on the load balancer**:
 
 ```bash
-sudo -u xc_vm /home/xc_vm/console.php cluster:seed-connections <server id>
+sudo -u xc_vm /home/xc_vm/console.php cluster:seed-connections
 ```
+
+Without it, the agent starts with an empty viewer list, MAIN's list and its own disagree, and the
+resync that follows would drop the viewers the LB has.
+
+#### Guided cutover
+
+**Guided cutover** (Cluster Nodes, per load balancer) does this step for you: it switches the
+flows on in the order above, one at a time, and watches the load balancer for two minutes after
+each before going on.
+
+- Before each flow the load balancer must be active, heard by MAIN, and show no red badge (a
+  report queue falling far behind, a clock far off). Otherwise the cutover stops there.
+- Before **Connections** it has the load balancer load its viewers into its agent (the command
+  above), and waits for its answer.
+- If the load balancer is not healthy after a flow, that flow is switched off again and the
+  cutover stops. The page says why.
+- **Data plane** is left off when the load balancer's agent does not offer the relay, as an
+  install leaves it.
+- It ends in **mode 1** with every flow on. It never moves a load balancer to mode 2: that stays
+  your move (Step 4).
+
+The page shows each flow's progress and refreshes itself while the cutover runs; **Cancel cutover**
+stops it before its next flow.
 
 ### Step 4: full cluster mode (mode 2)
 
@@ -289,6 +312,17 @@ The buttons:
 | **Resync** | The LB fetches its copy of the configuration and its viewer list again from scratch |
 | **Revoke** | Removes the LB from the cluster. Its tokens stop working at once; it must join again |
 | **Mode up** / **Mode down** | Moves the LB between modes 0, 1 and 2 |
+| **Guided cutover** | Switches the LB's flows on one at a time, watched, up to mode 1 (Step 3) |
+
+## Placement advice
+
+**Servers → Placement Advice → Show** tells you which servers are busy and where their busiest
+streams could also run. A server's load is the highest of three readings: its viewers against
+its **Max Clients**, its outgoing traffic against its network speed (as the load balancing reads
+them), and its CPU. For a server at 80% or more, it names the least busy server under 40% and up to
+five of the busy server's streams, by viewers, that the other one does not run yet. Add that server
+to those streams (the stream's **Servers** tab) to share the viewers. The advice changes nothing by
+itself.
 
 ## When MAIN is unreachable
 
