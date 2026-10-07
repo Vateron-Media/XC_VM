@@ -20,6 +20,7 @@ use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Domain\Stream\StreamSource;
 use XcVm\Domain\Stream\StreamStateWriter;
+use XcVm\Streaming\Auth\RtmpOffline;
 use XcVm\Streaming\Codec\FFmpegCommand;
 use XcVm\Streaming\Codec\FFprobeRunner;
 
@@ -105,6 +106,8 @@ class CleanupCronJob implements CommandInterface {
 		// of the audit.json its agent sends.
 		SettingsAudit::prune(8);
 		SettingsAudit::publish();
+		// The RTMP viewers MAIN said yes to, past the hour they stand in for it.
+		RtmpOffline::prune();
 
 		// Everything below reads MAIN's database; the MAIN-only part never runs on a node.
 		if (!$this->streamChecks()) {
