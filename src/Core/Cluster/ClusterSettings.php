@@ -93,7 +93,7 @@ final class ClusterSettings {
 	 * @param array<string, mixed> $rNew     Submitted values (only cluster keys present are touched).
 	 * @param array<string, mixed> $rMain    The main server's `servers` row (ports).
 	 * @param array<string, mixed> $rCurrent The stored settings.
-	 * @param array{https_ok?: bool, nodes_https_ok?: bool, extension_ok?: bool, api_mode_allowed?: bool, credential_free_config?: bool} $rEnv
+	 * @param array{https_ok?: bool, nodes_https_ok?: bool, extension_ok?: bool, credential_free_config?: bool} $rEnv
 	 * @return array{0: array<string, mixed>, 1: list<array{0: string, 1: string}>} [values to store, errors as [key, code]]
 	 */
 	public static function normalize(array $rNew, array $rMain, array $rCurrent, array $rEnv = []): array {
@@ -172,9 +172,6 @@ final class ClusterSettings {
 			// new node installs in legacy mode whatever is stored (newNodesInApiMode()).
 			$rErrors[] = ['lb_new_node_mode', 'cluster_error_api_mode_api_off'];
 			unset($rOut['lb_new_node_mode']);
-		} elseif (($rOut['lb_new_node_mode'] ?? null) === 'api' && empty($rEnv['api_mode_allowed'])) {
-			$rErrors[] = ['lb_new_node_mode', 'cluster_error_api_mode'];
-			unset($rOut['lb_new_node_mode']);
 		} elseif (($rOut['lb_new_node_mode'] ?? null) === 'api' && empty($rEnv['credential_free_config'])) {
 			// An API-mode node is installed without MAIN's credentials: an
 			// extension that cannot pack such a config would hand them over.
@@ -189,8 +186,7 @@ final class ClusterSettings {
 	 * Is a new load balancer installed in API mode (plan, section 12: mode 2
 	 * from its first boot, no DB grant, a credential-free config.enc)? Only
 	 * with the cluster API on and `lb_new_node_mode = api` — which normalize()
-	 * refuses with the cluster API off, with the Redis connection handler on (`api_mode_allowed`) and
-	 * without an extension that packs such a config (CredentialFreeConfig).
+	 * refuses with the cluster API off and without an extension that packs such a config (CredentialFreeConfig).
 	 *
 	 * @param array<string, mixed> $rSettings
 	 */

@@ -142,10 +142,6 @@ Some actions pass the gate and still answer `{"result":false}`:
   trials; the package form itself clears one switch when the other is switched on.
 - **`reg_user`** and **`adjust_credits`** leave an administrator's account alone unless the
   caller is a full administrator.
-- **`reinstall_server`** answers `{"result":false,"message":"…"}` when the load balancer
-  would install in cluster mode 2 while the Redis connection handler is on. The server is
-  not marked as being installed, so it stays in rotation. **`enable_handler`** answers the
-  same shape while a node is in mode 2.
 
 ---
 
