@@ -60,6 +60,9 @@ final class ClusterSettings {
 		'lb_revocation_mode' => ['graceful', ['graceful', 'hard']],
 		'lb_offline_admission' => ['local', ['allow', 'local', 'deny']],
 		'lb_new_node_mode' => ['legacy', ['legacy', 'api']],
+		// A node's viewer records must prove MAIN's mint (ConnectionAdmission): counted
+		// under observe, refused under enforce where MAIN withholds the node's secret.
+		'cluster_conn_binding' => ['observe', ['observe', 'enforce']],
 	];
 
 	public const DEFAULT_SCAN_ROOTS = ['/home/xc_vm/content', '/mnt', '/media'];

@@ -313,6 +313,14 @@ Only when every load balancer is in mode 2:
 4. Last, an administrator can close MySQL and Redis to the network entirely by running
    `/home/xc_vm/console.php cluster:lockdown` as root on MAIN. It refuses while any LB is below
    mode 2 or any proxy has not signed yet. `cluster:lockdown --undo` reverses it.
+5. **Viewer Record Proof** (Settings → Cluster). Once locked down, MAIN no longer sends the load
+   balancers the stream secret, and each viewer record a load balancer reports should carry MAIN's
+   proof that MAIN sent it that viewer. Leave it on `observe` and watch the **Viewer record proof**
+   card on Cluster Nodes: it shows which load balancers prove, what each counted today without a
+   proof, and whether `enforce` is safe. When it says *Ready for enforce*, switch to `enforce`: MAIN
+   then refuses a viewer record it did not mint, so a load balancer can only report viewers MAIN
+   sent it. A load balancer on an older panel release, or RTMP viewers from before they carried
+   the proof, show up there as unproven first.
 
 ## Everyday use: the Cluster Nodes page
 
