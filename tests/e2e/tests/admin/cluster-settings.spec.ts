@@ -55,6 +55,33 @@ test.describe('cluster settings', () => {
     await expect(page.locator('body')).not.toContainText(/Fatal error|Uncaught|Stack trace/);
   });
 
+  test('Viewer Record Proof saves, and the Cluster Nodes card shows the mode and the nodes', async ({ page }) => {
+    const setBinding = async (value: 'observe' | 'enforce') => {
+      const pane = await clusterTab(page);
+      await pane.locator('#cluster_conn_binding').selectOption(value, { force: true });
+      // The page reloads itself 0.7 s after a save: a navigation of ours would race it.
+      const reloaded = page.waitForEvent('load', { timeout: 15_000 });
+      const { body, text } = await postAnswer(page, page, 'settings', save(page));
+      expect(body?.result, `saving ${value} answered: ${text.slice(0, 300)}`).toBe(true);
+      await reloaded;
+      await expect((await clusterTab(page)).locator('#cluster_conn_binding')).toHaveValue(value);
+    };
+    const card = () => page.locator('.card', { has: page.locator('h5', { hasText: 'Viewer record proof' }) });
+    try {
+      await setBinding('enforce');
+      await page.goto('./cluster_nodes');
+      await expect(card()).toHaveCount(1);
+      await expect(card().locator('.badge').first()).toHaveText('enforce');
+      // One row per active node, and one of three verdicts on whether enforce is safe.
+      await expect(card().locator('tbody tr').first()).toBeAttached();
+      await expect(card()).toContainText(/Ready for enforce|Stay on observe|No node is held under enforce yet/);
+    } finally {
+      await setBinding('observe');
+    }
+    await page.goto('./cluster_nodes');
+    await expect(card().locator('.badge').first()).toHaveText('observe');
+  });
+
   test('a reserved port for the cluster API is refused, and nothing is saved', async ({ page }) => {
     // 6379 (Redis) is reserved on every panel, whatever its own ports.
     await refusedPort(page, '6379', /already used by MAIN .* or reserved/);
