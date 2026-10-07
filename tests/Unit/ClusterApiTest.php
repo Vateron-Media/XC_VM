@@ -1191,19 +1191,21 @@ final class ClusterApiTest extends TestCase {
 			$this->rDb->query('SELECT DISTINCT `class` FROM `cluster_commands`');
 			$this->assertSame('R', $this->rDb->get_row()['class'], 'restrictive: removals only (node.purge)');
 
-			// With the cluster API off, and for a node without COMMANDS, rows.
+			// With the cluster API off, and for a node without COMMANDS: neither a
+			// command nor a row its daemon never reads (ClusterRoute::rowless).
 			SettingsManager::set(['cluster_api_enabled' => 0] + $this->rSettings);
-			$this->assertTrue(SignalDispatcher::cache(self::SID, ['type' => 'delete_con', 'uuid' => 'off']));
+			$this->assertFalse(SignalDispatcher::cache(self::SID, ['type' => 'delete_con', 'uuid' => 'off']));
 			SettingsManager::set($this->rSettings);
 			NodeRegistry::update(self::SID, ['flows' => 0]);
-			$this->assertTrue(SignalDispatcher::cacheBatch(self::SID, [['type' => 'delete_con', 'uuid' => 'abc']]));
+			$this->assertFalse(SignalDispatcher::cacheBatch(self::SID, [['type' => 'delete_con', 'uuid' => 'abc']]));
 			$this->assertCount(6, $rJobs());
+			$this->assertCount(1, $rRows);
 
-			// So do MAIN's own jobs, even were MAIN's server a node in mode 2 taking commands.
+			// MAIN's own jobs keep their row, even were MAIN's server a node in mode 2 taking commands.
 			$this->rDb->query("INSERT INTO `cluster_nodes` (`server_id`, `node_uuid`, `state`, `mode`, `flows`, `created_at`, `updated_at`) VALUES (1, ?, 'active', 2, ?, 0, 0);", '00000000-0000-4000-a000-000000000001', NodeRegistry::FLOW_COMMANDS);
 			$this->assertTrue(SignalDispatcher::cache(1, ['type' => 'delete_vod', 'id' => 3]));
 			$this->assertSame([], $rJobs(1), 'no node.cache for MAIN itself');
-			$this->assertSame([self::SID, self::SID, 1], array_column(array_slice($rRows, 1), 'server_id'));
+			$this->assertSame([1], array_column(array_slice($rRows, 1), 'server_id'));
 		} finally {
 			\XcVm\Domain\Cluster\ClusterRoute::useCrypto(null);
 			SignalDispatcher::useSink(null);
@@ -1565,6 +1567,42 @@ final class ClusterApiTest extends TestCase {
 			$rDoc = json_decode(\XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0)[0]['doc'], true);
 			$this->assertSame(['node.root', 'reload_nginx', []], [$rDoc['type'], $rDoc['action'], $rDoc['args']]);
 			$this->assertSame(86400, $rDoc['exp'] - $rDoc['iat'], 'root commands live a day');
+		} finally {
+			\XcVm\Domain\Cluster\ClusterRoute::useCrypto(null);
+		}
+	}
+
+	/**
+	 * A quarantined node in mode 2 is handed its kills, drops, closes and
+	 * removals at once, and its cache rebuilds wait for Trust again; what it
+	 * cannot be sent is never left as a row or signal it does not read.
+	 */
+	public function testAQuarantinedNodeInModeTwoTakesItsRestrictiveCommands(): void {
+		$this->active();
+		SettingsManager::set($this->rSettings);
+		\XcVm\Domain\Cluster\ClusterRoute::useCrypto(fn() => $this->rCrypto);
+		$rTypes = static fn(array $rRows): array => array_map(static fn(array $rRow): string => json_decode($rRow['doc'], true)['type'], $rRows);
+		try {
+			NodeRegistry::update(self::SID, ['mode' => 2, 'flows' => NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_CONNECTIONS, 'root_ready' => 1, 'state' => 'quarantined']);
+			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::kill(self::SID, 4242, false));
+			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::drop(self::SID, 'viewer1'));
+			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::closeConnection(self::SID, 'viewer2', true));
+			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::cache(self::SID, [['type' => 'delete_vod', 'id' => 7], ['type' => 'update_stream', 'id' => 7]]));
+			$this->assertSame(['conn.kill_worker', 'conn.drop', 'conn.close', 'node.purge'], $rTypes(\XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0, 50, true)), 'what a quarantined node is handed');
+			$this->assertSame('node.cache', $rTypes(\XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0))[4], 'the rebuild waits for Trust again');
+
+			// A root action is not sent: audited, and the Server page says why.
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::root(self::SID, ['action' => 'restart_services']));
+			$this->assertSame('{"action":"restart_services","why":"quarantined"}', $this->rDb->pdo->query("SELECT `detail` FROM `cluster_audit` WHERE `event` = 'node.root_not_sent'")->fetchColumn());
+			$this->assertSame('quarantined', \XcVm\Domain\Cluster\ClusterRoute::rootBlocked(self::SID));
+
+			// Nothing can be signed: mode 2 gets no legacy row or signal, mode 1 keeps its path.
+			\XcVm\Domain\Cluster\ClusterRoute::useCrypto(static fn() => throw new \RuntimeException('no extension'));
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::kill(self::SID, 4243, false));
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::drop(self::SID, 'viewer3'));
+			NodeRegistry::update(self::SID, ['mode' => 1, 'state' => 'active']);
+			$this->assertSame([false, false], \XcVm\Domain\Cluster\ClusterRoute::kill(self::SID, 4244, false));
+			$this->assertNull(\XcVm\Domain\Cluster\ClusterRoute::rootBlocked(self::SID), 'mode 1 reads its signals row');
 		} finally {
 			\XcVm\Domain\Cluster\ClusterRoute::useCrypto(null);
 		}
