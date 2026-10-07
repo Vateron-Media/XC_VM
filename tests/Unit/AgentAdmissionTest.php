@@ -5,6 +5,8 @@ use XcVm\Core\Cluster\AgentClient;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Error\ErrorResponder;
+use XcVm\Core\Error\ErrorResponseException;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Streaming\Auth\StreamAuth;
@@ -319,6 +321,60 @@ PHP);
 		$this->assertTrue($this->open($this->record('g1'), $this->token('g1')));
 		$this->assertSame(0, $this->rows(), 'the agent\'s late answer is its answer');
 		$this->assertGreaterThan(AgentConnections::TIMEOUT, AgentConnections::ADMIT_TIMEOUT);
+	}
+
+	/** This node in mode 2: its agent is the only store (NodeRole::refusesConnects()). */
+	private function modeTwo(): void {
+		file_put_contents($this->rDir . '/flows.json', json_encode(['mode' => 2, 'flows' => NodeFlows::COMMANDS | NodeFlows::STREAMS | NodeFlows::CONNECTIONS, 'state' => 'active']));
+		clearstatcache();
+		NodeRole::useMainBuild(false);
+	}
+
+	public function testInModeTwoALateAgentIsWaitedFor(): void {
+		// A one-core load balancer's agent took up to 1 s while the minute's
+		// crons started: past the hot path's 1 s, a node in mode 2 had no
+		// store to turn to and its viewer got an HTTP 500.
+		$this->agent([[200, (string) json_encode($this->record('h1')), 1300], [200, (string) json_encode($this->record('h1')), 1300]]);
+		$this->assertNull(AgentConnections::get('h1'), 'mode 1: MAIN\'s store stands in after 1 s');
+		$this->modeTwo();
+		$this->assertSame('h1', AgentConnections::get('h1')['uuid'] ?? null);
+	}
+
+	public function testInModeTwoAnAgentThatDoesNotAnswerLeavesNoOtherStoreAsked(): void {
+		// No agent listens, and there is no database: any other store would throw.
+		$this->modeTwo();
+		DatabaseFactory::reset();
+		$rSettings = ['redis_handler' => 0];
+		$rConnection = $this->record('k1');
+		$rCtx = ['uuid' => 'k1', 'is_hmac' => null, 'identifier' => null, 'user_id' => 42, 'server_id' => 5, 'stream_id' => 100, 'adaptive' => false];
+		// A write fails, and the endpoint answers LINE_CREATE_FAIL; a check-in ends the viewer.
+		$this->assertFalse(ConnectionTracker::updateLive($rSettings, $rConnection, ['pid' => 1]));
+		$this->assertFalse(ConnectionTracker::openRecord($rSettings, $rConnection, ['uuid' => 'k1']));
+		$this->assertNull(ConnectionTracker::refusedAdmission(), 'not the agent\'s refusal');
+		$this->assertNull(ConnectionTracker::heartbeat($rSettings, 'k1', self::MAIN_NOW));
+		// A read a check depends on refuses the request: "none" would skip the
+		// address checks (restrict_same_ip, disallow_2nd_ip_con).
+		$rReads = [
+			'lookupLive' => static fn() => ConnectionTracker::lookupLive($rSettings, $rCtx, 'ts', true, false, false),
+			'findByUuid' => static fn() => ConnectionTracker::findByUuid($rSettings, 'k1', '`pid`'),
+			'acceptedIP' => static fn() => ConnectionTracker::acceptedIP($rSettings, 42),
+		];
+		ErrorResponder::$throwInsteadOfExit = true;
+		try {
+			foreach ($rReads as $rName => $rRead) {
+				ob_start();
+				try {
+					$rRead();
+					$this->fail($rName . ' let the request through unchecked');
+				} catch (ErrorResponseException $e) {
+					$this->assertSame('LINE_CREATE_FAIL', $e->errorCode, $rName);
+				} finally {
+					ob_end_clean();
+				}
+			}
+		} finally {
+			ErrorResponder::$throwInsteadOfExit = false;
+		}
 	}
 
 	private function rows(): int {

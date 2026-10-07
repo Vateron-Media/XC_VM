@@ -9,12 +9,23 @@ namespace XcVm\Core\Cluster;
  * the agent mirrors every change to MAIN as a P0 event, so MAIN's store stays
  * current for the reaper, the limits and the admin.
  *
- * Every call answers null when the agent did not: the caller then uses MAIN's
- * store for that call, and the viewer is never held up by the agent.
+ * Every call answers null when the agent did not. In mode 0 and 1 the caller
+ * then uses MAIN's store for that call, after at most TIMEOUT. In mode 2
+ * (NodeRole::refusesConnects()) the agent is the node's only store: a call
+ * waits up to SOLE_TIMEOUT, and one it still misses never goes to MAIN's store;
+ * ConnectionTracker refuses the request or fails the write instead.
  */
 final class AgentConnections {
 	/** The stream endpoints' hot path: the agent answers in well under this. */
 	public const TIMEOUT = 1.0;
+
+	/**
+	 * The hot path's wait on a node in mode 2 (NodeRole::refusesConnects()),
+	 * where the agent is the only store and nothing stands in when it is late.
+	 * A one-core load balancer's agent took up to 1 s to answer while the
+	 * minute's crons started.
+	 */
+	public const SOLE_TIMEOUT = 3.0;
 
 	/**
 	 * A new viewer's register, which may wait for the agent's conn_admit to
@@ -127,7 +138,7 @@ final class AgentConnections {
 			return null;
 		}
 		$rHeader = (string) json_encode($rAdmission, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-		$rOut = AgentClient::request('PUT', '/v1/conn/' . $rUUID, $rRecord, self::ADMIT_TIMEOUT, [self::ADMISSION_HEADER => $rHeader]);
+		$rOut = AgentClient::request('PUT', '/v1/conn/' . $rUUID, $rRecord, max(self::ADMIT_TIMEOUT, self::timeout()), [self::ADMISSION_HEADER => $rHeader]);
 		if ($rOut === null) {
 			return null;
 		}
@@ -152,7 +163,7 @@ final class AgentConnections {
 	 * @return array<string, mixed>|false|null
 	 */
 	public static function find(array $rMatch): array|false|null {
-		return self::record(AgentClient::request('POST', '/v1/conn/find', ['match' => (object) $rMatch], self::TIMEOUT));
+		return self::record(AgentClient::request('POST', '/v1/conn/find', ['match' => (object) $rMatch], self::timeout()));
 	}
 
 	/** How many streams one counts() call asks the agent for (its MaxCountStreams). */
@@ -169,7 +180,7 @@ final class AgentConnections {
 	public static function counts(array $rStreamIDs): ?array {
 		$rCounts = [];
 		foreach (array_chunk(array_values(array_unique($rStreamIDs)), self::COUNT_CHUNK) as $rChunk) {
-			$rOut = AgentClient::request('POST', '/v1/conn/counts', ['stream_ids' => $rChunk], self::TIMEOUT);
+			$rOut = AgentClient::request('POST', '/v1/conn/counts', ['stream_ids' => $rChunk], self::timeout());
 			if ($rOut === null || $rOut[0] !== 200 || !is_array($rOut[1]['counts'] ?? null)) {
 				return null;
 			}
@@ -182,7 +193,7 @@ final class AgentConnections {
 
 	/** @return array<string, mixed>|false|null a line's oldest open connection */
 	public static function oldest(mixed $rLineID): array|false|null {
-		return self::record(AgentClient::request('POST', '/v1/conn/oldest', ['user_id' => $rLineID], self::TIMEOUT));
+		return self::record(AgentClient::request('POST', '/v1/conn/oldest', ['user_id' => $rLineID], self::timeout()));
 	}
 
 	/** @return array<string, mixed>|false|null the record after refreshing its hls_last_read */
@@ -237,7 +248,12 @@ final class AgentConnections {
 		if (!preg_match('#^' . self::CONN_UUID_CHARS . '(/(touch|close))?\z#', $rPath)) {
 			return [400, null];
 		}
-		return AgentClient::request($rMethod, '/v1/conn/' . $rPath, $rBody, self::TIMEOUT);
+		return AgentClient::request($rMethod, '/v1/conn/' . $rPath, $rBody, self::timeout());
+	}
+
+	/** How long a hot-path call waits: longer where nothing can stand in for the agent. */
+	private static function timeout(): float {
+		return NodeRole::refusesConnects() ? self::SOLE_TIMEOUT : self::TIMEOUT;
 	}
 
 	/**
