@@ -6237,7 +6237,17 @@ No migration and no agent change; `TestInteropFence` passes unchanged.
   the operator" the rule, or must what was queued before still run?
 
 **Not built.** Of 1, the agent's field (XC_VM_Fanout 0.14.4) and the page and settings form
-named in its *Approved and built*; 2 and 3 are built, above. The three are independent. 3 and 2
+named in its *Approved and built*; 2 and 3 are built, above.
+
+**Built since (2026-10-07).** The agent's field shipped in XC_VM_Fanout 0.14.4. The setting is in
+`ClusterSettings::ENUMS` and Settings → Cluster (*Viewer Record Proof*). The Cluster Nodes page
+has a *Viewer record proof* card (`ClusterOverview::binding`): per active node, whether it proved
+since its enrolment (`conn_proven.<server id>` at its `gen`), whether enforce would hold it
+(`ReplicaBuilder::withholdsStreamPass`), and the day's counts (`bindingCounts`). It says *ready*
+only when every node enforce would hold proves and counted nothing unproven that day, and says so
+when enforce holds none yet (before lockdown MAIN sends every node the secret). It decides
+nothing: the switch stays the operator's. RTMP viewers carry MAIN's mint since `rtmp_auth`
+returns one (#286). The three are independent. 3 and 2
 change MAIN's panel alone. 1 needs the panel release on every node, and one field in the agent,
 before its second stage.
 
