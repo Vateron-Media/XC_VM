@@ -5573,6 +5573,33 @@ which server held it open.
 - **Proxies** keep every node's `/api` open: a proxy is never a node of the signed node list,
   which legacyApiRetired() requires of every server.
 
+### A fleet canary for the binaries from GitHub (2026-10-07)
+
+Every server, MAIN included and whatever its cluster mode, takes `xc_fanout` and `xc_agent` from
+the newest XC_VM_Fanout release itself, hourly (`fanout_binary` from `cron:root_signals`). Each
+node tries a new agent and `run.sh` puts the previous one back when it keeps failing, but a
+release that fails slowly, or only under real load, reached the whole fleet within the hour.
+
+**Built.**
+- `lb_binary_canary_server` and `lb_binary_canary_hours` (migration 084, Settings → Cluster; 0,
+  the default, is off). With a canary set, that load balancer takes each release as it comes out.
+  Every other server takes the newest release at or below `lb_release_pin`
+  (`FanoutBinaryCommand::releaseFor()`), none before the first pin, and never goes back from a
+  newer one it already runs.
+- `ReleaseCanary::tick()` (`cron:cluster`, every minute) raises the pin to the canary's release
+  once the canary has run it for the hours set, active and heard within
+  `cluster_offline_after_sec` at every pass. The release is the canary's agent version
+  (`cluster_nodes.agent_version`), and the count is kept in `cluster_meta` `canary_release`. A
+  silent or quarantined canary starts the count again, and so does a rollback by `run.sh`. The
+  pin is never lowered. Off clears the pin. Each change is audited `release.pin`.
+- The canary's id and the pin reach a node with its replica's settings.
+
+**Not built / limits.**
+- The canary is judged by its agent's version and its being heard, not by the fanout daemon's
+  own health; both binaries come from the one release.
+- A canary that is no enrolled node never proves anything: the fleet stays where it is.
+- No page shows the pin yet: the cluster audit does.
+
 ### The move to mode 2 without the connect audit (2026-10-05)
 
 **Problem.** The cutover gate asked for seven days with no connect to MAIN before a node could

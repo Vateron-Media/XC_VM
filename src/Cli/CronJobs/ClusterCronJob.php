@@ -20,6 +20,7 @@ use XcVm\Domain\Cluster\EnrolCodeService;
 use XcVm\Domain\Cluster\LivenessService;
 use XcVm\Domain\Cluster\MainDataPlane;
 use XcVm\Domain\Cluster\NonceStore;
+use XcVm\Domain\Cluster\ReleaseCanary;
 use XcVm\Domain\Cluster\StreamReplica;
 use XcVm\Domain\Cluster\TokenService;
 use XcVm\Domain\Server\ServerRepository;
@@ -109,6 +110,8 @@ class ClusterCronJob implements CommandInterface {
 			// MAIN's own data-plane client: its tickets anew at each epoch, its
 			// agent's servers section when it changed (Phase 9).
 			'main_dataplane' => static fn() => MainDataPlane::refresh(),
+			// The fleet canary: the release every other server may take (opt-in).
+			'release_canary' => static fn() => ReleaseCanary::tick(SettingsManager::getAll()),
 			// The signals daemon runs this every second; the minute is its fallback.
 			'liveness' => static function () {
 				if (LivenessService::tick(ClusterSettings::int('cluster_offline_after_sec', SettingsManager::get('cluster_offline_after_sec'))) !== []) {

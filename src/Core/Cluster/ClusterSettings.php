@@ -43,6 +43,8 @@ final class ClusterSettings {
 		'servers_stats_retention_days' => [30, 1, 365],
 		'cluster_audit_retention_days' => [30, 1, 365],
 		'cluster_db_allowlist' => [0, 0, 1],
+		'lb_binary_canary_server' => [0, 0, 2147483647],
+		'lb_binary_canary_hours' => [24, 1, 720],
 	];
 
 	/**
