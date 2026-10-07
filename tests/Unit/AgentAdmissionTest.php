@@ -5,6 +5,8 @@ use XcVm\Core\Cluster\AgentClient;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Error\ErrorResponder;
+use XcVm\Core\Error\ErrorResponseException;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Streaming\Auth\StreamAuth;
@@ -345,13 +347,34 @@ PHP);
 		$rSettings = ['redis_handler' => 0];
 		$rConnection = $this->record('k1');
 		$rCtx = ['uuid' => 'k1', 'is_hmac' => null, 'identifier' => null, 'user_id' => 42, 'server_id' => 5, 'stream_id' => 100, 'adaptive' => false];
-		$this->assertNull(ConnectionTracker::lookupLive($rSettings, $rCtx, 'ts', true, false, false));
-		$this->assertFalse(ConnectionTracker::updateLive($rSettings, $rConnection, ['pid' => 1]), 'the endpoint answers LINE_CREATE_FAIL');
+		// A write fails, and the endpoint answers LINE_CREATE_FAIL; a check-in ends the viewer.
+		$this->assertFalse(ConnectionTracker::updateLive($rSettings, $rConnection, ['pid' => 1]));
 		$this->assertFalse(ConnectionTracker::openRecord($rSettings, $rConnection, ['uuid' => 'k1']));
 		$this->assertNull(ConnectionTracker::refusedAdmission(), 'not the agent\'s refusal');
-		$this->assertNull(ConnectionTracker::findByUuid($rSettings, 'k1', '`pid`'));
-		$this->assertNull(ConnectionTracker::acceptedIP($rSettings, 42));
 		$this->assertNull(ConnectionTracker::heartbeat($rSettings, 'k1', self::MAIN_NOW));
+		// A read a check depends on refuses the request: "none" would skip the
+		// address checks (restrict_same_ip, disallow_2nd_ip_con).
+		$rReads = [
+			'lookupLive' => static fn() => ConnectionTracker::lookupLive($rSettings, $rCtx, 'ts', true, false, false),
+			'findByUuid' => static fn() => ConnectionTracker::findByUuid($rSettings, 'k1', '`pid`'),
+			'acceptedIP' => static fn() => ConnectionTracker::acceptedIP($rSettings, 42),
+		];
+		ErrorResponder::$throwInsteadOfExit = true;
+		try {
+			foreach ($rReads as $rName => $rRead) {
+				ob_start();
+				try {
+					$rRead();
+					$this->fail($rName . ' let the request through unchecked');
+				} catch (ErrorResponseException $e) {
+					$this->assertSame('LINE_CREATE_FAIL', $e->errorCode, $rName);
+				} finally {
+					ob_end_clean();
+				}
+			}
+		} finally {
+			ErrorResponder::$throwInsteadOfExit = false;
+		}
 	}
 
 	private function rows(): int {

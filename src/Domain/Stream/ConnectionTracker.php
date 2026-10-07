@@ -485,7 +485,7 @@ class ConnectionTracker {
 		}
 		// A node in mode 2 has no other store: its agent did not answer.
 		if (NodeRole::refusesConnects()) {
-			return null;
+			self::refuseUnchecked();
 		}
 		if ($rSettings['redis_handler']) {
 			// The LINE# set holds connection keys; the oldest connection's IP is
@@ -893,6 +893,17 @@ class ConnectionTracker {
 		return DatabaseFactory::get() ?? self::db();
 	}
 
+	/**
+	 * Refuse the request on a node in mode 2 whose agent did not answer a read
+	 * a check depends on (this viewer's record, the line's other address): the
+	 * agent is its only store, and an unchecked request is not let through.
+	 * The endpoint's answer to a failed write.
+	 */
+	private static function refuseUnchecked(): never {
+		generateError('LINE_CREATE_FAIL');
+		exit();
+	}
+
 	/** Why the node's agent refused the viewer of the last openRecord(), or null. */
 	private static ?string $rRefused = null;
 
@@ -987,7 +998,7 @@ class ConnectionTracker {
 		}
 		// A node in mode 2 has no other store: its agent did not answer.
 		if (NodeRole::refusesConnects()) {
-			return null;
+			self::refuseUnchecked();
 		}
 		if ($rSettings['redis_handler']) {
 			$rConnection = self::getConnection($rUUID);
@@ -1136,7 +1147,7 @@ class ConnectionTracker {
 		}
 		// A node in mode 2 has no other store: its agent did not answer.
 		if (NodeRole::refusesConnects()) {
-			return null;
+			self::refuseUnchecked();
 		}
 		if ($rSettings["redis_handler"]) {
 			$rConnection = self::getConnection($rCtx["uuid"]);
