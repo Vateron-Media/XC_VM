@@ -334,6 +334,31 @@ $rWhen = static fn(?int $rTs): string => $rTs ? gmdate('Y-m-d H:i:s', $rTs) . ' 
     </div>
 </div>
 
+<?php if (!empty($clusterEnabled)): ?>
+    <?php // MAIN's own data plane, and what still keeps the load balancers' legacy /api open (ClusterOverview::legacyApiOpenBy). ?>
+    <?php $rOpenBy = $clusterLegacyApiOpenBy ?? []; ?>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="icon-base ti tabler-shield-lock me-1"></i><?= $language::get('cluster_main_dataplane'); ?></h5>
+        </div>
+        <div class="card-body">
+            <p class="text-body-secondary"><?= $language::get('cluster_main_dataplane_help'); ?></p>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="badge bg-label-<?= $clusterMainDataPlane ? 'success' : 'secondary'; ?>"><?= $language::get($clusterMainDataPlane ? 'cluster_main_dataplane_state_on' : 'cluster_main_dataplane_state_off'); ?></span>
+                <form method="POST" class="d-inline js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get($clusterMainDataPlane ? 'cluster_main_dataplane_confirm_off' : 'cluster_main_dataplane_confirm_on'), ENT_QUOTES); ?>">
+                    <button type="submit" name="cluster_action" value="<?= $clusterMainDataPlane ? 'main_dataplane_off' : 'main_dataplane_on'; ?>" class="btn btn-sm btn-label-<?= $clusterMainDataPlane ? 'secondary' : 'primary'; ?>"><?= $language::get($clusterMainDataPlane ? 'cluster_main_dataplane_off' : 'cluster_main_dataplane_on'); ?></button>
+                </form>
+            </div>
+            <div class="small text-body-secondary"><?= $language::get('cluster_legacy_api'); ?></div>
+            <?php if ($rOpenBy === []): ?>
+                <div class="text-success"><?= htmlspecialchars($language::get('cluster_legacy_api_closed'), ENT_QUOTES); ?></div>
+            <?php else: ?>
+                <div class="text-warning"><?= htmlspecialchars($language::get('cluster_legacy_api_open', ['{SERVERS}' => implode(', ', array_map(static fn(int $rSid): string => ($clusterNames[$rSid] ?? '') ?: '#' . $rSid, $rOpenBy))]), ENT_QUOTES); ?></div>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php endif; ?>
+
 <?php if (!empty($clusterMetrics)): ?>
     <?php
     $rCmd = $clusterMetrics['commands'];
@@ -414,6 +439,49 @@ $rWhen = static fn(?int $rTs): string => $rTs ? gmdate('Y-m-d H:i:s', $rTs) . ' 
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if (!empty($clusterBinding)): ?>
+    <?php // Viewer record proof (cluster_conn_binding): which nodes prove, and whether enforce is safe yet (ClusterOverview::binding). ?>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="icon-base ti tabler-certificate me-1"></i><?= $language::get('cluster_binding'); ?></h5>
+        </div>
+        <div class="card-body">
+            <p class="text-body-secondary"><?= $language::get('cluster_binding_help'); ?></p>
+            <p><?= $language::get('cluster_binding_mode'); ?>: <span class="badge bg-label-<?= $clusterBinding['mode'] === 'enforce' ? 'primary' : 'secondary'; ?>"><?= htmlspecialchars($clusterBinding['mode'], ENT_QUOTES); ?></span></p>
+            <?php if (!$clusterBinding['held']): ?>
+                <div class="text-body-secondary mb-3"><?= htmlspecialchars($language::get('cluster_binding_none_held'), ENT_QUOTES); ?></div>
+            <?php elseif ($clusterBinding['ready']): ?>
+                <div class="text-success mb-3"><?= htmlspecialchars($language::get('cluster_binding_ready'), ENT_QUOTES); ?></div>
+            <?php else: ?>
+                <div class="text-warning mb-3"><?= htmlspecialchars($language::get('cluster_binding_not_ready'), ENT_QUOTES); ?></div>
+            <?php endif; ?>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th><?= $language::get('server_name'); ?></th>
+                            <th><?= $language::get('cluster_binding_proves'); ?></th>
+                            <th><?= $language::get('cluster_binding_held'); ?></th>
+                            <th><?= $language::get('cluster_binding_today'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($clusterBinding['nodes'] as $rRow): ?>
+                            <?php $rCounts = $rRow['counts']; ?>
+                            <tr>
+                                <td><?= htmlspecialchars($rRow['server_name'] !== '' ? $rRow['server_name'] : '#' . $rRow['server_id'], ENT_QUOTES); ?></td>
+                                <td><span class="badge bg-label-<?= $rRow['proves'] ? 'success' : 'secondary'; ?>"><?= $language::get($rRow['proves'] ? 'label_yes' : 'label_no'); ?></span></td>
+                                <td><?= $language::get($rRow['held'] ? 'label_yes' : 'label_no'); ?></td>
+                                <td class="small"><?= $rCounts === null ? htmlspecialchars($language::get('cluster_binding_none'), ENT_QUOTES) : htmlspecialchars($language::get('cluster_binding_counts', ['{UNPROVEN}' => (string) (int) $rCounts['unproven'], '{ADMIT}' => (string) (int) $rCounts['admit_unproven'], '{PROVEN}' => (string) (int) $rCounts['proven']]), ENT_QUOTES); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 <?php endif; ?>

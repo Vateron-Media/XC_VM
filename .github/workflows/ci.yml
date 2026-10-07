@@ -188,18 +188,12 @@ jobs:
       - name: Install redis-server
         run: sudo apt-get update -q && sudo apt-get install -y -q redis-server
 
+      # One run of the suite. On pushes to main it also writes the coverage
+      # artifact: pcov adds ~7%, where a second full run doubled the job.
       - name: Run unit tests
-        run: php tests/phpunit.phar -c tests/phpunit.xml.dist
-
-      # A second run of the suite, for the coverage artifact: on pushes to main
-      # only, so a pull request runs the suite once.
-      - name: Coverage report
-        if: github.event_name == 'push'
-        run: |
-          php tests/phpunit.phar -c tests/phpunit.xml.dist \
-            --coverage-text \
-            --coverage-clover coverage.xml
-        continue-on-error: true
+        env:
+          COVERAGE_ARGS: ${{ github.event_name == 'push' && '--coverage-text --coverage-clover coverage.xml' || '' }}
+        run: php tests/phpunit.phar -c tests/phpunit.xml.dist $COVERAGE_ARGS
 
       - name: Upload coverage artifact
         if: always() && github.event_name == 'push'

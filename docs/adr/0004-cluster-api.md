@@ -5546,6 +5546,33 @@ second was chosen: a line disabled on MAIN is refused at its next connect.
   string, the agent's user agent.
 - **One round trip per connect** on MAIN's control lane, on top of `conn_admit` for a limited
   line. An RTMP connect is not a playlist refresh, so this is once per viewer.
+### Closing the data plane from the page (2026-10-07)
+
+Two of the data plane's open edges were operators' to close without the page telling them how:
+MAIN's own data-plane client, which only `cluster:main-dataplane on` over SSH switched on, and
+the load balancers' legacy `/api`, which closes by itself once every server, MAIN included, is
+an active node with its data plane on (DataPlane::legacyApiRetired), with nothing that said
+which server held it open.
+
+**Built.**
+- *MAIN's data plane* on the Cluster Nodes page: its state, and **Switch on** / **Switch off**,
+  which run `console.php cluster:main-dataplane on|off` as the panel's user (xc_vm), the
+  command's own refusal shown as it is (no agent binary yet, no panel key). The command's audit
+  stays the key's record; the page adds `cluster.main_dataplane_asked` with the admin.
+- What keeps the legacy `/api` open, judged as a node judges its signed node list
+  (`ClusterOverview::legacyApiOpenBy`): MAIN while its data plane is off, and each other server
+  that is not an active node in mode 1 or 2 with DATAPLANE (not enrolled, the flow off, a
+  proxy). With none, the card says the `/api` closes and points to `cluster:rotate-stream-secret`.
+
+**Not built / limits.**
+- **Relays already running when a node's Data plane goes on** are not restarted for it. They
+  expose nothing new: a parent refuses the password from a server with DATAPLANE on
+  (RelayGuard::passwordAllowed), so one that reconnects is refused. An automatic restart would
+  only move them sooner, at the cost of a gap for their viewers.
+- **A parent that cannot check a ticket** (a load balancer not enrolled, or not active) is
+  still reached with the password: enrolling it is the fix, and the card names it.
+- **Proxies** keep every node's `/api` open: a proxy is never a node of the signed node list,
+  which legacyApiRetired() requires of every server.
 
 ### An RTMP viewer while MAIN does not answer (2026-10-07)
 
@@ -6201,7 +6228,17 @@ No migration and no agent change; `TestInteropFence` passes unchanged.
   the operator" the rule, or must what was queued before still run?
 
 **Not built.** Of 1, the agent's field (XC_VM_Fanout 0.14.4) and the page and settings form
-named in its *Approved and built*; 2 and 3 are built, above. The three are independent. 3 and 2
+named in its *Approved and built*; 2 and 3 are built, above.
+
+**Built since (2026-10-07).** The agent's field shipped in XC_VM_Fanout 0.14.4. The setting is in
+`ClusterSettings::ENUMS` and Settings → Cluster (*Viewer Record Proof*). The Cluster Nodes page
+has a *Viewer record proof* card (`ClusterOverview::binding`): per active node, whether it proved
+since its enrolment (`conn_proven.<server id>` at its `gen`), whether enforce would hold it
+(`ReplicaBuilder::withholdsStreamPass`), and the day's counts (`bindingCounts`). It says *ready*
+only when every node enforce would hold proves and counted nothing unproven that day, and says so
+when enforce holds none yet (before lockdown MAIN sends every node the secret). It decides
+nothing: the switch stays the operator's. RTMP viewers carry MAIN's mint since `rtmp_auth`
+returns one (#286). The three are independent. 3 and 2
 change MAIN's panel alone. 1 needs the panel release on every node, and one field in the agent,
 before its second stage.
 

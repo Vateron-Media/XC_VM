@@ -1592,10 +1592,14 @@ class ResellerTableRenderer {
 		}
 		$rReturn['recordsFiltered'] = $rReturn['recordsTotal'];
 		if (0 < $rReturn['recordsTotal']) {
-			$rQuery = 'SELECT `users`.`id`, `users`.`status`, `users_groups`.`is_reseller`, `users`.`notes`, `users`.`owner_id`, `users`.`credits`, `users`.`username`, `users`.`email`, `users`.`ip`, FROM_UNIXTIME(`users`.`date_registered`) AS `date_registered`, FROM_UNIXTIME(`users`.`last_login`) AS `last_login`, `r`.`username` as `owner_username`, `users_groups`.`group_name`, `users`.`status`, (SELECT COUNT(`id`) FROM `lines` WHERE `member_id` = `users`.`id`) AS `user_count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` LEFT JOIN `users` AS `r` on `r`.`id` = `users`.`owner_id` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
+			$rQuery = 'SELECT `users`.`id`, `users`.`status`, `users_groups`.`is_reseller`, `users`.`notes`, `users`.`owner_id`, `users`.`credits`, `users`.`username`, `users`.`email`, `users`.`ip`, `users`.`date_registered`, `users`.`last_login`, `r`.`username` as `owner_username`, `users_groups`.`group_name`, `users`.`status`, (SELECT COUNT(`id`) FROM `lines` WHERE `member_id` = `users`.`id`) AS `user_count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` LEFT JOIN `users` AS `r` on `r`.`id` = `users`.`owner_id` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
 			$db->query($rQuery, ...$rWhereV);
 			if (0 < $db->num_rows()) {
 				foreach ($db->get_rows() as $rRow) {
+					// Format in PHP, not FROM_UNIXTIME(): the DB session runs in UTC, PHP in the panel/user timezone.
+					foreach (['date_registered', 'last_login'] as $rKey) {
+						$rRow[$rKey] = $rRow[$rKey] ? date('Y-m-d H:i:s', (int) $rRow[$rKey]) : null;
+					}
 					if (!$rIsAPI) {
 						// Clean, keyed row payload (the Bootstrap 5 reseller users view renders
 						// the status icon, credit / line-count badges, IP whois link and action

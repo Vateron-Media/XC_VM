@@ -29,6 +29,74 @@ use XcVm\Infrastructure\Database\DatabaseAware;
 final class ClusterOverview {
 	use DatabaseAware;
 
+	/**
+	 * The servers that keep every load balancer's legacy `/api` open
+	 * (DataPlane::legacyApiRetired(), which each node judges from its signed
+	 * node list): MAIN while its data-plane client is off, and every other
+	 * server that is not a node active in mode 1 or 2 with its DATAPLANE flow
+	 * (a load balancer not enrolled or without the flow, a proxy). None: the
+	 * legacy `/api` answers 404 on every node with DATAPLANE from its next
+	 * root pass.
+	 *
+	 * @param array<int, array<string, mixed>> $rServers ServerRepository::getAll()
+	 * @param list<array<string, mixed>> $rNodes ClusterAdmin::nodes()
+	 * @return list<int> Server ids, as the servers list orders them.
+	 */
+	public static function legacyApiOpenBy(array $rServers, array $rNodes, int $rMainID, bool $rMainDataPlane): array {
+		$rReady = [];
+		foreach ($rNodes as $rNode) {
+			if (($rNode['state'] ?? null) === 'active' && (int) ($rNode['mode'] ?? 0) >= 1 && ((int) ($rNode['flows'] ?? 0) & NodeRegistry::FLOW_DATAPLANE) !== 0) {
+				$rReady[(int) $rNode['server_id']] = true;
+			}
+		}
+		$rOut = [];
+		foreach (array_keys($rServers) as $rID) {
+			if ((int) $rID === $rMainID ? !$rMainDataPlane : !isset($rReady[(int) $rID])) {
+				$rOut[] = (int) $rID;
+			}
+		}
+		return $rOut;
+	}
+
+	/**
+	 * Viewer record proof (`cluster_conn_binding`, ADR 0004, "The line a node
+	 * names"), per active node: whether its records proved MAIN's mint since
+	 * its enrolment (`cluster_meta` `conn_proven.<server id>` at its `gen`),
+	 * whether enforce would hold it (MAIN withholds its stream secret,
+	 * ReplicaBuilder::withholdsStreamPass), and the day's counts
+	 * (ConnectionAdmission::bindingCounts). Ready: every node enforce would
+	 * hold proves and counted nothing unproven today; `held` says whether
+	 * enforce would hold any node at all.
+	 *
+	 * @param list<array<string, mixed>> $rNodes ClusterAdmin::nodes()
+	 * @param array<string, mixed> $rSettings
+	 * @param (callable(array<string, mixed>, string): bool)|null $rHeld Tests: whether enforce holds a node; null is ReplicaBuilder::withholdsStreamPass.
+	 * @return array{mode: string, ready: bool, held: bool, nodes: list<array{server_id: int, server_name: string, proves: bool, held: bool, counts: array<string, mixed>|null}>}
+	 */
+	public static function binding(array $rNodes, array $rSettings, ?callable $rHeld = null): array {
+		$rLive = (string) ($rSettings['live_streaming_pass'] ?? '');
+		$rOut = [];
+		$rReady = true;
+		$rHeldAny = false;
+		foreach ($rNodes as $rNode) {
+			if (($rNode['state'] ?? null) !== 'active') {
+				continue;
+			}
+			$rServerID = (int) $rNode['server_id'];
+			$rProves = ClusterMeta::get('conn_proven.' . $rServerID) === (string) ($rNode['gen'] ?? '');
+			$rIsHeld = $rLive !== '' && ($rHeld !== null ? $rHeld($rNode, $rLive) : ReplicaBuilder::withholdsStreamPass($rNode, $rLive));
+			$rCounts = ConnectionAdmission::bindingCounts($rServerID);
+			if ($rIsHeld) {
+				$rHeldAny = true;
+				if (!$rProves || (int) ($rCounts['unproven'] ?? 0) + (int) ($rCounts['admit_unproven'] ?? 0) > 0) {
+					$rReady = false;
+				}
+			}
+			$rOut[] = ['server_id' => $rServerID, 'server_name' => (string) ($rNode['server_name'] ?? ''), 'proves' => $rProves, 'held' => $rIsHeld, 'counts' => $rCounts];
+		}
+		return ['mode' => ($rSettings[ConnectionAdmission::BINDING] ?? null) === 'enforce' ? 'enforce' : 'observe', 'ready' => $rReady, 'held' => $rHeldAny, 'nodes' => $rOut];
+	}
+
 	/** Days before MAIN's certificate expires that the page warns, when the nodes dial HTTPS. */
 	public const CERT_WARN_DAYS = 14;
 

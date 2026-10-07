@@ -188,8 +188,23 @@ the warnings on Cluster Nodes) before going on:
 | 8 | **Data plane** | Relays and files from other servers go through the agent with signed tickets instead of the stream password. Needs Streams and Content |
 
 Streams the LB already relays from another server when you switch **Data plane** on keep
-pulling the old way, with the stream password, until they restart. To move them over at once,
-restart them: on **Streams**, filter **Server** to the LB, select them and click **Restart**.
+pulling the old way, with the stream password, until they restart. Nothing new goes out meanwhile:
+a parent no longer takes the password from a server with Data plane on, so such a relay that
+reconnects is refused. To move them over at once, restart them: on **Streams**, filter **Server**
+to the LB, select them and click **Restart**.
+
+Once every load balancer has **Data plane** on, close the data plane on MAIN's side too, on
+**Cluster Nodes → MAIN's data plane**:
+
+1. Click **Switch on**. MAIN then reads load balancers' files and relays with tickets as well,
+   through an agent of its own (the same as `console.php cluster:main-dataplane on`). If it
+   answers that there is no agent binary yet, run `console.php fanout_binary agent` as root on
+   MAIN first.
+2. The same card says whether **the load balancers' legacy `/api`** is closed. It closes by
+   itself, within a minute, once every server, MAIN included, has its data plane on; until then
+   the card names the servers that keep it open. A proxy always does.
+3. When it says *Closed*, rotate the stream secret (`console.php cluster:rotate-stream-secret`
+   on MAIN), so the old one opens nothing.
 
 Every flow can be switched off again: the load balancer then goes back to the old way for that
 part. The exception is a load balancer in mode 2 (Step 4), which needs every flow: the page refuses
@@ -298,6 +313,14 @@ Only when every load balancer is in mode 2:
 4. Last, an administrator can close MySQL and Redis to the network entirely by running
    `/home/xc_vm/console.php cluster:lockdown` as root on MAIN. It refuses while any LB is below
    mode 2 or any proxy has not signed yet. `cluster:lockdown --undo` reverses it.
+5. **Viewer Record Proof** (Settings → Cluster). Once locked down, MAIN no longer sends the load
+   balancers the stream secret, and each viewer record a load balancer reports should carry MAIN's
+   proof that MAIN sent it that viewer. Leave it on `observe` and watch the **Viewer record proof**
+   card on Cluster Nodes: it shows which load balancers prove, what each counted today without a
+   proof, and whether `enforce` is safe. When it says *Ready for enforce*, switch to `enforce`: MAIN
+   then refuses a viewer record it did not mint, so a load balancer can only report viewers MAIN
+   sent it. A load balancer on an older panel release, or RTMP viewers from before they carried
+   the proof, show up there as unproven first.
 
 ## Everyday use: the Cluster Nodes page
 
