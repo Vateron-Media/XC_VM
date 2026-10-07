@@ -2322,6 +2322,7 @@ use XcVm\Domain\Server\ServerRepository;
 						['cluster_offline_after_sec', 'number', 'Silence before MAIN marks a node offline (10-300 s).'],
 						['cluster_orphan_conn_ttl_sec', 'number', 'Silence before MAIN purges a node\'s connections (30-3600 s).'],
 						['lb_offline_admission', ['local', 'allow', 'deny'], 'Admission of viewers without a MAIN reservation while MAIN is unreachable.'],
+						['cluster_conn_binding', ['observe', 'enforce'], 'Each viewer record a node sends must prove MAIN minted the viewer\'s token. observe: what does not is counted (Cluster Nodes). enforce: such a record is refused and dropped, from a node whose stream secret MAIN withholds. Switch only once Cluster Nodes shows it ready.'],
 						['cluster_kill_on_line_disable', 'switch', 'Drop live sessions when a line is disabled, banned or expires.'],
 						['cluster_ingest_concurrency', 'number', 'Concurrent ingest permits on MAIN (1-64); half are reserved for P0 events.'],
 						['lb_new_node_mode', ['legacy', 'api'], 'Mode of newly installed LBs. api: a new load balancer joins in mode 2, every flow on, with none of MAIN\'s database or Redis credentials.'],
