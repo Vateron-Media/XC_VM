@@ -1759,6 +1759,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `cluster_legacy_urls` mediumtext COLLATE utf8_unicode_ci,
   `cluster_db_allowlist` tinyint(1) DEFAULT '0',
   `cluster_db_allowlist_extra` varchar(1024) DEFAULT '',
+  `cluster_auto_mode_down_min` smallint(5) unsigned DEFAULT '0',
   `secure_stream_tokens` tinyint(1) DEFAULT '1',
   `disable_table_responsive` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

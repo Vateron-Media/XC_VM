@@ -4,7 +4,9 @@ use PHPUnit\Framework\TestCase;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterClock;
 use XcVm\Domain\Cluster\ClusterMeta;
+use XcVm\Domain\Cluster\DbAllowlist;
 use XcVm\Domain\Cluster\NodeAudit;
+use XcVm\Domain\Cluster\NodeHealth;
 use XcVm\Domain\Cluster\NodeRegistry;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Tests\Support\FakeClusterCrypto;
@@ -51,7 +53,7 @@ final class ClusterModeActionTest extends TestCase {
 		if ($rStreamsLocal !== null) {
 			$rAudit['streams_local'] = $rStreamsLocal;
 		}
-		$this->rDb->query('UPDATE `cluster_nodes` SET `last_seen_at` = ? WHERE `server_id` = 7', self::NOW_MS - $rAgoMs);
+		$this->rDb->query('UPDATE `cluster_nodes` SET `last_seen_at` = ? WHERE `server_id` = 7', ClusterClock::nowMs() - $rAgoMs);
 		NodeAudit::record((array) NodeRegistry::byServer(7), $rAudit);
 	}
 
@@ -162,5 +164,76 @@ final class ClusterModeActionTest extends TestCase {
 		$this->assertSame('cluster_mode_done', $this->act('mode_up'));
 		$this->assertSame('cluster_mode_unknown', $this->act('mode_up'), 'nor one above 2');
 		$this->assertSame('cluster_unknown_action', $this->act('mode_up_now'), 'one button moves a node up');
+	}
+
+	/** @return array{0: string, 1: string} the last `node.mode` entry's actor and detail */
+	private function lastMove(): array {
+		return $this->rDb->pdo->query("SELECT `actor`, `detail` FROM `cluster_audit` WHERE `event` = 'node.mode' ORDER BY `id` DESC LIMIT 1")->fetch(PDO::FETCH_NUM);
+	}
+
+	/** Opt-in (cron:cluster): a node in mode 2 that lost its own streams goes back to mode 1 once the minutes set have passed. */
+	public function testANodeThatLostItsStreamsGoesBackToModeOneWhenTheSettingSaysSo(): void {
+		$rOn = ['cluster_auto_mode_down_min' => 10];
+		$this->heartbeat(2000, 0, true);
+		$this->assertSame('cluster_mode_done', $this->act('mode_up'));
+		$this->assertSame('1', ClusterMeta::get(ClusterAdmin::MODE2_GEN . 7), 'the gen the page moved it at');
+
+		// Running from its own copy: nothing.
+		$this->heartbeat(2000, 0, true);
+		$this->assertSame([], ClusterAdmin::autoModeDown($rOn));
+		// It stops: off by default; on, noted first, and moved once the minutes have passed.
+		$this->heartbeat(2000, 0, false);
+		$this->assertSame([], ClusterAdmin::autoModeDown([]));
+		$this->assertNull(ClusterMeta::get(ClusterAdmin::STREAMS_LOST_AT . 7), 'off notes nothing');
+		$this->assertSame([], ClusterAdmin::autoModeDown($rOn));
+		$this->assertSame((string) intdiv(self::NOW_MS, 1000), ClusterMeta::get(ClusterAdmin::STREAMS_LOST_AT . 7));
+		ClusterClock::fix(self::NOW_MS + 599000);
+		$this->heartbeat(2000, 0, false);
+		$this->assertSame([], ClusterAdmin::autoModeDown($rOn), 'not yet');
+		$this->assertSame(2, $this->mode());
+
+		// Back for a moment: the count starts again.
+		$this->heartbeat(2000, 0, true);
+		$this->assertSame([], ClusterAdmin::autoModeDown($rOn));
+		$this->assertNull(ClusterMeta::get(ClusterAdmin::STREAMS_LOST_AT . 7));
+		$this->heartbeat(2000, 0, false);
+		ClusterAdmin::autoModeDown($rOn);
+		ClusterClock::fix(self::NOW_MS + 599000 + 600000);
+		$this->heartbeat(2000, 0, false);
+		$this->assertSame([7], ClusterAdmin::autoModeDown($rOn));
+		$this->assertSame(1, $this->mode());
+		$this->assertSame(['auto', '{"mode":1,"was":2,"streams_lost_at":' . intdiv(self::NOW_MS + 599000, 1000) . '}'], $this->lastMove());
+		foreach ([ClusterAdmin::MODE2_AT, ClusterAdmin::MODE2_GEN, ClusterAdmin::STREAMS_LOST_AT] as $rMeta) {
+			$this->assertNull(ClusterMeta::get($rMeta . 7), $rMeta);
+		}
+		$this->assertSame([], ClusterAdmin::autoModeDown($rOn), 'once');
+	}
+
+	/** Only a node that can run in mode 1 goes back by itself; the page's button still takes any. */
+	public function testOnlyANodeThatHoldsItsCredentialsAndIsHeardGoesBack(): void {
+		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `db_revoked_at` int DEFAULT NULL');
+		$rOn = ['cluster_auto_mode_down_min' => 1];
+		$this->heartbeat(2000, 0, true);
+		$this->assertSame('cluster_mode_done', $this->act('mode_up'));
+		$this->heartbeat(2000, 0, false);
+		ClusterAdmin::autoModeDown($rOn);
+		ClusterClock::fix(self::NOW_MS + 60000);
+		$this->heartbeat(2000, 0, false);
+
+		$rHolds = [
+			're-enrolled since the move (a reinstall in mode 2 gave it no credentials)' => ['UPDATE `cluster_nodes` SET `gen` = 2', 'UPDATE `cluster_nodes` SET `gen` = 1'],
+			'its grant revoked' => ['UPDATE `cluster_nodes` SET `db_revoked_at` = 1790000000', 'UPDATE `cluster_nodes` SET `db_revoked_at` = NULL'],
+			'quarantined' => ["UPDATE `cluster_nodes` SET `state` = 'quarantined'", "UPDATE `cluster_nodes` SET `state` = 'active'"],
+			'not heard' => ['UPDATE `cluster_nodes` SET `last_seen_at` = ' . (self::NOW_MS + 60000 - NodeHealth::SUSPECT_AFTER_MS - 1), 'UPDATE `cluster_nodes` SET `last_seen_at` = ' . (self::NOW_MS + 58000)],
+			'MAIN locked down' => ["INSERT INTO `cluster_meta` VALUES ('" . DbAllowlist::LOCKDOWN_META . "', '1', 0)", "DELETE FROM `cluster_meta` WHERE `name` = '" . DbAllowlist::LOCKDOWN_META . "'"],
+			'enrolled in mode 2, never moved there by the page' => ["DELETE FROM `cluster_meta` WHERE `name` = '" . ClusterAdmin::MODE2_GEN . "7'", "INSERT INTO `cluster_meta` VALUES ('" . ClusterAdmin::MODE2_GEN . "7', '1', 0)"],
+		];
+		foreach ($rHolds as $rWhy => [$rSet, $rUndo]) {
+			$this->rDb->exec($rSet);
+			$this->assertSame([], ClusterAdmin::autoModeDown($rOn), $rWhy);
+			$this->assertSame(2, $this->mode(), $rWhy);
+			$this->rDb->exec($rUndo);
+		}
+		$this->assertSame([7], ClusterAdmin::autoModeDown($rOn), 'none of them');
 	}
 }
