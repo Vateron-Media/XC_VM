@@ -8,6 +8,7 @@ use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
 use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
+use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeCredentials;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Logging\FileLogger;
@@ -324,12 +325,12 @@ final class ClusterRoute {
 
 	/**
 	 * Kill a viewer's worker on its node (SignalDispatcher::kill): restrictive,
-	 * so it is signed even without a licence.
+	 * so it is signed even without a licence, and a quarantined node takes it.
 	 *
 	 * @return array{0: bool, 1: bool}
 	 */
 	public static function kill(int $rServerID, int $rPID, bool $rRTMP): array {
-		return self::enqueue($rServerID, 'conn.kill_worker', ['pid' => $rPID, 'rtmp' => $rRTMP]);
+		return self::rowless($rServerID, 'conn.kill_worker', self::enqueue($rServerID, 'conn.kill_worker', ['pid' => $rPID, 'rtmp' => $rRTMP], null, true));
 	}
 
 	/**
@@ -348,7 +349,7 @@ final class ClusterRoute {
 	/**
 	 * Drop a viewer the node's fanout serves (a daemon viewer has no worker
 	 * pid): `conn.drop {uuid}`, run by the node's agent against its fanout.
-	 * Restrictive, like kill.
+	 * Restrictive, like kill, and a quarantined node takes it too.
 	 *
 	 * @return array{0: bool, 1: bool}
 	 */
@@ -356,7 +357,7 @@ final class ClusterRoute {
 		if (!preg_match(AgentConnections::CONN_UUID, $rUUID)) {
 			return [false, false];
 		}
-		return self::enqueue($rServerID, 'conn.drop', ['uuid' => $rUUID], 'drop:' . $rUUID);
+		return self::rowless($rServerID, 'conn.drop', self::enqueue($rServerID, 'conn.drop', ['uuid' => $rUUID], 'drop:' . $rUUID, true));
 	}
 
 	/**
@@ -389,7 +390,7 @@ final class ClusterRoute {
 		if ($rNode === null || ((int) $rNode['flows'] & NodeRegistry::FLOW_CONNECTIONS) === 0) {
 			return [false, false];
 		}
-		return self::enqueue($rServerID, 'conn.close', ['uuid' => $rUUID, 'remove' => $rRemove], 'close:' . $rUUID);
+		return self::enqueue($rServerID, 'conn.close', ['uuid' => $rUUID, 'remove' => $rRemove], 'close:' . $rUUID, true);
 	}
 
 	/**
@@ -401,8 +402,8 @@ final class ClusterRoute {
 	 * cluster:exec runs as the daemon ran the rows. A job not in the form
 	 * the node runs (CacheJobs::job) is left out.
 	 * Granting to the extension, which classes by type: without a licence
-	 * nothing is sent. MAIN's own jobs, nodes in mode 0 or 1 and nodes that
-	 * take no command keep the legacy row.
+	 * nothing is sent. MAIN's own jobs and nodes in mode 0 or 1 keep the
+	 * legacy row; a node in mode 2 that takes no command gets neither (rowless()).
 	 *
 	 * @param list<array<string, mixed>> $rJobs payloads as the signals rows carried them
 	 * @return array{0: bool, 1: bool}
@@ -411,15 +412,23 @@ final class ClusterRoute {
 		if (defined('SERVER_ID') && $rServerID === (int) SERVER_ID) {
 			return [false, false];
 		}
+		if (empty(SettingsManager::get('cluster_api_enabled'))) {
+			return self::rowless($rServerID, 'node.cache', [false, false]);
+		}
 		try {
-			$rNode = empty(SettingsManager::get('cluster_api_enabled')) ? null : NodeRegistry::byServer($rServerID);
+			$rNode = NodeRegistry::byServer($rServerID);
 		} catch (\Throwable) {
 			return [false, false];
 		}
 		if ($rNode === null || (int) $rNode['mode'] !== 2) {
 			return [false, false];
 		}
-		return self::command($rServerID, 'node.cache', static function (ClusterCrypto $rCrypto) use ($rServerID, $rJobs): bool {
+		// A quarantined node takes the removals, restrictive, at once. Nothing granting is queued
+		// for it: a quarantine ends what grants (CommandBus::endGranting), and Trust again hands
+		// none of it out, so the rebuilds are not sent, nor a removal an older extension would
+		// only sign as a granting node.cache.
+		$rQuarantined = $rNode['state'] === 'quarantined';
+		return self::rowless($rServerID, 'node.cache', self::command($rServerID, 'node.cache', static function (ClusterCrypto $rCrypto) use ($rServerID, $rJobs, $rQuarantined): bool {
 			// The removals first, as a restrictive node.purge that signs without a
 			// licence; an extension from before it refuses the type, and they go
 			// as node.cache like the rest.
@@ -429,19 +438,19 @@ final class ClusterRoute {
 				try {
 					CommandBus::enqueue($rCrypto, $rServerID, 'node.purge', ['jobs' => $rCommand]);
 				} catch (ClusterRefusedException $rE) {
-					if ($rE->reason() !== 'RECORD:type') {
+					if ($rE->reason() !== 'RECORD:type' || $rQuarantined) {
 						throw $rE;
 					}
 					CommandBus::enqueue($rCrypto, $rServerID, 'node.cache', ['jobs' => $rCommand]);
 				}
 				$rSent = true;
 			}
-			foreach (CacheJobs::commands($rRest) as $rCommand) {
+			foreach ($rQuarantined ? [] : CacheJobs::commands($rRest) as $rCommand) {
 				CommandBus::enqueue($rCrypto, $rServerID, 'node.cache', ['jobs' => $rCommand]);
 				$rSent = true;
 			}
 			return $rSent;
-		}, false, false, $rNode);
+		}, false, false, $rNode, true));
 	}
 
 	/**
@@ -452,19 +461,32 @@ final class ClusterRoute {
 	 * (ArtefactGrants::forRoot).
 	 *
 	 * A node in mode 2 that takes no root command (quarantined, or MAIN lacks
-	 * its `root_ready`) gets nothing: it reads no `signals` row, so the row
-	 * would never run, or would run late once the node moved down.
+	 * its `root_ready`) gets nothing (rowless()).
 	 *
 	 * @param array<string, mixed> $rPayload {action, …} as the signals row carried it
 	 * @return array{0: bool, 1: bool}
 	 */
 	public static function root(int $rServerID, array $rPayload): array {
-		$rOut = self::command($rServerID, 'node.root', static function (ClusterCrypto $rCrypto) use ($rServerID, $rPayload): bool {
+		return self::rowless($rServerID, 'node.root', self::command($rServerID, 'node.root', static function (ClusterCrypto $rCrypto) use ($rServerID, $rPayload): bool {
 			// A strip does not wait a day for its node: it was judged as it was queued (DbCredentials::strip).
 			$rTtl = ($rPayload['action'] ?? null) === NodeCredentials::STRIP ? DbCredentials::STRIP_TTL : null;
 			CommandBus::enqueue($rCrypto, $rServerID, 'node.root', ArtefactGrants::forRoot($rServerID, $rPayload), null, $rTtl);
 			return true;
-		}, false, true);
+		}, false, true), (string) ($rPayload['action'] ?? ''));
+	}
+
+	/**
+	 * A node in mode 2 reads no `signals` row and no Redis signal of MAIN's: a
+	 * command it was not sent ($rOut [false, …]: quarantined for a granting
+	 * root action, no `root_ready`, MAIN's cluster API off, the extension
+	 * unavailable) is answered routed and not queued, and logged, rather than
+	 * left to a legacy path it never reads, and that would run late once the
+	 * node moved down. Any other node keeps its legacy path.
+	 *
+	 * @param array{0: bool, 1: mixed} $rOut
+	 * @return array{0: bool, 1: mixed}
+	 */
+	private static function rowless(int $rServerID, string $rType, array $rOut, string $rWhat = ''): array {
 		if ($rOut[0]) {
 			return $rOut;
 		}
@@ -476,9 +498,36 @@ final class ClusterRoute {
 		if ($rNode === null || (int) $rNode['mode'] !== 2) {
 			return $rOut;
 		}
-		$rWhy = $rNode['state'] === 'quarantined' ? 'quarantined' : (empty($rNode['root_ready']) ? 'no root_ready' : 'takes no command');
-		FileLogger::log('cluster', 'Command node.root for server ' . $rServerID . ' not queued (mode 2, ' . $rWhy . ')', (string) ($rPayload['action'] ?? ''));
+		$rWhy = self::why($rNode, $rType === 'node.root');
+		FileLogger::log('cluster', 'Command ' . $rType . ' for server ' . $rServerID . ' not queued (mode 2, ' . $rWhy . ')', $rWhat);
+		// An operator's action that nothing else reports: a kill is one per viewer while the
+		// extension is down, and the cluster-only actions' callers audit or answer their own outcome.
+		if ($rType === 'node.root' && !in_array($rWhat, NodeActions::CLUSTER_ONLY, true)) {
+			ClusterAudit::log('node.root_not_sent', $rServerID, ['action' => $rWhat, 'why' => $rWhy], 'system');
+		}
 		return [true, false];
+	}
+
+	/**
+	 * Why MAIN cannot send this node a root action now: it is in mode 2 and
+	 * quarantined, or MAIN lacks its `root_ready`. Null when it can, and for a
+	 * node not in mode 2 (its `signals` row runs). The Server page says so.
+	 */
+	public static function rootBlocked(int $rServerID): ?string {
+		try {
+			$rNode = NodeRegistry::byServer($rServerID);
+		} catch (\Throwable) {
+			return null;
+		}
+		if ($rNode === null || (int) $rNode['mode'] !== 2 || CommandBus::acceptsRoot($rNode)) {
+			return null;
+		}
+		return self::why($rNode, true);
+	}
+
+	/** @param array<string, mixed> $rNode */
+	private static function why(array $rNode, bool $rRoot): string {
+		return $rNode['state'] === 'quarantined' ? 'quarantined' : ($rRoot && empty($rNode['root_ready']) ? 'no root_ready' : 'takes no command');
 	}
 
 	/**

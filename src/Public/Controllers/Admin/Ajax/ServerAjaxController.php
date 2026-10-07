@@ -312,13 +312,14 @@ class ServerAjaxController extends BaseAjaxController {
 
 		global $db, $rServers;
 
+		$rSkipped = [];
 		foreach ($rServers as $rServer) {
-			if ($rServer['server_online']) {
-				NodeActions::restartServices(intval($rServer['id']), $db);
+			if ($rServer['server_online'] && !NodeActions::restartServices(intval($rServer['id']), $db)) {
+				$rSkipped[] = (string) $rServer['server_name'];
 			}
 		}
 
-		$this->ok();
+		$this->okSkipping($rSkipped);
 	}
 
 	/** action=restart_services — restart services on the selected servers. */
@@ -520,13 +521,14 @@ class ServerAjaxController extends BaseAjaxController {
 
 		global $db, $rServers;
 
+		$rSkipped = [];
 		foreach ($rServers as $rServer) {
-			if ($rServer['server_online']) {
-				NodeActions::update(intval($rServer['id']), $db);
+			if ($rServer['server_online'] && !NodeActions::update(intval($rServer['id']), $db)) {
+				$rSkipped[] = (string) $rServer['server_name'];
 			}
 		}
 
-		$this->ok();
+		$this->okSkipping($rSkipped);
 	}
 
 	/** action=rolling_update_start — update the load balancers one at a time (RollingUpdate). */
@@ -566,13 +568,24 @@ class ServerAjaxController extends BaseAjaxController {
 
 		global $db, $rServers;
 
+		$rSkipped = [];
 		foreach ($rServers as $rServer) {
-			if ($rServer['server_online']) {
-				NodeActions::updateBinaries(intval($rServer['id']), $db);
+			if ($rServer['server_online'] && !NodeActions::updateBinaries(intval($rServer['id']), $db)) {
+				$rSkipped[] = (string) $rServer['server_name'];
 			}
 		}
 
-		$this->ok();
+		$this->okSkipping($rSkipped);
+	}
+
+	/**
+	 * A bulk action's answer: done, naming the servers that took none of it
+	 * (`not_sent`), which the page shows with what to do.
+	 *
+	 * @param list<string> $rSkipped
+	 */
+	private function okSkipping(array $rSkipped): never {
+		$this->ok($rSkipped === [] ? [] : ['not_sent' => $rSkipped]);
 	}
 
 	/**

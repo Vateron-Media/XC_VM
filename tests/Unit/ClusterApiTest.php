@@ -1191,19 +1191,21 @@ final class ClusterApiTest extends TestCase {
 			$this->rDb->query('SELECT DISTINCT `class` FROM `cluster_commands`');
 			$this->assertSame('R', $this->rDb->get_row()['class'], 'restrictive: removals only (node.purge)');
 
-			// With the cluster API off, and for a node without COMMANDS, rows.
+			// With the cluster API off, and for a node without COMMANDS: neither a
+			// command nor a row its daemon never reads (ClusterRoute::rowless).
 			SettingsManager::set(['cluster_api_enabled' => 0] + $this->rSettings);
-			$this->assertTrue(SignalDispatcher::cache(self::SID, ['type' => 'delete_con', 'uuid' => 'off']));
+			$this->assertFalse(SignalDispatcher::cache(self::SID, ['type' => 'delete_con', 'uuid' => 'off']));
 			SettingsManager::set($this->rSettings);
 			NodeRegistry::update(self::SID, ['flows' => 0]);
-			$this->assertTrue(SignalDispatcher::cacheBatch(self::SID, [['type' => 'delete_con', 'uuid' => 'abc']]));
+			$this->assertFalse(SignalDispatcher::cacheBatch(self::SID, [['type' => 'delete_con', 'uuid' => 'abc']]));
 			$this->assertCount(6, $rJobs());
+			$this->assertCount(1, $rRows);
 
-			// So do MAIN's own jobs, even were MAIN's server a node in mode 2 taking commands.
+			// MAIN's own jobs keep their row, even were MAIN's server a node in mode 2 taking commands.
 			$this->rDb->query("INSERT INTO `cluster_nodes` (`server_id`, `node_uuid`, `state`, `mode`, `flows`, `created_at`, `updated_at`) VALUES (1, ?, 'active', 2, ?, 0, 0);", '00000000-0000-4000-a000-000000000001', NodeRegistry::FLOW_COMMANDS);
 			$this->assertTrue(SignalDispatcher::cache(1, ['type' => 'delete_vod', 'id' => 3]));
 			$this->assertSame([], $rJobs(1), 'no node.cache for MAIN itself');
-			$this->assertSame([self::SID, self::SID, 1], array_column(array_slice($rRows, 1), 'server_id'));
+			$this->assertSame([1], array_column(array_slice($rRows, 1), 'server_id'));
 		} finally {
 			\XcVm\Domain\Cluster\ClusterRoute::useCrypto(null);
 			SignalDispatcher::useSink(null);
@@ -1570,6 +1572,57 @@ final class ClusterApiTest extends TestCase {
 		}
 	}
 
+	/**
+	 * A quarantined node in mode 2 is handed its kills, drops, closes and
+	 * removals at once, and is queued nothing granting (a quarantine ends what
+	 * grants, and Trust again hands none of it out); what it cannot be sent is
+	 * never left as a row or signal it does not read.
+	 */
+	public function testAQuarantinedNodeInModeTwoTakesItsRestrictiveCommands(): void {
+		$this->active();
+		SettingsManager::set($this->rSettings);
+		\XcVm\Domain\Cluster\ClusterRoute::useCrypto(fn() => $this->rCrypto);
+		$rTypes = static fn(array $rRows): array => array_map(static fn(array $rRow): string => json_decode($rRow['doc'], true)['type'], $rRows);
+		try {
+			NodeRegistry::update(self::SID, ['mode' => 2, 'flows' => NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_CONNECTIONS, 'root_ready' => 1, 'state' => 'quarantined']);
+			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::kill(self::SID, 4242, false));
+			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::drop(self::SID, 'viewer1'));
+			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::closeConnection(self::SID, 'viewer2', true));
+			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::cache(self::SID, [['type' => 'delete_vod', 'id' => 7], ['type' => 'update_stream', 'id' => 7]]));
+			$this->assertSame(['conn.kill_worker', 'conn.drop', 'conn.close', 'node.purge'], $rTypes(\XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0, 50, true)), 'what a quarantined node is handed');
+			$this->assertSame(['conn.kill_worker', 'conn.drop', 'conn.close', 'node.purge'], $rTypes(\XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0)), 'the rebuild is not queued');
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::cache(self::SID, [['type' => 'update_stream', 'id' => 8]]), 'a rebuild alone: nothing sent, and no row');
+			// An extension from before node.purge would sign a removal only as a granting node.cache: not for a quarantined node.
+			$rRegistry = new \ReflectionProperty(FakeClusterCrypto::class, 'rRegistry');
+			$rRegistry->setAccessible(true);
+			$rFull = FakeClusterCrypto::commandRegistry();
+			$rOld = $rFull;
+			unset($rOld['types']['node.purge']);
+			$rRegistry->setValue(null, $rOld);
+			try {
+				$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::cache(self::SID, [['type' => 'delete_vod', 'id' => 9]]));
+			} finally {
+				$rRegistry->setValue(null, $rFull);
+			}
+			$this->assertCount(4, \XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0), 'nothing more queued');
+
+			// A root action is not sent: audited, and the Server page says why.
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::root(self::SID, ['action' => 'restart_services']));
+			$this->assertSame('{"action":"restart_services","why":"quarantined"}', $this->rDb->pdo->query("SELECT `detail` FROM `cluster_audit` WHERE `event` = 'node.root_not_sent'")->fetchColumn());
+			$this->assertSame('quarantined', \XcVm\Domain\Cluster\ClusterRoute::rootBlocked(self::SID));
+
+			// Nothing can be signed: mode 2 gets no legacy row or signal, mode 1 keeps its path.
+			\XcVm\Domain\Cluster\ClusterRoute::useCrypto(static fn() => throw new \RuntimeException('no extension'));
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::kill(self::SID, 4243, false));
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::drop(self::SID, 'viewer3'));
+			NodeRegistry::update(self::SID, ['mode' => 1, 'state' => 'active']);
+			$this->assertSame([false, false], \XcVm\Domain\Cluster\ClusterRoute::kill(self::SID, 4244, false));
+			$this->assertNull(\XcVm\Domain\Cluster\ClusterRoute::rootBlocked(self::SID), 'mode 1 reads its signals row');
+		} finally {
+			\XcVm\Domain\Cluster\ClusterRoute::useCrypto(null);
+		}
+	}
+
 	/** A node in mode 2 reads no signals row: a root action it cannot take is not queued at all. */
 	public function testARootActionANodeInModeTwoCannotTakeIsNotQueued(): void {
 		$this->active();
@@ -1651,8 +1704,11 @@ final class ClusterApiTest extends TestCase {
 		[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => $rNext['seq']], 1, $rKeys);
 		$rSec = $this->reply($rRes, $rCtx, $rKeys)['blocklist'];
 		$this->assertSame('curl', $this->openRecord($rSec['section']['sealed'], 'rep')['data']['ua'][0]['user_agent']);
-		[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => $rNext['seq'], 'have' => ['blocklist' => $rSec['section']['etag']]], 1, $rKeys);
+		[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => $rNext['seq'], 'have' => ['blocklist' => $rSec['section']['etag']], 'blocklist_parts' => true], 1, $rKeys);
 		$this->assertSame(['seq' => $rSec['seq'], 'more' => false, 'unchanged' => true], $this->reply($rRes, $rCtx, $rKeys)['blocklist']);
+		// An older agent keeps the deltas it stored over a section it is told is unchanged: it gets the section again.
+		[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => $rNext['seq'], 'have' => ['blocklist' => $rSec['section']['etag']]], 1, $rKeys);
+		$this->assertSame($rSec['section']['etag'], $this->reply($rRes, $rCtx, $rKeys)['blocklist']['section']['etag']);
 
 		[$rRes] = $this->call('config', ['blocklist_since' => -1], 1, $rKeys);
 		$this->denial($rRes, 400, 'BAD_REQUEST');
@@ -2020,6 +2076,57 @@ final class ClusterApiTest extends TestCase {
 	 * stages the sealed record once and serves it in 4 MiB parts, which join
 	 * into the record the node opens as any section sent whole.
 	 */
+	/** Block $rCount IPv6 addresses written out in full (39 characters), past the first $rFrom: large sections from few rows. */
+	private function manyBlocked(int $rFrom, int $rCount): void {
+		foreach (array_chunk(range($rFrom, $rFrom + $rCount - 1), 10000) as $rChunk) {
+			$this->rDb->exec('INSERT INTO `blocked_ips` (`ip`) VALUES ' . implode(', ', array_map(static fn(int $i): string => sprintf("('2001:0db8:0000:0000:0000:0000:%04x:%04x')", ($i >> 16) & 0xffff, $i & 0xffff), $rChunk)));
+		}
+	}
+
+	/** A blocklist too large for one reply: in parts to an agent that says blocklist_parts, whole and then held to an older one. */
+	public function testABlocklistTooLargeForOneReplyIsFetchedInParts(): void {
+		$this->blocklistTables();
+		$rKeys = $this->active();
+		$this->manyBlocked(0, 80000);
+		$rDir = sys_get_temp_dir() . '/xcvm-xfer-' . bin2hex(random_bytes(4)) . '/';
+		ReplicaBuilder::useXferDir($rDir);
+		$rPart = function (int $rN, string $rEtag) use ($rKeys): array {
+			[$rRes, $rCtx] = $this->call('config', ['part' => ['section' => 'blocklist', 'etag' => $rEtag, 'n' => $rN]], 1, $rKeys);
+			return $this->reply($rRes, $rCtx, $rKeys)['part'];
+		};
+		try {
+			// An older agent: whole, while one reply carries it; nothing staged.
+			[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => 0, 'parts' => true], 1, $rKeys);
+			$rOld = $this->reply($rRes, $rCtx, $rKeys)['blocklist'];
+			$this->assertGreaterThan(ReplicaBuilder::MAX_WHOLE_BYTES, strlen($rOld['section']['sealed']));
+			$this->assertSame([], glob($rDir . '*') ?: []);
+
+			[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => 0, 'parts' => true, 'blocklist_parts' => true], 1, $rKeys);
+			$rOut = $this->reply($rRes, $rCtx, $rKeys)['blocklist'];
+			$this->assertSame(['too_large' => true, 'etag' => $rOld['section']['etag'], 'parts' => 2], $rOut['section']);
+			$rFirst = $rPart(0, $rOut['section']['etag']);
+			$this->assertSame(['section' => 'blocklist', 'etag' => $rOut['section']['etag'], 'n' => 0, 'parts' => 2], array_diff_key($rFirst, ['data' => 0]));
+			$rDoc = $this->openRecord($rFirst['data'] . $rPart(1, $rOut['section']['etag'])['data'], 'rep');
+			$this->assertSame(['blocklist', $rOut['section']['etag'], $rOut['seq']], [$rDoc['section'], $rDoc['etag'], $rDoc['seq']], 'the record names the seq the reply does');
+			$this->assertCount(80000, $rDoc['data']['ip']);
+			$this->assertSame([], glob($rDir . '*') ?: [], 'the last part served removes the stage');
+
+			// Past what one reply carries, an older agent is held: no section, its seq unchanged.
+			$this->manyBlocked(80000, 80000);
+			[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => 0, 'parts' => true], 1, $rKeys);
+			$this->assertSame(['seq' => 0, 'more' => false], $this->reply($rRes, $rCtx, $rKeys)['blocklist']);
+			$rAudits = "SELECT COUNT(*) FROM `cluster_audit` WHERE `event` = 'replica.section_too_large' AND `detail` LIKE '%\"blocklist\"%'";
+			$this->assertSame(2, (int) $this->rDb->pdo->query($rAudits)->fetchColumn(), 'one per ETag: the one sent in parts, and this one');
+			$this->call('config', ['blocklist_since' => 0, 'parts' => true], 1, $rKeys);
+			$this->assertSame(2, (int) $this->rDb->pdo->query($rAudits)->fetchColumn(), 'not again for the same ETag');
+			[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => 0, 'parts' => true, 'blocklist_parts' => true], 1, $rKeys);
+			$this->assertSame(3, $this->reply($rRes, $rCtx, $rKeys)['blocklist']['section']['parts']);
+		} finally {
+			ReplicaBuilder::useXferDir(null);
+			exec('rm -rf ' . escapeshellarg($rDir));
+		}
+	}
+
 	public function testASectionTooLargeForOneReplyIsFetchedInParts(): void {
 		$this->blocklistTables();
 		$this->rDb->exec(InstallSchema::table('bouquets'));

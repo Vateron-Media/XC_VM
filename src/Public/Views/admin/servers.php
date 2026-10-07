@@ -495,11 +495,18 @@ LayoutRenderer::renderFooter('admin');
             });
 
             // --- global bulk operations ------------------------------------------
+            // Servers a bulk action could not reach (ServerAjaxController::okSkipping).
+            function skipped(d) {
+                if (d && d.not_sent && d.not_sent.length) {
+                    toast(notSentText + ' (' + d.not_sent.join(', ') + ')', 'warning');
+                }
+            }
             $('#op-update-all').on('click', function() {
                 confirmSwal('Update ALL running servers?').then(function(ok) {
                     if (ok) {
-                        getJSON('./api?action=update_all_servers').then(function() {
+                        getJSON('./api?action=update_all_servers').then(function(d) {
                             toast('Servers are being updated in the background…');
+                            skipped(d);
                         });
                     }
                 });
@@ -614,8 +621,9 @@ LayoutRenderer::renderFooter('admin');
             $('#op-restart-services').on('click', function() {
                 confirmSwal('Restart services on ALL running servers?').then(function(ok) {
                     if (ok) {
-                        getJSON('./api?action=restart_all_services').then(function() {
+                        getJSON('./api?action=restart_all_services').then(function(d) {
                             toast('Services will be restarted shortly…');
+                            skipped(d);
                         });
                     }
                 });
@@ -623,8 +631,9 @@ LayoutRenderer::renderFooter('admin');
             $('#op-update-binaries').on('click', function() {
                 confirmSwal('Update binaries on ALL running servers?').then(function(ok) {
                     if (ok) {
-                        getJSON('./api?action=update_all_binaries').then(function() {
+                        getJSON('./api?action=update_all_binaries').then(function(d) {
                             toast('Binaries are being updated in the background…');
+                            skipped(d);
                         });
                     }
                 });
