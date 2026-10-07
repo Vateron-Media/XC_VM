@@ -240,7 +240,7 @@ final class ConnectionIngestIdempotencyTest extends TestCase {
 
 	/** Activity rows written by closes (ConnectionTracker::writeOfflineActivity). */
 	private function activity(): int {
-		return count(file(LOGS_TMP_PATH . 'activity', FILE_IGNORE_NEW_LINES) ?: []);
+		return is_file(LOGS_TMP_PATH . 'activity') ? count(file(LOGS_TMP_PATH . 'activity', FILE_IGNORE_NEW_LINES) ?: []) : 0;
 	}
 
 	private function cursor(): int {
@@ -366,11 +366,11 @@ final class ConnectionIngestIdempotencyTest extends TestCase {
 		// batch's writes stay, and the resend makes the same store again.
 		$this->assertSame($rRedis ? ['bbbb' => [1800000000, 0, 1]] : [], $this->store());
 		$this->assertSame(0, $this->cursor());
-		$this->assertSame(1, $this->activity(), 'the close\'s activity row is a file, outside the transaction');
+		$this->assertSame(0, $this->activity(), 'the close\'s activity row waits for the batch to commit');
 
 		$this->assertSame(['ok' => true, 'useq' => 3, 'applied' => 3, 'dropped' => 0], $this->ingest(1, $rBatch));
 		$this->assertSame(['bbbb' => [1800000000, 0, 1]], $this->store());
-		$this->assertSame(2, $this->activity(), 'the known gap (ADR 0004): the resent close writes its activity row again');
+		$this->assertSame(1, $this->activity(), 'the resent close writes it once');
 		$this->assertSame(['ok' => true, 'useq' => 3, 'applied' => 0, 'dropped' => 0], $this->ingest(1, $rBatch));
 	}
 }

@@ -6,6 +6,8 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronJobs\RootSignalsCronJob;
 use XcVm\Core\Cluster\ArtefactStage;
 use XcVm\Core\Cluster\Crypto\Enc;
+use XcVm\Core\Cluster\EventSpool;
+use XcVm\Core\Cluster\NodeCredentials;
 use XcVm\Core\Cluster\RootPin;
 use XcVm\Domain\Server\ServerRepository;
 
@@ -147,6 +149,13 @@ class ClusterRootCommand implements CommandInterface {
 				}
 			}
 			RootPin::writeDone($rDonePath, (string) json_encode(['ok' => $rOk, 'result' => substr(trim($rOutput), 0, 4096)]));
+			// A credential action's outcome goes to MAIN as an event too: when root
+			// is slower than cluster:exec waits (ROOT_WAIT), the ack says only
+			// "queued", and MAIN revokes the node's grant on the outcome alone
+			// (DbCredentials::acked, which takes whichever comes first, once).
+			if (in_array($rCmd['action'], [NodeCredentials::STRIP, NodeCredentials::INSTALL], true) && is_string($rCmd['cmd_id'] ?? null)) {
+				EventSpool::append('p0', [['type' => 'node.root_result', 'd' => ['cmd_id' => $rCmd['cmd_id'], 'ok' => $rOk, 'result' => substr(trim($rOutput), 0, 4096)]]]);
+			}
 			$rDone[] = ['seq' => (int) $rCmd['seq'], 'ok' => $rOk, 'detail' => (string) $rCmd['action']];
 		}
 		return $rDone;

@@ -101,7 +101,10 @@ class SettingsService {
 		$rCurrent = SettingsManager::getAll();
 		$rEnv = [
 			'extension_ok' => ClusterCryptoFactory::available(),
-			'api_mode_allowed' => false, // Phase 9 (cutover) enables API-only new nodes
+			// New load balancers in mode 2 (lb_new_node_mode = api): not with the
+			// Redis connection handler, which a node in mode 2 may not open, as the
+			// move to mode 2 and enrolment refuse it (ClusterAdmin, EnrolmentService).
+			'api_mode_allowed' => empty($rCurrent['redis_handler']),
 			'credential_free_config' => CredentialFreeConfig::supported(),
 		];
 		if (($rKeys['cluster_transport'] ?? null) === 'https_required') {

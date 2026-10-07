@@ -41,6 +41,14 @@ final class DbCredentials {
 		self::$rRevoke = $rRevoke;
 	}
 
+	/** @var (\Closure(string, array<string, mixed>): (string|false))|null */
+	private static ?\Closure $rPack = null;
+
+	/** Tests: another config packer than the extension's config_pack; null restores it. */
+	public static function usePack(?\Closure $rPack): void {
+		self::$rPack = $rPack;
+	}
+
 	/**
 	 * How long a queued strip waits for its node, in seconds. The node is
 	 * judged when the command is queued (strip()), so it does not wait the
@@ -155,6 +163,7 @@ final class DbCredentials {
 		}
 		// As LbInstallFlow::configPackParams: MAIN's address, the node's slot.
 		$rParams = ['hostname' => $rMainIP, 'database' => 'xc_vm', 'server_id' => $rServerID, 'is_lb' => 1, 'db_credentials' => $rCredentials];
+		$rPack ??= self::$rPack;
 		if ($rPack === null) {
 			if (!class_exists('XC_VM') || !method_exists('XC_VM', 'install_config')) {
 				// An extension that has install_config also packs db_credentials.
@@ -227,9 +236,12 @@ final class DbCredentials {
 	}
 
 	/**
-	 * A `node.root` command's first ack (ClusterApi). For a credential action
-	 * that succeeded and left the node's config without credentials, revoke
-	 * the node's grant. True when it revoked.
+	 * A `node.root` command's ack (ClusterApi), or root's own report of it
+	 * (`node.root_result`, EventIngest): for a credential action that succeeded
+	 * and left the node's config without credentials, revoke the node's grant,
+	 * once. Only while the node is in mode 2: one root stripped after a Mode
+	 * down it had not heard of yet is below mode 2 without credentials, and is
+	 * sent them back instead. True when it revoked.
 	 */
 	public static function acked(int $rServerID, string $rCmdID, bool $rOk, string $rResult): bool {
 		if (!$rOk) {
@@ -242,7 +254,12 @@ final class DbCredentials {
 			return false;
 		}
 		$rConfig = NodeCredentials::outcome($rResult);
-		if ($rConfig === null || ($rConfig['db_credentials'] ?? true) !== false) {
+		if ($rConfig === null || ($rConfig['db_credentials'] ?? true) !== false || self::revokedAt($rServerID) !== null) {
+			return false;
+		}
+		if ((int) (NodeRegistry::byServer($rServerID)['mode'] ?? 0) !== 2) {
+			$rWhy = self::installConfig($rServerID, true, 'system');
+			ClusterAudit::log('node.credentials_restored', $rServerID, ['cmd_id' => $rCmdID, 'queued' => $rWhy === null] + ($rWhy === null ? [] : ['why' => $rWhy]), 'system');
 			return false;
 		}
 		return self::revoke($rServerID);
