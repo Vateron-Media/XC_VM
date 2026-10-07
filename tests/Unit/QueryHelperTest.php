@@ -5,7 +5,7 @@ use XcVm\Core\Database\QueryHelper;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers QueryHelper
+ * @covers \XcVm\Core\Database\QueryHelper
  */
 final class QueryHelperTest extends TestCase {
 

@@ -259,6 +259,9 @@ whatever it shows from then on was refused, with the file and line that asked. T
 on the load balancer that still needs MAIN's database. Watch that box and the node's streams for a
 while after the move. A red **Streams not local** badge next to the mode means the load balancer
 cannot read its streams any more: press **Mode down**, wait a minute or two, then **Mode up** again.
+With **Automatic Mode Down** (Settings → Cluster, in minutes; off by default) MAIN takes that first
+step by itself once the badge has stood that long, for a load balancer that this page moved to
+mode 2 and that still holds its database credentials. **Mode up** is still yours to press.
 
 !!! warning "What can and cannot be undone"
     The move to mode 2 takes nothing away from the load balancer: it keeps its database

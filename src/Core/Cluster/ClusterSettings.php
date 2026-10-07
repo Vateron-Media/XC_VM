@@ -45,6 +45,7 @@ final class ClusterSettings {
 		'lb_binary_canary_server' => [0, 0, 2147483647],
 		'lb_binary_canary_hours' => [24, 1, 720],
 		'cluster_db_allowlist' => [0, 0, 1],
+		'cluster_auto_mode_down_min' => [0, 0, 1440],
 	];
 
 	/**

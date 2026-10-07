@@ -9,6 +9,7 @@ use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Cluster\ArtefactGrants;
+use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\BlocklistDelta;
 use XcVm\Domain\Cluster\ClusterAudit;
 use XcVm\Domain\Cluster\ClusterEndpoint;
@@ -112,6 +113,8 @@ class ClusterCronJob implements CommandInterface {
 			// MAIN's own data-plane client: its tickets anew at each epoch, its
 			// agent's servers section when it changed (Phase 9).
 			'main_dataplane' => static fn() => MainDataPlane::refresh(),
+			// A node in mode 2 that lost its own streams goes back to mode 1 (opt-in).
+			'auto_mode_down' => static fn() => ClusterAdmin::autoModeDown(SettingsManager::getAll()),
 			// The signals daemon runs this every second; the minute is its fallback.
 			'liveness' => static function () {
 				if (LivenessService::tick(ClusterSettings::int('cluster_offline_after_sec', SettingsManager::get('cluster_offline_after_sec'))) !== []) {

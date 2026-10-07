@@ -2,10 +2,12 @@
 
 namespace XcVm\Streaming\Protection;
 
+use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Domain\Cluster\ClusterRoute;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Streaming\Lifecycle\ShutdownHandler;
 
 /**
  * ConnectionLimiter — connection limiter
@@ -268,15 +270,26 @@ class ConnectionLimiter {
 	}
 
 	/**
-	 * An RTMP client's play ended (nginx-rtmp's play_done): its connection is
-	 * removed and its activity written, in either store. In Redis the record is
+	 * An RTMP client's play ended (nginx-rtmp's play_done): on a node whose
+	 * agent holds the viewer it ends there (the agent tells MAIN); otherwise its
+	 * connection is removed and its activity written, in either store. In Redis the record is
 	 * named after the client id (rtmp.php: md5) and only this server's RTMP
 	 * record for that client is closed, as ended: the client is gone, so
 	 * nothing is dropped.
 	 */
 	public static function closeRTMP($rPID) {
-		global $db, $rSettings;
+		global $db, $rSettings, $rServers;
 		if (empty($rPID)) {
+			return false;
+		}
+
+		// A viewer this node's agent holds (CONNECTIONS on): it ends there, and
+		// the agent tells MAIN, as a worker's viewer ends (ShutdownHandler).
+		if (ShutdownHandler::closeInRegistry(ConnectionTracker::rtmpUuid($rPID), (int) $rPID, time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0))) {
+			return true;
+		}
+		// A node in mode 2 has no other store: its agent did not answer.
+		if (NodeRole::refusesConnects()) {
 			return false;
 		}
 

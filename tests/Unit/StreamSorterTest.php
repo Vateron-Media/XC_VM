@@ -5,7 +5,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\StreamSorter;
 
 /**
- * @covers StreamSorter
+ * @covers \XcVm\Domain\Stream\StreamSorter
  */
 final class StreamSorterTest extends TestCase {
 
