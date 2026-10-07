@@ -127,17 +127,6 @@ class ServerInstallCommand implements CommandInterface {
 				echo "Verify the panel (dashboard banner → Get a key), then retry.\n";
 				return 1;
 			}
-			// An install in API mode ends in a mode 2 enrolment, which MAIN does
-			// not take while the Redis connection handler is on
-			// (EnrolmentService::begin): said before the node is contacted, not
-			// once its panel has been stopped and replaced.
-			$rSettings = SettingsManager::getAll();
-			if (LbInstallFlow::installsInApiMode($rSettings, $rServerID) && !empty($rSettings['redis_handler'])) {
-				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
-				echo "This node installs in cluster mode 2, which is not available while the Redis connection handler is on: switch the handler off first. Exiting\n";
-				return 1;
-			}
-
 			$rUpdateData = LbInstallFlow::resolveUpdateData($gitRelease);
 			$rInstallFiles = $rUpdateData['url'];
 			$rHash = $rUpdateData['md5'];

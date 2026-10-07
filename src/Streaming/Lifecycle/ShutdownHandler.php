@@ -36,7 +36,8 @@ class ShutdownHandler {
 		if ($rCloseCon) {
 			$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
 
-			if (!self::closeInRegistry((string) ($rTokenData['uuid'] ?? ''), (int) $rPID, $rLastRead)) {
+			// A node in mode 2 has no other store: its agent did not answer.
+			if (!self::closeInRegistry((string) ($rTokenData['uuid'] ?? ''), (int) $rPID, $rLastRead) && !NodeRole::refusesConnects()) {
 				if (!empty($rSettings['redis_handler'])) {
 					if (!RedisManager::isConnected()) {
 						RedisManager::ensureConnected();
@@ -47,7 +48,7 @@ class ShutdownHandler {
 					if ($rConnection && $rConnection['pid'] == $rPID) {
 						ConnectionTracker::updateConnection($rConnection, ['hls_last_read' => $rLastRead], 'close');
 					}
-				} elseif (!NodeRole::refusesConnects()) {
+				} else {
 					if (!is_object($db)) {
 						DatabaseFactory::connectLazy();
 					}

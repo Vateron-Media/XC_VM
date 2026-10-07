@@ -21,9 +21,6 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  * (NodeCredentials::outcome()). A config that still holds credentials, an ack
  * that only says root queued it, or a failed command revokes nothing.
  *
- * `api_mode_allowed` is not touched here: whether new nodes install in API
- * mode is the operator's cutover decision.
- *
  * @package XC_VM_Domain_Cluster
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
