@@ -5870,7 +5870,10 @@ viewer while the extension is down.
 - **The interop test** (`TestInteropWithPanel`, XC_VM_Fanout) cannot run against this panel: its
   harness keeps MAIN's state in one SQLite file across the PHP processes it starts, and the panel's
   `TestDb` has used a throwaway MariaDB schema per process since the unit suite moved to MariaDB. The
-  blocklist step added to it runs once the harness shares one schema.
+  blocklist step added to it runs once the harness shares one schema. (Fixed since: `TestDb` takes a
+  shared schema, `xcvm_t<pid>_<n>` after the Go test, that no instance drops and its orphan cleanup
+  drops once the test has ended; the harness loads the panel's install schema into it. Every
+  panel-backed agent test runs against this panel again.)
 
 **Tests.** PHP: `ClusterApiTest::testABlocklistTooLargeForOneReplyIsFetchedInParts` (an older agent
 whole, then held, audited once per ETag; parts that join into a record naming the reply's `seq`;
