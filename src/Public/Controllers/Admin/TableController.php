@@ -3400,7 +3400,7 @@ class TableController extends BaseAdminController {
 		}
 		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
 		if (0 < $rReturn["recordsTotal"]) {
-			$rQuery = "SELECT `users`.`member_group_id`, `users`.`id`, `users`.`status`, `users`.`notes`, `users`.`owner_id`, `users`.`credits`, `users`.`username`, `users`.`email`, `users`.`ip`, FROM_UNIXTIME(`users`.`date_registered`) AS `date_registered`, FROM_UNIXTIME(`users`.`last_login`) AS `last_login`, `users`.`status` FROM `users` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
+			$rQuery = "SELECT `users`.`member_group_id`, `users`.`id`, `users`.`status`, `users`.`notes`, `users`.`owner_id`, `users`.`credits`, `users`.`username`, `users`.`email`, `users`.`ip`, `users`.`date_registered`, `users`.`last_login`, `users`.`status` FROM `users` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
 			if (0 < $db->num_rows()) {
 				$rUserInfo = $rOwnerInfo = $rUserIDs = $rOwnerIDs = [];
@@ -3438,6 +3438,10 @@ class TableController extends BaseAdminController {
 					}
 				}
 				foreach ($rRows as $rRow) {
+					// Format in PHP, not FROM_UNIXTIME(): the DB session runs in UTC, PHP in the panel/user timezone.
+					foreach (["date_registered", "last_login"] as $rKey) {
+						$rRow[$rKey] = $rRow[$rKey] ? date("Y-m-d H:i:s", (int) $rRow[$rKey]) : null;
+					}
 					if (isset($rOwnerInfo[$rRow["owner_id"]])) {
 						$rRow["owner_username"] = $rOwnerInfo[$rRow["owner_id"]];
 					} else {
