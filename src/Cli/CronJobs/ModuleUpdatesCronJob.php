@@ -6,7 +6,6 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleManager;
-use XcVm\Core\Module\ModuleUpdateChecker;
 
 /**
  * ModuleUpdatesCronJob — weekly check of module update availability.
@@ -51,30 +50,12 @@ class ModuleUpdatesCronJob implements CommandInterface {
 			return 0;
 		}
 
-		$rManager = new ModuleManager(container: ServiceContainer::getInstance());
-		$rChecker = new ModuleUpdateChecker();
-
-		foreach ($rManager->listModules() as $rModule) {
-			// Only installed modules — the check compares against installed_version.
-			if (($rModule['installed_version'] ?? '') === '') {
-				continue;
-			}
-
-			$rInstalled = (string) $rModule['installed_version'];
-			$rLatest    = $rChecker->latestAvailable($rModule);
-
-			if ($rLatest !== null && version_compare($rLatest, $rInstalled, '>')) {
-				$rManager->recordAvailableVersion($rModule['name'], $rLatest);
-				echo '[UPDATE] ' . $rModule['name'] . ': ' . $rInstalled . ' -> ' . $rLatest . "\n";
-			} elseif ($rChecker->lastError() !== null) {
-				// Source unreachable (rate limit, network) — keep any previously
-				// recorded flag; clearing here would hide a real update until the
-				// next successful check.
-				echo '[SKIP] ' . $rModule['name'] . ': ' . $rChecker->lastError() . "\n";
-			} else {
-				// Nothing newer — clear any stale flag.
-				$rManager->recordAvailableVersion($rModule['name'], null);
-			}
+		$rResult = (new ModuleManager(container: ServiceContainer::getInstance()))->checkUpdates();
+		foreach ($rResult['found'] as $rFound) {
+			echo '[UPDATE] ' . $rFound . "\n";
+		}
+		foreach ($rResult['failed'] as $rFailed) {
+			echo '[SKIP] ' . $rFailed . "\n";
 		}
 
 		return 0;

@@ -107,7 +107,7 @@ final class NodeRoleTest extends TestCase {
 			'tmdb popular'    => ['TmdbPopularCronJob.php', 'TmdbPopularCron::run()'],
 			'signals purge'   => ['RootSignalsCronJob.php', 'UNIX_TIMESTAMP() - `time` >= 86400'],
 			'update check'    => ['UpdateCronJob.php', 'getUpdate(XC_VM_VERSION)'],
-			'module updates'  => ['ModuleUpdatesCronJob.php', 'new ModuleUpdateChecker()'],
+			'module updates'  => ['ModuleUpdatesCronJob.php', '->checkUpdates()'],
 		];
 	}
 }

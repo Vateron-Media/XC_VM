@@ -437,6 +437,7 @@ class ModuleLoader {
 			: dirname(__DIR__, 2) . '/config/modules.php';
 
 		if (file_exists($overridesPath)) {
+			ModuleManager::revalidate($overridesPath);
 			$this->overrides = require $overridesPath;
 			if (!is_array($this->overrides)) {
 				$this->overrides = [];

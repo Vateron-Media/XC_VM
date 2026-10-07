@@ -43,7 +43,7 @@ final class AdminAudit {
 	public const PANEL_READS = [
 		'stats', 'graph_stats', 'header_stats', 'server_stats', 'server_view', 'fpm_status', 'install_status', 'search', 'get_epg', 'get_programme',
 		'get_package', 'get_package_trial', 'epglist', 'epg_categories', 'ip_whois', 'tmdb_search', 'tmdb', 'userlist', 'reguserlist', 'rollback_versions',
-		'active_code_details', 'category_template_get', 'provider_streams', 'save_ui_prefs', 'session',
+		'active_code_details', 'category_template_get', 'provider_streams', 'save_ui_prefs', 'session', 'module_status', 'module_store',
 	];
 
 	/** Bytes of the answer kept to read its outcome. */

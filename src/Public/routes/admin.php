@@ -212,7 +212,7 @@ $router->get('server_install', [ServerInstallController::class, 'index']);
 // ─── Settings ──────────────────────────────────────
 
 $router->get('settings', [SettingsController::class, 'index']);
-$router->any('modules', [ModulesController::class, 'index']);
+$router->get('modules', [ModulesController::class, 'index']);
 $router->get('magscan_settings', [MagscanSettingsController::class, 'index']);
 
 // ─── Lines ─────────────────────────────────────────
@@ -467,6 +467,9 @@ $router->api('save_activation_key', [MiscAjaxController::class, 'saveActivationK
 // ─── Users & Lines ─────────────────────────────────
 $router->api('line', [UserAjaxController::class, 'line']);
 $router->api('module', [ModuleAjaxController::class, 'module']);
+$router->api('module_status', [ModuleAjaxController::class, 'status']);
+$router->api('module_upload', [ModuleAjaxController::class, 'upload']);
+$router->api('module_store', [ModuleAjaxController::class, 'store']);
 $router->api('line_activity', [UserAjaxController::class, 'lineActivity']);
 $router->api('adjust_credits', [UserAjaxController::class, 'adjustCredits']);
 $router->api('reg_user', [UserAjaxController::class, 'regUser']);
