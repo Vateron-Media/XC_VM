@@ -153,7 +153,7 @@ In both cases the IP is written to the `blocked_ips` table (and from there into 
 1. **Reset the binding in the panel:** open that MAG device in admin and **clear its stored serial number / `device_id`** (or delete and re-add the device). The "serial already recorded" condition then no longer triggers, and the next connection binds the new values.
 2. **Unblock the IP.** Easiest way — **via the web panel**: open **Tools → IP Management** (`/<admin-code>/ips`), which lists the blocked IPs — remove the one you need (or clear the whole list). CLI / manual options if you can't reach the panel:
    - CLI (clear all blocks): `sudo /home/xc_vm/console.php tools flush`;
-   - Manually, per IP: `sudo iptables -D INPUT -s <IP> -j DROP && sudo rm -f /home/xc_vm/tmp/flood/block_<IP>`.
+   - Manually, per IP: `sudo ipset del xcvm_block4 <IP>` (`xcvm_block6` for an IPv6 address; on a server without ipset, `sudo iptables -D INPUT -s <IP> -j DROP`) `&& sudo rm -f /home/xc_vm/tmp/flood/block_<IP>`. While the IP is still in **Blocked IPs**, the server blocks it again within minutes.
 
 > ⚠️ The `enable_debug_stalker` setting bypasses the `lock_device` / image checks but **NOT** the MAGSCAN serial hard-ban (which runs earlier) — you still have to clear the stored `sn` in the panel.
 

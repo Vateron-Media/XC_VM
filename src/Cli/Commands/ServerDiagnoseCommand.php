@@ -283,7 +283,8 @@ class ServerDiagnoseCommand implements CommandInterface {
 			$rSelfBlock = ($rBlocked === true) || $rMarker;
 			$this->line('Main in iptables', $rBlocked === true ? 'DROP present' : ($rBlocked === false ? 'not blocked' : (string) $rBlocked) . ($rMarker ? ' (+flood marker)' : ''), !$rSelfBlock);
 			if ($rSelfBlock) {
-				$rProblems[] = "This node has DROPPED the main's IP {$rMainIP} in its own iptables (flood/block false-positive). Unblock: `sudo iptables -D INPUT -s {$rMainIP} -j DROP && sudo rm -f " . FLOOD_TMP_PATH . "block_{$rMainIP}`.";
+				$rSet = filter_var($rMainIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? 'xcvm_block6' : 'xcvm_block4';
+				$rProblems[] = "This node has DROPPED the main's IP {$rMainIP} in its own firewall (flood/block false-positive). Unblock it in MAIN's Blocked IPs (each node applies MAIN's list within minutes), or by hand: `sudo ipset del {$rSet} {$rMainIP}` (a node without ipset: `sudo iptables -D INPUT -s {$rMainIP} -j DROP`) `&& sudo rm -f " . FLOOD_TMP_PATH . "block_{$rMainIP}`.";
 			}
 		}
 
@@ -547,7 +548,11 @@ class ServerDiagnoseCommand implements CommandInterface {
 				return true;
 			}
 		}
-		return false;
+		// The blocks RootSignalsCronJob::syncSets() keeps in an ipset set, one rule matching each.
+		$rSetOut = [];
+		$rSetCode = 1;
+		exec('sudo -n ipset test ' . (filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? 'xcvm_block6' : 'xcvm_block4') . ' ' . escapeshellarg($rIP) . ' 2>/dev/null', $rSetOut, $rSetCode);
+		return $rSetCode === 0;
 	}
 
 	private function crontabHas(string $rNeedle): bool {
