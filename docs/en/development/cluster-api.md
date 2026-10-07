@@ -325,8 +325,10 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
   - A parent or owner that cannot check a ticket (a legacy server, not enrolled or not
     active) is still reached with the legacy URL and its password, even with the flow on.
   - Streams started before the flow was switched keep their URL until they restart.
-  - Relay bytes are authenticated at connect only, not framed: over plain HTTP they have no
-    integrity (plan, D11). Files do.
+  - Relay bytes and file chunks are AEAD-framed (D11) where the parent or owner seals
+    (`servers.relay_seal`): AES-256-GCM under a key the child's agent picks per connect and
+    SEALs to the parent's box key. Viewer bytes and `/images` stay direct, and there is no
+    forward secrecy: a parent's box key taken later opens a recorded relay's key.
   - The secret still appears on the node's own loopback: the local RTMP output
     (`rtmp://127.0.0.1/live/<id>?password=`) and the recorder's pull from its own
     `/admin/live` and `/admin/timeshift`.
@@ -355,7 +357,10 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
     finds the holder on the node.
   - `/xfile` has its own rate limit (50 requests/s per server, burst 100, answered with a
     429 the agent retries), apart from the viewers' 20 requests/s.
-  - `cluster:rotate-stream-secret` does not exist: retiring the password is Phase 9's.
+  - `cluster:rotate-stream-secret` rotates the stream password (the viewer-token secret) and
+    re-encrypts what is stored under it (`hmac_keys`, the image cache's names); it refuses
+    while an enrolled node still has its DATAPLANE flow off, whose URLs would carry the new
+    value too (`--force` overrides). A run cut short is finished by running it again.
 - **The licence lease is issued, checked, and enforced only behind a switch** (Phase 9).
   Every token MAIN hands a node (enrolment over SSH or by code, `token_refresh`,
   `token_rekey`) carries a lease signed by `xcvm_core`, capped at `min(token_exp +
@@ -396,8 +401,9 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
   `{"queued": true}` and root's later outcome does not reach MAIN, which then revokes
   nothing. Only an operator sends
   the strip (*Drop DB credentials*, `cluster:strip-credentials`), and
-  `lb_new_node_mode=api` is still refused (`api_mode_allowed` is false): the cutover stays
-  the operator's decision. A node MAIN already keeps credential-free (mode 2, or a revoked
+  `lb_new_node_mode=api` (a new load balancer installed in mode 2, every flow on, with a
+  credential-free config) is taken only with the Redis connection handler off and an
+  extension that packs such a config; the Cache page then refuses the handler. A node MAIN already keeps credential-free (mode 2, or a revoked
   grant) stays so: a reinstall over SSH packs it a credential-free config, re-enrols it in
   mode 2 and grants it nothing, an enrolment by code re-enrols it in mode 2 as well, with
   every flow on and its `db_revoked_at` kept (`EnrolCodeService::approve()`), and no grant
@@ -411,8 +417,8 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
   clear. `cluster:rotate-credentials` rotates the Redis password the same way, and the
   manual `cluster:lockdown` exists too (ADR 0004, Phase 9's fifth and seventh increments).
 - The viewer-token secret can be *replaced* gracefully (the value it replaces stays readable
-  for ten minutes, fleet-wide), but a full rotation — re-encrypting what is stored under it
-  — is Phase 9's.
+  for ten minutes, fleet-wide), and rotated in full after a leak with
+  `cluster:rotate-stream-secret` (above).
 - A node's `whitelist_ips` is the admin's: a node no longer publishes its own addresses,
   because that column grants the legacy `/api` allowlist.
 - A quarantine ends every command queued for the node that grants something (handed out
