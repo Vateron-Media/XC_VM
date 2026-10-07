@@ -135,9 +135,10 @@ appears there as **active**.
 **New Node Mode** (Settings → Cluster) decides how a newly installed load balancer starts. With
 *legacy* (the default) it joins in mode 1 and you move it on (Steps 3 and 4). With *api* it joins
 straight in **mode 2**, every flow on, and gets none of MAIN's database or Redis credentials, as
-if it had already gone through Step 5's first part. *api* needs the **Redis connection handler**
-off (a node in mode 2 turns every viewer away with it), and the Cache page then refuses the
-handler until New Node Mode is *legacy* again.
+if it had already gone through Step 5's first part. *api* needs the cluster API on (without it a
+new load balancer installs the old way) and the **Redis connection handler** off (a node in
+mode 2 turns every viewer away with it); the Cache page then refuses the handler until New Node
+Mode is *legacy* again.
 
 !!! note "A load balancer that is already installed, or that MAIN cannot reach over SSH (NAT)"
     The server must already be in **Servers → Manage Servers**.

@@ -78,7 +78,8 @@ final class ClusterSettingsTest extends TestCase {
 	}
 
 	public function testApiModeWaitsForCutover(): void {
-		$this->assertSame([[], [['lb_new_node_mode', 'cluster_error_api_mode']]], $this->norm(['lb_new_node_mode' => 'api']));
+		$this->assertSame([[], [['lb_new_node_mode', 'cluster_error_api_mode_api_off']]], $this->norm(['lb_new_node_mode' => 'api']), 'the cluster API off');
+		$this->assertSame([[], [['lb_new_node_mode', 'cluster_error_api_mode']]], $this->norm(['lb_new_node_mode' => 'api'], ['cluster_api_enabled' => 1]));
 		$this->assertSame([['lb_new_node_mode' => 'legacy'], []], $this->norm(['lb_new_node_mode' => 'legacy']));
 	}
 

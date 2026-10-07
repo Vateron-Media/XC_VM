@@ -18,7 +18,7 @@ use XcVm\Domain\Cluster\DbAllowlist;
  * - `cluster_transport = https_required` without working HTTPS (the
  *   self-probe, and every active node reporting HTTPS);
  * - `cluster_api_enabled = 1` without the extension's cluster API;
- * - `lb_new_node_mode = api` with the Redis connection handler on, or an
+ * - `lb_new_node_mode = api` with the cluster API off, the Redis connection handler on, or an
  *   extension that cannot pack a credential-free config;
  * - a scan root that is not an absolute, normalised path;
  * - a database allowlist entry that is not an IP or CIDR.
@@ -163,7 +163,12 @@ final class ClusterSettings {
 			$rErrors[] = ['cluster_api_enabled', 'cluster_error_extension'];
 			unset($rOut['cluster_api_enabled']);
 		}
-		if (($rOut['lb_new_node_mode'] ?? null) === 'api' && empty($rEnv['api_mode_allowed'])) {
+		if (($rOut['lb_new_node_mode'] ?? null) === 'api' && empty($rOut['cluster_api_enabled'] ?? $rCurrent['cluster_api_enabled'] ?? 0)) {
+			// Mode 2 is the cluster API's: with it off (as this save leaves it), a
+			// new node installs in legacy mode whatever is stored (newNodesInApiMode()).
+			$rErrors[] = ['lb_new_node_mode', 'cluster_error_api_mode_api_off'];
+			unset($rOut['lb_new_node_mode']);
+		} elseif (($rOut['lb_new_node_mode'] ?? null) === 'api' && empty($rEnv['api_mode_allowed'])) {
 			$rErrors[] = ['lb_new_node_mode', 'cluster_error_api_mode'];
 			unset($rOut['lb_new_node_mode']);
 		} elseif (($rOut['lb_new_node_mode'] ?? null) === 'api' && empty($rEnv['credential_free_config'])) {
@@ -180,7 +185,7 @@ final class ClusterSettings {
 	 * Is a new load balancer installed in API mode (plan, section 12: mode 2
 	 * from its first boot, no DB grant, a credential-free config.enc)? Only
 	 * with the cluster API on and `lb_new_node_mode = api` — which normalize()
-	 * refuses with the Redis connection handler on (`api_mode_allowed`) and
+	 * refuses with the cluster API off, with the Redis connection handler on (`api_mode_allowed`) and
 	 * without an extension that packs such a config (CredentialFreeConfig).
 	 *
 	 * @param array<string, mixed> $rSettings
