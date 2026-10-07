@@ -126,28 +126,6 @@ final class ClusterAdmin {
 	}
 
 	/**
-	 * Is a node in mode 2? While one is, the Redis connection handler stays
-	 * off (the Cache page asks): that node may not open MAIN's Redis, which
-	 * its stream entry does for every viewer with the handler on. One still
-	 * enrolling counts while it can complete (ClusterApi answers
-	 * ENROL_EXPIRED past `enrol_deadline`): it is active within seconds. A
-	 * revoked one does not (its row stays for good), nor an enrolment left
-	 * unfinished; either meets the handler when it enrols again
-	 * (EnrolmentService::begin). The other order is act()'s: no move to mode
-	 * 2 while the handler is on.
-	 */
-	public static function anyInModeTwo(): bool {
-		try {
-			if (self::db()->query("SELECT 1 FROM `cluster_nodes` WHERE `mode` = 2 AND `state` IN ('active', 'quarantined') LIMIT 1;") && self::db()->num_rows() > 0) {
-				return true;
-			}
-			return self::db()->query("SELECT 1 FROM `cluster_nodes` WHERE `mode` = 2 AND `state` = 'enrolling' AND `enrol_deadline` >= ? LIMIT 1;", ClusterClock::now()) && self::db()->num_rows() > 0;
-		} catch (\Throwable) {
-			return false; // no cluster tables: no nodes
-		}
-	}
-
-	/**
 	 * @param array<int, array<string, mixed>> $rServers ServerRepository::getAll(true)
 	 * @return list<array<string, mixed>> One row per enrolled node, with `server_name`, `health`,
 	 *                                    `settings_misses`, `connects` and `streams_local` (NodeAudit; null when not reported),
@@ -380,12 +358,6 @@ final class ClusterAdmin {
 					if ($rShown !== null && $rShown !== '' ? (int) $rShown !== (int) $rNode['mode'] : $rWanted === 2) {
 						return ['type' => 'info', 'message' => 'cluster_mode_moved'];
 					}
-					if ($rWanted === 2 && $rAction === 'mode_up' && !empty($rSettings['redis_handler'])) {
-						// With the Redis connection handler the node's stream entry opens
-						// MAIN's Redis at every viewer (live.php, vod.php, timeshift.php),
-						// which mode 2 refuses: every one of them would be turned away.
-						return ['type' => 'warning', 'message' => 'cluster_mode_redis_handler'];
-					}
 					// As nodes() reads it: MySQL's copy may be a flush behind the bus's.
 					$rLastSeen = HeartbeatService::freshest($rNode['last_seen_at'] ?? null, HeartbeatService::lastSeen()[$rServerID] ?? null);
 					$rHeard = $rLastSeen !== null && ClusterClock::nowMs() - $rLastSeen <= NodeHealth::SUSPECT_AFTER_MS;
@@ -472,10 +444,6 @@ final class ClusterAdmin {
 						: ['type' => 'info', 'message' => 'cluster_not_enrolled'];
 			}
 		} catch (ClusterRefusedException $rE) {
-			if ($rE->reason() === 'REDIS_HANDLER') {
-				// An approval that would enrol the node in mode 2 (EnrolmentService::begin).
-				return ['type' => 'warning', 'message' => 'cluster_mode_redis_handler'];
-			}
 			return ['type' => 'danger', 'message' => $rE->reason() === 'LICENCE' ? 'cluster_licence_required' : 'cluster_refused'];
 		}
 		return ['type' => 'danger', 'message' => 'cluster_unknown_action'];

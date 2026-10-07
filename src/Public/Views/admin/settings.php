@@ -2324,7 +2324,7 @@ use XcVm\Domain\Server\ServerRepository;
 						['lb_offline_admission', ['local', 'allow', 'deny'], 'Admission of viewers without a MAIN reservation while MAIN is unreachable.'],
 						['cluster_kill_on_line_disable', 'switch', 'Drop live sessions when a line is disabled, banned or expires.'],
 						['cluster_ingest_concurrency', 'number', 'Concurrent ingest permits on MAIN (1-64); half are reserved for P0 events.'],
-						['lb_new_node_mode', ['legacy', 'api'], 'Mode of newly installed LBs. api: a new load balancer joins in mode 2, every flow on, with none of MAIN\'s database or Redis credentials. Needs the Redis connection handler off.'],
+						['lb_new_node_mode', ['legacy', 'api'], 'Mode of newly installed LBs. api: a new load balancer joins in mode 2, every flow on, with none of MAIN\'s database or Redis credentials.'],
 						['servers_stats_retention_days', 'number', 'Days of servers_stats kept (1-365).'],
 						['cluster_audit_retention_days', 'number', 'Days of cluster audit log kept (1-365).'],
 						['cluster_db_allowlist', 'switch', 'Firewall MariaDB (3306) and Redis (6379) on MAIN: only MAIN, LBs and proxies not yet in cluster mode 2, and the extra list below may connect. Applied within a minute by the root cron; check first with console.php cluster:db-allowlist status.'],

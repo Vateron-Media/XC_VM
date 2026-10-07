@@ -1017,6 +1017,22 @@ class ConnectionTracker {
 	}
 
 	/**
+	 * Open the store a stream endpoint records its viewer in: MAIN's Redis
+	 * with the Redis connection handler, else the database (lazily). Not
+	 * Redis on a node in mode 2, which may not open it: its viewers are its
+	 * agent's, which every store path here asks first.
+	 *
+	 * @param array<string, mixed> $rSettings Settings (reads redis_handler).
+	 */
+	public static function openStore(array $rSettings): void {
+		if ($rSettings['redis_handler'] && !NodeRole::refusesConnects()) {
+			RedisManager::ensureConnected();
+		} else {
+			DatabaseFactory::connectLazy();
+		}
+	}
+
+	/**
 	 * A long-running viewer's periodic check-in: refresh `hls_last_read` and
 	 * read back what the store now says (null when the connection is gone).
 	 * A connection that has ended (closed by the limiter, an admin or the

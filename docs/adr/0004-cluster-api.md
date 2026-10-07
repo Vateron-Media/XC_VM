@@ -5573,6 +5573,41 @@ which server held it open.
 - **Proxies** keep every node's `/api` open: a proxy is never a node of the signed node list,
   which legacyApiRetired() requires of every server.
 
+### Mode 2 with the Redis connection handler (2026-10-07)
+
+Mode 2 was refused everywhere while the Redis connection handler was on: the move to mode 2,
+enrolment, the installs, New Node Mode *api*, and the handler itself on the Cache page while a
+node was in mode 2. The reason was one line per stream endpoint. `live.php`, `vod.php`,
+`timeshift.php` and `rtmp.php` opened MAIN's Redis for every viewer
+(`RedisManager::ensureConnected()`), which a node in mode 2 may not do (ConnectAudit refuses it),
+so each viewer there would have been turned away. Nothing past that line needs MAIN's Redis on
+such a node: every store path of `ConnectionTracker` asks the node's agent first and stops before
+Redis or the database in mode 2 (`NodeRole::refusesConnects()`), the signals, watchdog and
+fanout_sync daemons skip Redis there already, `cron:users` is not run there (role `legacy`), and
+`cron:streams` and the on-demand daemon read viewers from the agent once the node's streams are its
+own. On MAIN everything already takes either store: the ingest of a node's records, the limits,
+the admission and the snapshot write Redis with the handler on, and a kill reaches a node with
+COMMANDS as a signed command before any Redis signal (`redisSignal()` asks `ClusterRoute` first).
+
+**Built.**
+- `ConnectionTracker::openStore()`, which the four endpoints call instead: Redis with the handler
+  on, the database (lazily) otherwise, and never Redis on a node in mode 2.
+- `ShutdownHandler` closes a viewer the agent did not take nowhere in mode 2, as it already did
+  with the handler off.
+- Every refusal is gone, with its strings (`cluster_mode_redis_handler`,
+  `cluster_redis_handler_mode2`, `cluster_redis_handler_new_nodes`, `cluster_error_api_mode`) and
+  the `REDIS_HANDLER` reason: `ClusterAdmin::act()`'s move up, `EnrolmentService::begin()`,
+  `LbInstallFlow::provisionCluster()`, `server:install`, the panel's install and reinstall
+  (`ServerService::modeTwoInstallRefused()`), New Node Mode *api* (`api_mode_allowed`), and the
+  Cache page's `enable_handler` (`ClusterAdmin::anyInModeTwo()`).
+
+**Not built / limits.**
+- A node in mode 2 whose streams are not its own (the *Streams not local* badge) still has
+  `cron:streams` and the on-demand daemon ask MAIN's Redis for viewers with the handler on, as
+  they ask MAIN's database with it off: either is refused. Mode down is the fix, as before.
+- `findByUuid()`'s match by columns (a player's Range request without a uuid) stays the table
+  path's only, as it was in mode 1: with the handler on, such a request is a new viewer.
+
 ### The move to mode 2 without the connect audit (2026-10-05)
 
 **Problem.** The cutover gate asked for seven days with no connect to MAIN before a node could
@@ -5611,8 +5646,10 @@ no node could be moved from the page.
 **Not built.**
 - MAIN moving a node back to mode 1 by itself. The page shows a badge on a mode 2 node that
   reports `streams_local` false, and the operator presses mode down.
-- Mode 2 with the Redis connection handler, and a fallback for a viewer request when the node's
-  agent does not answer (mode 1 falls back to MAIN's store; mode 2 is refused there).
+- Mode 2 with the Redis connection handler (built since: see
+  [Mode 2 with the Redis connection handler](#mode-2-with-the-redis-connection-handler-2026-10-07)),
+  and a fallback for a viewer request when the node's agent does not answer (mode 1 falls back to
+  MAIN's store; mode 2 is refused there).
 - New nodes born in mode 2 (`api_mode_allowed` stays false): such a node cannot seed its store.
 
 **Tests.**

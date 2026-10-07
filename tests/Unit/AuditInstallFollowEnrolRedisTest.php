@@ -3,7 +3,6 @@
 use PHPUnit\Framework\TestCase;
 use XcVm\Cli\Commands\LbInstallFlow;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterClock;
 use XcVm\Domain\Cluster\EnrolmentService;
 use XcVm\Domain\Cluster\NodeRegistry;
@@ -12,16 +11,12 @@ use XcVm\Tests\Support\FakeClusterCrypto;
 use XcVm\Tests\Support\InstallSchema;
 
 /**
- * MAIN takes no enrolment in cluster mode 2 while the Redis connection
- * handler is on (EnrolmentService::begin). The SSH paths say so before the
- * node is touched: an enrolment MAIN will not take does not stop the node's
- * running agent or replace its keys (LbInstallFlow::provisionCluster), and a
- * reinstall does not replace the node's panel first (server:install).
+ * The SSH paths enrol a node in cluster mode 2 with the Redis connection
+ * handler on, as with it off (LbInstallFlow::provisionCluster): a node in mode
+ * 2 never opens MAIN's Redis (ConnectionTracker::openStore).
  */
 final class AuditInstallFollowEnrolRedisTest extends TestCase {
 	private const SID = 9;
-
-	private const REFUSAL = 'This node enrols in mode 2, which is not available while the Redis connection handler is on';
 
 	private TestDb $rDb;
 
@@ -95,62 +90,14 @@ final class AuditInstallFollowEnrolRedisTest extends TestCase {
 		return [$rOk, $rLog];
 	}
 
-	private function serverStatus(): int {
-		$this->rDb->query('SELECT `status` FROM `servers` WHERE `id` = 9');
-		return (int) $this->rDb->get_row()['status'];
-	}
-
-	public function testAModeTwoEnrolmentIsRefusedBeforeTheNodeIsTouched(): void {
+	public function testAnEnrolmentDoesNotAskAboutTheHandler(): void {
 		[$rOk, $rLog] = $this->enrol(['lb_new_node_mode' => 'api', 'redis_handler' => 1]);
-		$this->assertFalse($rOk);
-		$this->assertSame([], $this->rCommands, 'the node keeps its running agent and its keys');
-		$this->assertStringContainsString(self::REFUSAL, $rLog);
-		$this->assertNull(NodeRegistry::byServer(self::SID));
-		$this->assertSame(1, $this->serverStatus(), 'server:enrol leaves a serving node as it was');
-	}
+		$this->assertTrue($rOk, $rLog);
+		$this->assertSame(2, (int) NodeRegistry::byServer(self::SID)['mode']);
 
-	public function testANodeMainKeepsCredentialFreeIsRefusedTheSameWayWhateverTheSetting(): void {
-		NodeRegistry::startEnrolment(self::SID, '0f8fad5b-d9cb-469f-a165-70867728950e', random_bytes(32), random_bytes(32), 2, null, ClusterAdmin::MODE2_FLOWS);
-		NodeRegistry::update(self::SID, ['state' => 'active']);
-
-		[$rOk, $rLog] = $this->enrol(['lb_new_node_mode' => 'legacy', 'redis_handler' => 1]);
-		$this->assertFalse($rOk);
-		$this->assertSame([], $this->rCommands, 'the node keeps its running agent and its keys');
-		$this->assertStringContainsString(self::REFUSAL, $rLog);
-		$rNode = (array) NodeRegistry::byServer(self::SID);
-		$this->assertSame(['0f8fad5b-d9cb-469f-a165-70867728950e', 'active', 1], [$rNode['node_uuid'], $rNode['state'], (int) $rNode['gen']], 'and MAIN its row');
-	}
-
-	public function testAFreshInstallIsMarkedFailedAsByAnyOtherRefusal(): void {
-		[$rOk, $rLog] = $this->enrol(['lb_new_node_mode' => 'legacy', 'redis_handler' => 1], true, true);
-		$this->assertFalse($rOk);
-		$this->assertSame([], $this->rCommands);
-		$this->assertStringContainsString(self::REFUSAL, $rLog);
-		$this->assertSame(4, $this->serverStatus());
-	}
-
-	public function testAModeOneEnrolmentDoesNotAskAboutTheHandler(): void {
+		$this->rDb->exec('DELETE FROM `cluster_nodes`');
 		[$rOk, $rLog] = $this->enrol(['lb_new_node_mode' => 'legacy', 'redis_handler' => 1]);
 		$this->assertTrue($rOk, $rLog);
 		$this->assertSame(1, (int) NodeRegistry::byServer(self::SID)['mode']);
-
-		// Nor a mode 2 one with the handler off.
-		$this->rDb->exec('DELETE FROM `cluster_nodes`');
-		[$rOk, $rLog] = $this->enrol(['lb_new_node_mode' => 'api', 'redis_handler' => 0]);
-		$this->assertTrue($rOk, $rLog);
-		$this->assertSame(2, (int) NodeRegistry::byServer(self::SID)['mode']);
-	}
-
-	/** server:install refuses before it opens the SSH session, so before the node's panel is stopped and replaced. */
-	public function testAnInstallIsRefusedBeforeTheNodeIsContacted(): void {
-		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
-		$rAt = strpos($rSource, "if (LbInstallFlow::installsInApiMode(\$rSettings, \$rServerID) && !empty(\$rSettings['redis_handler'])) {");
-		$this->assertNotFalse($rAt, 'an install that ends in a mode 2 enrolment asks about the handler');
-		$this->assertLessThan(strpos($rSource, 'SshSession::open('), $rAt, 'before the node is contacted');
-		$this->assertMatchesRegularExpression(
-			'/!empty\(\$rSettings\[\'redis_handler\'\]\)\) \{\s*\$db->query\(\'UPDATE `servers` SET `status` = 4 WHERE `id` = \?;\', \$rServerID\);\s*echo "[^"\n]*Redis connection handler[^"\n]*Exiting\\\\n";\s*return 1;/',
-			$rSource,
-			'the install ends as failed, saying why'
-		);
 	}
 }

@@ -12,9 +12,9 @@ use XcVm\Core\Config\ConstantsInitializer;
  * the character a username or password cannot hold. The line form's text for
  * that answer names both.
  *
- * An install the panel refuses carries its reason (ServerService::install):
- * post.php answers the install form with the reason in words, and the form
- * shows it. An answer without one is shown as before.
+ * An install answer that carries a reason (ServerService::install) is told in
+ * words: post.php translates it, and the install form shows it. An answer
+ * without one is shown as before.
  */
 final class AuditFormRulesMessagesTest extends TestCase {
 	/** The install form's answer to a new load balancer, up to the end of the request: post.php ends it itself. */
@@ -139,7 +139,7 @@ PHP;
 
 		$this->rDir = sys_get_temp_dir() . '/xcvm-form-rules-messages-' . getmypid() . '-' . bin2hex(random_bytes(4)) . '/';
 		mkdir($this->rDir . 'lang', 0700, true);
-		file_put_contents($this->rDir . 'lang/en.ini', 'cluster_mode_redis_handler = "Mode 2 is not available while the Redis handler is on."' . "\n");
+		file_put_contents($this->rDir . 'lang/en.ini', '');
 	}
 
 	protected function tearDown(): void {
@@ -227,16 +227,8 @@ PHP;
 		return $rAnswer;
 	}
 
-	public function testARefusedInstallIsAnsweredWithItsReasonInWords(): void {
-		$rAnswer = $this->installAnswer(['cluster_api_enabled' => 1, 'lb_new_node_mode' => 'api', 'redis_handler' => 1]);
-
-		$this->assertFalse($rAnswer['result']);
-		$this->assertSame(STATUS_FAILURE, $rAnswer['status']);
-		$this->assertSame('Mode 2 is not available while the Redis handler is on.', $rAnswer['message'] ?? null);
-	}
-
 	public function testAnAnswerWithoutAReasonCarriesNone(): void {
-		$rAnswer = $this->installAnswer(['cluster_api_enabled' => 1, 'lb_new_node_mode' => 'api', 'redis_handler' => 1], 'not an address');
+		$rAnswer = $this->installAnswer([], 'not an address');
 
 		$this->assertFalse($rAnswer['result']);
 		$this->assertSame(STATUS_INVALID_IP, $rAnswer['status']);

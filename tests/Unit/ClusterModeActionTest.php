@@ -109,13 +109,12 @@ final class ClusterModeActionTest extends TestCase {
 		$this->rDb->exec("UPDATE `cluster_nodes` SET `state` = 'quarantined'");
 		$this->assertSame('cluster_mode_needs_active', $this->act('mode_up'));
 		$this->rDb->exec("UPDATE `cluster_nodes` SET `state` = 'active'");
-		// With the Redis connection handler every viewer on a mode 2 node would be turned away.
-		$this->assertSame('cluster_mode_redis_handler', $this->act('mode_up', ['redis_handler' => 1]));
 
 		$this->assertSame(1, $this->mode());
 		$this->assertSame([], $this->audit(), 'a refused move leaves no entry');
 		$this->assertNull(ClusterMeta::get(ClusterAdmin::MODE2_AT . 7));
-		$this->assertSame('cluster_mode_done', $this->act('mode_up', ['redis_handler' => 0]));
+		// The Redis connection handler asks nothing: a node in mode 2 never opens MAIN's Redis.
+		$this->assertSame('cluster_mode_done', $this->act('mode_up', ['redis_handler' => 1]));
 	}
 
 	/**
@@ -136,17 +135,11 @@ final class ClusterModeActionTest extends TestCase {
 		$this->assertSame(1, $this->mode());
 		$this->assertSame(['{"mode":1,"was":0}'], $this->audit());
 
-		$this->assertFalse(ClusterAdmin::anyInModeTwo());
 		$this->assertSame('cluster_mode_done', $this->act('mode_up', [], 1));
 		$this->assertSame(2, $this->mode());
-		// With a node in mode 2 the Redis handler is not switched on: the Cache page asks this.
-		$this->assertTrue(ClusterAdmin::anyInModeTwo());
-		$this->assertMatchesRegularExpression('/function enableHandler\(\).*?if \(ClusterAdmin::anyInModeTwo\(\)\) \{\s*\$this->fail\(.*?UPDATE `settings` SET `redis_handler` = 1/s', (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/Ajax/CacheAjaxController.php'));
-		// Nor while new load balancers join in mode 2.
-		$this->assertMatchesRegularExpression('/function enableHandler\(\).*?if \(ClusterSettings::newNodesInApiMode\(SettingsManager::getAll\(\)\)\) \{\s*\$this->fail\(\[\'message\' => Translator::get\(\'cluster_redis_handler_new_nodes\'\)\]\);.*?UPDATE `settings` SET `redis_handler` = 1/s', (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/Ajax/CacheAjaxController.php'));
 		// A form without the mode still moves a node down, or up to 1 (an older page, the API).
 		$this->assertSame('cluster_mode_done', $this->act('mode_down', [], null));
-		$this->assertFalse(ClusterAdmin::anyInModeTwo());
+		$this->assertSame(1, $this->mode());
 	}
 
 	public function testTheOtherMovesAskNoneOfIt(): void {

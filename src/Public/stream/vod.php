@@ -103,11 +103,7 @@ if ($rChannelInfo) {
 		$rProxyID = null;
 	}
 
-	if ($rSettings['redis_handler']) {
-		RedisManager::ensureConnected();
-	} else {
-		DatabaseFactory::connectLazy();
-	}
+	ConnectionTracker::openStore($rSettings);
 
 	// A player's HTTP Range request may come without the uuid: match it on the
 	// line (or HMAC key), container, agent, stream and address instead (table

@@ -2,10 +2,6 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
-use XcVm\Core\Cluster\ClusterSettings;
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Localization\Translator;
-use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Infrastructure\Redis\RedisManager;
 
 /**
@@ -76,16 +72,6 @@ class CacheAjaxController extends BaseAjaxController {
 		$this->gate('adv', 'database');
 
 		global $db;
-		// A node in mode 2 may not open MAIN's Redis, and with this handler its
-		// stream entry does at every viewer: each one there would be turned
-		// away (ClusterAdmin::act() refuses the move to mode 2 for the same reason).
-		if (ClusterAdmin::anyInModeTwo()) {
-			$this->fail(['message' => Translator::get('cluster_redis_handler_mode2')]);
-		}
-		// Nor while new load balancers join in mode 2 (New Node Mode: api).
-		if (ClusterSettings::newNodesInApiMode(SettingsManager::getAll())) {
-			$this->fail(['message' => Translator::get('cluster_redis_handler_new_nodes')]);
-		}
 		$db->query('UPDATE `settings` SET `redis_handler` = 1;');
 
 		if (file_exists(CACHE_TMP_PATH . 'settings')) {

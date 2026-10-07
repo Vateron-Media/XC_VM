@@ -146,11 +146,7 @@ if ($rUserInfo) {
 		$rServerID = ($rRedirectID ?: SERVER_ID);
 	}
 
-	if ($rSettings['redis_handler']) {
-		RedisManager::ensureConnected();
-	} else {
-		DatabaseFactory::connectLazy();
-	}
+	ConnectionTracker::openStore($rSettings);
 
 	$rConnection = null;
 

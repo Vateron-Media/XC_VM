@@ -4,18 +4,17 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * `server:install` refuses a load balancer that installs in cluster mode 2
- * while the Redis connection handler is on. The panel asks the same question
- * before it marks the server as being installed: a refused install leaves the
- * server's row as it was, the node in rotation, and adds no row for a new
- * server. Every other install starts as before.
+ * Every install starts: the server is marked as being installed and its
+ * background command is run, a load balancer that installs in cluster mode 2
+ * with the Redis connection handler on included (a node in mode 2 never opens
+ * MAIN's Redis: ConnectionTracker::openStore).
  *
  * Three entry points are held to it: the install form for a new server, the
  * form for a server that exists, and the reinstall_server action. Each ends in
  * a background command, so it runs in a child PHP where nothing is started:
  * the command line is kept instead.
  */
-final class AuditAdminUsersInstallRefusalTest extends TestCase {
+final class AuditAdminUsersInstallStartTest extends TestCase {
 	private const CHILD = <<<'PHP'
 <?php
 namespace {
@@ -102,9 +101,6 @@ namespace {
 		'answer' => array_diff_key($rAnswer, ['data' => 0]),
 		'servers' => array_column($db->get_rows(), 'status', 'id'),
 		'started' => $rStarted,
-		// What the install command itself goes by.
-		'command_refuses' => $rIn['type'] == 2 && \XcVm\Cli\Commands\LbInstallFlow::installsInApiMode($rIn['settings'], (int) $rIn['server']) && !empty($rIn['settings']['redis_handler']),
-		'reason' => \XcVm\Core\Localization\Translator::get('cluster_mode_redis_handler'),
 	]);
 }
 PHP;
@@ -130,7 +126,7 @@ PHP;
 	 *
 	 * @param array<string, mixed> $rSettings
 	 * @param int|null             $rNodeMode the cluster mode of load balancer 9, null when it is not a cluster node
-	 * @return array{answer: array<string, mixed>, servers: array<int, int>, started: list<string>, command_refuses: bool, reason: string}
+	 * @return array{answer: array<string, mixed>, servers: array<int, int>, started: list<string>}
 	 */
 	private function install(string $rVia, array $rSettings, ?int $rNodeMode = null, int $rType = 2, int $rServer = 9): array {
 		$rIn = ['via' => $rVia, 'settings' => $rSettings, 'node_mode' => $rNodeMode, 'type' => $rType, 'server' => ($rVia == 'new' ? 0 : $rServer), 'dir' => $this->rDir . 'bin/'];
@@ -144,35 +140,14 @@ PHP;
 		return $rResult;
 	}
 
-	/** @return array<string, array{0: string, 1: array<string, mixed>, 2: int|null}> */
-	public static function refusedInstalls(): array {
+	/** @return array<string, array{0: string, 1: array<string, mixed>, 2: int|null, 3?: int, 4?: int}> */
+	public static function startedInstalls(): array {
 		return [
 			'a new load balancer, new nodes in mode 2' => ['new', self::MODE_TWO_FOR_NEW_NODES + self::REDIS, null],
 			'the form, new nodes in mode 2' => ['form', self::MODE_TWO_FOR_NEW_NODES + self::REDIS, null],
 			'the form, a node in mode 2' => ['form', self::CLUSTER_API + self::REDIS, 2],
 			'the action, new nodes in mode 2' => ['action', self::MODE_TWO_FOR_NEW_NODES + self::REDIS, 1],
 			'the action, a node in mode 2' => ['action', self::CLUSTER_API + self::REDIS, 2],
-		];
-	}
-
-	/** @param array<string, mixed> $rSettings */
-	#[DataProvider('refusedInstalls')]
-	public function testAnInstallTheCommandWouldRefuseIsNotStarted(string $rVia, array $rSettings, ?int $rNodeMode): void {
-		$rAfter = $this->install($rVia, $rSettings, $rNodeMode);
-
-		$this->assertTrue($rAfter['command_refuses'], 'the install command refuses this one');
-		$this->assertSame([], $rAfter['started']);
-		$this->assertEquals([1 => 1, 9 => 1, 11 => 1], $rAfter['servers'], 'no server is marked as being installed, none is added');
-		if ($rVia == 'action') {
-			$this->assertSame(['result' => false, 'message' => $rAfter['reason']], $rAfter['answer']);
-		} else {
-			$this->assertSame(['status' => STATUS_FAILURE, 'message' => 'cluster_mode_redis_handler'], $rAfter['answer']);
-		}
-	}
-
-	/** @return array<string, array{0: string, 1: array<string, mixed>, 2: int|null, 3?: int, 4?: int}> */
-	public static function startedInstalls(): array {
-		return [
 			'a new load balancer, the Redis handler off' => ['new', self::MODE_TWO_FOR_NEW_NODES, null],
 			'the form, the Redis handler off' => ['form', self::MODE_TWO_FOR_NEW_NODES, 2],
 			'the form, a node in mode 1' => ['form', self::CLUSTER_API + self::REDIS, 1],
@@ -187,11 +162,10 @@ PHP;
 
 	/** @param array<string, mixed> $rSettings */
 	#[DataProvider('startedInstalls')]
-	public function testEveryOtherInstallStartsAsBefore(string $rVia, array $rSettings, ?int $rNodeMode, int $rType = 2, int $rServer = 9): void {
+	public function testEveryInstallStarts(string $rVia, array $rSettings, ?int $rNodeMode, int $rType = 2, int $rServer = 9): void {
 		$rAfter = $this->install($rVia, $rSettings, $rNodeMode, $rType, $rServer);
 		$rInstalled = ($rVia == 'new' ? 12 : $rServer);
 
-		$this->assertFalse($rAfter['command_refuses']);
 		$this->assertCount(1, $rAfter['started']);
 		$this->assertStringContainsString('console.php server:install ' . $rType . ' ' . $rInstalled . ' 22 - -', $rAfter['started'][0]);
 		$this->assertEquals(3, $rAfter['servers'][$rInstalled], 'the server is marked as being installed');
