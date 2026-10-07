@@ -93,11 +93,21 @@ final class ConnectionDivergenceTest extends TestCase {
 		}
 		self::$rRedisDir = sys_get_temp_dir() . '/xcvm-redis-' . bin2hex(random_bytes(4));
 		mkdir(self::$rRedisDir);
-		self::$rRedisPort = random_int(20000, 40000);
+		// A port the kernel picks free (a random one could be taken), and up to
+		// 10 s for redis-server to listen: a busy CI runner was slower than 2.5 s
+		// (Connection refused). One that never listens is a redis not available.
+		$rProbe = stream_socket_server('tcp://127.0.0.1:0');
+		self::$rRedisPort = (int) substr((string) strrchr((string) stream_socket_get_name($rProbe, false), ':'), 1);
+		fclose($rProbe);
 		$rNull = ['file', '/dev/null', 'w'];
 		self::$rRedisProc = proc_open(['redis-server', '--port', (string) self::$rRedisPort, '--bind', '127.0.0.1', '--save', '', '--appendonly', 'no', '--dir', self::$rRedisDir], [0 => ['file', '/dev/null', 'r'], 1 => $rNull, 2 => $rNull], $rPipes) ?: null;
-		for ($i = 0; $i < 50 && !@fsockopen('127.0.0.1', self::$rRedisPort); $i++) {
+		for ($i = 0; $i < 200 && !@fsockopen('127.0.0.1', self::$rRedisPort); $i++) {
 			usleep(50000);
+		}
+		if (self::$rRedisProc !== null && !@fsockopen('127.0.0.1', self::$rRedisPort)) {
+			proc_terminate(self::$rRedisProc);
+			proc_close(self::$rRedisProc);
+			self::$rRedisProc = null;
 		}
 	}
 
