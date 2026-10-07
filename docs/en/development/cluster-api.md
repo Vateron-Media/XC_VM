@@ -200,7 +200,7 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 | `lb_telemetry_interval_sec` | 1–3 (2) | the fleet's heartbeat, carried by the policy |
 | `cluster_offline_after_sec` | 10–300 (30) | silence before MAIN marks a node offline |
 | `cluster_orphan_conn_ttl_sec` | 30–3600 (120) | silence before MAIN purges a node's viewers |
-| `lb_offline_admission` | local \| allow \| deny | admitting viewers while MAIN is unreachable |
+| `lb_offline_admission` | local \| allow \| deny | admitting viewers while MAIN is unreachable; unless deny, an RTMP viewer is taken on MAIN's last yes for its credentials, stream and address within ten minutes while the agent cannot reach MAIN (`RtmpOffline`) |
 | `cluster_kill_on_line_disable` | 0/1 (1) | a disabled, locked or expired line loses its sessions; a reseller's disable (panel or Reseller API) counts too |
 | `cluster_conn_binding` | observe \| enforce (observe); Settings → Cluster, *Viewer Record Proof*, and the Cluster Nodes page's *Viewer record proof* card (which nodes prove, the day's counts, ready or not: `ClusterOverview::binding`) | a node's record of a viewer, and its `conn_admit`, must prove MAIN minted the viewer's token; `observe` counts those that do not (`conn.unproven` in the audit), `enforce` refuses such a record from a node whose stream secret MAIN withholds (mode 2, locked down, on its own viewer key), and reserves and cuts nothing for such a `conn_admit` (ADR 0004, "The line a node names") |
 | `cluster_ingest_concurrency` | 1–64 (6) | MAIN's ingest permits; half reserved for P0 |
@@ -209,6 +209,7 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 | `servers_stats_retention_days` | 1–365 (30) | `cron:cleanup` prunes `servers_stats` |
 | `cluster_audit_retention_days` | 1–365 (30) | `cron:cleanup` prunes `cluster_audit` |
 | `cluster_db_allowlist` (+`_extra`) | 0/1 | firewalls 3306/6379 on MAIN to the fleet |
+| `lb_binary_canary_server`, `lb_binary_canary_hours` | server id (0, off), 1–720 (24) | the load balancer that takes each xc_fanout/xc_agent release first, and how long it runs one before MAIN raises `lb_release_pin` to it (`ReleaseCanary`, `cron:cluster`); every other server takes the newest release at or below the pin, and none before the first |
 | `lb_scan_roots` | paths | the directories the node's scan RPC may list |
 | `lb_partition_tolerance_h`, `lb_fence_drain_min` | 0–24 (12), 0–60 (10) | the lease's window past token expiry, and the drain after it |
 | `lb_lease_fence` | 0/1 (0) | a node stops serving when its lease runs out |
@@ -246,7 +247,8 @@ console.php cluster:cutover <serverID> [admin user id]
 console.php cluster:rolling-update
 
 # Every node (MAIN too, any mode) keeps the agent, the fanout daemon and xcvm_core
-# current from GitHub itself, hourly from cron:root_signals; by hand, as root:
+# current from GitHub itself, hourly from cron:root_signals (the agent and the daemon
+# no newer than lb_release_pin while a canary is set: ReleaseCanary); by hand, as root:
 console.php fanout_binary [fanout|agent] [force]
 console.php xcvm_core [force]
 

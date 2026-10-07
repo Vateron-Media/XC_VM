@@ -1858,7 +1858,7 @@ The eighth increment's refusal stopped the paths a node in mode 2 still took to 
 - Mode 2 still cannot be switched on (Phase 9).
 - In mode 2 a system log line the spool refuses (the agent stopped for over two minutes, or LOGS off) never reaches MAIN's system log. The panel's error log keeps it, and it reaches MAIN's panel logs once the agent takes events again; where root cannot switch to the agent's user it goes to the cron's stderr and is lost.
 - `update` and `rollback` cannot run in mode 2 until the update command stops writing MAIN's `servers` row. Built later: see [A node in mode 2 updates, and its status and inventory](#a-node-in-mode-2-updates-and-its-status-and-inventory).
-- A root action MAIN still queues as a `signals` row for a node in mode 2 never runs: MAIN does so when it lacks `root_ready` or the node is quarantined (`CommandBus::acceptsRoot` takes active nodes only). MAIN's own cron purges the row after a day. The checks from the replica make good ports, services and the ramdisk; a reboot, restart, update or module action is lost.
+- A root action MAIN still queues as a `signals` row for a node in mode 2 never runs: MAIN does so when it lacks `root_ready` or the node is quarantined (`CommandBus::acceptsRoot` takes active nodes only). MAIN's own cron purges the row after a day. The checks from the replica make good ports, services and the ramdisk; a reboot, restart, update or module action is lost. Built later: MAIN queues no row for a node in mode 2, and the Servers page says the action was not sent (see [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07)).
 - In mode 2, until R2 fills `streamChecks()`, the files of streams deleted on MAIN stay, TV archive segments are kept past their retention, and neither the VOD analysis nor the created-channel checks run. Since the thirteenth Phase 7 increment they run from the replica and the node's own store once both answer.
 - Other paths still reach MAIN's database on a node in mode 2, and the refusal stops them:
   - the signals daemon (`signals`: kills and cache jobs from MAIN's `signals` table). Since the fourteenth Phase 7 increment it reads no row and no Redis in mode 2: MAIN sends the cache jobs as `node.cache` commands;
@@ -4717,6 +4717,7 @@ too.
 
 **Not built / limits.**
 - **`database.sql` is unchanged.** A new install gets the indexes from the first `cron:cleanup`.
+  (Built since: see [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07).)
 - **A refused build is retried every hour**, and each attempt is written to the command's output
   only.
 
@@ -5462,6 +5463,32 @@ The design is `docs/superpowers/specs/2026-10-01-per-node-viewer-keys-design.md`
   - the section's `relay_seal` and `box_pub`.
 - XC_VM_CoreExtention `ClusterApiTest`: a relay key opens with the panel box key, for its stream only.
 
+### An RTMP viewer while MAIN does not answer (2026-10-07)
+
+An HTTP viewer brings a token the node reads with its own key, so MAIN's absence touches only its
+admission (`lb_offline_admission`, the agent's). An RTMP viewer brings only its line's credentials,
+which MAIN alone can check (`rtmp_auth`): with MAIN unreachable, every RTMP viewer was refused.
+
+**Built.**
+- `RtmpOffline::ask()` makes the node's `rtmp_auth` call. A yes from MAIN is kept for the same
+  credentials, stream, viewer address and restream flag. It stands in for MAIN for ten minutes
+  (`TTL`), and only when the agent could not reach MAIN (its 502): never when MAIN refused (409:
+  a quarantined, revoked or refused node), nor when the agent did not answer. Any other answer
+  from MAIN forgets it, so a line refused since is refused again as soon as MAIN answers.
+- It is not taken under `lb_offline_admission = deny` (the setting now reaches the node's PHP
+  with its replica), on a node whose state is not `active` (`flows.json`), on a node whose lease
+  refuses new sessions (`NodeLease`, a lapsed lease or a fence), or past the line's expiry
+  (`exp_date`, which MAIN's answer now carries).
+- Kept as files in `TMP_PATH/rtmp_offline/`, named by an HMAC under a key of the node's own
+  (`.key`, 0600): no credential is written. `cron:cleanup` drops what is past the window.
+- Such a viewer is recorded without MAIN's mint, with its line's limit, so its admission is the
+  agent's offline policy's, as an HTTP viewer's is. Under `cluster_conn_binding = enforce` its
+  record is unproven when MAIN hears of it.
+
+**Not built / limits.**
+- A viewer MAIN never said yes to on this node, at this address, in the last ten minutes is
+  refused, as before.
+- A line disabled or banned while MAIN cannot be reached plays on for at most the ten minutes.
 ### Proxies on a signed channel (D8)
 
 **Before:** a proxy's cron (XC_VM_Proxy's `callback.php`) posted its stats to MAIN's `/admin/proxy_api` once a minute, unsigned. It then ran whatever signals came back: reboot, restart or stop the services, block or unblock an IP, flush the firewall, reload nginx. MAIN trusted the request's source address (the Phase 0 stop-gap), and the proxy trusted the answer. Lockdown counted every proxy as a blocker, since one might still use MAIN's database, and the DB allowlist kept every proxy on 3306/6379.
@@ -5501,6 +5528,46 @@ The design is `docs/superpowers/specs/2026-10-01-per-node-viewer-keys-design.md`
 - `ProxyInstallKeyTest`: the install writes the key of a new generation and leaves no copy.
 - `ClusterLockdownTest` and `DbAllowlistTest`: a signing proxy is no blocker and leaves the allowlist.
 
+### A load test on the test pair (2026-10-07)
+
+**Set-up.** The test MAIN (8 cores, 16 GB) and its load balancer (1 vCPU, 2 GB) in mode 2, every
+flow on, agent 0.14.5. Simulated HLS viewers came from one host: each asked MAIN's
+`/live/<line>/<pass>/<stream>.m3u8`, followed the redirect to the load balancer, and refreshed that
+playlist, under a user agent of its own (HLS viewers of one line, address and agent are one
+viewer). Fifteen lines of ten connections each. Steps of viewers held for two to two and a half
+minutes each. MAIN and the load balancer were sampled every 5 s.
+
+**Found and fixed: the watchdog restarted after every pass.** On a node with TELEMETRY, or in
+mode 2, the watchdog left its loop after writing its sample, and `restartDaemon()` booted a new PHP
+process every 2–3 s. Over 3 minutes on the load balancer it ran 33 generations and kept the CPU
+49.1% busy; with the pass continuing in its process, 3 generations and 29.8%. A move across mode 2
+now ends a generation instead (each pass checks it).
+
+**Found, by design: one address is capped on the stream endpoints.** nginx's `limit_req
+zone=one` (20 requests a second, burst 8, on MAIN and the load balancer) answers the excess with
+503, nginx's default, and delays what it queues. A test from one address measures that cap.
+- With refreshes every 4 s, starts 20 ms apart: 7 of 25 first viewers refused at once, and
+  refresh p99 7–12 s.
+- With the cap lifted for one run, the client host was also running four PHPUnit suites; that run
+  is not reported.
+
+**Found: a stalled viewer is ended.** A viewer whose refreshes stall for 30 s (refused or queued)
+is ended by the agent's HLS reaper (`HLSReapAfter`), and its later refreshes get 404. A player
+then asks MAIN's link again, as a new viewer.
+
+**Measured, within the cap** (refreshes every 10 s, about the stream's target duration; new
+viewers 0.15 s apart):
+- 50 viewers: 40 of 50 started, while the channel was still starting (p50 0.6 s); refresh p50
+  0.17 s.
+- 100 viewers: 50 of 50 new ones started (p50 0.16 s); refresh p50 0.25 s, p99 21 s (queued by the
+  cap and the load balancer's CPU).
+- 150 viewers: 48 of 50 started (p50 0.2 s); 42 refreshes refused by the cap (15 refreshes and
+  6.7 starts a second from one address); refresh p50 0.37 s.
+- MAIN throughout: load at most 2.3, the node's heartbeat never older than 2.6 s, its records kept
+  (up to 118 open), no `cron.error`. The load balancer: load up to 15, PHP-FPM workers up to 51.
+  Every playlist refresh is a PHP request on the node, and its one CPU was the limit.
+
+**Not done.** A test from many addresses, and a load balancer with more than one CPU.
 ### RTMP viewers on a load balancer (2026-10-07)
 
 A load balancer refused every RTMP viewer: `rtmp.php` checks the line with `UserRepository`,
@@ -5540,11 +5607,62 @@ second was chosen: a line disabled on MAIN is refused at its next connect.
 
 **Not built / limits.**
 - **No answer refuses.** A node without an agent, an agent that predates the op, or MAIN
-  unreachable: the viewer is refused. RTMP has no offline policy, unlike `conn_admit`.
+  unreachable: the viewer is refused. RTMP has no offline policy, unlike `conn_admit`. (Built
+  since: see [An RTMP viewer while MAIN does not answer](#an-rtmp-viewer-while-main-does-not-answer-2026-10-07).)
 - **A refusal's client log on MAIN** carries the agent's request, not nginx-rtmp's: no query
   string, the agent's user agent.
 - **One round trip per connect** on MAIN's control lane, on top of `conn_admit` for a limited
   line. An RTMP connect is not a playlist refresh, so this is once per viewer.
+### A fleet canary for the binaries from GitHub (2026-10-07)
+
+Every server, MAIN included and whatever its cluster mode, takes `xc_fanout` and `xc_agent` from
+the newest XC_VM_Fanout release itself, hourly (`fanout_binary` from `cron:root_signals`). Each
+node tries a new agent and `run.sh` puts the previous one back when it keeps failing, but a
+release that fails slowly, or only under real load, reached the whole fleet within the hour.
+
+**Built.**
+- `lb_binary_canary_server` and `lb_binary_canary_hours` (migration 084, Settings → Cluster; 0,
+  the default, is off). With a canary set, that load balancer takes each release as it comes out.
+  Every other server takes the newest release at or below `lb_release_pin`
+  (`FanoutBinaryCommand::releaseFor()`), none before the first pin, and never goes back from a
+  newer one it already runs.
+- `ReleaseCanary::tick()` (`cron:cluster`, every minute) raises the pin to the canary's release
+  once the canary has run it for the hours set, active and heard within
+  `cluster_offline_after_sec` at every pass. The release is the canary's agent version
+  (`cluster_nodes.agent_version`), and the count is kept in `cluster_meta` `canary_release`. A
+  silent or quarantined canary starts the count again, and so does a rollback by `run.sh`. The
+  pin is never lowered. Off clears the pin. Each change is audited `release.pin`.
+- The canary's id and the pin reach a node with its replica's settings.
+
+**Not built / limits.**
+- The canary is judged by its agent's version and its being heard, not by the fanout daemon's
+  own health; both binaries come from the one release.
+- A canary that is no enrolled node never proves anything: the fleet stays where it is.
+- No page shows the pin yet: the cluster audit does. (Built since: see
+  [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07).)
+
+### Command latency, and the SSE downlink (2026-10-07)
+
+The plan left an SSE downlink with BOX framing as optional work: the agent would keep one stream
+open and get each command as it is queued, instead of the `commands` long-poll. Before building it,
+the delay was measured.
+
+**Measured** on the test pair, over a day of E2E runs, from `cluster_commands` (whole seconds):
+- Most commands were handed over in the second they were queued: 389 of 563 `conn.close`, 34 of
+  42 `conn.kill_worker`, 19 of 21 `conn.drop`.
+- The rest waited 2 to 18 s. 184 of the 219 slow deliveries were queued while the node was still
+  running an earlier command, which MAIN had handed over before and which was acked within a
+  second of the slow one's delivery: `stream.stop` 67, `node.purge` 54, `conn.kill_worker` 21,
+  `stream.start` 14, and others. Most of the other 35 were `node.root`, which root takes on its
+  own schedule.
+- The wake is not lost: `wake:<sid>` is a list entry that waits for the next poll (`ClusterBus`).
+  The agent ran a poll's commands one at a time, the node's PHP included, and polled again only
+  after them, so a kill behind a `stream.stop` waited for it.
+
+**Decided.** No SSE downlink: it would deliver sooner, and the commands would still wait for one
+another. The agent instead runs the node's slow PHP commands beside its commands loop, in order
+among themselves, and keeps kills, closes and the controls in the loop, which polls again at once
+(XC_VM_Fanout, `runAside`).
 ### Closing the data plane from the page (2026-10-07)
 
 Two of the data plane's open edges were operators' to close without the page telling them how:
@@ -5633,6 +5751,47 @@ COMMANDS as a signed command before any Redis signal (`redisSignal()` asks `Clus
   they ask MAIN's database with it off: either is refused. Mode down is the fix, as before.
 - `findByUuid()`'s match by columns (a player's Range request without a uuid) stays the table
   path's only, as it was in mode 1: with the handler on, such a request is a new viewer.
+
+### Root actions a node in mode 2 cannot take, the release pin, and the install indexes (2026-10-07)
+
+Three of the open items a review of this ADR and the plan found.
+
+**Built.**
+- **A root action a node in mode 2 cannot take is not queued.** `NodeActions::send()` fell back
+  to a `signals` row whenever `ClusterRoute::root()` did not route, and it does not for a node
+  that is quarantined or whose `root_ready` MAIN lacks. A node in mode 2 reads no row, so a
+  reboot, restart, update or module action was lost, and would have run late had the node moved
+  down within the day the row lives. `ClusterRoute::root()` now answers routed and not queued for
+  a node whose row is in mode 2, and logs why (`cluster` in the panel's error log: `mode 2,
+  quarantined`, `mode 2, no root_ready`). The Servers page's tools (Restart services, Reboot
+  server, Update binaries, Update, Rollback) answer `not_sent`, and the page says so and what to
+  do (`server_action_not_sent`) instead of *Task started*.
+- **The release pin on the page.** Settings → Cluster shows the pin in its status line while a
+  canary is set or a pin stands, and, when the canary has a newer release on trial, that release
+  and the hours it has run it of those set (`ReleaseCanary::trial()`, the count `tick()` keeps).
+- **The install schema's indexes.** `database.sql` carries the indexes `cluster:maintain-stats`
+  builds: `time` and `server_time` on `servers_stats`, `date` on `lines_logs`, `login_logs`,
+  `streams_logs`, `streams_errors` and `ondemand_check`, `owner_date` on `users_logs`. A new
+  install has them from the start and the command finds none missing; an older one still gets
+  them from `cron:cleanup`.
+
+**Checked, nothing to build.** The rare HTTP 500 on a node in mode 2 whose agent did not answer
+was the hot path falling back to MAIN's store, which mode 2 refuses. It was fixed before this
+review: the agent's calls wait `AgentConnections::SOLE_TIMEOUT` in mode 2, and an unanswered one
+refuses the viewer with `LINE_CREATE_FAIL` (`docs/en/development/cluster-seams.md`). A viewer the
+agent does not answer is refused, by design: in mode 2 nothing else holds the node's viewers.
+
+**Not built / limits.**
+- The bulk actions (Restart all services, Update all) and the other callers of `NodeActions`
+  (ports, sysctl, governor, the blocklist flush, module install) say nothing of a node that took
+  none: the panel's error log does. The replica re-applies the ports, services and ramdisk.
+- A cache job for a node in mode 2 that takes no command (quarantined) still becomes a `signals`
+  row: it never runs there, and run late after a move down it only rebuilds or purges a cache.
+
+**Tests.** `ClusterApiTest::testARootActionANodeInModeTwoCannotTakeIsNotQueued` (mode 1 keeps the
+row; mode 2 without the pin, or quarantined, queues nothing and the caller hears false),
+`ReleaseCanaryTest` (the trial, and none once the canary is off), `ClusterMaintainStatsTest` (a
+fresh install has every index; one without them gets each built in place).
 
 ### The move to mode 2 without the connect audit (2026-10-05)
 
