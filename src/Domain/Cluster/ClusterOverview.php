@@ -58,6 +58,45 @@ final class ClusterOverview {
 		return $rOut;
 	}
 
+	/**
+	 * Viewer record proof (`cluster_conn_binding`, ADR 0004, "The line a node
+	 * names"), per active node: whether its records proved MAIN's mint since
+	 * its enrolment (`cluster_meta` `conn_proven.<server id>` at its `gen`),
+	 * whether enforce would hold it (MAIN withholds its stream secret,
+	 * ReplicaBuilder::withholdsStreamPass), and the day's counts
+	 * (ConnectionAdmission::bindingCounts). Ready: every node enforce would
+	 * hold proves and counted nothing unproven today; `held` says whether
+	 * enforce would hold any node at all.
+	 *
+	 * @param list<array<string, mixed>> $rNodes ClusterAdmin::nodes()
+	 * @param array<string, mixed> $rSettings
+	 * @param (callable(array<string, mixed>, string): bool)|null $rHeld Tests: whether enforce holds a node; null is ReplicaBuilder::withholdsStreamPass.
+	 * @return array{mode: string, ready: bool, held: bool, nodes: list<array{server_id: int, server_name: string, proves: bool, held: bool, counts: array<string, mixed>|null}>}
+	 */
+	public static function binding(array $rNodes, array $rSettings, ?callable $rHeld = null): array {
+		$rLive = (string) ($rSettings['live_streaming_pass'] ?? '');
+		$rOut = [];
+		$rReady = true;
+		$rHeldAny = false;
+		foreach ($rNodes as $rNode) {
+			if (($rNode['state'] ?? null) !== 'active') {
+				continue;
+			}
+			$rServerID = (int) $rNode['server_id'];
+			$rProves = ClusterMeta::get('conn_proven.' . $rServerID) === (string) ($rNode['gen'] ?? '');
+			$rIsHeld = $rLive !== '' && ($rHeld !== null ? $rHeld($rNode, $rLive) : ReplicaBuilder::withholdsStreamPass($rNode, $rLive));
+			$rCounts = ConnectionAdmission::bindingCounts($rServerID);
+			if ($rIsHeld) {
+				$rHeldAny = true;
+				if (!$rProves || (int) ($rCounts['unproven'] ?? 0) + (int) ($rCounts['admit_unproven'] ?? 0) > 0) {
+					$rReady = false;
+				}
+			}
+			$rOut[] = ['server_id' => $rServerID, 'server_name' => (string) ($rNode['server_name'] ?? ''), 'proves' => $rProves, 'held' => $rIsHeld, 'counts' => $rCounts];
+		}
+		return ['mode' => ($rSettings[ConnectionAdmission::BINDING] ?? null) === 'enforce' ? 'enforce' : 'observe', 'ready' => $rReady, 'held' => $rHeldAny, 'nodes' => $rOut];
+	}
+
 	/** Days before MAIN's certificate expires that the page warns, when the nodes dial HTTPS. */
 	public const CERT_WARN_DAYS = 14;
 
