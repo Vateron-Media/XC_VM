@@ -2242,7 +2242,7 @@ The pass ends as before, 250 ms after its work, and the next process runs the ne
 
 - Mode 2 still cannot be switched on (Phase 9).
 - `node.cache` is granting to today's extension, whose restrictive types are fixed. An unlicensed MAIN sends a node in mode 2 no cache job (and writes no row), so the files of movies deleted meanwhile and the connection files of viewers MAIN closed stay there. Listing `node.cache` among the extension's restrictive types (`xcvm_core`) would let it sign them without a licence.
-- A node in mode 2 that takes no command (quarantined, COMMANDS off) gets its kills and cache jobs as rows it never reads; MAIN's `cron:servers` purges them after a day. So are the rows a node in mode 0 or 1 writes for it (its viewer authentication kicking a viewer on the mode 2 node). A node in mode 2 cannot write such rows for another server, nor MAIN's cache rebuilds (the on-demand daemon's `update_stream`): refused, until viewer authentication moves to MAIN (Phase 8) and R2's node half rebuilds MAIN's caches from the node's stream events.
+- A node in mode 2 that takes no command (quarantined, COMMANDS off) gets its kills and cache jobs as rows it never reads; MAIN's `cron:servers` purges them after a day. (Built since: see [A large blocklist in parts, restrictive commands to a quarantined node, and actions not sent](#a-large-blocklist-in-parts-restrictive-commands-to-a-quarantined-node-and-actions-not-sent-2026-10-07).) So are the rows a node in mode 0 or 1 writes for it (its viewer authentication kicking a viewer on the mode 2 node). A node in mode 2 cannot write such rows for another server, nor MAIN's cache rebuilds (the on-demand daemon's `update_stream`): refused, until viewer authentication moves to MAIN (Phase 8) and R2's node half rebuilds MAIN's caches from the node's stream events.
 - A renewal needs COMMANDS, root's pin and, `node.root` being granting, a licence; without them a node in mode 2 is not renewed and its certificate expires. MAIN judges by the record the node reported, so a `node.state` that has not reached MAIN (the agent stopped) leaves MAIN with the older one, and a record MAIN cleared (the admin's regenerate, its `certbot_generate` never run on the node) is back only at the node's next daily run: a renewal due meanwhile waits for MAIN's next daily run, a day at most within the week's margin.
 - Each `SignalDispatcher::cache()` call is a `node.cache` command of its own, and the agent runs a node's commands one at a time, each `node.cache` in a fresh `cluster:exec` (a CLI boot from the replica). A caller that queues one job per item (a series delete: `StreamRepository::deleteStream` per episode, one `delete_vod` per server holding it) queues as many commands on each mode 2 node, and a kill, drop or awaited `node.rpc` queued after them waits until they ran, where the legacy daemon ran up to 1,000 rows a pass with kills first. Nothing is lost or reordered: they run in order within their day. Coalescing them was left out: buffering them to the end of a request would reorder them after MAIN's later commands to the node (and lose them to a request that dies first), and merging into a command not yet delivered races with its delivery. Callers that batch (`cacheBatch`, `delete_vods`) send one command per 500 targets.
 - The daemon's reconcile of the fanout's supervised streams reads this node's `streams_servers` rows (`StreamProcess::reconcileSupervised`, each pass). That is R2's node half, where the thirteenth increment's store answers it; where it does not, a pass in mode 2 with streams under the fanout is refused there, and `cron:servers` starts the daemon again each minute.
@@ -4527,7 +4527,8 @@ parts of at most 4 MiB, staged in `tmp/cluster_xfer/`.
   section staged for 50 nodes at once holds about 1 GiB of tmpfs until the parts are fetched or
   the stages expire.
 - **The blocklist** is not sent in parts: a whole blocklist section alone past 8 MiB still stops
-  the reply, as before.
+  the reply, as before. (Built since: see
+  [A large blocklist in parts, restrictive commands to a quarantined node, and actions not sent](#a-large-blocklist-in-parts-restrictive-commands-to-a-quarantined-node-and-actions-not-sent-2026-10-07).)
 - **Older agents** still drop the section: parts need this agent.
 
 **Tests.** PHP: `ClusterApiTest::testASectionTooLargeForOneReplyIsFetchedInParts`. It covers an older
@@ -5787,11 +5788,99 @@ agent does not answer is refused, by design: in mode 2 nothing else holds the no
   none: the panel's error log does. The replica re-applies the ports, services and ramdisk.
 - A cache job for a node in mode 2 that takes no command (quarantined) still becomes a `signals`
   row: it never runs there, and run late after a move down it only rebuilds or purges a cache.
+- (Both built since: see [A large blocklist in parts, restrictive commands to a quarantined node, and actions not sent](#a-large-blocklist-in-parts-restrictive-commands-to-a-quarantined-node-and-actions-not-sent-2026-10-07).)
 
 **Tests.** `ClusterApiTest::testARootActionANodeInModeTwoCannotTakeIsNotQueued` (mode 1 keeps the
 row; mode 2 without the pin, or quarantined, queues nothing and the caller hears false),
 `ReleaseCanaryTest` (the trial, and none once the canary is off), `ClusterMaintainStatsTest` (a
 fresh install has every index; one without them gets each built in place).
+
+### A large blocklist in parts, restrictive commands to a quarantined node, and actions not sent (2026-10-07)
+
+**A large blocklist.** A whole blocklist section was sealed into the `config` reply as it was, and
+`config` only bounded the sections sent after it. One past the agent's 8 MiB `MaxReply` made the
+whole reply unreadable: the node got no section at all, not only no blocklist. And MAIN could not
+build one near that size: `BlocklistDelta::snapshot()` read every blocked IP as a row array
+(`get_rows()`, which also holds a cleaned copy of each), about 0.85 KB an address, so 500,000
+addresses passed MAIN's 512 MB before the section was sealed.
+- **The read.** The IPs are read as one column streamed into a list (`BlocklistDelta::ips()`), each
+  cleaned as `get_rows()` cleaned it, so the section and its ETag are what they were. Measured with
+  MAIN's own `DatabaseHandler`: 500,000 addresses peak at 51 MB (425 MB before), a million at 102 MB
+  (850 MB).
+- **Parts.** The agent's poll says `blocklist_parts: true` (XC_VM_Fanout). To it, a whole section
+  whose sealed record passes `MAX_WHOLE_BYTES` is answered `{seq, more: false, section: {too_large,
+  etag, parts}}`, staged as a whole section is, and fetched with `config {part: {section:
+  "blocklist", …}}`. It is sealed afresh at each poll that needs it, never answered from an older
+  stage, because the agent checks that the record's `seq` is the one the reply names. The agent
+  joins the parts and stores the section as before; a failed fetch keeps the blocklist it holds and
+  its `seq`, so the next poll asks again.
+- **An older agent** gets the section whole while one reply carries it (`MAX_REPLY` less 64 KiB).
+  Past that, MAIN answers its `blocklist_since` with nothing: the node keeps the blocklist it holds,
+  and the reply's other sections reach it. Either is audited `replica.section_too_large` once per
+  ETag.
+
+**A blocklist kept past a flush** (found on the test pair while checking the above). MAIN answers a
+whole section the node holds `unchanged` (its ETag is the node's `have`). The agent's ETag is of the
+section it stored, not of what it applied over it: the deltas since are on top. When the blocklist
+came back to that section another way than by a delta (*Flush blocked IPs*, which truncates and logs
+a reset; any reload; a log pruned while the node was away), MAIN answered `unchanged` and the agent
+kept its deltas, so the node went on blocking, in its replica and in `iptables`, addresses MAIN no
+longer blocked. On the test pair an address blocked and then flushed stayed blocked on the node.
+- **The agent** (XC_VM_Fanout) takes `unchanged` as what it is, the whole blocklist as of `seq`:
+  it drops its deltas and builds the node's blocklist again.
+- **MAIN** answers `unchanged` only to an agent that says `blocklist_parts`, the release with that
+  change. An older agent gets the section again, which also drops its deltas: a daily full fetch, and
+  each reload, sends the section once more. Without a licence a section cannot be signed, and one
+  the node holds is then answered `unchanged`, as before.
+- **The node of the test pair** was cleaned by the Cluster Nodes page's Resync (`resync`): the
+  agent fetches every section afresh, and its deltas went with the section it stored.
+
+**Restrictive commands to a quarantined node.** A quarantined node's long-poll hands out class R
+commands, but `ClusterRoute::kill()`, `drop()`, `closeConnection()` and `cache()` did not route to
+one, so for a node in mode 2 they became `signals` rows or Redis signals it never reads. They now
+route as `stop()` does: the kill, drop, close and the removals (`node.purge`) are handed out at once,
+and the cache rebuilds (`node.cache`, granting) wait for *Trust again*.
+
+**Nothing left where a node in mode 2 does not read.** `ClusterRoute::rowless()`, on the paths whose
+legacy is a `signals` row or a Redis signal (root actions, kills, drops, cache jobs), answers routed
+and not queued for a node in mode 2 that was not sent the command (no `root_ready`, quarantined for
+a root action, MAIN's cluster API off, the extension unavailable), and logs it. A root action not
+sent is also audited `node.root_not_sent` (`{action, why}`); a kill is not, since it would be one per
+viewer while the extension is down.
+
+**Actions not sent, on the page.**
+- The Servers page's bulk actions (Update All Servers, Restart All Services, Update All Binaries)
+  answer `not_sent` with the names of the servers that took none, and the page shows them with what
+  to do (`server_action_not_sent`).
+- A load balancer's page (`server_view`) shows a banner while it is in mode 2 and takes no root
+  action (`ClusterRoute::rootBlocked()`, `server_view_root_blocked`), naming why. A server save, which
+  sends ports, services, governor, sysctl and the ramdisk as root actions, lands there, as does every
+  later visit. The ports, services and ramdisk are applied from the replica anyway; the governor,
+  sysctl and module installs are not.
+
+**Not built / limits.**
+- **A node applies each blocked address as its own `iptables` or `ip6tables` rule** (one `exec` each,
+  `RootSignalsCronJob`), so a blocklist of hundreds of thousands of addresses is a firewall problem
+  on the node before it is a sync one. An `ipset` would be the upgrade.
+- **A section staged per node**: a blocklist sealed to 20 MiB for 50 nodes holds about 1 GiB of
+  tmpfs until fetched, as for the other sections, and is sealed again at each poll that needs it.
+- **The interop test** (`TestInteropWithPanel`, XC_VM_Fanout) cannot run against this panel: its
+  harness keeps MAIN's state in one SQLite file across the PHP processes it starts, and the panel's
+  `TestDb` has used a throwaway MariaDB schema per process since the unit suite moved to MariaDB. The
+  blocklist step added to it runs once the harness shares one schema.
+
+**Tests.** PHP: `ClusterApiTest::testABlocklistTooLargeForOneReplyIsFetchedInParts` (an older agent
+whole, then held, audited once per ETag; parts that join into a record naming the reply's `seq`;
+the stage gone with its last part), `testConfigServesTheBlocklistAsASectionThenAsDeltas` (`unchanged`
+to an agent that says `blocklist_parts`, the section again to an older one, `unchanged` without a
+licence), `BlocklistDeltaTest` (the IPs cleaned and ordered as before),
+`ClusterApiTest::testAQuarantinedNodeInModeTwoTakesItsRestrictiveCommands` (what a quarantined node
+is handed, the rebuild left for Trust again, the root action audited, no legacy path in mode 2 and
+mode 1's kept). Agent: `TestABlocklistTooLargeIsFetchedInParts` (the poll says `blocklist_parts`,
+parts asked in order and stored with the reply's `seq`; `gone` and no parts refused, the blocklist
+held kept), `TestAnUnchangedBlocklistDropsTheDeltasOverIt`. On the test pair, with this panel and
+agent: a block reaches the node as a delta within a minute and its `iptables` follows; the flushed
+block the older agent had kept went with Resync; and the agent of 0.14.5 runs against this MAIN.
 
 ### The move to mode 2 without the connect audit (2026-10-05)
 
