@@ -41,6 +41,14 @@ final class DbCredentials {
 		self::$rRevoke = $rRevoke;
 	}
 
+	/** @var (\Closure(string, array<string, mixed>): (string|false))|null */
+	private static ?\Closure $rPack = null;
+
+	/** Tests: another config packer than the extension's config_pack; null restores it. */
+	public static function usePack(?\Closure $rPack): void {
+		self::$rPack = $rPack;
+	}
+
 	/**
 	 * How long a queued strip waits for its node, in seconds. The node is
 	 * judged when the command is queued (strip()), so it does not wait the
@@ -155,6 +163,7 @@ final class DbCredentials {
 		}
 		// As LbInstallFlow::configPackParams: MAIN's address, the node's slot.
 		$rParams = ['hostname' => $rMainIP, 'database' => 'xc_vm', 'server_id' => $rServerID, 'is_lb' => 1, 'db_credentials' => $rCredentials];
+		$rPack ??= self::$rPack;
 		if ($rPack === null) {
 			if (!class_exists('XC_VM') || !method_exists('XC_VM', 'install_config')) {
 				// An extension that has install_config also packs db_credentials.

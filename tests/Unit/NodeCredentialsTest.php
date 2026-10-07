@@ -188,9 +188,11 @@ final class NodeCredentialsTest extends TestCase {
 		$this->assertSame(['10.0.0.7'], $this->rRevoked);
 	}
 
-	public function testAStripRootRanAfterAModeDownGetsItsCredentialsBack(): void {
+	public function testAStripRootRanAfterAModeDownIsNotRevokedAndSaysWhyNothingWasSent(): void {
 		// Mode down on MAIN while the strip was in root's hands: the node, below
-		// mode 2 now, must not lose its grant too, and needs its credentials.
+		// mode 2 now, keeps its grant. Its credentials go back as a root command
+		// (CredentialsRestoreTest); here MAIN has no install_id to pack them for,
+		// and the audit says so.
 		$this->command(str_repeat('a', 32), NodeCredentials::STRIP);
 		$this->rDb->exec('UPDATE `cluster_nodes` SET `mode` = 1 WHERE `server_id` = 7');
 		$this->assertFalse(DbCredentials::acked(7, str_repeat('a', 32), true, json_encode(['config' => ['db_credentials' => false]])));
@@ -199,7 +201,7 @@ final class NodeCredentialsTest extends TestCase {
 		$this->rDb->query("SELECT `event`, `detail` FROM `cluster_audit` WHERE `server_id` = 7 ORDER BY `id` DESC LIMIT 1");
 		$rRow = $this->rDb->get_row();
 		$this->assertSame('node.credentials_restored', $rRow['event']);
-		$this->assertSame(str_repeat('a', 32), json_decode((string) $rRow['detail'], true)['cmd_id']);
+		$this->assertSame(['cmd_id' => str_repeat('a', 32), 'queued' => false, 'why' => 'cluster_config_needs_install_id'], json_decode((string) $rRow['detail'], true));
 	}
 
 	public function testACredentialFreeInstallRevokesToo(): void {
