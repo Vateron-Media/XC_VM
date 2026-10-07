@@ -172,9 +172,28 @@ PHP);
 		$this->assertSame('EXPIRED', ConnectionTracker::refusedAdmission());
 
 		$rRtmp = (string) file_get_contents(MAIN_HOME . 'Public/stream/rtmp.php');
-		$this->assertStringContainsString("['user_info' => ['max_connections' => (int) \$rUserInfo['max_connections']]] + \$rMinted, intval(\$rServers[SERVER_ID]['time_offset']));", $rRtmp, 'with MAIN\'s mint on a load balancer');
+		$this->assertStringContainsString("ConnectionTracker::rtmpToken(\$rAuth), intval(\$rServers[SERVER_ID]['time_offset']));", $rRtmp, 'recorded with what the check answered');
 		$this->assertStringContainsString("StreamAuth::admissionRefusal(\$rRefused)[0], \$rIP, 'admission: ' . \$rRefused);", $rRtmp);
 		$this->assertLessThan(strpos($rRtmp, "'LINE_CREATE_FAIL'"), strpos($rRtmp, 'ConnectionTracker::refusedAdmission()'), 'a refusal is told apart before a failed register');
+	}
+
+	/** On a load balancer, MAIN's answer to rtmp_auth carries its mint: the record keeps the proof, the register the claim. */
+	public function testAnRtmpViewerOnALoadBalancerIsRecordedWithMainsMint(): void {
+		$this->agent([[200, '{}']]);
+		$rUUID = ConnectionTracker::rtmpUuid('17', 5);
+		$rAdm = ['exp' => time() + 15, 'sid' => 5];
+		$rPrf = ['iat' => self::MAIN_NOW, 'p' => str_repeat('c', 32)];
+		$rUser = ['id' => 42, 'max_connections' => 2, 'pair_id' => null, 'con_isp_name' => '', 'is_restreamer' => 0];
+		$rAnswer = ['ok' => true, 'user' => $rUser, 'country_code' => '', 'token' => ['uuid' => $rUUID, 'adm' => $rAdm, 'prf' => $rPrf, 'channel_info' => ['redirect_id' => 9]]];
+
+		$rToken = ConnectionTracker::rtmpToken($rAnswer);
+		$this->assertSame(['user_info' => ['max_connections' => 2], 'uuid' => $rUUID, 'adm' => $rAdm, 'prf' => $rPrf], $rToken, 'only what MAIN minted, and the line\'s limit');
+		$this->assertTrue($this->open($this->record($rUUID, ['user_agent' => '', 'container' => 'rtmp', 'pid' => '17']), $rToken));
+		$this->assertSame($rUUID . '.' . self::MAIN_NOW . '.' . str_repeat('c', 32), $this->requests()[0]['body']['mint'], 'the record carries MAIN\'s proof');
+		$this->assertSame($rAdm, $this->header(0)['adm'], 'and the register MAIN\'s claim');
+
+		// MAIN's own check mints nothing: the line's limit alone.
+		$this->assertSame(['user_info' => ['max_connections' => 2]], ConnectionTracker::rtmpToken(['ok' => true, 'user' => $rUser, 'country_code' => '']));
 	}
 
 	public function testNoAdmissionForAnUnlimitedLineARefreshOrAnEndpointWithoutAToken(): void {

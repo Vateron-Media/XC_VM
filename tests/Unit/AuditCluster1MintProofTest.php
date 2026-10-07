@@ -6,6 +6,7 @@ use XcVm\Core\Config\StreamSecret;
 use XcVm\Domain\Cluster\ConnectionAdmission;
 use XcVm\Domain\Cluster\ConnectionIngest;
 use XcVm\Domain\Cluster\ConnectionLimits;
+use XcVm\Domain\User\RtmpViewerAuth;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Tests\Support\InstallSchema;
@@ -234,6 +235,21 @@ final class AuditCluster1MintProofTest extends TestCase {
 		$this->rDb->exec('UPDATE `cluster_nodes` SET `mode` = 1 WHERE `server_id` = 5');
 		ConnectionAdmission::useBinding(fn(int $rS, string $rU) => $this->rClosed[] = [$rS, $rU], $this->rDir . 'binding/');
 		$this->assertTrue(ConnectionIngest::upsert(5, $this->record('x6')));
+	}
+
+	/** rtmp_auth: an RTMP viewer that passed MAIN's check gets the mint for the uuid its node records it with. */
+	public function testAnRtmpViewerOnALoadBalancerIsMintedForTheUuidItsNodeSent(): void {
+		$rUUID = str_repeat('d', 32);
+		$rPassed = ['ok' => true, 'user' => ['id' => 42, 'max_connections' => 2, 'pair_id' => null, 'con_isp_name' => '', 'is_restreamer' => 0], 'country_code' => '',
+			'channel' => ['stream_id' => 100, 'redirect_id' => 5, 'originator_id' => null, 'pid' => 1, 'on_demand' => 0, 'llod' => 0, 'monitor_pid' => 1, 'proxy' => 0]];
+		$rToken = RtmpViewerAuth::mint(['cluster_api_enabled' => 1, 'create_expiration' => 5, 'redis_handler' => 0, 'live_streaming_pass' => self::SECRET], $rPassed, 100, '10.0.0.1', $rUUID);
+
+		$this->assertSame([], array_diff(array_keys($rToken), ['uuid', 'adm', 'adm_uuid', 'prf']), 'nothing else leaves MAIN');
+		$this->assertSame($rUUID, $rToken['uuid']);
+		$this->assertSame(0, ConnectionAdmission::verifyMint($this->mintOf($rToken), '42', 5), 'its proof, for the line and the node');
+		$this->assertNull(ConnectionAdmission::verifyMint($this->mintOf($rToken), '42', 6), 'another node\'s record proves nothing with it');
+		$this->assertIsArray($rToken['adm'] ?? null, 'a limited line\'s claim');
+		$this->assertSame(1, $this->reservations(), 'reserved for the viewer, as for an HTTP viewer\'s token');
 	}
 
 	public function testAProofOfAnyAgeIsAcceptedAtTheEvents(): void {

@@ -1055,8 +1055,7 @@ final class ClusterApi {
 				// MAIN's mint for this viewer, as auth.php's for an HTTP viewer's token: the
 				// node records the viewer with its proof and admission (ConnectionTracker::
 				// openRecord), so the record is MAIN's own under cluster_conn_binding = enforce.
-				$rMinted = ConnectionAdmission::admitToken($rSettings, ['stream_id' => $rStreamID, 'extension' => 'rtmp', 'channel_info' => $rOut['channel'], 'user_info' => $rOut['user'], 'country_code' => $rOut['country_code'], 'uuid' => $rUUID], $rIP, '');
-				$rOut['token'] = array_intersect_key($rMinted, array_flip(['uuid', 'adm', 'adm_uuid', 'prf']));
+				$rOut['token'] = RtmpViewerAuth::mint($rSettings, $rOut, $rStreamID, $rIP, $rUUID);
 			}
 		} catch (\Throwable) {
 			return self::dbDown($rCrypto, $rH);

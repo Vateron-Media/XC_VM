@@ -1387,6 +1387,20 @@ class ConnectionTracker {
 	}
 
 	/**
+	 * The token an RTMP viewer is recorded with (openRecord), which has no
+	 * stream token: its line's limit, and on a load balancer what MAIN minted
+	 * for it with `rtmp_auth` (its uuid, admission and proof, as an HTTP
+	 * viewer's token carries them). MAIN's own check mints nothing.
+	 *
+	 * @param array<string, mixed> $rAuth The passed check: RtmpViewerAuth::check()'s answer, or MAIN's to rtmp_auth.
+	 * @return array<string, mixed>
+	 */
+	public static function rtmpToken(array $rAuth): array {
+		$rMinted = is_array($rAuth['token'] ?? null) ? array_intersect_key($rAuth['token'], array_flip(['uuid', 'adm', 'adm_uuid', 'prf'])) : [];
+		return ['user_info' => ['max_connections' => (int) ($rAuth['user']['max_connections'] ?? 0)]] + $rMinted;
+	}
+
+	/**
 	 * An RTMP viewer's uuid, from nginx-rtmp's client id (which play_done
 	 * closes it by). nginx numbers its clients from 1 in each process, so
 	 * the id alone named two servers' viewers alike, and in Redis mode the
