@@ -48,8 +48,28 @@ final class TestDb extends DatabaseHandler {
 
 	private static int $schemas = 0;
 
-	public function __construct() {
+	/** The schema is several processes' ($rShared): no instance drops it. */
+	private bool $shared = false;
+
+	/**
+	 * $rShared names one schema several processes share, created when missing
+	 * and never dropped by an instance: XC_VM_Fanout's interop harness runs
+	 * MAIN's PHP as many processes over one database. Named
+	 * `xcvm_t<pid>_<n>` after a process that outlives them (the Go test), the
+	 * first TestDb after that process ends drops it as an orphan.
+	 */
+	public function __construct(?string $rShared = null) {
 		$this->pdo = self::connect();
+		if ($rShared !== null) {
+			if (!preg_match('/^xcvm_t\d+_\d+$/', $rShared)) {
+				throw new InvalidArgumentException('A shared test schema is named xcvm_t<pid>_<n>: ' . $rShared);
+			}
+			$this->schema = $rShared;
+			$this->shared = true;
+			$this->pdo->exec('CREATE DATABASE IF NOT EXISTS `' . $rShared . '`');
+			$this->pdo->exec('USE `' . $rShared . '`');
+			return;
+		}
 		if (self::$schemas === 0) {
 			self::dropOrphanSchemas($this->pdo);
 		}
@@ -59,7 +79,9 @@ final class TestDb extends DatabaseHandler {
 	}
 
 	public function __destruct() {
-		$this->pdo->exec('DROP DATABASE IF EXISTS `' . $this->schema . '`');
+		if (!$this->shared) {
+			$this->pdo->exec('DROP DATABASE IF EXISTS `' . $this->schema . '`');
+		}
 	}
 
 	/** A new connection to the test server, in production's sql_mode; $rSchema selects a database. */
