@@ -1119,7 +1119,8 @@ final class ClusterApi {
 	 * out, and the node asks again at its next poll, when what this reply
 	 * carried is `unchanged`. To an agent that says `parts`, `too_large`
 	 * also says how many parts MAIN staged the section in, which it fetches
-	 * with `config {part}` (configPart()). A section MAIN cannot read (a failed read, no
+	 * with `config {part}` (configPart()); so does a whole blocklist section
+	 * to an agent that says `blocklist_parts`. A section MAIN cannot read (a failed read, no
 	 * settings row, an unset secret) answers `503 DB`: the node keeps what it
 	 * holds.
 	 */
@@ -1140,7 +1141,8 @@ final class ClusterApi {
 			}
 		}
 		try {
-			$rOut = [ReplicaBuilder::SECTION_BLOCKLIST => ReplicaBuilder::blocklist($rCrypto, $rNode, $rSince, $rHave[ReplicaBuilder::SECTION_BLOCKLIST] ?? '')];
+			$rBlockParts = ($rP[ReplicaBuilder::BLOCKLIST_PARTS] ?? false) === true;
+			$rOut = [ReplicaBuilder::SECTION_BLOCKLIST => ReplicaBuilder::blocklist($rCrypto, $rNode, $rSince, $rHave[ReplicaBuilder::SECTION_BLOCKLIST] ?? '', $rBlockParts)];
 			// What the sections sent whole may take of the reply, after the blocklist.
 			$rRoom = ReplicaBuilder::MAX_REPLY - strlen((string) json_encode($rOut, JSON_UNESCAPED_SLASHES));
 			// An agent that names the catalogue takes `too_large` for any section it names.
@@ -1198,7 +1200,7 @@ final class ClusterApi {
 		$rSection = is_array($rAsk) ? ($rAsk['section'] ?? null) : null;
 		$rEtag = is_array($rAsk) ? ($rAsk['etag'] ?? null) : null;
 		$rN = is_array($rAsk) ? ($rAsk['n'] ?? null) : null;
-		$rValid = is_string($rSection) && in_array($rSection, ReplicaBuilder::REPLY_ORDER, true) && ReplicaBuilder::serves($rNode, $rSection);
+		$rValid = is_string($rSection) && ($rSection === ReplicaBuilder::SECTION_BLOCKLIST || (in_array($rSection, ReplicaBuilder::REPLY_ORDER, true) && ReplicaBuilder::serves($rNode, $rSection)));
 		if (!$rValid || !is_string($rEtag) || !preg_match('/^[0-9a-f]{64}\z/', $rEtag) || !is_int($rN) || $rN < 0) {
 			return self::badRequest($rCrypto, $rH);
 		}

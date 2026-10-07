@@ -1651,8 +1651,11 @@ final class ClusterApiTest extends TestCase {
 		[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => $rNext['seq']], 1, $rKeys);
 		$rSec = $this->reply($rRes, $rCtx, $rKeys)['blocklist'];
 		$this->assertSame('curl', $this->openRecord($rSec['section']['sealed'], 'rep')['data']['ua'][0]['user_agent']);
-		[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => $rNext['seq'], 'have' => ['blocklist' => $rSec['section']['etag']]], 1, $rKeys);
+		[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => $rNext['seq'], 'have' => ['blocklist' => $rSec['section']['etag']], 'blocklist_parts' => true], 1, $rKeys);
 		$this->assertSame(['seq' => $rSec['seq'], 'more' => false, 'unchanged' => true], $this->reply($rRes, $rCtx, $rKeys)['blocklist']);
+		// An older agent keeps the deltas it stored over a section it is told is unchanged: it gets the section again.
+		[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => $rNext['seq'], 'have' => ['blocklist' => $rSec['section']['etag']]], 1, $rKeys);
+		$this->assertSame($rSec['section']['etag'], $this->reply($rRes, $rCtx, $rKeys)['blocklist']['section']['etag']);
 
 		[$rRes] = $this->call('config', ['blocklist_since' => -1], 1, $rKeys);
 		$this->denial($rRes, 400, 'BAD_REQUEST');
@@ -2020,6 +2023,57 @@ final class ClusterApiTest extends TestCase {
 	 * stages the sealed record once and serves it in 4 MiB parts, which join
 	 * into the record the node opens as any section sent whole.
 	 */
+	/** Block $rCount IPv6 addresses written out in full (39 characters), past the first $rFrom: large sections from few rows. */
+	private function manyBlocked(int $rFrom, int $rCount): void {
+		foreach (array_chunk(range($rFrom, $rFrom + $rCount - 1), 10000) as $rChunk) {
+			$this->rDb->exec('INSERT INTO `blocked_ips` (`ip`) VALUES ' . implode(', ', array_map(static fn(int $i): string => sprintf("('2001:0db8:0000:0000:0000:0000:%04x:%04x')", ($i >> 16) & 0xffff, $i & 0xffff), $rChunk)));
+		}
+	}
+
+	/** A blocklist too large for one reply: in parts to an agent that says blocklist_parts, whole and then held to an older one. */
+	public function testABlocklistTooLargeForOneReplyIsFetchedInParts(): void {
+		$this->blocklistTables();
+		$rKeys = $this->active();
+		$this->manyBlocked(0, 80000);
+		$rDir = sys_get_temp_dir() . '/xcvm-xfer-' . bin2hex(random_bytes(4)) . '/';
+		ReplicaBuilder::useXferDir($rDir);
+		$rPart = function (int $rN, string $rEtag) use ($rKeys): array {
+			[$rRes, $rCtx] = $this->call('config', ['part' => ['section' => 'blocklist', 'etag' => $rEtag, 'n' => $rN]], 1, $rKeys);
+			return $this->reply($rRes, $rCtx, $rKeys)['part'];
+		};
+		try {
+			// An older agent: whole, while one reply carries it; nothing staged.
+			[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => 0, 'parts' => true], 1, $rKeys);
+			$rOld = $this->reply($rRes, $rCtx, $rKeys)['blocklist'];
+			$this->assertGreaterThan(ReplicaBuilder::MAX_WHOLE_BYTES, strlen($rOld['section']['sealed']));
+			$this->assertSame([], glob($rDir . '*') ?: []);
+
+			[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => 0, 'parts' => true, 'blocklist_parts' => true], 1, $rKeys);
+			$rOut = $this->reply($rRes, $rCtx, $rKeys)['blocklist'];
+			$this->assertSame(['too_large' => true, 'etag' => $rOld['section']['etag'], 'parts' => 2], $rOut['section']);
+			$rFirst = $rPart(0, $rOut['section']['etag']);
+			$this->assertSame(['section' => 'blocklist', 'etag' => $rOut['section']['etag'], 'n' => 0, 'parts' => 2], array_diff_key($rFirst, ['data' => 0]));
+			$rDoc = $this->openRecord($rFirst['data'] . $rPart(1, $rOut['section']['etag'])['data'], 'rep');
+			$this->assertSame(['blocklist', $rOut['section']['etag'], $rOut['seq']], [$rDoc['section'], $rDoc['etag'], $rDoc['seq']], 'the record names the seq the reply does');
+			$this->assertCount(80000, $rDoc['data']['ip']);
+			$this->assertSame([], glob($rDir . '*') ?: [], 'the last part served removes the stage');
+
+			// Past what one reply carries, an older agent is held: no section, its seq unchanged.
+			$this->manyBlocked(80000, 80000);
+			[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => 0, 'parts' => true], 1, $rKeys);
+			$this->assertSame(['seq' => 0, 'more' => false], $this->reply($rRes, $rCtx, $rKeys)['blocklist']);
+			$rAudits = "SELECT COUNT(*) FROM `cluster_audit` WHERE `event` = 'replica.section_too_large' AND `detail` LIKE '%\"blocklist\"%'";
+			$this->assertSame(2, (int) $this->rDb->pdo->query($rAudits)->fetchColumn(), 'one per ETag: the one sent in parts, and this one');
+			$this->call('config', ['blocklist_since' => 0, 'parts' => true], 1, $rKeys);
+			$this->assertSame(2, (int) $this->rDb->pdo->query($rAudits)->fetchColumn(), 'not again for the same ETag');
+			[$rRes, $rCtx] = $this->call('config', ['blocklist_since' => 0, 'parts' => true, 'blocklist_parts' => true], 1, $rKeys);
+			$this->assertSame(3, $this->reply($rRes, $rCtx, $rKeys)['blocklist']['section']['parts']);
+		} finally {
+			ReplicaBuilder::useXferDir(null);
+			exec('rm -rf ' . escapeshellarg($rDir));
+		}
+	}
+
 	public function testASectionTooLargeForOneReplyIsFetchedInParts(): void {
 		$this->blocklistTables();
 		$this->rDb->exec(InstallSchema::table('bouquets'));

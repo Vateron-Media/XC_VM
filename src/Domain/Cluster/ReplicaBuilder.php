@@ -3,6 +3,7 @@
 namespace XcVm\Domain\Cluster;
 
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
+use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
 use XcVm\Core\Cluster\Crypto\Seal;
 use XcVm\Core\Cluster\ReplicaEtagCache;
 use XcVm\Core\Cluster\ReplicaSections;
@@ -47,6 +48,8 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  *   key (`viewer_key`, ViewerKey) in the same form: the only secrets a node gets.
  * - `bouquets`, `categories`: every bouquet and stream category, the
  *   catalogue the node's caches of those names hold for the viewer APIs.
+ *
+ * A blocklist section too large for one reply goes in parts too (blocklist()).
  *
  * All but the blocklist are sent whole, to an agent that names them in
  * `have`, whenever their ETag differs from the node's. The agent reads at
@@ -123,26 +126,63 @@ final class ReplicaBuilder {
 	];
 
 	/**
+	 * What the agent's `config` poll says (`blocklist_parts: true`) when it
+	 * fetches a whole blocklist section too large for one reply in parts.
+	 */
+	public const BLOCKLIST_PARTS = 'blocklist_parts';
+
+	/**
 	 * The node's blocklist from change $rSince (0: it has none).
 	 *
+	 * A whole section whose sealed record passes MAX_WHOLE_BYTES goes to an
+	 * agent that fetches it in parts ($rParts) as `{too_large, etag, parts}`,
+	 * staged for it; it is sealed afresh at each poll that needs it, so the
+	 * staged record always carries the seq the reply names, which the agent
+	 * checks. To an older agent it is sent whole while one reply can carry
+	 * it. Past that, or past MAX_PARTS, MAIN answers $rSince with nothing:
+	 * the node keeps the blocklist it holds, and the reply's other sections
+	 * still reach it. Either is audited once per ETag.
+	 *
 	 * @param array<string, mixed> $rNode cluster_nodes row
-	 * @return array{seq: int, more: bool, unchanged?: bool, delta?: string, section?: array{etag: string, sealed: string}}
+	 * @return array{seq: int, more: bool, unchanged?: bool, delta?: string, section?: array{etag: string, sealed?: string, too_large?: bool, parts?: int}}
 	 */
-	public static function blocklist(ClusterCrypto $rCrypto, array $rNode, int $rSince, string $rHave): array {
+	public static function blocklist(ClusterCrypto $rCrypto, array $rNode, int $rSince, string $rHave, bool $rParts = false): array {
 		$rDelta = BlocklistDelta::since($rSince);
 		if ($rDelta['full'] || !empty($rDelta['reload'])) {
 			// The head before the snapshot: a change made in between comes again next time.
 			$rSeq = BlocklistDelta::head();
 			$rData = BlocklistDelta::snapshot();
 			$rEtag = self::etag($rData);
-			if (hash_equals($rEtag, $rHave)) {
+			// Only an agent that drops the deltas it stored over the section it
+			// holds (the one that says blocklist_parts) is told `unchanged`: an
+			// older one kept them, and went on blocking what a flush or a
+			// reload had cleared. It gets the section again.
+			if ($rParts && hash_equals($rEtag, $rHave)) {
 				return ['seq' => $rSeq, 'more' => false, 'unchanged' => true];
 			}
 			$rDoc = [
 				'v' => 1, 'section' => self::SECTION_BLOCKLIST, 'node' => (string) $rNode['node_uuid'], 'gen' => (int) $rNode['gen'],
 				'etag' => $rEtag, 'seq' => $rSeq, 'iat' => ClusterClock::now(), 'data' => self::canonical($rData),
 			];
-			return ['seq' => $rSeq, 'more' => false, 'section' => ['etag' => $rEtag, 'sealed' => base64_encode(self::record($rCrypto, $rNode, 'rep', self::json($rDoc)))]];
+			try {
+				$rSealed = base64_encode(self::record($rCrypto, $rNode, 'rep', self::json($rDoc)));
+			} catch (ClusterRefusedException $rE) {
+				// Without a licence no section is signed: one the node holds is unchanged, as it always was.
+				if ($rE->reason() === 'LICENCE' && hash_equals($rEtag, $rHave)) {
+					return ['seq' => $rSeq, 'more' => false, 'unchanged' => true];
+				}
+				throw $rE;
+			}
+			// An older agent reads it in the reply itself, with room left for the reply around it.
+			if (strlen($rSealed) > ($rParts ? self::MAX_WHOLE_BYTES : self::MAX_REPLY - 65536)) {
+				self::tooLarge(self::SECTION_BLOCKLIST, $rEtag, strlen($rSealed));
+				$rCount = $rParts ? self::stage($rNode, self::SECTION_BLOCKLIST, $rEtag, $rSealed) : null;
+				if ($rCount === null) {
+					return ['seq' => $rSince, 'more' => false];
+				}
+				return ['seq' => $rSeq, 'more' => false, 'section' => ['too_large' => true, 'etag' => $rEtag, 'parts' => $rCount]];
+			}
+			return ['seq' => $rSeq, 'more' => false, 'section' => ['etag' => $rEtag, 'sealed' => $rSealed]];
 		}
 		$rOut = ['seq' => $rDelta['last'], 'more' => $rDelta['more']];
 		if (($rDelta['add'] ?? []) === [] && ($rDelta['remove'] ?? []) === []) {
