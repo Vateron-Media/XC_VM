@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Cluster;
 
+use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\Crypto\Box;
 use XcVm\Core\Cluster\Crypto\Canonical;
@@ -1032,13 +1033,16 @@ final class ClusterApi {
 		$rStreamID = $rP['stream_id'] ?? null;
 		$rIP = $rP['ip'] ?? null;
 		$rRestream = $rP['restream'] ?? false;
+		$rUUID = $rP['uuid'] ?? null;
 		$rCreds = array_key_exists('token', $rP) ? ['token' => $rP['token']] : ['username' => $rP['username'] ?? null, 'password' => $rP['password'] ?? null];
 		foreach ($rCreds as $rValue) {
 			if (!is_string($rValue) || strlen($rValue) > 512) {
 				return self::badRequest($rCrypto, $rH);
 			}
 		}
-		if (!is_int($rStreamID) || $rStreamID <= 0 || !is_string($rIP) || filter_var($rIP, FILTER_VALIDATE_IP) === false || !is_bool($rRestream)) {
+		if (!is_int($rStreamID) || $rStreamID <= 0 || !is_string($rIP) || filter_var($rIP, FILTER_VALIDATE_IP) === false || !is_bool($rRestream)
+			|| ($rUUID !== null && (!is_string($rUUID) || !preg_match(AgentConnections::CONN_UUID, $rUUID)))
+		) {
 			return self::badRequest($rCrypto, $rH);
 		}
 		$rServerID = (int) $rNode['server_id'];
@@ -1047,9 +1051,16 @@ final class ClusterApi {
 		}
 		try {
 			$rOut = RtmpViewerAuth::check($rSettings, !empty($rSettings['enable_cache']) && CacheReader::isReady($rSettings), null, null, $rStreamID, $rIP, $rCreds, $rRestream, $rServerID);
+			if ($rOut['ok'] === true && $rUUID !== null) {
+				// MAIN's mint for this viewer, as auth.php's for an HTTP viewer's token: the
+				// node records the viewer with its proof and admission (ConnectionTracker::
+				// openRecord), so the record is MAIN's own under cluster_conn_binding = enforce.
+				$rOut['token'] = RtmpViewerAuth::mint($rSettings, $rOut, $rStreamID, $rIP, $rUUID);
+			}
 		} catch (\Throwable) {
 			return self::dbDown($rCrypto, $rH);
 		}
+		unset($rOut['channel']);
 		if ($rOut['ok'] !== true) {
 			if ($rOut['reason'] === RtmpViewerAuth::AUTH_FAILED && self::rtmpFails($rServerID, true) === self::RTMP_FAIL_BUDGET) {
 				ClusterAudit::log('rtmp.auth_budget', $rServerID, ['fails' => self::RTMP_FAIL_BUDGET], 'node');

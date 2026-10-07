@@ -6,6 +6,7 @@ use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Logging\DatabaseLogger;
 use XcVm\Core\Util\Encryption;
+use XcVm\Domain\Cluster\ConnectionAdmission;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Streaming\Delivery\StreamRedirector;
@@ -32,7 +33,9 @@ final class RtmpViewerAuth {
 	 * @param array<int, array<string, mixed>>|null $rServers The servers, or null to read them once the line passed.
 	 * @param array{token?: string, username?: string, password?: string} $rRequest The link's credentials, plain strings.
 	 * @param int $rServerID The server the viewer is connected to.
-	 * @return array{ok: true, user: array{id: int, max_connections: int, pair_id: int|null, con_isp_name: string, is_restreamer: int}, country_code: string}|array{ok: false, reason: string}
+	 * @return array{ok: true, user: array{id: int, max_connections: int, pair_id: int|null, con_isp_name: string, is_restreamer: int}, country_code: string, channel: array<string, mixed>}|array{ok: false, reason: string}
+	 *         `channel` is the stream on the viewer's server as auth.php puts it in a token's
+	 *         channel_info, for MAIN's mint (rtmp_auth); it never leaves MAIN.
 	 */
 	public static function check(array $rSettings, bool $rCached, ?array $rBouquets, ?array $rServers, int $rStreamID, string $rIP, array $rRequest, bool $rRestreamDetect, int $rServerID): array {
 		if (isset($rRequest['token'])) {
@@ -130,6 +133,26 @@ final class RtmpViewerAuth {
 				'is_restreamer' => (int) $rUserInfo['is_restreamer'],
 			],
 			'country_code' => $rCountryCode,
+			'channel' => [
+				'stream_id' => $rStreamID, 'redirect_id' => $rServerID, 'originator_id' => null, 'pid' => $rChannelInfo['pid'] ?? null,
+				'on_demand' => $rChannelInfo['on_demand'] ?? 0, 'llod' => $rChannelInfo['llod'] ?? 0, 'monitor_pid' => $rChannelInfo['monitor_pid'] ?? null, 'proxy' => $rChannelInfo['direct_proxy'] ?? 0,
+			],
 		];
+	}
+
+	/**
+	 * MAIN's mint for a viewer that passed check() on a load balancer, under
+	 * the uuid its node records it with, as auth.php mints an HTTP viewer's
+	 * token (ConnectionAdmission::admitToken): its admission and its proof, so
+	 * the node's record is MAIN's own under cluster_conn_binding = enforce.
+	 * The channel stays on MAIN.
+	 *
+	 * @param array<string, mixed> $rSettings
+	 * @param array{ok: true, user: array<string, mixed>, country_code: string, channel: array<string, mixed>} $rPassed check()'s answer
+	 * @return array<string, mixed> The token's `uuid`, `adm`, `adm_uuid` and `prf`, those it has.
+	 */
+	public static function mint(array $rSettings, array $rPassed, int $rStreamID, string $rIP, string $rUUID): array {
+		$rToken = ConnectionAdmission::admitToken($rSettings, ['stream_id' => $rStreamID, 'extension' => 'rtmp', 'channel_info' => $rPassed['channel'], 'user_info' => $rPassed['user'], 'country_code' => $rPassed['country_code'], 'uuid' => $rUUID], $rIP, '');
+		return array_intersect_key($rToken, array_flip(['uuid', 'adm', 'adm_uuid', 'prf']));
 	}
 }
