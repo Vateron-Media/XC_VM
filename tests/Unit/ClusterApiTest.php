@@ -1794,7 +1794,7 @@ final class ClusterApiTest extends TestCase {
 			// What the node says is checked before anything runs.
 			$rNoCredentials = $rAsk;
 			unset($rNoCredentials['username'], $rNoCredentials['password']);
-			foreach ([['stream_id' => '100'] + $rAsk, ['stream_id' => 0] + $rAsk, ['ip' => 'nowhere'] + $rAsk, ['restream' => 1] + $rAsk, ['username' => ['nobody']] + $rAsk, ['token' => str_repeat('a', 513)] + $rAsk, $rNoCredentials] as $rBad) {
+			foreach ([['stream_id' => '100'] + $rAsk, ['stream_id' => 0] + $rAsk, ['ip' => 'nowhere'] + $rAsk, ['restream' => 1] + $rAsk, ['username' => ['nobody']] + $rAsk, ['token' => str_repeat('a', 513)] + $rAsk, ['uuid' => 'not a uuid'] + $rAsk, ['uuid' => 42] + $rAsk, $rNoCredentials] as $rBad) {
 				[$rRes, , $rReq] = $this->call('rtmp_auth', $rBad, 1, $rKeys);
 				$this->denial($rRes, 400, 'BAD_REQUEST', $rReq);
 			}

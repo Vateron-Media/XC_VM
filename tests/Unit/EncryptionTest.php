@@ -4,7 +4,7 @@ use XcVm\Core\Util\Encryption;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers Encryption
+ * @covers \XcVm\Core\Util\Encryption
  */
 final class EncryptionTest extends TestCase {
 
