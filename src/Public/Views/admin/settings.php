@@ -19,6 +19,7 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 use XcVm\Streaming\Fanout\FanoutConfig;
 use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Cluster\ReleaseCanary;
 ?>
 
 <form id="settings-form">
@@ -2344,6 +2345,17 @@ use XcVm\Domain\Server\ServerRepository;
 								&middot; <?= $language::get('cluster_https_available') ?>:
 								<strong><?= $rClusterHttps['ok'] ? $language::get('label_yes') : $language::get('label_no') . ' (' . htmlspecialchars($rClusterHttps['reason']) . ')' ?></strong>
 								&middot; <?= $language::get('cluster_grace') ?>: <strong><?= ClusterSettings::graceMin($rClusterRotation) ?> min</strong>
+								<?php
+								// The fleet canary's pin (ReleaseCanary), and the release it has on trial when that is newer.
+								$rClusterPin = (string) ($rSettings['lb_release_pin'] ?? '');
+								if (ClusterSettings::int('lb_binary_canary_server', $rSettings['lb_binary_canary_server'] ?? null) > 0 || $rClusterPin !== ''):
+									$rClusterTrial = ReleaseCanary::trial();
+								?>
+									&middot; <?= $language::get('cluster_release_pin') ?>: <strong><?= $rClusterPin !== '' ? 'v' . htmlspecialchars($rClusterPin) : $language::get('cluster_release_pin_none') ?></strong>
+									<?php if ($rClusterTrial !== null && ($rClusterPin === '' || version_compare($rClusterTrial[0], $rClusterPin, '>'))): ?>
+										(<?= htmlspecialchars(str_replace(['{version}', '{hours}', '{of}'], ['v' . $rClusterTrial[0], (string) intdiv(max(0, time() - $rClusterTrial[1]), 3600), (string) ClusterSettings::int('lb_binary_canary_hours', $rSettings['lb_binary_canary_hours'] ?? null)], $language::get('cluster_release_trial'))) ?>)
+									<?php endif; ?>
+								<?php endif; ?>
 							</div>
 							<?php foreach (array_chunk($rClusterFields, 2) as $rClusterPair): ?>
 								<div class="form-group row mb-4">

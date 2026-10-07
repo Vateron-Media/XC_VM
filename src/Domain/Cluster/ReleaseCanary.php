@@ -51,7 +51,7 @@ final class ReleaseCanary {
 			self::restart();
 			return null;
 		}
-		[$rSeen, $rSince] = array_pad(explode(' ', (string) ClusterMeta::get(self::SEEN), 2), 2, '');
+		[$rSeen, $rSince] = self::trial() ?? ['', 0];
 		if ($rSeen !== $rVersion) {
 			ClusterMeta::set(self::SEEN, $rVersion . ' ' . $rNow);
 			return null;
@@ -62,6 +62,21 @@ final class ReleaseCanary {
 		}
 		self::pin($rVersion, $rPin, $rCanary);
 		return $rVersion;
+	}
+
+	/**
+	 * The release the canary is on trial with, and since when MAIN has heard
+	 * it run it (the Settings page's Cluster tab shows it beside the pin).
+	 *
+	 * @return array{0: string, 1: int}|null
+	 */
+	public static function trial(): ?array {
+		$rSeen = ClusterMeta::get(self::SEEN);
+		if ($rSeen === null) {
+			return null;
+		}
+		[$rVersion, $rSince] = array_pad(explode(' ', $rSeen, 2), 2, '');
+		return [$rVersion, (int) $rSince];
 	}
 
 	private static function restart(): void {
