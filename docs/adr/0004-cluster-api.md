@@ -5718,6 +5718,45 @@ operator's Mode down.
   Mode up asks what it always asks.
 - Nodes moved to mode 2 before this release have no recorded gen: they are moved down by hand
   until their next move up.
+### The blocks in ipset sets (2026-10-07)
+
+Every server (MAIN, its load balancers, a proxy) blocked each address of the panel's list as an
+`INPUT` rule of its own: a `sudo iptables` to add each, once a minute, and every packet checked against
+every rule in turn. A few thousand addresses (a flood guard's burst, an imported list) took the
+minute's sync longer than its minute and slowed every connection the host takes.
+
+**Built.**
+- **Two sets.** Where the host has ipset, `RootSignalsCronJob::syncSets()` keeps the list in
+  `xcvm_block4` and `xcvm_block6` (`hash:ip`, up to `IPSET_MAX`), each refilled in one `ipset restore`
+  into a fresh set swapped in, so it never stands half-built, and matched by one rule per family
+  (`-A INPUT -m set --match-set xcvm_block4 src -j DROP`). The rules per address of before go, in one
+  `iptables-restore --noflush` per family; the flood guard's `block_<address>` files follow the change
+  as `blockip()` and `unblockip()` kept them. The addresses never blocked (private, reserved,
+  loopback, documentation) are left out as before (`blockTool()`).
+- **The sync runs on the list's content** (a hash in its marker), not its count: a ban and an unban
+  in one minute reach the firewall at once, where they waited up to five minutes.
+- **Without ipset** (an existing server until it gets the package), or where it refuses the list,
+  the sync blocks rule by rule as before. The flush empties the sets and leaves their rules, matching
+  nothing. `getBlockedIPs()` skips the set rule.
+- **The installers** add `ipset` on every supported distribution, with `ipset-persistent` beside
+  `iptables-persistent` where that is installed (not Ubuntu 20.04, which may not have it): an
+  operator who saves the firewall with `netfilter-persistent` then saves the sets too, and the rules
+  that name them restore at boot.
+- **`server:diagnose`** also asks `ipset test` whether MAIN's address is in the node's set, and says
+  how to remove it either way. The FAQ's manual unblock says the same.
+
+**Not built / limits.**
+- **An existing server keeps rules per address** until `apt install ipset` (and `ipset-persistent`
+  where its firewall is saved); the next minute's sync then moves its blocks into the sets.
+- **Nothing persists the sets by itself**, as nothing persisted the rules: after a reboot the
+  minute's sync builds them again from the list.
+
+**Tests.** `AuditRootCronFirewallFlushTest`: the restore's list per family (the private address left
+out), the set rule added once, the rules per address removed in one commit and no other, the flood
+guard's files; ipset refusing or missing (rule by rule); and, opt-in in a network namespace with the
+real iptables and ipset (`XCVM_TEST_NETNS=1`), two syncs and the flush with the host's own rules left
+as they were. `AuditLiteralCmdTest`: `syncSets()` and `restoreSet()` run literal commands only.
+
 ### Mode 2 with the Redis connection handler (2026-10-07)
 
 Mode 2 was refused everywhere while the Redis connection handler was on: the move to mode 2,
@@ -5864,7 +5903,8 @@ viewer while the extension is down.
 **Not built / limits.**
 - **A node applies each blocked address as its own `iptables` or `ip6tables` rule** (one `exec` each,
   `RootSignalsCronJob`), so a blocklist of hundreds of thousands of addresses is a firewall problem
-  on the node before it is a sync one. An `ipset` would be the upgrade.
+  on the node before it is a sync one. An `ipset` would be the upgrade. (Built since: see
+  [The blocks in ipset sets](#the-blocks-in-ipset-sets-2026-10-07).)
 - **A section staged per node**: a blocklist sealed to 20 MiB for 50 nodes holds about 1 GiB of
   tmpfs until fetched, as for the other sections, and is sealed again at each poll that needs it.
 - **The interop test** (`TestInteropWithPanel`, XC_VM_Fanout) cannot run against this panel: its
