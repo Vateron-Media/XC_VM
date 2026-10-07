@@ -29,6 +29,8 @@ final class ReleaseCanaryTest extends TestCase {
 		$this->rDb->exec("CREATE TABLE `settings` (`id` int, `lb_release_pin` varchar(32) DEFAULT '')");
 		$this->rDb->exec("INSERT INTO `settings` VALUES (1, '')");
 		$this->rDb->query('INSERT INTO `cluster_nodes` (`server_id`, `node_uuid`) VALUES (7, ?)', '0f8fad5b-d9cb-469f-a165-70867728950e');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` int PRIMARY KEY, `watchdog_data` mediumtext)');
+		$this->fanout(true);
 		DatabaseFactory::set($this->rDb);
 		foreach ([NodeRegistry::class, ClusterMeta::class] as $rClass) {
 			(new \ReflectionProperty($rClass, 'db'))->setValue(null, null);
@@ -44,6 +46,12 @@ final class ReleaseCanaryTest extends TestCase {
 	private function canary(?string $rVersion, int $rAt, int $rAgo = 2, string $rState = 'active'): void {
 		$this->rDb->query('UPDATE `cluster_nodes` SET `agent_version` = ?, `last_seen_at` = ?, `state` = ? WHERE `server_id` = 7', $rVersion, ($rAt - $rAgo) * 1000, $rState);
 		ClusterClock::fix($rAt * 1000);
+	}
+
+	/** The canary's fanout daemon as its watchdog reports it; null: no report. */
+	private function fanout(?bool $rRunning): void {
+		$this->rDb->exec('DELETE FROM `servers`');
+		$this->rDb->query('INSERT INTO `servers` (`id`, `watchdog_data`) VALUES (7, ?)', json_encode($rRunning === null ? ['cpu' => 1] : ['fanout' => ['running' => $rRunning, 'socket' => $rRunning]]));
 	}
 
 	private function pin(): string {
@@ -100,6 +108,23 @@ final class ReleaseCanaryTest extends TestCase {
 		$this->assertNull($this->tick(rAt: self::T + 9000), 'no version reported');
 		$this->tick(['lb_binary_canary_server' => 8] + self::ON, self::T + 9000);
 		$this->assertSame('', $this->pin(), 'a canary that is no node holds the fleet where it is');
+	}
+
+	public function testACanaryWhoseFanoutDaemonIsDownStartsAgain(): void {
+		$this->canary('0.14.6', self::T);
+		$this->tick(rAt: self::T);
+		$this->canary('0.14.6', self::T + 12 * 3600);
+		$this->fanout(false);
+		$this->assertNull($this->tick(rAt: self::T + 12 * 3600), 'its fanout daemon does not run');
+		$this->assertNull(ClusterMeta::get(ReleaseCanary::SEEN), 'the count starts again');
+
+		// Running again: counted from there; a node that reports nothing of it is held back by nothing.
+		$this->fanout(true);
+		$this->canary('0.14.6', self::T + 13 * 3600);
+		$this->tick(rAt: self::T + 13 * 3600);
+		$this->fanout(null);
+		$this->canary('0.14.6', self::T + 37 * 3600);
+		$this->assertSame('0.14.6', $this->tick(rAt: self::T + 37 * 3600));
 	}
 
 	public function testOffThePinGoes(): void {

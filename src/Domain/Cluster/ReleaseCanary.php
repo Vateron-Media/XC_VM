@@ -12,7 +12,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  * and every other server, MAIN included, takes none newer than
  * `lb_release_pin`. MAIN raises the pin to the canary's release once the
  * canary has run it for `lb_binary_canary_hours`, active and heard
- * throughout (cron:cluster, every minute). The canary's agent version
+ * throughout, with its fanout daemon running (cron:cluster, every minute). The canary's agent version
  * (`cluster_nodes.agent_version`) is the release it runs: run.sh puts the
  * previous agent back when a new one keeps failing, and the count starts
  * again. Off (0, the default): no pin, every server takes the newest.
@@ -45,7 +45,7 @@ final class ReleaseCanary {
 		$rLastSeen = $rNode === null ? null : HeartbeatService::freshest($rNode['last_seen_at'] ?? null, HeartbeatService::lastSeen()[$rCanary] ?? null);
 		$rOfflineMs = 1000 * ClusterSettings::int('cluster_offline_after_sec', $rSettings['cluster_offline_after_sec'] ?? null);
 		if ($rNode === null || $rNode['state'] !== 'active' || !preg_match('/^\d+(\.\d+){1,3}\z/', $rVersion)
-			|| $rLastSeen === null || $rNow * 1000 - $rLastSeen > $rOfflineMs
+			|| $rLastSeen === null || $rNow * 1000 - $rLastSeen > $rOfflineMs || self::fanoutRunning($rCanary) === false
 		) {
 			// Nothing MAIN can vouch for runs there: the count starts again.
 			self::restart();
@@ -77,6 +77,26 @@ final class ReleaseCanary {
 		}
 		[$rVersion, $rSince] = array_pad(explode(' ', $rSeen, 2), 2, '');
 		return [$rVersion, (int) $rSince];
+	}
+
+	/**
+	 * Whether the canary's fanout daemon runs, as its watchdog last reported
+	 * it (`servers.watchdog_data` `fanout`, FanoutClient::status): it comes in
+	 * the same release as the agent, and one that does not start must not
+	 * reach the fleet because the agent does. Null when the node reports
+	 * nothing of it, which holds nothing back.
+	 */
+	private static function fanoutRunning(int $rServerID): ?bool {
+		try {
+			if (!self::db()->query('SELECT `watchdog_data` FROM `servers` WHERE `id` = ?;', $rServerID)) {
+				return null;
+			}
+			$rData = json_decode((string) (self::db()->get_row()['watchdog_data'] ?? ''), true);
+		} catch (\Throwable) {
+			return null;
+		}
+		$rRunning = is_array($rData) && is_array($rData['fanout'] ?? null) ? ($rData['fanout']['running'] ?? null) : null;
+		return is_bool($rRunning) ? $rRunning : null;
 	}
 
 	private static function restart(): void {
