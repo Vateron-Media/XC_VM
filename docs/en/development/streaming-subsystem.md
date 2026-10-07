@@ -132,7 +132,7 @@ Populates global variables from cache:
 - `$GLOBALS['rAllowedIPs']`, `$GLOBALS['rProxies']`, `$GLOBALS['rSegmentSettings']`
 - `$GLOBALS['rFFMPEG_CPU']`, `$GLOBALS['rFFMPEG_GPU']`, `$GLOBALS['rFFPROBE']`
 
-Connects to database/Redis based on `$rSettings['redis_handler']`.
+Connects to database/Redis based on `$rSettings['redis_handler']` (`ConnectionTracker::openStore()`), never to MAIN's Redis on a load balancer in cluster mode 2, whose viewers are its agent's.
 
 > **Important:** The streaming path reads exclusively from file cache. It does not query the database for settings or user lookups during normal operation.
 

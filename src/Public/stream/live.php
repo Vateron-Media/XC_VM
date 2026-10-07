@@ -294,11 +294,7 @@ if ($rChannelInfo) {
 	// MAIN's clock, as the token's start (StreamAuthMiddleware::mainNow()).
 	$rExpiresAt = $rActivityStart + $rCreateExpiration + $rExecutionTime;
 
-	if ($rSettings["redis_handler"]) {
-		RedisManager::ensureConnected();
-	} else {
-		DatabaseFactory::connectLazy();
-	}
+	ConnectionTracker::openStore($rSettings);
 
 	if ($rSettings["disallow_2nd_ip_con"] && !$rUserInfo["is_restreamer"] && ($rUserInfo["max_connections"] <= $rSettings["disallow_2nd_ip_max"] && 0 < $rUserInfo["max_connections"] || $rSettings["disallow_2nd_ip_max"] == 0)) {
 		$rAcceptIP = null;
