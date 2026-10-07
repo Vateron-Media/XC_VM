@@ -95,7 +95,7 @@ final class ClusterModeGateTest extends TestCase {
 
 		foreach ([
 			'cluster_mode_done', 'cluster_mode_unknown', 'cluster_mode_needs_config', 'cluster_mode_needs_flows', 'cluster_mode_needs_root',
-			'cluster_mode_needs_active', 'cluster_mode_not_heard', 'cluster_mode_needs_streams', 'cluster_mode_redis_handler',
+			'cluster_mode_needs_active', 'cluster_mode_not_heard', 'cluster_mode_needs_streams',
 			'cluster_mode_up_tip', 'cluster_mode_down_help', 'cluster_mode_two_warning', 'cluster_mode_down_revoked_confirm', 'cluster_mode_moved',
 			'cluster_strip_too_soon', 'cluster_strip_not_local',
 		] as $rKey) {

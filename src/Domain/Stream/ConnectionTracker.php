@@ -47,6 +47,11 @@ class ConnectionTracker {
 	 */
 	public static function getCapacity(bool $rProxy = false): array {
 		global $rSettings, $rServers;
+		// The cluster API sets no servers of its own: rtmp_auth places a load
+		// balancer's RTMP viewer through here (StreamRedirector).
+		if (!is_array($rServers)) {
+			$rServers = ServerRepository::getAll();
+		}
 		$db = self::db();
 		$rRedis = RedisManager::instance();
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
@@ -1014,6 +1019,22 @@ class ConnectionTracker {
 		}
 		$db->query('SELECT ' . $rColumns . ' FROM `lines_live` WHERE ' . implode(' AND ', array_map(static fn($rColumn) => '`' . $rColumn . '` = ?', array_keys($rFallback))) . ';', ...array_values($rFallback));
 		return $db->num_rows() > 0 ? $db->get_row() : null;
+	}
+
+	/**
+	 * Open the store a stream endpoint records its viewer in: MAIN's Redis
+	 * with the Redis connection handler, else the database (lazily). Not
+	 * Redis on a node in mode 2, which may not open it: its viewers are its
+	 * agent's, which every store path here asks first.
+	 *
+	 * @param array<string, mixed> $rSettings Settings (reads redis_handler).
+	 */
+	public static function openStore(array $rSettings): void {
+		if ($rSettings['redis_handler'] && !NodeRole::refusesConnects()) {
+			RedisManager::ensureConnected();
+		} else {
+			DatabaseFactory::connectLazy();
+		}
 	}
 
 	/**

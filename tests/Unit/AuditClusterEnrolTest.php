@@ -1,7 +1,6 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterBus;
@@ -119,53 +118,11 @@ final class AuditClusterEnrolTest extends TestCase {
 		$this->assertSame([1, 0], [(int) $this->node()['mode'], (int) $this->node()['flows']]);
 	}
 
-	public function testNoEnrolmentEntersModeTwoWhileTheRedisHandlerIsOn(): void {
+	public function testAnEnrolmentEntersModeTwoWithTheRedisHandlerOn(): void {
+		// A node in mode 2 never opens MAIN's Redis (ConnectionTracker::openStore):
+		// its viewers are its agent's, whatever store MAIN keeps.
 		$this->enrolled(2, 1790000000, 'revoked');
-		$rSas = $this->pending();
-		try {
-			EnrolCodeService::approve($this->rCrypto, self::SID, $rSas, $this->rSettings + ['redis_handler' => 1], $this->rMain, 3);
-			$this->fail('every viewer on the node would be turned away');
-		} catch (ClusterRefusedException $rE) {
-			$this->assertSame('REDIS_HANDLER', $rE->reason());
-		}
-		$rNode = $this->node();
-		$this->assertSame(['0f8fad5b-d9cb-469f-a165-70867728950e', 'revoked', 1], [$rNode['node_uuid'], $rNode['state'], (int) $rNode['gen']], 'the node\'s row is as it was');
-		$this->assertSame('pending_approval', EnrolCodeService::request(self::SID)['state'], 'the request waits for the handler to go off');
-
-		// The page says why; the SSH install catches the same refusal (LbInstallFlow::provisionCluster).
-		$rServers = [1 => ['is_main' => 1, 'server_type' => 0] + $this->rMain, self::SID => ['is_main' => 0, 'server_type' => 0, 'server_name' => 'lb-5']];
-		$rFlash = ClusterAdmin::act($this->rCrypto, ['cluster_action' => 'approve', 'server_id' => self::SID, 'sas' => $rSas], $rServers, 1, $this->rSettings + ['redis_handler' => 1], 3);
-		$this->assertSame('cluster_mode_redis_handler', $rFlash['message']);
-		try {
-			EnrolmentService::issueFirst($this->rCrypto, self::SID, '2f8fad5b-d9cb-469f-a165-70867728950e', random_bytes(32), random_bytes(32), random_bytes(32), ['lb_new_node_mode' => 'api', 'redis_handler' => 1] + $this->rSettings, $this->rMain);
-			$this->fail('the SSH path asks the same');
-		} catch (ClusterRefusedException $rE) {
-			$this->assertSame('REDIS_HANDLER', $rE->reason());
-		}
-
-		// With the handler off the same request goes through, and a mode 1 enrolment never asked.
-		$this->assertSame('approved', EnrolCodeService::approve($this->rCrypto, self::SID, $rSas, $this->rSettings, $this->rMain, 3));
-		$this->assertSame(2, (int) $this->node()['mode']);
-		$this->rDb->exec('DELETE FROM `cluster_enrol_requests`');
-		$this->rDb->exec('DELETE FROM `cluster_nodes`');
 		$this->assertSame('approved', EnrolCodeService::approve($this->rCrypto, self::SID, $this->pending(), $this->rSettings + ['redis_handler' => 1], $this->rMain, 3));
-		$this->assertSame(1, (int) $this->node()['mode']);
-	}
-
-	public function testTheRedisHandlerStaysOffWhileANodeEnrolsInModeTwo(): void {
-		$this->assertFalse(ClusterAdmin::anyInModeTwo());
-		$this->enrolled(2, null, 'enrolling');
-		$this->assertTrue(ClusterAdmin::anyInModeTwo(), 'it is active within seconds');
-		// Only while it can still complete: past its deadline the row never becomes
-		// active (ENROL_EXPIRED), and a new attempt meets the handler in begin().
-		$rDeadline = (int) $this->node()['enrol_deadline'];
-		ClusterClock::fix($rDeadline * 1000);
-		$this->assertTrue(ClusterAdmin::anyInModeTwo(), 'its last second');
-		ClusterClock::fix(($rDeadline + 1) * 1000);
-		$this->assertFalse(ClusterAdmin::anyInModeTwo(), 'an enrolment that was never completed holds nothing off');
-		ClusterClock::fix(1800000000000);
-		// A revoked row stays for good (its server may be deleted): it does not hold the handler off.
-		NodeRegistry::update(self::SID, ['state' => 'revoked']);
-		$this->assertFalse(ClusterAdmin::anyInModeTwo());
+		$this->assertSame(2, (int) $this->node()['mode']);
 	}
 }

@@ -87,8 +87,10 @@ final class LazyDatabaseHandlerTest extends TestCase {
 		$rRoot = MAIN_HOME;
 		foreach (['Public/stream/live.php', 'Public/stream/vod.php', 'Public/stream/timeshift.php', 'Streaming/Lifecycle/ShutdownHandler.php'] as $rFile) {
 			$rSource = (string) file_get_contents($rRoot . $rFile);
-			$this->assertStringContainsString('DatabaseFactory::connectLazy();', $rSource, $rFile);
+			$this->assertMatchesRegularExpression('/DatabaseFactory::connectLazy\(\);|ConnectionTracker::openStore\(\$rSettings\);/', $rSource, $rFile);
 			$this->assertStringNotContainsString('DatabaseFactory::connect();', $rSource, $rFile);
 		}
+		// Where the endpoints open their store.
+		$this->assertMatchesRegularExpression('/function openStore\(.*?DatabaseFactory::connectLazy\(\);/s', (string) file_get_contents($rRoot . 'Domain/Stream/ConnectionTracker.php'));
 	}
 }
