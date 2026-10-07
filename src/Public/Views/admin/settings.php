@@ -2327,6 +2327,8 @@ use XcVm\Domain\Server\ServerRepository;
 						['cluster_ingest_concurrency', 'number', 'Concurrent ingest permits on MAIN (1-64); half are reserved for P0 events.'],
 						['cluster_auto_mode_down_min', 'number', 'Minutes a load balancer in mode 2 may say that it no longer reads its streams on itself (the Streams not local badge) before MAIN moves it back to mode 1, as Mode down would (0-1440; 0, the default: never). Only a node this page moved to mode 2, still holding its database credentials, heard lately, and MAIN not locked down.'],
 						['lb_new_node_mode', ['legacy', 'api'], 'Mode of newly installed LBs. api: a new load balancer joins in mode 2, every flow on, with none of MAIN\'s database or Redis credentials.'],
+						['lb_binary_canary_server', 'number', 'Server ID of the load balancer that takes each xc_fanout/xc_agent release from GitHub first. The other servers, MAIN included, take none newer than what it has run for the hours below, active and heard throughout. 0, the default: off, every server takes the newest.'],
+						['lb_binary_canary_hours', 'number', 'Hours the canary runs a release before the other servers may take it (1-720).'],
 						['servers_stats_retention_days', 'number', 'Days of servers_stats kept (1-365).'],
 						['cluster_audit_retention_days', 'number', 'Days of cluster audit log kept (1-365).'],
 						['cluster_db_allowlist', 'switch', 'Firewall MariaDB (3306) and Redis (6379) on MAIN: only MAIN, LBs and proxies not yet in cluster mode 2, and the extra list below may connect. Applied within a minute by the root cron; check first with console.php cluster:db-allowlist status.'],

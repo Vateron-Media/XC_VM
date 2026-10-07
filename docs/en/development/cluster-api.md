@@ -209,6 +209,7 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 | `servers_stats_retention_days` | 1–365 (30) | `cron:cleanup` prunes `servers_stats` |
 | `cluster_audit_retention_days` | 1–365 (30) | `cron:cleanup` prunes `cluster_audit` |
 | `cluster_db_allowlist` (+`_extra`) | 0/1 | firewalls 3306/6379 on MAIN to the fleet |
+| `lb_binary_canary_server`, `lb_binary_canary_hours` | server id (0, off), 1–720 (24) | the load balancer that takes each xc_fanout/xc_agent release first, and how long it runs one before MAIN raises `lb_release_pin` to it (`ReleaseCanary`, `cron:cluster`); every other server takes the newest release at or below the pin, and none before the first |
 | `lb_scan_roots` | paths | the directories the node's scan RPC may list |
 | `lb_partition_tolerance_h`, `lb_fence_drain_min` | 0–24 (12), 0–60 (10) | the lease's window past token expiry, and the drain after it |
 | `lb_lease_fence` | 0/1 (0) | a node stops serving when its lease runs out |
@@ -246,7 +247,8 @@ console.php cluster:cutover <serverID> [admin user id]
 console.php cluster:rolling-update
 
 # Every node (MAIN too, any mode) keeps the agent, the fanout daemon and xcvm_core
-# current from GitHub itself, hourly from cron:root_signals; by hand, as root:
+# current from GitHub itself, hourly from cron:root_signals (the agent and the daemon
+# no newer than lb_release_pin while a canary is set: ReleaseCanary); by hand, as root:
 console.php fanout_binary [fanout|agent] [force]
 console.php xcvm_core [force]
 

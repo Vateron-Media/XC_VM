@@ -5572,6 +5572,55 @@ second was chosen: a line disabled on MAIN is refused at its next connect.
   string, the agent's user agent.
 - **One round trip per connect** on MAIN's control lane, on top of `conn_admit` for a limited
   line. An RTMP connect is not a playlist refresh, so this is once per viewer.
+### A fleet canary for the binaries from GitHub (2026-10-07)
+
+Every server, MAIN included and whatever its cluster mode, takes `xc_fanout` and `xc_agent` from
+the newest XC_VM_Fanout release itself, hourly (`fanout_binary` from `cron:root_signals`). Each
+node tries a new agent and `run.sh` puts the previous one back when it keeps failing, but a
+release that fails slowly, or only under real load, reached the whole fleet within the hour.
+
+**Built.**
+- `lb_binary_canary_server` and `lb_binary_canary_hours` (migration 084, Settings → Cluster; 0,
+  the default, is off). With a canary set, that load balancer takes each release as it comes out.
+  Every other server takes the newest release at or below `lb_release_pin`
+  (`FanoutBinaryCommand::releaseFor()`), none before the first pin, and never goes back from a
+  newer one it already runs.
+- `ReleaseCanary::tick()` (`cron:cluster`, every minute) raises the pin to the canary's release
+  once the canary has run it for the hours set, active and heard within
+  `cluster_offline_after_sec` at every pass. The release is the canary's agent version
+  (`cluster_nodes.agent_version`), and the count is kept in `cluster_meta` `canary_release`. A
+  silent or quarantined canary starts the count again, and so does a rollback by `run.sh`. The
+  pin is never lowered. Off clears the pin. Each change is audited `release.pin`.
+- The canary's id and the pin reach a node with its replica's settings.
+
+**Not built / limits.**
+- The canary is judged by its agent's version and its being heard, not by the fanout daemon's
+  own health; both binaries come from the one release.
+- A canary that is no enrolled node never proves anything: the fleet stays where it is.
+- No page shows the pin yet: the cluster audit does.
+
+### Command latency, and the SSE downlink (2026-10-07)
+
+The plan left an SSE downlink with BOX framing as optional work: the agent would keep one stream
+open and get each command as it is queued, instead of the `commands` long-poll. Before building it,
+the delay was measured.
+
+**Measured** on the test pair, over a day of E2E runs, from `cluster_commands` (whole seconds):
+- Most commands were handed over in the second they were queued: 389 of 563 `conn.close`, 34 of
+  42 `conn.kill_worker`, 19 of 21 `conn.drop`.
+- The rest waited 2 to 18 s. 184 of the 219 slow deliveries were queued while the node was still
+  running an earlier command, which MAIN had handed over before and which was acked within a
+  second of the slow one's delivery: `stream.stop` 67, `node.purge` 54, `conn.kill_worker` 21,
+  `stream.start` 14, and others. Most of the other 35 were `node.root`, which root takes on its
+  own schedule.
+- The wake is not lost: `wake:<sid>` is a list entry that waits for the next poll (`ClusterBus`).
+  The agent ran a poll's commands one at a time, the node's PHP included, and polled again only
+  after them, so a kill behind a `stream.stop` waited for it.
+
+**Decided.** No SSE downlink: it would deliver sooner, and the commands would still wait for one
+another. The agent instead runs the node's slow PHP commands beside its commands loop, in order
+among themselves, and keeps kills, closes and the controls in the loop, which polls again at once
+(XC_VM_Fanout, `runAside`).
 ### Closing the data plane from the page (2026-10-07)
 
 Two of the data plane's open edges were operators' to close without the page telling them how:
