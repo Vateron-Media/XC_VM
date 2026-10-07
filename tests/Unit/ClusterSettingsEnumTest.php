@@ -33,7 +33,8 @@ final class ClusterSettingsEnumTest extends TestCase {
 		$rEnv = ['https_ok' => true, 'api_mode_allowed' => true, 'credential_free_config' => true];
 		foreach (ClusterSettings::ENUMS as $rKey => [, $rAllowed]) {
 			foreach ([...$rAllowed, 'nope', ' ' . strtoupper($rAllowed[0]) . ' '] as $rValue) {
-				[$rOut] = ClusterSettings::normalize([$rKey => $rValue], [], [], $rEnv);
+				// The cluster API on, as API mode for new nodes needs it.
+				[$rOut] = ClusterSettings::normalize([$rKey => $rValue], [], ['cluster_api_enabled' => 1], $rEnv);
 				$this->assertSame($rOut[$rKey], ClusterSettings::enum($rKey, $rOut[$rKey]), $rKey . ' ' . $rValue);
 			}
 		}
