@@ -21,7 +21,7 @@ or on `cluster_api_port` when one is set.
 
 | Direction | Carried as | Examples |
 | --- | --- | --- |
-| Node → MAIN, needs an answer | an op on the control lane | `hello`, `heartbeat`, `token_refresh`, `conn_admit`, `commands`, `ack` |
+| Node → MAIN, needs an answer | an op on the control lane | `hello`, `heartbeat`, `token_refresh`, `conn_admit`, `rtmp_auth`, `commands`, `ack` |
 | Node → MAIN, a report | an op on an ingest lane | `events`, `streams`, `conn_snapshot`, `queue_claim`, `queue_update`, `queue_enqueue`, `config`, `recording_complete`, `vod_analysis`, `artefact` |
 | MAIN → node | a signed command the node's next `commands` call collects | `node.rpc`, `node.root`, `node.cache`, `conn.kill_worker`, `conn.drop`, `conn.close`, `config.changed`, `artefact.fetch` |
 
@@ -356,6 +356,17 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
   - `/xfile` has its own rate limit (50 requests/s per server, burst 100, answered with a
     429 the agent retries), apart from the viewers' 20 requests/s.
   - `cluster:rotate-stream-secret` does not exist: retiring the password is Phase 9's.
+- **An RTMP viewer on a load balancer is checked by MAIN at each connect** (`rtmp_auth`).
+  The load balancer is not shipped the line lookup, so its `rtmp.php` hands the link's
+  credentials, the viewer's address and the stream to its agent, and MAIN makes the checks
+  `rtmp.php` makes on MAIN (`Domain\User\RtmpViewerAuth`) for that load balancer, logging a
+  refusal on MAIN as before; the node learns only `AUTH_FAILED` or `REFUSED`. A node's failed
+  checks have a budget of 300 a minute (`ClusterApi::RTMP_FAIL_BUDGET`): past it, MAIN
+  refuses its viewers without checking until the minute ends and audits `rtmp.auth_budget`.
+  Once MAIN admits the viewer, the load balancer starts an on-demand stream and records the
+  viewer itself, as before. No answer refuses the viewer: no agent (a node not enrolled),
+  an agent that predates the op, or MAIN unreachable. RTMP has no offline policy, unlike
+  `conn_admit`.
 - **The licence lease is issued, checked, and enforced only behind a switch** (Phase 9).
   Every token MAIN hands a node (enrolment over SSH or by code, `token_refresh`,
   `token_rekey`) carries a lease signed by `xcvm_core`, capped at `min(token_exp +

@@ -40,6 +40,7 @@ needs MAIN's database at all. In the end you can remove the database password fr
 | **Status in the panel** | The LB wrote its own stats into MAIN's database | The agent reports every 2 seconds; MAIN shows an LB as offline after 30 seconds of silence |
 | **Viewer links** | One shared secret signs links for every server | Each LB gets its own key (Config flow), so a link made for one LB does not work on another |
 | **Relays between servers** | The stream password travels in the URL | Signed tickets instead of the password (Data plane flow), and the stream bytes are sealed where both servers support it |
+| **RTMP viewers** | Refused on a load balancer, which cannot look up a line | MAIN checks the line at each connect, through the agent, so a line disabled on MAIN is refused at once |
 | **Proxies** | Trusted by their IP address | A proxy installed with the current proxy release signs what it sends with its own key |
 | **Movies and timeshift** | One PHP process per viewer | Served by the streaming daemon (`xc_fanout`), which uses far less memory |
 | **LB software updates** | Came from MAIN | Every server downloads checked releases from GitHub by itself, hourly |

@@ -5501,6 +5501,51 @@ The design is `docs/superpowers/specs/2026-10-01-per-node-viewer-keys-design.md`
 - `ProxyInstallKeyTest`: the install writes the key of a new generation and leaves no copy.
 - `ClusterLockdownTest` and `DbAllowlistTest`: a signing proxy is no blocker and leaves the allowlist.
 
+### RTMP viewers on a load balancer (2026-10-07)
+
+A load balancer refused every RTMP viewer: `rtmp.php` checks the line with `UserRepository`,
+which the LB build leaves out (Domain/User), and nginx-rtmp's `on_play` cannot send a viewer
+to MAIN the way HTTP's `auth.php` redirect does. Of the two ways the operator was offered, a
+MAIN-signed RTMP token in the playlist (checked on the node, but a playlist is fetched rarely, so
+a disabled line would keep RTMP for the token's days) and MAIN asked at every connect, the
+second was chosen: a line disabled on MAIN is refused at its next connect.
+
+**Built.**
+- `Domain\User\RtmpViewerAuth::check()` holds the checks `rtmp.php` made, in its order, with its
+  client logs and the guard's count of credentials that name no line, for the server the viewer
+  is on. `StreamRedirector::redirectStream()` takes that server (`$rHere`, this one by default),
+  which keeps an RTMP viewer when it can serve the stream. `rtmp.php` on MAIN calls it directly.
+- The `rtmp_auth` op (control lane, active nodes only): `{stream_id, ip, restream}` and the
+  link's `token`, or `username` and `password`, as plain strings of at most 512 bytes; anything
+  else is `400 BAD_REQUEST`, and a line MAIN cannot read is `503 DB`. The answer is
+  `{ok: true, user: {id, max_connections, pair_id, con_isp_name, is_restreamer}, country_code}`
+  or `{ok: false, reason}`, where `reason` is only `AUTH_FAILED` (credentials that name no
+  line, which the node's flood guard counts) or `REFUSED`: why is in MAIN's client log.
+- The viewer's address is the node's to say, as in its other reports, so a node could test
+  line credentials under addresses it names, past the guard's count per address. Its failed
+  checks have a budget, `ClusterApi::RTMP_FAIL_BUDGET` (300) a minute of MAIN's clock
+  (`TMP_PATH/cluster_rtmp/<server id>`, under a lock): past it, MAIN answers `REFUSED`
+  without checking until the minute ends, and audits `rtmp.auth_budget` once.
+- A direct source has no RTMP server: `redirectStream()` answers false for `rtmp` rather
+  than redirecting to the source and exiting, which in the cluster API would have cut its
+  signed reply short.
+- `rtmp.php` on a load balancer asks it through the agent's socket (`AgentClient::main`, 6 s).
+  Then, as before, it reads its own stream row (its replica and store, or MAIN's database in
+  mode 1), starts an on-demand stream, and records the viewer (`ConnectionTracker::openRecord`,
+  whose limited line the agent still admits with `conn_admit`). The relay path (the stream
+  password, an allowed address) shares that row read.
+- The agent passes `rtmp_auth` from its socket (`SocketOps`, XC_VM_Fanout). Nothing else
+  changes in it.
+- `detect_restream_block_user` leaves the LB settings allowlist: only MAIN blocks a line now.
+
+**Not built / limits.**
+- **No answer refuses.** A node without an agent, an agent that predates the op, or MAIN
+  unreachable: the viewer is refused. RTMP has no offline policy, unlike `conn_admit`.
+- **A refusal's client log on MAIN** carries the agent's request, not nginx-rtmp's: no query
+  string, the agent's user agent.
+- **One round trip per connect** on MAIN's control lane, on top of `conn_admit` for a limited
+  line. An RTMP connect is not a playlist refresh, so this is once per viewer.
+
 ### The move to mode 2 without the connect audit (2026-10-05)
 
 **Problem.** The cutover gate asked for seven days with no connect to MAIN before a node could

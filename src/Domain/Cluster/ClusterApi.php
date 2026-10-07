@@ -16,6 +16,8 @@ use XcVm\Core\Database\DatabaseUnavailableException;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Updates\ReleaseAsset;
 use XcVm\Domain\Stream\RecordingFinalizer;
+use XcVm\Domain\User\RtmpViewerAuth;
+use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
@@ -65,7 +67,14 @@ final class ClusterApi {
 	 * heartbeat on the cluster bus sends MySQL no query of its own (only the
 	 * connection's setup).
 	 */
-	private const WITHOUT_MAIN = ['health', 'heartbeat', 'commands', 'ack', 'events', 'recording_complete', 'queue_enqueue', 'queue_claim', 'queue_update', 'conn_snapshot', 'conn_admit', 'streams', 'artefact', 'token_refresh', 'token_rekey', 'enrol_code', 'enrol_code_status'];
+	private const WITHOUT_MAIN = ['health', 'heartbeat', 'commands', 'ack', 'events', 'recording_complete', 'queue_enqueue', 'queue_claim', 'queue_update', 'conn_snapshot', 'conn_admit', 'rtmp_auth', 'streams', 'artefact', 'token_refresh', 'token_rekey', 'enrol_code', 'enrol_code_status'];
+
+	/**
+	 * Failed credential checks (`rtmp_auth`) a node may ask for in a minute:
+	 * past it, MAIN checks none for the node until the minute ends, so a node
+	 * cannot test line credentials at MAIN's pace under addresses it names.
+	 */
+	public const RTMP_FAIL_BUDGET = 300;
 
 	/** op => [method, needs a node signature, allowed node states] */
 	private const OPS = [
@@ -86,6 +95,7 @@ final class ClusterApi {
 		'queue_update' => ['POST', false, ['active']],
 		'conn_snapshot' => ['POST', false, ['active']],
 		'conn_admit' => ['POST', false, ['active']],
+		'rtmp_auth' => ['POST', false, ['active']],
 		'config' => ['POST', false, ['active']],
 		'streams' => ['POST', false, ['active']],
 		'artefact' => ['POST', false, ['active']],
@@ -340,7 +350,7 @@ final class ClusterApi {
 	 * events from their reserve; a batch's lane is known only once its BOX is
 	 * open, and opening it touches no database.
 	 *
-	 * @param 'enrol_complete'|'token_refresh'|'hello'|'heartbeat'|'commands'|'ack'|'events'|'recording_complete'|'queue_enqueue'|'queue_claim'|'queue_update'|'conn_snapshot'|'conn_admit'|'config'|'streams'|'artefact' $rOp
+	 * @param 'enrol_complete'|'token_refresh'|'hello'|'heartbeat'|'commands'|'ack'|'events'|'recording_complete'|'queue_enqueue'|'queue_claim'|'queue_update'|'conn_snapshot'|'conn_admit'|'rtmp_auth'|'config'|'streams'|'artefact' $rOp
 	 * @return array{status: int, headers: array<string, string>, body: string}
 	 */
 	private static function dispatch(ClusterCrypto $rCrypto, string $rOp, array $rReq, array $rSettings, array $rMain, array $rNode, SessionKeys $rKeys, string $rCtx, array $rH, string $rBody): array {
@@ -364,6 +374,7 @@ final class ClusterApi {
 				'queue_enqueue', 'queue_claim', 'queue_update' => self::queue($rOp, $rCrypto, $rNode, $rKeys, $rCtx, $rH, $rPayload),
 				'conn_snapshot' => self::connSnapshot($rCrypto, $rNode, $rKeys, $rCtx, $rH, $rPayload),
 				'conn_admit' => self::connAdmit($rCrypto, $rNode, $rKeys, $rCtx, $rH, $rPayload, $rSettings),
+				'rtmp_auth' => self::rtmpAuth($rCrypto, $rNode, $rKeys, $rCtx, $rH, $rPayload, $rSettings),
 				'config' => self::config($rCrypto, $rNode, $rKeys, $rCtx, $rH, $rPayload, $rSettings, $rMain),
 				'streams' => self::streams($rCrypto, $rNode, $rKeys, $rCtx, $rH, $rPayload),
 				'artefact' => self::artefact($rCrypto, $rNode, $rKeys, $rCtx, $rH, $rPayload, $rSettings),
@@ -1005,6 +1016,78 @@ final class ClusterApi {
 			return self::badRequest($rCrypto, $rH);
 		}
 		return self::ok($rKeys, $rCtx, $rOut);
+	}
+
+	/**
+	 * `rtmp_auth`: an RTMP viewer on the node (nginx-rtmp's on_play), whose
+	 * line a load balancer cannot look up. RtmpViewerAuth makes rtmp.php's
+	 * checks for the authenticated node's server and logs a refusal here, as
+	 * rtmp.php logs it on MAIN; the node then records the viewer itself. The
+	 * viewer's address is the node's to say, as in its other reports, so the
+	 * node's failed checks have a budget (RTMP_FAIL_BUDGET), and a refusal
+	 * tells it only whether the credentials named a line (its flood guard
+	 * counts those that did not): why is in MAIN's client log.
+	 */
+	private static function rtmpAuth(ClusterCrypto $rCrypto, array $rNode, SessionKeys $rKeys, string $rCtx, array $rH, array $rP, array $rSettings): array {
+		$rStreamID = $rP['stream_id'] ?? null;
+		$rIP = $rP['ip'] ?? null;
+		$rRestream = $rP['restream'] ?? false;
+		$rCreds = array_key_exists('token', $rP) ? ['token' => $rP['token']] : ['username' => $rP['username'] ?? null, 'password' => $rP['password'] ?? null];
+		foreach ($rCreds as $rValue) {
+			if (!is_string($rValue) || strlen($rValue) > 512) {
+				return self::badRequest($rCrypto, $rH);
+			}
+		}
+		if (!is_int($rStreamID) || $rStreamID <= 0 || !is_string($rIP) || filter_var($rIP, FILTER_VALIDATE_IP) === false || !is_bool($rRestream)) {
+			return self::badRequest($rCrypto, $rH);
+		}
+		$rServerID = (int) $rNode['server_id'];
+		if (self::rtmpFails($rServerID, false) >= self::RTMP_FAIL_BUDGET) {
+			return self::ok($rKeys, $rCtx, ['ok' => false, 'reason' => 'REFUSED']);
+		}
+		try {
+			$rOut = RtmpViewerAuth::check($rSettings, !empty($rSettings['enable_cache']) && CacheReader::isReady($rSettings), null, null, $rStreamID, $rIP, $rCreds, $rRestream, $rServerID);
+		} catch (\Throwable) {
+			return self::dbDown($rCrypto, $rH);
+		}
+		if ($rOut['ok'] !== true) {
+			if ($rOut['reason'] === RtmpViewerAuth::AUTH_FAILED && self::rtmpFails($rServerID, true) === self::RTMP_FAIL_BUDGET) {
+				ClusterAudit::log('rtmp.auth_budget', $rServerID, ['fails' => self::RTMP_FAIL_BUDGET], 'node');
+			}
+			$rOut = ['ok' => false, 'reason' => $rOut['reason'] === RtmpViewerAuth::AUTH_FAILED ? RtmpViewerAuth::AUTH_FAILED : 'REFUSED'];
+		}
+		return self::ok($rKeys, $rCtx, $rOut);
+	}
+
+	/**
+	 * The node's failed `rtmp_auth` checks in this minute of MAIN's clock, one
+	 * more first when $rAdd (TMP_PATH/cluster_rtmp/<server id>, under a lock).
+	 * A counter that cannot be opened counts nothing.
+	 */
+	private static function rtmpFails(int $rServerID, bool $rAdd): int {
+		$rDir = (defined('TMP_PATH') ? TMP_PATH : sys_get_temp_dir() . '/') . 'cluster_rtmp/';
+		if (!is_dir($rDir)) {
+			@mkdir($rDir, 0700, true);
+		}
+		$rFP = @fopen($rDir . $rServerID, 'c+');
+		if ($rFP === false) {
+			return 0;
+		}
+		try {
+			flock($rFP, LOCK_EX);
+			$rMinute = intdiv(ClusterClock::nowMs(), 60000);
+			[$rAt, $rFails] = array_map('intval', array_pad(explode(' ', trim((string) stream_get_contents($rFP))), 2, '0'));
+			$rFails = $rAt === $rMinute ? $rFails : 0;
+			if ($rAdd) {
+				$rFails++;
+				ftruncate($rFP, 0);
+				rewind($rFP);
+				fwrite($rFP, $rMinute . ' ' . $rFails);
+			}
+			return $rFails;
+		} finally {
+			fclose($rFP);
+		}
 	}
 
 	/**

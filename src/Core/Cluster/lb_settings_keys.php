@@ -52,7 +52,6 @@ return [
 		'create_expiration',
 		'debug_show_errors',
 		'default_timezone',
-		'detect_restream_block_user',
 		'disable_enigma2',
 		'disable_player_api',
 		'disable_playlist',

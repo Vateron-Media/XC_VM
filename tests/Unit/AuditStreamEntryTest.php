@@ -405,12 +405,15 @@ final class AuditStreamEntryTest extends TestCase {
 	}
 
 	public function testRtmpRefusesALinesNameOrPasswordSentAsAList(): void {
-		$rRtmp = fn(array $rRequest): string => $this->credentials('Public/stream/rtmp.php', '$rUsername = $rRequest[\'username\']', '$rUsername, $rPassword, true, false, $rIP);', $rRequest);
+		// What rtmp.php hands the line check: MAIN's own, or MAIN's through the node's agent (rtmp_auth).
+		$rRtmp = fn(array $rRequest): string => $this->lines('Public/stream/rtmp.php', '$rCreds = isset($rRequest[\'token\'])', 'if (class_exists(RtmpViewerAuth::class)) {', ['rRequest' => $rRequest], '$rCreds');
 
 		$this->assertSame('answered 404', $rRtmp(['username' => ['line'], 'password' => 'secret']));
 		$this->assertSame('answered 404', $rRtmp(['username' => 'line', 'password' => ['secret']]));
-		$this->assertSame('["line","secret"]', $rRtmp(['username' => 'line', 'password' => 'secret']));
-		$this->assertSame('[null,null]', $rRtmp([]));
+		$this->assertSame('answered 404', $rRtmp(['token' => ['line']]));
+		$this->assertSame('{"username":"line","password":"secret"}', $rRtmp(['username' => 'line', 'password' => 'secret']));
+		$this->assertSame('{"token":"' . str_repeat('a', 32) . '"}', $rRtmp(['token' => str_repeat('a', 32)]));
+		$this->assertSame('{"username":"","password":""}', $rRtmp([]));
 	}
 
 	public function testAnEndpointsLinkSentAsAListIsNoLink(): void {

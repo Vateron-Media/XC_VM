@@ -2,19 +2,17 @@
 
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\BruteforceGuard;
+use XcVm\Core\Cluster\AgentClient;
 use XcVm\Core\Cluster\ViewerKey;
-use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Logging\DatabaseLogger;
 use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSource;
-use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\RtmpViewerAuth;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Auth\StreamAuth;
-use XcVm\Streaming\Delivery\StreamRedirector;
 use XcVm\Streaming\Protection\ConnectionLimiter;
 
 /**
@@ -63,214 +61,44 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 
 	if ($rNotify['call'] != 'publish') {
 		if ($rNotify['call'] != 'play_done') {
+			// A viewer's line is checked on MAIN: by MAIN's own check, or on a load
+			// balancer, which is not shipped the line lookup (Domain/User), by MAIN's
+			// through this node's agent (`rtmp_auth`, ADR 0004). A relay with the
+			// stream password, or from an allowed address, is let through as before.
+			$rUserInfo = null;
 			if (!(ViewerKey::passMatches($rSettings['live_streaming_pass'] ?? null, $rRequest['password'] ?? null) || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['pull'] && (!$rAllowed[$rIP]['password'] || AuthService::secretMatches($rAllowed[$rIP]['password'], $rRequest['password'] ?? null)))) {
-				if (isset($rRequest['tcurl']) && isset($rRequest['app'])) {
-					// A load balancer is not shipped the line lookup (Domain/User): it
-					// cannot tell who a viewer is, so it refuses one rather than crash
-					// on the missing class, which nginx-rtmp took for a yes.
-					if (!class_exists(UserRepository::class)) {
-						$rDeny = false;
-						http_response_code(404);
-
-						exit();
-					}
-
-					if (isset($rRequest['token'])) {
-						if (!ctype_xdigit($rRequest['token'])) {
-							$rTokenData = explode('/', (string) Encryption::readToken($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, true));
-							list($rUsername, $rPassword) = $rTokenData;
-							$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, true, false, $rIP);
-						} else {
-							$rAccessToken = $rRequest['token'];
-							$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rAccessToken, null, true, false, $rIP);
-						}
-					} else {
-						$rUsername = $rRequest['username'];
-						$rPassword = $rRequest['password'];
-
-						// A line's name and password are plain values: one sent as a list is no line's.
-						if (is_array($rUsername) || is_array($rPassword)) {
-							http_response_code(404);
-
-							exit();
-						}
-
-						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, true, false, $rIP);
-					}
-
-					$rExtension = 'rtmp';
-					$rExternalDevice = '';
-
-					if ($rUserInfo) {
-						$rDeny = false;
-
-						if (is_null($rUserInfo['exp_date']) || $rUserInfo['exp_date'] > time()) {
-							if ($rUserInfo['admin_enabled'] != 0) {
-								if ($rUserInfo['enabled'] != 0) {
-									if (empty($rUserInfo['allowed_ips']) || in_array($rIP, array_map('gethostbyname', $rUserInfo['allowed_ips']))) {
-										$rCountryCode = GeoIPService::getIPInfo($rIP)['country']['iso_code'];
-
-										if (empty($rCountryCode)) {
-										} else {
-											$rForceCountry = !empty($rUserInfo['forced_country']);
-
-											if (!($rForceCountry && $rUserInfo['forced_country'] != 'ALL' && $rCountryCode != $rUserInfo['forced_country'])) {
-												if ($rForceCountry || in_array('ALL', $rSettings['allow_countries']) || in_array($rCountryCode, $rSettings['allow_countries'])) {
-												} else {
-													DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
-													http_response_code(404);
-
-													exit();
-												}
-											} else {
-												DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'COUNTRY_DISALLOW', $rIP);
-												http_response_code(404);
-
-												exit();
-											}
-										}
-
-										if (!isset($rUserInfo['ip_limit_reached'])) {
-											if (in_array($rExtension, $rUserInfo['output_formats'])) {
-												if (in_array($rStreamID, $rUserInfo['channel_ids'])) {
-													if ($rUserInfo['isp_violate'] != 1) {
-														if ($rUserInfo['isp_is_server'] != 1 || $rUserInfo['is_restreamer']) {
-															if (!$rRestreamDetect || $rUserInfo['is_restreamer']) {
-																if (!($rChannelInfo = StreamRedirector::redirectStream($rCached, $rSettings, $rServers, $rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserInfo['con_isp_name'], 'live'))) {
-																} else {
-																	if (!$rChannelInfo['redirect_id'] || $rChannelInfo['redirect_id'] == SERVER_ID) {
-																		if (ProcessManager::isStreamAlive($rChannelInfo['pid'], $rStreamID)) {
-																		} else {
-																			if ($rChannelInfo['on_demand'] == 1) {
-																				if (StreamProcess::isWatched($rStreamID, $rChannelInfo['monitor_pid'])) {
-																				} else {
-																					StreamProcess::startMonitor($rStreamID);
-																					sleep(5);
-																				}
-																			} else {
-																				http_response_code(404);
-
-																				exit();
-																			}
-																		}
-
-																		if ($rSettings['redis_handler']) {
-																			RedisManager::ensureConnected();
-																		}
-																		$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
-																		$rConnectionData = ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'date_start' => $rLastRead, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => $rChannelInfo['on_demand'], 'identity' => $rUserInfo['id'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid'])];
-																		// The table path keeps its own date_start (the node's clock), as it always did.
-																		// No stream token, so no claim: a limited line is admitted by the agent asking MAIN (conn_admit).
-																		$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid']), 'date_start' => time(), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_last_read' => $rLastRead], ['user_info' => ['max_connections' => (int) $rUserInfo['max_connections']]], intval($rServers[SERVER_ID]['time_offset']));
-
-																		if ($rResult) {
-																			StreamAuth::validateConnections($rUserInfo, false, '', $rIP, null, ConnectionTracker::rtmpUuid($rNotify['clientid']));
-																			http_response_code(200);
-
-																			exit();
-																		}
-
-																		$rRefused = ConnectionTracker::refusedAdmission();
-																		if ($rRefused !== null) {
-																			// Logged as the other endpoints log it; RTMP has no video to show.
-																			DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], StreamAuth::admissionRefusal($rRefused)[0], $rIP, 'admission: ' . $rRefused);
-																			http_response_code(404);
-
-																			exit();
-																		}
-
-																		DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $rSettings['redis_handler'] ? 'redis unavailable: connection tracking write failed' : $db->error());
-																		http_response_code(404);
-
-																		exit();
-																	}
-
-																	http_response_code(404);
-
-																	exit();
-																}
-															} else {
-																if (!$rSettings['detect_restream_block_user']) {
-																} else {
-																	$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `id` = ?;', $rUserInfo['id']);
-																}
-
-																DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'RESTREAM_DETECT', $rIP);
-																http_response_code(404);
-
-																exit();
-															}
-														} else {
-															DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'BLOCKED_ASN', $rIP, json_encode(['user_agent' => '', 'isp' => $rUserInfo['con_isp_name'], 'asn' => $rUserInfo['isp_asn']]), true);
-															http_response_code(404);
-
-															exit();
-														}
-													} else {
-														DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'ISP_LOCK_FAILED', $rIP, json_encode(['old' => $rUserInfo['isp_desc'], 'new' => $rUserInfo['con_isp_name']]));
-														http_response_code(404);
-
-														exit();
-													}
-												} else {
-													DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'NOT_IN_BOUQUET', $rIP);
-													http_response_code(404);
-
-													exit();
-												}
-											} else {
-												DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISALLOW_EXT', $rIP);
-												http_response_code(404);
-
-												exit();
-											}
-										} else {
-											DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_ALREADY_CONNECTED', $rIP);
-											http_response_code(404);
-
-											exit();
-										}
-									} else {
-										DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'IP_BAN', $rIP);
-										http_response_code(404);
-
-										exit();
-									}
-								} else {
-									DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_DISABLED', $rIP);
-									http_response_code(404);
-
-									exit();
-								}
-							} else {
-								DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_BAN', $rIP);
-								http_response_code(404);
-
-								exit();
-							}
-						} else {
-							DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'USER_EXPIRED', $rIP);
-							http_response_code(404);
-
-							exit();
-						}
-					} else {
-						if (!isset($rUsername)) {
-						} else {
-							BruteforceGuard::checkBruteforce($rIP, null, $rUsername, false, $rPassword ?? null);
-						}
-
-						DatabaseLogger::clientLog($rStreamID, 0, 'AUTH_FAILED', $rIP);
-					}
-
+				if (!isset($rRequest['tcurl']) || !isset($rRequest['app'])) {
 					http_response_code(404);
 
 					exit();
 				}
 
-				http_response_code(404);
+				// The link's credentials. A line's name and password, or its token, are
+				// plain values: one sent as a list is no line's.
+				$rCreds = isset($rRequest['token']) ? ['token' => $rRequest['token']] : ['username' => $rRequest['username'] ?? '', 'password' => $rRequest['password'] ?? ''];
+				if (count(array_filter($rCreds, 'is_string')) !== count($rCreds)) {
+					http_response_code(404);
 
-				exit();
+					exit();
+				}
+
+				if (class_exists(RtmpViewerAuth::class)) {
+					$rAuth = RtmpViewerAuth::check($rSettings, (bool) $rCached, $rBouquets ?: [], $rServers, $rStreamID, $rIP, $rCreds, $rRestreamDetect, (int) SERVER_ID);
+				} else {
+					// No answer (no agent, an agent without the op, MAIN unreachable) refuses the viewer.
+					$rAuth = AgentClient::main('rtmp_auth', ['stream_id' => $rStreamID, 'ip' => $rIP, 'restream' => $rRestreamDetect] + $rCreds, 6.0) ?? ['ok' => false, 'reason' => 'NO_ANSWER'];
+				}
+
+				if (($rAuth['ok'] ?? false) !== true || !is_array($rAuth['user'] ?? null)) {
+					// Only credentials that name no line count against the address.
+					$rDeny = ($rAuth['reason'] ?? '') === 'AUTH_FAILED';
+					http_response_code(404);
+
+					exit();
+				}
+
+				$rUserInfo = $rAuth['user'];
+				$rCountryCode = (string) ($rAuth['country_code'] ?? '');
 			}
 
 			$rDeny = false;
@@ -282,23 +110,56 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 				$rChannelInfo = $db->get_row();
 			}
 
-			if ($rChannelInfo) {
-				if (ProcessManager::isStreamAlive($rChannelInfo['pid'], $rStreamID)) {
-				} else {
-					if ($rChannelInfo['on_demand'] == 1) {
-						if (StreamProcess::isWatched($rStreamID, $rChannelInfo['monitor_pid'])) {
-						} else {
-							StreamProcess::startMonitor($rStreamID);
-							sleep(5);
-						}
-					} else {
-						http_response_code(404);
+			if (!$rChannelInfo) {
+				// A viewer of a stream this server does not hold is refused; a relay is let through, as before.
+				http_response_code($rUserInfo === null ? 200 : 404);
 
-						exit();
-					}
+				exit();
+			}
+
+			if (!ProcessManager::isStreamAlive($rChannelInfo['pid'], $rStreamID)) {
+				if ($rChannelInfo['on_demand'] != 1) {
+					http_response_code(404);
+
+					exit();
 				}
 
-				http_response_code(200);
+				if (!StreamProcess::isWatched($rStreamID, $rChannelInfo['monitor_pid'])) {
+					StreamProcess::startMonitor($rStreamID);
+					sleep(5);
+				}
+			}
+
+			if ($rUserInfo !== null) {
+				$rExtension = 'rtmp';
+				$rExternalDevice = '';
+				if ($rSettings['redis_handler']) {
+					RedisManager::ensureConnected();
+				}
+				$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
+				$rConnectionData = ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'date_start' => $rLastRead, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => $rChannelInfo['on_demand'], 'identity' => $rUserInfo['id'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid'])];
+				// The table path keeps its own date_start (the node's clock), as it always did.
+				// No stream token, so no claim: a limited line is admitted by the agent asking MAIN (conn_admit).
+				$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid']), 'date_start' => time(), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_last_read' => $rLastRead], ['user_info' => ['max_connections' => (int) $rUserInfo['max_connections']]], intval($rServers[SERVER_ID]['time_offset']));
+
+				if ($rResult) {
+					StreamAuth::validateConnections($rUserInfo, false, '', $rIP, null, ConnectionTracker::rtmpUuid($rNotify['clientid']));
+					http_response_code(200);
+
+					exit();
+				}
+
+				$rRefused = ConnectionTracker::refusedAdmission();
+				if ($rRefused !== null) {
+					// Logged as the other endpoints log it; RTMP has no video to show.
+					DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], StreamAuth::admissionRefusal($rRefused)[0], $rIP, 'admission: ' . $rRefused);
+					http_response_code(404);
+
+					exit();
+				}
+
+				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $rSettings['redis_handler'] ? 'redis unavailable: connection tracking write failed' : $db->error());
+				http_response_code(404);
 
 				exit();
 			}

@@ -347,7 +347,7 @@ final class ClusterPoolTest extends TestCase {
 			$this->assertContains($rOp, array_merge(ClusterPool::CTL_OPS, ClusterPool::INGEST_OPS), $rOp . ' needs a lane');
 		}
 		$this->assertSame([], array_intersect(ClusterPool::CTL_OPS, ClusterPool::INGEST_OPS));
-		$this->assertCount(24, array_merge(ClusterPool::CTL_OPS, ClusterPool::INGEST_OPS), "the plan's 24 ops");
+		$this->assertCount(25, array_merge(ClusterPool::CTL_OPS, ClusterPool::INGEST_OPS), "the plan's 24 ops and rtmp_auth");
 		$this->assertSame('cluster_ctl', ClusterPool::poolFor('commands'), 'the long-poll');
 		$this->assertSame('cluster_ctl', ClusterPool::poolFor('heartbeat'));
 		$this->assertSame('cluster_ingest', ClusterPool::poolFor('events'));
