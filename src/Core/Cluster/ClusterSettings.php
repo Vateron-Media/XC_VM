@@ -18,7 +18,8 @@ use XcVm\Domain\Cluster\DbAllowlist;
  * - `cluster_transport = https_required` without working HTTPS (the
  *   self-probe, and every active node reporting HTTPS);
  * - `cluster_api_enabled = 1` without the extension's cluster API;
- * - `lb_new_node_mode = api` before Phase 9;
+ * - `lb_new_node_mode = api` with the Redis connection handler on, or an
+ *   extension that cannot pack a credential-free config;
  * - a scan root that is not an absolute, normalised path;
  * - a database allowlist entry that is not an IP or CIDR.
  *
@@ -179,8 +180,8 @@ final class ClusterSettings {
 	 * Is a new load balancer installed in API mode (plan, section 12: mode 2
 	 * from its first boot, no DB grant, a credential-free config.enc)? Only
 	 * with the cluster API on and `lb_new_node_mode = api` — which normalize()
-	 * refuses until the cutover (`api_mode_allowed`) and without an extension
-	 * that packs such a config (CredentialFreeConfig).
+	 * refuses with the Redis connection handler on (`api_mode_allowed`) and
+	 * without an extension that packs such a config (CredentialFreeConfig).
 	 *
 	 * @param array<string, mixed> $rSettings
 	 */
