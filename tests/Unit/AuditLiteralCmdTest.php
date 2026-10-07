@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use XcVm\Cli\Commands\ServerDiagnoseCommand;
 use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\CronJobs\RootSignalsCronJob;
 
@@ -22,6 +23,10 @@ final class AuditLiteralCmdTest extends TestCase {
 			'the install of root\'s crontab' => [StartupCommand::class, 'installRootCrontab'],
 			'the flush of the panel\'s blocks' => [RootSignalsCronJob::class, 'unblockAll'],
 			'the removal of the blocks in one commit' => [RootSignalsCronJob::class, 'unblockTogether'],
+			'the sync of the blocks into ipset' => [RootSignalsCronJob::class, 'syncSets'],
+			'the refill of a set' => [RootSignalsCronJob::class, 'restoreSet'],
+			'a block rule by rule' => [RootSignalsCronJob::class, 'blockip'],
+			'the look for an address in a set' => [ServerDiagnoseCommand::class, 'iptablesBlocks'],
 		];
 	}
 

@@ -114,6 +114,7 @@ Some tests need a real component or a particular build and skip without it. They
 | `XCVM_TEST_FPM` | `ClusterPoolTest::testRealPhpFpm*` | a php-fpm binary, e.g. `/home/xc_vm/bin/php/sbin/php-fpm` |
 | `XCVM_AGENT_BIN` | `LbProvisionClusterTest::testWithTheRealAgent` | an `xc_agent` binary |
 | `XCVM_TEST_NETNS=1` | `DbAllowlistTest::testInANetworkNamespace` (real iptables) | root, `unshare` and `iptables` |
+| `XCVM_TEST_NETNS=1` | `AuditRootCronFirewallFlushTest`'s network-namespace tests (real iptables, and ipset for the blocks' sets) | root, `unshare`, `iptables` and `ipset` |
 | `XCVM_CONFIG_DIR` | `ClusterExtensionIntegrationTest` | an empty directory under the temp dir; needs a test-hooks `xcvm_core` loaded |
 | `XCVM_EXT_SO` | `ClusterDrTest::testWithTheRealExtension` | the path of a test-hooks `xcvm_core.so` |
 | `XCVM_CLUSTER_API_REAL=1` | `ClusterApiTest` against the real extension instead of its fake (with `XCVM_CONFIG_DIR`) | — |

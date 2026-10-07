@@ -49,8 +49,11 @@ final class ModeTwoPathsTest extends TestCase {
 		}
 		// As root, a node's audits write as the owner of config/cluster/.
 		AgentUser::own($this->rHome);
-		foreach (['sudo', 'crontab', 'ip'] as $rTool) {
-			file_put_contents($this->rHome . 'stub/' . $rTool, "#!/bin/sh\necho \"" . $rTool . " \$*\" >> " . escapeshellarg($this->rHome . 'commands.log') . "\n" . ($rTool === 'sudo' ? self::spoolCount($this->rHome) : '') . "exit 0\n");
+		// ipset too, whether or not this machine has it: the minute syncs the blocks into its sets
+		// (RootSignalsCronJob::syncSets), and sudo logs the list a restore is given.
+		foreach (['sudo', 'crontab', 'ip', 'ipset'] as $rTool) {
+			$rRestore = $rTool === 'sudo' ? "[ \"\$*\" != 'ipset restore' ] || cat >> " . escapeshellarg($this->rHome . 'commands.log') . "\n" : '';
+			file_put_contents($this->rHome . 'stub/' . $rTool, "#!/bin/sh\necho \"" . $rTool . " \$*\" >> " . escapeshellarg($this->rHome . 'commands.log') . "\n" . $rRestore . ($rTool === 'sudo' ? self::spoolCount($this->rHome) : '') . "exit 0\n");
 			chmod($this->rHome . 'stub/' . $rTool, 0755);
 		}
 		// What the node runs today: two PHP-FPM pools (the replica says four),
@@ -173,7 +176,7 @@ final class ModeTwoPathsTest extends TestCase {
 			use XcVm\Core\Http\RequestManager;
 
 			// Nothing runs unless the stand-ins answer for sudo, crontab and ip.
-			foreach (['sudo', 'crontab', 'ip'] as $rTool) {
+			foreach (['sudo', 'crontab', 'ip', 'ipset'] as $rTool) {
 				if (trim((string) shell_exec('command -v ' . $rTool)) !== getenv('XCVM_TEST_HOME') . 'stub/' . $rTool) {
 					echo "\nRESULT:" . json_encode(['error' => 'unsafe: ' . $rTool . ' is not the stand-in']) . "\n";
 					exit(1);
@@ -405,7 +408,8 @@ final class ModeTwoPathsTest extends TestCase {
 		], $rResult['ran'][0]);
 		$this->assertSame([], $rResult['ran'][1], 'checked once per change of the replica, not every minute');
 		$this->assertStringContainsString('Updating Crons...', $rResult['output'][0], 'the replica\'s jobs, not MAIN\'s table');
-		$this->assertContains('sudo iptables -I INPUT -s 203.0.113.1 -j DROP', $this->commands(), 'the blocklist from the replica');
+		$this->assertContains('add xcvm_block4_new 203.0.113.1', $this->commands(), 'the blocklist from the replica, into the set');
+		$this->assertContains('sudo iptables -I INPUT -m set --match-set xcvm_block4 src -j DROP', $this->commands());
 		$this->assertSame([], preg_grep('/^ip /', $this->commands()), 'no server IP check on a node');
 		// This fixture's node has every flow, the data plane included, but MAIN
 		// is no node and still reads the node's files with getFile (a source
