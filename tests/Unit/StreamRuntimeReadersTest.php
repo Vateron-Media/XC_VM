@@ -588,6 +588,11 @@ final class StreamRuntimeReadersTest extends TestCase {
 			'POST /v1/conn/find HTTP/1.0 {"match":{"stream_id":10,"hls_end":0}}',
 			'POST /v1/conn/find HTTP/1.0 {"match":{"stream_id":16,"hls_end":0}}',
 		]], $rViewers([[405, '{}'], [200, '{"uuid":"v1","stream_id":10,"hls_end":0}'], [404, '{}']]), 'an agent from before counts');
+		// One that stops answering is not asked again stream by stream, each a whole timeout.
+		$this->assertSame([[10 => 1, 16 => 1], [
+			'POST /v1/conn/counts HTTP/1.0 {"stream_ids":[10,16]}',
+			'POST /v1/conn/find HTTP/1.0 {"match":{"stream_id":10,"hls_end":0}}',
+		]], $rViewers([[405, '{}'], ['---', '{}'], [404, '{}']]), 'an unanswered find ends the pass');
 		// No agent to answer: counted as watched.
 		AgentClient::useSocket($this->rDir . 'gone.sock');
 		$this->assertSame([10 => 1], NodeStreams::viewers([10]));

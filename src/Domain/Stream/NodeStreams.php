@@ -297,9 +297,15 @@ final class NodeStreams {
 		if ($rCounts !== null) {
 			return $rCounts;
 		}
+		// An agent from before counts() is asked stream by stream. One that does
+		// not answer is asked no more this pass (each call would wait its whole
+		// timeout): the rest are counted as watched, as an unanswered one is.
 		$rOut = [];
+		$rAnswering = true;
 		foreach ($rStreamIDs as $rID) {
-			$rOut[$rID] = AgentConnections::find(['stream_id' => $rID, 'hls_end' => 0]) === false ? 0 : 1;
+			$rFound = $rAnswering ? AgentConnections::find(['stream_id' => $rID, 'hls_end' => 0]) : null;
+			$rAnswering = $rFound !== null;
+			$rOut[$rID] = $rFound === false ? 0 : 1;
 		}
 		return $rOut;
 	}

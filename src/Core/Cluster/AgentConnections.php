@@ -9,8 +9,11 @@ namespace XcVm\Core\Cluster;
  * the agent mirrors every change to MAIN as a P0 event, so MAIN's store stays
  * current for the reaper, the limits and the admin.
  *
- * Every call answers null when the agent did not: the caller then uses MAIN's
- * store for that call, and the viewer is never held up by the agent.
+ * Every call answers null when the agent did not. In mode 0 and 1 the caller
+ * then uses MAIN's store for that call, after at most TIMEOUT. In mode 2
+ * (NodeRole::refusesConnects()) the agent is the node's only store: a call
+ * waits up to SOLE_TIMEOUT, and one it still misses never goes to MAIN's store;
+ * ConnectionTracker refuses the request or fails the write instead.
  */
 final class AgentConnections {
 	/** The stream endpoints' hot path: the agent answers in well under this. */
