@@ -5462,6 +5462,32 @@ The design is `docs/superpowers/specs/2026-10-01-per-node-viewer-keys-design.md`
   - the section's `relay_seal` and `box_pub`.
 - XC_VM_CoreExtention `ClusterApiTest`: a relay key opens with the panel box key, for its stream only.
 
+### An RTMP viewer while MAIN does not answer (2026-10-07)
+
+An HTTP viewer brings a token the node reads with its own key, so MAIN's absence touches only its
+admission (`lb_offline_admission`, the agent's). An RTMP viewer brings only its line's credentials,
+which MAIN alone can check (`rtmp_auth`): with MAIN unreachable, every RTMP viewer was refused.
+
+**Built.**
+- `RtmpOffline::ask()` makes the node's `rtmp_auth` call. A yes from MAIN is kept for the same
+  credentials, stream, viewer address and restream flag. It stands in for MAIN for ten minutes
+  (`TTL`), and only when the agent could not reach MAIN (its 502): never when MAIN refused (409:
+  a quarantined, revoked or refused node), nor when the agent did not answer. Any other answer
+  from MAIN forgets it, so a line refused since is refused again as soon as MAIN answers.
+- It is not taken under `lb_offline_admission = deny` (the setting now reaches the node's PHP
+  with its replica), on a node whose state is not `active` (`flows.json`), on a node whose lease
+  refuses new sessions (`NodeLease`, a lapsed lease or a fence), or past the line's expiry
+  (`exp_date`, which MAIN's answer now carries).
+- Kept as files in `TMP_PATH/rtmp_offline/`, named by an HMAC under a key of the node's own
+  (`.key`, 0600): no credential is written. `cron:cleanup` drops what is past the window.
+- Such a viewer is recorded without MAIN's mint, with its line's limit, so its admission is the
+  agent's offline policy's, as an HTTP viewer's is. Under `cluster_conn_binding = enforce` its
+  record is unproven when MAIN hears of it.
+
+**Not built / limits.**
+- A viewer MAIN never said yes to on this node, at this address, in the last ten minutes is
+  refused, as before.
+- A line disabled or banned while MAIN cannot be reached plays on for at most the ten minutes.
 ### Proxies on a signed channel (D8)
 
 **Before:** a proxy's cron (XC_VM_Proxy's `callback.php`) posted its stats to MAIN's `/admin/proxy_api` once a minute, unsigned. It then ran whatever signals came back: reboot, restart or stop the services, block or unblock an IP, flush the firewall, reload nginx. MAIN trusted the request's source address (the Phase 0 stop-gap), and the proxy trusted the answer. Lockdown counted every proxy as a blocker, since one might still use MAIN's database, and the DB allowlist kept every proxy on 3306/6379.
@@ -5574,32 +5600,6 @@ which server held it open.
 - **Proxies** keep every node's `/api` open: a proxy is never a node of the signed node list,
   which legacyApiRetired() requires of every server.
 
-### An RTMP viewer while MAIN does not answer (2026-10-07)
-
-An HTTP viewer brings a token the node reads with its own key, so MAIN's absence touches only its
-admission (`lb_offline_admission`, the agent's). An RTMP viewer brings only its line's credentials,
-which MAIN alone can check (`rtmp_auth`): with MAIN unreachable, every RTMP viewer was refused.
-
-**Built.**
-- `RtmpOffline::ask()` makes the node's `rtmp_auth` call. A yes from MAIN is kept for the same
-  credentials, stream, viewer address and restream flag. It stands in for MAIN for ten minutes
-  (`TTL`), and only when the agent could not reach MAIN (its 502): never when MAIN refused (409:
-  a quarantined, revoked or refused node), nor when the agent did not answer. Any other answer
-  from MAIN forgets it, so a line refused since is refused again as soon as MAIN answers.
-- It is not taken under `lb_offline_admission = deny` (the setting now reaches the node's PHP
-  with its replica), on a node whose state is not `active` (`flows.json`), on a node whose lease
-  refuses new sessions (`NodeLease`, a lapsed lease or a fence), or past the line's expiry
-  (`exp_date`, which MAIN's answer now carries).
-- Kept as files in `TMP_PATH/rtmp_offline/`, named by an HMAC under a key of the node's own
-  (`.key`, 0600): no credential is written. `cron:cleanup` drops what is past the window.
-- Such a viewer is recorded without MAIN's mint, with its line's limit, so its admission is the
-  agent's offline policy's, as an HTTP viewer's is. Under `cluster_conn_binding = enforce` its
-  record is unproven when MAIN hears of it.
-
-**Not built / limits.**
-- A viewer MAIN never said yes to on this node, at this address, in the last ten minutes is
-  refused, as before.
-- A line disabled or banned while MAIN cannot be reached plays on for at most the ten minutes.
 ### Mode 2 with the Redis connection handler (2026-10-07)
 
 Mode 2 was refused everywhere while the Redis connection handler was on: the move to mode 2,
