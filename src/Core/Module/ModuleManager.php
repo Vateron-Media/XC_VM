@@ -2329,6 +2329,40 @@ class ModuleManager {
 	}
 
 	/**
+	 * Look for a newer version of every installed module at its declared source
+	 * and record it (or clear a stale flag). A source that does not answer keeps
+	 * the flag it had: clearing it would hide a real update until the next check.
+	 * ModuleUpdatesCronJob runs it weekly, the modules page on demand.
+	 *
+	 * @return array{found: list<string>, failed: list<string>, checked: int}
+	 *         found: "name (installed -> latest)"; failed: "name: reason"
+	 */
+	public function checkUpdates(?ModuleUpdateChecker $rChecker = null): array {
+		$rChecker ??= new ModuleUpdateChecker();
+		$rResult  = ['found' => [], 'failed' => [], 'checked' => 0];
+
+		foreach ($this->listModules() as $rModule) {
+			$rInstalled = (string) ($rModule['installed_version'] ?? '');
+			if ($rInstalled === '') {
+				continue;
+			}
+			$rResult['checked']++;
+			$rLatest = $rChecker->latestAvailable($rModule);
+
+			if ($rLatest !== null && version_compare($rLatest, $rInstalled, '>')) {
+				$this->recordAvailableVersion($rModule['name'], $rLatest);
+				$rResult['found'][] = $rModule['name'] . ' (' . $rInstalled . ' -> ' . $rLatest . ')';
+			} elseif ($rChecker->lastError() !== null) {
+				$rResult['failed'][] = $rModule['name'] . ': ' . $rChecker->lastError();
+			} else {
+				$this->recordAvailableVersion($rModule['name'], null);
+			}
+		}
+
+		return $rResult;
+	}
+
+	/**
 	 * Load and return a module instance by name.
 	 *
 	 * @param string $name Module name.
@@ -2379,8 +2413,23 @@ class ModuleManager {
 			return [];
 		}
 
+		self::revalidate($this->overridesPath);
 		$data = require $this->overridesPath;
 		return is_array($data) ? $data : [];
+	}
+
+	/**
+	 * Drop OPcache's copy of a state file that changed on disk, before a require.
+	 *
+	 * nginx spreads the panel over four PHP-FPM masters, each with an OPcache of
+	 * its own (revalidate_freq 20). writeOverrides() invalidates only the master
+	 * that wrote, so the other three served, and booted, the old module state
+	 * for up to 20 s. Not forced: recompiled only when the mtime changed.
+	 */
+	public static function revalidate(string $rPath): void {
+		if (function_exists('opcache_invalidate')) {
+			opcache_invalidate($rPath);
+		}
 	}
 
 	/**

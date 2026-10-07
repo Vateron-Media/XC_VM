@@ -90,6 +90,7 @@ LB_FILES_TO_REMOVE := \
 	Cli/Commands/MigrateCommand.php \
 	Cli/Commands/DbMigrateCommand.php \
 	Cli/Commands/ModuleMigrateCommand.php \
+	Cli/Commands/ModuleJobCommand.php \
 	Cli/Commands/CacheHandlerCommand.php \
 	Cli/Commands/ServerInstallCommand.php \
 	Cli/Commands/ClusterInitCommand.php \

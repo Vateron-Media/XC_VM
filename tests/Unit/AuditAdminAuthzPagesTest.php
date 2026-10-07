@@ -19,9 +19,10 @@ use XcVm\Core\Reference\PermissionReference;
  */
 final class AuditAdminAuthzPagesTest extends TestCase {
 	/** The Modules page asked to do something, from its own form. */
-	private const MODULES = '$_SERVER["REQUEST_METHOD"] = "POST"; define("PAGE_NAME", "modules");'
-		. ' \XcVm\Core\Http\RequestManager::set(["module_action" => "none", "module_name" => "x"]);'
-		. ' (new \XcVm\Public\Controllers\Admin\ModulesController())->index();';
+	private const MODULES = 'define("PAGE_NAME", "modules"); (new \XcVm\Public\Controllers\Admin\ModulesController())->index();';
+
+	/** The modules page's list of modules and its background job. */
+	private const MODULE_STATUS = 'define("CACHE_TMP_PATH", sys_get_temp_dir() . "/"); (new \XcVm\Public\Controllers\Admin\Ajax\ModuleAjaxController())->status();';
 
 	/** The form of an EPG source that does not exist: an allowed request ends there, unanswered. */
 	private const EPG = 'define("PAGE_NAME", "%s"); $db->exec("CREATE TABLE `epg` (`id` int PRIMARY KEY)");'
@@ -106,10 +107,11 @@ final class AuditAdminAuthzPagesTest extends TestCase {
 		$rAllButSettings = array_values(array_diff(PermissionReference::keys(), ['settings']));
 		$this->assertSame(['302', ''], $this->request(self::MODULES, $rAllButSettings), 'sent home with every permission but settings');
 
-		$rHandled = ['false', '{"type":"info","message":"No action taken"}'];
-		$this->assertSame($rHandled, $this->request(self::MODULES, ['settings']), 'with settings');
-		$this->assertSame($rHandled, $this->request(self::MODULES, ['ticket'], 1), 'group 1');
-		$this->assertSame($rHandled, $this->request(self::MODULES, []), 'a group that lists no permissions');
+		foreach ([[['settings'], 5], [['ticket'], 1], [[], 5]] as [$rAdvanced, $rGroup]) {
+			// Past the gate the page starts rendering (the shell needs more of a
+			// request than this child has, so only its start is looked at).
+			$this->assertStringStartsWith('<!doctype html>', $this->request(self::MODULES, $rAdvanced, $rGroup)[1], 'the page for group ' . $rGroup . ' with ' . implode(',', $rAdvanced));
+		}
 	}
 
 	public function testTheEpgSourceFormTakesTheEpgPermissions(): void {
@@ -182,13 +184,12 @@ final class AuditAdminAuthzPagesTest extends TestCase {
 		}
 	}
 
-	public function testTheTableOfModulesTakesThePermissionOfTheModulesPage(): void {
-		$rTable = sprintf(self::TABLE, 'handleModules');
+	public function testTheListOfModulesTakesThePermissionOfTheModulesPage(): void {
 		$rAllButSettings = array_values(array_diff(PermissionReference::keys(), ['settings']));
-		$this->assertSame('', $this->request($rTable, $rAllButSettings)[1], 'nothing with every permission but settings');
+		$this->assertSame('{"result":false}', $this->request(self::MODULE_STATUS, $rAllButSettings)[1], 'refused with every permission but settings');
 
 		foreach ([[['settings'], 5], [['ticket'], 1], [[], 5]] as [$rAdvanced, $rGroup]) {
-			$this->assertStringStartsWith('{"draw":1,', $this->request($rTable, $rAdvanced, $rGroup)[1], 'the modules for group ' . $rGroup . ' with ' . implode(',', $rAdvanced));
+			$this->assertStringStartsWith('{"result":true,"rows":', $this->request(self::MODULE_STATUS, $rAdvanced, $rGroup)[1], 'the modules for group ' . $rGroup . ' with ' . implode(',', $rAdvanced));
 		}
 	}
 

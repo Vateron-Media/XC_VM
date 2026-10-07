@@ -8,10 +8,8 @@ use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Enum\ClientFilter;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Module\TableRegistry;
 use XcVm\Core\Reference\StatusBadge;
 use XcVm\Core\Util\NetworkUtils;
@@ -102,9 +100,6 @@ class TableController extends BaseAdminController {
 		switch ($rType) {
 			case "lines":
 				$this->handleLines($rReturn, $rStart, $rLimit, $rIsAPI);
-				return;
-			case "modules":
-				$this->handleModules($rReturn, $rStart, $rLimit);
 				return;
 			case "active_codes":
 				$this->handleActiveCodes($rReturn, $rStart, $rLimit);
@@ -411,58 +406,6 @@ class TableController extends BaseAdminController {
 		}
 
 		$rReturn["data"] = $data;
-		echo json_encode($rReturn);
-		exit;
-	}
-
-	/**
-	 * id=modules — the installed/available module list.
-	 *
-	 * Unlike every other handler here the rows do not come from SQL:
-	 * ModuleManager reads manifests off disk and merges config/modules.php, so
-	 * the set is small and search/sort/paging are applied in PHP rather than
-	 * pushed into a query.
-	 */
-	private function handleModules($rReturn, $rStart, $rLimit) {
-		if (!Authorization::check("adv", "settings")) {
-			exit;
-		}
-
-		$rManager = new ModuleManager(container: ServiceContainer::getInstance());
-
-		$rRows = [];
-		foreach ($rManager->listModules() as $rModule) {
-			$rInstalled = (string) $rModule['installed_version'];
-			$rAvailable = ((string) $rModule['available_version']) ?: (string) $rModule['version'];
-
-			$rRows[] = [
-				'name'          => (string) $rModule['name'],
-				'description'   => (string) $rModule['description'],
-				'version'       => (string) $rModule['version'],
-				'requires_core' => (string) $rModule['requires_core'],
-				'enabled'       => (bool) $rModule['enabled'],
-				'state'         => $rModule['state']->value,
-				'installed'     => $rInstalled !== '',
-				'source'        => (string) $rModule['source'],
-				// Only advertise an update when the source really is ahead.
-				'update_to'     => ($rInstalled !== '' && version_compare($rAvailable, $rInstalled, '>')) ? $rAvailable : '',
-				'rollback_to'   => (string) $rModule['previous_version'],
-				'warnings'      => array_values($rModule['dependency_warnings']),
-			];
-		}
-
-		$rSearch = trim((string) (RequestManager::get('search')['value'] ?? ''));
-		if ($rSearch !== '') {
-			$rNeedle = mb_strtolower($rSearch);
-			$rRows = array_values(array_filter($rRows, static function (array $rRow) use ($rNeedle): bool {
-				return str_contains(mb_strtolower($rRow['name'] . ' ' . $rRow['description']), $rNeedle);
-			}));
-		}
-
-		$rReturn['recordsTotal'] = count($rRows);
-		$rReturn['recordsFiltered'] = count($rRows);
-		$rReturn['data'] = $rLimit > 0 ? array_slice($rRows, $rStart, $rLimit) : $rRows;
-
 		echo json_encode($rReturn);
 		exit;
 	}

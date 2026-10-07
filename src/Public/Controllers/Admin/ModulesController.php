@@ -3,12 +3,12 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Container\ServiceContainer;
-use XcVm\Core\Module\ModuleManager;
-use XcVm\Core\Module\ModuleUpdateChecker;
 
 /**
  * ModulesController — admin module management page.
+ *
+ * Renders the page only: the modules, their actions, the background job and
+ * the store are ModuleAjaxController's endpoints, which the page calls.
  *
  * @renders Views/admin/modules.php
  *
@@ -18,178 +18,14 @@ class ModulesController extends BaseAdminController {
 	public function index() {
 		$this->requirePermission();
 		// Installing or removing a module is system-level: the page takes the
-		// permission of the settings page, as its menu links and row actions do.
+		// permission of the settings page, as its menu links and actions do.
 		$this->requireAdvPermission('adv', 'settings');
-
-		$manager = new ModuleManager(container: ServiceContainer::getInstance());
-		$flash = null;
-
-		if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-			$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-				&& strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-			try {
-				$action = (string) $this->input('module_action', '');
-				$name = (string) $this->input('module_name', '');
-
-				switch ($action) {
-					case 'install':
-						$manager->installModule($name);
-						$flash = ['type' => 'success', 'message' => 'Module installed: ' . $name];
-						break;
-
-					case 'uninstall':
-						$manager->uninstallModule($name);
-						$flash = ['type' => 'warning', 'message' => 'Module uninstalled: ' . $name];
-						break;
-
-					case 'delete':
-						$manager->deleteModule($name);
-						$flash = ['type' => 'warning', 'message' => 'Module deleted: ' . $name];
-						break;
-
-					case 'enable':
-						$manager->setEnabled($name, true);
-						$flash = ['type' => 'success', 'message' => 'Module enabled: ' . $name];
-						break;
-
-					case 'disable':
-						$manager->setEnabled($name, false);
-						$flash = ['type' => 'warning', 'message' => 'Module disabled: ' . $name];
-						break;
-
-					case 'update':
-						$newVersion = $manager->updateModuleFromSource($name);
-						$flash = $newVersion !== null
-							? ['type' => 'success', 'message' => 'Module updated: ' . $name . ' -> ' . $newVersion]
-							: ['type' => 'info', 'message' => 'Nothing newer at the source for ' . $name . ' — already up to date.'];
-						break;
-
-					case 'platform_install':
-						$slug = trim((string) $this->input('module_slug', ''));
-						$key  = (string) (SettingsManager::get('platform_api_key') ?? '');
-
-						if ($key === '') {
-							throw new \RuntimeException('Set the platform API key before installing from the store.');
-						}
-						if ($slug === '') {
-							throw new \RuntimeException('Module slug is required.');
-						}
-
-						// Always install the latest approved version (resolved by the
-						// extension from the platform).
-						$manager->downloadFromPlatform($slug, '', $key);
-						$flash = ['type' => 'success', 'message' => 'Module installed from store (latest): ' . $slug];
-						break;
-
-					case 'platform_rollback':
-						$key = (string) (SettingsManager::get('platform_api_key') ?? '');
-						if ($key === '') {
-							throw new \RuntimeException('Set the platform API key before rolling back.');
-						}
-						$manager->rollbackFromPlatform($name, $key);
-						$flash = ['type' => 'success', 'message' => 'Module rolled back to previous version: ' . $name];
-						break;
-
-					case 'renew_license':
-						$key = (string) (SettingsManager::get('platform_api_key') ?? '');
-						if ($key === '') {
-							throw new \RuntimeException('Set the platform API key before renewing the license.');
-						}
-						if ($manager->renewModuleLicense($name, $key)) {
-							$flash = ['type' => 'success', 'message' => 'License renewed for: ' . $name];
-						} else {
-							$flash = ['type' => 'warning', 'message' => 'License not renewed for ' . $name . ' (platform licensing off, not entitled, or no server data).'];
-						}
-						break;
-
-					case 'check_updates':
-						// Same pass as ModuleUpdatesCronJob, triggered on demand:
-						// resolve the latest version from each installed module's
-						// declared source and record/clear available_version.
-						$checker = new ModuleUpdateChecker();
-						$found = [];
-						$failed = [];
-						$skipped = 0;
-						$checked = 0;
-
-						foreach ($manager->listModules() as $module) {
-							// Not installed → nothing to compare against; the table
-							// shows Install for these, not Update.
-							if (($module['installed_version'] ?? '') === '') {
-								$skipped++;
-								continue;
-							}
-
-							$checked++;
-							$installed = (string) $module['installed_version'];
-							$latest = $checker->latestAvailable($module);
-
-							if ($latest !== null && version_compare($latest, $installed, '>')) {
-								$manager->recordAvailableVersion($module['name'], $latest);
-								$found[] = $module['name'] . ' (' . $installed . ' -> ' . $latest . ')';
-							} elseif ($checker->lastError() !== null) {
-								// Source unreachable (e.g. GitHub API rate limit) —
-								// report it and keep any previously recorded flag
-								// instead of wiping it on a transient failure.
-								$failed[] = $module['name'] . ': ' . $checker->lastError();
-							} else {
-								$manager->recordAvailableVersion($module['name'], null);
-							}
-						}
-
-						$parts = [];
-						if ($found !== []) {
-							$parts[] = 'Updates available: ' . implode(', ', $found) . '.';
-						}
-						if ($failed !== []) {
-							$parts[] = 'Could not check ' . implode('; ', $failed) . '.';
-						}
-						if ($parts === []) {
-							$parts[] = 'All installed modules are up to date (' . $checked . ' checked'
-								. ($skipped ? ', ' . $skipped . ' not installed — skipped' : '') . ').';
-						}
-
-						$flash = [
-							'type'    => $found !== [] ? 'success' : ($failed !== [] ? 'warning' : 'info'),
-							'message' => implode(' ', $parts),
-						];
-						break;
-
-					case 'upload_install':
-						if (!isset($_FILES['module_zip']) || !is_array($_FILES['module_zip'])) {
-							throw new \RuntimeException('Zip file was not uploaded.');
-						}
-
-						if ((int) ($_FILES['module_zip']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-							throw new \RuntimeException('Upload failed.');
-						}
-
-						$tmp = (string) ($_FILES['module_zip']['tmp_name'] ?? '');
-						if ($tmp === '' || !is_uploaded_file($tmp)) {
-							throw new \RuntimeException('Uploaded file is invalid.');
-						}
-
-						$installedName = $manager->uploadAndInstall($tmp);
-						$flash = ['type' => 'success', 'message' => 'Module uploaded and installed: ' . $installedName];
-						break;
-				}
-			} catch (\Throwable $e) {
-				$flash = ['type' => 'danger', 'message' => $e->getMessage()];
-			}
-
-			if ($isAjax) {
-				header('Content-Type: application/json');
-				exit(json_encode($flash ?: ['type' => 'info', 'message' => 'No action taken']));
-			}
-		}
-
-		$modules = $manager->listModules();
 
 		$this->setTitle('Modules');
 		$this->render('modules', [
-			'modules' => $modules,
-			'moduleFlash' => $flash,
+			'hasStoreKey' => (string) (SettingsManager::get('platform_api_key') ?? '') !== '',
+			// The store the core extension talks to (its ini setting, else its default).
+			'storeUrl'    => rtrim((string) (ini_get('xcvm_core.server_url') ?: 'https://www.xcvm.tech'), '/'),
 		]);
 	}
 }
