@@ -46,6 +46,19 @@ scrape_configs:
 | `xcvm_last_run_age_seconds` | `job` (`root_cron`/`backup`/`cache`) | seconds since it last ran |
 | `xcvm_status_check` | `check` (`servers`, `clock`, `schema`, `crons`, `fanout`, `cluster`, `disk`, `backups`, `certs`, `cache`) | -1 off, 0 ok, 1 warning, 2 failing |
 
+With the cluster API on, the load balancers enrolled in it, as **Servers → Cluster Nodes** shows them:
+
+| Metric | Labels | Value |
+| --- | --- | --- |
+| `xcvm_cluster_node` | `server`, `name`, `state` (`active`/`quarantined`/…), `health` (`ok`/`suspect`/`offline`/`unknown`), `mode` | 1 |
+| `xcvm_cluster_node_last_seen_seconds` | `server`, `name` | seconds since MAIN last heard the node |
+| `xcvm_cluster_node_clock_offset_seconds` | `server`, `name` | the node's clock less MAIN's |
+| `xcvm_cluster_node_lane_lag_seconds` | `server`, `name`, `lane` (`p0`/`p1`) | how long the node's events on that lane have been delayed; 0 when they are not |
+| `xcvm_cluster_node_unreachable_urls` | `server`, `name` | MAIN addresses the node cannot reach |
+| `xcvm_cluster_node_streams_local` | `server`, `name` | 1 when the node reads its streams on itself, 0 when not (only nodes that report it) |
+| `xcvm_cluster_node_commands_queued` | `server`, `name` | commands MAIN queued for the node and it has not acknowledged |
+| `xcvm_cluster_command_latency_seconds` | `stage` (`deliver`/`ack`), `quantile` (`0.5`/`0.99`) | seconds from queueing a command to its delivery or acknowledgement, over the last window |
+
 Both are computed at most every 15 seconds; a faster scrape gets the same answer. Per-stream metrics are left out: with thousands of streams they would swamp Prometheus.
 
 ## Alerts
@@ -79,6 +92,7 @@ Secrets (the bot token, the signing secret, the SMTP password) are never shown a
 | Memory use is high | a server's memory stays at 90 % or more for 10 minutes | on |
 | Disk use is high | a server's disk is 90 % full or more | on |
 | A Service Status check is failing | a check of the dashboard's **Service Status** card turns red (a server down is the first rule's) | on |
+| A load balancer needs attention | for 5 minutes, a load balancer of the cluster API is quarantined, its events are delayed, it is in mode 2 but not reading its streams on itself, its clock is off, it cannot reach MAIN at an address, or its relay proxy is down (one message per load balancer and problem; one that stopped answering is the first rule's) | on |
 
 The threshold and the minutes can be changed per rule, and each rule can go to some channels only (none chosen: every enabled channel). A subject that fired is not announced again for 15 minutes, so a server that flaps gives one message, not one a minute. The subjects of one rule that fire in the same minute go out as one message, which names 20 at most. A rule switched off sends no *resolved* message for what it reported.
 
