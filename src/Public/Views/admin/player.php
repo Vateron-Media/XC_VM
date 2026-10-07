@@ -44,28 +44,20 @@ if (RequestManager::has('id')) {
             $db->query('SELECT `server_id`, `on_demand` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE (`streams`.`direct_source` = 0 AND `streams_servers`.`pid` > 0 AND `streams_servers`.`to_analyze` = 0 AND `streams_servers`.`stream_status` <> 1) AND `stream_id` = ?;', RequestManager::get('id'));
         }
 
-        $rOnDemand = false;
         $rServerID = null;
 
         foreach ($db->get_rows() as $rRow) {
             if ($rRow['server_id'] == SERVER_ID || !$rServerID) {
                 $rServerID = $rRow['server_id'];
             }
-
-            $rOnDemand = $rRow['on_demand'];
         }
 
         if ($rServerID) {
             $rUIToken = ViewerKey::mint(json_encode($rTokenData), $rServers, (int) $rServerID, SettingsManager::getAll());
 
-            if ($rOnDemand) {
-                $rStartURL = 'http://' . $rServers[$rServerID]['server_ip'] . ':' . $rServers[$rServerID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::get('live_streaming_pass') . '&stream=' . intval(RequestManager::get('id')) . '&extension=.m3u8&odstart=1';
-
-                if (intval(@file_get_contents($rStartURL, false, stream_context_create(array('http' => array('timeout' => 20))))) == 0) {
-                    exit();
-                }
-            }
-
+            // An on-demand stream starts on the browser's first request: the
+            // uitoken path of admin/live runs the same start, so MAIN sends the
+            // node no stream password.
             $rURL = $rProtocol . '://' . (($rServers[$rServerID]['domain_name'] ? explode(',', $rServers[$rServerID]['domain_name'])[0] : $rServers[$rServerID]['server_ip'])) . ':' . ((AdminHelpers::issecure() ? $rServers[$rServerID]['https_broadcast_port'] : $rServers[$rServerID]['http_broadcast_port'])) . '/admin/' . ((RequestManager::get('type') == 'live' ? 'live' : (RequestManager::get('type') == 'timeshift' ? 'timeshift' : 'vod'))) . '?uitoken=' . $rUIToken . ((RequestManager::get('type') == 'live' ? '&extension=.m3u8' : ''));
 
             // canPlayType() rejects made-up MIMEs like video/mkv, so unknown containers

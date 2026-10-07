@@ -8,7 +8,9 @@ use XcVm\Core\Cluster\RelayGuard;
  * A node's own loopback pull (the recorder reading its own /admin/live and
  * /admin/timeshift) carries a token only that node can mint, for one stream,
  * rather than the fleet's live_streaming_pass; RelayGuard takes it from
- * 127.0.0.1 or ::1 only (ADR 0004, Phase 8).
+ * 127.0.0.1 or ::1 only (ADR 0004, Phase 8). MAIN's admin player sends a
+ * node no password either: an on-demand stream starts on the browser's own
+ * uitoken request.
  */
 final class LoopbackTokenTest extends TestCase {
 	private string $rDir;
@@ -42,5 +44,12 @@ final class LoopbackTokenTest extends TestCase {
 		$this->assertNull(RelayGuard::admit(7, $rToken, '10.0.0.4', []), 'from another address: refused, never taken as the password');
 		$this->assertNull(RelayGuard::admit(8, $rToken, '127.0.0.1', []), 'another stream');
 		$this->assertNull(RelayGuard::admit(7, $rToken, '127.0.0.1', [], false), 'an endpoint that takes no password (thumb)');
+	}
+
+	public function testTheAdminPlayerSendsTheNodeNoStreamPassword(): void {
+		$rRoot = dirname(__DIR__, 2) . '/src/Public/';
+		$this->assertStringNotContainsString('live_streaming_pass', (string) file_get_contents($rRoot . 'Views/admin/player.php'));
+		$rLive = (string) file_get_contents($rRoot . 'admin/live.php');
+		$this->assertGreaterThan(strpos($rLive, '$rLocal = StreamSource::local();'), strpos($rLive, 'StreamProcess::startMonitor('), 'the on-demand start follows every admission, the uitoken one included');
 	}
 }

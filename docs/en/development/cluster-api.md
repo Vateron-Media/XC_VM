@@ -329,9 +329,12 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
     (`servers.relay_seal`): AES-256-GCM under a key the child's agent picks per connect and
     SEALs to the parent's box key. Viewer bytes and `/images` stay direct, and there is no
     forward secrecy: a parent's box key taken later opens a recorded relay's key.
-  - The secret still appears on the node's own loopback: the local RTMP output
-    (`rtmp://127.0.0.1/live/<id>?password=`) and the recorder's pull from its own
-    `/admin/live` and `/admin/timeshift`.
+  - The node's own loopback carries no secret: the local RTMP output publishes from
+    127.0.0.1 with no password, and the recorder's pull from its own `/admin/live` and
+    `/admin/timeshift` carries a `LoopbackToken` (one stream, taken from 127.0.0.1 only;
+    the password only when the node cannot write the token's key). MAIN's admin player
+    sends a node no password either: an on-demand stream starts on the browser's own
+    `uitoken` request.
   - MAIN pulls through it only once an operator runs `cluster:main-dataplane on`: MAIN then
     gets a data-plane key of its own and an entry in the signed node list, and its source
     probe, a node's certbot log, and the relays and files of the streams it runs go through
