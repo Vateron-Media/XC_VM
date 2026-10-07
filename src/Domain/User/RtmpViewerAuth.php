@@ -32,7 +32,9 @@ final class RtmpViewerAuth {
 	 * @param array<int, array<string, mixed>>|null $rServers The servers, or null to read them once the line passed.
 	 * @param array{token?: string, username?: string, password?: string} $rRequest The link's credentials, plain strings.
 	 * @param int $rServerID The server the viewer is connected to.
-	 * @return array{ok: true, user: array{id: int, max_connections: int, pair_id: int|null, con_isp_name: string, is_restreamer: int}, country_code: string}|array{ok: false, reason: string}
+	 * @return array{ok: true, user: array{id: int, max_connections: int, pair_id: int|null, con_isp_name: string, is_restreamer: int}, country_code: string, channel: array<string, mixed>}|array{ok: false, reason: string}
+	 *         `channel` is the stream on the viewer's server as auth.php puts it in a token's
+	 *         channel_info, for MAIN's mint (rtmp_auth); it never leaves MAIN.
 	 */
 	public static function check(array $rSettings, bool $rCached, ?array $rBouquets, ?array $rServers, int $rStreamID, string $rIP, array $rRequest, bool $rRestreamDetect, int $rServerID): array {
 		if (isset($rRequest['token'])) {
@@ -130,6 +132,10 @@ final class RtmpViewerAuth {
 				'is_restreamer' => (int) $rUserInfo['is_restreamer'],
 			],
 			'country_code' => $rCountryCode,
+			'channel' => [
+				'stream_id' => $rStreamID, 'redirect_id' => $rServerID, 'originator_id' => null, 'pid' => $rChannelInfo['pid'] ?? null,
+				'on_demand' => $rChannelInfo['on_demand'] ?? 0, 'llod' => $rChannelInfo['llod'] ?? 0, 'monitor_pid' => $rChannelInfo['monitor_pid'] ?? null, 'proxy' => $rChannelInfo['direct_proxy'] ?? 0,
+			],
 		];
 	}
 }

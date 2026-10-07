@@ -86,7 +86,7 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 					$rAuth = RtmpViewerAuth::check($rSettings, (bool) $rCached, $rBouquets ?: [], $rServers, $rStreamID, $rIP, $rCreds, $rRestreamDetect, (int) SERVER_ID);
 				} else {
 					// No answer (no agent, an agent without the op, MAIN unreachable) refuses the viewer.
-					$rAuth = AgentClient::main('rtmp_auth', ['stream_id' => $rStreamID, 'ip' => $rIP, 'restream' => $rRestreamDetect] + $rCreds, 6.0) ?? ['ok' => false, 'reason' => 'NO_ANSWER'];
+					$rAuth = AgentClient::main('rtmp_auth', ['stream_id' => $rStreamID, 'ip' => $rIP, 'restream' => $rRestreamDetect, 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid'])] + $rCreds, 6.0) ?? ['ok' => false, 'reason' => 'NO_ANSWER'];
 				}
 
 				if (($rAuth['ok'] ?? false) !== true || !is_array($rAuth['user'] ?? null)) {
@@ -99,6 +99,9 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 
 				$rUserInfo = $rAuth['user'];
 				$rCountryCode = (string) ($rAuth['country_code'] ?? '');
+				// MAIN's mint for the viewer on a load balancer (rtmp_auth): its proof and
+				// admission, as an HTTP viewer's token carries them. None on MAIN.
+				$rMinted = is_array($rAuth['token'] ?? null) ? $rAuth['token'] : [];
 			}
 
 			$rDeny = false;
@@ -139,8 +142,9 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 				$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
 				$rConnectionData = ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'date_start' => $rLastRead, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => $rChannelInfo['on_demand'], 'identity' => $rUserInfo['id'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid'])];
 				// The table path keeps its own date_start (the node's clock), as it always did.
-				// No stream token, so no claim: a limited line is admitted by the agent asking MAIN (conn_admit).
-				$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid']), 'date_start' => time(), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_last_read' => $rLastRead], ['user_info' => ['max_connections' => (int) $rUserInfo['max_connections']]], intval($rServers[SERVER_ID]['time_offset']));
+				// No stream token: MAIN's mint, when it sent one, carries the proof and the claim;
+				// without one a limited line is admitted by the agent asking MAIN (conn_admit).
+				$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid']), 'date_start' => time(), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_last_read' => $rLastRead], ['user_info' => ['max_connections' => (int) $rUserInfo['max_connections']]] + $rMinted, intval($rServers[SERVER_ID]['time_offset']));
 
 				if ($rResult) {
 					StreamAuth::validateConnections($rUserInfo, false, '', $rIP, null, ConnectionTracker::rtmpUuid($rNotify['clientid']));

@@ -172,7 +172,7 @@ PHP);
 		$this->assertSame('EXPIRED', ConnectionTracker::refusedAdmission());
 
 		$rRtmp = (string) file_get_contents(MAIN_HOME . 'Public/stream/rtmp.php');
-		$this->assertStringContainsString("['user_info' => ['max_connections' => (int) \$rUserInfo['max_connections']]], intval(\$rServers[SERVER_ID]['time_offset']));", $rRtmp);
+		$this->assertStringContainsString("['user_info' => ['max_connections' => (int) \$rUserInfo['max_connections']]] + \$rMinted, intval(\$rServers[SERVER_ID]['time_offset']));", $rRtmp, 'with MAIN\'s mint on a load balancer');
 		$this->assertStringContainsString("StreamAuth::admissionRefusal(\$rRefused)[0], \$rIP, 'admission: ' . \$rRefused);", $rRtmp);
 		$this->assertLessThan(strpos($rRtmp, "'LINE_CREATE_FAIL'"), strpos($rRtmp, 'ConnectionTracker::refusedAdmission()'), 'a refusal is told apart before a failed register');
 	}
