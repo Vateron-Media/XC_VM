@@ -708,12 +708,6 @@ class LbInstallFlow {
 		// An API-mode node holds no DB grant and no credentials: without its
 		// enrolment it could reach nothing, so it never "stays legacy".
 		$rApiMode = self::apiMode($rSettings);
-		// MAIN takes no mode 2 enrolment while the Redis connection handler is
-		// on (EnrolmentService::begin): said before the node's agent is stopped
-		// and its keys replaced for an enrolment that cannot be finished.
-		if ($rApiMode && !empty($rSettings['redis_handler'])) {
-			return $rFail('This node enrols in mode 2, which is not available while the Redis connection handler is on: switch the handler off first. Exiting');
-		}
 		if (!$rCrypto instanceof \XcVm\Core\Cluster\Crypto\ClusterCrypto) {
 			$rCrypto = ClusterCli::crypto($rApiMode ? "Cluster API unavailable (%s)\n" : "Cluster API unavailable (%s); the node stays legacy\n");
 			if ($rCrypto === null) {

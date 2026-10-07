@@ -118,32 +118,13 @@ every flow, the data plane included, root's pin, and a node that can run that wa
 audit report. The node says that itself (`SettingsAudit::publish()`): it boots from its replica
 (`ReplicaBoot::ready()`), the replica owns its stream definitions, and its own store of their
 state is seeded. It says it again at once whenever that stops being true (`StreamRuntime::lapse()`,
-`ReplicaApply`), because in mode 2 it can neither seed the store nor read from MAIN. `act()` also
-refuses the move while `redis_handler` is on: the node's stream entry opens MAIN's Redis at every
-viewer, which mode 2 refuses.
+`ReplicaApply`), because in mode 2 it can neither seed the store nor read from MAIN. The Redis
+connection handler asks nothing: a node in mode 2 never opens MAIN's Redis
+(`ConnectionTracker::openStore()`), its viewers being its agent's.
 
 A node in mode 2 keeps every flow. `act()` refuses to switch one off there
 (`cluster_flow_mode_two`): without it the node has only MAIN's database for that work, which it may
 not reach. The operator moves the node one mode down first.
-
-An enrolment that would start a node in mode 2 (a node MAIN keeps credential-free, see
-[Limits](#limits)) meets the Redis handler too. `EnrolmentService::begin()` refuses it while
-`redis_handler` is on, before the node's row is touched: `ClusterRefusedException` with the reason
-`REDIS_HANDLER`, which is MAIN's own refusal and not the extension's. Every path says so before it
-acts:
-
-- the page's approval of a code and `cluster:enrol-approve` leave the request pending;
-- `server:install` refuses before the node is contacted, and marks the server's install as failed;
-- `server:enrol` and `cluster:reenrol` refuse before the node's agent is stopped;
-- the panel's install and reinstall refuse before the server is marked as being installed
-  (`ServerService::modeTwoInstallRefused()`), so a running load balancer stays in rotation. The
-  install form's failed answer (`post.php?action=server_install`) carries the reason, translated,
-  in `message`; for any other failure `message` is null.
-
-In the other direction, the Cache page does not switch the handler on while a node is in mode 2
-(`ClusterAdmin::anyInModeTwo()`). That counts a node still enrolling in mode 2 until its
-`enrol_deadline` (30 minutes), but neither an enrolment that was never completed nor a revoked
-node.
 
 The connect audit is **not** part of the gate. A node in mode 1 reads MAIN's database by design
 (its crons, its signals daemon, viewer authentication), so the zero the gate once waited seven
@@ -424,8 +405,7 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
   revoking. Only an operator sends
   the strip (*Drop DB credentials*, `cluster:strip-credentials`), and
   `lb_new_node_mode=api` (a new load balancer installed in mode 2, every flow on, with a
-  credential-free config) is taken only with the Redis connection handler off and an
-  extension that packs such a config; the Cache page then refuses the handler. A node MAIN already keeps credential-free (mode 2, or a revoked
+  credential-free config) is taken only with an extension that packs such a config. A node MAIN already keeps credential-free (mode 2, or a revoked
   grant) stays so: a reinstall over SSH packs it a credential-free config, re-enrols it in
   mode 2 and grants it nothing, an enrolment by code re-enrols it in mode 2 as well, with
   every flow on and its `db_revoked_at` kept (`EnrolCodeService::approve()`), and no grant

@@ -30,7 +30,7 @@ final class ClusterSettingsEnumTest extends TestCase {
 	}
 
 	public function testWhatNormalizeStoresReadsBackTheSame(): void {
-		$rEnv = ['https_ok' => true, 'api_mode_allowed' => true, 'credential_free_config' => true];
+		$rEnv = ['https_ok' => true, 'credential_free_config' => true];
 		foreach (ClusterSettings::ENUMS as $rKey => [, $rAllowed]) {
 			foreach ([...$rAllowed, 'nope', ' ' . strtoupper($rAllowed[0]) . ' '] as $rValue) {
 				// The cluster API on, as API mode for new nodes needs it.

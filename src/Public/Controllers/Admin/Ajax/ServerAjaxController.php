@@ -7,14 +7,12 @@ use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Localization\Translator;
 use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Domain\Cluster\PlacementAdvice;
 use XcVm\Domain\Cluster\RollingUpdate;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Server\InstallCredentials;
 use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Server\ServerService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Streaming\Health\ProcessChecker;
 
@@ -473,11 +471,6 @@ class ServerAjaxController extends BaseAjaxController {
 		$rPassword = (string) RequestManager::get('root_password');
 
 		if (file_exists($rFilename) && $rPassword !== '') {
-			// Said before the row says the server is being installed.
-			if ($rType == 2 && ServerService::modeTwoInstallRefused($rServerID)) {
-				$this->fail(['message' => Translator::get('cluster_mode_redis_handler')]);
-			}
-
 			$rParams = json_decode(file_get_contents($rFilename), true);
 			$db->query('UPDATE `servers` SET `status` = 3 WHERE `id` = ?;', $rServerID);
 
