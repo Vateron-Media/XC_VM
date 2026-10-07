@@ -5,6 +5,7 @@ namespace XcVm\Cli\Commands;
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Cluster\ArtefactStage;
 use XcVm\Core\Cluster\SettingsAudit;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\ReleaseAsset;
 use XcVm\Core\Updates\UpdateChannels;
@@ -96,19 +97,59 @@ class FanoutBinaryCommand implements CommandInterface {
 			echo "Failed to resolve the latest xc_fanout release.\n";
 			return 1;
 		}
-		$rTag = trim($rReleases[0]);
+		// The fleet canary (ReleaseCanary on MAIN): what this server may take.
+		$rSettings = SettingsManager::getAll();
+		$rTag = self::releaseFor($rReleases, $rSettings, (int) SERVER_ID);
+		if ($rTag === null) {
+			echo "Held for the fleet's canary: no release is pinned yet.\n";
+			return 0;
+		}
+		$rHeld = self::held($rSettings, (int) SERVER_ID);
+		$rTag = trim($rTag);
 		$rLatest = ltrim($rTag, 'vV');
 		$rBase = ReleaseAsset::baseUrl(GIT_OWNER, GIT_REPO_FANOUT, $rTag);
 
 		$rOk = true;
 		foreach ($rTools as $rTool) {
-			$rOk = ($rTool === 'fanout' ? $this->fanout($rBase, $rArch, $rLatest, $rForce) : self::agent($rBase, $rArch, $rLatest, $rForce)) && $rOk;
+			$rOk = ($rTool === 'fanout' ? $this->fanout($rBase, $rArch, $rLatest, $rForce, $rHeld) : self::agent($rBase, $rArch, $rLatest, $rForce, $rHeld)) && $rOk;
 		}
 		return $rOk ? 0 : 1;
 	}
 
+	/** Is this server held to MAIN's pin (a canary is set, and it is not this server)? */
+	private static function held(array $rSettings, int $rServerID): bool {
+		$rCanary = (int) ($rSettings['lb_binary_canary_server'] ?? 0);
+		return $rCanary > 0 && $rCanary !== $rServerID;
+	}
+
+	/**
+	 * The release this server installs: the newest, unless MAIN holds the
+	 * fleet to what its canary has run long enough (`lb_binary_canary_server`,
+	 * `lb_release_pin`: ReleaseCanary). Then the newest at or below the pin,
+	 * and none while no release is pinned. The canary takes the newest.
+	 *
+	 * @param list<string> $rTags Release tags, newest first.
+	 * @param array<string, mixed> $rSettings
+	 * @return string|null The tag, or null: nothing to install now.
+	 */
+	public static function releaseFor(array $rTags, array $rSettings, int $rServerID): ?string {
+		if (!self::held($rSettings, $rServerID)) {
+			return $rTags[0] ?? null;
+		}
+		$rPin = ltrim(trim((string) ($rSettings['lb_release_pin'] ?? '')), 'vV');
+		if ($rPin === '') {
+			return null;
+		}
+		foreach ($rTags as $rTag) {
+			if (version_compare(ltrim(trim((string) $rTag), 'vV'), $rPin, '<=')) {
+				return (string) $rTag;
+			}
+		}
+		return null;
+	}
+
 	/** The daemon at $rLatest, from the release at $rBase. */
-	private function fanout(string $rBase, string $rArch, string $rLatest, bool $rForce): bool {
+	private function fanout(string $rBase, string $rArch, string $rLatest, bool $rForce, bool $rHeld = false): bool {
 		$rDir = BIN_PATH . 'xc_fanout/';
 		$rBinary = $rDir . 'xc_fanout';
 		$rVerFile = $rDir . self::VERSION_FILE;
@@ -132,6 +173,10 @@ class FanoutBinaryCommand implements CommandInterface {
 
 		if (!$rForce && $rHealthy && $rInstalled !== null && $rInstalled === $rLatest) {
 			echo "xc_fanout is up to date ({$rInstalled}).\n";
+			return true;
+		}
+		if ($rHeld && $rHealthy && $rInstalled !== null && version_compare($rInstalled, $rLatest, '>')) {
+			echo "xc_fanout {$rInstalled} is past the fleet's pin ({$rLatest}): kept.\n";
 			return true;
 		}
 		$rReason = !$rHealthy
@@ -180,12 +225,16 @@ class FanoutBinaryCommand implements CommandInterface {
 	 * only where an agent runs to judge it: a trial nobody runs would be
 	 * judged at the node's enrolment, long past, and roll the binary back.
 	 */
-	public static function agent(string $rBase, string $rArch, string $rLatest, bool $rForce): bool {
+	public static function agent(string $rBase, string $rArch, string $rLatest, bool $rForce, bool $rHeld = false): bool {
 		$rTarget = ArtefactStage::agentBinary();
 		$rDir = dirname($rTarget) . '/';
 		$rInstalled = ArtefactStage::agentVersion();
 		if (!$rForce && $rInstalled === $rLatest) {
 			echo "xc_agent is up to date ({$rInstalled}).\n";
+			return true;
+		}
+		if ($rHeld && $rInstalled !== null && version_compare($rInstalled, $rLatest, '>')) {
+			echo "xc_agent {$rInstalled} is past the fleet's pin ({$rLatest}): kept.\n";
 			return true;
 		}
 		if (!$rForce && ltrim(trim((string) @file_get_contents($rDir . self::AGENT_TRIED)), 'vV') === $rLatest) {
