@@ -365,6 +365,7 @@ $router->api('update_all_servers', [ServerAjaxController::class, 'updateAllServe
 $router->api('rolling_update_start', [ServerAjaxController::class, 'rollingUpdateStart']);
 $router->api('rolling_update_cancel', [ServerAjaxController::class, 'rollingUpdateCancel']);
 $router->api('rolling_update_status', [ServerAjaxController::class, 'rollingUpdateStatus']);
+$router->api('placement_advice', [ServerAjaxController::class, 'placementAdvice']);
 $router->api('update_all_binaries', [ServerAjaxController::class, 'updateAllBinaries']);
 
 // ─── Blocklists & Security ─────────────────────────

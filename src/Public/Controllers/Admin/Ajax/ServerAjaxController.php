@@ -9,6 +9,7 @@ use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Updates\UpdateChannels;
+use XcVm\Domain\Cluster\PlacementAdvice;
 use XcVm\Domain\Cluster\RollingUpdate;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Server\InstallCredentials;
@@ -22,7 +23,8 @@ use XcVm\Streaming\Health\ProcessChecker;
  * rollback_versions, server, proxy, fingerprint, restart_all_services,
  * restart_services, reboot_server, update_binaries, server_view, server_stats,
  * rtmp_kill, install_status, reinstall_server, fpm_status, update_all_servers,
- * update_all_binaries.
+ * update_all_binaries, rolling_update_start, rolling_update_cancel,
+ * rolling_update_status, placement_advice.
  *
  * Note: rtmp_kill echoes the raw {@see NodeRpc::request()} response
  * rather than a JSON envelope.
@@ -550,6 +552,13 @@ class ServerAjaxController extends BaseAjaxController {
 		$this->gate('adv', 'servers');
 		$rState = RollingUpdate::state();
 		$this->json(['result' => true, 'state' => $rState, 'running' => RollingUpdate::running($rState)]);
+	}
+
+	/** action=placement_advice — busy servers and where their busiest streams could also run (advice only). */
+	public function placementAdvice(): never {
+		$this->requireXhr();
+		$this->gate('adv', 'servers');
+		$this->json(['result' => true] + PlacementAdvice::current());
 	}
 
 	/** action=update_all_binaries — signal 'update_binaries' to every online server. */
