@@ -1858,7 +1858,7 @@ The eighth increment's refusal stopped the paths a node in mode 2 still took to 
 - Mode 2 still cannot be switched on (Phase 9).
 - In mode 2 a system log line the spool refuses (the agent stopped for over two minutes, or LOGS off) never reaches MAIN's system log. The panel's error log keeps it, and it reaches MAIN's panel logs once the agent takes events again; where root cannot switch to the agent's user it goes to the cron's stderr and is lost.
 - `update` and `rollback` cannot run in mode 2 until the update command stops writing MAIN's `servers` row. Built later: see [A node in mode 2 updates, and its status and inventory](#a-node-in-mode-2-updates-and-its-status-and-inventory).
-- A root action MAIN still queues as a `signals` row for a node in mode 2 never runs: MAIN does so when it lacks `root_ready` or the node is quarantined (`CommandBus::acceptsRoot` takes active nodes only). MAIN's own cron purges the row after a day. The checks from the replica make good ports, services and the ramdisk; a reboot, restart, update or module action is lost.
+- A root action MAIN still queues as a `signals` row for a node in mode 2 never runs: MAIN does so when it lacks `root_ready` or the node is quarantined (`CommandBus::acceptsRoot` takes active nodes only). MAIN's own cron purges the row after a day. The checks from the replica make good ports, services and the ramdisk; a reboot, restart, update or module action is lost. Built later: MAIN queues no row for a node in mode 2, and the Servers page says the action was not sent (see [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07)).
 - In mode 2, until R2 fills `streamChecks()`, the files of streams deleted on MAIN stay, TV archive segments are kept past their retention, and neither the VOD analysis nor the created-channel checks run. Since the thirteenth Phase 7 increment they run from the replica and the node's own store once both answer.
 - Other paths still reach MAIN's database on a node in mode 2, and the refusal stops them:
   - the signals daemon (`signals`: kills and cache jobs from MAIN's `signals` table). Since the fourteenth Phase 7 increment it reads no row and no Redis in mode 2: MAIN sends the cache jobs as `node.cache` commands;
@@ -4717,6 +4717,7 @@ too.
 
 **Not built / limits.**
 - **`database.sql` is unchanged.** A new install gets the indexes from the first `cron:cleanup`.
+  (Built since: see [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07).)
 - **A refused build is retried every hour**, and each attempt is written to the command's output
   only.
 
@@ -5637,7 +5638,8 @@ release that fails slowly, or only under real load, reached the whole fleet with
 - The canary is judged by its agent's version and its being heard, not by the fanout daemon's
   own health; both binaries come from the one release.
 - A canary that is no enrolled node never proves anything: the fleet stays where it is.
-- No page shows the pin yet: the cluster audit does.
+- No page shows the pin yet: the cluster audit does. (Built since: see
+  [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07).)
 
 ### Command latency, and the SSE downlink (2026-10-07)
 
@@ -5749,6 +5751,47 @@ COMMANDS as a signed command before any Redis signal (`redisSignal()` asks `Clus
   they ask MAIN's database with it off: either is refused. Mode down is the fix, as before.
 - `findByUuid()`'s match by columns (a player's Range request without a uuid) stays the table
   path's only, as it was in mode 1: with the handler on, such a request is a new viewer.
+
+### Root actions a node in mode 2 cannot take, the release pin, and the install indexes (2026-10-07)
+
+Three of the open items a review of this ADR and the plan found.
+
+**Built.**
+- **A root action a node in mode 2 cannot take is not queued.** `NodeActions::send()` fell back
+  to a `signals` row whenever `ClusterRoute::root()` did not route, and it does not for a node
+  that is quarantined or whose `root_ready` MAIN lacks. A node in mode 2 reads no row, so a
+  reboot, restart, update or module action was lost, and would have run late had the node moved
+  down within the day the row lives. `ClusterRoute::root()` now answers routed and not queued for
+  a node whose row is in mode 2, and logs why (`cluster` in the panel's error log: `mode 2,
+  quarantined`, `mode 2, no root_ready`). The Servers page's tools (Restart services, Reboot
+  server, Update binaries, Update, Rollback) answer `not_sent`, and the page says so and what to
+  do (`server_action_not_sent`) instead of *Task started*.
+- **The release pin on the page.** Settings → Cluster shows the pin in its status line while a
+  canary is set or a pin stands, and, when the canary has a newer release on trial, that release
+  and the hours it has run it of those set (`ReleaseCanary::trial()`, the count `tick()` keeps).
+- **The install schema's indexes.** `database.sql` carries the indexes `cluster:maintain-stats`
+  builds: `time` and `server_time` on `servers_stats`, `date` on `lines_logs`, `login_logs`,
+  `streams_logs`, `streams_errors` and `ondemand_check`, `owner_date` on `users_logs`. A new
+  install has them from the start and the command finds none missing; an older one still gets
+  them from `cron:cleanup`.
+
+**Checked, nothing to build.** The rare HTTP 500 on a node in mode 2 whose agent did not answer
+was the hot path falling back to MAIN's store, which mode 2 refuses. It was fixed before this
+review: the agent's calls wait `AgentConnections::SOLE_TIMEOUT` in mode 2, and an unanswered one
+refuses the viewer with `LINE_CREATE_FAIL` (`docs/en/development/cluster-seams.md`). A viewer the
+agent does not answer is refused, by design: in mode 2 nothing else holds the node's viewers.
+
+**Not built / limits.**
+- The bulk actions (Restart all services, Update all) and the other callers of `NodeActions`
+  (ports, sysctl, governor, the blocklist flush, module install) say nothing of a node that took
+  none: the panel's error log does. The replica re-applies the ports, services and ramdisk.
+- A cache job for a node in mode 2 that takes no command (quarantined) still becomes a `signals`
+  row: it never runs there, and run late after a move down it only rebuilds or purges a cache.
+
+**Tests.** `ClusterApiTest::testARootActionANodeInModeTwoCannotTakeIsNotQueued` (mode 1 keeps the
+row; mode 2 without the pin, or quarantined, queues nothing and the caller hears false),
+`ReleaseCanaryTest` (the trial, and none once the canary is off), `ClusterMaintainStatsTest` (a
+fresh install has every index; one without them gets each built in place).
 
 ### The move to mode 2 without the connect audit (2026-10-05)
 
