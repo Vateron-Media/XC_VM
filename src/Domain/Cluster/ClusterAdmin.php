@@ -68,6 +68,17 @@ final class ClusterAdmin {
 	public const MODE2_AT = 'mode2_at.';
 
 	/**
+	 * cluster_meta: the node's `gen` when the page moved it to mode 2
+	 * (`mode2_gen.<server id>`). A node of that gen still holds the
+	 * credentials it had in mode 1; a re-enrolment since (a reinstall in mode
+	 * 2) gave it none, which MAIN cannot tell otherwise.
+	 */
+	public const MODE2_GEN = 'mode2_gen.';
+
+	/** cluster_meta: when MAIN first heard a node in mode 2 say it no longer reads its streams on itself (autoModeDown()). */
+	public const STREAMS_LOST_AT = 'streams_lost_at.';
+
+	/**
 	 * May this node move to $rMode? Pure, so the gate is tested without a request.
 	 *
 	 * Going down is always allowed: it is the way back when a node misbehaves.
@@ -227,6 +238,76 @@ final class ClusterAdmin {
 	}
 
 	/**
+	 * Move a node to $rWanted, as the page's mode buttons do, with what the
+	 * step needs around it.
+	 *
+	 * @param array<string, mixed> $rNode Its cluster_nodes row.
+	 * @param array<string, mixed> $rDetail More for the `node.mode` audit entry.
+	 */
+	private static function moveMode(array $rNode, int $rWanted, string $rActor, array $rDetail = []): void {
+		$rServerID = (int) $rNode['server_id'];
+		NodeRegistry::update($rServerID, ['mode' => $rWanted]);
+		if ($rWanted === 2) {
+			ClusterMeta::set(self::MODE2_AT . $rServerID, (string) ClusterClock::now());
+			ClusterMeta::set(self::MODE2_GEN . $rServerID, (string) (int) $rNode['gen']);
+		} elseif ((int) $rNode['mode'] === 2) {
+			ClusterMeta::delete(self::MODE2_AT . $rServerID);
+			ClusterMeta::delete(self::MODE2_GEN . $rServerID);
+			ClusterMeta::delete(self::STREAMS_LOST_AT . $rServerID);
+			// Below mode 2 the node needs its credentials: a strip it was not handed yet no longer goes out.
+			DbCredentials::cancelStrip($rServerID);
+		}
+		// What it said of its streams, it said in the mode it leaves: it says it again.
+		NodeAudit::forgetStreamsLocal($rServerID);
+		ClusterAudit::log('node.mode', $rServerID, ['mode' => $rWanted, 'was' => (int) $rNode['mode']] + $rDetail, $rActor);
+	}
+
+	/**
+	 * A node in mode 2 that has said for `cluster_auto_mode_down_min` minutes
+	 * that it no longer reads its streams on itself goes back to mode 1, as
+	 * the page's Mode down would take it (cron:cluster, every minute; 0, the
+	 * default, is off). Only a node that can run there: active, heard within
+	 * NodeHealth::SUSPECT_AFTER_MS (the move reaches it), moved to mode 2 by
+	 * the page at the gen it has now (MODE2_GEN: it holds the credentials it
+	 * had in mode 1), its grant not revoked, and MAIN not locked down.
+	 *
+	 * @param array<string, mixed> $rSettings
+	 * @return list<int> The nodes moved down.
+	 */
+	public static function autoModeDown(array $rSettings): array {
+		$rMinutes = ClusterSettings::int('cluster_auto_mode_down_min', $rSettings['cluster_auto_mode_down_min'] ?? null);
+		$rReports = NodeAudit::reports();
+		$rNowMs = ClusterClock::nowMs();
+		$rMoved = [];
+		foreach (NodeRegistry::enrolled() as $rServerID => $rNode) {
+			$rSince = ClusterMeta::get(self::STREAMS_LOST_AT . $rServerID);
+			if ($rMinutes <= 0 || (int) $rNode['mode'] !== 2 || NodeAudit::streamsLocal($rReports[$rServerID] ?? null) !== false) {
+				if ($rSince !== null) {
+					ClusterMeta::delete(self::STREAMS_LOST_AT . $rServerID);
+				}
+				continue;
+			}
+			if ($rSince === null) {
+				ClusterMeta::set(self::STREAMS_LOST_AT . $rServerID, (string) intdiv($rNowMs, 1000));
+				continue;
+			}
+			$rLastSeen = HeartbeatService::freshest($rNode['last_seen_at'] ?? null, HeartbeatService::lastSeen()[$rServerID] ?? null);
+			if (intdiv($rNowMs, 1000) - (int) $rSince < $rMinutes * 60
+				|| $rNode['state'] !== 'active'
+				|| $rLastSeen === null || $rNowMs - $rLastSeen > NodeHealth::SUSPECT_AFTER_MS
+				|| ClusterMeta::get(self::MODE2_GEN . $rServerID) !== (string) (int) $rNode['gen']
+				|| DbCredentials::revokedAt($rServerID) !== null
+				|| DbAllowlist::lockedDown()
+			) {
+				continue;
+			}
+			self::moveMode($rNode, 1, 'auto', ['streams_lost_at' => (int) $rSince]);
+			$rMoved[] = $rServerID;
+		}
+		return $rMoved;
+	}
+
+	/**
 	 * Perform one action from the page.
 	 *
 	 * @param array<string, mixed> $rInput cluster_action, server_id, sas, url
@@ -365,17 +446,7 @@ final class ClusterAdmin {
 					if (!$rAllowed) {
 						return ['type' => 'warning', 'message' => $rWhy];
 					}
-					NodeRegistry::update($rServerID, ['mode' => $rWanted]);
-					if ($rWanted === 2) {
-						ClusterMeta::set(self::MODE2_AT . $rServerID, (string) ClusterClock::now());
-					} elseif ((int) $rNode['mode'] === 2) {
-						ClusterMeta::delete(self::MODE2_AT . $rServerID);
-						// Below mode 2 the node needs its credentials: a strip it was not handed yet no longer goes out.
-						DbCredentials::cancelStrip($rServerID);
-					}
-					// What it said of its streams, it said in the mode it leaves: it says it again.
-					NodeAudit::forgetStreamsLocal($rServerID);
-					ClusterAudit::log('node.mode', $rServerID, ['mode' => $rWanted, 'was' => (int) $rNode['mode']], $rUserID === null ? 'admin' : 'admin:' . $rUserID);
+					self::moveMode($rNode, $rWanted, $rUserID === null ? 'admin' : 'admin:' . $rUserID);
 					return ['type' => 'success', 'message' => 'cluster_mode_done'];
 
 				case 'rotate_now':
