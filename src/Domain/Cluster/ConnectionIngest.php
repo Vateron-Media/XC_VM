@@ -149,6 +149,12 @@ final class ConnectionIngest {
 		if (!preg_match(AgentConnections::CONN_UUID, $rUUID) || (empty($rRecord['user_id']) && empty($rRecord['hmac_id']))) {
 			return false;
 		}
+		// A viewer MAIN closed while this upsert was on its way (a kick, a limit,
+		// its sweep): the same connection is not opened again. A reconnect is a
+		// new connection, with a date_start of its own.
+		if (isset($rRecord['date_start']) && ClusterBus::tombOf($rServerID, $rUUID) === (int) $rRecord['date_start']) {
+			return true;
+		}
 		$rRecord += ['user_id' => null, 'proxy_id' => null]; // the store reads both
 		$rRecord['server_id'] = $rServerID;
 		$rRecord['hls_end'] = empty($rRecord['hls_end']) ? 0 : 1;
@@ -263,8 +269,11 @@ final class ConnectionIngest {
 	 * its activity row, but without the kill and the conn.close command back
 	 * that ConnectionTracker::closeConnection sends: the viewer is already
 	 * gone and the node's registry already dropped it.
+	 *
+	 * @param (callable(callable(): mixed): void)|null $rDefer Runs the activity row's write
+	 *        later (an events batch: at its commit); null writes it now.
 	 */
-	public static function close(int $rServerID, string $rUUID): bool {
+	public static function close(int $rServerID, string $rUUID, ?callable $rDefer = null): bool {
 		if (!preg_match(AgentConnections::CONN_UUID, $rUUID)) {
 			return false;
 		}
@@ -283,7 +292,7 @@ final class ConnectionIngest {
 		if ((int) ($rRow['server_id'] ?? 0) !== $rServerID) {
 			return false;
 		}
-		ConnectionTracker::writeOfflineActivity(
+		$rActivity = static fn() => ConnectionTracker::writeOfflineActivity(
 			SettingsManager::getAll() + ['save_closed_connection' => 0],
 			$rServerID,
 			(int) ($rRow['proxy_id'] ?? 0),
@@ -300,6 +309,10 @@ final class ConnectionIngest {
 			isset($rRow['hmac_id']) ? (int) $rRow['hmac_id'] : null,
 			(string) ($rRow['hmac_identifier'] ?? '')
 		);
+		// The activity row is a file, outside the batch's transaction: an events
+		// batch defers it to its commit ($rDefer), so a batch that fails and is
+		// sent again writes it once.
+		$rDefer !== null ? $rDefer($rActivity) : $rActivity();
 		return self::remove($rServerID, $rUUID, true);
 	}
 

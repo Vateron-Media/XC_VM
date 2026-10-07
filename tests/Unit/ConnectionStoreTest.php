@@ -5,10 +5,13 @@ use XcVm\Core\Cluster\AgentClient;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Domain\Cluster\ClusterBus;
+use XcVm\Domain\Cluster\ClusterRoute;
 use XcVm\Domain\Cluster\ConnectionIngest;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Tests\Support\BusServer;
 
 /**
  * The connection store seam (cluster plan, Phase 6): the stream endpoints
@@ -203,6 +206,39 @@ final class ConnectionStoreTest extends TestCase {
 			$this->assertSame('10.0.0.1', ConnectionTracker::acceptedIP($rSettings, 7));
 		} finally {
 			exec('rm -rf ' . escapeshellarg($rDir));
+		}
+	}
+
+	public function testAnUpsertOfAViewerMainClosedDoesNotOpenItAgain(): void {
+		$rBus = BusServer::start('tomb');
+		if ($rBus === null) {
+			$this->markTestSkipped('redis-server or phpredis not available');
+		}
+		ClusterBus::useSocket($rBus->socket());
+		try {
+			SettingsManager::set(['redis_handler' => 0]);
+			$rRec = ['user_id' => 7, 'stream_id' => 100, 'user_ip' => '10.0.0.9', 'container' => 'hls', 'pid' => null, 'uuid' => 'tttt', 'date_start' => 1800000000, 'hls_last_read' => 1800000000, 'hls_end' => 0];
+			$this->assertTrue(ConnectionIngest::upsert(5, $rRec));
+			// MAIN kicks it (ConnectionLimiter, ConnectionTracker::closeConnection)...
+			ClusterRoute::tombstone(5, 'tttt', 1800000000);
+			$this->rDb->query("DELETE FROM `lines_live` WHERE `uuid` = 'tttt'");
+			// ...while the node's upsert of it was on its way.
+			$this->assertTrue(ConnectionIngest::upsert(5, ['hls_last_read' => 1800000010] + $rRec), 'accepted, as the close of a viewer already gone is');
+			$this->assertNull($this->row('tttt'), 'not opened again');
+			// The player comes back: a new connection under its playlist key.
+			$this->assertTrue(ConnectionIngest::upsert(5, ['date_start' => 1800000020, 'hls_last_read' => 1800000020] + $rRec));
+			$this->assertSame(1800000020, (int) $this->row('tttt')['date_start']);
+		} finally {
+			ClusterBus::useSocket(null);
+			$rBus->stop();
+		}
+	}
+
+	public function testMainRemembersAClosedViewerBeforeItChangesTheStore(): void {
+		// Afterwards, an upsert ingested between the store's change and the
+		// tombstone would still open it again.
+		foreach (['Domain/Stream/ConnectionTracker.php' => '/function closeConnection\(.*?ClusterRoute::tombstone\(.*?(UPDATE|DELETE FROM) `lines_live`/s', 'Streaming/Protection/ConnectionLimiter.php' => '/function closeConnection\(.*?ClusterRoute::tombstone\(.*?UPDATE `lines_live` SET `hls_end` = 1/s'] as $rFile => $rOrder) {
+			$this->assertMatchesRegularExpression($rOrder, (string) file_get_contents(MAIN_HOME . $rFile), $rFile);
 		}
 	}
 

@@ -402,7 +402,7 @@ final class EventIngest {
 			case 'conn.remove':
 				return ConnectionIngest::remove($rServerID, (string) ($rData['uuid'] ?? ''), true);
 			case 'conn.close':
-				return ConnectionIngest::close($rServerID, (string) ($rData['uuid'] ?? ''));
+				return ConnectionIngest::close($rServerID, (string) ($rData['uuid'] ?? ''), self::afterCommit(...));
 			case 'conn.limit':
 				return ConnectionLimits::queue($rServerID, $rData);
 			case 'conn.divergence':

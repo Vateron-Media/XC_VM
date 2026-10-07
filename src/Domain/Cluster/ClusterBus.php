@@ -211,6 +211,43 @@ final class ClusterBus {
 		}
 	}
 
+	/** Seconds a viewer MAIN closed keeps a node's late upsert of it out (tomb()). */
+	public const TOMB_TTL = 3600;
+
+	/**
+	 * MAIN closed one of a node's viewers (a kick, a limit, its sweep): an
+	 * upsert of that same connection, its `date_start`, already on its way
+	 * from the node is not to open it again (ConnectionIngest). False without
+	 * the bus: the node's digest then corrects MAIN's store, as before.
+	 */
+	public static function tomb(int $rServerID, string $rUUID, int $rDateStart): bool {
+		$rRedis = self::client();
+		if ($rRedis === null) {
+			return false;
+		}
+		try {
+			return (bool) $rRedis->set('tomb:' . $rServerID . ':' . $rUUID, (string) $rDateStart, ['ex' => self::TOMB_TTL]);
+		} catch (\Throwable) {
+			self::drop();
+			return false;
+		}
+	}
+
+	/** The `date_start` of a node's viewer MAIN closed in the last TOMB_TTL, or null (none, or no bus). */
+	public static function tombOf(int $rServerID, string $rUUID): ?int {
+		$rRedis = self::client();
+		if ($rRedis === null) {
+			return null;
+		}
+		try {
+			$rValue = $rRedis->get('tomb:' . $rServerID . ':' . $rUUID);
+		} catch (\Throwable) {
+			self::drop();
+			return null;
+		}
+		return is_string($rValue) && ctype_digit($rValue) ? (int) $rValue : null;
+	}
+
 	/**
 	 * The last reads a node's touches left on the bus: uuid => hls_last_read,
 	 * for the viewers that have one. Null without the bus.
