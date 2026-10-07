@@ -5600,6 +5600,32 @@ which server held it open.
 - **Proxies** keep every node's `/api` open: a proxy is never a node of the signed node list,
   which legacyApiRetired() requires of every server.
 
+### Automatic mode down (2026-10-07)
+
+A node in mode 2 that says it no longer reads its streams on itself (`streams_local` false: its
+replica no longer owns its streams, or its store is not seeded) cannot get them back there: in mode
+2 it may neither seed its store nor read MAIN's database. The page showed a badge and waited for the
+operator's Mode down.
+
+**Built.**
+- `cluster_auto_mode_down_min` (migration 083, Settings → Cluster): 0, the default, is off. Set,
+  `cron:cluster` runs `ClusterAdmin::autoModeDown()` every minute. MAIN notes when it first heard
+  the node say so (`cluster_meta` `streams_lost_at.<server id>`) and forgets it when the node says
+  otherwise or leaves mode 2. Past the minutes it moves the node to mode 1 through the same step as
+  the page's Mode down (`moveMode()`), audited `node.mode` with the actor `auto` and
+  `streams_lost_at`.
+- Only a node that can run in mode 1 is moved: active, heard within
+  `NodeHealth::SUSPECT_AFTER_MS` (the move reaches it), its grant not revoked, and MAIN not locked
+  down. It must also have been moved to mode 2 by the page at the `gen` it has now: the step to
+  mode 2 records the gen (`mode2_gen.<server id>`). A node enrolled straight in mode 2, or
+  re-enrolled since (an SSH reinstall in mode 2 gives it no credentials), holds none that MAIN could
+  tell of, and in mode 1 it would have no database at all.
+
+**Not built / limits.**
+- The way back up stays the operator's: the node says `streams_local` true again in mode 1, and
+  Mode up asks what it always asks.
+- Nodes moved to mode 2 before this release have no recorded gen: they are moved down by hand
+  until their next move up.
 ### Mode 2 with the Redis connection handler (2026-10-07)
 
 Mode 2 was refused everywhere while the Redis connection handler was on: the move to mode 2,
@@ -5672,7 +5698,8 @@ no node could be moved from the page.
 
 **Not built.**
 - MAIN moving a node back to mode 1 by itself. The page shows a badge on a mode 2 node that
-  reports `streams_local` false, and the operator presses mode down.
+  reports `streams_local` false, and the operator presses mode down. (Built since, opt-in: see
+  [Automatic mode down](#automatic-mode-down-2026-10-07).)
 - Mode 2 with the Redis connection handler (built since: see
   [Mode 2 with the Redis connection handler](#mode-2-with-the-redis-connection-handler-2026-10-07)),
   and a fallback for a viewer request when the node's agent does not answer (mode 1 falls back to
