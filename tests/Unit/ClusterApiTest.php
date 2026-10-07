@@ -1574,8 +1574,9 @@ final class ClusterApiTest extends TestCase {
 
 	/**
 	 * A quarantined node in mode 2 is handed its kills, drops, closes and
-	 * removals at once, and its cache rebuilds wait for Trust again; what it
-	 * cannot be sent is never left as a row or signal it does not read.
+	 * removals at once, and is queued nothing granting (a quarantine ends what
+	 * grants, and Trust again hands none of it out); what it cannot be sent is
+	 * never left as a row or signal it does not read.
 	 */
 	public function testAQuarantinedNodeInModeTwoTakesItsRestrictiveCommands(): void {
 		$this->active();
@@ -1589,7 +1590,21 @@ final class ClusterApiTest extends TestCase {
 			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::closeConnection(self::SID, 'viewer2', true));
 			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::cache(self::SID, [['type' => 'delete_vod', 'id' => 7], ['type' => 'update_stream', 'id' => 7]]));
 			$this->assertSame(['conn.kill_worker', 'conn.drop', 'conn.close', 'node.purge'], $rTypes(\XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0, 50, true)), 'what a quarantined node is handed');
-			$this->assertSame('node.cache', $rTypes(\XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0))[4], 'the rebuild waits for Trust again');
+			$this->assertSame(['conn.kill_worker', 'conn.drop', 'conn.close', 'node.purge'], $rTypes(\XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0)), 'the rebuild is not queued');
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::cache(self::SID, [['type' => 'update_stream', 'id' => 8]]), 'a rebuild alone: nothing sent, and no row');
+			// An extension from before node.purge would sign a removal only as a granting node.cache: not for a quarantined node.
+			$rRegistry = new \ReflectionProperty(FakeClusterCrypto::class, 'rRegistry');
+			$rRegistry->setAccessible(true);
+			$rFull = FakeClusterCrypto::commandRegistry();
+			$rOld = $rFull;
+			unset($rOld['types']['node.purge']);
+			$rRegistry->setValue(null, $rOld);
+			try {
+				$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::cache(self::SID, [['type' => 'delete_vod', 'id' => 9]]));
+			} finally {
+				$rRegistry->setValue(null, $rFull);
+			}
+			$this->assertCount(4, \XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0), 'nothing more queued');
 
 			// A root action is not sent: audited, and the Server page says why.
 			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::root(self::SID, ['action' => 'restart_services']));

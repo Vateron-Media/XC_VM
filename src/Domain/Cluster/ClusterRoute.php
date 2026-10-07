@@ -423,8 +423,12 @@ final class ClusterRoute {
 		if ($rNode === null || (int) $rNode['mode'] !== 2) {
 			return [false, false];
 		}
-		// A quarantined node takes the removals (restrictive) at once; the rebuilds wait for Trust again.
-		return self::rowless($rServerID, 'node.cache', self::command($rServerID, 'node.cache', static function (ClusterCrypto $rCrypto) use ($rServerID, $rJobs): bool {
+		// A quarantined node takes the removals, restrictive, at once. Nothing granting is queued
+		// for it: a quarantine ends what grants (CommandBus::endGranting), and Trust again hands
+		// none of it out, so the rebuilds are not sent, nor a removal an older extension would
+		// only sign as a granting node.cache.
+		$rQuarantined = $rNode['state'] === 'quarantined';
+		return self::rowless($rServerID, 'node.cache', self::command($rServerID, 'node.cache', static function (ClusterCrypto $rCrypto) use ($rServerID, $rJobs, $rQuarantined): bool {
 			// The removals first, as a restrictive node.purge that signs without a
 			// licence; an extension from before it refuses the type, and they go
 			// as node.cache like the rest.
@@ -434,14 +438,14 @@ final class ClusterRoute {
 				try {
 					CommandBus::enqueue($rCrypto, $rServerID, 'node.purge', ['jobs' => $rCommand]);
 				} catch (ClusterRefusedException $rE) {
-					if ($rE->reason() !== 'RECORD:type') {
+					if ($rE->reason() !== 'RECORD:type' || $rQuarantined) {
 						throw $rE;
 					}
 					CommandBus::enqueue($rCrypto, $rServerID, 'node.cache', ['jobs' => $rCommand]);
 				}
 				$rSent = true;
 			}
-			foreach (CacheJobs::commands($rRest) as $rCommand) {
+			foreach ($rQuarantined ? [] : CacheJobs::commands($rRest) as $rCommand) {
 				CommandBus::enqueue($rCrypto, $rServerID, 'node.cache', ['jobs' => $rCommand]);
 				$rSent = true;
 			}

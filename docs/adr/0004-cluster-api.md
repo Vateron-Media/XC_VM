@@ -5838,8 +5838,11 @@ longer blocked. On the test pair an address blocked and then flushed stayed bloc
 **Restrictive commands to a quarantined node.** A quarantined node's long-poll hands out class R
 commands, but `ClusterRoute::kill()`, `drop()`, `closeConnection()` and `cache()` did not route to
 one, so for a node in mode 2 they became `signals` rows or Redis signals it never reads. They now
-route as `stop()` does: the kill, drop, close and the removals (`node.purge`) are handed out at once,
-and the cache rebuilds (`node.cache`, granting) wait for *Trust again*.
+route as `stop()` does: the kill, drop, close and the removals (`node.purge`) are handed out at once.
+Nothing granting is queued for a quarantined node: a quarantine ends what grants
+(`CommandBus::endGranting()`) and *Trust again* hands none of it out, so its cache rebuilds are not
+sent, nor a removal that an extension from before `node.purge` would only sign as a granting
+`node.cache`.
 
 **Nothing left where a node in mode 2 does not read.** `ClusterRoute::rowless()`, on the paths whose
 legacy is a `signals` row or a Redis signal (root actions, kills, drops, cache jobs), answers routed
@@ -5875,8 +5878,8 @@ the stage gone with its last part), `testConfigServesTheBlocklistAsASectionThenA
 to an agent that says `blocklist_parts`, the section again to an older one, `unchanged` without a
 licence), `BlocklistDeltaTest` (the IPs cleaned and ordered as before),
 `ClusterApiTest::testAQuarantinedNodeInModeTwoTakesItsRestrictiveCommands` (what a quarantined node
-is handed, the rebuild left for Trust again, the root action audited, no legacy path in mode 2 and
-mode 1's kept). Agent: `TestABlocklistTooLargeIsFetchedInParts` (the poll says `blocklist_parts`,
+is handed, no rebuild queued, nor a removal an older extension signs only as granting, the root
+action audited, no legacy path in mode 2 and mode 1's kept). Agent: `TestABlocklistTooLargeIsFetchedInParts` (the poll says `blocklist_parts`,
 parts asked in order and stored with the reply's `seq`; `gone` and no parts refused, the blocklist
 held kept), `TestAnUnchangedBlocklistDropsTheDeltasOverIt`. On the test pair, with this panel and
 agent: a block reaches the node as a delta within a minute and its `iptables` follows; the flushed
