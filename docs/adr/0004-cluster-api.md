@@ -5573,6 +5573,47 @@ which server held it open.
 - **Proxies** keep every node's `/api` open: a proxy is never a node of the signed node list,
   which legacyApiRetired() requires of every server.
 
+### A load test on the test pair (2026-10-07)
+
+**Set-up.** The test MAIN (8 cores, 16 GB) and its load balancer (1 vCPU, 2 GB) in mode 2, every
+flow on, agent 0.14.5. Simulated HLS viewers came from one host: each asked MAIN's
+`/live/<line>/<pass>/<stream>.m3u8`, followed the redirect to the load balancer, and refreshed that
+playlist, under a user agent of its own (HLS viewers of one line, address and agent are one
+viewer). Fifteen lines of ten connections each. Steps of viewers held for two to two and a half
+minutes each. MAIN and the load balancer were sampled every 5 s.
+
+**Found and fixed: the watchdog restarted after every pass.** On a node with TELEMETRY, or in
+mode 2, the watchdog left its loop after writing its sample, and `restartDaemon()` booted a new PHP
+process every 2–3 s. Over 3 minutes on the load balancer it ran 33 generations and kept the CPU
+49.1% busy; with the pass continuing in its process, 3 generations and 29.8%. A move across mode 2
+now ends a generation instead (each pass checks it).
+
+**Found, by design: one address is capped on the stream endpoints.** nginx's `limit_req
+zone=one` (20 requests a second, burst 8, on MAIN and the load balancer) answers the excess with
+503, nginx's default, and delays what it queues. A test from one address measures that cap.
+- With refreshes every 4 s, starts 20 ms apart: 7 of 25 first viewers refused at once, and
+  refresh p99 7–12 s.
+- With the cap lifted for one run, the client host was also running four PHPUnit suites; that run
+  is not reported.
+
+**Found: a stalled viewer is ended.** A viewer whose refreshes stall for 30 s (refused or queued)
+is ended by the agent's HLS reaper (`HLSReapAfter`), and its later refreshes get 404. A player
+then asks MAIN's link again, as a new viewer.
+
+**Measured, within the cap** (refreshes every 10 s, about the stream's target duration; new
+viewers 0.15 s apart):
+- 50 viewers: 40 of 50 started, while the channel was still starting (p50 0.6 s); refresh p50
+  0.17 s.
+- 100 viewers: 50 of 50 new ones started (p50 0.16 s); refresh p50 0.25 s, p99 21 s (queued by the
+  cap and the load balancer's CPU).
+- 150 viewers: 48 of 50 started (p50 0.2 s); 42 refreshes refused by the cap (15 refreshes and
+  6.7 starts a second from one address); refresh p50 0.37 s.
+- MAIN throughout: load at most 2.3, the node's heartbeat never older than 2.6 s, its records kept
+  (up to 118 open), no `cron.error`. The load balancer: load up to 15, PHP-FPM workers up to 51.
+  Every playlist refresh is a PHP request on the node, and its one CPU was the limit.
+
+**Not done.** A test from many addresses, and a load balancer with more than one CPU.
+
 ### The move to mode 2 without the connect audit (2026-10-05)
 
 **Problem.** The cutover gate asked for seven days with no connect to MAIN before a node could
