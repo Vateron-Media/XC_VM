@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 use XcVm\Core\Util\Encryption;
 
 /**
- * The stream entry scripts (auth.php, rtmp.php, probe.php) hand a name and
+ * The stream entry scripts (auth.php, rtmp.php through RtmpViewerAuth, probe.php) hand a name and
  * password that match no line to the flood guard, both of them: an address
  * may try fewer than `bruteforce_username_attempts` different passwords for
  * one username in `bruteforce_frequency` seconds, and the same one again is
@@ -17,7 +17,7 @@ use XcVm\Core\Util\Encryption;
  */
 final class AuditDecisionGuessLimitStreamTest extends TestCase {
 	private const AUTH = 'Public/stream/auth.php';
-	private const RTMP = 'Public/stream/rtmp.php';
+	private const RTMP = 'Domain/User/RtmpViewerAuth.php';
 	private const PROBE = 'Public/stream/probe.php';
 	private const IP = '203.0.113.9';
 	private const PASS = 'streaming-pass';
@@ -120,7 +120,7 @@ final class AuditDecisionGuessLimitStreamTest extends TestCase {
 	public static function signIns(): array {
 		return [
 			'a stream link' => [self::AUTH, '$rUsername = $rRequest[\'username\'];', 'plain'],
-			'an RTMP link' => [self::RTMP, '$rUsername = $rRequest[\'username\'];', 'plain'],
+			'an RTMP link' => [self::RTMP, '$rUsername = $rRequest[\'username\']', 'plain'],
 			'an RTMP link with a playlist token' => [self::RTMP, '$rTokenData = explode(', 'token'],
 		];
 	}

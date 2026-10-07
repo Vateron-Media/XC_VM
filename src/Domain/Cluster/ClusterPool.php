@@ -53,18 +53,22 @@ final class ClusterPool {
 	/** pool => request_terminate_timeout (s) */
 	public const POOLS = ['cluster_ctl' => 60, 'cluster_ingest' => 90];
 
-	/** The plan's control ops (lanes poll and ctl), served by cluster_ctl; so is an unknown op, to be refused. */
+	/**
+	 * The plan's control ops (lanes poll and ctl), and `rtmp_auth` (ADR 0004,
+	 * RTMP viewers on a load balancer), served by cluster_ctl; so is an
+	 * unknown op, to be refused.
+	 */
 	public const CTL_OPS = [
 		'health', 'challenge', 'enrol_complete', 'enrol_code', 'enrol_code_status', 'token_refresh',
-		'token_rekey', 'hello', 'heartbeat', 'conn_admit', 'commands', 'ack',
+		'token_rekey', 'hello', 'heartbeat', 'conn_admit', 'rtmp_auth', 'commands', 'ack',
 	];
 
 	/**
 	 * The plan's ingest ops (lanes p0 and bulk), served by cluster_ingest,
 	 * including those the API does not serve. ClusterNginxConfig renders the
-	 * /cluster/v1/ location's ingest lane from this list, and the list stays
-	 * the plan's 24 ops (ClusterPoolTest) — an op nothing serves is refused by
-	 * the API itself, so routing it costs nothing.
+	 * /cluster/v1/ location's ingest lane from this list, and the two lists
+	 * stay the plan's 24 ops and `rtmp_auth` (ClusterPoolTest) — an op nothing
+	 * serves is refused by the API itself, so routing it costs nothing.
 	 *
 	 * Two of them will not be served, and the reasons are in ADR 0004:
 	 * `rpc_result` (a command's result comes back inline with its `ack`, which

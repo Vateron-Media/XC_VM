@@ -21,6 +21,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\LazyDatabaseHandler;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
+use XcVm\Core\Logging\DatabaseLogger;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterApi;
 use XcVm\Domain\Cluster\ClusterBus;
@@ -1771,6 +1772,62 @@ final class ClusterApiTest extends TestCase {
 		}
 	}
 
+	public function testRtmpAuthChecksAViewersLineOnMain(): void {
+		$this->rDb->exec('CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `username` varchar(64), `password` varchar(64), `access_token` varchar(32), `is_mag` int DEFAULT 0, `is_e2` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `mag_devices` (`user_id` int, `token` text)');
+		$rLog = sys_get_temp_dir() . '/xcvm-api-rtmp-' . bin2hex(random_bytes(4)) . '.log';
+		$rCounter = (defined('TMP_PATH') ? TMP_PATH : sys_get_temp_dir() . '/') . 'cluster_rtmp/' . self::SID;
+		@unlink($rCounter);
+		$rWas = DatabaseLogger::getLogFile();
+		DatabaseLogger::setLogFile($rLog);
+		try {
+			$rKeys = $this->active();
+			$rAsk = ['stream_id' => 100, 'ip' => '203.0.113.9', 'restream' => false, 'username' => 'nobody', 'password' => 'guess'];
+
+			// Credentials that name no line: refused, and logged on MAIN as rtmp.php logs them there.
+			[$rRes, $rCtx] = $this->call('rtmp_auth', $rAsk, 1, $rKeys);
+			$rOut = $this->reply($rRes, $rCtx, $rKeys);
+			$this->assertSame([false, 'AUTH_FAILED'], [$rOut['ok'], $rOut['reason']]);
+			$rLogged = json_decode((string) base64_decode(trim((string) file_get_contents($rLog))), true);
+			$this->assertSame([100, 0, 'AUTH_FAILED', '203.0.113.9'], [$rLogged['stream_id'], $rLogged['user_id'], $rLogged['action'], $rLogged['user_ip']]);
+
+			// What the node says is checked before anything runs.
+			$rNoCredentials = $rAsk;
+			unset($rNoCredentials['username'], $rNoCredentials['password']);
+			foreach ([['stream_id' => '100'] + $rAsk, ['stream_id' => 0] + $rAsk, ['ip' => 'nowhere'] + $rAsk, ['restream' => 1] + $rAsk, ['username' => ['nobody']] + $rAsk, ['token' => str_repeat('a', 513)] + $rAsk, $rNoCredentials] as $rBad) {
+				[$rRes, , $rReq] = $this->call('rtmp_auth', $rBad, 1, $rKeys);
+				$this->denial($rRes, 400, 'BAD_REQUEST', $rReq);
+			}
+
+			// A node's failed checks have a budget: past it, MAIN checks none for the node this minute.
+			file_put_contents($rCounter, intdiv(ClusterClock::nowMs(), 60000) . ' ' . (ClusterApi::RTMP_FAIL_BUDGET - 1));
+			[$rRes, $rCtx] = $this->call('rtmp_auth', $rAsk, 1, $rKeys);
+			$this->assertSame('AUTH_FAILED', $this->reply($rRes, $rCtx, $rKeys)['reason'], 'the budget\'s last check');
+			$this->rDb->query("SELECT COUNT(*) AS `n` FROM `cluster_audit` WHERE `event` = 'rtmp.auth_budget'");
+			$this->assertSame(1, (int) $this->rDb->get_row()['n']);
+			$rLogged = count(file($rLog));
+			[$rRes, $rCtx] = $this->call('rtmp_auth', $rAsk, 1, $rKeys);
+			$this->assertSame([false, 'REFUSED'], [$this->reply($rRes, $rCtx, $rKeys)['ok'], $this->reply($rRes, $rCtx, $rKeys)['reason']]);
+			$this->assertCount($rLogged, file($rLog), 'not checked: nothing logged');
+			unlink($rCounter);
+
+			// A line MAIN cannot read is no answer: the node refuses the viewer.
+			$this->rDb->exec('ALTER TABLE `lines` RENAME TO `lines_gone`');
+			[$rRes, , $rReq] = $this->call('rtmp_auth', $rAsk, 1, $rKeys);
+			$this->denial($rRes, 503, 'DB', $rReq);
+			$this->rDb->exec('ALTER TABLE `lines_gone` RENAME TO `lines`');
+
+			// Only an active node.
+			NodeRegistry::update(self::SID, ['state' => 'quarantined']);
+			[$rRes, , $rReq] = $this->call('rtmp_auth', $rAsk, 1, $rKeys);
+			$this->denial($rRes, 409, 'NOT_ACTIVE', $rReq);
+		} finally {
+			DatabaseLogger::setLogFile($rWas);
+			@unlink($rLog);
+			@unlink($rCounter);
+		}
+	}
+
 	public function testHelloAndHeartbeatCarryTheOfflineAdmissionPolicy(): void {
 		$rKeys = $this->active();
 		[$rRes, $rCtx] = $this->call('hello', [], 1, $rKeys);
@@ -3051,7 +3108,7 @@ final class ClusterApiTest extends TestCase {
 		foreach (['challenge', 'enrol_complete', 'hello', 'config', 'an_op_to_come'] as $rOp) {
 			$this->assertTrue(ClusterApi::readsMain(Canonical::PATH_PREFIX . $rOp), $rOp);
 		}
-		foreach (['heartbeat', 'commands', 'ack', 'events', 'conn_admit', 'conn_snapshot', 'recording_complete', 'streams', 'token_refresh', 'token_rekey', 'enrol_code', 'enrol_code_status'] as $rOp) {
+		foreach (['heartbeat', 'commands', 'ack', 'events', 'conn_admit', 'rtmp_auth', 'conn_snapshot', 'recording_complete', 'streams', 'token_refresh', 'token_rekey', 'enrol_code', 'enrol_code_status'] as $rOp) {
 			$this->assertFalse(ClusterApi::readsMain(Canonical::PATH_PREFIX . $rOp), $rOp);
 		}
 		// No handler of those is given MAIN's row.
