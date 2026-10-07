@@ -2322,6 +2322,7 @@ use XcVm\Domain\Server\ServerRepository;
 						['cluster_offline_after_sec', 'number', 'Silence before MAIN marks a node offline (10-300 s).'],
 						['cluster_orphan_conn_ttl_sec', 'number', 'Silence before MAIN purges a node\'s connections (30-3600 s).'],
 						['lb_offline_admission', ['local', 'allow', 'deny'], 'Admission of viewers without a MAIN reservation while MAIN is unreachable.'],
+						['cluster_conn_binding', ['observe', 'enforce'], 'Each viewer record a node sends must prove MAIN minted the viewer\'s token. observe: what does not is counted (Cluster Nodes). enforce: such a record is refused and dropped, from a node whose stream secret MAIN withholds. Switch only once Cluster Nodes shows it ready.'],
 						['cluster_kill_on_line_disable', 'switch', 'Drop live sessions when a line is disabled, banned or expires.'],
 						['cluster_ingest_concurrency', 'number', 'Concurrent ingest permits on MAIN (1-64); half are reserved for P0 events.'],
 						['cluster_auto_mode_down_min', 'number', 'Minutes a load balancer in mode 2 may say that it no longer reads its streams on itself (the Streams not local badge) before MAIN moves it back to mode 1, as Mode down would (0-1440; 0, the default: never). Only a node this page moved to mode 2, still holding its database credentials, heard lately, and MAIN not locked down.'],
