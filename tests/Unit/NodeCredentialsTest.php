@@ -180,6 +180,28 @@ final class NodeCredentialsTest extends TestCase {
 		$this->assertNull($this->revokedAt());
 	}
 
+	public function testTheAckAndRootsOwnReportRevokeOnce(): void {
+		$this->command(str_repeat('a', 32), NodeCredentials::STRIP);
+		$rClean = json_encode(['config' => ['db_credentials' => false]]);
+		$this->assertTrue(DbCredentials::acked(7, str_repeat('a', 32), true, $rClean), 'the ack');
+		$this->assertFalse(DbCredentials::acked(7, str_repeat('a', 32), true, $rClean), "root's report (node.root_result) after it");
+		$this->assertSame(['10.0.0.7'], $this->rRevoked);
+	}
+
+	public function testAStripRootRanAfterAModeDownGetsItsCredentialsBack(): void {
+		// Mode down on MAIN while the strip was in root's hands: the node, below
+		// mode 2 now, must not lose its grant too, and needs its credentials.
+		$this->command(str_repeat('a', 32), NodeCredentials::STRIP);
+		$this->rDb->exec('UPDATE `cluster_nodes` SET `mode` = 1 WHERE `server_id` = 7');
+		$this->assertFalse(DbCredentials::acked(7, str_repeat('a', 32), true, json_encode(['config' => ['db_credentials' => false]])));
+		$this->assertSame([], $this->rRevoked);
+		$this->assertNull($this->revokedAt());
+		$this->rDb->query("SELECT `event`, `detail` FROM `cluster_audit` WHERE `server_id` = 7 ORDER BY `id` DESC LIMIT 1");
+		$rRow = $this->rDb->get_row();
+		$this->assertSame('node.credentials_restored', $rRow['event']);
+		$this->assertSame(str_repeat('a', 32), json_decode((string) $rRow['detail'], true)['cmd_id']);
+	}
+
 	public function testACredentialFreeInstallRevokesToo(): void {
 		$this->command(str_repeat('c', 32), NodeCredentials::INSTALL);
 		$this->assertTrue(DbCredentials::acked(7, str_repeat('c', 32), true, json_encode(['config' => ['db_credentials' => false]])));

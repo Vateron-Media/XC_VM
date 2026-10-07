@@ -78,6 +78,7 @@ final class EventIngest {
 		'security.block_ip' => ['p0', NodeRegistry::FLOW_CONFIG],
 		'node.state' => ['p0', NodeRegistry::FLOW_TELEMETRY],
 		'node.inventory' => ['p1', NodeRegistry::FLOW_TELEMETRY],
+		'node.root_result' => ['p0', NodeRegistry::FLOW_COMMANDS],
 		'conn.divergence' => ['p1', NodeRegistry::FLOW_CONNECTIONS],
 		'conn.touch' => ['p2', NodeRegistry::FLOW_CONNECTIONS],
 		'skip' => ['p1', NodeRegistry::FLOW_LOGS],
@@ -414,6 +415,18 @@ final class EventIngest {
 			case 'node.inventory':
 				// time_offset as the legacy cron measured it: node clock − MAIN's.
 				return self::nodeRow($rServerID, $rData, NodeStateSink::INVENTORY, ['time_offset' => (int) round(self::clockOffsetMs($rNode) / 1000)]);
+			case 'node.root_result':
+				// Root's own report of a credential action (ClusterRootCommand) whose
+				// ack may have said only "queued": taken as the ack is, once the batch
+				// has committed.
+				$rCmdID = (string) ($rData['cmd_id'] ?? '');
+				if (preg_match('/^[0-9a-f]{32}\z/', $rCmdID) !== 1) {
+					return false;
+				}
+				$rOk = ($rData['ok'] ?? null) === true;
+				$rResult = (string) ($rData['result'] ?? '');
+				self::afterCommit(static fn() => DbCredentials::acked($rServerID, $rCmdID, $rOk, $rResult));
+				return true;
 		}
 		// skip: the node dropped logs past its cap.
 		$rCount = max(0, (int) ($rData['count'] ?? 0));

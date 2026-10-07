@@ -395,11 +395,14 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
   without credentials, MAIN revokes the node's grant (`XC_VM::db_revoke`) and records
   `cluster_nodes.db_revoked_at` (`Domain\Cluster\DbCredentials`). Root runs the strip only
   while the node is in mode 2 (`NodeCredentials::run()`; `install_config` is not gated by
-  the mode). Two limits remain there. The node learns of a `mode_down` at its agent's next
-  heartbeat, so a strip root runs before that still runs. And when root's runner is more
-  than `ClusterExecCommand::ROOT_WAIT` (5 s) behind, the command is acked
-  `{"queued": true}` and root's later outcome does not reach MAIN, which then revokes
-  nothing. Only an operator sends
+  the mode). Root also sends the outcome of a credential action as a P0 `node.root_result`
+  event (COMMANDS flow), so it reaches MAIN when root's runner is slower than
+  `ClusterExecCommand::ROOT_WAIT` (5 s) and the ack says only `{"queued": true}`; MAIN takes
+  whichever comes first, once (`DbCredentials::acked`). MAIN revokes the grant only while it
+  has the node in mode 2: a node learns of a `mode_down` at its agent's next heartbeat, so a
+  strip root ran before that leaves it below mode 2 without credentials, and MAIN sends them
+  back (`install_config` with credentials, audited `node.credentials_restored`) instead of
+  revoking. Only an operator sends
   the strip (*Drop DB credentials*, `cluster:strip-credentials`), and
   `lb_new_node_mode=api` (a new load balancer installed in mode 2, every flow on, with a
   credential-free config) is taken only with the Redis connection handler off and an

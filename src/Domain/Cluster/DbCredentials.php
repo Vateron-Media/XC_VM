@@ -227,9 +227,12 @@ final class DbCredentials {
 	}
 
 	/**
-	 * A `node.root` command's first ack (ClusterApi). For a credential action
-	 * that succeeded and left the node's config without credentials, revoke
-	 * the node's grant. True when it revoked.
+	 * A `node.root` command's ack (ClusterApi), or root's own report of it
+	 * (`node.root_result`, EventIngest): for a credential action that succeeded
+	 * and left the node's config without credentials, revoke the node's grant,
+	 * once. Only while the node is in mode 2: one root stripped after a Mode
+	 * down it had not heard of yet is below mode 2 without credentials, and is
+	 * sent them back instead. True when it revoked.
 	 */
 	public static function acked(int $rServerID, string $rCmdID, bool $rOk, string $rResult): bool {
 		if (!$rOk) {
@@ -242,7 +245,12 @@ final class DbCredentials {
 			return false;
 		}
 		$rConfig = NodeCredentials::outcome($rResult);
-		if ($rConfig === null || ($rConfig['db_credentials'] ?? true) !== false) {
+		if ($rConfig === null || ($rConfig['db_credentials'] ?? true) !== false || self::revokedAt($rServerID) !== null) {
+			return false;
+		}
+		if ((int) (NodeRegistry::byServer($rServerID)['mode'] ?? 0) !== 2) {
+			$rWhy = self::installConfig($rServerID, true, 'system');
+			ClusterAudit::log('node.credentials_restored', $rServerID, ['cmd_id' => $rCmdID, 'queued' => $rWhy === null] + ($rWhy === null ? [] : ['why' => $rWhy]), 'system');
 			return false;
 		}
 		return self::revoke($rServerID);
