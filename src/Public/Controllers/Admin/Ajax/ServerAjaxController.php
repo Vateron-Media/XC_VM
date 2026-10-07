@@ -93,11 +93,12 @@ class ServerAjaxController extends BaseAjaxController {
 		}
 
 		if ($rSub == 'update') {
+			$rSent = true;
 			foreach ($this->normalizeServerIds() as $rID) {
-				NodeActions::update(intval($rID), $db);
+				$rSent = NodeActions::update(intval($rID), $db) && $rSent;
 			}
 
-			$this->ok();
+			$this->sent($rSent);
 		}
 
 		if ($rSub == 'rollback') {
@@ -107,11 +108,12 @@ class ServerAjaxController extends BaseAjaxController {
 				$this->fail(['error' => 'invalid_version']);
 			}
 
+			$rSent = true;
 			foreach ($this->normalizeServerIds() as $rID) {
-				NodeActions::rollback(intval($rID), $rVersion, $db);
+				$rSent = NodeActions::rollback(intval($rID), $rVersion, $db) && $rSent;
 			}
 
-			$this->ok();
+			$this->sent($rSent);
 		}
 
 		if ($rSub == 'enable') {
@@ -326,11 +328,12 @@ class ServerAjaxController extends BaseAjaxController {
 
 		global $db;
 
+		$rSent = true;
 		foreach ($this->normalizeServerIds() as $rID) {
-			NodeActions::restartServices(intval($rID), $db);
+			$rSent = NodeActions::restartServices(intval($rID), $db) && $rSent;
 		}
 
-		$this->ok();
+		$this->sent($rSent);
 	}
 
 	/** action=reboot_server — reboot the selected servers. */
@@ -340,11 +343,12 @@ class ServerAjaxController extends BaseAjaxController {
 
 		global $db;
 
+		$rSent = true;
 		foreach ($this->normalizeServerIds() as $rID) {
-			NodeActions::reboot(intval($rID), $db);
+			$rSent = NodeActions::reboot(intval($rID), $db) && $rSent;
 		}
 
-		$this->ok();
+		$this->sent($rSent);
 	}
 
 	/** action=update_binaries — update binaries on the selected servers. */
@@ -354,11 +358,12 @@ class ServerAjaxController extends BaseAjaxController {
 
 		global $db;
 
+		$rSent = true;
 		foreach ($this->normalizeServerIds() as $rID) {
-			NodeActions::updateBinaries(intval($rID), $db);
+			$rSent = NodeActions::updateBinaries(intval($rID), $db) && $rSent;
 		}
 
-		$this->ok();
+		$this->sent($rSent);
 	}
 
 	/** action=server_view — summary statistics for a server/proxy. */
@@ -568,6 +573,14 @@ class ServerAjaxController extends BaseAjaxController {
 		}
 
 		$this->ok();
+	}
+
+	/**
+	 * A root action's answer: `not_sent` when a node took none of it (a node
+	 * in mode 2 that takes no root command, ClusterRoute::root).
+	 */
+	private function sent(bool $rSent): never {
+		$rSent ? $this->ok() : $this->fail(['error' => 'not_sent']);
 	}
 
 	/**

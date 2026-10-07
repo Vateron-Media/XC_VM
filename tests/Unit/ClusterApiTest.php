@@ -1570,6 +1570,30 @@ final class ClusterApiTest extends TestCase {
 		}
 	}
 
+	/** A node in mode 2 reads no signals row: a root action it cannot take is not queued at all. */
+	public function testARootActionANodeInModeTwoCannotTakeIsNotQueued(): void {
+		$this->active();
+		SettingsManager::set($this->rSettings);
+		\XcVm\Domain\Cluster\ClusterRoute::useCrypto(fn() => $this->rCrypto);
+		try {
+			NodeRegistry::update(self::SID, ['mode' => 1, 'flows' => NodeRegistry::FLOW_COMMANDS, 'root_ready' => 0]);
+			$this->assertSame([false, false], \XcVm\Domain\Cluster\ClusterRoute::root(self::SID, ['action' => 'reboot']), 'mode 1 still reads the signals table');
+
+			NodeRegistry::update(self::SID, ['mode' => 2]);
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::root(self::SID, ['action' => 'reboot']), 'mode 2 without the pin');
+
+			NodeRegistry::update(self::SID, ['root_ready' => 1, 'state' => 'quarantined']);
+			$this->assertSame([true, false], \XcVm\Domain\Cluster\ClusterRoute::root(self::SID, ['action' => 'reboot']), 'mode 2, quarantined');
+			$this->assertSame([], \XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0), 'nothing queued');
+			$this->assertFalse(\XcVm\Core\Cluster\NodeActions::reboot(self::SID), 'the caller hears it was not sent');
+
+			NodeRegistry::update(self::SID, ['state' => 'active']);
+			$this->assertSame([true, true], \XcVm\Domain\Cluster\ClusterRoute::root(self::SID, ['action' => 'reboot']));
+		} finally {
+			\XcVm\Domain\Cluster\ClusterRoute::useCrypto(null);
+		}
+	}
+
 	// ── config: the node replica ─────────────────────────────────────────
 
 	/** Open a replica record as the agent does: sealed to its box key, panel-signed. */
