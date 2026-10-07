@@ -63,6 +63,7 @@ final class ReleaseCanaryTest extends TestCase {
 		$this->canary('0.14.5', self::T);
 		$this->assertNull($this->tick(rAt: self::T), 'first heard on it');
 		$this->assertSame('0.14.5 ' . self::T, ClusterMeta::get(ReleaseCanary::SEEN));
+		$this->assertSame(['0.14.5', self::T], ReleaseCanary::trial(), 'what the Settings page shows');
 		$this->canary('0.14.5', self::T + 24 * 3600 - 1);
 		$this->assertNull($this->tick(rAt: self::T + 24 * 3600 - 1), 'not yet');
 		$this->canary('0.14.5', self::T + 24 * 3600);
@@ -107,6 +108,7 @@ final class ReleaseCanaryTest extends TestCase {
 		$this->assertNull($this->tick(['lb_binary_canary_server' => 0]));
 		$this->assertSame('', $this->pin());
 		$this->assertNull(ClusterMeta::get(ReleaseCanary::SEEN));
+		$this->assertNull(ReleaseCanary::trial());
 		$this->assertSame(['{"pin":"","was":"0.14.5"}'], $this->pins());
 	}
 

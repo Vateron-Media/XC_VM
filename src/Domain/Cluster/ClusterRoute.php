@@ -451,16 +451,34 @@ final class ClusterRoute {
 	 * An action that needs a file of MAIN's carries its artefact grant
 	 * (ArtefactGrants::forRoot).
 	 *
+	 * A node in mode 2 that takes no root command (quarantined, or MAIN lacks
+	 * its `root_ready`) gets nothing: it reads no `signals` row, so the row
+	 * would never run, or would run late once the node moved down.
+	 *
 	 * @param array<string, mixed> $rPayload {action, …} as the signals row carried it
 	 * @return array{0: bool, 1: bool}
 	 */
 	public static function root(int $rServerID, array $rPayload): array {
-		return self::command($rServerID, 'node.root', static function (ClusterCrypto $rCrypto) use ($rServerID, $rPayload): bool {
+		$rOut = self::command($rServerID, 'node.root', static function (ClusterCrypto $rCrypto) use ($rServerID, $rPayload): bool {
 			// A strip does not wait a day for its node: it was judged as it was queued (DbCredentials::strip).
 			$rTtl = ($rPayload['action'] ?? null) === NodeCredentials::STRIP ? DbCredentials::STRIP_TTL : null;
 			CommandBus::enqueue($rCrypto, $rServerID, 'node.root', ArtefactGrants::forRoot($rServerID, $rPayload), null, $rTtl);
 			return true;
 		}, false, true);
+		if ($rOut[0]) {
+			return $rOut;
+		}
+		try {
+			$rNode = NodeRegistry::byServer($rServerID);
+		} catch (\Throwable) {
+			return $rOut;
+		}
+		if ($rNode === null || (int) $rNode['mode'] !== 2) {
+			return $rOut;
+		}
+		$rWhy = $rNode['state'] === 'quarantined' ? 'quarantined' : (empty($rNode['root_ready']) ? 'no root_ready' : 'takes no command');
+		FileLogger::log('cluster', 'Command node.root for server ' . $rServerID . ' not queued (mode 2, ' . $rWhy . ')', (string) ($rPayload['action'] ?? ''));
+		return [true, false];
 	}
 
 	/**
