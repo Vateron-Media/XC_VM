@@ -20,7 +20,8 @@ use XcVm\Tests\Support\FakeClusterCrypto;
  * config.enc that carries none of MAIN's credentials. The extension packs it
  * (`config_pack(…, ['db_credentials' => false])`, found by `install_config`);
  * an older one would pack MAIN's credentials, so API mode is refused there.
- * `api_mode_allowed` stays false: the switch itself is the operator's cutover.
+ * `api_mode_allowed` is the Redis connection handler off: a node in mode 2 may
+ * not open MAIN's Redis, and with the handler every viewer there is turned away.
  * A node MAIN already keeps credential-free (mode 2, or a revoked grant) is
  * reinstalled the same way, whatever the setting, and never granted again.
  */
@@ -89,14 +90,22 @@ final class ApiModeInstallTest extends TestCase {
 		return (int) $this->rDb->get_row()['status'];
 	}
 
-	public function testTheSwitchStaysTheOperatorsAndNeedsTheExtension(): void {
+	public function testTheSwitchNeedsTheRedisHandlerOffAndTheExtension(): void {
 		$rMain = ['http_broadcast_port' => 80, 'https_broadcast_port' => 443];
-		$this->assertSame([[], [['lb_new_node_mode', 'cluster_error_api_mode']]], ClusterSettings::normalize(['lb_new_node_mode' => 'api'], $rMain, [], ['credential_free_config' => true]), 'api_mode_allowed is still false');
-		$this->assertSame([[], [['lb_new_node_mode', 'cluster_error_api_mode_extension']]], ClusterSettings::normalize(['lb_new_node_mode' => 'api'], $rMain, [], ['api_mode_allowed' => true, 'credential_free_config' => false]));
-		$this->assertSame([['lb_new_node_mode' => 'api'], []], ClusterSettings::normalize(['lb_new_node_mode' => 'api'], $rMain, [], ['api_mode_allowed' => true, 'credential_free_config' => true]));
+		$rOn = ['cluster_api_enabled' => 1];
+		$rAllowed = ['extension_ok' => true, 'api_mode_allowed' => true, 'credential_free_config' => true];
+		$this->assertSame([[], [['lb_new_node_mode', 'cluster_error_api_mode']]], ClusterSettings::normalize(['lb_new_node_mode' => 'api'], $rMain, $rOn, ['credential_free_config' => true]), 'api_mode_allowed false: the Redis handler is on');
+		$this->assertSame([[], [['lb_new_node_mode', 'cluster_error_api_mode_extension']]], ClusterSettings::normalize(['lb_new_node_mode' => 'api'], $rMain, $rOn, ['api_mode_allowed' => true, 'credential_free_config' => false]));
+		$this->assertSame([['lb_new_node_mode' => 'api'], []], ClusterSettings::normalize(['lb_new_node_mode' => 'api'], $rMain, $rOn, $rAllowed));
+
+		// Mode 2 is the cluster API's: with it off a new node installs legacy, so api is refused, as the save leaves the API.
+		$this->assertSame([[], [['lb_new_node_mode', 'cluster_error_api_mode_api_off']]], ClusterSettings::normalize(['lb_new_node_mode' => 'api'], $rMain, ['cluster_api_enabled' => 0], $rAllowed));
+		$this->assertSame([['cluster_api_enabled' => 1, 'lb_new_node_mode' => 'api'], []], ClusterSettings::normalize(['cluster_api_enabled' => 1, 'lb_new_node_mode' => 'api'], $rMain, [], $rAllowed), 'switched on in the same save');
+		$this->assertSame([['cluster_api_enabled' => 0], [['lb_new_node_mode', 'cluster_error_api_mode_api_off']]], ClusterSettings::normalize(['cluster_api_enabled' => 0, 'lb_new_node_mode' => 'api'], $rMain, $rOn, $rAllowed), 'switched off in the same save');
+		$this->assertFalse(ClusterSettings::newNodesInApiMode(['cluster_api_enabled' => 0, 'lb_new_node_mode' => 'api']), 'what the install reads');
 
 		$rService = (string) file_get_contents(MAIN_HOME . 'Domain/Server/SettingsService.php');
-		$this->assertStringContainsString("'api_mode_allowed' => false,", $rService, 'not flipped here');
+		$this->assertStringContainsString('\'api_mode_allowed\' => empty($rCurrent[\'redis_handler\']),', $rService, 'the handler off allows it');
 		$this->assertStringContainsString("'credential_free_config' => CredentialFreeConfig::supported(),", $rService);
 		$this->assertStringContainsString('cluster_error_api_mode_extension = ', (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini'));
 	}

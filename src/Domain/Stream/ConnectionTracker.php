@@ -1452,6 +1452,11 @@ class ConnectionTracker {
 				// Before the defaults below, which read a missing hls_end as ended.
 				$rEnded = self::ended($rActivityInfo);
 				$rActivityInfo += ['server_id' => 0, 'pid' => 0, 'activity_id' => null, 'stream_id' => 0, 'uuid' => '', 'hls_end' => 1];
+				// Another node's viewer, closed by MAIN: before the store changes, so
+				// an upsert of it already on its way cannot open it again.
+				if ($rActivityInfo['server_id'] != SERVER_ID && class_exists(ClusterRoute::class)) {
+					ClusterRoute::tombstone(intval($rActivityInfo['server_id']), (string) $rActivityInfo['uuid'], intval($rActivityInfo['date_start'] ?? 0));
+				}
 				if (($rActivityInfo['container'] ?? '') == 'rtmp') {
 					// An ended one's client is gone (play_done): nginx may have given its id to another.
 					if (!$rEnded && $rActivityInfo['server_id'] == SERVER_ID) {

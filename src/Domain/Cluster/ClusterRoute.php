@@ -360,6 +360,17 @@ final class ClusterRoute {
 	}
 
 	/**
+	 * Before MAIN closes a viewer another node serves: remember the connection
+	 * (ClusterBus::tomb), so an upsert of it the node had already sent does not
+	 * open it again in MAIN's store (ConnectionIngest).
+	 */
+	public static function tombstone(int $rServerID, string $rUUID, int $rDateStart): void {
+		if ($rServerID > 0 && $rDateStart > 0 && preg_match(AgentConnections::CONN_UUID, $rUUID)) {
+			ClusterBus::tomb($rServerID, $rUUID, $rDateStart);
+		}
+	}
+
+	/**
 	 * A close MAIN made to a connection another node's agent holds (its
 	 * CONNECTIONS flow is on): `conn.close {uuid, remove}`, so the node's
 	 * registry follows and a kicked HLS viewer is not resumed there.

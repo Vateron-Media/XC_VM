@@ -133,6 +133,14 @@ At the end of the install, the new load balancer installs its agent from GitHub,
 keys, checks that it can reach MAIN, and joins the cluster. Open **Servers → Cluster Nodes**: it
 appears there as **active**.
 
+**New Node Mode** (Settings → Cluster) decides how a newly installed load balancer starts. With
+*legacy* (the default) it joins in mode 1 and you move it on (Steps 3 and 4). With *api* it joins
+straight in **mode 2**, every flow on, and gets none of MAIN's database or Redis credentials, as
+if it had already gone through Step 5's first part. *api* needs the cluster API on (without it a
+new load balancer installs the old way) and the **Redis connection handler** off (a node in
+mode 2 turns every viewer away with it); the Cache page then refuses the handler until New Node
+Mode is *legacy* again.
+
 !!! note "A load balancer that is already installed, or that MAIN cannot reach over SSH (NAT)"
     The server must already be in **Servers → Manage Servers**.
 
@@ -178,6 +186,10 @@ the warnings on Cluster Nodes) before going on:
 | 6 | **Config** | The LB reads its settings, servers and stream list from its local copy, not from MAIN's database. It also gets its own viewer key |
 | 7 | **Connections** | The LB keeps its viewer list itself, and the agent mirrors it to MAIN. Needs Commands and Streams |
 | 8 | **Data plane** | Relays and files from other servers go through the agent with signed tickets instead of the stream password. Needs Streams and Content |
+
+Streams the LB already relays from another server when you switch **Data plane** on keep
+pulling the old way, with the stream password, until they restart. To move them over at once,
+restart them: on **Streams**, filter **Server** to the LB, select them and click **Restart**.
 
 Every flow can be switched off again: the load balancer then goes back to the old way for that
 part. The exception is a load balancer in mode 2 (Step 4), which needs every flow: the page refuses

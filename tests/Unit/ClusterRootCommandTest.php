@@ -5,6 +5,8 @@ use XcVm\Cli\Commands\ClusterExecCommand;
 use XcVm\Cli\Commands\ClusterRootCommand;
 use XcVm\Cli\CronJobs\RootSignalsCronJob;
 use XcVm\Core\Cluster\Crypto\Enc;
+use XcVm\Core\Cluster\EventSpool;
+use XcVm\Core\Cluster\NodeCredentials;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\RootPin;
 use XcVm\Tests\Support\FakeClusterCrypto;
@@ -165,6 +167,28 @@ final class ClusterRootCommandTest extends TestCase {
 		];
 		foreach ($rCases as $rName => [$rCmd, $rHigh]) {
 			$this->assertIsString(RootPin::verify($rPin, $rCmd['doc'], (string) Enc::b64urlDecode($rCmd['sig']), 1800000000, $rHigh), $rName);
+		}
+	}
+
+	public function testACredentialActionsOutcomeAlsoGoesToMainAsAnEvent(): void {
+		// cluster:exec acks "queued" when root is slower than it waits: the outcome
+		// MAIN revokes on travels as node.root_result too (DbCredentials::acked).
+		file_put_contents($this->rBase . 'flows.json', '{}'); // the agent alive, beside its spool
+		EventSpool::useDir($this->rBase . 'spool/');
+		try {
+			$rCmd = $this->command(1, ['action' => NodeCredentials::STRIP]);
+			$this->inbox(1, $rCmd);
+			ClusterRootCommand::drain(static fn() => "Stripped.\n{\"config\":{\"db_credentials\":false}}\n", 1800000000);
+			$rFiles = glob($this->rBase . 'spool/p0/*') ?: [];
+			$this->assertCount(1, $rFiles);
+			$rEvent = json_decode((string) file($rFiles[0], FILE_IGNORE_NEW_LINES)[0], true);
+			$this->assertSame('node.root_result', $rEvent['type']);
+			$this->assertSame([json_decode($rCmd['doc'], true)['cmd_id'], true, "Stripped.\n{\"config\":{\"db_credentials\":false}}"], [$rEvent['d']['cmd_id'], $rEvent['d']['ok'], $rEvent['d']['result']]);
+			$this->inbox(2, $this->command(2));
+			ClusterRootCommand::drain(static fn() => 'Reloading nginx...', 1800000000);
+			$this->assertCount(1, glob($this->rBase . 'spool/p0/*') ?: [], 'another action reports nothing');
+		} finally {
+			EventSpool::useDir(null);
 		}
 	}
 

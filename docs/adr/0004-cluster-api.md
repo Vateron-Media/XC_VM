@@ -908,7 +908,7 @@ On a node whose CONNECTIONS flow is on, the agent holds the node's viewers, and 
 - **Decided on MAIN** (a kick, a limit, MAIN's reaper): the close reaches the node as `conn.close {uuid, remove}`, which is restrictive and deduplicated per viewer. The agent applies it to its registry in-process. Without this, the player's next playlist request would resume a kicked HLS viewer from the node's registry.
 - **Made by the node itself** (its reaper, in MySQL mode): the node still writes MAIN's store directly, and tells its registry with `POST /v1/conn/{uuid}/close`, which sends no event.
 
-**Known gap.** An upsert already in flight when MAIN closes the same viewer can re-open it in MAIN's store. The node's registry holds the viewer as ended, so its next request starts a new connection, with the token's checks. Admission, snapshots with digests and the agent's HLS reaper are the next increments.
+**Known gap** (closed: see [The credential strip's outcome, new nodes in mode 2, and two connection gaps](#the-credential-strips-outcome-new-nodes-in-mode-2-and-two-connection-gaps-2026-10-07)). An upsert already in flight when MAIN closes the same viewer can re-open it in MAIN's store. The node's registry holds the viewer as ended, so its next request starts a new connection, with the token's checks. Admission, snapshots with digests and the agent's HLS reaper are the next increments.
 
 ### Connections (Phase 6, fourth increment): limits on MAIN
 
@@ -1294,7 +1294,7 @@ Five tests the plan lists (§13) now run against the real code. Each found MAIN 
 - MAIN now applies one batch per node and lane at a time, and reads the cursor under that lock. Only the P0 and P1 lanes take it: P2 keeps no cursor (tenth increment). The lock is a file, `TMP_PATH/cluster_ingest/<sid>_<lane>.lock`, waited for up to 10 s (then `503 DB`). It is not the node's database row: every heartbeat writes that row, and holding it for a whole batch would delay them.
 - A cursor `UPDATE` that failed was ignored. When the database connection dropped mid-batch, taking the transaction with it, the node was still told the batch was applied, and moved on past events MAIN never kept. Such a batch now fails with `503 DB`, and the node sends it again.
 - The same event under a new number already applied once: an upsert updates in place, and a remove or close of a viewer already gone is accepted and changes nothing.
-- **Known gap:** a close's activity row goes to a file, outside the transaction. A batch that fails after one of its closes was applied keeps that activity row, and the resend writes it again, in either store. In MySQL mode the connection's removal rolls back with the batch; Redis has no transaction, so there the batch's writes stay, and the resend opens and closes the viewer again. `ConnectionIngestIdempotencyTest` pins both, with the second activity row.
+- **Known gap** (closed: see [The credential strip's outcome, new nodes in mode 2, and two connection gaps](#the-credential-strips-outcome-new-nodes-in-mode-2-and-two-connection-gaps-2026-10-07))**:** a close's activity row goes to a file, outside the transaction. A batch that fails after one of its closes was applied keeps that activity row, and the resend writes it again, in either store. In MySQL mode the connection's removal rolls back with the batch; Redis has no transaction, so there the batch's writes stay, and the resend opens and closes the viewer again. `ConnectionIngestIdempotencyTest` pins both, with the second activity row.
 - The test pins the lock too: a query hook checks that the lane's lock is held when the cursor is read and when it is moved. The lock directory has a test seam (`EventIngest::useLockDir()`); the test bootstrap points it at a directory of the test process's own under `tests/.tmp`, so no suite run shares lock files with another.
 
 **MAIN's downtime and the orphan purge (Phase 6, `MainOutageNoPurgeTest`).**
@@ -6176,3 +6176,39 @@ No migration and no agent change; `TestInteropFence` passes unchanged.
 named in its *Approved and built*; 2 and 3 are built, above. The three are independent. 3 and 2
 change MAIN's panel alone. 1 needs the panel release on every node, and one field in the agent,
 before its second stage.
+
+### The credential strip's outcome, new nodes in mode 2, and two connection gaps (2026-10-07)
+
+**New nodes in mode 2.** `lb_new_node_mode = api` was refused everywhere (`api_mode_allowed`
+false) though the install, the enrolment and the credential-free config already took a node that
+joins in mode 2. It is now taken whenever the Redis connection handler is off (mode 2 cannot run
+with it) and the extension packs a credential-free config; the Cache page refuses the handler
+while new nodes join in API mode.
+
+**The strip's outcome.** Root also sends a credential action's outcome as a P0
+`node.root_result {cmd_id, ok, result}` (COMMANDS flow; the agent passes a type it does not know
+as it is). MAIN takes it as the ack (`DbCredentials::acked`), whichever comes first, once, so an ack
+that said only `{"queued": true}` (root slower than `ROOT_WAIT`) no longer leaves the grant in
+place. `acked()` revokes only while MAIN has the node in mode 2: a strip root ran before the node
+heard of a `mode_down` leaves it below mode 2 without credentials, and MAIN sends them back
+(`install_config` with credentials, audited `node.credentials_restored`).
+
+**An upsert in flight after MAIN's close** (the *Known gap* of Phase 6's third increment). Before
+MAIN closes a viewer another node serves (`ConnectionTracker::closeConnection`,
+`ConnectionLimiter::closeConnection`), it adds its `date_start` to `tombs:<sid>:<uuid>` on the
+cluster bus, a set kept for an hour after the last close (`ClusterRoute::tombstone`).
+`ConnectionIngest::write` skips an upsert of a connection in it (same `uuid` and `date_start`); a
+reconnect is a new connection with a `date_start` of its own. Every close under the uuid is kept,
+not only the last: a player that came back under the same uuid and was closed again may still
+have the first connection's upsert on its way. Without the bus nothing is kept, and the node's digest corrects MAIN's
+store as before.
+
+**A close's activity row on a resent batch** (the *Known gap* of `ConnectionIngestIdempotencyTest`).
+`conn.close` hands its activity row to the batch's commit (`EventIngest::afterCommit`): a batch that
+fails writes none, and the resend writes one, in either store.
+
+**Tests.** `ApiModeInstallTest`, `ClusterModeActionTest`, `NodeCredentialsTest` (one revoke for
+the ack and the report; a strip below mode 2 restored), `ClusterRootCommandTest`,
+`ClusterEventsTest` (`node.root_result` taken as the ack), `ConnectionStoreTest` (the tombstone,
+and that both closes keep it before the store changes) and `ConnectionIngestIdempotencyTest` (one
+activity row).

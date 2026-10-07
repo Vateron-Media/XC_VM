@@ -202,6 +202,11 @@ class ConnectionLimiter {
 		if (!is_array($rActivityInfo)) {
 			return false;
 		}
+		// Another node's viewer, closed by MAIN: before the store changes, so an
+		// upsert of it already on its way cannot open it again (ConnectionIngest).
+		if (($rActivityInfo['server_id'] ?? SERVER_ID) != SERVER_ID && class_exists(ClusterRoute::class)) {
+			ClusterRoute::tombstone(intval($rActivityInfo['server_id']), (string) ($rActivityInfo['uuid'] ?? ''), intval($rActivityInfo['date_start'] ?? 0));
+		}
 
 		if ($rActivityInfo['container'] == 'rtmp') {
 			if ($rActivityInfo['server_id'] == SERVER_ID) {

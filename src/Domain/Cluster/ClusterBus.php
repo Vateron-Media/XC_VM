@@ -211,6 +211,48 @@ final class ClusterBus {
 		}
 	}
 
+	/** Seconds a viewer MAIN closed keeps a node's late upsert of it out (tomb()). */
+	public const TOMB_TTL = 3600;
+
+	/**
+	 * MAIN closed one of a node's viewers (a kick, a limit, its sweep): an
+	 * upsert of that same connection, its `date_start`, already on its way
+	 * from the node is not to open it again (ConnectionIngest). Each
+	 * connection closed under the uuid is kept (`tombs:<sid>:<uuid>`, a set,
+	 * for TOMB_TTL after the last close): a player that came back under the
+	 * same uuid and was closed again may still have the first one's upsert on
+	 * its way. False without the bus: the node's digest then corrects MAIN's
+	 * store, as before.
+	 */
+	public static function tomb(int $rServerID, string $rUUID, int $rDateStart): bool {
+		$rRedis = self::client();
+		if ($rRedis === null) {
+			return false;
+		}
+		$rKey = 'tombs:' . $rServerID . ':' . $rUUID;
+		try {
+			$rOut = $rRedis->multi()->sAdd($rKey, (string) $rDateStart)->expire($rKey, self::TOMB_TTL)->exec();
+		} catch (\Throwable) {
+			self::drop();
+			return false;
+		}
+		return is_array($rOut) && ($rOut[1] ?? false) === true;
+	}
+
+	/** Did MAIN close this connection of a node's (its uuid and `date_start`) in the last TOMB_TTL? False without the bus. */
+	public static function tombed(int $rServerID, string $rUUID, int $rDateStart): bool {
+		$rRedis = self::client();
+		if ($rRedis === null) {
+			return false;
+		}
+		try {
+			return (bool) $rRedis->sIsMember('tombs:' . $rServerID . ':' . $rUUID, (string) $rDateStart);
+		} catch (\Throwable) {
+			self::drop();
+			return false;
+		}
+	}
+
 	/**
 	 * The last reads a node's touches left on the bus: uuid => hls_last_read,
 	 * for the viewers that have one. Null without the bus.

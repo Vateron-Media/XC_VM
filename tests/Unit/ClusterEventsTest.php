@@ -4,12 +4,14 @@ use PHPUnit\Framework\TestCase;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Cluster\EventSpool;
 use XcVm\Core\Cluster\LogSink;
+use XcVm\Core\Cluster\NodeCredentials;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\NodeStateSink;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Domain\Cluster\ClusterClock;
+use XcVm\Domain\Cluster\DbCredentials;
 use XcVm\Domain\Cluster\EventIngest;
 use XcVm\Domain\Cluster\NodeRegistry;
 use XcVm\Domain\Stream\StreamStateWriter;
@@ -97,6 +99,31 @@ final class ClusterEventsTest extends TestCase {
 
 	private function node(): array {
 		return NodeRegistry::byServer(5);
+	}
+
+	public function testRootsReportOfACredentialActionIsTakenAsItsAck(): void {
+		$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/up/052_add_cluster_node_db_revoked_at.sql'));
+		$this->rDb->exec('CREATE TABLE `cluster_commands` (`server_id` int, `cmd_id` char(32), `type` varchar(32), `payload` text)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY, `server_ip` varchar(255))');
+		$this->rDb->query("INSERT INTO `servers` (`id`, `server_ip`) VALUES (5, '10.0.0.5')");
+		$rCmdID = str_repeat('c', 32);
+		$this->rDb->query("INSERT INTO `cluster_commands` (`server_id`, `cmd_id`, `type`, `payload`) VALUES (5, ?, 'node.root', ?)", $rCmdID, json_encode(['action' => NodeCredentials::STRIP]));
+		$rRevoked = [];
+		DbCredentials::useRevoke(static function (string $rHost) use (&$rRevoked): bool {
+			$rRevoked[] = $rHost;
+			return true;
+		});
+		try {
+			$rEvent = static fn(string $rID): array => ['type' => 'node.root_result', 'd' => ['cmd_id' => $rID, 'ok' => true, 'result' => (string) json_encode(['config' => ['db_credentials' => false]])]];
+			// Without COMMANDS, and with a malformed id, it is refused.
+			$this->assertSame(0, EventIngest::ingest($this->node(), 'p0', 1, [$rEvent($rCmdID)])['applied']);
+			NodeRegistry::update(5, ['mode' => 2, 'flows' => 255]);
+			$this->assertSame(0, EventIngest::ingest($this->node(), 'p0', 2, [$rEvent('../x')])['applied']);
+			$this->assertSame(1, EventIngest::ingest($this->node(), 'p0', 3, [$rEvent($rCmdID)])['applied']);
+			$this->assertSame(['10.0.0.5'], $rRevoked, 'revoked once the batch committed');
+		} finally {
+			DbCredentials::useRevoke(null);
+		}
 	}
 
 	// ── Node side ────────────────────────────────────────────────────────
