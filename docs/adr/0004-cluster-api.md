@@ -5600,6 +5600,29 @@ release that fails slowly, or only under real load, reached the whole fleet with
 - A canary that is no enrolled node never proves anything: the fleet stays where it is.
 - No page shows the pin yet: the cluster audit does.
 
+### Command latency, and the SSE downlink (2026-10-07)
+
+The plan left an SSE downlink with BOX framing as optional work: the agent would keep one stream
+open and get each command as it is queued, instead of the `commands` long-poll. Before building it,
+the delay was measured.
+
+**Measured** on the test pair, over a day of E2E runs, from `cluster_commands` (whole seconds):
+- Most commands were handed over in the second they were queued: 389 of 563 `conn.close`, 34 of
+  42 `conn.kill_worker`, 19 of 21 `conn.drop`.
+- The rest waited 2 to 18 s. 184 of the 219 slow deliveries were queued while the node was still
+  running an earlier command, which MAIN had handed over before and which was acked within a
+  second of the slow one's delivery: `stream.stop` 67, `node.purge` 54, `conn.kill_worker` 21,
+  `stream.start` 14, and others. Most of the other 35 were `node.root`, which root takes on its
+  own schedule.
+- The wake is not lost: `wake:<sid>` is a list entry that waits for the next poll (`ClusterBus`).
+  The agent ran a poll's commands one at a time, the node's PHP included, and polled again only
+  after them, so a kill behind a `stream.stop` waited for it.
+
+**Decided.** No SSE downlink: it would deliver sooner, and the commands would still wait for one
+another. The agent instead runs the node's slow PHP commands beside its commands loop, in order
+among themselves, and keeps kills, closes and the controls in the loop, which polls again at once
+(XC_VM_Fanout, `runAside`).
+
 ### The move to mode 2 without the connect audit (2026-10-05)
 
 **Problem.** The cutover gate asked for seven days with no connect to MAIN before a node could

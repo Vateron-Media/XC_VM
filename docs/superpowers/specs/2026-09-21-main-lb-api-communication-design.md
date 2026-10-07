@@ -1054,7 +1054,7 @@ Names below are the ones in the code (panel `src/`, agent in XC_VM_Fanout); ADR 
 | VOD/timeshift bytes in Go, only if FPM pressure is measured | — | \~3 |
 | AEAD-framed relays, or HTTPS relays to parents with a certificate | D11 | \~3 |
 
-**Built since** (ADR 0004): per-LB viewer-token keys, H1 (*Per-node viewer-token keys*, increments one to three: the Ministra tokens still use the shared secret); proxies on a signed channel, D8; AEAD-framed relays, D11; VOD and timeshift bytes in the daemon. **Not built yet:** the SSE downlink with BOX framing.
+**Built since** (ADR 0004): per-LB viewer-token keys, H1 (*Per-node viewer-token keys*, increments one to three: the Ministra tokens still use the shared secret); proxies on a signed channel, D8; AEAD-framed relays, D11; VOD and timeshift bytes in the daemon. **Not built, by measurement:** the SSE downlink with BOX framing. A command's delay was the agent running a poll's commands one at a time, not the long-poll (ADR 0004, *Command latency, and the SSE downlink*).
 
 A TLS-hardening ticket sits outside the phases. It limits the placeholder `ssl.conf` to TLS 1.2/1.3 and regenerates each LB's self-signed key. The cluster API does not depend on it. Done: `console.php startup` (`StartupCommand::hardenTls`) replaces a placeholder key and the old shipped `ssl.conf` on every node.
 
