@@ -151,12 +151,21 @@ The page (`ModulesController` renders it, `ModuleAjaxController` answers it) has
 
 - **Installed** — every module with its status (`enabled`, `disabled`, `not_installed`,
   `installing`, `failed`) and its actions.
-- **Store** — the official store's modules (`ModuleStore`): `XC_VM::extensions_list()` gives the
-  catalogue, `XC_VM::plugins_check()` tells whether the Modules API key bought a paid one. Every
-  module is listed, marked **Free**, **Purchased** or **Paid**; a paid one not bought links to its
-  store page (`<store>/extensions/<slug>`) instead of installing. The list can be searched and
-  sorted by name, version, price or status, 50 rows a page. The answer is cached for 5 minutes per
-  API key (**Refresh** asks again).
+- **Store** — the official store's modules (`ModuleStore`). The catalogue is public: it is listed
+  without a Modules API key, a page at a time, by `XC_VM::extensions_list(null, $key, $options)`
+  (xcvm_core 2.4.0 and later) with `page`, `per_page` (1–100, the page asks 50), `search` (up to
+  100 characters) and `sort` (`name`, `popular`, `newest`, `price_asc`, `price_desc`). Every module
+  is marked **Free**, **Purchased** or **Paid**. A **free** module installs without a key and
+  without registering the panel with the store. A **paid** one needs the key: register on
+  xcvm.tech, buy the module, and set the Modules API key (Settings → API, `platform_api_key`); with
+  the key the store marks the modules its user bought (`owned`), shown as **Purchased** and
+  installable. A paid module not bought links to its store page (`<store>/extensions/<slug>`)
+  instead of installing; installing it anyway fails with `not_entitled`, which the job reports as
+  "This module is paid: buy it on xcvm.tech and set the Modules API key". Each answer is cached for
+  2 minutes per key and request (**Refresh** asks again; a store install clears the cache).
+  An older extension lists the store only with a key and answers the whole list: the panel then
+  asks `XC_VM::plugins_check()` for each paid module and searches, sorts and pages it itself
+  (`popular` and `newest` keep the store's order).
 
 Enable and disable are applied at once. Every other action (install, update, delete,
 rollback, license renewal, store install, archive upload, update check) is a **background job**
@@ -170,7 +179,7 @@ answers.
 | `module_status` | GET | Every module's state and the current job |
 | `module` (`sub`, `name`) | POST | `enable`/`disable` at once; any other `sub` queues a job |
 | `module_upload` (`module_zip`) | POST | Installs an uploaded archive as a job |
-| `module_store` (`refresh=1`) | GET | The store's modules this panel may install |
+| `module_store` (`page`, `per_page`, `search`, `sort`, `refresh=1`) | GET | One page of the store's modules, with `page`, `per_page`, `total`, `last_page` |
 
 `config/modules.php` is read with `require`, which OPcache caches in each of the four PHP-FPM
 masters. Every read first drops the cached copy if the file changed on disk

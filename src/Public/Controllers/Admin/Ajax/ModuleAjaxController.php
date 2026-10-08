@@ -84,15 +84,26 @@ class ModuleAjaxController extends BaseAjaxController {
 		$this->ok(['job' => $rJob]);
 	}
 
-	/** action=module_store — the store's modules this panel may install. */
+	/** action=module_store — one page of the store's modules (no key needed; a key marks the bought ones). */
 	public function store(): never {
 		$this->guard();
 		$rKey = (string) (SettingsManager::get('platform_api_key') ?? '');
-		$rCatalogue = ModuleStore::catalogue($rKey, (string) RequestManager::get('refresh') === '1');
+		$rCatalogue = ModuleStore::catalogue($rKey, [
+			'page'     => RequestManager::get('page'),
+			'per_page' => RequestManager::get('per_page'),
+			'search'   => RequestManager::get('search'),
+			'sort'     => RequestManager::get('sort'),
+		], (string) RequestManager::get('refresh') === '1');
 		if (!$rCatalogue['ok']) {
 			$this->fail(['reason' => $rCatalogue['reason'], 'message' => self::storeError((string) $rCatalogue['reason'])]);
 		}
-		$this->ok(['modules' => ModuleStore::rows($rCatalogue['extensions'], $rCatalogue['owned'], $this->manager()->listModules())]);
+		$this->ok([
+			'modules'   => ModuleStore::rows($rCatalogue['extensions'], $this->manager()->listModules()),
+			'page'      => $rCatalogue['page'],
+			'per_page'  => $rCatalogue['per_page'],
+			'total'     => $rCatalogue['total'],
+			'last_page' => $rCatalogue['last_page'],
+		]);
 	}
 
 	/**
@@ -134,8 +145,11 @@ class ModuleAjaxController extends BaseAjaxController {
 	/** What the page says for a store that did not answer. */
 	public static function storeError(string $rReason): string {
 		return match ($rReason) {
-			'no_api_key'   => 'Set the Modules API key in Settings → API to see the store.',
+			// Only an extension older than 2.4.0 lists the store by key.
+			'no_api_key'   => 'This core extension lists the store only with a Modules API key: set it in Settings → API, or update the extension.',
 			'no_extension' => 'The store needs the XC_VM core extension, which this PHP does not load.',
+			'invalid_page', 'invalid_per_page', 'invalid_search', 'invalid_sort', 'invalid_options'
+				=> 'The store refused this listing request (' . $rReason . ').',
 			default        => 'The store did not answer (' . $rReason . '). Try again later.',
 		};
 	}

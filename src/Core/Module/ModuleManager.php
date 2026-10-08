@@ -1651,7 +1651,7 @@ class ModuleManager {
 	 *
 	 * @param string      $slug    Module slug as listed on the platform.
 	 * @param string      $version Exact version string (e.g. "1.2.0"), or '' for the latest.
-	 * @param string|null $apiKey  API key for the SaaS platform.
+	 * @param string|null $apiKey  Modules API key; null or '' for a free module.
 	 * @throws \RuntimeException If the C extension is missing, download fails, or install fails.
 	 */
 	public function downloadFromPlatform(string $slug, string $version = '', ?string $apiKey = null): void {
@@ -1810,7 +1810,7 @@ class ModuleManager {
 		}
 
 		try {
-			$res = \XC_VM::module_license($slug, base64_encode($serverData), $apiKey ?? '');
+			$res = \XC_VM::module_license($slug, base64_encode($serverData), ($apiKey ?? '') !== '' ? $apiKey : null);
 		} catch (\Throwable $e) {
 			error_log("ModuleManager: license request failed for '{$slug}': " . $e->getMessage());
 			return false;
@@ -1819,7 +1819,7 @@ class ModuleManager {
 		if (!is_array($res) || empty($res['ok'])) {
 			$reason = is_array($res) ? ($res['reason'] ?? 'unknown') : 'no_response';
 			error_log("ModuleManager: license NOT issued for '{$slug}': {$reason}"
-				. (($apiKey ?? '') === '' ? ' (api_key пуст — для лицензии он обязателен)' : ''));
+				. (($apiKey ?? '') === '' ? ' (no Modules API key: a paid module needs one)' : ''));
 			return false;
 		}
 
@@ -1957,8 +1957,8 @@ class ModuleManager {
 	}
 
 	/**
-	 * Register the panel and pull (download + decrypt + extract) a module's
-	 * files from the platform via the C extension. Does NOT run installModule().
+	 * Register the panel (with a key) and pull (download + decrypt + extract) a
+	 * module's files from the platform via the C extension. Does NOT run installModule().
 	 *
 	 * @return array{ok: bool, module: string, version: string, path: string}
 	 * @throws \RuntimeException On a missing extension, registration or download failure.
@@ -1968,23 +1968,28 @@ class ModuleManager {
 			throw new \RuntimeException('XC_VM extension is not loaded. Install xcvm_core.so and enable it in php.ini.');
 		}
 
-		// Ensure this panel is registered with the platform before installing.
-		// module_install() asks the SaaS to wrap the module key in an X25519
-		// SealedBox for *this* panel's public key; if the panel was never
-		// registered the /plugins/key endpoint answers "panel_not_registered"
-		// and the install fails. Registration is an idempotent upsert keyed by
-		// install_id, so running it before every install also guarantees the
-		// server holds the public key matching our current local secret key.
-		$reg = \XC_VM::panel_register($apiKey ?? '');
-		if (!is_array($reg) || empty($reg['ok'])) {
-			$regReason = $reg['message'] ?? ($reg['reason'] ?? 'unknown');
-			throw new \RuntimeException("Panel registration with platform failed for module '{$slug}': {$regReason}");
+		$apiKey = ($apiKey ?? '') !== '' ? $apiKey : null;
+
+		// A paid module's key is wrapped in an X25519 SealedBox for *this* panel's
+		// public key, so the panel registers first (an idempotent upsert keyed by
+		// install_id, which also keeps the server's public key matching our current
+		// secret key). Registration needs the Modules API key; a free module
+		// installs without either.
+		if ($apiKey !== null) {
+			$reg = \XC_VM::panel_register($apiKey);
+			if (!is_array($reg) || empty($reg['ok'])) {
+				$regReason = $reg['message'] ?? ($reg['reason'] ?? 'unknown');
+				throw new \RuntimeException("Panel registration with platform failed for module '{$slug}': {$regReason}");
+			}
 		}
 
-		$result = \XC_VM::module_install($slug, $version, $apiKey ?? '');
+		$result = \XC_VM::module_install($slug, $version, $apiKey);
 
 		if (!is_array($result) || empty($result['ok'])) {
-			$reason = $result['error'] ?? 'unknown';
+			$reason = $result['error'] ?? ($result['reason'] ?? 'unknown');
+			if ($reason === 'not_entitled') {
+				throw new \RuntimeException('This module is paid: buy it on xcvm.tech and set the Modules API key (Settings → API).');
+			}
 			throw new \RuntimeException("Platform download failed for module '{$slug}': {$reason}");
 		}
 
