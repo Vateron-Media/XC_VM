@@ -178,7 +178,9 @@ final class GatewayPolicy {
 		if ($rLease['source'] === 'none' && $rLease['state'] === NodeLease::SERVING) {
 			return 0;
 		}
-		if ($rLease['state'] === NodeLease::FENCED) {
+		// A fence MAIN commanded has no anchor on MAIN's clock to move its drain
+		// onto this host's: PHP serves the drain, and stops at its end.
+		if ($rLease['state'] === NodeLease::FENCED || $rLease['anchor'] <= 0) {
 			return $rNow;
 		}
 		return $rNow + max(0, $rLease['drain_until'] - $rLease['anchor']);

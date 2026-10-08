@@ -4,6 +4,7 @@ use PHPUnit\Framework\TestCase;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\AgentPaths;
 use XcVm\Core\Cluster\NodeFlows;
+use XcVm\Core\Cluster\NodeLease;
 use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\StreamSecret;
@@ -45,6 +46,7 @@ final class GatewayPolicyTest extends TestCase {
 		OpensslExtra::usePrevFile(null);
 		GatewayPolicy::useFile(null);
 		NodeFlows::usePath(null);
+		NodeLease::usePath(null);
 		exec('rm -rf ' . escapeshellarg($this->rDir));
 	}
 
@@ -103,6 +105,15 @@ final class GatewayPolicyTest extends TestCase {
 		NodeFlows::usePath($this->rDir . '/flows.json');
 		$this->assertSame('agent', GatewayPolicy::build($this->settings(), $this->servers(), 1, self::NOW)['conn_store'], 'the CONNECTIONS flow on');
 		$this->assertSame(['2' => ['http://lb2.example:8080'], '5' => ['https://a.example:8443', 'https://b.example:8443']], $rPolicy['redirect'], 'segment.php\'s Location base for each other server');
+	}
+
+	public function testAFenceMAINCommandedHandsTheDrainToPHP(): void {
+		// The agent's fence file (an operator's, a lapsed licence's): its drain
+		// ends on MAIN's clock, with no anchor to move it onto this host's.
+		$rNowMs = (int) round(microtime(true) * 1000);
+		file_put_contents($this->rDir . '/fence.json', (string) json_encode(['state' => 'draining', 'reason' => 'admin', 'since_ms' => $rNowMs - 1000, 'drain_until_ms' => $rNowMs + 60000, 'wrote_at_ms' => $rNowMs]));
+		NodeLease::usePath($this->rDir . '/lease.json', $this->rDir . '/fence.json');
+		$this->assertSame(self::NOW, GatewayPolicy::build($this->settings(), $this->servers(), 1, self::NOW)['serve_until'], 'not the drain\'s end read as a length');
 	}
 
 	public function testTheModeIsOffWithoutFanoutOrAKnownValue(): void {
