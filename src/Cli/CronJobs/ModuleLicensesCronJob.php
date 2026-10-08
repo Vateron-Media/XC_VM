@@ -44,11 +44,8 @@ class ModuleLicensesCronJob implements CommandInterface {
 			return 0;
 		}
 
+		// No key renews only free modules: the store refuses a paid one without it.
 		$apiKey = (string) (SettingsManager::get('platform_api_key') ?? '');
-		if ($apiKey === '') {
-			echo "No platform API key configured — skipping.\n";
-			return 0;
-		}
 
 		$manager = new ModuleManager(container: ServiceContainer::getInstance());
 
