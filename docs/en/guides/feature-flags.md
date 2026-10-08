@@ -61,6 +61,7 @@ Loaded from settings cache and used in runtime decision points.
 | `fanout_enabled` | `bool` | master switch for the xc_fanout daemon (default on); off stops it on every node and live delivery uses the pre-fanout paths (see streaming-subsystem, "Switching fanout off") |
 | `fanout_supervise` | `bool` | hand live streams to the xc_fanout supervisor instead of a PHP monitor (default on) |
 | `fanout_source_backend` | `auto` / `ffmpeg` / `native` | how sources become MPEG-TS; with supervision, whether copy-only streams run the native remuxer (`auto`: with ffmpeg fallback) |
+| `gateway_mode` | `off` / `shadow` / `segments` / `segments+playlist` | the segment gateway in xc_fanout answers HLS segments, keys and (with `segments+playlist`) playlist refreshes without PHP-FPM; `shadow` only judges a mirrored copy (see streaming-subsystem, "Segment gateway") |
 
 These values are loaded from `CACHE_TMP_PATH/settings` by request guards.
 
