@@ -64,7 +64,7 @@ Write the missing ones (`src/migrations/database/down/<same name>.sql`) before t
 
 **Compatibility code due for removal.** Some code exists only for nodes, updaters or plays from before a given release, and says so in a `ponytail:` comment with its condition. Remove each one in the release named below, once its condition holds:
 
-- **2.7.0:**
+- **The first release after 2.6.2:**
   - `OffAirHandler`: the `video_path` claim, kept for nodes from before `off_air` (2.6.0).
   - `ConnectionLimiter`: the `md5($rPID)` key, kept for RTMP plays opened before `rtmpUuid()` (2.6.0).
   - `UpdateCommand`: the copy of `bin/install` from the update archive, kept for MAINs whose updater did not copy it (2.6.1).
