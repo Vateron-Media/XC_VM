@@ -3031,7 +3031,7 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 							?>
 							<?php foreach (array_filter([$language::get('versions') => $rVersions, $language::get('cluster') => $clusterInfo ?? null]) as $rTitle => $rRows): ?>
 							<h4 class="card-title mb-4"><?= htmlspecialchars((string) $rTitle, ENT_QUOTES); ?></h4>
-							<table class="table table-striped table-bordered">
+							<table class="table table-striped table-bordered mb-5">
 								<tbody>
 									<?php foreach (array_chunk($rRows, 2) as $rPair): ?>
 										<tr>
