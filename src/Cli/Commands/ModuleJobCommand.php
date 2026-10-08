@@ -110,12 +110,9 @@ class ModuleJobCommand implements CommandInterface {
 		return $rParts !== [] ? implode(' ', $rParts) : 'All installed modules are up to date (' . $rResult['checked'] . ' checked).';
 	}
 
-	/** The platform API key, or a refusal when the operator has not set one. */
-	private static function platformKey(): string {
+	/** The Modules API key, or null: a free module needs none, and the store refuses a paid one without it. */
+	private static function platformKey(): ?string {
 		$rKey = (string) (SettingsManager::get('platform_api_key') ?? '');
-		if ($rKey === '') {
-			throw new \RuntimeException('Set the Modules API key first (Settings → API).');
-		}
-		return $rKey;
+		return $rKey !== '' ? $rKey : null;
 	}
 }
