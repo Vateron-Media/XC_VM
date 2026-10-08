@@ -139,7 +139,7 @@ final class ClusterAdmin {
 	/**
 	 * @param array<int, array<string, mixed>> $rServers ServerRepository::getAll(true)
 	 * @return list<array<string, mixed>> One row per enrolled node, with `server_name`, `health`,
-	 *                                    `settings_misses`, `connects` and `streams_local` (NodeAudit; null when not reported),
+	 *                                    `settings_misses`, `connects`, `streams_local` and `legacy_api` (NodeAudit; null when not reported),
 	 *                                    `relay` (its agent runs the relay proxy), `relay_down_since` and
 	 *                                    `relay_error` (NodeRelay; null and '' while it holds its port),
 	 *                                    `core_pinned` (CorePins) and `db_revoked_at` (null: never).
@@ -175,6 +175,7 @@ final class ClusterAdmin {
 			$rRow['health'] = $rRow['state'] === 'active' ? NodeHealth::state($rLastSeen, $rReady, $rNow, $rOfflineAfterSec) : (string) $rRow['state'];
 			$rRow['settings_misses'] = $rReports[(int) $rRow['server_id']]['settings_misses'] ?? null;
 			$rRow['connects'] = NodeAudit::connectsOf($rReports[(int) $rRow['server_id']] ?? null);
+			$rRow['legacy_api'] = $rReports[(int) $rRow['server_id']]['legacy_api'] ?? null;
 			$rRow['streams_local'] = NodeAudit::streamsLocal($rReports[(int) $rRow['server_id']] ?? null);
 			$rRow['relay'] = self::relayAdvertised($rRow);
 			$rOut[] = $rRow;

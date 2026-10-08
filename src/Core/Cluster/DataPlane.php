@@ -266,7 +266,8 @@ final class DataPlane {
 	/**
 	 * May this node's legacy `/api` answer 404 (api_legacy.conf)? Only once
 	 * nothing reads its files with `getFile` any more: its own DATAPLANE flow
-	 * is on, and every server of the cluster — MAIN included — is a node
+	 * is on, and every server of the cluster — MAIN included, a proxy not,
+	 * as it reads no node's files — is a node
 	 * active in the signed node list with its DATAPLANE flow on, so each
 	 * reads through `/xfile`. MAIN counts once its data-plane client is on
 	 * (`cluster:main-dataplane on`): its entry in the node list is then
@@ -285,7 +286,11 @@ final class DataPlane {
 		if (!is_array($rServers) || $rServers === []) {
 			return false;
 		}
-		foreach (array_keys($rServers) as $rID) {
+		foreach ($rServers as $rID => $rServer) {
+			// A proxy reads no node's files: it forwards viewers and talks to MAIN alone.
+			if ((int) ($rServer['server_type'] ?? 0) === 1) {
+				continue;
+			}
 			$rNode = DataPlaneTrust::node((int) $rID);
 			if ($rNode === null || $rNode['state'] !== 'active' || !$rNode['dataplane']) {
 				return false;

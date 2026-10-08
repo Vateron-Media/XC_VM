@@ -1042,7 +1042,7 @@ Names below are the ones in the code (panel `src/`, agent in XC_VM_Fanout); ADR 
 - Run the final `verify-lb-archive.sh` and rewrite `server:diagnose`. Write `docs/en/development/cluster-api.md` ("plain HTTP by default; HTTPS optional"), then run `make docs-build`.
 - External callers of an LB's `/api`, such as XC\_VM\_Proxy, are (undetermined) and break here.
 - **Built so far:** the dashboard's *Cluster API* status row and the Servers list's node hints (ADR 0004, Phase 10 first increment); `server:diagnose` reports the agent's own standing (`AgentClient::status`); the developer reference `docs/en/development/cluster-api.md`; the dead `connection_sync_timer` setting dropped (migration 049). The legacy `/api` closes per node instead of being removed (`api_legacy.conf`, Phase 8 second increment), once every server, MAIN included, has its data plane on; the Cluster Nodes page names what keeps it open.
-- **Not built yet:** removing the LB `/api` and `InternalApiController`, `configureRedisLb` and the daemons' database branches. Proxies still read a node's `/api`, and nodes below mode 2 still use those branches.
+- **Not built yet:** removing the LB `/api` and `InternalApiController`, `configureRedisLb` and the daemons' database branches: nodes below mode 2 still use those branches. Proxies read no node's `/api` and no longer hold it open, and each node in mode 1 or 2 now reports the calls its `/api` answers (`legacy_api`). The removal goes in a major release whose update refuses a load balancer below mode 2 (ADR 0004, *Proxies and the legacy `/api`, its calls counted, and the legacy link's retirement*).
 
 ### Optional work and a separate ticket
 
