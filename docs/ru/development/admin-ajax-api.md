@@ -8,7 +8,7 @@ The admin panel's non-page JSON endpoints are reached as `./api?action=<name>`
 
 > Эти конечные точки заменили устаревшую `src/Public/Views/admin/api.php` — единую
 > ~4985-линейная плоская цепочка из `if (action == 'x') { … exit(); }` блоков. Это было
-> извлекается действие за действием в нижеприведенные контроллеры и удаляется; остается только
+> извлекается действие за действием в приведенные ниже контроллеры и удаляется; остается только
 > неизвестное или удаленное действие по-прежнему имеет ограниченный запасной вариант `AjaxController`.
 
 ---
@@ -61,11 +61,17 @@ A typical action collapses the legacy `check → … → echo json_encode(); exi
 
 ```php
 public function regenerate(): never {
-    $this->gate('adv', 'manage_streams');
+    $this->requireXhr();
+    $this->gate('adv', 'database');
     // … call a domain service …
     $this->ok();
 }
 ```
+
+Запускает действие с разрешением страницы, на которой отображается ее кнопка (здесь кэш
+страница, `database`), поэтому группа, которая не может открыть страницу, не может выполнять свои действия. A
+отказ, для которого есть веская причина, переносится в `message`:
+`$this->fail(['message' => …])`.
 
 ### Общая линия/состояние устройства — `LineStateTrait`
 
@@ -87,7 +93,9 @@ IDE разрешает унаследованные помощники.
 | `CacheAjaxController` |Восстановление/включение/отключение кэша, очистка Redis, обработчики|
 | `ServerAjaxController` |Добавление/редактирование/удаление сервера и другие операции|
 |`StreamAjaxController` / `StreamToolsAjaxController`|Запуск/остановка/перезапуск/очистка потока, списки, обзоры|
-| `PackageAjaxController` |Посылки/букеты|
+| `PackageAjaxController` |Посылки, букеты, группы, категории|
+| `ActiveCodeAjaxController` |Генерация кода активации, пакетные действия, экспорт|
+| `ModuleAjaxController` |Действия со строками таблицы модулей|
 | `UserAjaxController` |Пользователи, линии связи, реселлеры|
 | `DeviceAjaxController` |Устройства MAG / Enigma2|
 | `EpgAjaxController` |Источники и сопоставления EPG|
@@ -98,6 +106,42 @@ IDE разрешает унаследованные помощники.
 | `MultiAjaxController` |Массовые (`multi`) действия с выбранными идентификаторами|
 | `SearchAjaxController` |Глобальный нечеткий поиск (см. ниже)|
 | `MiscAjaxController` |Оставшиеся мелкие действия|
+
+### Разрешительные ворота
+
+Указывает, что название действия не выдает (все разрешения `adv`):
+
+|Действие|Разрешение|
+| --- | --- |
+|`regenerate_cache`, `enable_cache`, `disable_cache`, `enable_handler`, `disable_handler`, `clear_redis`| `database` |
+|`report` (Экспорт в формате CSV/JSON)| `database` |
+| `clear_logs` | The permission of the log page that `type` names: `lines_logs` → `client_request_log`, `lines_activity` → `connection_logs`, `streams_errors` → `stream_errors`, `users_credits_logs` → `credits_log`, `users_logs` → `reg_userlog`, `panel_logs` → `panel_logs`. Any other `type` fails. |
+| `download_panel_logs` |`panel_logs`. Таблица очищается после того, как все ее строки собраны.|
+|`get_epg`, `get_programme`, `provider_streams`, `provider_import_epg`| `streams` |
+| `multi` |С помощью `type`, например `line` → `edit_user`, `series` → `edit_series`, `active_code` → `edit_user` или `mass_edit_lines`|
+| `generate_active_codes` | `add_user` |
+| `active_codes_batch_action` |`edit_user` или `mass_edit_lines`|
+| `active_codes_export_txt` | `users` |
+| `module` | `settings` |
+
+### Правила за воротами
+
+Некоторые действия проходят проверку и по-прежнему отвечают `{"result":false}`:
+
+- **`group`** с наборами `sub` = `is_admin` или `is_reseller` (плюс `value` и `group_id`)
+этот флаг в соответствии с правилами формы группы. `value` сохраняется как 0 или 1. Группа, которая
+не может быть удален, сохраняет свои флаги. Только полноправный администратор (группа 1 или
+группа администраторов с пустым списком разрешений) изменяет группу администраторов или
+делает группу группой администратора.
+- **`package`** с наборами `sub` = `is_trial` или `is_official` (плюс `value` и `package_id`)
+этот флаг, и никакой другой флаг не установлен таким образом. `value` должно читаться как включено или выключено (`0`, `1`,
+`true`, `false`, `on`, `off`, `yes`, `no`) и сохраняется как 0 или 1. Отсутствующий или другой
+`value` или `package_id`, который не существует, отвечает на `{"result":false}`.
+Отключение обоих способов приводит к отзыву пакета у реселлеров на каждом пути (он продает их
+ничего). Both on - это единственный способ получить пакет, который продает подписки и предоставляет
+испытания; сама форма упаковки отключает один переключатель при включении другого.
+- **`reg_user`** и **`adjust_credits`** оставьте учетную запись администратора в покое, если только
+вызывающий абонент является полноправным администратором.
 
 ---
 

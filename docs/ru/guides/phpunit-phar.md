@@ -19,6 +19,7 @@
 
 ```bash
 make test-db                                                         # MariaDB in Docker, once per boot
+make test                                                             # the whole suite (the same as the next line)
 php tests/phpunit.phar -c tests/phpunit.xml.dist                     # the whole suite
 php tests/phpunit.phar -c tests/phpunit.xml.dist --filter SomeTest   # one class or method
 php tests/phpunit.phar -c tests/phpunit.xml.dist --display-skipped   # with each skip's reason
@@ -113,6 +114,7 @@ protected function tearDown(): void {
 | `XCVM_TEST_FPM` | `ClusterPoolTest::testRealPhpFpm*` |двоичный файл php-fpm, например `/home/xc_vm/bin/php/sbin/php-fpm`|
 | `XCVM_AGENT_BIN` | `LbProvisionClusterTest::testWithTheRealAgent` |двоичный файл `xc_agent`|
 | `XCVM_TEST_NETNS=1` |`DbAllowlistTest::testInANetworkNamespace` (реальные iptables)|корень, `unshare` и `iptables`|
+| `XCVM_TEST_NETNS=1` |`AuditRootCronFirewallFlushTest` тесты сетевого пространства имен (реальные iptables и ipset для наборов блоков)|корень, `unshare`, `iptables` и `ipset`|
 | `XCVM_CONFIG_DIR` | `ClusterExtensionIntegrationTest` |пустая директория во временном каталоге; требуется загрузить тестовые перехватчики `xcvm_core`|
 | `XCVM_EXT_SO` | `ClusterDrTest::testWithTheRealExtension` |путь к тестовым перехватчикам `xcvm_core.so`|
 | `XCVM_CLUSTER_API_REAL=1` |`ClusterApiTest` вместо реального расширения вместо его поддельного (с `XCVM_CONFIG_DIR`)|—|

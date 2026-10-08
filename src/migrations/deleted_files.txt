@@ -452,6 +452,15 @@ Public/assets/admin/libs/videojs/video-js.min.css
 Public/assets/admin/libs/videojs/video.min.js
 Public/assets/admin/videos/login-bg.mp4
 Streaming/TimeshiftClient.php
+# Kept: these left the repository, but every server downloads them to the same paths
+# (console.php ffmpeg, cron:maxmind); deleting them on update would remove the working copies.
+# bin/ffmpeg_bin/4.0/ffmpeg
+# bin/ffmpeg_bin/4.0/ffprobe
+# bin/ffmpeg_bin/7.1/ffmpeg
+# bin/ffmpeg_bin/7.1/ffprobe
+# bin/ffmpeg_bin/8.0/ffmpeg
+# bin/ffmpeg_bin/8.0/ffprobe
+# bin/maxmind/GeoIP2-ISP.mmdb
 config/permissions.php
 migrations/001_update_crontab_filenames.sql
 migrations/002_add_maxmind_cron.sql

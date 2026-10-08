@@ -77,7 +77,7 @@ nginx -> Public/index.php
 ```
 
 Этот путь полностью обходит маршрутизатор. Модули по-прежнему загружаются (без
-маршрутизатор, так что никаких побочных эффектов от прохождения маршрута), чтобы их реестры были заполнены - a
+маршрутизатор, так что никаких побочных эффектов от прохождения маршрута), чтобы их реестры были заполнены — a
 module-owned serverSide table is therefore reachable over REST. `AdminApiController`
 не имеет жестко заданного регистра для каждой таблицы модулей: его ветвь `default` обслуживает любой идентификатор в
 `TableRegistry` через `AdminAPIWrapper::TableAPI($action, …)`, который отправляет
@@ -305,6 +305,8 @@ $router->group('watch', function (Router $r) {
 
 Эта нормализация применяется как во время регистрации (`buildRoute`), так и во время отправки (`normalizePage`), поэтому маршруты, зарегистрированные как `watch/add`, соответствуют названиям страниц, подобным `watch_add`.
 
+Правила доступа к страницам пишутся одинаково: `PageAuthorization` отображает правило страницы под его названием, обозначенным подчеркиванием, поэтому `line/mass`, `line_mass` и `line_mass.php` используют одно и то же правило. Новая страница администратора или торгового посредника, на которую требуется разрешение, получает доступ к `PageAuthorization` (или к `permission`); страница, на которой нет ни того, ни другого, остается открытой для каждой группы на этой панели. Смотрите [Разрешения и RBAC](../guides/permissions-and-rbac.md).
+
 ### Отправка
 
 ```php
@@ -335,7 +337,7 @@ $router->dispatchApi($action);            // returns true if matched
 
 #### Когда ничего не совпадает
 
-И `dispatch()`, и `dispatchApi()` возвращают `false`, если маршрут не совпадает. `Public/index.php` затем выдает `http_response_code(404); echo '404 Not Found';` — есть **нет** универсальный контроллер. (Неправильно набранный путь к ресурсу, который достигает переднего контроллера, а не обслуживается nginx, попадает на тот же 404.)
+И `dispatch()`, и `dispatchApi()` возвращают `false`, если маршрут не совпадает. `Public/index.php` затем выдает `http_response_code(404); echo '404 Not Found';` — есть **нет** универсальный контроллер. (Неправильно введенный путь к ресурсу, который достигает переднего контроллера, а не обслуживается nginx, попадает на тот же 404.)
 
 > **Pitfall — two sanitization APIs + a global.** Input can be reached three ways: `InputValidator` (the global request-sanitization layer), the `Request` class's static `sanitize*()` methods (kept for backward compatibility), and the global-static `RequestManager`. They are not interchangeable and the sanitization one applies depends on the bootstrap path — pick the layer the surrounding code already uses rather than mixing them, and remember `RequestManager`'s static state makes it order-dependent and awkward to isolate in tests (set it explicitly in a test rather than relying on prior request state).
 
@@ -419,7 +421,7 @@ $collisions = $router->drainRouteCollisions();
 | `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` |Облегченный загрузчик конечной точки потоковой передачи|
 | `src/Streaming/StreamingBootstrap.php` |Потоковое подключение к базе данных и устаревшая инициализация|
 | `src/bootstrap.php` |Унифицированный bootstrap (класс`XC_Bootstrap`)|
-| `src/Public/index.php` |Передний контроллер для администратора/реселлера/игрока/API|
+| `src/Public/index.php` |Внешний контроллер для администратора/реселлера/игрока/API|
 | `src/Public/routes/admin.php` |Определения маршрутов на странице администратора|
 | `src/Public/routes/reseller.php` |Определения маршрута на странице реселлера|
 | `src/Public/routes/player.php` |Определения маршрута на странице игрока|
