@@ -28,11 +28,11 @@ final class MigrateModuleTablesTest extends TestCase {
 	}
 
 	public function testTablesTheCoreDoesNotOwnAreSavedForModulesWhateverTheirNames(): void {
-		$rBackup = ['streams', 'lines', 'lines_activity', 'user_activity', 'reg_users', 'watch_folders', 'watch_logs', 'acme_addon_items'];
+		$rBackup = ['streams', 'lines', 'lines_activity', 'user_activity', 'reg_users', 'category_templates', 'migrations', 'watch_folders', 'watch_logs', 'acme_addon_items'];
 
 		$rSaved = MigrateCommand::moduleTables($rBackup, MigrateCommand::coreSchemaTables());
 
-		$this->assertSame(['watch_folders', 'watch_logs', 'acme_addon_items'], $rSaved, 'migrated (streams, reg_users), core schema (lines_activity) and junk (user_activity) stay out');
+		$this->assertSame(['watch_folders', 'watch_logs', 'acme_addon_items'], $rSaved, 'migrated (streams, reg_users), core schema (lines_activity, category_templates, migrations) and junk (user_activity) stay out');
 	}
 
 	public function testTheCoreSchemaIsReadFromDatabaseSql(): void {
@@ -41,6 +41,8 @@ final class MigrateModuleTablesTest extends TestCase {
 		$this->assertContains('streams', $rTables);
 		$this->assertContains('lines_activity', $rTables);
 		$this->assertNotContains('watch_folders', $rTables, 'a module table is not the core\'s');
+		$this->assertContains('category_templates', $rTables, 'created by a core migration, not by database.sql');
+		$this->assertContains('migrations', $rTables, "MigrationRunner's own log");
 	}
 
 	public function testATableIsSavedAsSqlAndLoadedBackForAModuleInstalledLater(): void {
@@ -70,6 +72,25 @@ final class MigrateModuleTablesTest extends TestCase {
 		$rDb->query("SHOW TABLES LIKE 'legacy_watch_folders';");
 		$this->assertSame(0, $rDb->num_rows(), 'the staging table goes too');
 		$this->assertNull(LegacyTableMigrationEvent::fromBackup('watch_folders', $rDb));
+	}
+
+	public function testASavedTableLosesItsForeignKeysAndLoadsWithoutItsParent(): void {
+		$rDb = new TestDb();
+		$rDb->exec('CREATE TABLE `acme_bots` (`id` int PRIMARY KEY) ENGINE=InnoDB;');
+		$rDb->exec('CREATE TABLE `acme_chats` (`id` int PRIMARY KEY, `bot_id` int, CONSTRAINT `fk_acme_bot` FOREIGN KEY (`bot_id`) REFERENCES `acme_bots` (`id`) ON DELETE CASCADE) ENGINE=InnoDB;');
+		$rDb->query('INSERT INTO `acme_bots` VALUES (7);');
+		$rDb->query('INSERT INTO `acme_chats` VALUES (1, 7);');
+
+		LegacyTableMigrationEvent::dump($rDb, 'acme_chats', 'xui');
+		$this->assertStringNotContainsString('FOREIGN KEY', (string) file_get_contents(LegacyTableMigrationEvent::sqlFile('acme_chats')));
+
+		$rDb->exec('SET FOREIGN_KEY_CHECKS = 0;');
+		$rDb->exec('DROP TABLE `acme_bots`;');
+		$rDb->exec('DROP TABLE `acme_chats`;');
+		$rDb->exec('SET FOREIGN_KEY_CHECKS = 1;');
+		$rLater = LegacyTableMigrationEvent::fromBackup('acme_chats', $rDb);
+		$this->assertEquals([['id' => 1, 'bot_id' => 7]], iterator_to_array($rLater->rows(), false));
+		$rLater->discard();
 	}
 
 	public function testAnEmptyOrAbsentTableSavesNothing(): void {

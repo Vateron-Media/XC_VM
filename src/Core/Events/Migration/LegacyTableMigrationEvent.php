@@ -117,8 +117,11 @@ final class LegacyTableMigrationEvent {
 		};
 		$rWrite(self::HEADER . json_encode(['table' => $table, 'format' => $format]));
 		$rWrite('DROP TABLE IF EXISTS ' . $rStaging . ';');
-		// The backup's definition, on one line, under the staging name.
-		$rWrite(preg_replace('/^CREATE TABLE `[^`]+`/', 'CREATE TABLE ' . $rStaging, str_replace(["\r", "\n"], ' ', $rCreate)) . ';');
+		// The backup's definition, on one line, under the staging name, without
+		// its foreign keys: they name the backup's other tables, which the
+		// panel's database may not have.
+		$rCreate = preg_replace('/,\s*CONSTRAINT `[^`]+` FOREIGN KEY \([^)]*\) REFERENCES `[^`]+` \([^)]*\)(\s+ON (DELETE|UPDATE) (CASCADE|SET NULL|SET DEFAULT|RESTRICT|NO ACTION))*/i', '', str_replace(["\r", "\n"], ' ', $rCreate));
+		$rWrite(preg_replace('/^CREATE TABLE `[^`]+`/', 'CREATE TABLE ' . $rStaging, $rCreate) . ';');
 		$rRows = 0;
 		for ($rOffset = 0;; $rOffset += self::CHUNK) {
 			// ORDER BY 1: the same order for every chunk, whatever the table's key.

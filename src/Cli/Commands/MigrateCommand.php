@@ -33,15 +33,21 @@ class MigrateCommand implements CommandInterface {
 	];
 
 	/**
-	 * The tables the core schema has (bin/install/database.sql): a backup table
-	 * by one of these names is the core's — migrated or not wanted.
+	 * The tables the core has: those bin/install/database.sql creates, those its
+	 * migrations (migrations/database/up/) create later, and MigrationRunner's
+	 * own log. A backup table by one of these names is the core's — migrated
+	 * or not wanted — whatever panel the backup came from.
 	 *
 	 * @return list<string>
 	 */
-	public static function coreSchemaTables(?string $rSchema = null): array {
-		$rSql = (string) @file_get_contents($rSchema ?? MAIN_HOME . 'bin/install/database.sql');
-		preg_match_all('/CREATE TABLE (?:IF NOT EXISTS )?`([^`]+)`/i', $rSql, $rMatches);
-		return array_values(array_unique($rMatches[1]));
+	public static function coreSchemaTables(?string $rHome = null): array {
+		$rHome ??= MAIN_HOME;
+		$rTables = ['migrations'];
+		foreach (array_merge([$rHome . 'bin/install/database.sql'], glob($rHome . 'migrations/database/up/*.sql') ?: []) as $rFile) {
+			preg_match_all('/CREATE TABLE (?:IF NOT EXISTS )?`?([a-z0-9_]+)`?/i', (string) @file_get_contents($rFile), $rMatches);
+			$rTables = array_merge($rTables, $rMatches[1]);
+		}
+		return array_values(array_unique($rTables));
 	}
 
 	/**

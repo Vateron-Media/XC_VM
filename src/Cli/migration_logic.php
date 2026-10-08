@@ -48,6 +48,9 @@ function saveModuleTables(DatabaseHandler $odb): bool {
 	$odb->query('SHOW TABLES;');
 	$rTables = array_map(static fn(array $rRow): string => (string) reset($rRow), $odb->get_rows());
 	$rSaved = true;
+	// A module table can be the parent of a foreign key (telegram_bots of
+	// telegram_chats): dropped one by one, it would be refused.
+	$odb->query('SET FOREIGN_KEY_CHECKS = 0;');
 	foreach (MigrateCommand::moduleTables($rTables, MigrateCommand::coreSchemaTables()) as $rTable) {
 		try {
 			$rEvent = LegacyTableMigrationEvent::dump($odb, $rTable, $rFormat);
@@ -71,6 +74,7 @@ function saveModuleTables(DatabaseHandler $odb): bool {
 		$rEvent->discard();
 		echo ($rEvent->copied === 0 ? '`' . $rTable . '` already has rows: left as it is.' : 'Added ' . number_format($rEvent->copied, 0) . ' rows of `' . $rTable . '` (an installed module took it).') . "\n";
 	}
+	$odb->query('SET FOREIGN_KEY_CHECKS = 1;');
 	return $rSaved;
 }
 
@@ -90,7 +94,8 @@ function clearMigrationDatabase(DatabaseHandler $odb): void {
 	echo 'Emptied the migration database (' . count($rTables) . ' tables).' . "\n";
 }
 
-$rMigrateOptions = (json_decode(file_get_contents(TMP_PATH . '.migration.options'), true) ?: []);
+// No options file (run by hand, not from the setup page): every table.
+$rMigrateOptions = (json_decode((string) @file_get_contents(TMP_PATH . '.migration.options'), true) ?: []);
 
 file_put_contents(TMP_PATH . '.migration.pid', getmypid());
 file_put_contents(TMP_PATH . '.migration.status', 1);
@@ -542,7 +547,7 @@ if ($odb->num_rows() > 0) {
 						$rResult['stream_status'] = 0;
 						$rResult['stream_started'] = null;
 						$rResult['monitor_pid'] = null;
-						if ($rResult['pid'] < 0) {
+						if (($rResult['pid'] ?? 0) < 0) {
 							$rResult['pid'] = null;
 						}
 						$rResult = QueryHelper::verifyPostTable('streams_servers', $rResult);
@@ -668,7 +673,7 @@ if ($odb->num_rows() > 0) {
 						$rResult['stream_status'] = 0;
 						$rResult['stream_started'] = null;
 						$rResult['monitor_pid'] = null;
-						if ($rResult['pid'] < 0) {
+						if (($rResult['pid'] ?? 0) < 0) {
 							$rResult['pid'] = null;
 						}
 						$rResult = QueryHelper::verifyPostTable('lines', $rResult);
@@ -1368,7 +1373,7 @@ if ($odb->num_rows() > 0) {
 							$rResult['stream_status'] = 0;
 							$rResult['stream_started'] = null;
 							$rResult['monitor_pid'] = null;
-							if ($rResult['pid'] < 0) {
+							if (($rResult['pid'] ?? 0) < 0) {
 								$rResult['pid'] = null;
 							}
 							$rResult = QueryHelper::verifyPostTable('streams_servers', $rResult);
