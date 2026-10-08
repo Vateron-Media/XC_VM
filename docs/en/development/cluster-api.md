@@ -217,8 +217,10 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 ## Operating it
 
 ```bash
-# MAIN, once: create the cluster root and record the panel keys
-console.php cluster:init
+# MAIN, once: create the cluster root and record the panel keys (--enable also switches
+# the API on, new load balancers in mode 2 where Settings would allow it; the installer
+# runs it, then cluster:main-dataplane on)
+console.php cluster:init [--enable]
 
 # Enrol a load balancer over SSH (or at install time, automatically)
 console.php server:enrol <serverID>
@@ -318,8 +320,11 @@ link's retirement*):
    caller (`Core\Cluster\LegacyApiAudit`, `STORAGE_PATH/cluster/legacy_api/`), and reports the
    last seven days in its heartbeat's `audit` as `legacy_api`. Cluster Nodes shows them per
    node (*Legacy /api calls*).
-2. **New installs start on the cluster API.** A fresh panel enrols its load balancers at
-   install, so it never runs the legacy link.
+2. **New installs start on the cluster API.** The installer runs `cluster:init --enable`
+   and then `cluster:main-dataplane on`: a fresh panel enrols its load balancers at their
+   install (in mode 2 when the extension packs a credential-free config and the Redis
+   connection handler is off), so it never runs the legacy link. Without an extension that
+   has the cluster API, the panel installs as before.
 3. **Announce.** The release notes of the release that does step 2 say the legacy link is
    deprecated, and which major release removes it.
 4. **Remove (the plan's Phase 10)**, in that major release, whose update refuses a panel with a
