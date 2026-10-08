@@ -1,0 +1,3673 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.6.2/administration/main-lb-cluster/">
+      
+      
+        <link rel="prev" href="../server-update/">
+      
+      
+        <link rel="next" href="../server-diagnostics/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../ru/administration/main-lb-cluster/" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>MAIN and Load Balancers - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#main-and-load-balancers-the-new-cluster" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              MAIN and Load Balancers
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../ru/administration/main-lb-cluster/" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSL Certificate Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Updating a Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAIN and Load Balancers
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAIN and Load Balancers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-idea-in-one-minute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The idea in one minute
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#old-versus-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Old versus new
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you get
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setting-it-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting it up
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setting it up">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-turn-the-cluster-on-main" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: turn the cluster on (MAIN)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-add-a-load-balancer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: add a load balancer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-move-work-to-the-cluster-one-feature-at-a-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: move work to the cluster, one feature at a time
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3: move work to the cluster, one feature at a time">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guided-cutover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guided cutover
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-full-cluster-mode-mode-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4: full cluster mode (mode 2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-optional-lock-everything-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 (optional): lock everything down
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#everyday-use-the-cluster-nodes-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Everyday use: the Cluster Nodes page
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#placement-advice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Placement advice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-main-is-unreachable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When MAIN is unreachable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Update Mechanism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reseller System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interactive API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Customization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Translations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diagnostics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Info & FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Info & FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/licensing-and-activation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Licensing & Activation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watch Folder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/youtube-restream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Restreaming YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/custom-ffmpeg-command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom FFmpeg Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autoloading (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Wiring & Registration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Authoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Extension Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/source-drivers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source Drivers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP Request Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin AJAX API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Subsystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/cluster-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster API (MAIN ↔ LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/cluster-seams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Seams
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception Hierarchy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching and Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Navbar Rendering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Workflow
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Workflow
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Tools & Console Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unit Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Refactoring (Rector)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & Access
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security & Access
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication and Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Permissions and RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP Detection & Geo Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Detection & STB Locking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ministra STB Emulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UCS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build & Release
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Build & Release
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build System (MAIN vs LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pre-release Checklist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-idea-in-one-minute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The idea in one minute
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#old-versus-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Old versus new
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you get
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setting-it-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting it up
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setting it up">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-turn-the-cluster-on-main" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: turn the cluster on (MAIN)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-add-a-load-balancer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: add a load balancer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-move-work-to-the-cluster-one-feature-at-a-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: move work to the cluster, one feature at a time
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3: move work to the cluster, one feature at a time">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guided-cutover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guided cutover
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-full-cluster-mode-mode-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4: full cluster mode (mode 2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-optional-lock-everything-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 (optional): lock everything down
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#everyday-use-the-cluster-nodes-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Everyday use: the Cluster Nodes page
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#placement-advice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Placement advice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-main-is-unreachable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When MAIN is unreachable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="main-and-load-balancers-the-new-cluster">MAIN and Load Balancers: the New Cluster<a class="headerlink" href="#main-and-load-balancers-the-new-cluster" title="Permanent link">&para;</a></h1>
+<p>XC_VM can spread your viewers and streams over several servers. One server is <strong>MAIN</strong>: it runs the
+admin panel and the database. The others are <strong>load balancers</strong> (LBs): they run streams and serve
+viewers. This page explains how MAIN and its load balancers now work together, what is better than
+before, and how to set it up.</p>
+<p>You do not need to know how it works inside. If you want the technical details, see
+<a href="../../development/cluster-api/">Cluster API (MAIN ↔ LB)</a> in the Developer Guide.</p>
+<h2 id="the-idea-in-one-minute">The idea in one minute<a class="headerlink" href="#the-idea-in-one-minute" title="Permanent link">&para;</a></h2>
+<p><strong>Before</strong>, a load balancer was given MAIN's database password. It logged straight into MAIN's
+MySQL and Redis to read settings, lines and streams, and to write its stats and viewers. Every
+load balancer held the keys to the whole panel.</p>
+<p><strong>Now</strong>, each load balancer runs a small program called the <strong>agent</strong> (<code>xc_agent</code>). The agent
+talks to MAIN over one secure channel. The agent always starts the conversation: MAIN never
+connects to the load balancer, it waits for the agent to ask. Every message is signed and encrypted, even over plain HTTP. The load balancer no longer
+needs MAIN's database at all. In the end you can remove the database password from it completely.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a> BEFORE                                   NOW
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  ┌──────────┐  MySQL 3306 + Redis 6379    ┌──────────┐   one secure channel   ┌──────────┐
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  │   LB     │ ──────────────────────────► │   MAIN   │ ◄───────────────────── │   LB     │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  │ (has the │   panel database password   │          │   (MAIN's normal HTTP  │  agent   │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  │ DB pass) │ ◄────── MAIN's /api ─────── │          │    port, signed and    │ (own key)│
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  └──────────┘   (shared stream password)  └──────────┘    encrypted)          └──────────┘
+</code></pre></div>
+<h2 id="old-versus-new">Old versus new<a class="headerlink" href="#old-versus-new" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Before (legacy load balancer)</th>
+<th>Now (cluster)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>How the LB talks to MAIN</strong></td>
+<td>Logs into MAIN's MySQL and Redis directly</td>
+<td>Its agent talks to MAIN through MAIN's normal web port</td>
+</tr>
+<tr>
+<td><strong>What the LB stores</strong></td>
+<td>MAIN's database and Redis passwords</td>
+<td>Its own private keys and an access token that renews by itself (hourly by default)</td>
+</tr>
+<tr>
+<td><strong>If someone steals an LB</strong></td>
+<td>They get the password to your whole panel database</td>
+<td>They get only that LB's identity, which you can revoke in one click</td>
+</tr>
+<tr>
+<td><strong>Ports open on MAIN</strong></td>
+<td>MySQL (3306) and Redis (6379) open to every LB</td>
+<td>Only MAIN's web port; MySQL and Redis can be firewalled or closed</td>
+</tr>
+<tr>
+<td><strong>Status in the panel</strong></td>
+<td>The LB wrote its own stats into MAIN's database</td>
+<td>The agent reports every 2 seconds; MAIN shows an LB as offline after 30 seconds of silence</td>
+</tr>
+<tr>
+<td><strong>Viewer links</strong></td>
+<td>One shared secret signs links for every server</td>
+<td>Each LB gets its own key (Config flow), so a link made for one LB does not work on another</td>
+</tr>
+<tr>
+<td><strong>Relays between servers</strong></td>
+<td>The stream password travels in the URL</td>
+<td>Signed tickets instead of the password (Data plane flow), and the stream bytes are sealed where both servers support it</td>
+</tr>
+<tr>
+<td><strong>RTMP viewers</strong></td>
+<td>Refused on a load balancer, which cannot look up a line</td>
+<td>MAIN checks the line at each connect, through the agent, so a line disabled on MAIN is refused at once</td>
+</tr>
+<tr>
+<td><strong>Proxies</strong></td>
+<td>Trusted by their IP address</td>
+<td>A proxy installed with the current proxy release signs what it sends with its own key</td>
+</tr>
+<tr>
+<td><strong>Movies and timeshift</strong></td>
+<td>One PHP process per viewer</td>
+<td>Served by the streaming daemon (<code>xc_fanout</code>), which uses far less memory</td>
+</tr>
+<tr>
+<td><strong>LB software updates</strong></td>
+<td>Came from MAIN</td>
+<td>Every server downloads checked releases from GitHub by itself, hourly</td>
+</tr>
+<tr>
+<td><strong>Switching over</strong></td>
+<td>All or nothing</td>
+<td>Per LB and feature by feature; every step can be undone except removing the database password from an LB</td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-you-get">What you get<a class="headerlink" href="#what-you-get" title="Permanent link">&para;</a></h2>
+<p><strong>Better security</strong></p>
+<ul>
+<li><strong>No database password on the load balancers.</strong> Once a load balancer runs fully on the cluster,
+  MAIN's database and Redis credentials can be removed from it (<em>Drop DB credentials</em>).</li>
+<li><strong>Every LB has its own identity.</strong> It is created on the LB itself during install, and its
+  private keys never leave the server. Its access token expires and renews by itself (every
+  60 minutes by default).</li>
+<li><strong>One-click controls</strong> on the <em>Cluster Nodes</em> page: rotate a token, fence (stop) an LB, put it in
+  quarantine, or revoke it.</li>
+<li><strong>Per-LB viewer keys.</strong> With the Config flow on, a viewer link made for one load balancer cannot
+  be reused on another.</li>
+<li><strong>Signed relays and file transfers</strong> between your servers (Data plane flow), so the stream
+  password is no longer needed in URLs. Where both servers support it, the bytes are sealed too.</li>
+<li><strong>Signed proxies.</strong> A proxy installed (or reinstalled) with the current proxy release signs its
+  reports. Once it has signed one, MAIN no longer accepts unsigned reports from its address.</li>
+<li><strong>Safer TLS.</strong> A server that still uses the old built-in TLS key gets its own at startup, and
+  only TLS 1.2 and 1.3 are allowed.</li>
+</ul>
+<p><strong>More reliable</strong></p>
+<ul>
+<li><strong>MAIN outages hurt less.</strong> With the Config flow on, each load balancer keeps a local copy of
+  what it needs (settings, servers, stream list). If MAIN is unreachable, viewers already watching keep watching and the
+  LB's streams keep running. What the LB has to tell MAIN waits on its disk and is sent when MAIN
+  is back.</li>
+<li><strong>Faster, clearer status.</strong> The <em>Cluster Nodes</em> page shows each LB's state, version, clock and
+  warnings, such as a clock that is wrong, connections that do not match, or reports that are
+  piling up.</li>
+</ul>
+<p><strong>Less work</strong></p>
+<ul>
+<li><strong>Automatic enrolment.</strong> Installing a load balancer from the panel also joins it to the cluster.</li>
+<li><strong>Automatic updates.</strong> Every server checks GitHub hourly and installs new verified releases of
+  the agent, the streaming daemon and the <code>xcvm_core</code> extension. MAIN no longer hands them out.</li>
+<li><strong>Lighter servers.</strong> Movies and timeshift are streamed by the daemon instead of PHP, so a busy
+  load balancer needs far fewer PHP workers.</li>
+</ul>
+<h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>A licence.</strong> MAIN signs every load balancer's tokens with your licence. Without a valid one,
+  no new load balancer can join.</li>
+<li><strong>The <code>xcvm_core</code> extension with the cluster API.</strong> Check it under <strong>Settings → Cluster</strong>: the
+  box at the top shows <em>Extension: xcvm_core … (API 1)</em>.</li>
+<li><strong>Supported systems</strong> for load balancers: Ubuntu 20.04, 22.04 or 24.04, or Debian 12 or 13.</li>
+<li><strong>Network:</strong></li>
+<li>each load balancer must reach MAIN's HTTP port (or the <em>Cluster API Port</em> you choose);</li>
+<li>each server needs outbound HTTPS to GitHub to download its updates;</li>
+<li>MAIN needs SSH access to a new load balancer for the install. A server behind NAT can join
+    with a code instead (see below).</li>
+<li><strong>Correct time</strong> on every server (NTP). The dashboard warns when a server's clock is more than
+  5 seconds off MAIN's, and the <em>Cluster Nodes</em> page from 30 seconds. At power-on, XC_VM waits up
+  to 30 seconds for NTP's first synchronisation, then starts anyway with a warning in its journal
+  (<code>journalctl -u xc_vm</code>).</li>
+</ul>
+<h2 id="setting-it-up">Setting it up<a class="headerlink" href="#setting-it-up" title="Permanent link">&para;</a></h2>
+<h3 id="step-1-turn-the-cluster-on-main">Step 1: turn the cluster on (MAIN)<a class="headerlink" href="#step-1-turn-the-cluster-on-main" title="Permanent link">&para;</a></h3>
+<p>A panel installed from 2.6.2 on starts with the cluster on: the installer switches it on, sets
+<strong>New Node Mode</strong> to <em>api</em> when it can, and switches <strong>MAIN's data plane</strong> on. Check it under
+<strong>Settings → Cluster</strong>, then go to Step 2. On an older panel:</p>
+<ol>
+<li>Open <strong>Settings → Cluster</strong>.</li>
+<li>Switch on <strong>Enable LB API</strong> and click <strong>Save</strong>.</li>
+</ol>
+<p>Leave the other settings at their defaults. You can come back to them later:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>When to change it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cluster API Port</td>
+<td>0 (use MAIN's HTTP port)</td>
+<td>If you want the cluster on its own port</td>
+</tr>
+<tr>
+<td>MAIN Host Name</td>
+<td>empty</td>
+<td>Set a DNS name if MAIN's IP address may change</td>
+</tr>
+<tr>
+<td>Cluster Transport</td>
+<td>auto</td>
+<td><code>auto</code> already uses HTTPS when MAIN has a valid certificate</td>
+</tr>
+<tr>
+<td>Offline Admission</td>
+<td>local</td>
+<td>What an LB does with new viewers while it cannot reach MAIN: <code>local</code> applies the line's connection limit itself, <code>allow</code> lets them in, <code>deny</code> refuses them</td>
+</tr>
+</tbody>
+</table>
+<h3 id="step-2-add-a-load-balancer">Step 2: add a load balancer<a class="headerlink" href="#step-2-add-a-load-balancer" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Open <strong>Servers → Install Load Balancer</strong>.</li>
+<li>Fill in the server name, its IP address, and SSH login (user, password, port), as before.</li>
+<li>Optionally, paste the server's <strong>SSH host key fingerprint</strong>. The panel then refuses to install
+   if it sees a different server (protection against a fake server).
+   The key seen at a server's first install is saved, and every later install must match it. If you
+   reinstalled the server's operating system, it has a new key: on the reinstall form, switch on
+   <strong>Forget the Saved SSH Host Key</strong> (or paste the new fingerprint). That install then trusts the
+   key the server presents and saves it.</li>
+<li>Start the install and follow its progress on the <strong>Server View</strong> page.</li>
+</ol>
+<p>At the end of the install, the new load balancer installs its agent from GitHub, creates its own
+keys, checks that it can reach MAIN, and joins the cluster. Open <strong>Servers → Cluster Nodes</strong>: it
+appears there as <strong>active</strong>.</p>
+<p><strong>New Node Mode</strong> (Settings → Cluster) decides how a newly installed load balancer starts. With
+<em>legacy</em> (the default) it joins in mode 1 and you move it on (Steps 3 and 4). With <em>api</em> it joins
+straight in <strong>mode 2</strong>, every flow on, and gets none of MAIN's database or Redis credentials, as
+if it had already gone through Step 5's first part. <em>api</em> needs the cluster API on (without it a
+new load balancer installs the old way).</p>
+<div class="admonition note">
+<p class="admonition-title">A load balancer that is already installed, or that MAIN cannot reach over SSH (NAT)</p>
+<p>The server must already be in <strong>Servers → Manage Servers</strong>.</p>
+<ol>
+<li>Make sure the load balancer is updated to the current release.</li>
+<li>On <strong>Servers → Cluster Nodes</strong>, use <strong>Enrol by code</strong>: choose the server and click <strong>Issue
+   code</strong>. If the LB must reach MAIN at another address (for example a private IP), type it in
+   the <em>MAIN URL</em> field first. The page shows a command once.</li>
+<li>Run that command on the load balancer as root. It prints a short check code (SAS).</li>
+<li>Type the SAS into the request waiting on <strong>Cluster Nodes</strong> and click <strong>Approve</strong>.</li>
+</ol>
+<p>A code is valid for 30 minutes and can be used once.</p>
+</div>
+<h3 id="step-3-move-work-to-the-cluster-one-feature-at-a-time">Step 3: move work to the cluster, one feature at a time<a class="headerlink" href="#step-3-move-work-to-the-cluster-one-feature-at-a-time" title="Permanent link">&para;</a></h3>
+<p>A new load balancer joins in <strong>mode 1</strong>. Its features are called <strong>flows</strong>: each one moves one
+kind of work from "the LB uses MAIN's database" to "the agent does it through the secure channel".</p>
+<p>A load balancer you <strong>install from the panel</strong> gets its flows switched on by the install itself,
+as soon as its agent has connected. The machine was stopped for the install, so it has no viewers
+or streams to move over carefully. The install log says what was switched. If the node's agent
+cannot relay, <strong>Data plane</strong> alone stays off, and you switch it on from <strong>Cluster Nodes</strong> later.
+If the agent has not connected within about a minute, the install leaves every flow off and says
+so in its log: switch them on from <strong>Cluster Nodes</strong>, as below.</p>
+<p>A load balancer that <strong>was already running</strong> and joined with an enrol code starts with every flow
+off. It is connected and reporting, but it still works the old way. You then switch its flows on,
+one by one, on the <strong>Cluster Nodes</strong> page.</p>
+<p>The exception is a load balancer that was in mode 2, or whose DB credentials were dropped
+(Step 5). When you reinstall it or enrol it again by code, it comes back in mode 2 with every flow
+on, because in mode 1 it would have no database.</p>
+<p>Switch them on in this order. After each one, watch the LB for a while (its streams, its viewers,
+the warnings on Cluster Nodes) before going on:</p>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Flow</th>
+<th>What changes when it is on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Telemetry</strong></td>
+<td>MAIN takes the LB's CPU, memory, network and stats from its agent</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Commands</strong></td>
+<td>Start/stop, restarts and viewer kills reach the LB as signed commands</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Logs</strong></td>
+<td>The LB's logs reach MAIN through the agent</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Streams</strong></td>
+<td>The LB reports its streams' status (running, stopped, codecs) through the agent</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Content</strong></td>
+<td>Recordings and movie analysis reach MAIN through the agent</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Config</strong></td>
+<td>The LB reads its settings, servers and stream list from its local copy, not from MAIN's database. It also gets its own viewer key</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Connections</strong></td>
+<td>The LB keeps its viewer list itself, and the agent mirrors it to MAIN. Needs Commands and Streams</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Data plane</strong></td>
+<td>Relays and files from other servers go through the agent with signed tickets instead of the stream password. Needs Streams and Content</td>
+</tr>
+</tbody>
+</table>
+<p>Streams the LB already relays from another server when you switch <strong>Data plane</strong> on keep
+pulling the old way, with the stream password, until they restart. Nothing new goes out meanwhile:
+a parent no longer takes the password from a server with Data plane on, so such a relay that
+reconnects is refused. To move them over at once, restart them: on <strong>Streams</strong>, filter <strong>Server</strong>
+to the LB, select them and click <strong>Restart</strong>.</p>
+<p>Once every load balancer has <strong>Data plane</strong> on, close the data plane on MAIN's side too, on
+<strong>Cluster Nodes → MAIN's data plane</strong>:</p>
+<ol>
+<li>Click <strong>Switch on</strong>. MAIN then reads load balancers' files and relays with tickets as well,
+   through an agent of its own (the same as <code>console.php cluster:main-dataplane on</code>). If it
+   answers that there is no agent binary yet, run <code>console.php fanout_binary agent</code> as root on
+   MAIN first.</li>
+<li>The same card says whether <strong>the load balancers' legacy <code>/api</code></strong> is closed. It closes by
+   itself, within a minute, once every server, MAIN included, has its data plane on; until then
+   the card names the servers that keep it open. A proxy never does: it reads no load
+   balancer's files. Each load balancer's <strong>Legacy /api calls</strong> column shows who still calls it.</li>
+<li>When it says <em>Closed</em>, rotate the stream secret (<code>console.php cluster:rotate-stream-secret</code>
+   on MAIN), so the old one opens nothing.</li>
+</ol>
+<p>Every flow can be switched off again: the load balancer then goes back to the old way for that
+part. The exception is a load balancer in mode 2 (Step 4), which needs every flow: the page refuses
+to switch one off, and you press <strong>Mode down</strong> first. Before switching <strong>Connections</strong> on by hand,
+load the LB's current viewers into its agent with one command <strong>on the load balancer</strong>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sudo<span class="w"> </span>-u<span class="w"> </span>xc_vm<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>cluster:seed-connections
+</code></pre></div>
+<p>Without it, the agent starts with an empty viewer list, MAIN's list and its own disagree, and the
+resync that follows would drop the viewers the LB has.</p>
+<h4 id="guided-cutover">Guided cutover<a class="headerlink" href="#guided-cutover" title="Permanent link">&para;</a></h4>
+<p><strong>Guided cutover</strong> (Cluster Nodes, per load balancer) does this step for you: it switches the
+flows on in the order above, one at a time, and watches the load balancer for two minutes after
+each before going on.</p>
+<ul>
+<li>Before each flow the load balancer must be active, heard by MAIN, and show no red badge (a
+  report queue falling far behind, a clock far off). Otherwise the cutover stops there.</li>
+<li>Before <strong>Connections</strong> it has the load balancer load its viewers into its agent (the command
+  above), and waits for its answer.</li>
+<li>If the load balancer is not healthy after a flow, that flow is switched off again and the
+  cutover stops. The page says why.</li>
+<li><strong>Data plane</strong> is left off when the load balancer's agent does not offer the relay, as an
+  install leaves it.</li>
+<li>It ends in <strong>mode 1</strong> with every flow on. It never moves a load balancer to mode 2: that stays
+  your move (Step 4).</li>
+</ul>
+<p>The page shows each flow's progress and refreshes itself while the cutover runs; <strong>Cancel cutover</strong>
+stops it before its next flow.</p>
+<h3 id="step-4-full-cluster-mode-mode-2">Step 4: full cluster mode (mode 2)<a class="headerlink" href="#step-4-full-cluster-mode-mode-2" title="Permanent link">&para;</a></h3>
+<p><strong>Mode 2</strong> means the load balancer no longer touches MAIN's database at all. Press <strong>Mode up</strong>
+(the <strong>+</strong> next to the mode) on a load balancer in mode 1. The page moves it only when it can run
+that way right now:</p>
+<ul>
+<li>every flow is on, Data plane included;</li>
+<li>the <em>Root pin</em> badge is shown, so updates and restarts can reach the LB as signed commands;</li>
+<li>the LB is <strong>active</strong> (not quarantined) and MAIN heard it in the last ten seconds;</li>
+<li>the LB itself says that it runs from its own copy: it starts from its local settings and reads
+  its streams by itself. That takes a minute or two after the flows are switched on. If it is not
+  there yet, the page tells you so: try again shortly.</li>
+</ul>
+<p>The <strong>Redis connection handler</strong> (Cache) may be on or off: a load balancer in mode 2 keeps its
+viewers on itself either way, and MAIN keeps its copy in whichever store the handler says.</p>
+<p>The page asks you to confirm first. From its next heartbeat (about two seconds) the load balancer
+opens no connection to MAIN's MySQL or Redis, and its background services restart within a minute
+so that none keeps an old one. The <em>MAIN DB connects</em> box starts counting again at that moment:
+whatever it shows from then on was refused, with the file and line that asked. That is something
+on the load balancer that still needs MAIN's database. Watch that box and the node's streams for a
+while after the move. A red <strong>Streams not local</strong> badge next to the mode means the load balancer
+cannot read its streams any more: press <strong>Mode down</strong>, wait a minute or two, then <strong>Mode up</strong> again.
+With <strong>Automatic Mode Down</strong> (Settings → Cluster, in minutes; off by default) MAIN takes that first
+step by itself once the badge has stood that long, for a load balancer that this page moved to
+mode 2 and that still holds its database credentials. <strong>Mode up</strong> is still yours to press.</p>
+<div class="admonition warning">
+<p class="admonition-title">What can and cannot be undone</p>
+<p>The move to mode 2 takes nothing away from the load balancer: it keeps its database
+credentials, so <strong>Mode down</strong> brings everything back, at any time.</p>
+<p>It stops being undoable in these cases:</p>
+<ul>
+<li>after <strong>Drop DB credentials</strong> (Step 5). There is then no way back from the panel. The page
+  warns you if you press <strong>Mode down</strong> on such a load balancer: in mode 1 it would have no
+  database at all;</li>
+<li>after a database or Redis <strong>password change</strong> made while the load balancer was in mode 2.
+  The new password does not reach it, so after <strong>Mode down</strong> it cannot connect. For the
+  database password, set it on the load balancer (<code>console.php cluster:set-db-password</code>).
+  For the Redis password, run the Redis rotation on MAIN again after <strong>Mode down</strong>: it then
+  reaches this load balancer too;</li>
+<li>after a <strong>reinstall</strong> of the load balancer while it is in mode 2: the install gives it no
+  database credentials, and the page cannot tell, so <strong>Mode down</strong> does not warn you;</li>
+<li>while MAIN is locked down (<code>cluster:lockdown</code>): undo the lockdown first.</li>
+</ul>
+<p>With the <strong>DB Allowlist</strong> on (Step 5), MAIN's firewall lets the load balancer back in up to a
+minute after <strong>Mode down</strong>. Its services may fail and restart once during that minute.</p>
+</div>
+<h3 id="step-5-optional-lock-everything-down">Step 5 (optional): lock everything down<a class="headerlink" href="#step-5-optional-lock-everything-down" title="Permanent link">&para;</a></h3>
+<p>Only when every load balancer is in mode 2:</p>
+<ol>
+<li><strong>Drop DB credentials</strong> (Cluster Nodes, per LB) removes MAIN's database and Redis passwords
+   from the load balancer, and MAIN cancels its database access. This step cannot be undone from
+   the panel, so the page allows it only after the load balancer has spent <strong>seven days in mode
+   2</strong>, and only while it can run that way right now: every flow is on, MAIN heard it in the last
+   ten seconds, and it says that it reads its streams by itself. Otherwise the page tells you
+   what is missing. Use those days: if the <em>MAIN DB connects</em> box of that load balancer keeps
+   showing refused connections, something on it still needs MAIN's database.
+   The request waits ten minutes for the load balancer. If the load balancer does not collect it
+   in that time, nothing is removed: press the button again. <strong>Mode down</strong> withdraws a request
+   the load balancer has not collected yet, and the load balancer itself removes the passwords
+   only while it is in mode 2. When it is done, the load balancer shows a <strong>DB revoked</strong> badge.</li>
+<li><strong>DB Allowlist</strong> (Settings → Cluster) firewalls MAIN's MySQL and Redis so that only MAIN, and
+   servers that still need them, can connect.</li>
+<li><strong>Proxies:</strong> reinstall each proxy from <strong>Servers → Manage Proxies</strong>, so it gets its own key and
+   signs its reports.</li>
+<li>Last, an administrator can close MySQL and Redis to the network entirely by running
+   <code>/home/xc_vm/console.php cluster:lockdown</code> as root on MAIN. It refuses while any LB is below
+   mode 2 or any proxy has not signed yet. <code>cluster:lockdown --undo</code> reverses it.</li>
+<li><strong>Viewer Record Proof</strong> (Settings → Cluster). Once locked down, MAIN no longer sends the load
+   balancers the stream secret, and each viewer record a load balancer reports should carry MAIN's
+   proof that MAIN sent it that viewer. Leave it on <code>observe</code> and watch the <strong>Viewer record proof</strong>
+   card on Cluster Nodes: it shows which load balancers prove, what each counted today without a
+   proof, and whether <code>enforce</code> is safe. When it says <em>Ready for enforce</em>, switch to <code>enforce</code>: MAIN
+   then refuses a viewer record it did not mint, so a load balancer can only report viewers MAIN
+   sent it. A load balancer on an older panel release, or RTMP viewers from before they carried
+   the proof, show up there as unproven first.</li>
+</ol>
+<h2 id="everyday-use-the-cluster-nodes-page">Everyday use: the Cluster Nodes page<a class="headerlink" href="#everyday-use-the-cluster-nodes-page" title="Permanent link">&para;</a></h2>
+<p><strong>Servers → Cluster Nodes</strong> is where you watch and control your load balancers:</p>
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>It means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>State</strong> active / quarantined</td>
+<td>Normal / frozen until you click <em>Trust again</em></td>
+</tr>
+<tr>
+<td><strong>Mode</strong> 0, 1, 2</td>
+<td>Old way / mixed / fully on the cluster</td>
+</tr>
+<tr>
+<td><strong>Last seen</strong>, <strong>Agent</strong></td>
+<td>When the LB last reported, and its agent version</td>
+</tr>
+<tr>
+<td><strong>Token expires</strong></td>
+<td>When its current access token runs out. It renews by itself</td>
+</tr>
+<tr>
+<td><strong>clock …</strong></td>
+<td>The LB's clock is off; fix its time (NTP)</td>
+</tr>
+<tr>
+<td><strong>connections differ</strong></td>
+<td>MAIN and the LB disagree about who is watching; they re-sync by themselves</td>
+</tr>
+<tr>
+<td><strong>P0 / P1 lagging</strong></td>
+<td>Reports are waiting to reach MAIN. Check the network between them</td>
+</tr>
+<tr>
+<td><strong>MAIN URL unreachable</strong></td>
+<td>The LB cannot reach one of MAIN's addresses. Check the firewall or certificate</td>
+</tr>
+<tr>
+<td><strong>relay port down</strong></td>
+<td>Another program uses port 31290 on the LB; free it</td>
+</tr>
+<tr>
+<td><strong>Legacy /api calls</strong></td>
+<td>Who called the LB's old <code>/api</code> (the one with the stream password) in the last 7 days, by action and caller address. 0 means nothing did</td>
+</tr>
+</tbody>
+</table>
+<p>The buttons:</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Rotate token</strong> / <strong>Rotate all tokens now</strong></td>
+<td>Issues a new token, for example if you think one leaked. The LB keeps working</td>
+</tr>
+<tr>
+<td><strong>Fence</strong> / <strong>Unfence</strong></td>
+<td>Stops new viewers on that LB at once, and drops the rest after a short drain. Unfence puts it back on air</td>
+</tr>
+<tr>
+<td><strong>Quarantine</strong> / <strong>Trust again</strong></td>
+<td>Freezes the LB's trust: it keeps serving but takes no new instructions. MAIN also does this by itself if it suspects a cloned server. Commands queued for it that grant something are ended by the quarantine (the page says how many, the audit log names them): after <em>Trust again</em>, send again what is still wanted</td>
+</tr>
+<tr>
+<td><strong>Resync</strong></td>
+<td>The LB fetches its copy of the configuration and its viewer list again from scratch</td>
+</tr>
+<tr>
+<td><strong>Revoke</strong></td>
+<td>Removes the LB from the cluster. Its tokens stop working at once; it must join again</td>
+</tr>
+<tr>
+<td><strong>Mode up</strong> / <strong>Mode down</strong></td>
+<td>Moves the LB between modes 0, 1 and 2</td>
+</tr>
+<tr>
+<td><strong>Guided cutover</strong></td>
+<td>Switches the LB's flows on one at a time, watched, up to mode 1 (Step 3)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="placement-advice">Placement advice<a class="headerlink" href="#placement-advice" title="Permanent link">&para;</a></h2>
+<p><strong>Servers → Placement Advice → Show</strong> tells you which servers are busy and where their busiest
+streams could also run. A server's load is the highest of three readings: its viewers against
+its <strong>Max Clients</strong>, its outgoing traffic against its network speed (as the load balancing reads
+them), and its CPU. For a server at 80% or more, it names the least busy server under 40% and up to
+five of the busy server's streams, by viewers, that the other one does not run yet. Add that server
+to those streams (the stream's <strong>Servers</strong> tab) to share the viewers. The advice changes nothing by
+itself.</p>
+<h2 id="when-main-is-unreachable">When MAIN is unreachable<a class="headerlink" href="#when-main-is-unreachable" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Viewers already watching on a load balancer keep watching, and its streams keep running.</li>
+<li>Everything the LB has to report waits on its disk and is sent when MAIN is back.</li>
+<li><strong>Offline Admission</strong> (Settings → Cluster) decides what happens to viewers the LB cannot check
+  with MAIN.</li>
+<li>By default a load balancer never stops on its own because it cannot reach MAIN. If you turn on
+  <strong>Lease Fence</strong> in Settings → Cluster, an LB that has not heard from MAIN for too long stops
+  serving. It refuses new viewers once its token has expired plus the <strong>Partition Tolerance</strong>
+  (12 hours by default, never more than 26 hours after its last token), and drops the remaining
+  viewers after the <strong>Fence Drain</strong> (10 minutes by default). Turn it on before you ever need it,
+  because it reaches the LBs only while your licence is valid.</li>
+</ul>
+<h2 id="common-questions">Common questions<a class="headerlink" href="#common-questions" title="Permanent link">&para;</a></h2>
+<p><strong>Do I have to switch everything over at once?</strong>
+No. Each load balancer and each flow is switched separately, and you can mix old and new load
+balancers in the same panel.</p>
+<p><strong>Do I need HTTPS?</strong>
+No. Every message is signed and encrypted even over plain HTTP. If MAIN has a valid certificate,
+the default <em>auto</em> transport uses HTTPS anyway.</p>
+<p><strong>What happens if I change MAIN's IP address or port?</strong>
+MAIN tells the load balancers the new address and keeps answering on the old one for seven days,
+so none of them gets lost. Setting a <em>MAIN Host Name</em> (a DNS name) avoids the problem altogether.</p>
+<p><strong>Will the old way keep working?</strong>
+For now, yes. The old way (a load balancer that is not enrolled, its <code>/api</code> with the stream
+password, its access to MAIN's database and Redis) is deprecated: it is removed in a later major
+release, which will ask every load balancer to be in mode 2 before it updates. The
+<strong>Legacy /api calls</strong> column shows what still uses the old <code>/api</code> on each load balancer.</p>
+<p><strong>A load balancer shows "relay port down". What do I do?</strong>
+Another program on that load balancer uses port 31290, which the agent needs. Stop that program,
+and the agent takes the port by itself.</p>
+<p><strong>The install says the licence does not allow it (<code>CLUSTER_LICENCE_REQUIRED</code>).</strong>
+MAIN can only let new load balancers join with a valid licence. Check
+<a href="../../info/licensing-and-activation/">Licensing &amp; Activation</a>.</p>
+<p><strong>A new load balancer stayed in the old mode after install.</strong>
+It could not download its agent from GitHub, or the cluster was not switched on yet. Check that
+the server can reach GitHub over HTTPS, then join it with <strong>Enrol by code</strong>.</p>
+<p><strong>The install stops with "No MD5 hash for … in the hashes.md5 of release …".</strong>
+A load balancer installs its PHP and nginx bundle only after checking it against the checksum list
+of its release. This line means that the list does not name the bundle, or that the load balancer
+could not download the list. Check that the server can reach GitHub over HTTPS, then reinstall. If
+it can, the binaries release is missing the entry, and it has to be completed first.</p>
+<p><strong>On Ubuntu 20.04, the install log says "libssl3 is not installed".</strong>
+On Ubuntu 20.04 the install adds the OpenSSL 3 library for the bundled PHP. The log says whether
+it was installed and, if not, why. This line does not stop the install.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
