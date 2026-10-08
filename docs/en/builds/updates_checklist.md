@@ -29,6 +29,11 @@ The panel fetches this file from the release tag automatically via `GitHubReleas
 
 > 💬 Keep descriptions concise — focus on user-facing improvements and fixes.
 
+> 📣 **2.6.2:** the changelog says that a new panel starts on the cluster API, and that the old
+> load-balancer link (a load balancer not enrolled, its `/api` with the stream password, its access
+> to MAIN's database and Redis) is deprecated and goes in a later major release
+> (ADR 0004, *Proxies and the legacy `/api`, its calls counted, and the legacy link's retirement*).
+
 ---
 
 ## 2. Pre-Release Validation

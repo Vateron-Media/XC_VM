@@ -105,6 +105,10 @@ needs MAIN's database at all. In the end you can remove the database password fr
 
 ### Step 1: turn the cluster on (MAIN)
 
+A panel installed from 2.6.2 on starts with the cluster on: the installer switches it on, sets
+**New Node Mode** to *api* when it can, and switches **MAIN's data plane** on. Check it under
+**Settings → Cluster**, then go to Step 2. On an older panel:
+
 1. Open **Settings → Cluster**.
 2. Switch on **Enable LB API** and click **Save**.
 

@@ -6693,3 +6693,41 @@ from a browser (every reader is server-side: ffprobe, `file_get_contents`, cURL)
 bounded keys, the seven-day window, MAIN's check of the report, the count after the password and
 address checks, no CORS header), `DataPlaneUrlsTest` and `MainDataPlaneSwitchTest` (a proxy keeps
 nothing open).
+
+### New panels start on the cluster API (2026-10-08)
+
+Step 2 of the retirement above. The installer runs, after `console.php startup`:
+
+```text
+console.php cluster:init --enable && console.php cluster:main-dataplane on
+```
+
+- **`cluster:init --enable`** creates the root as before, then switches the cluster API on
+  (`ClusterInitCommand::enable`): `cluster_api_enabled` 1, and `lb_new_node_mode` `api` when the
+  extension packs a credential-free config (`CredentialFreeConfig::supported`) and the Redis
+  connection handler is off, the conditions Settings asks (`ClusterSettings::normalize`); else
+  the mode stays, mode 1 for a new node. A mode set to `api` already stays.
+- **`cluster:main-dataplane on`** runs only once the API is on (`&&`). As root it takes the
+  agent from GitHub itself. With MAIN in the node list, a load balancer that joins in mode 2 with
+  its data plane closes its legacy `/api` within a minute: nothing on the panel reads it.
+- **Nothing fails the install.** An extension without the cluster API leaves `cluster:init`
+  failing and the panel on the legacy link, as before; an agent that cannot be downloaded leaves
+  MAIN's data plane off. Both switches stay in Settings → Cluster and on Cluster Nodes.
+- **The licence** is not a new condition: a panel without one cannot add a load balancer either
+  way (licensing-and-activation.md, *What the license provides*).
+- **Existing panels** are not touched: an update runs no `cluster:init`.
+
+**Checked on the test pair** (a panel already initialised, so the root was there): the chain
+answered *Already initialised*, switched the API on with new nodes in mode 2, and switched MAIN's
+data plane on; 21 s later the load balancer (mode 2, data plane on) rendered `set $api_legacy 0;`
+and its `/api` answered 404. The pair was then set back (MAIN's data plane off, `legacy`).
+
+**Not built / limits.**
+- **No fresh-install run here.** The Docker install test (`tools/test-install/test_release.sh`)
+  needs Docker, which the host that built this has not; the release checklist runs it.
+- **A new panel's first load balancer needs the licence first**, as before: install it after the
+  activation key.
+
+**Tests.** `ClusterInitEnableTest` (mode 2 when Settings would allow it, else mode 1; the
+installer's chain).
+

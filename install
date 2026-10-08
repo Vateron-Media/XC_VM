@@ -2403,6 +2403,19 @@ if __name__ == "__main__":
             f"/home/xc_vm/bin/php/bin/php {startup_cmd} startup >/dev/null 2>&1"
         )
 
+    # A new panel starts on the cluster API (ADR 0004): its root and the switch,
+    # so a load balancer installed from it enrols at its install and never runs
+    # the legacy link, then MAIN's own data-plane client (its agent from GitHub).
+    # Non-fatal: with an xcvm_core that has no cluster API the panel stays on
+    # the legacy link, as before; the switch is in Settings -> Cluster.
+    if os.path.exists(startup_cmd):
+        printc("Switching the cluster API on...", col.OKBLUE)
+        run_command(
+            f"/home/xc_vm/bin/php/bin/php {startup_cmd} cluster:init --enable && "
+            f"/home/xc_vm/bin/php/bin/php {startup_cmd} cluster:main-dataplane on"
+        )
+        run_command("chown -R xc_vm:xc_vm /home/xc_vm/config/")
+
     # Download GeoLite2 GeoIP databases (City/Country/ASN). They are no longer
     # bundled in the repo/release archive, so fetch them from the XC_VM_Update
     # release on install. This also refreshes bin/maxmind/version.json.
