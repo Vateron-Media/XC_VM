@@ -7,6 +7,7 @@ use XcVm\Core\Cluster\ReplicaApply;
 use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Events\EventDispatcher;
+use XcVm\Core\Events\Stream\CategoryDeletedEvent;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Infrastructure\Database\DatabaseAware;
@@ -257,8 +258,7 @@ class CategoryService {
 		}
 		$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
 		$db->query('UPDATE `watch_categories` SET `category_id` = 0 WHERE `category_id` = ?;', $rID);
-		$db->query('UPDATE `watch_folders` SET `category_id` = null WHERE `category_id` = ?;', $rID);
-		$db->query('UPDATE `watch_folders` SET `fb_category_id` = null WHERE `fb_category_id` = ?;', $rID);
+		EventDispatcher::dispatch(new CategoryDeletedEvent((int) $rID));
 
 		return true;
 	}

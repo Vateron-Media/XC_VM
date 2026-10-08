@@ -5,6 +5,9 @@ use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Cluster\StreamVersions;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Events\EventDispatcher;
+use XcVm\Core\Events\Migration\LegacyTableMigrationEvent;
+use XcVm\Cli\Commands\MigrateCommand;
 
 /**
  * Database migration logic
@@ -18,12 +21,81 @@ use XcVm\Core\Database\QueryHelper;
 
 // Migration logic — loaded from MigrateCommand
 // Requires admin.php already loaded, $db available
+//
+// Once the core tables are migrated, every backup table the core does not own
+// (MigrateCommand::moduleTables(): not in the core schema, not migrated by it,
+// not junk of the old panels) is saved to Modules/migration/ for its module,
+// handed to the installed modules (LegacyTableMigrationEvent) and dropped; a
+// module installed later copies its table from the file. Then what is left of
+// the backup database (xc_vm_migrate, $odb) is dropped: a backup can weigh
+// gigabytes. No list of modules is kept: a module knows its own tables.
 set_time_limit(0);
 ini_set('memory_limit', -1);
 global $db;
-$rXUITableList = ['access_codes', 'users', 'blocked_ips', 'blocked_uas', 'blocked_isps', 'bouquets', 'enigma2_devices', 'mag_devices', 'epg', 'users_groups', 'users_packages', 'rtmp_ips', 'streams_series', 'streams_episodes', 'servers', 'streams', 'streams_options', 'streams_servers', 'streams_categories', 'tickets', 'tickets_replies', 'profiles', 'lines', 'watch_folders'];
-$rTableList = ['reg_users', 'users', 'enigma2_devices', 'mag_devices', 'user_output', 'streaming_servers', 'series', 'series_episodes', 'streams', 'streams_sys', 'streams_options', 'stream_categories', 'bouquets', 'member_groups', 'packages', 'rtmp_ips', 'epg', 'blocked_ips', 'blocked_user_agents', 'isp_addon', 'tickets', 'tickets_replies', 'transcoding_profiles', 'watch_folders', 'categories', 'epg_sources', 'members', 'blocked_isps', 'groups', 'servers', 'stream_servers'];
-$rMigrateOptions = (json_decode(file_get_contents(TMP_PATH . '.migration.options'), true) ?: []);
+$rXUITableList = MigrateCommand::XUI_TABLES;
+$rTableList = MigrateCommand::XC_TABLES;
+
+/**
+ * Save every backup table that is not the core's to Modules/migration/, hand
+ * it to the installed modules (LegacyTableMigrationEvent) and drop it from the
+ * backup. A table a module took is removed from Modules/migration/ too; any
+ * other waits there for its module to be installed.
+ *
+ * @return bool false when a table could not be saved: the backup must then be kept
+ */
+function saveModuleTables(DatabaseHandler $odb): bool {
+	$rFormat = LegacyTableMigrationEvent::formatOf($odb);
+	$odb->query('SHOW TABLES;');
+	$rTables = array_map(static fn(array $rRow): string => (string) reset($rRow), $odb->get_rows());
+	$rSaved = true;
+	// A module table can be the parent of a foreign key (telegram_bots of
+	// telegram_chats): dropped one by one, it would be refused.
+	$odb->query('SET FOREIGN_KEY_CHECKS = 0;');
+	foreach (MigrateCommand::moduleTables($rTables, MigrateCommand::coreSchemaTables()) as $rTable) {
+		try {
+			$rEvent = LegacyTableMigrationEvent::dump($odb, $rTable, $rFormat);
+		} catch (\RuntimeException $e) {
+			echo 'Could not save `' . $rTable . '` (' . $e->getMessage() . '): the migration database is kept.' . "\n";
+			$rSaved = false;
+			continue;
+		}
+		if ($rEvent !== null) {
+			// Read from the backup table itself: dropped only after.
+			EventDispatcher::dispatch($rEvent);
+		}
+		$odb->query('DROP TABLE IF EXISTS `' . str_replace('`', '', $rTable) . '`;');
+		if ($rEvent === null) {
+			continue; // empty
+		}
+		if ($rEvent->copied === null) {
+			echo '`' . $rTable . '` saved for its module to ' . LegacyTableMigrationEvent::sqlFile($rTable) . '.' . "\n";
+			continue;
+		}
+		$rEvent->discard();
+		echo ($rEvent->copied === 0 ? '`' . $rTable . '` already has rows: left as it is.' : 'Added ' . number_format($rEvent->copied, 0) . ' rows of `' . $rTable . '` (an installed module took it).') . "\n";
+	}
+	$odb->query('SET FOREIGN_KEY_CHECKS = 1;');
+	return $rSaved;
+}
+
+/**
+ * Empty the backup database once the migration has completed: everything it
+ * held is in xc_vm now, or in Modules/migration/ for a module. Tables are
+ * dropped, not the database, so the grants on it stay.
+ */
+function clearMigrationDatabase(DatabaseHandler $odb): void {
+	$odb->query('SHOW TABLES;');
+	$rTables = array_map(static fn(array $rRow): string => (string) reset($rRow), $odb->get_rows());
+	$odb->query('SET FOREIGN_KEY_CHECKS = 0;');
+	foreach ($rTables as $rTable) {
+		$odb->query('DROP TABLE IF EXISTS `' . str_replace('`', '', $rTable) . '`;');
+	}
+	$odb->query('SET FOREIGN_KEY_CHECKS = 1;');
+	echo 'Emptied the migration database (' . count($rTables) . ' tables).' . "\n";
+}
+
+// No options file (run by hand, not from the setup page): every table.
+$rMigrateOptions = (json_decode((string) @file_get_contents(TMP_PATH . '.migration.options'), true) ?: []);
 
 file_put_contents(TMP_PATH . '.migration.pid', getmypid());
 file_put_contents(TMP_PATH . '.migration.status', 1);
@@ -475,7 +547,7 @@ if ($odb->num_rows() > 0) {
 						$rResult['stream_status'] = 0;
 						$rResult['stream_started'] = null;
 						$rResult['monitor_pid'] = null;
-						if ($rResult['pid'] < 0) {
+						if (($rResult['pid'] ?? 0) < 0) {
 							$rResult['pid'] = null;
 						}
 						$rResult = QueryHelper::verifyPostTable('streams_servers', $rResult);
@@ -601,7 +673,7 @@ if ($odb->num_rows() > 0) {
 						$rResult['stream_status'] = 0;
 						$rResult['stream_started'] = null;
 						$rResult['monitor_pid'] = null;
-						if ($rResult['pid'] < 0) {
+						if (($rResult['pid'] ?? 0) < 0) {
 							$rResult['pid'] = null;
 						}
 						$rResult = QueryHelper::verifyPostTable('lines', $rResult);
@@ -611,25 +683,6 @@ if ($odb->num_rows() > 0) {
 					}
 				} catch (\Exception $e) {
 					echo 'Error: ' . $e . "\n";
-				}
-			}
-		}
-	}
-	if (in_array('watch_folders', $rMigrateOptions)) {
-		$odb->query("SHOW TABLES LIKE 'watch_folders';");
-		if ($odb->num_rows() > 0) {
-			$odb->query('SELECT COUNT(*) AS `count` FROM `watch_folders`;');
-			$rCount = $odb->get_row()['count'];
-			if ($rCount > 0) {
-				$db->query('TRUNCATE `watch_folders`;');
-				echo 'Adding ' . number_format($rCount, 0) . ' folders to watch.' . "\n";
-				$odb->query('SELECT * FROM `watch_folders`;');
-				$rResults = $odb->get_rows();
-				foreach ($rResults as $rResult) {
-					$rResult = QueryHelper::verifyPostTable('watch_folders', $rResult);
-					$rPrepare = QueryHelper::prepareArray($rResult);
-					$rQuery = 'INSERT INTO `watch_folders`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
 				}
 			}
 		}
@@ -1320,7 +1373,7 @@ if ($odb->num_rows() > 0) {
 							$rResult['stream_status'] = 0;
 							$rResult['stream_started'] = null;
 							$rResult['monitor_pid'] = null;
-							if ($rResult['pid'] < 0) {
+							if (($rResult['pid'] ?? 0) < 0) {
 								$rResult['pid'] = null;
 							}
 							$rResult = QueryHelper::verifyPostTable('streams_servers', $rResult);
@@ -1536,27 +1589,6 @@ if ($odb->num_rows() > 0) {
 			}
 		}
 	}
-	if (in_array('watch_folders', $rMigrateOptions)) {
-		$odb->query("SHOW TABLES LIKE 'watch_folders';");
-		if (0 < $odb->num_rows()) {
-			$odb->query('SELECT COUNT(*) AS `count` FROM `watch_folders`;');
-			$rCount = $odb->get_row()['count'];
-			if ($rCount > 0) {
-				$db->query('TRUNCATE `watch_folders`;');
-				echo 'Adding ' . number_format($rCount, 0) . ' folders to watch.' . "\n";
-				$odb->query('SELECT * FROM `watch_folders`;');
-				$rResults = $odb->get_rows();
-				foreach ($rResults as $rResult) {
-					$rResult = QueryHelper::verifyPostTable('watch_folders', $rResult);
-					$rResult['bouquets'] = '[' . implode(',', array_map('intval', json_decode($rResult['bouquets'], true))) . ']';
-					$rResult['fb_bouquets'] = '[' . implode(',', array_map('intval', json_decode($rResult['fb_bouquets'], true))) . ']';
-					$rPrepare = QueryHelper::prepareArray($rResult);
-					$rQuery = 'INSERT INTO `watch_folders`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				}
-			}
-		}
-	}
 }
 try {
 	$odb->query('SELECT * FROM `settings` LIMIT 1;');
@@ -1594,5 +1626,8 @@ StreamVersions::seedHolders($db);
 StreamVersions::reset($db);
 echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
 
+if (saveModuleTables($odb)) {
+	clearMigrationDatabase($odb);
+}
 file_put_contents(TMP_PATH . '.migration.status', 2);
 $odb->close_mysql();

@@ -2408,6 +2408,25 @@ CREATE TABLE IF NOT EXISTS `users_packages` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `watch_refresh`
+--
+-- The TMDb refresh queue: core's VOD code queues movies, series and episodes in
+-- it, cron:tmdb works it off. The name predates core owning it (it was the watch
+-- module's).
+--
+
+CREATE TABLE IF NOT EXISTS `watch_refresh` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` int(1) DEFAULT '0',
+  `stream_id` int(16) DEFAULT '0',
+  `status` int(8) DEFAULT '0',
+  `dateadded` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `watch_categories`
 --
 -- The TMDb genre -> category/bouquet mapping the VOD importer applies (Settings

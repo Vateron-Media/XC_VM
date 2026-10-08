@@ -8,7 +8,7 @@ use XcVm\Domain\Backup\RecoveryBundle;
 /**
  * backup:open-bundle <bundle> <directory> — open a recovery bundle
  * (Domain\Backup\RecoveryBundle) into a new directory: config.ini,
- * modules.php, bundled_modules.php and, when it holds one, the cluster key
+ * modules.php and, when it holds one, the cluster key
  * export (for `cluster:import-keys`, with the same passphrase). The passphrase
  * is read from standard input, so it is in no process list or shell history:
  *

@@ -89,14 +89,15 @@ if (!LicenseGate::licensed()):
                     <?php endif; ?>
                 </div>
             </div>
-            <a href="https://www.xcvm.tech/activate" target="_blank" rel="noopener" class="btn btn-sm btn-label-warning">
-                <?= $language::get('activation_get_key'); ?>
-            </a>
         </div>
         <form id="activation-form" class="d-flex flex-wrap gap-2" onsubmit="return false;">
-            <input type="text" id="activation-key-input" class="form-control form-control-sm flex-grow-1" style="min-width:260px;"
+            <input type="text" id="activation-key-input" class="form-control form-control-sm" style="flex:1 1 260px;min-width:0;max-width:720px;"
                 autocomplete="off" spellcheck="false"
                 placeholder="<?= htmlspecialchars($language::get('activation_key_placeholder'), ENT_QUOTES); ?>">
+            <a href="https://www.xcvm.tech/activate" target="_blank" rel="noopener" id="activation-get-key" class="btn btn-sm btn-primary"
+                data-hwid="<?= htmlspecialchars($xmHwid, ENT_QUOTES); ?>">
+                <i class="icon-base ti tabler-copy me-1"></i><?= $language::get('activation_copy_hwid_get_key'); ?>
+            </a>
             <button type="submit" id="activation-submit" class="btn btn-sm btn-warning">
                 <?= $language::get('activation_activate'); ?>
             </button>
@@ -107,6 +108,31 @@ if (!LicenseGate::licensed()):
         (function () {
             var form = document.getElementById('activation-form');
             if (!form) return;
+            // The key is issued for this HWID: copy it on the way to the store
+            // (the link still opens it). Over plain HTTP there is no
+            // navigator.clipboard, so a hidden textarea and execCommand do it.
+            document.getElementById('activation-get-key').addEventListener('click', function () {
+                var hwid = this.dataset.hwid || '';
+                if (!hwid) return;
+                var done = function () {
+                    if (window.xcToast) window.xcToast(<?= json_encode($language::get('activation_hwid_copied')); ?>, 'success');
+                };
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(hwid).then(done, function () {});
+                    return;
+                }
+                var area = document.createElement('textarea');
+                area.value = hwid;
+                area.setAttribute('readonly', '');
+                area.style.position = 'fixed';
+                area.style.opacity = '0';
+                document.body.appendChild(area);
+                area.select();
+                try {
+                    if (document.execCommand('copy')) done();
+                } catch (e) {}
+                document.body.removeChild(area);
+            });
             form.addEventListener('submit', function () {
                 var input = document.getElementById('activation-key-input');
                 var msg = document.getElementById('activation-msg');

@@ -23,8 +23,8 @@ use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
 final class RecoveryBundle {
 	public const MAGIC = "XCVMBNDL1\n";
 
-	/** The configuration files it holds, under CONFIG_PATH. */
-	public const FILES = ['config.ini', 'modules.php', 'bundled_modules.php'];
+	/** The configuration files it holds, under CONFIG_PATH (a bundle made before may also hold bundled_modules.php). */
+	public const FILES = ['config.ini', 'modules.php'];
 
 	/** A passphrase this long at least (the cluster key export asks as much). */
 	public const MIN_LENGTH = 20;

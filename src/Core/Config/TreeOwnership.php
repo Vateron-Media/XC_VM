@@ -93,7 +93,6 @@ final class TreeOwnership {
 		'Streaming/' => 'classes the autoloader loads',
 		'Modules/' => 'console.php loads every installed module',
 		'config/modules.php' => 'the module loader requires it as PHP',
-		'config/bundled_modules.php' => 'the module manager requires it as PHP (`console.php status`)',
 		'bin/nginx/sbin/nginx' => 'cron:root_signals reloads nginx with it, and the certbot cron runs it',
 		'bin/nginx_rtmp/sbin/nginx_rtmp' => 'cron:root_signals reloads nginx_rtmp with it, and the certbot cron runs it',
 		'bin/yt-dlp' => '`console.php ytdlp` runs it for its version',

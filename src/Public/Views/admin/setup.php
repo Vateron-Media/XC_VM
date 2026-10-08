@@ -11,6 +11,7 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Localization\Translator;
+use XcVm\Cli\Commands\MigrateCommand;
 use XcVm\Infrastructure\Bootstrap\AdminScopeBootstrap;
 
 
@@ -123,9 +124,9 @@ if (!RequestManager::has('update')):
         $odb->query("SHOW TABLES LIKE 'access_codes';");
 
         if ($odb->num_rows() > 0) {
-            $rCount = array('access_codes' => array('Access Codes', 0), 'users' => array('Users & Resellers', 0), 'blocked_ips' => array('Blocked IP Addresses', 0), 'blocked_uas' => array('Blocked User-Agents', 0), 'blocked_isps' => array("Blocked ISP's", 0), 'bouquets' => array('Bouquets', 0), 'enigma2_devices' => array('Device Info - Engima2', 0), 'mag_devices' => array('Device Info - MAG', 0), 'epg' => array('EPG Providers ', 0), 'users_groups' => array('User Groups', 0), 'users_packages' => array('User Packages', 0), 'rtmp_ips' => array("RTMP IP's", 0), 'streams_series' => array('TV Series', 0), 'streams_episodes' => array('TV Episodes', 0), 'servers' => array('Servers - Load Balancers', 0), 'streams' => array('Streams - Live, Radio, Created & VOD', 0), 'streams_options' => array('Stream Options', 0), 'streams_servers' => array('Stream Servers', 0), 'streams_categories' => array('Stream Categories', 0), 'tickets' => array('Tickets', 0), 'tickets_replies' => array('Ticket Replies', 0), 'profiles' => array('Transcoding Profile', 0), 'providers' => array('Streaming Providers', 0), 'lines' => array('Lines - Standard, MAG & Enigma2 Devices', 0), 'watch_folders' => array('Watch Folders', 0));
+            $rCount = array('access_codes' => array('Access Codes', 0), 'users' => array('Users & Resellers', 0), 'blocked_ips' => array('Blocked IP Addresses', 0), 'blocked_uas' => array('Blocked User-Agents', 0), 'blocked_isps' => array("Blocked ISP's", 0), 'bouquets' => array('Bouquets', 0), 'enigma2_devices' => array('Device Info - Engima2', 0), 'mag_devices' => array('Device Info - MAG', 0), 'epg' => array('EPG Providers ', 0), 'users_groups' => array('User Groups', 0), 'users_packages' => array('User Packages', 0), 'rtmp_ips' => array("RTMP IP's", 0), 'streams_series' => array('TV Series', 0), 'streams_episodes' => array('TV Episodes', 0), 'servers' => array('Servers - Load Balancers', 0), 'streams' => array('Streams - Live, Radio, Created & VOD', 0), 'streams_options' => array('Stream Options', 0), 'streams_servers' => array('Stream Servers', 0), 'streams_categories' => array('Stream Categories', 0), 'tickets' => array('Tickets', 0), 'tickets_replies' => array('Ticket Replies', 0), 'profiles' => array('Transcoding Profile', 0), 'providers' => array('Streaming Providers', 0), 'lines' => array('Lines - Standard, MAG & Enigma2 Devices', 0));
         } else {
-            $rCount = array('reg_users' => array('Users & Resellers', 0), 'users' => array('Lines - Standard, MAG & Enigma2 Devices', 0), 'enigma2_devices' => array('Device Info - Engima2', 0), 'mag_devices' => array('Device Info - MAG', 0), 'user_output' => array('Line Output - HLS, MPEG-TS & RTMP', 0), 'streaming_servers' => array('Servers - Load Balancers', 0), 'series' => array('TV Series', 0), 'series_episodes' => array('TV Episodes', 0), 'streams' => array('Streams - Live, Radio, Created & VOD', 0), 'streams_sys' => array('Stream Servers', 0), 'streams_options' => array('Stream Options', 0), 'stream_categories' => array('Stream Categories', 0), 'bouquets' => array('Bouquets', 0), 'member_groups' => array('Member Groups', 0), 'packages' => array('Reseller Packages', 0), 'rtmp_ips' => array("RTMP IP's", 0), 'epg' => array('EPG Providers ', 0), 'blocked_ips' => array('Blocked IP Addresses', 0), 'blocked_user_agents' => array('Blocked User-Agents', 0), 'isp_addon' => array("Blocked ISP's", 0), 'tickets' => array('Tickets', 0), 'tickets_replies' => array('Ticket Replies', 0), 'transcoding_profiles' => array('Transcoding Profile', 0), 'watch_folders' => array('Watch Folders', 0), 'members' => array('Users & Resellers', 0), 'epg_sources' => array('EPG Providers', 0), 'blocked_isps' => array("Blocked ISP's", 0), 'categories' => array('Stream Categories', 0), 'groups' => array('Member Groups', 0), 'servers' => array('Servers - Load Balancers', 0), 'stream_servers' => array('Stream Servers', 0));
+            $rCount = array('reg_users' => array('Users & Resellers', 0), 'users' => array('Lines - Standard, MAG & Enigma2 Devices', 0), 'enigma2_devices' => array('Device Info - Engima2', 0), 'mag_devices' => array('Device Info - MAG', 0), 'user_output' => array('Line Output - HLS, MPEG-TS & RTMP', 0), 'streaming_servers' => array('Servers - Load Balancers', 0), 'series' => array('TV Series', 0), 'series_episodes' => array('TV Episodes', 0), 'streams' => array('Streams - Live, Radio, Created & VOD', 0), 'streams_sys' => array('Stream Servers', 0), 'streams_options' => array('Stream Options', 0), 'stream_categories' => array('Stream Categories', 0), 'bouquets' => array('Bouquets', 0), 'member_groups' => array('Member Groups', 0), 'packages' => array('Reseller Packages', 0), 'rtmp_ips' => array("RTMP IP's", 0), 'epg' => array('EPG Providers ', 0), 'blocked_ips' => array('Blocked IP Addresses', 0), 'blocked_user_agents' => array('Blocked User-Agents', 0), 'isp_addon' => array("Blocked ISP's", 0), 'tickets' => array('Tickets', 0), 'tickets_replies' => array('Ticket Replies', 0), 'transcoding_profiles' => array('Transcoding Profile', 0), 'members' => array('Users & Resellers', 0), 'epg_sources' => array('EPG Providers', 0), 'blocked_isps' => array("Blocked ISP's", 0), 'categories' => array('Stream Categories', 0), 'groups' => array('Member Groups', 0), 'servers' => array('Servers - Load Balancers', 0), 'stream_servers' => array('Stream Servers', 0));
         }
 
         foreach (array_keys($rCount) as $rTable) {
@@ -145,6 +146,22 @@ if (!RequestManager::has('update')):
             $rTotalCount += $rItemCount[1];
         }
         ksort($rCount);
+    }
+
+    // Backup tables the core does not own (MigrateCommand::moduleTables()): the
+    // migration saves them to Modules/migration/ for their modules. Listed so
+    // the operator knows before migrating.
+    $rModuleTables = [];
+    if (!$rMigrating && $rMigrateConnection) {
+        $odb->query('SHOW TABLES;');
+        $rBackupTables = array_map(static fn(array $rRow): string => (string) reset($rRow), $odb->get_rows());
+        foreach (MigrateCommand::moduleTables($rBackupTables, MigrateCommand::coreSchemaTables()) as $rTable) {
+            $odb->query('SELECT COUNT(*) AS `count` FROM `' . str_replace('`', '', $rTable) . '`;');
+            $rRows = (int) ($odb->get_row()['count'] ?? 0);
+            if ($rRows > 0) {
+                $rModuleTables[$rTable] = $rRows;
+            }
+        }
     }
 
     if (!($rFirstRun || PageAuthorization::checkPermissions())) {
@@ -246,6 +263,16 @@ if (!RequestManager::has('update')):
                                 </table>
                             </div>
                         <?php endif; ?>
+                        <?php if (!empty($rModuleTables)) { ?>
+                            <div class="alert alert-info" role="alert">
+                                <?= $language::get('setup_module_tables_intro') ?>
+                                <ul class="mb-0 mt-2">
+                                    <?php foreach ($rModuleTables as $rTable => $rRows) { ?>
+                                        <li><code><?= htmlspecialchars($rTable, ENT_QUOTES) ?></code> — <?= number_format($rRows, 0, '.', ' ') ?></li>
+                                    <?php } ?>
+                                </ul>
+                            </div>
+                        <?php } ?>
                         <div class="d-flex justify-content-between align-items-center">
                             <?php if ($rFirstRun) { ?>
                                 <a href="./setup?new"><button name="dont_migrate" class="btn btn-danger"

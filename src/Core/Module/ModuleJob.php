@@ -19,7 +19,7 @@ use XcVm\Core\Process\ProcessRunner;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 final class ModuleJob {
-	public const ACTIONS = ['install', 'update', 'uninstall', 'delete', 'rollback', 'renew_license', 'store_install', 'upload_install', 'check_updates'];
+	public const ACTIONS = ['install', 'update', 'delete', 'rollback', 'renew_license', 'store_install', 'upload_install', 'check_updates'];
 
 	/** Seconds a queued job may wait for its process before it counts as never started. */
 	public const START_TIMEOUT = 30;
