@@ -35,7 +35,7 @@ final class ModuleJobTest extends TestCase {
 	}
 
 	public function testWhatTheActionThrowsIsTheFailure(): void {
-		ModuleJob::start('uninstall', 'watch', static fn(): bool => true);
+		ModuleJob::start('delete', 'watch', static fn(): bool => true);
 
 		$rDone = ModuleJob::run(static function (): string {
 			throw new RuntimeException('still required by plex');

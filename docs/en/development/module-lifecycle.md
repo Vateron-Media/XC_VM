@@ -158,7 +158,7 @@ The page (`ModulesController` renders it, `ModuleAjaxController` answers it) has
   sorted by name, version, price or status, 50 rows a page. The answer is cached for 5 minutes per
   API key (**Refresh** asks again).
 
-Enable and disable are applied at once. Every other action (install, update, uninstall, delete,
+Enable and disable are applied at once. Every other action (install, update, delete,
 rollback, license renewal, store install, archive upload, update check) is a **background job**
 (`ModuleJob`): the request queues it and starts `console.php module:job`, which runs it and records
 how it ended in `CACHE_TMP_PATH/module_job.json`. One job runs at a time. The page polls

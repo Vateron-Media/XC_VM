@@ -149,7 +149,6 @@ LayoutRenderer::renderFooter('admin');
             'disable' => $language::get('disable'),
             'rollback' => $language::get('module_action_rollback'),
             'renew_license' => $language::get('module_action_renew_license'),
-            'uninstall' => $language::get('module_action_uninstall'),
             'delete' => $language::get('delete'),
             'more' => $language::get('module_more_actions'),
             'issues' => $language::get('module_issues'),
@@ -266,9 +265,6 @@ LayoutRenderer::renderFooter('admin');
             }
             if (row.source === 'platform') {
                 list.push({ sub: 'renew_license', label: T.renew_license });
-            }
-            if (installed) {
-                list.push({ sub: 'uninstall', label: T.uninstall, danger: true, confirm: true });
             }
             list.push({ sub: 'delete', label: T.delete, danger: true, confirm: true });
             return list;
