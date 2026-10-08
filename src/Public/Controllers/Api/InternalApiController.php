@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Api;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Cluster\ClusterSettings;
+use XcVm\Core\Cluster\LegacyApiAudit;
 use XcVm\Core\Cluster\Redactor;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Diagnostics\DiagnosticsService;
@@ -59,9 +60,10 @@ class InternalApiController {
 			generateError('API_IP_NOT_ALLOWED');
 		}
 
-		header('Access-Control-Allow-Origin: *');
 		$rAction = !empty($rRequest['action']) ? $rRequest['action'] : '';
 		$this->deny = false;
+		// Who still calls it, for the Cluster Nodes page (a node in mode 1 or 2).
+		LegacyApiAudit::record((string) $rAction, (string) $_SERVER['REMOTE_ADDR']);
 
 		$this->dispatch($rAction, $rRequest, $rSettings);
 	}

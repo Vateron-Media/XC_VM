@@ -53,11 +53,19 @@ final class ClusterMaintainStatsTest extends TestCase {
 
 	public function testEveryPendingIndexIsBuiltAndRetentionThenUsesIt(): void {
 		$rDb = new TestDb();
-		$rDb->exec('CREATE TABLE `servers_stats` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `server_id` int, `time` int)');
-		foreach (array_keys(ClusterMaintainStatsCommand::LOG_INDEXES) as $rTable) {
+		$rTables = ['servers_stats' => ClusterMaintainStatsCommand::INDEXES] + ClusterMaintainStatsCommand::LOG_INDEXES;
+		foreach (array_keys($rTables) as $rTable) {
 			$rDb->exec(InstallSchema::table($rTable));
 		}
 		$rLog = new QueryLogDb($rDb);
+		$this->assertSame([], ClusterMaintainStatsCommand::pending($rLog), 'a fresh install has them all');
+
+		// An install from before database.sql carried them.
+		foreach ($rTables as $rTable => $rIndexes) {
+			foreach (array_keys($rIndexes) as $rName) {
+				$rDb->exec('ALTER TABLE `' . $rTable . '` DROP INDEX `' . $rName . '`');
+			}
+		}
 		$this->assertSame(['servers_stats', 'lines_logs', 'login_logs', 'streams_logs', 'streams_errors', 'ondemand_check', 'users_logs'], array_keys(ClusterMaintainStatsCommand::pending($rLog)));
 
 		ob_start();

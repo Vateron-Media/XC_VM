@@ -22,7 +22,12 @@ export async function row(page: Page): Promise<Locator> {
 export async function act(page: Page, action: string): Promise<void> {
   const tr = await row(page);
   const posted = page.waitForResponse((r) => r.request().method() === 'POST' && /cluster_nodes/.test(r.url()));
-  await tr.locator(`button[name="cluster_action"][value="${action}"]`).first().click();
+  const button = tr.locator(`button[name="cluster_action"][value="${action}"]`).first();
+  // The row's actions sit in its menu: open it first.
+  if (!(await button.isVisible())) {
+    await tr.locator('[data-bs-toggle="dropdown"]').click();
+  }
+  await button.click();
   expect((await posted).status(), action).toBeLessThan(400);
   await expect(page.locator('body')).not.toContainText(/Fatal error|Uncaught|Stack trace/);
 }
@@ -41,21 +46,21 @@ export async function until(page: Page, what: string, ok: (tr: Locator) => Promi
   }
 }
 
-export const health = async (tr: Locator): Promise<string> => (await tr.locator('td').nth(1).locator('.badge').first().innerText()).trim();
+export const health = async (tr: Locator): Promise<string> => (await tr.locator('td[data-col="health"]').getAttribute('data-health')) ?? '';
 export const flowOn = async (tr: Locator, flow: string): Promise<boolean> => (await tr.locator(`button[value="${flow}_off"]`).count()) > 0;
 /** The node's cluster mode, as the forms of its mode cell name it. */
 export const mode = async (tr: Locator): Promise<number> => Number(await tr.locator('input[name="mode"]').first().inputValue());
-export const epochCell = (tr: Locator): Locator => tr.locator('td').filter({ hasText: /\(gen \d+\)/ }).first();
+export const epochCell = (tr: Locator): Locator => tr.locator('td[data-col="epoch"]');
 export const epoch = async (tr: Locator): Promise<number> => Number((await epochCell(tr).innerText()).trim().split(/\s+/)[0]);
-/** The node's command queue: the badge three cells after the epoch's. */
-export const queued = async (tr: Locator): Promise<number> => Number((await epochCell(tr).locator('xpath=following-sibling::td[3]').innerText()).trim());
-/** The node's last heartbeat as the page shows it (UTC, to the second), in the cell after the queue's. */
+/** The node's command queue: its badge. */
+export const queued = async (tr: Locator): Promise<number> => Number((await tr.locator('td[data-col="queue"]').innerText()).trim());
+/** The node's last heartbeat as the page shows it (UTC, to the second). */
 export const lastSeen = async (tr: Locator): Promise<string> =>
-  ((await epochCell(tr).locator('xpath=following-sibling::td[4]').innerText()).match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/) ?? [''])[0];
+  ((await tr.locator('td[data-col="last-seen"]').innerText()).match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/) ?? [''])[0];
 
-/** The load balancer's server name, as the page's first cell shows it. */
+/** The load balancer's server name, as the row's link shows it. */
 export async function lbName(page: Page): Promise<string> {
-  return (await (await row(page)).locator('td').first().innerText()).split('\n')[0].trim();
+  return (await (await row(page)).locator('td[data-col="name"] a').first().innerText()).trim();
 }
 
 /** Run `body` with the node's `flow` on, then put the flow back as it was. */

@@ -17,7 +17,7 @@
 | `Core\Cluster\SignalDispatcher` |47 `INSERT INTO signals` сайтов (удаление, задания кэширования, действия root)| `LegacySqlSignalSink` |команды и события (4/5)|
 | `Domain\Stream\StreamStateWriter` |состояние выполнения узла в `streams_servers`; отклоняет любой столбец за пределами `STATE_FIELDS`| `StreamRowMerge::apply()` |`stream.state` событие (5), хранящееся в собственном хранилище узла (`Core\Cluster\StreamRuntime`, 7)|
 | `Domain\Stream\StreamSource` |строка потока, строка этого узла `streams_servers`, параметры потока и запись, считываемые перед запуском потока или записи; поток со строкой этого узла и его состоянием во время выполнения (`nodeRow()`, `workerRow()`, `plainRow()`, `createdRow()`, `builtServerRow()`, `channelRow()`, `movieRow()`)|SQL|кэширование потоков узла, созданное `cluster:apply` из раздела R2 `streams`, как только поток запущен (`ReplicaStreamCache`, 7), с состоянием выполнения из собственного хранилища узла, как только оно заполнено (`StreamRuntime`, 7); `stream_bundle` при ошибке (не создано)|
-| `Domain\Stream\NodeStreams` |списки потоков этого узла выбираются его администраторами и демонами в зависимости от их состояния во время выполнения (`cron:streams`, `cron:vod`, `cron:cleanup`, демон по требованию)|SQL|кэширование потока и собственное хранилище узла или весь раздел R2 (`ReplicaStreams`) для списков `cron:cleanup` сокращает файлы на (7)|
+| `Domain\Stream\NodeStreams` |списки потоков этого узла выбираются его администраторами и демонами в зависимости от их состояния во время выполнения (`cron:streams`, `cron:vod`, `cron:cleanup`, демон по требованию)|SQL; `fileStreams()`, `archives()`, `createdIDs()`, `liveChecks()` и `onDemandIDs()` отвечают на `null`, но никогда не получают пустой список, когда база данных MAIN не отвечает на чтение| the stream caches and the node's own store, or the R2 section whole (`ReplicaStreams`) for the lists `cron:cleanup` prunes files by (7): `null` when the section is not whole |
 | `Core\Cluster\LogSink` |записи о клиенте, потоке, ошибке потока, ошибке панели управления и повторном обнаружении потока; строки системного журнала root (`syslog()`)|одна многострочная ВСТАВКА в пакет (по 1000 фрагментов); собственная ВСТАВКА вызывающего устройства `mysql_syslog`|`log.*` события, отредактированные первыми (5); `log.syslog` (7)|
 
 ## ОСНОВНАЯ сторона
@@ -98,6 +98,22 @@
 в собственном хранилище узла в режиме 2 (`StreamStateWriter::resend()` отправляет его
 позже) вместо возврата к основному ряду; в режимах 0 и 1 он возвращается обратно,
 и хранилище перестает работать, как только оно появляется в строке MAIN (`StreamRuntime::lapse()`).
+Запись о подключении средства просмотра содержит только агент узла в режиме 2: его вызовы
+подождите `AgentConnections::SOLE_TIMEOUT` (3 секунды, а не 1 секунду, как в режимах 0 и 1
+подождите, пока откроется магазин MAIN). На одно сообщение агент по-прежнему не отвечает
+никогда не попадает в хранилище MAIN: чтение чека зависит от (записи пользователя,
+другой адрес строки) отклоняет запрос, и запись завершается неудачей, поэтому
+конечная точка отвечает на запрос `LINE_CREATE_FAIL` вместо HTTP 500, и ничего не происходит.
+пропустите беспрепятственно.
+Узел в режиме 2 никогда не теряет своего хранилища при записи
+(`StreamStateWriter::write()`, `ContentSink::workerPid()`): База данных MAIN's
+отказался от этой записи, и магазин не может быть загружен снова.
+- Список, вызывающий объект которого удаляет или останавливает то, что в списке не указано, равен `null`,
+никогда не бывает пустым, если его невозможно прочитать (`NodeStreams`, выше). Вызывающий
+ничего не делает со списком `null`: `cron:cleanup` пропускает эту проверку и
+`cron:streams` завершает свой проход там, где он считывает список: перед каждым потоком
+работайте, когда `liveChecks()` равно `null`, и после этой работы, прежде чем она остановит любое
+процесс, в котором его списки не называются, когда `onDemandIDs()` равно `null`.
 - Файл, который требуется узлу от MAIN (пользовательское видео вне эфира, архив модуля)
 является артефактом: MAIN называет его в
 `Domain\Cluster\ArtefactRegistry` и предоставляет его с помощью подписанной команды
@@ -120,4 +136,5 @@
 `StreamRowMergeTest`, `StreamCacheBuilderSourceTest`, `LogSinkTest`,
 `NodeRpcActionsTest`, `ArchitectureTest`, `DbConnectRefusalTest`,
 `ReplicaBootTest`, `ModeTwoPathsTest`, `ArtefactHashRefusalTest`,
-`StreamRuntimeTest` и `StreamRuntimeReadersTest`.
+`StreamRuntimeTest`, `StreamRuntimeReadersTest`, `AuditCronStreamsTest` и
+`AuditClusterFlowsModeTwoTest`.

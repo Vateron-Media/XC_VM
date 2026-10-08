@@ -105,6 +105,10 @@ needs MAIN's database at all. In the end you can remove the database password fr
 
 ### Step 1: turn the cluster on (MAIN)
 
+A panel installed from 2.6.2 on starts with the cluster on: the installer switches it on, sets
+**New Node Mode** to *api* when it can, and switches **MAIN's data plane** on. Check it under
+**Settings → Cluster**, then go to Step 2. On an older panel:
+
 1. Open **Settings → Cluster**.
 2. Switch on **Enable LB API** and click **Save**.
 
@@ -200,7 +204,8 @@ Once every load balancer has **Data plane** on, close the data plane on MAIN's s
    MAIN first.
 2. The same card says whether **the load balancers' legacy `/api`** is closed. It closes by
    itself, within a minute, once every server, MAIN included, has its data plane on; until then
-   the card names the servers that keep it open. A proxy always does.
+   the card names the servers that keep it open. A proxy never does: it reads no load
+   balancer's files. Each load balancer's **Legacy /api calls** column shows who still calls it.
 3. When it says *Closed*, rotate the stream secret (`console.php cluster:rotate-stream-secret`
    on MAIN), so the old one opens nothing.
 
@@ -330,6 +335,7 @@ Only when every load balancer is in mode 2:
 | **P0 / P1 lagging** | Reports are waiting to reach MAIN. Check the network between them |
 | **MAIN URL unreachable** | The LB cannot reach one of MAIN's addresses. Check the firewall or certificate |
 | **relay port down** | Another program uses port 31290 on the LB; free it |
+| **Legacy /api calls** | Who called the LB's old `/api` (the one with the stream password) in the last 7 days, by action and caller address. 0 means nothing did |
 
 The buttons:
 
@@ -379,6 +385,12 @@ the default *auto* transport uses HTTPS anyway.
 **What happens if I change MAIN's IP address or port?**
 MAIN tells the load balancers the new address and keeps answering on the old one for seven days,
 so none of them gets lost. Setting a *MAIN Host Name* (a DNS name) avoids the problem altogether.
+
+**Will the old way keep working?**
+For now, yes. The old way (a load balancer that is not enrolled, its `/api` with the stream
+password, its access to MAIN's database and Redis) is deprecated: it is removed in a later major
+release, which will ask every load balancer to be in mode 2 before it updates. The
+**Legacy /api calls** column shows what still uses the old `/api` on each load balancer.
 
 **A load balancer shows "relay port down". What do I do?**
 Another program on that load balancer uses port 31290, which the agent needs. Stop that program,

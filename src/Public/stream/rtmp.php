@@ -2,7 +2,6 @@
 
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\BruteforceGuard;
-use XcVm\Core\Cluster\AgentClient;
 use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Logging\DatabaseLogger;
 use XcVm\Core\Process\ProcessManager;
@@ -11,6 +10,7 @@ use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSource;
 use XcVm\Domain\User\RtmpViewerAuth;
+use XcVm\Streaming\Auth\RtmpOffline;
 use XcVm\Streaming\Auth\StreamAuth;
 use XcVm\Streaming\Protection\ConnectionLimiter;
 
@@ -84,8 +84,9 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 				if (class_exists(RtmpViewerAuth::class)) {
 					$rAuth = RtmpViewerAuth::check($rSettings, (bool) $rCached, $rBouquets ?: [], $rServers, $rStreamID, $rIP, $rCreds, $rRestreamDetect, (int) SERVER_ID);
 				} else {
-					// No answer (no agent, an agent without the op, MAIN unreachable) refuses the viewer.
-					$rAuth = AgentClient::main('rtmp_auth', ['stream_id' => $rStreamID, 'ip' => $rIP, 'restream' => $rRestreamDetect, 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid'])] + $rCreds, 6.0) ?? ['ok' => false, 'reason' => 'NO_ANSWER'];
+					// MAIN's check through this node's agent; while the agent cannot reach MAIN,
+					// MAIN's last yes for this viewer (RtmpOffline). Anything else refuses.
+					$rAuth = RtmpOffline::ask($rSettings, $rStreamID, $rIP, $rCreds, $rRestreamDetect, ConnectionTracker::rtmpUuid($rNotify['clientid']));
 				}
 
 				if (($rAuth['ok'] ?? false) !== true || !is_array($rAuth['user'] ?? null)) {

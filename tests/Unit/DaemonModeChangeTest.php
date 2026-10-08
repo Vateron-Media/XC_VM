@@ -79,6 +79,7 @@ final class DaemonModeChangeTest extends TestCase {
 			$this->assertStringContainsString('$this->refreshOrBreak()', $rCommand($rDaemon), $rDaemon);
 		}
 		$this->assertStringContainsString('while (!$this->modeChanged() && (', $rCommand('Scanner'));
+		$this->assertMatchesRegularExpression('/while \(true\) \{\s*(?:\/\/[^\n]*\s*)*if \(\$rApi !== NodeRole::refusesConnects\(\)\) \{/', $rCommand('Watchdog'), 'the watchdog, which runs pass after pass in mode 2');
 		$this->assertMatchesRegularExpression('/\$rRefuses = NodeRole::refusesConnects\(\);.*if \(\$rRefuses !== NodeRole::refusesConnects\(\) \|\|/s', $rCommand('Ondemand'));
 	}
 

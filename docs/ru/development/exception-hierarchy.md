@@ -43,7 +43,7 @@
 | ----- | ----------- |
 | `ContainerException` |База данных обо всех неисправностях контейнеров|
 | `CircularDependencyException` |Заводской график службы содержит цикл|
-| `ServiceCreationException` |Заводской вызов был выполнен при создании сервиса|
+| `ServiceCreationException` |Заводской вызов был произведен при создании сервиса|
 | `NotFoundException` |`get($id)` запрос на незарегистрированную услугу|
 
 `NotFoundException` реализует оба интерфейса PSR-11, поэтому контейнер совместим:
@@ -65,8 +65,13 @@ try {
 | `ModuleException` |База данных для всех отказов модулей|
 | `ModuleNotFoundException` |Отсутствует необходимый модуль зависимостей|
 | `ModuleLoadException` |Файл модуля не может быть загружен или класс не найден|
-| `ModuleManifestException` |`module.json` отсутствует, неправильно сформирован или не прошел проверку|
-| `ModuleCycleException` |Граф зависимостей имеет топологическую сортировку, генерируемую циклом `ModuleLoader`, с циклическим путем (`a -> b -> a`) в сообщении. (В некоторых `@throws` блоках документации указано `\RuntimeException`; это просто базовый тип — `ModuleCycleException` расширяет его с помощью `XcVmException`.)|
+| `ModuleManifestException` |`module.json` не может быть использовано: это не объект JSON, `dependencies` или `optional_dependencies` не список имен, или `environment` не `main`, `lb` или `any`. Выброшенный `ModuleLoader::readManifest()` и перехваченный загрузчиком, который регистрирует его и пропускает модуль: он не экранируется `loadAll()`.|
+| `ModuleCycleException` |Граф зависимостей имеет топологическую сортировку, генерируемую циклом `ModuleLoader`, с указанием пути цикла (`a -> b -> a`) в сообщении. Он экранирует `loadAll()` для цикла, который уже находится на диске. (В некоторых блоках документов `@throws` указано `\RuntimeException`; это всего лишь базовый тип — `ModuleCycleException` расширяет его с помощью `XcVmException`.)|
+
+`ModuleManager` не устанавливает такой модуль на место: загрузка, установка из хранилища и обновление
+отклоняются с помощью простого `\RuntimeException` — `Модуль '<name>' содержит модуль.json, который не может
+be loaded (…).` or `Module '<name>' would close a dependency cycle (a -> b -> a).` — and the
+установленные файлы и записанная версия сохраняются.
 
 ---
 
@@ -84,7 +89,8 @@ try {
 try {
     $loader->loadAll();
 } catch (ModuleException $e) {
-    // ModuleNotFoundException | ModuleLoadException | ...
+    // ModuleCycleException: a module with an unusable manifest or a
+    // missing dependency is skipped and logged, not thrown
 }
 
 // Catch container-specific failures

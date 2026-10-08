@@ -29,6 +29,11 @@ The panel fetches this file from the release tag automatically via `GitHubReleas
 
 > 💬 Keep descriptions concise — focus on user-facing improvements and fixes.
 
+> 📣 **2.6.2:** the changelog says that a new panel starts on the cluster API, and that the old
+> load-balancer link (a load balancer not enrolled, its `/api` with the stream password, its access
+> to MAIN's database and Redis) is deprecated and goes in a later major release
+> (ADR 0004, *Proxies and the legacy `/api`, its calls counted, and the legacy link's retirement*).
+
 ---
 
 ## 2. Pre-Release Validation
@@ -61,6 +66,16 @@ Write the missing ones (`src/migrations/database/down/<same name>.sql`) before t
 > ℹ️ The Docker test install moved to step 6 — it requires a built `dist/XC_VM.zip`.
 
 **Security scan:** runs automatically on push/PR via `.github/workflows/security-scan.yml` (Semgrep) — no manual step.
+
+**Compatibility code due for removal.** Some code exists only for nodes, updaters or plays from before a given release, and says so in a `ponytail:` comment with its condition. Remove each one in the release named below, once its condition holds:
+
+- **The first release after 2.6.2:**
+  - `OffAirHandler`: the `video_path` claim, kept for nodes from before `off_air` (2.6.0).
+  - `ConnectionLimiter`: the `md5($rPID)` key, kept for RTMP plays opened before `rtmpUuid()` (2.6.0).
+  - `UpdateCommand`: the copy of `bin/install` from the update archive, kept for MAINs whose updater did not copy it (2.6.1).
+- **Once the updater replaces `bin/nginx/conf/codes/template`** (it keeps the installed one today): `AuthRepository`'s insertion of the `(login|resize)` location into an older template.
+
+List them with `grep -rnE "ponytail:.*drop( it)? once" src`, and move an entry to a later release if its condition does not hold yet.
 
 ### Regenerate translated documentation
 

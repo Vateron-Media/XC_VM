@@ -2,7 +2,7 @@
 
 Обработка ошибок XC_VM состоит из трех уровней:
 
-- **Коды ошибок** -- какой сбой произошел (централизованный реестр именованных строк ошибок)
+- **Коды ошибок** -- что не удалось (централизованный реестр именованных строк ошибок)
 - **Обработчики ошибок** -- как формируется HTTP-ответ клиента (`generateError()`, `generate404()`)
 - **Подсистема регистратора** -- отслеживание ошибок PHP во время выполнения, неперехваченных исключений и фатальных сбоев
 
@@ -57,7 +57,7 @@ Application code
 | `CACHE_INCOMPLETE` |Генерируется кэш...|
 | `DEVICE_NOT_ALLOWED` |Устройствам MAG и Enigma не разрешен доступ к этому файлу.|
 | `DISABLED` |Линия была отключена.|
-| `DOWNLOAD_LIMIT_REACHED` |Достигнут лимит одновременной загрузки.|
+| `DOWNLOAD_LIMIT_REACHED` |Достигнуто ограничение на одновременную загрузку. В ответ на запрос выдается HTTP 429 с пустым текстом, в то время как на сервере уже запущено `max_simultaneous_downloads` загрузок такого типа (плейлист или XMLTV); код и его текст отображаются только с включенным `debug_show_errors`.|
 | `E2_DEVICE_LOCK_FAILED` |Проверка блокировки устройства не удалась.|
 | `E2_DISABLED` |Устройство было отключено.|
 | `E2_NO_TOKEN` |Токен не был указан.|
@@ -156,7 +156,7 @@ generateError('STREAM_OFFLINE', false);             // production: no output, no
 
 ### `generate404(bool $rKill = true)`
 
-Возвращает страницу в стиле nginx `404 Not Found` и устанавливает HTTP 404. HTML-код содержит комментарии с дополнениями, чтобы скрыть страницы ошибок, отображаемые в браузере MSIE и Chrome.
+Возвращает страницу в стиле nginx `404 Not Found` и устанавливает HTTP 404. HTML-код содержит комментарии с дополнениями, чтобы скрыть страницы ошибок, отображаемые в браузерах MSIE и Chrome.
 
 ```php
 generate404();       // 404 + exit
@@ -239,7 +239,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 | `log_message` |Текст сообщения об ошибке/исключении|
 | `file` |Абсолютный путь к исходному файлу|
 | `line` |Номер строки, в которой произошла ошибка|
-| `log_extra` |Трассировка стека (форматированная строка). Пусто для неустранимых ошибок.|
+| `log_extra` | Stack trace (formatted string). Empty for fatal errors. For `pdo` entries (written by `FileLogger`), the failed SQL statement as written, with its `?` placeholders in place of the bound values (a statement run through `simple_query()` has no placeholders and is logged whole). The driver's message is in `log_message`. The text MySQL quotes after `value: ` ("Incorrect integer value: '...'") and after a syntax error's `near ` is replaced by `?`; any other message, and the message of a statement run through `simple_query()`, is logged as MySQL wrote it and can still quote a value. |
 | `time` |Временная метка Unix|
 | `env` |Имя PHP SAPI (`cli`, `fpm-fcgi` и т.д.)|
 
@@ -253,7 +253,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 Когда `$showErrors` равно `true`, регистратор также отображает ошибки напрямую:
 
-- **КЛИ:** выходной сигнал терминала с цветовой кодировкой (красный - НЕИСПРАВИМОСТЬ/ОШИБКА, желтый - ПРЕДУПРЕЖДЕНИЕ, синий - УВЕДОМЛЕНИЕ)
+- **КЛИ:** выходной сигнал терминала с цветовой кодировкой (красный - НЕИСПРАВИМОСТЬ/ОШИБКА, желтый - ПРЕДУПРЕЖДЕНИЕ, синий - УВЕДОМЛЕНИЕ).
 - **Сеть:** встроенный `<div>` с моноширинным шрифтом, красной рамкой и трассировкой стека в блоке `<pre>`
 
 ---

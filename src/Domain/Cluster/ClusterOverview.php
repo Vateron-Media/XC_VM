@@ -50,7 +50,10 @@ final class ClusterOverview {
 			}
 		}
 		$rOut = [];
-		foreach (array_keys($rServers) as $rID) {
+		foreach ($rServers as $rID => $rServer) {
+			if ((int) ($rServer['server_type'] ?? 0) === 1) {
+				continue; // a proxy reads no node's files (DataPlane::legacyApiRetired)
+			}
 			if ((int) $rID === $rMainID ? !$rMainDataPlane : !isset($rReady[(int) $rID])) {
 				$rOut[] = (int) $rID;
 			}

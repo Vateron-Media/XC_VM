@@ -1858,7 +1858,7 @@ The eighth increment's refusal stopped the paths a node in mode 2 still took to 
 - Mode 2 still cannot be switched on (Phase 9).
 - In mode 2 a system log line the spool refuses (the agent stopped for over two minutes, or LOGS off) never reaches MAIN's system log. The panel's error log keeps it, and it reaches MAIN's panel logs once the agent takes events again; where root cannot switch to the agent's user it goes to the cron's stderr and is lost.
 - `update` and `rollback` cannot run in mode 2 until the update command stops writing MAIN's `servers` row. Built later: see [A node in mode 2 updates, and its status and inventory](#a-node-in-mode-2-updates-and-its-status-and-inventory).
-- A root action MAIN still queues as a `signals` row for a node in mode 2 never runs: MAIN does so when it lacks `root_ready` or the node is quarantined (`CommandBus::acceptsRoot` takes active nodes only). MAIN's own cron purges the row after a day. The checks from the replica make good ports, services and the ramdisk; a reboot, restart, update or module action is lost.
+- A root action MAIN still queues as a `signals` row for a node in mode 2 never runs: MAIN does so when it lacks `root_ready` or the node is quarantined (`CommandBus::acceptsRoot` takes active nodes only). MAIN's own cron purges the row after a day. The checks from the replica make good ports, services and the ramdisk; a reboot, restart, update or module action is lost. Built later: MAIN queues no row for a node in mode 2, and the Servers page says the action was not sent (see [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07)).
 - In mode 2, until R2 fills `streamChecks()`, the files of streams deleted on MAIN stay, TV archive segments are kept past their retention, and neither the VOD analysis nor the created-channel checks run. Since the thirteenth Phase 7 increment they run from the replica and the node's own store once both answer.
 - Other paths still reach MAIN's database on a node in mode 2, and the refusal stops them:
   - the signals daemon (`signals`: kills and cache jobs from MAIN's `signals` table). Since the fourteenth Phase 7 increment it reads no row and no Redis in mode 2: MAIN sends the cache jobs as `node.cache` commands;
@@ -2242,7 +2242,7 @@ The pass ends as before, 250 ms after its work, and the next process runs the ne
 
 - Mode 2 still cannot be switched on (Phase 9).
 - `node.cache` is granting to today's extension, whose restrictive types are fixed. An unlicensed MAIN sends a node in mode 2 no cache job (and writes no row), so the files of movies deleted meanwhile and the connection files of viewers MAIN closed stay there. Listing `node.cache` among the extension's restrictive types (`xcvm_core`) would let it sign them without a licence.
-- A node in mode 2 that takes no command (quarantined, COMMANDS off) gets its kills and cache jobs as rows it never reads; MAIN's `cron:servers` purges them after a day. So are the rows a node in mode 0 or 1 writes for it (its viewer authentication kicking a viewer on the mode 2 node). A node in mode 2 cannot write such rows for another server, nor MAIN's cache rebuilds (the on-demand daemon's `update_stream`): refused, until viewer authentication moves to MAIN (Phase 8) and R2's node half rebuilds MAIN's caches from the node's stream events.
+- A node in mode 2 that takes no command (quarantined, COMMANDS off) gets its kills and cache jobs as rows it never reads; MAIN's `cron:servers` purges them after a day. (Built since: see [A large blocklist in parts, restrictive commands to a quarantined node, and actions not sent](#a-large-blocklist-in-parts-restrictive-commands-to-a-quarantined-node-and-actions-not-sent-2026-10-07).) So are the rows a node in mode 0 or 1 writes for it (its viewer authentication kicking a viewer on the mode 2 node). A node in mode 2 cannot write such rows for another server, nor MAIN's cache rebuilds (the on-demand daemon's `update_stream`): refused, until viewer authentication moves to MAIN (Phase 8) and R2's node half rebuilds MAIN's caches from the node's stream events.
 - A renewal needs COMMANDS, root's pin and, `node.root` being granting, a licence; without them a node in mode 2 is not renewed and its certificate expires. MAIN judges by the record the node reported, so a `node.state` that has not reached MAIN (the agent stopped) leaves MAIN with the older one, and a record MAIN cleared (the admin's regenerate, its `certbot_generate` never run on the node) is back only at the node's next daily run: a renewal due meanwhile waits for MAIN's next daily run, a day at most within the week's margin.
 - Each `SignalDispatcher::cache()` call is a `node.cache` command of its own, and the agent runs a node's commands one at a time, each `node.cache` in a fresh `cluster:exec` (a CLI boot from the replica). A caller that queues one job per item (a series delete: `StreamRepository::deleteStream` per episode, one `delete_vod` per server holding it) queues as many commands on each mode 2 node, and a kill, drop or awaited `node.rpc` queued after them waits until they ran, where the legacy daemon ran up to 1,000 rows a pass with kills first. Nothing is lost or reordered: they run in order within their day. Coalescing them was left out: buffering them to the end of a request would reorder them after MAIN's later commands to the node (and lose them to a request that dies first), and merging into a command not yet delivered races with its delivery. Callers that batch (`cacheBatch`, `delete_vods`) send one command per 500 targets.
 - The daemon's reconcile of the fanout's supervised streams reads this node's `streams_servers` rows (`StreamProcess::reconcileSupervised`, each pass). That is R2's node half, where the thirteenth increment's store answers it; where it does not, a pass in mode 2 with streams under the fanout is refused there, and `cron:servers` starts the daemon again each minute.
@@ -4527,7 +4527,8 @@ parts of at most 4 MiB, staged in `tmp/cluster_xfer/`.
   section staged for 50 nodes at once holds about 1 GiB of tmpfs until the parts are fetched or
   the stages expire.
 - **The blocklist** is not sent in parts: a whole blocklist section alone past 8 MiB still stops
-  the reply, as before.
+  the reply, as before. (Built since: see
+  [A large blocklist in parts, restrictive commands to a quarantined node, and actions not sent](#a-large-blocklist-in-parts-restrictive-commands-to-a-quarantined-node-and-actions-not-sent-2026-10-07).)
 - **Older agents** still drop the section: parts need this agent.
 
 **Tests.** PHP: `ClusterApiTest::testASectionTooLargeForOneReplyIsFetchedInParts`. It covers an older
@@ -4717,6 +4718,7 @@ too.
 
 **Not built / limits.**
 - **`database.sql` is unchanged.** A new install gets the indexes from the first `cron:cleanup`.
+  (Built since: see [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07).)
 - **A refused build is retried every hour**, and each attempt is written to the command's output
   only.
 
@@ -5462,6 +5464,32 @@ The design is `docs/superpowers/specs/2026-10-01-per-node-viewer-keys-design.md`
   - the section's `relay_seal` and `box_pub`.
 - XC_VM_CoreExtention `ClusterApiTest`: a relay key opens with the panel box key, for its stream only.
 
+### An RTMP viewer while MAIN does not answer (2026-10-07)
+
+An HTTP viewer brings a token the node reads with its own key, so MAIN's absence touches only its
+admission (`lb_offline_admission`, the agent's). An RTMP viewer brings only its line's credentials,
+which MAIN alone can check (`rtmp_auth`): with MAIN unreachable, every RTMP viewer was refused.
+
+**Built.**
+- `RtmpOffline::ask()` makes the node's `rtmp_auth` call. A yes from MAIN is kept for the same
+  credentials, stream, viewer address and restream flag. It stands in for MAIN for ten minutes
+  (`TTL`), and only when the agent could not reach MAIN (its 502): never when MAIN refused (409:
+  a quarantined, revoked or refused node), nor when the agent did not answer. Any other answer
+  from MAIN forgets it, so a line refused since is refused again as soon as MAIN answers.
+- It is not taken under `lb_offline_admission = deny` (the setting now reaches the node's PHP
+  with its replica), on a node whose state is not `active` (`flows.json`), on a node whose lease
+  refuses new sessions (`NodeLease`, a lapsed lease or a fence), or past the line's expiry
+  (`exp_date`, which MAIN's answer now carries).
+- Kept as files in `TMP_PATH/rtmp_offline/`, named by an HMAC under a key of the node's own
+  (`.key`, 0600): no credential is written. `cron:cleanup` drops what is past the window.
+- Such a viewer is recorded without MAIN's mint, with its line's limit, so its admission is the
+  agent's offline policy's, as an HTTP viewer's is. Under `cluster_conn_binding = enforce` its
+  record is unproven when MAIN hears of it.
+
+**Not built / limits.**
+- A viewer MAIN never said yes to on this node, at this address, in the last ten minutes is
+  refused, as before.
+- A line disabled or banned while MAIN cannot be reached plays on for at most the ten minutes.
 ### Proxies on a signed channel (D8)
 
 **Before:** a proxy's cron (XC_VM_Proxy's `callback.php`) posted its stats to MAIN's `/admin/proxy_api` once a minute, unsigned. It then ran whatever signals came back: reboot, restart or stop the services, block or unblock an IP, flush the firewall, reload nginx. MAIN trusted the request's source address (the Phase 0 stop-gap), and the proxy trusted the answer. Lockdown counted every proxy as a blocker, since one might still use MAIN's database, and the DB allowlist kept every proxy on 3306/6379.
@@ -5501,6 +5529,46 @@ The design is `docs/superpowers/specs/2026-10-01-per-node-viewer-keys-design.md`
 - `ProxyInstallKeyTest`: the install writes the key of a new generation and leaves no copy.
 - `ClusterLockdownTest` and `DbAllowlistTest`: a signing proxy is no blocker and leaves the allowlist.
 
+### A load test on the test pair (2026-10-07)
+
+**Set-up.** The test MAIN (8 cores, 16 GB) and its load balancer (1 vCPU, 2 GB) in mode 2, every
+flow on, agent 0.14.5. Simulated HLS viewers came from one host: each asked MAIN's
+`/live/<line>/<pass>/<stream>.m3u8`, followed the redirect to the load balancer, and refreshed that
+playlist, under a user agent of its own (HLS viewers of one line, address and agent are one
+viewer). Fifteen lines of ten connections each. Steps of viewers held for two to two and a half
+minutes each. MAIN and the load balancer were sampled every 5 s.
+
+**Found and fixed: the watchdog restarted after every pass.** On a node with TELEMETRY, or in
+mode 2, the watchdog left its loop after writing its sample, and `restartDaemon()` booted a new PHP
+process every 2–3 s. Over 3 minutes on the load balancer it ran 33 generations and kept the CPU
+49.1% busy; with the pass continuing in its process, 3 generations and 29.8%. A move across mode 2
+now ends a generation instead (each pass checks it).
+
+**Found, by design: one address is capped on the stream endpoints.** nginx's `limit_req
+zone=one` (20 requests a second, burst 8, on MAIN and the load balancer) answers the excess with
+503, nginx's default, and delays what it queues. A test from one address measures that cap.
+- With refreshes every 4 s, starts 20 ms apart: 7 of 25 first viewers refused at once, and
+  refresh p99 7–12 s.
+- With the cap lifted for one run, the client host was also running four PHPUnit suites; that run
+  is not reported.
+
+**Found: a stalled viewer is ended.** A viewer whose refreshes stall for 30 s (refused or queued)
+is ended by the agent's HLS reaper (`HLSReapAfter`), and its later refreshes get 404. A player
+then asks MAIN's link again, as a new viewer.
+
+**Measured, within the cap** (refreshes every 10 s, about the stream's target duration; new
+viewers 0.15 s apart):
+- 50 viewers: 40 of 50 started, while the channel was still starting (p50 0.6 s); refresh p50
+  0.17 s.
+- 100 viewers: 50 of 50 new ones started (p50 0.16 s); refresh p50 0.25 s, p99 21 s (queued by the
+  cap and the load balancer's CPU).
+- 150 viewers: 48 of 50 started (p50 0.2 s); 42 refreshes refused by the cap (15 refreshes and
+  6.7 starts a second from one address); refresh p50 0.37 s.
+- MAIN throughout: load at most 2.3, the node's heartbeat never older than 2.6 s, its records kept
+  (up to 118 open), no `cron.error`. The load balancer: load up to 15, PHP-FPM workers up to 51.
+  Every playlist refresh is a PHP request on the node, and its one CPU was the limit.
+
+**Not done.** A test from many addresses, and a load balancer with more than one CPU.
 ### RTMP viewers on a load balancer (2026-10-07)
 
 A load balancer refused every RTMP viewer: `rtmp.php` checks the line with `UserRepository`,
@@ -5540,11 +5608,63 @@ second was chosen: a line disabled on MAIN is refused at its next connect.
 
 **Not built / limits.**
 - **No answer refuses.** A node without an agent, an agent that predates the op, or MAIN
-  unreachable: the viewer is refused. RTMP has no offline policy, unlike `conn_admit`.
+  unreachable: the viewer is refused. RTMP has no offline policy, unlike `conn_admit`. (Built
+  since: see [An RTMP viewer while MAIN does not answer](#an-rtmp-viewer-while-main-does-not-answer-2026-10-07).)
 - **A refusal's client log on MAIN** carries the agent's request, not nginx-rtmp's: no query
   string, the agent's user agent.
 - **One round trip per connect** on MAIN's control lane, on top of `conn_admit` for a limited
   line. An RTMP connect is not a playlist refresh, so this is once per viewer.
+### A fleet canary for the binaries from GitHub (2026-10-07)
+
+Every server, MAIN included and whatever its cluster mode, takes `xc_fanout` and `xc_agent` from
+the newest XC_VM_Fanout release itself, hourly (`fanout_binary` from `cron:root_signals`). Each
+node tries a new agent and `run.sh` puts the previous one back when it keeps failing, but a
+release that fails slowly, or only under real load, reached the whole fleet within the hour.
+
+**Built.**
+- `lb_binary_canary_server` and `lb_binary_canary_hours` (migration 084, Settings → Cluster; 0,
+  the default, is off). With a canary set, that load balancer takes each release as it comes out.
+  Every other server takes the newest release at or below `lb_release_pin`
+  (`FanoutBinaryCommand::releaseFor()`), none before the first pin, and never goes back from a
+  newer one it already runs.
+- `ReleaseCanary::tick()` (`cron:cluster`, every minute) raises the pin to the canary's release
+  once the canary has run it for the hours set, active and heard within
+  `cluster_offline_after_sec` at every pass. The release is the canary's agent version
+  (`cluster_nodes.agent_version`), and the count is kept in `cluster_meta` `canary_release`. A
+  silent or quarantined canary starts the count again, and so does a rollback by `run.sh`. The
+  pin is never lowered. Off clears the pin. Each change is audited `release.pin`.
+- The canary's id and the pin reach a node with its replica's settings.
+
+**Not built / limits.**
+- The canary is judged by its agent's version and its being heard, not by the fanout daemon's
+  own health; both binaries come from the one release. (Built since: see
+  [Cluster alerts and metrics, and a canary that checks its fanout daemon](#cluster-alerts-and-metrics-and-a-canary-that-checks-its-fanout-daemon-2026-10-07).)
+- A canary that is no enrolled node never proves anything: the fleet stays where it is.
+- No page shows the pin yet: the cluster audit does. (Built since: see
+  [Root actions a node in mode 2 cannot take, the release pin, and the install indexes](#root-actions-a-node-in-mode-2-cannot-take-the-release-pin-and-the-install-indexes-2026-10-07).)
+
+### Command latency, and the SSE downlink (2026-10-07)
+
+The plan left an SSE downlink with BOX framing as optional work: the agent would keep one stream
+open and get each command as it is queued, instead of the `commands` long-poll. Before building it,
+the delay was measured.
+
+**Measured** on the test pair, over a day of E2E runs, from `cluster_commands` (whole seconds):
+- Most commands were handed over in the second they were queued: 389 of 563 `conn.close`, 34 of
+  42 `conn.kill_worker`, 19 of 21 `conn.drop`.
+- The rest waited 2 to 18 s. 184 of the 219 slow deliveries were queued while the node was still
+  running an earlier command, which MAIN had handed over before and which was acked within a
+  second of the slow one's delivery: `stream.stop` 67, `node.purge` 54, `conn.kill_worker` 21,
+  `stream.start` 14, and others. Most of the other 35 were `node.root`, which root takes on its
+  own schedule.
+- The wake is not lost: `wake:<sid>` is a list entry that waits for the next poll (`ClusterBus`).
+  The agent ran a poll's commands one at a time, the node's PHP included, and polled again only
+  after them, so a kill behind a `stream.stop` waited for it.
+
+**Decided.** No SSE downlink: it would deliver sooner, and the commands would still wait for one
+another. The agent instead runs the node's slow PHP commands beside its commands loop, in order
+among themselves, and keeps kills, closes and the controls in the loop, which polls again at once
+(XC_VM_Fanout, `runAside`).
 ### Closing the data plane from the page (2026-10-07)
 
 Two of the data plane's open edges were operators' to close without the page telling them how:
@@ -5571,7 +5691,8 @@ which server held it open.
 - **A parent that cannot check a ticket** (a load balancer not enrolled, or not active) is
   still reached with the password: enrolling it is the fix, and the card names it.
 - **Proxies** keep every node's `/api` open: a proxy is never a node of the signed node list,
-  which legacyApiRetired() requires of every server.
+  which legacyApiRetired() requires of every server. (Changed since: a proxy is skipped, see
+  [Proxies and the legacy `/api`, its calls counted, and the legacy link's retirement](#proxies-and-the-legacy-api-its-calls-counted-and-the-legacy-links-retirement-2026-10-08).)
 
 ### Automatic mode down (2026-10-07)
 
@@ -5599,6 +5720,45 @@ operator's Mode down.
   Mode up asks what it always asks.
 - Nodes moved to mode 2 before this release have no recorded gen: they are moved down by hand
   until their next move up.
+### The blocks in ipset sets (2026-10-07)
+
+Every server (MAIN, its load balancers, a proxy) blocked each address of the panel's list as an
+`INPUT` rule of its own: a `sudo iptables` to add each, once a minute, and every packet checked against
+every rule in turn. A few thousand addresses (a flood guard's burst, an imported list) took the
+minute's sync longer than its minute and slowed every connection the host takes.
+
+**Built.**
+- **Two sets.** Where the host has ipset, `RootSignalsCronJob::syncSets()` keeps the list in
+  `xcvm_block4` and `xcvm_block6` (`hash:ip`, up to `IPSET_MAX`), each refilled in one `ipset restore`
+  into a fresh set swapped in, so it never stands half-built, and matched by one rule per family
+  (`-A INPUT -m set --match-set xcvm_block4 src -j DROP`). The rules per address of before go, in one
+  `iptables-restore --noflush` per family; the flood guard's `block_<address>` files follow the change
+  as `blockip()` and `unblockip()` kept them. The addresses never blocked (private, reserved,
+  loopback, documentation) are left out as before (`blockTool()`).
+- **The sync runs on the list's content** (a hash in its marker), not its count: a ban and an unban
+  in one minute reach the firewall at once, where they waited up to five minutes.
+- **Without ipset** (an existing server until it gets the package), or where it refuses the list,
+  the sync blocks rule by rule as before. The flush empties the sets and leaves their rules, matching
+  nothing. `getBlockedIPs()` skips the set rule.
+- **The installers** add `ipset` on every supported distribution, with `ipset-persistent` beside
+  `iptables-persistent` where that is installed (not Ubuntu 20.04, which may not have it): an
+  operator who saves the firewall with `netfilter-persistent` then saves the sets too, and the rules
+  that name them restore at boot.
+- **`server:diagnose`** also asks `ipset test` whether MAIN's address is in the node's set, and says
+  how to remove it either way. The FAQ's manual unblock says the same.
+
+**Not built / limits.**
+- **An existing server keeps rules per address** until `apt install ipset` (and `ipset-persistent`
+  where its firewall is saved); the next minute's sync then moves its blocks into the sets.
+- **Nothing persists the sets by itself**, as nothing persisted the rules: after a reboot the
+  minute's sync builds them again from the list.
+
+**Tests.** `AuditRootCronFirewallFlushTest`: the restore's list per family (the private address left
+out), the set rule added once, the rules per address removed in one commit and no other, the flood
+guard's files; ipset refusing or missing (rule by rule); and, opt-in in a network namespace with the
+real iptables and ipset (`XCVM_TEST_NETNS=1`), two syncs and the flush with the host's own rules left
+as they were. `AuditLiteralCmdTest`: `syncSets()` and `restoreSet()` run literal commands only.
+
 ### Mode 2 with the Redis connection handler (2026-10-07)
 
 Mode 2 was refused everywhere while the Redis connection handler was on: the move to mode 2,
@@ -5633,6 +5793,177 @@ COMMANDS as a signed command before any Redis signal (`redisSignal()` asks `Clus
   they ask MAIN's database with it off: either is refused. Mode down is the fix, as before.
 - `findByUuid()`'s match by columns (a player's Range request without a uuid) stays the table
   path's only, as it was in mode 1: with the handler on, such a request is a new viewer.
+
+### Root actions a node in mode 2 cannot take, the release pin, and the install indexes (2026-10-07)
+
+Three of the open items a review of this ADR and the plan found.
+
+**Built.**
+- **A root action a node in mode 2 cannot take is not queued.** `NodeActions::send()` fell back
+  to a `signals` row whenever `ClusterRoute::root()` did not route, and it does not for a node
+  that is quarantined or whose `root_ready` MAIN lacks. A node in mode 2 reads no row, so a
+  reboot, restart, update or module action was lost, and would have run late had the node moved
+  down within the day the row lives. `ClusterRoute::root()` now answers routed and not queued for
+  a node whose row is in mode 2, and logs why (`cluster` in the panel's error log: `mode 2,
+  quarantined`, `mode 2, no root_ready`). The Servers page's tools (Restart services, Reboot
+  server, Update binaries, Update, Rollback) answer `not_sent`, and the page says so and what to
+  do (`server_action_not_sent`) instead of *Task started*.
+- **The release pin on the page.** Settings → Cluster shows the pin in its status line while a
+  canary is set or a pin stands, and, when the canary has a newer release on trial, that release
+  and the hours it has run it of those set (`ReleaseCanary::trial()`, the count `tick()` keeps).
+- **The install schema's indexes.** `database.sql` carries the indexes `cluster:maintain-stats`
+  builds: `time` and `server_time` on `servers_stats`, `date` on `lines_logs`, `login_logs`,
+  `streams_logs`, `streams_errors` and `ondemand_check`, `owner_date` on `users_logs`. A new
+  install has them from the start and the command finds none missing; an older one still gets
+  them from `cron:cleanup`.
+
+**Checked, nothing to build.** The rare HTTP 500 on a node in mode 2 whose agent did not answer
+was the hot path falling back to MAIN's store, which mode 2 refuses. It was fixed before this
+review: the agent's calls wait `AgentConnections::SOLE_TIMEOUT` in mode 2, and an unanswered one
+refuses the viewer with `LINE_CREATE_FAIL` (`docs/en/development/cluster-seams.md`). A viewer the
+agent does not answer is refused, by design: in mode 2 nothing else holds the node's viewers.
+
+**Not built / limits.**
+- The bulk actions (Restart all services, Update all) and the other callers of `NodeActions`
+  (ports, sysctl, governor, the blocklist flush, module install) say nothing of a node that took
+  none: the panel's error log does. The replica re-applies the ports, services and ramdisk.
+- A cache job for a node in mode 2 that takes no command (quarantined) still becomes a `signals`
+  row: it never runs there, and run late after a move down it only rebuilds or purges a cache.
+- (Both built since: see [A large blocklist in parts, restrictive commands to a quarantined node, and actions not sent](#a-large-blocklist-in-parts-restrictive-commands-to-a-quarantined-node-and-actions-not-sent-2026-10-07).)
+
+**Tests.** `ClusterApiTest::testARootActionANodeInModeTwoCannotTakeIsNotQueued` (mode 1 keeps the
+row; mode 2 without the pin, or quarantined, queues nothing and the caller hears false),
+`ReleaseCanaryTest` (the trial, and none once the canary is off), `ClusterMaintainStatsTest` (a
+fresh install has every index; one without them gets each built in place).
+
+### A large blocklist in parts, restrictive commands to a quarantined node, and actions not sent (2026-10-07)
+
+**A large blocklist.** A whole blocklist section was sealed into the `config` reply as it was, and
+`config` only bounded the sections sent after it. One past the agent's 8 MiB `MaxReply` made the
+whole reply unreadable: the node got no section at all, not only no blocklist. And MAIN could not
+build one near that size: `BlocklistDelta::snapshot()` read every blocked IP as a row array
+(`get_rows()`, which also holds a cleaned copy of each), about 0.85 KB an address, so 500,000
+addresses passed MAIN's 512 MB before the section was sealed.
+- **The read.** The IPs are read as one column streamed into a list (`BlocklistDelta::ips()`), each
+  cleaned as `get_rows()` cleaned it, so the section and its ETag are what they were. Measured with
+  MAIN's own `DatabaseHandler`: 500,000 addresses peak at 51 MB (425 MB before), a million at 102 MB
+  (850 MB).
+- **Parts.** The agent's poll says `blocklist_parts: true` (XC_VM_Fanout). To it, a whole section
+  whose sealed record passes `MAX_WHOLE_BYTES` is answered `{seq, more: false, section: {too_large,
+  etag, parts}}`, staged as a whole section is, and fetched with `config {part: {section:
+  "blocklist", …}}`. It is sealed afresh at each poll that needs it, never answered from an older
+  stage, because the agent checks that the record's `seq` is the one the reply names. The agent
+  joins the parts and stores the section as before; a failed fetch keeps the blocklist it holds and
+  its `seq`, so the next poll asks again.
+- **An older agent** gets the section whole while one reply carries it (`MAX_REPLY` less 64 KiB).
+  Past that, MAIN answers its `blocklist_since` with nothing: the node keeps the blocklist it holds,
+  and the reply's other sections reach it. Either is audited `replica.section_too_large` once per
+  ETag.
+
+**A blocklist kept past a flush** (found on the test pair while checking the above). MAIN answers a
+whole section the node holds `unchanged` (its ETag is the node's `have`). The agent's ETag is of the
+section it stored, not of what it applied over it: the deltas since are on top. When the blocklist
+came back to that section another way than by a delta (*Flush blocked IPs*, which truncates and logs
+a reset; any reload; a log pruned while the node was away), MAIN answered `unchanged` and the agent
+kept its deltas, so the node went on blocking, in its replica and in `iptables`, addresses MAIN no
+longer blocked. On the test pair an address blocked and then flushed stayed blocked on the node.
+- **The agent** (XC_VM_Fanout) takes `unchanged` as what it is, the whole blocklist as of `seq`:
+  it drops its deltas and builds the node's blocklist again.
+- **MAIN** answers `unchanged` only to an agent that says `blocklist_parts`, the release with that
+  change. An older agent gets the section again, which also drops its deltas: a daily full fetch, and
+  each reload, sends the section once more. Without a licence a section cannot be signed, and one
+  the node holds is then answered `unchanged`, as before.
+- **The node of the test pair** was cleaned by the Cluster Nodes page's Resync (`resync`): the
+  agent fetches every section afresh, and its deltas went with the section it stored.
+
+**Restrictive commands to a quarantined node.** A quarantined node's long-poll hands out class R
+commands, but `ClusterRoute::kill()`, `drop()`, `closeConnection()` and `cache()` did not route to
+one, so for a node in mode 2 they became `signals` rows or Redis signals it never reads. They now
+route as `stop()` does: the kill, drop, close and the removals (`node.purge`) are handed out at once.
+Nothing granting is queued for a quarantined node: a quarantine ends what grants
+(`CommandBus::endGranting()`) and *Trust again* hands none of it out, so its cache rebuilds are not
+sent, nor a removal that an extension from before `node.purge` would only sign as a granting
+`node.cache`.
+
+**Nothing left where a node in mode 2 does not read.** `ClusterRoute::rowless()`, on the paths whose
+legacy is a `signals` row or a Redis signal (root actions, kills, drops, cache jobs), answers routed
+and not queued for a node in mode 2 that was not sent the command (no `root_ready`, quarantined for
+a root action, MAIN's cluster API off, the extension unavailable), and logs it. A root action not
+sent is also audited `node.root_not_sent` (`{action, why}`); a kill is not, since it would be one per
+viewer while the extension is down.
+
+**Actions not sent, on the page.**
+- The Servers page's bulk actions (Update All Servers, Restart All Services, Update All Binaries)
+  answer `not_sent` with the names of the servers that took none, and the page shows them with what
+  to do (`server_action_not_sent`).
+- A load balancer's page (`server_view`) shows a banner while it is in mode 2 and takes no root
+  action (`ClusterRoute::rootBlocked()`, `server_view_root_blocked`), naming why. A server save, which
+  sends ports, services, governor, sysctl and the ramdisk as root actions, lands there, as does every
+  later visit. The ports, services and ramdisk are applied from the replica anyway; the governor,
+  sysctl and module installs are not.
+
+**Not built / limits.**
+- **A node applies each blocked address as its own `iptables` or `ip6tables` rule** (one `exec` each,
+  `RootSignalsCronJob`), so a blocklist of hundreds of thousands of addresses is a firewall problem
+  on the node before it is a sync one. An `ipset` would be the upgrade. (Built since: see
+  [The blocks in ipset sets](#the-blocks-in-ipset-sets-2026-10-07).)
+- **A section staged per node**: a blocklist sealed to 20 MiB for 50 nodes holds about 1 GiB of
+  tmpfs until fetched, as for the other sections, and is sealed again at each poll that needs it.
+- **The interop test** (`TestInteropWithPanel`, XC_VM_Fanout) cannot run against this panel: its
+  harness keeps MAIN's state in one SQLite file across the PHP processes it starts, and the panel's
+  `TestDb` has used a throwaway MariaDB schema per process since the unit suite moved to MariaDB. The
+  blocklist step added to it runs once the harness shares one schema. (Fixed since: `TestDb` takes a
+  shared schema, `xcvm_t<pid>_<n>` after the Go test, that no instance drops and its orphan cleanup
+  drops once the test has ended; the harness loads the panel's install schema into it. Every
+  panel-backed agent test runs against this panel again.)
+
+**Tests.** PHP: `ClusterApiTest::testABlocklistTooLargeForOneReplyIsFetchedInParts` (an older agent
+whole, then held, audited once per ETag; parts that join into a record naming the reply's `seq`;
+the stage gone with its last part), `testConfigServesTheBlocklistAsASectionThenAsDeltas` (`unchanged`
+to an agent that says `blocklist_parts`, the section again to an older one, `unchanged` without a
+licence), `BlocklistDeltaTest` (the IPs cleaned and ordered as before),
+`ClusterApiTest::testAQuarantinedNodeInModeTwoTakesItsRestrictiveCommands` (what a quarantined node
+is handed, no rebuild queued, nor a removal an older extension signs only as granting, the root
+action audited, no legacy path in mode 2 and mode 1's kept). Agent: `TestABlocklistTooLargeIsFetchedInParts` (the poll says `blocklist_parts`,
+parts asked in order and stored with the reply's `seq`; `gone` and no parts refused, the blocklist
+held kept), `TestAnUnchangedBlocklistDropsTheDeltasOverIt`. On the test pair, with this panel and
+agent: a block reaches the node as a delta within a minute and its `iptables` follows; the flushed
+block the older agent had kept went with Resync; and the agent of 0.14.5 runs against this MAIN.
+
+### Cluster alerts and metrics, and a canary that checks its fanout daemon (2026-10-07)
+
+The Cluster Nodes page flagged a node's troubles, but only for whoever opened it; `/metrics` and the
+alerts knew servers, not nodes. And the release canary judged a release by its agent alone, though the
+fanout daemon comes in the same release.
+
+**Built.**
+- **Alerts.** The rule *A load balancer needs attention* (`Alerts::RULES` `cluster`, on by default,
+  5 minutes) fires per node and problem, read as the page reads it (`ClusterAdmin::nodes()`,
+  `Alerts::clusterTroubles()`): quarantined, a lane's events delayed (`p0_lag_since`,
+  `p1_lag_since`), in mode 2 but not reading its streams on itself, its clock off
+  (`ClusterOverview::clockBadge()`), MAIN URLs it cannot reach, its relay proxy down with the data
+  plane on. Only enabled servers, active or quarantined nodes, and while the cluster API is on; a node
+  that stopped answering stays *A server is down*'s.
+- **Metrics.** `/metrics` adds, while the cluster API is on (`MetricsController::cluster()`), per node:
+  `xcvm_cluster_node` (state, health and mode as labels), seconds since MAIN last heard it, its clock
+  offset, each lane's lag (0 when none), the MAIN URLs it cannot reach, whether it reads its streams
+  on itself, its queued commands; and `xcvm_cluster_command_latency_seconds`
+  (`ClusterOverview::commandMetrics()`). A cluster read that fails leaves the rest of the scrape.
+- **The canary.** `ReleaseCanary::tick()` also needs the canary's fanout daemon running, as its
+  watchdog last reported it (`servers.watchdog_data` `fanout.running`, kept by the node's telemetry
+  every half minute): a release whose daemon does not start starts the count again, as a silent
+  canary does. A node that reports nothing of it holds nothing back.
+
+**Not built / limits.**
+- **The canary judges running, not serving well**: a daemon that runs but drops viewers still passes.
+  Its error counts are not in the watchdog data.
+- **An alert per node and problem**, each a subject of the one rule: switching the rule off silences
+  them all.
+
+**Tests.** `ClusterApiTest::testMetricsAndAlertsReportANodeAsTheClusterPageDoes` (a node in mode 2
+with its clock off, its P0 lagging and two URLs unreachable, in the metrics and as three troubles;
+quarantined; a disabled server; the cluster API off), `ReleaseCanaryTest` (a canary whose daemon is
+down starts again; one that reports nothing is not held back).
 
 ### The move to mode 2 without the connect audit (2026-10-05)
 
@@ -6313,3 +6644,90 @@ the ack and the report; a strip below mode 2 restored), `ClusterRootCommandTest`
 `ClusterEventsTest` (`node.root_result` taken as the ack), `ConnectionStoreTest` (the tombstone,
 and that both closes keep it before the store changes) and `ConnectionIngestIdempotencyTest` (one
 activity row).
+
+### Proxies and the legacy `/api`, its calls counted, and the legacy link's retirement (2026-10-08)
+
+**Proxies no longer hold the legacy `/api` open.** `DataPlane::legacyApiRetired()` asked every
+row of `servers` to be an active node with its data plane on, proxies included, and a proxy is
+never a node: on a panel with one proxy, every node's `/api` stayed open. The rule exists because
+other servers read a node's files with `getFile`. A proxy reads none: its nginx forwards only the
+viewer paths under its route segment to its parent (`ProxyInstallFlow::configureRuntime`), and its
+one outbound call is MAIN's `/admin/proxy_api` (XC_VM_Proxy's `callback.php`). Both
+`legacyApiRetired()` and the page's list (`ClusterOverview::legacyApiOpenBy`) now skip
+`server_type` 1. A request that reaches a node's `/api` through a proxy's route is a caller like
+any other, and gets the 404 once the node's `/api` closes.
+
+**The calls are counted.** On a load balancer in mode 1 or 2, `InternalApiController::index`
+counts each call it answers, after the password and the caller's address passed, by action and
+caller (`Core\Cluster\LegacyApiAudit`): one file a UTC day under
+`STORAGE_PATH/cluster/legacy_api/`, at most 32 keys and the rest under `*`, eight days kept by
+`cron:cleanup`. The last seven days go into `audit.json` as `legacy_api` (`SettingsAudit::publish`),
+which the agent sends as it is (it passes members it does not know), and MAIN keeps them with the
+node (`NodeAudit`, the same 32 keys checked again). Cluster Nodes shows them in *Legacy /api
+calls*: `—` for a node that does not report (mode 0, or an older release), `0` for none. MAIN
+counts nothing: it has no heartbeat, and its own `/api` keeps no toggle. The count is the
+evidence the plan's Phase 10 lacked, as the seven days without a connect are for mode 2.
+
+**No CORS header.** `/api` sent `Access-Control-Allow-Origin: *`. No page reads a node's `/api`
+from a browser (every reader is server-side: ffprobe, `file_get_contents`, cURL), so it is gone.
+
+**The retirement, in steps.**
+1. Measure (this change).
+2. New installs start on the cluster API (a separate change: it changes what every new panel
+   runs).
+3. The release that does step 2 announces in its notes that the legacy link is deprecated, and
+   which major release removes it.
+4. That major release removes the plan's Phase 10 list: the load balancers' `/api` locations
+   and `InternalApiController::index` (its actions stay, for `node.rpc`), `configureRedisLb`, the
+   `users` cron (role `legacy`), and the database and Redis paths below mode 2. Its update refuses
+   a panel with a load balancer below mode 2, so no node is left on a path that is gone.
+
+**Not built / limits.**
+- **A count, not a gate.** Nothing refuses or warns on a call; the operator reads the column.
+- **Mode 0 counts nothing**, as for the connect audit: a node that is not enrolled has no agent to
+  report it.
+- **Callers by address.** A caller behind NAT, or MAIN on a private address, shows as that
+  address.
+
+**Tests.** `LegacyApiAuditTest` (counted by action and caller, nothing on MAIN or in mode 0,
+bounded keys, the seven-day window, MAIN's check of the report, the count after the password and
+address checks, no CORS header), `DataPlaneUrlsTest` and `MainDataPlaneSwitchTest` (a proxy keeps
+nothing open).
+
+### New panels start on the cluster API (2026-10-08)
+
+Step 2 of the retirement above. The installer runs, after `console.php startup`:
+
+```text
+console.php cluster:init --enable && console.php cluster:main-dataplane on
+```
+
+- **`cluster:init --enable`** creates the root as before, then switches the cluster API on
+  (`ClusterInitCommand::enable`): `cluster_api_enabled` 1, and `lb_new_node_mode` `api` when the
+  extension packs a credential-free config (`CredentialFreeConfig::supported`) and the Redis
+  connection handler is off, the conditions Settings asks (`ClusterSettings::normalize`); else
+  the mode stays, mode 1 for a new node. A mode set to `api` already stays.
+- **`cluster:main-dataplane on`** runs only once the API is on (`&&`). As root it takes the
+  agent from GitHub itself. With MAIN in the node list, a load balancer that joins in mode 2 with
+  its data plane closes its legacy `/api` within a minute: nothing on the panel reads it.
+- **Nothing fails the install.** An extension without the cluster API leaves `cluster:init`
+  failing and the panel on the legacy link, as before; an agent that cannot be downloaded leaves
+  MAIN's data plane off. Both switches stay in Settings → Cluster and on Cluster Nodes.
+- **The licence** is not a new condition: a panel without one cannot add a load balancer either
+  way (licensing-and-activation.md, *What the license provides*).
+- **Existing panels** are not touched: an update runs no `cluster:init`.
+
+**Checked on the test pair** (a panel already initialised, so the root was there): the chain
+answered *Already initialised*, switched the API on with new nodes in mode 2, and switched MAIN's
+data plane on; 21 s later the load balancer (mode 2, data plane on) rendered `set $api_legacy 0;`
+and its `/api` answered 404. The pair was then set back (MAIN's data plane off, `legacy`).
+
+**Not built / limits.**
+- **No fresh-install run here.** The Docker install test (`tools/test-install/test_release.sh`)
+  needs Docker, which the host that built this has not; the release checklist runs it.
+- **A new panel's first load balancer needs the licence first**, as before: install it after the
+  activation key.
+
+**Tests.** `ClusterInitEnableTest` (mode 2 when Settings would allow it, else mode 1; the
+installer's chain).
+

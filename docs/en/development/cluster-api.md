@@ -200,7 +200,7 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 | `lb_telemetry_interval_sec` | 1–3 (2) | the fleet's heartbeat, carried by the policy |
 | `cluster_offline_after_sec` | 10–300 (30) | silence before MAIN marks a node offline |
 | `cluster_orphan_conn_ttl_sec` | 30–3600 (120) | silence before MAIN purges a node's viewers |
-| `lb_offline_admission` | local \| allow \| deny | admitting viewers while MAIN is unreachable |
+| `lb_offline_admission` | local \| allow \| deny | admitting viewers while MAIN is unreachable; unless deny, an RTMP viewer is taken on MAIN's last yes for its credentials, stream and address within ten minutes while the agent cannot reach MAIN (`RtmpOffline`) |
 | `cluster_kill_on_line_disable` | 0/1 (1) | a disabled, locked or expired line loses its sessions; a reseller's disable (panel or Reseller API) counts too |
 | `cluster_conn_binding` | observe \| enforce (observe); Settings → Cluster, *Viewer Record Proof*, and the Cluster Nodes page's *Viewer record proof* card (which nodes prove, the day's counts, ready or not: `ClusterOverview::binding`) | a node's record of a viewer, and its `conn_admit`, must prove MAIN minted the viewer's token; `observe` counts those that do not (`conn.unproven` in the audit), `enforce` refuses such a record from a node whose stream secret MAIN withholds (mode 2, locked down, on its own viewer key), and reserves and cuts nothing for such a `conn_admit` (ADR 0004, "The line a node names") |
 | `cluster_ingest_concurrency` | 1–64 (6) | MAIN's ingest permits; half reserved for P0 |
@@ -209,6 +209,7 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 | `servers_stats_retention_days` | 1–365 (30) | `cron:cleanup` prunes `servers_stats` |
 | `cluster_audit_retention_days` | 1–365 (30) | `cron:cleanup` prunes `cluster_audit` |
 | `cluster_db_allowlist` (+`_extra`) | 0/1 | firewalls 3306/6379 on MAIN to the fleet |
+| `lb_binary_canary_server`, `lb_binary_canary_hours` | server id (0, off), 1–720 (24) | the load balancer that takes each xc_fanout/xc_agent release first, and how long it runs one before MAIN raises `lb_release_pin` to it (`ReleaseCanary`, `cron:cluster`); every other server takes the newest release at or below the pin, and none before the first |
 | `lb_scan_roots` | paths | the directories the node's scan RPC may list |
 | `lb_partition_tolerance_h`, `lb_fence_drain_min` | 0–24 (12), 0–60 (10) | the lease's window past token expiry, and the drain after it |
 | `lb_lease_fence` | 0/1 (0) | a node stops serving when its lease runs out |
@@ -216,8 +217,10 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 ## Operating it
 
 ```bash
-# MAIN, once: create the cluster root and record the panel keys
-console.php cluster:init
+# MAIN, once: create the cluster root and record the panel keys (--enable also switches
+# the API on, new load balancers in mode 2 where Settings would allow it; the installer
+# runs it, then cluster:main-dataplane on)
+console.php cluster:init [--enable]
 
 # Enrol a load balancer over SSH (or at install time, automatically)
 console.php server:enrol <serverID>
@@ -246,7 +249,8 @@ console.php cluster:cutover <serverID> [admin user id]
 console.php cluster:rolling-update
 
 # Every node (MAIN too, any mode) keeps the agent, the fanout daemon and xcvm_core
-# current from GitHub itself, hourly from cron:root_signals; by hand, as root:
+# current from GitHub itself, hourly from cron:root_signals (the agent and the daemon
+# no newer than lb_release_pin while a canary is set: ReleaseCanary); by hand, as root:
 console.php fanout_binary [fanout|agent] [force]
 console.php xcvm_core [force]
 
@@ -304,6 +308,30 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
     in the last ten seconds and reports `streams_local`. The command waits ten minutes for the
     node, and root on the node runs it only while the node is in mode 2. A drop that was
     refused or that expired changed nothing: send it again.
+
+## Retiring the legacy link
+
+The legacy link is a load balancer that is not enrolled (mode 0), its `/api` with
+`password=<live_streaming_pass>`, and its MySQL and Redis grants on MAIN. It is deprecated, and
+goes in steps (ADR 0004, *Proxies and the legacy `/api`, its calls counted, and the legacy
+link's retirement*):
+
+1. **Measure.** Every node in mode 1 or 2 counts the calls its `/api` answers, by action and
+   caller (`Core\Cluster\LegacyApiAudit`, `STORAGE_PATH/cluster/legacy_api/`), and reports the
+   last seven days in its heartbeat's `audit` as `legacy_api`. Cluster Nodes shows them per
+   node (*Legacy /api calls*).
+2. **New installs start on the cluster API.** The installer runs `cluster:init --enable`
+   and then `cluster:main-dataplane on`: a fresh panel enrols its load balancers at their
+   install (in mode 2 when the extension packs a credential-free config and the Redis
+   connection handler is off), so it never runs the legacy link. Without an extension that
+   has the cluster API, the panel installs as before.
+3. **Announce.** The release notes of the release that does step 2 say the legacy link is
+   deprecated, and which major release removes it.
+4. **Remove (the plan's Phase 10)**, in that major release, whose update refuses a panel with a
+   load balancer below mode 2: the `/api` locations in the load balancers' nginx and
+   `InternalApiController::index` (its actions stay: `cluster:exec` runs them for `node.rpc`),
+   `StatusCommand::configureRedisLb`, the `users` cron (role `legacy`), and the database and
+   Redis paths a node in mode 2 never takes.
 
 ## Limits
 

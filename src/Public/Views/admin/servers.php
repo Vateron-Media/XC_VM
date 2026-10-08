@@ -304,6 +304,7 @@ LayoutRenderer::renderFooter('admin');
             return;
         }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var notSentText = <?= json_encode($language::get('server_action_not_sent')); ?>;
         var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>;
 
         var toast = window.xcToast || function() {};
@@ -450,7 +451,7 @@ LayoutRenderer::renderFooter('admin');
                         return;
                     }
                     getJSON('./api?action=server&sub=rollback&server_id=' + encodeURIComponent(id) + '&version=' + encodeURIComponent(r.value)).then(function(res) {
-                        toast(res && res.result === true ? 'Rollback to v' + r.value + ' started…' : 'Rollback request failed.', res && res.result === true ? 'success' : 'error');
+                        toast(res && res.result === true ? 'Rollback to v' + r.value + ' started…' : (res && res.error === 'not_sent' ? notSentText : 'Rollback request failed.'), res && res.result === true ? 'success' : 'error');
                     });
                 });
             });
@@ -489,16 +490,23 @@ LayoutRenderer::renderFooter('admin');
                     url = './api?action=server&sub=update&server_id=' + toolsId;
                 }
                 getJSON(url).then(function(d) {
-                    toast(d && d.result === true ? 'Task started in the background…' : errText, d && d.result === true ? 'success' : 'error');
+                    toast(d && d.result === true ? 'Task started in the background…' : (d && d.error === 'not_sent' ? notSentText : errText), d && d.result === true ? 'success' : 'error');
                 });
             });
 
             // --- global bulk operations ------------------------------------------
+            // Servers a bulk action could not reach (ServerAjaxController::okSkipping).
+            function skipped(d) {
+                if (d && d.not_sent && d.not_sent.length) {
+                    toast(notSentText + ' (' + d.not_sent.join(', ') + ')', 'warning');
+                }
+            }
             $('#op-update-all').on('click', function() {
                 confirmSwal('Update ALL running servers?').then(function(ok) {
                     if (ok) {
-                        getJSON('./api?action=update_all_servers').then(function() {
+                        getJSON('./api?action=update_all_servers').then(function(d) {
                             toast('Servers are being updated in the background…');
+                            skipped(d);
                         });
                     }
                 });
@@ -613,8 +621,9 @@ LayoutRenderer::renderFooter('admin');
             $('#op-restart-services').on('click', function() {
                 confirmSwal('Restart services on ALL running servers?').then(function(ok) {
                     if (ok) {
-                        getJSON('./api?action=restart_all_services').then(function() {
+                        getJSON('./api?action=restart_all_services').then(function(d) {
                             toast('Services will be restarted shortly…');
+                            skipped(d);
                         });
                     }
                 });
@@ -622,8 +631,9 @@ LayoutRenderer::renderFooter('admin');
             $('#op-update-binaries').on('click', function() {
                 confirmSwal('Update binaries on ALL running servers?').then(function(ok) {
                     if (ok) {
-                        getJSON('./api?action=update_all_binaries').then(function() {
+                        getJSON('./api?action=update_all_binaries').then(function(d) {
                             toast('Binaries are being updated in the background…');
+                            skipped(d);
                         });
                     }
                 });

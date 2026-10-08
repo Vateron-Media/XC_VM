@@ -177,6 +177,13 @@ cluster mode: MAIN hands none of these out. `fanout_binary` takes `fanout` or
 fetched there again until a newer one is out (`xc_agent.tried`; `force` retries
 it).
 
+With a release canary set (Settings → Cluster, *Release Canary*: a load balancer's server ID; 0,
+the default, is off), only that load balancer takes each release of the two as soon as it is out.
+Every other server, MAIN included, takes the newest release at or below the pin MAIN raises once
+the canary has run a release for *Release Canary Hours*, active and heard throughout. A server
+that already runs a newer release keeps it, and until the first pin the others take none. The pin
+changes are in the cluster audit (`release.pin`).
+
 `ffmpeg` fetches `ffmpeg_<label>_<distro>.tar.gz` for each label the settings page
 offers (the release archives carry no ffmpeg: the installer and an LB's install
 run it too), built in this distribution's container so its glibc matches the node's,

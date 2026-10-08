@@ -202,3 +202,61 @@ jobs:
           name: coverage
           path: coverage.xml
           if-no-files-found: ignore
+
+  # The load-balancer agent against this panel's real PHP: every XC_VM_Fanout
+  # test that takes XCVM_PANEL_DIR (enrolment, the replica and its blocklist,
+  # commands, events, the data plane), on this branch's code and the agent's
+  # master. They are opt-in on a developer's machine, so a change here that
+  # broke them (TestDb's move to MariaDB) went unseen for weeks. XC_VM_Fanout's
+  # CI runs the same against this repository's main.
+  agent-interop:
+    name: Agent interop (XC_VM_Fanout)
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: xcvm-test
+        ports:
+          - 3306:3306
+        options: >-
+          --tmpfs /var/lib/mysql
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      GOWORK: 'off'
+      XCVM_PANEL_DIR: ${{ github.workspace }}
+      XCVM_TEST_DB_DSN: mysql:host=127.0.0.1;port=3306
+      XCVM_TEST_DB_USER: root
+      XCVM_TEST_DB_PASS: xcvm-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Checkout XC_VM_Fanout (master)
+        uses: actions/checkout@v7
+        with:
+          repository: Vateron-Media/XC_VM_Fanout
+          ref: master
+          path: .fanout
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: .fanout/go.mod
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: pdo_mysql, redis, igbinary
+
+      # The cluster-bus contract tests start a redis-server of their own.
+      - name: Install redis-server
+        run: sudo apt-get update -q && sudo apt-get install -y -q redis-server
+
+      - name: Run the agent's panel tests
+        working-directory: .fanout
+        run: go test -count=1 ./internal/clusteragent/

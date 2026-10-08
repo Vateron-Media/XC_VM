@@ -22,14 +22,16 @@ final class ClusterFlowSwitchTest extends TestCase {
 		}
 	}
 
-	public function testTheNodesPageHasOneFlowColumnPerSwitchableFlow(): void {
+	public function testTheNodesPageHasAToggleWithItsStringsForEverySwitchableFlow(): void {
 		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/cluster_nodes.php');
+		$rEn = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 
-		$this->assertSame(
-			count(ClusterAdmin::FLOW_BITS),
-			preg_match_all("/cluster_[a-z]+_flow'/", $rView),
-			'header columns and FLOW_BITS cells are out of step'
-		);
+		$this->assertStringContainsString('foreach (ClusterAdmin::FLOW_BITS as $rFlowName => $rFlowBit)', $rView, 'one toggle per flow');
+		foreach (array_keys(ClusterAdmin::FLOW_BITS) as $rName) {
+			foreach (['cluster_' . $rName . '_flow', 'cluster_' . $rName . '_help'] as $rKey) {
+				$this->assertMatchesRegularExpression('/^' . $rKey . ' = /m', $rEn, $rKey . ' is in en.ini');
+			}
+		}
 	}
 
 	public function testConfigNeedsNoOtherFlowButTheDependentOnesDo(): void {

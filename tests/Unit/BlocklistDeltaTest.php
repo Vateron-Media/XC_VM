@@ -66,13 +66,14 @@ final class BlocklistDeltaTest extends TestCase {
 	}
 
 	public function testTheSnapshotHoldsWhatEachKindNeeds(): void {
-		$this->rDb->exec("INSERT INTO `blocked_ips` (`ip`) VALUES ('203.0.113.2'), ('203.0.113.1')");
+		// Cleaned as every row read is (trimmed), in the column's order.
+		$this->rDb->exec("INSERT INTO `blocked_ips` (`ip`) VALUES ('203.0.113.2'), ('203.0.113.1'), (' 203.0.113.3 ')");
 		$this->rDb->exec("INSERT INTO `blocked_uas` (`user_agent`, `exact_match`) VALUES ('curl', 1)");
 		$this->rDb->exec("INSERT INTO `blocked_isps` (`isp`, `blocked`) VALUES ('isp', 1)");
 		$this->rDb->exec("INSERT INTO `rtmp_ips` (`ip`, `password`, `push`, `pull`) VALUES ('198.51.100.9', 'pw', 1, 0)");
 		$this->rDb->exec("INSERT INTO `blocked_asns` (`asn`, `blocked`) VALUES (64500, 1), (64501, 0)");
 		$this->assertSame([
-			'ip' => ['203.0.113.1', '203.0.113.2'],
+			'ip' => ['203.0.113.3', '203.0.113.1', '203.0.113.2'],
 			'ua' => [['id' => 1, 'user_agent' => 'curl', 'exact_match' => 1]],
 			'isp' => [['id' => 1, 'isp' => 'isp', 'blocked' => 1]],
 			'asn' => [64500],

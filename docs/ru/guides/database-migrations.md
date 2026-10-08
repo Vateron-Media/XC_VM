@@ -8,7 +8,7 @@ XC_VM использует файловую систему обновления 
 
 ## как это работает
 
-- SQL-файлы для обновлений базы данных хранятся в `/home/xc_vm/migrations/` (`src/migrations/` в репозитории исходных текстов).
+- SQL-файлы для обновлений базы данных хранятся в `/home/xc_vm/migrations/database/up/` (`src/migrations/database/up/` в репозитории исходных текстов).
 
 - Каждому файлу присваивается имя с префиксом последовательного номера, например:
 
@@ -18,7 +18,11 @@ XC_VM использует файловую систему обновления 
 003_drop_settings_segment_type.sql
 ```
 
-- Применяемые шаги обновления базы данных отслеживаются в таблице базы данных `migrations`. Каждый шаг выполняется **ровно один раз** — если какой-либо шаг уже был применен, он пропускается. Нет пути возврата: миграции выполняются только в прямом направлении, поэтому по возможности поддерживайте их обратную совместимость.
+- Применяемые шаги обновления базы данных отслеживаются в таблице базы данных `migrations`. Каждый шаг выполняется **ровно один раз** — если шаг уже был применен, он пропускается.
+
+- Обновления выполняются только в дальнейшем. При переносе может быть отправлен обратный файл с тем же именем в `migrations/database/down/`: когда MAIN откатывается к версии до 2.5.3, он запускает этот файл для каждой примененной миграции, которая не поддерживается в версии, и удаляет его строку из `migrations`; сбой в обратном файле прерывает откат, и запускается новая версия. миграция без удаления файла остается в силе. Откат к версии 2.6.0 или более поздней ничего не меняет: в этом выпуске снова применяются файлы из `up/`, которые программа обновления оставляет на месте. По возможности поддерживайте обратную совместимость при переносе.
+
+- Завершившаяся неудачей миграция не регистрируется и запускается повторно при следующей `console.php status` загрузке или обновлении. Причина сбоя указана в строке `[ERR]` перед `[FAIL] <file>`; `update.log`, **Бревенчатые панели**, а в строке **Схема базы данных** панели мониторинга указано, что произошел сбой, и `console.php db:migrate` завершает работу со статусом 1.
 
 - Обновления базы данных выполняются автоматически:
   - `console.php update post-update` — после обновления панели
@@ -35,7 +39,7 @@ XC_VM использует файловую систему обновления 
 [ CREATE TABLE IF NOT EXISTS `migrations` ]
         │
         ▼
-[ Read all *.sql files from migrations/ ]
+[ Read all *.sql files from migrations/database/up/ ]
         │
         ▼
 [ For each file not in `migrations` table: ]
@@ -116,10 +120,10 @@ WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key
 Скопируйте SQL-файл для шага обновления базы данных в:
 
 ```text
-/home/xc_vm/migrations/
+/home/xc_vm/migrations/database/up/
 ```
 
-> 💡 В хранилище исходных текстов это значение равно `src/migrations/`.
+> 💡 В хранилище исходных текстов это значение равно `src/migrations/database/up/`. Обратный файл для отката версии, если он есть на этом шаге, находится под тем же именем в `src/migrations/database/down/`.
 
 ### Шаг 4. Подтвердите обновление базы данных
 
@@ -144,13 +148,15 @@ Migrations
 
 ```
 
-Если оператор завершается ошибкой, шаг выводит значение `[FAIL]` и записывается значение **нет**, поэтому он будет повторен при следующем запуске. Просмотрите SQL, исправьте его и запустите повторно `db:migrate`.
+If a statement fails, the runner prints the database's message on an `[ERR]` line (the panel log leaves some messages out, such as duplicate entries), the step prints `[FAIL]` and is **not** recorded — so it will be retried on the next run. Review the SQL, fix it, and re-run `db:migrate`.
+
+A step may fail on purpose to wait for the operator: `068_unique_panel_account_names` raises every username used more than once through a temporary procedure (`SIGNAL` cannot run as a prepared statement before MariaDB 10.6.2; a `CALL` can) and stays pending until they are renamed. After a version rollback a step's row is removed and the next update applies it again; `066_hold_unredeemed_activation_codes` relies on that.
 
 ---
 
 ## Применение Миграций вручную
 
-Применить все ожидающие `.sql` файлы из `/home/xc_vm/migrations/` без полного обновления системы:
+Применить все ожидающие `.sql` файлы из `/home/xc_vm/migrations/database/up/` без полного обновления системы:
 
 ```bash
 su - xc_vm -c '/home/xc_vm/console.php db:migrate'
@@ -172,6 +178,7 @@ su - xc_vm -c '/home/xc_vm/console.php db:migrate'
 
 |Файл|Роль|
 | --- | --- |
-| `src/migrations/` |Перенос файлов базы данных `.sql`|
+| `src/migrations/database/up/` |Перенос файлов базы данных `.sql`|
+| `src/migrations/database/down/` |Реверсивные файлы, запускаемые при откате версии|
 | `src/Core/Database/MigrationRunner.php` |Выполняет отложенные миграции, записывает таблицу `migrations`|
 | `src/console.php` |`db:migrate` / `status` / `migrate` точка входа|

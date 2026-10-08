@@ -26,6 +26,7 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\LayoutRenderer;
+use XcVm\Domain\Cluster\ClusterRoute;
 
 $rServerId    = intval(RequestManager::get('id'));
 $rIsMain      = ($rServer['server_type'] == 0);
@@ -43,6 +44,12 @@ $rDiskLabel   = (1099511627776 < ($rWatchdog['total_disk_space'] ?? 0))
         <small class="text-body-secondary ms-2"><?= htmlspecialchars((string) $rServer['server_ip']) ?></small>
     </h4>
 </div>
+
+<?php if (($rRootBlocked = ClusterRoute::rootBlocked($rServerId)) !== null): ?>
+    <div class="alert alert-warning" role="alert">
+        <?= $language::get('server_view_root_blocked') ?> (<?= htmlspecialchars($rRootBlocked) ?>)
+    </div>
+<?php endif; ?>
 
 <?php if (isset($B4a5f8dc1f8d260c) && defined('STATUS_CERTBOT') && $B4a5f8dc1f8d260c == STATUS_CERTBOT): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">

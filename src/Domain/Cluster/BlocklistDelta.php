@@ -4,6 +4,7 @@ namespace XcVm\Domain\Cluster;
 
 use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Cluster\StrictQuery;
+use XcVm\Core\Database\Database;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -102,9 +103,12 @@ final class BlocklistDelta {
 			if (!isset(self::KINDS[$rKind])) {
 				continue;
 			}
+			if ($rKind === 'ip') {
+				$rOut['ip'] = self::ips();
+				continue;
+			}
 			$rRows = self::rows($rKind, null);
 			$rOut[$rKind] = match ($rKind) {
-				'ip' => array_map(static fn(array $rRow): string => (string) $rRow['ip'], $rRows),
 				'asn' => array_map(static fn(array $rRow): int => (int) $rRow['asn'], $rRows),
 				default => array_map([self::class, 'typed'], $rRows),
 			};
@@ -155,6 +159,22 @@ final class BlocklistDelta {
 		}
 		self::read($rSql . ' ORDER BY `' . $rKey . '`;', ...$rArgs);
 		return self::db()->get_rows() ?: [];
+	}
+
+	/**
+	 * Every blocked IP, as rows() reads them (cleaned, in key order), one
+	 * column streamed into a list: a row array each held about 0.7 KB, and
+	 * half a million of them passed MAIN's 512 MB before the section was sealed.
+	 *
+	 * @return list<string>
+	 */
+	private static function ips(): array {
+		self::read('SELECT `ip` FROM `blocked_ips` ORDER BY `ip`;');
+		$rIPs = self::db()->get_column();
+		foreach ($rIPs as $i => $rIP) {
+			$rIPs[$i] = $rIP ? Database::parseCleanValue((string) $rIP) : (string) $rIP;
+		}
+		return $rIPs;
 	}
 
 	/** Run a read: a failed one throws, never an empty result. */

@@ -6,6 +6,7 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Cli\Commands\ClusterMaintainStatsCommand;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Cluster\ClusterSettings;
+use XcVm\Core\Cluster\LegacyApiAudit;
 use XcVm\Core\Cluster\ConnectAudit;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\SettingsAudit;
@@ -20,6 +21,7 @@ use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Domain\Stream\StreamSource;
 use XcVm\Domain\Stream\StreamStateWriter;
+use XcVm\Streaming\Auth\RtmpOffline;
 use XcVm\Streaming\Codec\FFmpegCommand;
 use XcVm\Streaming\Codec\FFprobeRunner;
 
@@ -104,7 +106,11 @@ class CleanupCronJob implements CommandInterface {
 		// Its settings misses: the days that left the report's window drop out
 		// of the audit.json its agent sends.
 		SettingsAudit::prune(8);
+		// Its legacy /api calls, likewise.
+		LegacyApiAudit::prune(8);
 		SettingsAudit::publish();
+		// The RTMP viewers MAIN said yes to, past the hour they stand in for it.
+		RtmpOffline::prune();
 
 		// Everything below reads MAIN's database; the MAIN-only part never runs on a node.
 		if (!$this->streamChecks()) {

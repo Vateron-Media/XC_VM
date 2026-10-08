@@ -418,6 +418,12 @@ class UpdateCommand implements CommandInterface {
 				// to LB nodes so their Redis target can be pointed at the main server.
 				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php xcvm_core >/dev/null 2>&1 &');
 
+				// ipset for the blocklist's sets (RootSignalsCronJob::syncSets), on a server
+				// installed before the installers took it. Background + best-effort: apt held
+				// or unreachable leaves the blocks one rule each, and the next update tries again.
+				// An argument list, no shell; post-update already runs as root.
+				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'ipset']);
+
 				// Ensure GeoLite2 databases are present/refreshed after an update.
 				// They are no longer shipped in the update archive, so fetch them
 				// from the XC_VM_Update release. Best-effort: run in background so a
