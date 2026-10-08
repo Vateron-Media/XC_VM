@@ -46,7 +46,7 @@ final class AuditBouquetFollowSeriesDeleteTest extends TestCase {
 			namespace {
 				require getenv('XCVM_TEST_BOOTSTRAP');
 				$rDb = new \TestDb();
-				foreach (['streams', 'streams_series', 'streams_episodes', 'streams_servers', 'streams_errors', 'streams_logs', 'streams_options', 'streams_stats', 'lines_logs', 'lines_live', 'lines_activity', 'mag_claims', 'recordings', 'servers'] as $rTable) {
+				foreach (['streams', 'streams_series', 'streams_episodes', 'streams_servers', 'streams_errors', 'streams_logs', 'streams_options', 'streams_stats', 'lines_logs', 'lines_live', 'lines_activity', 'mag_claims', 'recordings', 'servers', 'watch_refresh'] as $rTable) {
 					$rDb->exec(\XcVm\Tests\Support\InstallSchema::table($rTable));
 				}
 				$rDb->exec('INSERT INTO `streams` (`id`, `type`) VALUES (11, 5), (12, 5), (13, 5), (21, 5), (30, 2)');

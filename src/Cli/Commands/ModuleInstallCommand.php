@@ -16,7 +16,8 @@ use XcVm\Domain\Server\ServerRepository;
  *   {"action":"install_module","source":"platform|local","name":"…","version":"…"}
  *
  * - source = platform : the LB downloads the module from the store itself,
- *                       using the shared platform API key (settings.platform_api_key)
+ *                       using the shared platform API key (settings.platform_api_key,
+ *                       needed only for a paid module)
  *                       and its OWN install_id. Files only — no DB migrations
  *                       (the shared DB was already migrated by MAIN).
  * - source = local    : the module is a custom one not on the store. The LB
@@ -73,11 +74,8 @@ class ModuleInstallCommand implements CommandInterface {
 
 		try {
 			if ($rSource === 'platform') {
+				// Without a key only a free module installs: the store refuses a paid one.
 				$rApiKey = (string) (SettingsManager::get('platform_api_key') ?? '');
-				if ($rApiKey === '') {
-					echo "module:install: platform_api_key is not set in settings.\n";
-					return 1;
-				}
 				echo "Installing store module '{$rName}' v{$rVersion} from platform...\n";
 				$rManager->deployFromPlatformFilesOnly($rName, $rVersion, $rApiKey);
 			} elseif (isset($rPayload['archive'])) {
