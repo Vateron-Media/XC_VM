@@ -162,6 +162,13 @@ if (isset($_GET['token'])) {
 				generate404();
 			}
 
+			// Before the viewer is heard: a request refused for its address touches nothing.
+			$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rUserIP), 0, -1)) == implode('.', array_slice(explode('.', getuserip()), 0, -1)) : $rUserIP == getuserip());
+
+			if (!$rIPMatch && $rSettings['restrict_same_ip']) {
+				generate404();
+			}
+
 			// A timeshift playlist is one whole VOD list, asked for once: its
 			// segments keep the viewer heard, or the sweep's 30 s rule ends it
 			// mid-programme. One ended since (the limiter, an admin) gets no more;
@@ -178,11 +185,6 @@ if (isset($_GET['token'])) {
 			}
 
 			$rFilesize = filesize($rSegment);
-			$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rUserIP), 0, -1)) == implode('.', array_slice(explode('.', getuserip()), 0, -1)) : $rUserIP == getuserip());
-
-			if (!$rIPMatch && $rSettings['restrict_same_ip']) {
-				generate404();
-			}
 
 			header('Access-Control-Allow-Origin: *');
 			$rExtension = pathinfo($rSegment, PATHINFO_EXTENSION);
