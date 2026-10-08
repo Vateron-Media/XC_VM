@@ -4,6 +4,7 @@ namespace XcVm\Ministra;
 
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Cluster\SignalDispatcher;
+use XcVm\Core\Logging\RefusalLog;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\TimeUtils;
 
@@ -150,6 +151,7 @@ class PortalHandler {
 				if (!$ctx["authenticated"]) {
 					BruteforceGuard::checkBruteforce($ctx["ip"], is_string($ctx["mac"]) ? hash("sha256", $ctx["mac"]) : null);
 					BruteforceGuard::checkFlood();
+					RefusalLog::record("INVALID_CREDENTIALS", is_string($ctx["ip"] ?? null) ? $ctx["ip"] : null);
 				}
 
 				$rTotal = $ctx["authenticated"]
@@ -1962,6 +1964,7 @@ class PortalHandler {
 			// device's number.
 			BruteforceGuard::checkBruteforce($rIP, hash("sha256", $rMAC));
 			BruteforceGuard::checkFlood();
+			RefusalLog::record("INVALID_CREDENTIALS", $rIP);
 			$db->query("SELECT MAX(`mag_id`) AS `last` FROM `mag_devices`");
 			$rLastID = max(1, intval($db->get_row()["last"]));
 			$rNumber = 1 + hexdec(substr(hash_hmac("sha256", $rMAC, (string) $rSettings["live_streaming_pass"]), 0, 8)) % $rLastID;

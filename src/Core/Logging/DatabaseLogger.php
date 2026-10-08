@@ -124,6 +124,7 @@ class DatabaseLogger implements LoggerInterface {
 	 * @param string $ip       IP-адрес клиента
 	 * @param string $data     Дополнительные данные (JSON или строка)
 	 * @param bool   $bypass   Записать даже если логирование выключено
+	 * @param bool   $withQuery Keep the request's query string (false where it can carry the credentials tried)
 	 */
 	public static function clientLog(
 		int $streamID,
@@ -131,7 +132,8 @@ class DatabaseLogger implements LoggerInterface {
 		string $action,
 		string $ip,
 		string $data = '',
-		bool $bypass = false
+		bool $bypass = false,
+		bool $withQuery = true
 	): void {
 		// Проверяем настройку: включено ли логирование
 		if (!$bypass) {
@@ -154,7 +156,7 @@ class DatabaseLogger implements LoggerInterface {
 			? htmlentities($_SERVER['HTTP_USER_AGENT'])
 			: '');
 
-		$rQueryString = (!empty($_SERVER['QUERY_STRING'])
+		$rQueryString = ($withQuery && !empty($_SERVER['QUERY_STRING'])
 			? htmlentities($_SERVER['QUERY_STRING'])
 			: '');
 

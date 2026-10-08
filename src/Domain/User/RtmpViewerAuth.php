@@ -5,6 +5,7 @@ namespace XcVm\Domain\User;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Logging\DatabaseLogger;
+use XcVm\Core\Logging\RefusalLog;
 use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Cluster\ConnectionAdmission;
 use XcVm\Domain\Server\ServerRepository;
@@ -59,6 +60,7 @@ final class RtmpViewerAuth {
 			}
 
 			DatabaseLogger::clientLog($rStreamID, 0, 'AUTH_FAILED', $rIP);
+			RefusalLog::record('INVALID_CREDENTIALS', $rIP);
 
 			return ['ok' => false, 'reason' => self::AUTH_FAILED];
 		}
