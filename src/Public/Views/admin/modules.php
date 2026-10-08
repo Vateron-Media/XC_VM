@@ -69,7 +69,7 @@ use XcVm\Core\Util\LayoutRenderer;
 
     <div class="tab-pane fade" id="pane-store" role="tabpanel" aria-labelledby="tab-store">
         <?php if (empty($hasStoreKey)): ?>
-            <div class="alert alert-warning"><?= $language::get('module_store_no_key'); ?> <a href="settings#api"><?= $language::get('module_store_settings_link'); ?></a></div>
+            <div class="alert alert-info"><?= $language::get('module_store_key_info'); ?> <a href="settings#api"><?= $language::get('module_store_settings_link'); ?></a></div>
         <?php endif; ?>
         <div class="card">
             <div class="card-header d-flex flex-wrap align-items-center gap-2">
@@ -77,6 +77,11 @@ use XcVm\Core\Util\LayoutRenderer;
                     <span class="input-group-text"><i class="icon-base ti tabler-search"></i></span>
                     <input type="search" class="form-control" id="store-filter" placeholder="<?= htmlspecialchars($language::get('module_store_search'), ENT_QUOTES); ?>" aria-label="<?= htmlspecialchars($language::get('module_store_search'), ENT_QUOTES); ?>">
                 </div>
+                <select class="form-select form-select-sm w-auto" id="store-sort" aria-label="<?= htmlspecialchars($language::get('sort'), ENT_QUOTES); ?>">
+                    <?php foreach (['name', 'popular', 'newest', 'price_asc', 'price_desc'] as $rSort): ?>
+                        <option value="<?= $rSort; ?>"><?= htmlspecialchars($language::get('module_store_sort_' . $rSort), ENT_QUOTES); ?></option>
+                    <?php endforeach; ?>
+                </select>
                 <span class="small text-body-secondary me-auto d-none d-md-inline"><?= $language::get('module_store_hint'); ?></span>
                 <button type="button" class="btn btn-sm btn-label-secondary" id="store-refresh">
                     <i class="icon-base ti tabler-refresh me-1"></i><?= $language::get('refresh'); ?>
@@ -86,11 +91,11 @@ use XcVm\Core\Util\LayoutRenderer;
                 <table class="table mb-0" id="store-table">
                     <thead>
                         <tr>
-                            <th class="" data-sort="name"><button type="button" class="btn btn-link btn-sm p-0 text-reset fw-semibold text-uppercase text-nowrap js-store-sort" data-sort="name"><?= $language::get('name'); ?><i class="icon-base ti tabler-selector ms-1"></i></button></th>
-                            <th class="d-none d-md-table-cell" data-sort="version"><button type="button" class="btn btn-link btn-sm p-0 text-reset fw-semibold text-uppercase text-nowrap js-store-sort" data-sort="version"><?= $language::get('version'); ?><i class="icon-base ti tabler-selector ms-1"></i></button></th>
+                            <th><?= $language::get('name'); ?></th>
+                            <th class="d-none d-md-table-cell"><?= $language::get('version'); ?></th>
                             <th class="d-none d-lg-table-cell"><?= $language::get('module_store_environment'); ?></th>
-                            <th class="" data-sort="price"><button type="button" class="btn btn-link btn-sm p-0 text-reset fw-semibold text-uppercase text-nowrap js-store-sort" data-sort="price"><?= $language::get('module_store_price'); ?><i class="icon-base ti tabler-selector ms-1"></i></button></th>
-                            <th class="" data-sort="status"><button type="button" class="btn btn-link btn-sm p-0 text-reset fw-semibold text-uppercase text-nowrap js-store-sort" data-sort="status"><?= $language::get('status'); ?><i class="icon-base ti tabler-selector ms-1"></i></button></th>
+                            <th><?= $language::get('module_store_price'); ?></th>
+                            <th><?= $language::get('status'); ?></th>
                             <th class="text-end"><?= $language::get('actions'); ?></th>
                         </tr>
                     </thead>
@@ -161,7 +166,7 @@ LayoutRenderer::renderFooter('admin');
             'free' => $language::get('module_store_free'),
             'purchased' => $language::get('module_store_purchased'),
             'installed_v' => $language::get('module_store_installed'),
-            'store_empty' => $language::get('module_store_empty'),
+            'store_empty' => $language::get('module_store_none_found'),
             'store_loading' => $language::get('please_wait'),
             'store_range' => $language::get('module_store_range'),
             'paid' => $language::get('module_store_paid'),
@@ -476,12 +481,12 @@ LayoutRenderer::renderFooter('admin');
 
         // ---- store ----
 
-        // Rendered a page at a time: the store can list thousands of modules.
-        var STORE_PAGE = 50;
+        // The store answers a page at a time: it can list thousands of modules.
         var storeBody = document.querySelector('#store-table tbody');
         var storeFilter = document.getElementById('store-filter');
-        var storeAll = [];
-        var storePage = 0;
+        var storeSortBox = document.getElementById('store-sort');
+        var store = { page: 1, lastPage: 1, seq: 0 };
+        var searchTimer = null;
 
         function priceText(m) {
             return m.price > 0 ? '$' + Number(m.price).toFixed(2) : T.free;
@@ -513,46 +518,6 @@ LayoutRenderer::renderFooter('admin');
                 '</tr>';
         }
 
-        // Sorting: a column and a direction; the Status column orders what can
-        // be done first (an update, then installed, bought, free, for sale).
-        var storeSort = { key: 'name', dir: 1 };
-        var STATUS_ORDER = { update: 0, installed: 1, purchased: 2, free: 3, paid: 4 };
-
-        function statusRank(m) {
-            return STATUS_ORDER[m.update_to ? 'update' : (m.installed_version ? 'installed' : m.badge)];
-        }
-
-        function versionCmp(a, b) {
-            var x = String(a).split('.'), y = String(b).split('.');
-            for (var i = 0; i < Math.max(x.length, y.length); i++) {
-                var d = (parseInt(x[i], 10) || 0) - (parseInt(y[i], 10) || 0);
-                if (d) {
-                    return d;
-                }
-            }
-            return 0;
-        }
-
-        function storeCompare(a, b) {
-            var d = 0;
-            if (storeSort.key === 'version') {
-                d = versionCmp(a.version, b.version);
-            } else if (storeSort.key === 'price') {
-                d = a.price - b.price;
-            } else if (storeSort.key === 'status') {
-                d = statusRank(a) - statusRank(b);
-            }
-            return (d || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })) * storeSort.dir;
-        }
-
-        function paintSort() {
-            document.querySelectorAll('#store-table th[data-sort]').forEach(function(th) {
-                var on = th.dataset.sort === storeSort.key;
-                th.setAttribute('aria-sort', on ? (storeSort.dir > 0 ? 'ascending' : 'descending') : 'none');
-                th.querySelector('i').className = 'icon-base ti ms-1 ' + (on ? (storeSort.dir > 0 ? 'tabler-sort-ascending' : 'tabler-sort-descending') : 'tabler-selector');
-            });
-        }
-
         function storeMessage(html) {
             storeBody.innerHTML = '<tr><td colspan="6" class="text-center text-body-secondary py-5">' + html + '</td></tr>';
             document.getElementById('store-info').textContent = '';
@@ -560,60 +525,61 @@ LayoutRenderer::renderFooter('admin');
             document.getElementById('store-next').disabled = true;
         }
 
-        function paintStore() {
-            var needle = storeFilter.value.trim().toLowerCase();
-            var shown = storeAll.filter(function(m) {
-                return !needle || (m.name + ' ' + m.slug + ' ' + m.environment).toLowerCase().indexOf(needle) !== -1;
-            }).sort(storeCompare);
-            paintSort();
-            if (!shown.length) {
-                storeMessage(esc(storeAll.length ? T.none : T.store_empty));
-                return;
-            }
-            var pages = Math.ceil(shown.length / STORE_PAGE);
-            storePage = Math.min(storePage, pages - 1);
-            var from = storePage * STORE_PAGE;
-            var to = Math.min(from + STORE_PAGE, shown.length);
-            storeBody.innerHTML = shown.slice(from, to).map(storeRow).join('');
-            document.getElementById('store-info').textContent = fill(T.store_range, { from: from + 1, to: to, total: shown.length });
-            document.getElementById('store-prev').disabled = storePage === 0;
-            document.getElementById('store-next').disabled = storePage >= pages - 1;
-        }
-
         function loadStore(refreshCache) {
             storeLoaded = true;
+            // Only the latest request paints: an earlier search may answer later.
+            var seq = ++store.seq;
+            var params = { page: store.page, per_page: 50, search: storeFilter.value.trim(), sort: storeSortBox.value };
+            if (refreshCache) {
+                params.refresh = 1;
+            }
             storeMessage('<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>' + esc(T.store_loading));
-            api('module_store', refreshCache ? { refresh: 1 } : null).then(function(resp) {
+            api('module_store', params).then(function(resp) {
+                if (seq !== store.seq) {
+                    return;
+                }
                 if (resp.result === false) {
                     storeMessage(esc(resp.message || T.error));
                     return;
                 }
-                storeAll = resp.modules;
-                paintStore();
+                store.lastPage = resp.last_page;
+                if (!resp.modules.length && resp.page > resp.last_page) {
+                    // The catalogue shrank under this page (an install, a search): show its last one.
+                    store.page = resp.last_page;
+                    loadStore(false);
+                    return;
+                }
+                store.page = resp.page;
+                if (!resp.modules.length) {
+                    storeMessage(esc(T.store_empty));
+                    return;
+                }
+                var from = (resp.page - 1) * resp.per_page + 1;
+                storeBody.innerHTML = resp.modules.map(storeRow).join('');
+                document.getElementById('store-info').textContent = fill(T.store_range, { from: from, to: from + resp.modules.length - 1, total: resp.total });
+                document.getElementById('store-prev').disabled = resp.page <= 1;
+                document.getElementById('store-next').disabled = resp.page >= resp.last_page;
             });
         }
 
-        document.querySelector('#store-table thead').addEventListener('click', function(e) {
-            var btn = e.target.closest('.js-store-sort');
-            if (!btn) {
-                return;
-            }
-            storeSort.dir = storeSort.key === btn.dataset.sort ? -storeSort.dir : 1;
-            storeSort.key = btn.dataset.sort;
-            storePage = 0;
-            paintStore();
+        storeFilter.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function() {
+                store.page = 1;
+                loadStore(false);
+            }, 350);
         });
-                storeFilter.addEventListener('input', function() {
-            storePage = 0;
-            paintStore();
+        storeSortBox.addEventListener('change', function() {
+            store.page = 1;
+            loadStore(false);
         });
         document.getElementById('store-prev').addEventListener('click', function() {
-            storePage--;
-            paintStore();
+            store.page = Math.max(1, store.page - 1);
+            loadStore(false);
         });
         document.getElementById('store-next').addEventListener('click', function() {
-            storePage++;
-            paintStore();
+            store.page = Math.min(store.lastPage, store.page + 1);
+            loadStore(false);
         });
         document.getElementById('tab-store').addEventListener('shown.bs.tab', function() {
             if (!storeLoaded) {
