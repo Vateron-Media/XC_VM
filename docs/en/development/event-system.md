@@ -141,6 +141,8 @@ Dispatched by core:
 | `StreamsDeletedEvent` | `Events/Stream/` | Streams were deleted |
 | `StreamArgumentsChangedEvent` | `Events/Stream/` | Global stream argument defaults changed |
 | `TranscodeProfileSavedEvent` | `Events/Stream/` | A transcode profile was saved |
+| `TranscodeProfileDeletedEvent` | `Events/Stream/` | A transcode profile was deleted (modules stop pointing at it) |
+| `CategoryDeletedEvent` | `Events/Stream/` | A stream category was deleted (modules stop pointing at it) |
 | `BouquetDeletedEvent` | `Events/Bouquet/` | A bouquet was deleted |
 | `VodImportedEvent` | `Events/Vod/` | A VOD item was imported |
 | `MediaAnalyzedEvent` | `Events/Vod/` | A VOD file was analysed |
