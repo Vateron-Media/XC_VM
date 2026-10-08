@@ -421,7 +421,8 @@ class UpdateCommand implements CommandInterface {
 				// ipset for the blocklist's sets (RootSignalsCronJob::syncSets), on a server
 				// installed before the installers took it. Background + best-effort: apt held
 				// or unreachable leaves the blocks one rule each, and the next update tries again.
-				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ipset >/dev/null 2>&1 &');
+				// An argument list, no shell; post-update already runs as root.
+				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'ipset']);
 
 				// Ensure GeoLite2 databases are present/refreshed after an update.
 				// They are no longer shipped in the update archive, so fetch them
