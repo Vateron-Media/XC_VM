@@ -141,6 +141,8 @@ Dispatched by core:
 | `StreamsDeletedEvent` | `Events/Stream/` | Streams were deleted |
 | `StreamArgumentsChangedEvent` | `Events/Stream/` | Global stream argument defaults changed |
 | `TranscodeProfileSavedEvent` | `Events/Stream/` | A transcode profile was saved |
+| `TranscodeProfileDeletedEvent` | `Events/Stream/` | A transcode profile was deleted (modules stop pointing at it) |
+| `CategoryDeletedEvent` | `Events/Stream/` | A stream category was deleted (modules stop pointing at it) |
 | `BouquetDeletedEvent` | `Events/Bouquet/` | A bouquet was deleted |
 | `VodImportedEvent` | `Events/Vod/` | A VOD item was imported |
 | `MediaAnalyzedEvent` | `Events/Vod/` | A VOD file was analysed |
@@ -149,6 +151,7 @@ Dispatched by core:
 | `SettingsChangedEvent` | `Events/Settings/` | Settings were saved |
 | `CrontabChangedEvent` | `Events/Settings/` | The crontab changed |
 | `PackageInstalledEvent` | `Events/Module/` | A marketplace package was installed |
+| `LegacyTableMigrationEvent` | `Events/Migration/` | The migration of a restored backup hands a module its table (the listener copies the rows and sets `copied`) |
 
 !!! warning "Defined but never dispatched"
     `StreamStartingEvent`, `StreamStartedEvent`, `StreamStoppedEvent`,

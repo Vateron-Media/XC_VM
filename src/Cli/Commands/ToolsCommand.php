@@ -216,7 +216,7 @@ class ToolsCommand implements CommandInterface {
 			if (!$this->restoreMigrationBackup($database)) {
 				return 1;
 			}
-			echo "Restore completed. You can now run: console.php migrate\n\n";
+			echo "Restore completed. You can now run: /home/xc_vm/console.php migrate\n\n";
 		} else {
 			echo "You can restore a database to it using:\n";
 			echo "  mariadb -h 127.0.0.1 -P <port> -u <username> -p'<password>' xc_vm_migrate < backup.sql\n";
@@ -576,6 +576,7 @@ class ToolsCommand implements CommandInterface {
 		$db->query('DELETE FROM `streams_logs` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `streams_options` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `streams_stats` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+		$db->query('DELETE FROM `watch_refresh` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 		EventDispatcher::dispatch(new StreamsDeletedEvent($rIDs));
 		$db->query('DELETE FROM `lines_live` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `recordings` WHERE `created_id` IN (' . implode(',', $rIDs) . ') OR `stream_id` IN (' . implode(',', $rIDs) . ');');

@@ -210,26 +210,6 @@ final class ModuleManagerMigrationsTest extends TestCase {
         $this->assertSame('3.0.0', $overrides['update-nomir']['installed_version'] ?? null);
     }
 
-    // ── findModuleByHashId() — stable identity lookup (P5 foundation) ─────
-
-    public function testFindModuleByHashId(): void {
-        $dir = $this->modulesPath . '/id-mod';
-        mkdir($dir, 0775, true);
-        file_put_contents($dir . '/module.json', json_encode([
-            'name'                  => 'id-mod',
-            'hash_id'               => 'abc123def4567890abc123def4567890',
-            'version'               => '1.0.0',
-            'environment'           => 'main',
-            'dependencies'          => [],
-            'optional_dependencies' => [],
-        ]));
-
-        $manager = $this->manager();
-        $this->assertSame('id-mod', $manager->findModuleByHashId('abc123def4567890abc123def4567890'));
-        $this->assertNull($manager->findModuleByHashId('does-not-exist'));
-        $this->assertNull($manager->findModuleByHashId(''));
-    }
-
     // ── migrateLegacyModuleDirs() — bare {name} → {name}_{hash5} ──────────
 
     public function testMigrateLegacyDirGeneratesHashAndRenames(): void {

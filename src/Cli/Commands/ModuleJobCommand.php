@@ -57,10 +57,6 @@ class ModuleJobCommand implements CommandInterface {
 					? 'Module updated: ' . $rTarget . ' -> ' . $rNew
 					: 'Nothing newer at the source for ' . $rTarget . ': already up to date.';
 
-			case 'uninstall':
-				$rManager->uninstallModule($rTarget);
-				return 'Module uninstalled: ' . $rTarget;
-
 			case 'delete':
 				$rManager->deleteModule($rTarget);
 				return 'Module deleted: ' . $rTarget;

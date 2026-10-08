@@ -262,6 +262,7 @@ class StreamRepository {
 			$db->query('DELETE FROM `streams_logs` WHERE `stream_id` = ?;', $rID);
 			$db->query('DELETE FROM `streams_options` WHERE `stream_id` = ?;', $rID);
 			$db->query('DELETE FROM `streams_stats` WHERE `stream_id` = ?;', $rID);
+			$db->query('DELETE FROM `watch_refresh` WHERE `stream_id` = ?;', $rID);
 			EventDispatcher::dispatch(new StreamsDeletedEvent([$rID]));
 			$db->query('DELETE FROM `recordings` WHERE `created_id` = ? OR `stream_id` = ?;', $rID, $rID);
 			$db->query('UPDATE `lines_activity` SET `stream_id` = 0 WHERE `stream_id` = ?;', $rID);
@@ -317,6 +318,7 @@ class StreamRepository {
 			$db->query('DELETE FROM `streams_logs` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 			$db->query('DELETE FROM `streams_options` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 			$db->query('DELETE FROM `streams_stats` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
+			$db->query('DELETE FROM `watch_refresh` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 			EventDispatcher::dispatch(new StreamsDeletedEvent($rIDs));
 			$db->query('DELETE FROM `lines_live` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 			$db->query('DELETE FROM `recordings` WHERE `created_id` IN (' . implode(',', $rIDs) . ') OR `stream_id` IN (' . implode(',', $rIDs) . ');');

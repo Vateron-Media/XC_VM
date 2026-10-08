@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Events\EventDispatcher;
+use XcVm\Core\Events\Stream\TranscodeProfileDeletedEvent;
 use XcVm\Domain\Stream\StreamConfigRepository;
 use PHPUnit\Framework\TestCase;
 
@@ -18,12 +20,10 @@ final class StreamConfigRepositoryTest extends TestCase {
 		$this->db->exec(
 			'CREATE TABLE profiles (profile_id INTEGER PRIMARY KEY AUTO_INCREMENT, profile_name TEXT);
 			 CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, transcode_profile_id INTEGER DEFAULT 0);
-			 CREATE TABLE watch_folders (id INTEGER PRIMARY KEY AUTO_INCREMENT, transcode_profile_id INTEGER DEFAULT 0);
 			 CREATE TABLE streams_arguments (id INTEGER PRIMARY KEY AUTO_INCREMENT, argument_key TEXT, argument_cmd TEXT);
 
 			 INSERT INTO profiles (profile_id, profile_name) VALUES (1, "CPU"), (2, "GPU");
 			 INSERT INTO streams (id, transcode_profile_id) VALUES (10, 2), (11, 1);
-			 INSERT INTO watch_folders (id, transcode_profile_id) VALUES (5, 2);
 			 INSERT INTO streams_arguments (id, argument_key, argument_cmd) VALUES
 			   (1, "cookie", "-headers ?"), (2, "useragent", "-user_agent ?");'
 		);
@@ -55,6 +55,12 @@ final class StreamConfigRepositoryTest extends TestCase {
 	}
 
 	public function testDeleteProfileRemovesRowAndDetachesReferences() {
+		EventDispatcher::setInstance(new EventDispatcher());
+		$rDeleted = [];
+		EventDispatcher::listen(TranscodeProfileDeletedEvent::class, static function (TranscodeProfileDeletedEvent $rEvent) use (&$rDeleted): void {
+			$rDeleted[] = $rEvent->profileId;
+		});
+
 		$this->assertTrue(StreamConfigRepository::deleteProfile(2));
 
 		// Profile gone.
@@ -67,8 +73,8 @@ final class StreamConfigRepositoryTest extends TestCase {
 		$this->db->query('SELECT transcode_profile_id FROM streams WHERE id = ?;', 11);
 		$this->assertSame(1, (int) $this->db->get_col());
 
-		$this->db->query('SELECT transcode_profile_id FROM watch_folders WHERE id = ?;', 5);
-		$this->assertSame(0, (int) $this->db->get_col());
+		// Modules' tables (watch_folders) are theirs to detach: core says which profile went.
+		$this->assertSame([2], $rDeleted);
 	}
 
 	public function testDeleteProfileReturnsFalseWhenMissing() {

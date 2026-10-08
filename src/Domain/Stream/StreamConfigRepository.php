@@ -4,6 +4,7 @@ namespace XcVm\Domain\Stream;
 
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
+use XcVm\Core\Events\Stream\TranscodeProfileDeletedEvent;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -89,7 +90,7 @@ class StreamConfigRepository {
 		$rStreamIDs = array_map('intval', array_column($db->get_rows() ?: [], 'id'));
 		$db->query('DELETE FROM `profiles` WHERE `profile_id` = ?;', $rID);
 		$db->query('UPDATE `streams` SET `transcode_profile_id` = 0 WHERE `transcode_profile_id` = ?;', $rID);
-		$db->query('UPDATE `watch_folders` SET `transcode_profile_id` = 0 WHERE `transcode_profile_id` = ?;', $rID);
+		EventDispatcher::dispatch(new TranscodeProfileDeletedEvent((int) $rID));
 		EventDispatcher::dispatch(new StreamsChangedEvent($rStreamIDs));
 
 		return true;
