@@ -18,8 +18,9 @@ test.describe('servers and cluster nodes', () => {
   test('the Cluster Nodes page renders', async ({ page }) => {
     const resp = await page.goto('./cluster_nodes');
     expect(resp?.status(), 'cluster_nodes').toBe(200);
-    // The page title (h4); the nodes card repeats the same text as an h5.
-    await expect(page.getByRole('heading', { name: 'Cluster Nodes', level: 4 })).toBeVisible();
+    // The nodes card's title, as Manage Servers titles its card.
+    await expect(page.getByRole('heading', { name: 'Cluster Nodes', level: 5 })).toBeVisible();
+    await expect(page.locator('#cluster-nodes-table')).toBeVisible();
     await expect(page.locator('body')).not.toContainText(/Fatal error|Uncaught|Stack trace/);
   });
 });
