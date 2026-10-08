@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Api;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Config\Maintenance;
+use XcVm\Core\Logging\RefusalLog;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Line\ActiveCodeService;
@@ -274,6 +275,7 @@ class PlayerApiController {
 		// A refused sign-in counts against the address, as on the other client
 		// APIs (sendAuthError() leaves shutdown() nothing to count).
 		BruteforceGuard::checkFlood();
+		RefusalLog::record('INVALID_CREDENTIALS');
 		$this->sendAuthError('', 'Username or password is invalid.');
 	}
 

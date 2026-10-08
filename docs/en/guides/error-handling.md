@@ -154,6 +154,8 @@ generateError('API_IP_NOT_ALLOWED', true, 403);    // production: 403 + exit
 generateError('STREAM_OFFLINE', false);             // production: no output, no exit
 ```
 
+Two codes are also written to the client logs (`RefusalLog`): `INVALID_STREAM_ID` (a stream id that does not exist) and `INVALID_CREDENTIALS` (credentials that match no line). The Xtream `player_api`, the RTMP viewer check and the Ministra portal (a MAC that matches no device) log `INVALID_CREDENTIALS` the same way, though they answer without `generateError`. Each address gets at most 120 such rows a minute, and the query string is left out: on a refused sign-in it carries the password tried. An abuse detector counts these rows per address to find catalogue scraping and credential guessing.
+
 ### `generate404(bool $rKill = true)`
 
 Returns an nginx-style `404 Not Found` page and sets HTTP 404. The HTML includes padding comments to suppress browser-friendly error pages in MSIE and Chrome.

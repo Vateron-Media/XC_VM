@@ -18,6 +18,7 @@
  */
 
 use XcVm\Core\Error\ErrorResponder;
+use XcVm\Core\Logging\RefusalLog;
 
 if (!function_exists('generateError')) {
 	/**
@@ -30,6 +31,8 @@ if (!function_exists('generateError')) {
 	function generateError(string $rError, bool $rKill = true, ?int $rCode = null): void {
 		global $rSettings;
 
+		// A stream id that does not exist, or credentials nothing matches: into the client logs.
+		RefusalLog::record($rError);
 		ErrorResponder::emit(ErrorResponder::respondError(
 			$rError,
 			is_array($rSettings ?? null) ? $rSettings : [],
