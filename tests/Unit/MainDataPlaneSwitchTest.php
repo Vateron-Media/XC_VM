@@ -57,15 +57,14 @@ final class MainDataPlaneSwitchTest extends TestCase {
 	}
 
 	public function testTheLegacyApiStaysOpenUntilEveryServerHasItsDataPlane(): void {
-		$rServers = [1 => ['server_name' => 'main'], 7 => ['server_name' => 'lb-a'], 8 => ['server_name' => 'lb-b'], 9 => ['server_name' => 'proxy']];
+		$rServers = [1 => ['server_name' => 'main'], 7 => ['server_name' => 'lb-a'], 8 => ['server_name' => 'lb-b'], 9 => ['server_name' => 'proxy', 'server_type' => 1]];
 		$rNode = static fn(int $rSid, array $rOver = []): array => $rOver + ['server_id' => $rSid, 'state' => 'active', 'mode' => 2, 'flows' => 255];
 		$rNodes = [$rNode(7), $rNode(8, ['flows' => 255 & ~NodeRegistry::FLOW_DATAPLANE])];
-		$this->assertSame([1, 8, 9], ClusterOverview::legacyApiOpenBy($rServers, $rNodes, 1, false), 'MAIN off, a node without the flow, a proxy (no node)');
-		$this->assertSame([8, 9], ClusterOverview::legacyApiOpenBy($rServers, $rNodes, 1, true));
+		$this->assertSame([1, 8], ClusterOverview::legacyApiOpenBy($rServers, $rNodes, 1, false), 'MAIN off, a node without the flow; a proxy reads no node\'s files');
+		$this->assertSame([8], ClusterOverview::legacyApiOpenBy($rServers, $rNodes, 1, true));
 
-		unset($rServers[9]);
 		$rNodes[1] = $rNode(8);
-		$this->assertSame([], ClusterOverview::legacyApiOpenBy($rServers, $rNodes, 1, true), 'closed');
+		$this->assertSame([], ClusterOverview::legacyApiOpenBy($rServers, $rNodes, 1, true), 'closed, the proxy still there');
 		$this->assertSame([8], ClusterOverview::legacyApiOpenBy($rServers, [$rNode(7), $rNode(8, ['mode' => 0])], 1, true), 'mode 0 is not in the node list with its data plane');
 		$this->assertSame([8], ClusterOverview::legacyApiOpenBy($rServers, [$rNode(7), $rNode(8, ['state' => 'quarantined'])], 1, true), 'nor a quarantined node');
 	}

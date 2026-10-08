@@ -189,6 +189,9 @@ final class DataPlaneUrlsTest extends TestCase {
 
 			$rNodes[20] = $rNode(20);
 			$this->assertTrue(DataPlane::legacyApiRetired(), 'every server reads through /xfile');
+			DataPlane::useServers(fn(): array => $this->rServers + [23 => ['server_type' => 1]]);
+			$this->assertTrue(DataPlane::legacyApiRetired(), 'a proxy, no node, reads no node\'s files');
+			DataPlane::useServers(fn(): array => $this->rServers);
 
 			$rNodes[22] = $rNode(22, false);
 			$this->assertFalse(DataPlane::legacyApiRetired(), 'a server whose flow is off');

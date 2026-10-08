@@ -143,6 +143,7 @@ $rCutAny = false;
                     <th class="text-center"><?= $language::get('cluster_agent'); ?></th>
                     <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_settings_misses_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_settings_misses'); ?></th>
                     <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_main_connects_tip'), ENT_QUOTES); ?>"><?= $language::get('cluster_main_connects'); ?></th>
+                    <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_legacy_calls_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_legacy_calls'); ?></th>
                     <th class="text-center"><?= $language::get('actions'); ?></th>
                 </tr>
             </thead>
@@ -313,6 +314,24 @@ $rCutAny = false;
                                     <ul class="list-unstyled small font-monospace mb-0 text-start">
                                         <?php foreach ($rConnects['sites'] as $rSite => $rCount): ?>
                                             <li><?= htmlspecialchars((string) $rSite, ENT_QUOTES); ?> × <?= (int) $rCount; ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </details>
+                            <?php endif; ?>
+                        </td>
+                        <td class="text-center" data-col="legacy-api">
+                            <?php // What still calls the node's legacy /api (LegacyApiAudit), before it may close. ?>
+                            <?php $rLegacyCalls = $rNode['legacy_api'] ?? null; ?>
+                            <?php if (!is_array($rLegacyCalls)): ?>
+                                <span class="text-body-secondary">—</span>
+                            <?php elseif ($rLegacyCalls === []): ?>
+                                <span class="badge bg-label-success">0</span>
+                            <?php else: ?>
+                                <details>
+                                    <summary class="text-nowrap"><span class="badge bg-label-warning"><?= (int) array_sum($rLegacyCalls); ?></span></summary>
+                                    <ul class="list-unstyled small font-monospace mb-0 text-start">
+                                        <?php foreach ($rLegacyCalls as $rKey => $rCount): ?>
+                                            <li><?= htmlspecialchars((string) $rKey, ENT_QUOTES); ?> × <?= (int) $rCount; ?></li>
                                         <?php endforeach; ?>
                                     </ul>
                                 </details>
@@ -578,7 +597,7 @@ LayoutRenderer::renderFooter('admin');
             };
             $('#cluster-nodes-table').DataTable({
                 order: [[1, 'asc']],
-                columnDefs: [{ orderable: false, targets: [3, 4, 10, 11, 12] }],
+                columnDefs: [{ orderable: false, targets: [3, 4, 10, 11, 12, 13] }],
                 layout: { topStart: 'pageLength', topEnd: 'search' },
                 language: { emptyTable: <?= json_encode($language::get('cluster_no_nodes')); ?> },
                 drawCallback: function() {

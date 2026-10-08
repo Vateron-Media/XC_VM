@@ -5691,7 +5691,8 @@ which server held it open.
 - **A parent that cannot check a ticket** (a load balancer not enrolled, or not active) is
   still reached with the password: enrolling it is the fix, and the card names it.
 - **Proxies** keep every node's `/api` open: a proxy is never a node of the signed node list,
-  which legacyApiRetired() requires of every server.
+  which legacyApiRetired() requires of every server. (Changed since: a proxy is skipped, see
+  [Proxies and the legacy `/api`, its calls counted, and the legacy link's retirement](#proxies-and-the-legacy-api-its-calls-counted-and-the-legacy-links-retirement-2026-10-08).)
 
 ### Automatic mode down (2026-10-07)
 
@@ -6643,3 +6644,52 @@ the ack and the report; a strip below mode 2 restored), `ClusterRootCommandTest`
 `ClusterEventsTest` (`node.root_result` taken as the ack), `ConnectionStoreTest` (the tombstone,
 and that both closes keep it before the store changes) and `ConnectionIngestIdempotencyTest` (one
 activity row).
+
+### Proxies and the legacy `/api`, its calls counted, and the legacy link's retirement (2026-10-08)
+
+**Proxies no longer hold the legacy `/api` open.** `DataPlane::legacyApiRetired()` asked every
+row of `servers` to be an active node with its data plane on, proxies included, and a proxy is
+never a node: on a panel with one proxy, every node's `/api` stayed open. The rule exists because
+other servers read a node's files with `getFile`. A proxy reads none: its nginx forwards only the
+viewer paths under its route segment to its parent (`ProxyInstallFlow::configureRuntime`), and its
+one outbound call is MAIN's `/admin/proxy_api` (XC_VM_Proxy's `callback.php`). Both
+`legacyApiRetired()` and the page's list (`ClusterOverview::legacyApiOpenBy`) now skip
+`server_type` 1. A request that reaches a node's `/api` through a proxy's route is a caller like
+any other, and gets the 404 once the node's `/api` closes.
+
+**The calls are counted.** On a load balancer in mode 1 or 2, `InternalApiController::index`
+counts each call it answers, after the password and the caller's address passed, by action and
+caller (`Core\Cluster\LegacyApiAudit`): one file a UTC day under
+`STORAGE_PATH/cluster/legacy_api/`, at most 32 keys and the rest under `*`, eight days kept by
+`cron:cleanup`. The last seven days go into `audit.json` as `legacy_api` (`SettingsAudit::publish`),
+which the agent sends as it is (it passes members it does not know), and MAIN keeps them with the
+node (`NodeAudit`, the same 32 keys checked again). Cluster Nodes shows them in *Legacy /api
+calls*: `—` for a node that does not report (mode 0, or an older release), `0` for none. MAIN
+counts nothing: it has no heartbeat, and its own `/api` keeps no toggle. The count is the
+evidence the plan's Phase 10 lacked, as the seven days without a connect are for mode 2.
+
+**No CORS header.** `/api` sent `Access-Control-Allow-Origin: *`. No page reads a node's `/api`
+from a browser (every reader is server-side: ffprobe, `file_get_contents`, cURL), so it is gone.
+
+**The retirement, in steps.**
+1. Measure (this change).
+2. New installs start on the cluster API (a separate change: it changes what every new panel
+   runs).
+3. The release that does step 2 announces in its notes that the legacy link is deprecated, and
+   which major release removes it.
+4. That major release removes the plan's Phase 10 list: the load balancers' `/api` locations
+   and `InternalApiController::index` (its actions stay, for `node.rpc`), `configureRedisLb`, the
+   `users` cron (role `legacy`), and the database and Redis paths below mode 2. Its update refuses
+   a panel with a load balancer below mode 2, so no node is left on a path that is gone.
+
+**Not built / limits.**
+- **A count, not a gate.** Nothing refuses or warns on a call; the operator reads the column.
+- **Mode 0 counts nothing**, as for the connect audit: a node that is not enrolled has no agent to
+  report it.
+- **Callers by address.** A caller behind NAT, or MAIN on a private address, shows as that
+  address.
+
+**Tests.** `LegacyApiAuditTest` (counted by action and caller, nothing on MAIN or in mode 0,
+bounded keys, the seven-day window, MAIN's check of the report, the count after the password and
+address checks, no CORS header), `DataPlaneUrlsTest` and `MainDataPlaneSwitchTest` (a proxy keeps
+nothing open).

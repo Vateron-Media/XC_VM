@@ -307,6 +307,27 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
     node, and root on the node runs it only while the node is in mode 2. A drop that was
     refused or that expired changed nothing: send it again.
 
+## Retiring the legacy link
+
+The legacy link is a load balancer that is not enrolled (mode 0), its `/api` with
+`password=<live_streaming_pass>`, and its MySQL and Redis grants on MAIN. It is deprecated, and
+goes in steps (ADR 0004, *Proxies and the legacy `/api`, its calls counted, and the legacy
+link's retirement*):
+
+1. **Measure.** Every node in mode 1 or 2 counts the calls its `/api` answers, by action and
+   caller (`Core\Cluster\LegacyApiAudit`, `STORAGE_PATH/cluster/legacy_api/`), and reports the
+   last seven days in its heartbeat's `audit` as `legacy_api`. Cluster Nodes shows them per
+   node (*Legacy /api calls*).
+2. **New installs start on the cluster API.** A fresh panel enrols its load balancers at
+   install, so it never runs the legacy link.
+3. **Announce.** The release notes of the release that does step 2 say the legacy link is
+   deprecated, and which major release removes it.
+4. **Remove (the plan's Phase 10)**, in that major release, whose update refuses a panel with a
+   load balancer below mode 2: the `/api` locations in the load balancers' nginx and
+   `InternalApiController::index` (its actions stay: `cluster:exec` runs them for `node.rpc`),
+   `StatusCommand::configureRedisLb`, the `users` cron (role `legacy`), and the database and
+   Redis paths a node in mode 2 never takes.
+
 ## Limits
 
 - **The data plane (Phase 8) covers what a node pulls from another server**, and only
