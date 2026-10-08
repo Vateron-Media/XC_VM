@@ -19,7 +19,10 @@ use XcVm\Core\Cache\FileCache;
  *   (fails closed).
  * - `cluster:apply` always boots from the replica, whatever the mode: its
  *   work is to build those caches, at boot too (`service` runs it with
- *   `--from-disk` before the daemons), when MAIN may be unreachable.
+ *   `--from-disk` before the daemons), when MAIN may be unreachable. So does
+ *   any command given `--replica` (OPTION): an install runs `fanout_binary`
+ *   so on a node MAIN keeps credential-free, before its enrolment brings a
+ *   replica (LbInstallFlow::provisionCluster).
  * - Nodes in mode 0, in mode 1 without CONFIG, and MAIN, boot as before.
  *
  * Once a process has booted from the replica (start()), its settings and
@@ -36,6 +39,9 @@ use XcVm\Core\Cache\FileCache;
 final class ReplicaBoot {
 	/** Commands that boot from the replica in every mode. */
 	public const COMMANDS = ['cluster:apply'];
+
+	/** The console option that boots any command from the replica in every mode. */
+	public const OPTION = '--replica';
 
 	/** The boot option: boot from the replica even before an apply built its caches (cluster:apply). */
 	public const ALWAYS = 'always';
@@ -87,13 +93,13 @@ final class ReplicaBoot {
 
 	/**
 	 * The boot option for a console command line: ALWAYS for the commands
-	 * that boot from the replica in every mode, else null (the node's mode
-	 * decides).
+	 * that boot from the replica in every mode, and for any given OPTION,
+	 * else null (the node's mode decides).
 	 *
 	 * @param list<string> $rArgv
 	 */
 	public static function forArgv(array $rArgv): ?string {
-		return in_array($rArgv[1] ?? null, self::COMMANDS, true) ? self::ALWAYS : null;
+		return in_array($rArgv[1] ?? null, self::COMMANDS, true) || in_array(self::OPTION, array_slice($rArgv, 2), true) ? self::ALWAYS : null;
 	}
 
 	/**
