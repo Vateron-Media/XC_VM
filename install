@@ -2297,10 +2297,17 @@ if __name__ == "__main__":
                 template_content = f.read()
 
             # Replace placeholders
+            # As AuthRepository::updateCodes() fills them: a placeholder left in
+            # (#ALIAS#, #ZONE#) makes nginx refuse the whole config.
+            nginx_conf_path = os.path.normpath(os.path.join(rCodeDir, os.pardir, "nginx.conf"))
+            with open(nginx_conf_path, "r") as f:
+                limit_zone = "panel" if "zone=panel:" in f.read() else "one"
             template_content = template_content.replace("#WHITELIST#", "")
             template_content = template_content.replace("#TYPE#", "admin")
             template_content = template_content.replace("#CODE#", admin_code)
             template_content = template_content.replace("#BURST#", "500")
+            template_content = template_content.replace("#ALIAS#", "Public/Views/admin")
+            template_content = template_content.replace("#ZONE#", limit_zone)
 
             code_conf_path = os.path.join(rCodeDir, f"{admin_code}.conf")
             with io.open(code_conf_path, "w", encoding="utf-8") as rFile:
