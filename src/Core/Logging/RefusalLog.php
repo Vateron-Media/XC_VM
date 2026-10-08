@@ -20,7 +20,7 @@ use XcVm\Core\Util\NetworkUtils;
  * tried. Never throws: logging a refusal must not change the answer.
  *
  * ```text
- * FLOOD_TMP_PATH/refusal_<md5(ip)>   "<minute> <count>", this minute's count
+ * FLOOD_TMP_PATH/refusal_<sha256(ip)>   "<minute> <count>", this minute's count
  *                                    (swept by cron:tmp once idle)
  * ```
  */
@@ -59,7 +59,7 @@ final class RefusalLog {
 
 	/** Count one for $rIP in its minute; false once the minute holds CAP. */
 	public static function counted(string $rIP, int $rNow): bool {
-		$rHandle = @fopen(self::dir() . 'refusal_' . md5($rIP), 'c+');
+		$rHandle = @fopen(self::dir() . 'refusal_' . hash('sha256', $rIP), 'c+');
 		if ($rHandle === false) {
 			return false;
 		}
