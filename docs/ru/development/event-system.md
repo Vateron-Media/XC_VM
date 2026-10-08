@@ -103,7 +103,7 @@ class MyModuleModule extends BaseModule {
 Оба механизма работают одновременно и могут сосуществовать в одном модуле.
 `ModuleLoader::bootAll()` выполняет оба прохода для каждого загруженного модуля.
 
-> В приведенных выше примерах для краткости записывается `use ListensTo;` / `use AbstractEvent;`. Реальные классы — это `XcVm\Core\Events\ListensTo` и `XcVm\Core\Events\AbstractEvent` - импортируйте эти полные имена (глобального псевдонима нет).
+> В приведенных выше примерах для краткости указано `use ListensTo;` / `use AbstractEvent;`. Реальные классы — это `XcVm\Core\Events\ListensTo` и `XcVm\Core\Events\AbstractEvent` - импортируйте эти полные имена (глобального псевдонима нет).
 
 ---
 
