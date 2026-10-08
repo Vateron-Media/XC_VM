@@ -9,8 +9,10 @@ use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\ReplicaApply;
 use XcVm\Core\Cluster\ReplicaSections;
+use XcVm\Core\Cluster\SettingsAudit;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Gateway\GatewayPolicy;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Security\BlocklistService;
@@ -152,6 +154,14 @@ class CacheCronJob implements CommandInterface {
 		}
 		if (!ReplicaApply::owns(ReplicaSections::CATEGORIES)) {
 			FileCache::setCache('categories', CategoryService::getFromDatabase(null, true));
+		}
+
+		// The segment gateway's policy, from the settings and servers caches just
+		// written: xc_fanout's gateway reads it, never these caches.
+		GatewayPolicy::write();
+		// Its counts and shadow comparison reach MAIN with the node's audit, five minutes old at most.
+		if (GatewayPolicy::mode(SettingsManager::getAll()) !== 'off') {
+			SettingsAudit::publishIfDue(false, time(), 300);
 		}
 
 		$rAllServers = ServerRepository::getAll();

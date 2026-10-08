@@ -1,0 +1,254 @@
+{
+    "version": 1,
+    "doc": "Phase 12.4 (the gateway's playlist refresh): live.php's HLS connection id, rawurlencode, HlsSequence::reconcile and tokenizeDaemonPlaylist, as the panel computes them. Context test-openssl-extra, SERVER_ID 2, stream 9001, IV 00112233445566778899aabbccddeeff; tokens sealed with a random nonce are compared by what they open to.",
+    "context": "746573742d6f70656e73736c2d6578747261",
+    "server_id": 2,
+    "hls_keys": [
+        {
+            "hmac_id": null,
+            "identifier": null,
+            "user_id": 41,
+            "stream_id": 9001,
+            "ip": "198.51.100.7",
+            "user_agent": "VLC/3.0.18 LibVLC/3.0.18",
+            "ua_html": "VLC/3.0.18 LibVLC/3.0.18",
+            "uuid": "14e93a9d70d74681c1dc8eb70d99ea7a"
+        },
+        {
+            "hmac_id": null,
+            "identifier": null,
+            "user_id": "41",
+            "stream_id": 9001,
+            "ip": "2001:db8::7",
+            "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+            "ua_html": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+            "uuid": "655279fda385dd524fe82d0e4c176bf4"
+        },
+        {
+            "hmac_id": 5,
+            "identifier": "dev-ice:1",
+            "user_id": 0,
+            "stream_id": 12,
+            "ip": "198.51.100.7",
+            "user_agent": "Ag \"quoted\" & <b>it's</b>",
+            "ua_html": "Ag &quot;quoted&quot; &amp; &lt;b&gt;it&#039;s&lt;/b&gt;",
+            "uuid": "299987d603c2139a92ea461115357fb0"
+        },
+        {
+            "hmac_id": 5,
+            "identifier": null,
+            "user_id": 0,
+            "stream_id": 12,
+            "ip": "198.51.100.7",
+            "user_agent": "  padded\t ",
+            "ua_html": "padded",
+            "uuid": "7e49d5e07fd6519fbc6ac3d97266e1eb"
+        },
+        {
+            "hmac_id": null,
+            "identifier": null,
+            "user_id": 7,
+            "stream_id": 3,
+            "ip": "198.51.100.7",
+            "user_agent": "",
+            "ua_html": "",
+            "uuid": "d85b18198a403f77b2e8957e550b7530"
+        },
+        {
+            "hmac_id": null,
+            "identifier": null,
+            "user_id": 7,
+            "stream_id": 3,
+            "ip": "198.51.100.7",
+            "user_agent": "tab\there\u000b",
+            "ua_html": "tab\there",
+            "uuid": "9324582efd9fa435a4457342a2fd5455"
+        }
+    ],
+    "rawurlencode": [
+        {
+            "in_hex": "7573657231",
+            "out": "user1"
+        },
+        {
+            "in_hex": "6120622b632f643f653d66266740683a697e6a2d6b5f6c2e6d",
+            "out": "a%20b%2Bc%2Fd%3Fe%3Df%26g%40h%3Ai~j-k_l.m"
+        },
+        {
+            "in_hex": "70c3a47373",
+            "out": "p%C3%A4ss"
+        },
+        {
+            "in_hex": "253431",
+            "out": "%2541"
+        },
+        {
+            "in_hex": "",
+            "out": ""
+        },
+        {
+            "in_hex": "2a21272829",
+            "out": "%2A%21%27%28%29"
+        }
+    ],
+    "reconcile": [
+        {
+            "daemon": 0,
+            "floor": 180000000,
+            "state": null,
+            "now": 1800000000,
+            "target": 10,
+            "seq": 180000000,
+            "next": {
+                "base": 180000000,
+                "last": 180000000,
+                "daemon": 0,
+                "at": 1800000000
+            }
+        },
+        {
+            "daemon": 5,
+            "floor": 180000000,
+            "state": {
+                "base": 179999995,
+                "last": 180000000,
+                "daemon": 4,
+                "at": 1799999995
+            },
+            "now": 1800000000,
+            "target": 10,
+            "seq": 180000000,
+            "next": {
+                "base": 179999995,
+                "last": 180000000,
+                "daemon": 5,
+                "at": 1800000000
+            }
+        },
+        {
+            "daemon": 6,
+            "floor": 180000010,
+            "state": {
+                "base": 179999995,
+                "last": 180000000,
+                "daemon": 5,
+                "at": 1799999990
+            },
+            "now": 1800000100,
+            "target": 10,
+            "seq": 180000010,
+            "next": {
+                "base": 180000004,
+                "last": 180000010,
+                "daemon": 6,
+                "at": 1800000100
+            }
+        },
+        {
+            "daemon": 2,
+            "floor": 180000020,
+            "state": {
+                "base": 179999995,
+                "last": 180000003,
+                "daemon": 8,
+                "at": 1800000190
+            },
+            "now": 1800000200,
+            "target": 10,
+            "seq": 180000020,
+            "next": {
+                "base": 180000018,
+                "last": 180000020,
+                "daemon": 2,
+                "at": 1800000200
+            }
+        },
+        {
+            "daemon": 9,
+            "floor": 180000020,
+            "state": {
+                "base": 100,
+                "last": 109,
+                "daemon": 9,
+                "at": 0
+            },
+            "now": 1800000200,
+            "target": 4,
+            "seq": 180000020,
+            "next": {
+                "base": 180000011,
+                "last": 180000020,
+                "daemon": 9,
+                "at": 1800000200
+            }
+        },
+        {
+            "daemon": 3,
+            "floor": 180000020,
+            "state": {
+                "base": 100,
+                "last": 103
+            },
+            "now": null,
+            "target": 10,
+            "seq": 180000020,
+            "next": {
+                "base": 180000017,
+                "last": 180000020
+            }
+        }
+    ],
+    "playlist": {
+        "input": "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:4\n#EXTINF:4.000,\n12.ts\n#EXT-X-DISCONTINUITY\n#EXTINF:3.960,\n13.ts\nnot12.ts\n#EXTINF:4.000,\n0014.ts\n",
+        "stream_id": 9001,
+        "uuid": "c3f1c2d4e5b60718293a4b5c6d7e8f92",
+        "ip": "198.51.100.7",
+        "codec": "h264",
+        "on_demand": 0,
+        "iv_hex": "00112233445566778899aabbccddeeff",
+        "cases": [
+            {
+                "name": "viewer key, encrypted HLS",
+                "viewer_key_hex": "37383636633765313862346362623234323236613162303462343766613430313637643535323135643039336164616262373336316532666262306533636532",
+                "settings": {
+                    "live_streaming_pass": "gwShared",
+                    "secure_stream_tokens": 1,
+                    "encrypt_hls": 1
+                },
+                "username": "us er",
+                "password": "p@ss/1",
+                "hmac_id": null,
+                "identifier": null,
+                "output": "#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"/key/ui6PtJkwUQZJTVvMD1n1M4rngqaefY1i3dxZYPbkENXYN_4rPZNCylLK0LDJ\",IV=0x00112233445566778899aabbccddeeff\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:4\n#EXTINF:4.000,\n/hls/DWACbLQgTkKcdbiQR0vgLP6akBZ-nQuH9IeMZ1Ek7lIFNaOEVbR7-Zjfeb9uK-UdgXIUA8cJrtVI_qTr2MATCLVrTGMkhA2oJCTvhflCjK1SduqN9DIzCDP0tkLRsIDossTa3Gr2CvlKmdDpUF7XcMvDAmZjjA\n#EXT-X-DISCONTINUITY\n#EXTINF:3.960,\n/hls/l_h-WoRHEp0r8hZ5emmVDxc12m80oRW9LOUxYe9TBlew_LszH0JI3MVnQrVomyNxAw8gvjZbH3O6I1ynSuGa_d_TS61dtP6uY5ytmXTr8lhE9k81en2_VZ7em-QCkHCIHNH4jR8Rx-MdPmqA1AULODo9xGPpZg\nnot12.ts\n#EXTINF:4.000,\n/hls/3WmrtZW2rLo96zzgGkqAM8w_5cBaAev2EwTBcSQrDq09g_YyjciOcuAA4myTD1IqSVqJqVZoQmQLv6eML6B3UhFvJOirT6qbC8K5TJGb8UtweSRpu1Qwscb1maaRyLgimHavAitDoavoX637RAH4QjVaYWJ9ZPJk\n"
+            },
+            {
+                "name": "viewer key, HMAC line",
+                "viewer_key_hex": "37383636633765313862346362623234323236613162303462343766613430313637643535323135643039336164616262373336316532666262306533636532",
+                "settings": {
+                    "live_streaming_pass": "gwShared",
+                    "secure_stream_tokens": 1,
+                    "encrypt_hls": 0
+                },
+                "username": null,
+                "password": null,
+                "hmac_id": 5,
+                "identifier": "ident/1",
+                "output": "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:4\n#EXTINF:4.000,\n/hls/mTjUN3_uMB9vXEiOEvE6-sC36pFi7xZvHY9Xt2_lqKsD7nuzaOKZSPkAyHQQur_KsztyJaRtkA6Q3_qu0-JPCIAVtc6BOHkCIyFwZjnVdhjasjCNtxBY7Ofl9Wxs7I2Wezhxwr5PPvNDrTqMveBQQbX9wNk\n#EXT-X-DISCONTINUITY\n#EXTINF:3.960,\n/hls/3uxqmm3YkeNif_xqBny3-SW2-L_WKfsX0hD8Yz0pcqwj9smrFeSE9E9TkqZsrjZUYGOKlk-_mMwiWXB8Pem1NFI1fqXXiQDWmpZdEkfKT2p8u0X_MNJKpNAfrDFqhBhtIlbHAhveq5kkUAcu0V-hKfGPYTc\nnot12.ts\n#EXTINF:4.000,\n/hls/PaSijHOCDrB-ktrZt0y0PYzlwSgwyLnW--Epx2ac_jRif9o0IMFnjBnAi2ZXUSHdJt0qj2C86nKeWRXvAFIbUVMn7NTEJFSUK0AAlbdd-xrCF1sYq7FoxbMYxwt2-XJ7xAgKXVdPct-LVhMnrRrpGPgp117_yw\n"
+            },
+            {
+                "name": "no key, legacy tokens",
+                "viewer_key_hex": null,
+                "settings": {
+                    "live_streaming_pass": "gwShared",
+                    "secure_stream_tokens": 0,
+                    "encrypt_hls": 1
+                },
+                "username": "user1",
+                "password": "pass1",
+                "hmac_id": null,
+                "identifier": null,
+                "output": "#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"/key/uRYuq9HbKVUo9cG1RBVycNRnRoiC7MThY96G-aXnQzI\",IV=0x00112233445566778899aabbccddeeff\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:4\n#EXTINF:4.000,\n/hls/_2nlZKeAC5w17yZFdPIytnubwP1HMcjALxgF6o579q0mjVopvgP66bZap-YSZYz7bKz90TIbcnKbKZuCC6HC7w0MIJbncue9htnhsoYiEei5VjxD2ELd1-6k2l6AeaZn\n#EXT-X-DISCONTINUITY\n#EXTINF:3.960,\n/hls/_2nlZKeAC5w17yZFdPIytnubwP1HMcjALxgF6o579q1TWaGaEprmDxcoTTKlOAyRfwAnvWGwiRCX64E4mtsOY9x4Gx0tDxWnizl3V4RpNAHoYnd_O5YD730F_1Im2J8K\nnot12.ts\n#EXTINF:4.000,\n/hls/_2nlZKeAC5w17yZFdPIytnubwP1HMcjALxgF6o579q3ylPHYMpdshUv14ADeus0bSfhSiwulNlxQqDrbhsyHDbuXXNzs4UCNeiaO8h3j7FZkopMqfKNjBqtKEaE1Boa9\n"
+            }
+        ]
+    }
+}

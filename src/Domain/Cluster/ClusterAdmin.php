@@ -177,6 +177,7 @@ final class ClusterAdmin {
 			$rRow['connects'] = NodeAudit::connectsOf($rReports[(int) $rRow['server_id']] ?? null);
 			$rRow['legacy_api'] = $rReports[(int) $rRow['server_id']]['legacy_api'] ?? null;
 			$rRow['streams_local'] = NodeAudit::streamsLocal($rReports[(int) $rRow['server_id']] ?? null);
+			$rRow['gateway'] = NodeAudit::gatewayOf($rReports[(int) $rRow['server_id']] ?? null);
 			$rRow['relay'] = self::relayAdvertised($rRow);
 			$rOut[] = $rRow;
 		}
