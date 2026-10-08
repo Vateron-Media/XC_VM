@@ -149,6 +149,7 @@ Dispatched by core:
 | `SettingsChangedEvent` | `Events/Settings/` | Settings were saved |
 | `CrontabChangedEvent` | `Events/Settings/` | The crontab changed |
 | `PackageInstalledEvent` | `Events/Module/` | A marketplace package was installed |
+| `LegacyTableMigrationEvent` | `Events/Migration/` | The migration of a restored backup hands a module its table (the listener copies the rows and sets `copied`) |
 
 !!! warning "Defined but never dispatched"
     `StreamStartingEvent`, `StreamStartedEvent`, `StreamStoppedEvent`,

@@ -125,6 +125,26 @@ An archive uploaded on the **Modules** page over an installed module is installe
 way. An upload that is refused, or that fails to install, leaves the installed copy in
 place: its files, its on/off state and the version shown.
 
+### Migrating a backup: tables of modules
+
+The panel installs no module by itself, and keeps no list of which module owns which table. The
+migration (setup page → `console.php migrate`) migrates the core tables of a restored XUI.one /
+Xtream Codes backup, then handles every other table of it (`MigrateCommand::moduleTables()`: not in
+`bin/install/database.sql`, not migrated by the core, not junk of the old panels, e.g. their activity
+logs):
+
+- it saves the table to `Modules/migration/<table>.sql` (its definition and rows) and drops it from
+  `xc_vm_migrate`;
+- it hands it to the installed modules (`LegacyTableMigrationEvent`); a module that takes it copies
+  the rows and the file is removed;
+- a table nobody took waits in its file: when its module is installed, the file is loaded into a
+  staging table `legacy_<table>`, the module copies the rows, and the file and staging table go.
+
+At the end it drops what is left of `xc_vm_migrate` (tables dropped, grants kept): a backup can weigh
+gigabytes. If a table could not be saved, the backup database is left as it is and the log says so.
+Before the migration, the setup page lists the tables that will be saved for modules, with their
+rows.
+
 ### The Modules page
 
 The page (`ModulesController` renders it, `ModuleAjaxController` answers it) has two tabs:

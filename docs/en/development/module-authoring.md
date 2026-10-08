@@ -167,7 +167,26 @@ For `git`/`url` the fetched `module.json` **`hash_id` must equal the installed o
 
 A rolled-back `git`, `url` or store update leaves the module in the state it had before the attempt: a module that was switched off stays off, and one left `failed` stays `failed`.
 
-**Standard set & provisioning.** The modules the panel installs by default are listed in `config/bundled_modules.php`, keyed by `hash_id` (stable across renames). Today all are `bundled` (their files are in the panel archive). When a module is extracted into its own repository, flip its entry to a `git`/`url`/`platform` source — `syncBundledModules()` then fetches + installs it automatically via `provisionStandardSet()` (a no-op while everything is bundled on-disk). `ModuleManager::findModuleByHashId()` resolves a module by its stable id regardless of directory/name.
+**No preinstalled modules.** The panel installs no module by itself: a module reaches the disk only when the operator installs it (the Modules page, the store, an uploaded archive, or the setup page's step for a backup that needs it). `syncBundledModules()` then installs the ones on disk that were never installed.
+
+### Tables a restored backup has for your module
+
+A module that took over a table from the core (as Watch took `watch_folders`) also takes over its
+migration from a restored XUI.one / Xtream Codes backup: core no longer writes module tables.
+
+1. Nothing to register: the panel keeps no list of modules. After the core tables, the migration
+   saves every backup table the core does not own (`MigrateCommand::moduleTables()`: not in
+   `bin/install/database.sql`, not migrated by the core, not junk of the old panels) to
+   `Modules/migration/<table>.sql` (the table's own definition under the name `legacy_<table>`, then
+   its rows as INSERTs, one statement per line; the first line holds the backup's format), drops it,
+   and at the end empties the backup database (`xc_vm_migrate`).
+2. Listen to `LegacyTableMigrationEvent`: when `$event->table` is yours, copy `$event->rows()`
+   (`$event->format` is `xui` or `xc`) and set `$event->copied`; the migration then removes the file.
+3. In `install()`, call `LegacyTableMigrationEvent::fromBackup('<table>')` for each of your tables:
+   when the migration left the file (your module was not installed then), it is loaded into the staging
+   table `legacy_<table>` of the panel's database; copy its `rows()` and `discard()` it (the file and
+   the staging table go).
+4. Copy only into an empty table, so rows handed over twice are not added twice.
 
 ### Core compatibility
 
