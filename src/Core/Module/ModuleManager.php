@@ -520,6 +520,9 @@ class ModuleManager {
 	/**
 	 * Install any on-disk module that has never been installed.
 	 *
+	 * Nothing is fetched here: a module reaches the disk only when the operator
+	 * installs it (the Modules page, the store, an uploaded archive).
+	 *
 	 * Bundled modules (e.g. ministra) are booted on every request but only get
 	 * their install() / migrations run when explicitly installed. On a fresh
 	 * panel nothing would create their tables, so this runs once during the
@@ -544,12 +547,6 @@ class ModuleManager {
 		// (e.g. tmdb): a stale on-disk copy would still boot and its commands
 		// would collide with the core-registered ones.
 		$this->purgeCoreProvidedModules();
-
-		// Fetch any standard-set module that lives in a remote source (git/url/
-		// platform) and isn't on disk yet — a no-op while every standard module is
-		// bundled on-disk. Fetched modules are installed by provisionStandardSet(),
-		// so the on-disk pass below simply skips them.
-		$provisioned = $this->provisionStandardSet();
 
 		$modules   = $this->listModules();
 		$installed = [];
@@ -605,195 +602,7 @@ class ModuleManager {
 			}
 		}
 
-		return array_values(array_unique(array_merge($provisioned, $done)));
-	}
-
-	/**
-	 * The standard module set the panel provisions by default (config/bundled_modules.php).
-	 *
-	 * Foundation for modules-in-separate-repos: each entry is keyed by the module's
-	 * permanent `hash_id`. When the config file is absent, falls back to whatever
-	 * is on disk (treated as `bundled`).
-	 *
-	 * @return array<int, array{hash_id?:string,name?:string,source?:string,repository?:string,channel?:string,slug?:string,url?:string}>
-	 */
-	public function getStandardSet(): array {
-		$path = defined('CONFIG_PATH')
-			? CONFIG_PATH . 'bundled_modules.php'
-			: dirname(__DIR__, 2) . '/config/bundled_modules.php';
-
-		if (is_file($path)) {
-			$data = require $path;
-			if (is_array($data)) {
-				return array_values(array_filter($data, 'is_array'));
-			}
-		}
-
-		// Fallback: derive from on-disk modules (all treated as bundled).
-		$out = [];
-		foreach ($this->listModules() as $m) {
-			$out[] = ['hash_id' => (string) ($m['hash_id'] ?? ''), 'name' => $m['name'], 'source' => 'bundled'];
-		}
-		return $out;
-	}
-
-	/**
-	 * Resolve the on-disk module name that carries a given permanent `hash_id`.
-	 *
-	 * The stable identity lookup: lets the panel recognise "the same module" across
-	 * a rename or a repo move, where `name` alone is unreliable.
-	 *
-	 * @param string $hashId Permanent module hash_id.
-	 * @return string|null Module name, or null if no on-disk module has that hash_id.
-	 */
-	public function findModuleByHashId(string $hashId): ?string {
-		$hashId = trim($hashId);
-		if ($hashId === '') {
-			return null;
-		}
-		foreach ($this->listModules() as $m) {
-			if (($m['hash_id'] ?? '') === $hashId) {
-				return $m['name'];
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Provision the standard set: fetch+install any standard-set module that lives
-	 * in a remote source (git/url/platform) and is not on disk yet.
-	 *
-	 * `bundled` entries and modules already present (matched by `hash_id`) are left
-	 * to syncBundledModules()'s on-disk install. Per-entry failures are logged, not
-	 * fatal. No-op today (every standard module is bundled on-disk).
-	 *
-	 * @return string[] Names/hash_ids of modules fetched this pass.
-	 */
-	public function provisionStandardSet(): array {
-		$done = [];
-		foreach ($this->getStandardSet() as $entry) {
-			$hash = (string) ($entry['hash_id'] ?? '');
-			$name = (string) ($entry['name'] ?? '');
-
-			// Already on disk (bundled or previously fetched)? Nothing to fetch.
-			// A same-name directory whose identity does NOT match the pinned
-			// hash_id is a stale pre-pin copy (e.g. a legacy-migrated bundled
-			// module from an older release) — it must be replaced, not kept:
-			// otherwise the panel runs outdated module code forever.
-			$onDisk   = $hash !== '' ? $this->findModuleByHashId($hash) : null;
-			$staleDir = null;
-			if ($onDisk === null && $name !== '') {
-				$dir = $this->modulePathFor($name);
-				if (is_dir($dir) && is_file($dir . '/module.json')) {
-					if ($hash === '') {
-						$onDisk = $name; // no pin — any same-name copy counts
-					} else {
-						$staleDir = $dir;
-					}
-				}
-			}
-			if ($onDisk !== null) {
-				continue;
-			}
-
-			$source = (string) ($entry['source'] ?? 'bundled');
-			if ($source === 'bundled') {
-				error_log("provisionStandardSet: '{$name}' is declared bundled but missing on disk — skipped.");
-				continue;
-			}
-
-			try {
-				if ($staleDir !== null) {
-					error_log("provisionStandardSet: '{$name}' on disk (" . basename($staleDir) . ") does not match the pinned hash_id — replacing with the pinned release.");
-					$this->deleteDirectory($staleDir);
-				}
-				$this->installModuleFromSource($entry);
-				$done[] = $name !== '' ? $name : $hash;
-			} catch (\Throwable $e) {
-				error_log("provisionStandardSet: fetch of '" . ($name !== '' ? $name : $hash) . "' failed: " . $e->getMessage());
-			}
-		}
 		return $done;
-	}
-
-	/**
-	 * Fetch a NOT-yet-present module from a standard-set entry's source and install it.
-	 *
-	 * Mirrors updateModuleFromSource() but for a first install (no local module.json
-	 * to read the source from — it comes from the entry). Verifies the fetched
-	 * `hash_id` against the entry so a repo/URL cannot supply a different module.
-	 *
-	 * @param array $entry A getStandardSet() entry (source/repository/…, hash_id).
-	 * @throws \RuntimeException on download/verify/install failure.
-	 */
-	private function installModuleFromSource(array $entry): void {
-		$update = [
-			'source'     => (string) ($entry['source'] ?? 'bundled'),
-			'repository' => (string) ($entry['repository'] ?? ''),
-			'channel'    => (string) ($entry['channel'] ?? 'stable'),
-			'slug'       => (string) ($entry['slug'] ?? ($entry['name'] ?? '')),
-			'url'        => (string) ($entry['url'] ?? ''),
-		];
-		$expectedHash = (string) ($entry['hash_id'] ?? '');
-
-		// platform — the store install flow handles download/decrypt/license/LB.
-		if ($update['source'] === 'platform') {
-			$apiKey = (string) (SettingsManager::get('platform_api_key') ?? '');
-			$slug   = $update['slug'] !== '' ? $update['slug'] : (string) ($entry['name'] ?? '');
-			$this->downloadFromPlatform($slug, '', $apiKey);
-			return;
-		}
-
-		$version = (new ModuleUpdateChecker())->latestAvailable([
-			'update'            => $update,
-			'version'           => '',
-			'installed_version' => '',
-		]);
-		if ($version === null) {
-			throw new \RuntimeException('No installable version resolved from source.');
-		}
-
-		[$url, $md5] = $this->resolveSourceDownload($update, $version);
-		if ($url === '') {
-			throw new \RuntimeException('No download URL resolved from source.');
-		}
-
-		$archive  = (string) @tempnam(sys_get_temp_dir(), 'xc_modinst_');
-		$tempBase = rtrim(sys_get_temp_dir(), '/') . '/xc_modinst_' . bin2hex(random_bytes(8));
-		try {
-			$this->downloadToFile($url, $archive);
-			if ($md5 !== '' && !hash_equals(strtolower($md5), (string) md5_file($archive))) {
-				throw new \RuntimeException('Checksum mismatch on the downloaded module archive.');
-			}
-
-			$this->extractArchive($archive, $tempBase);
-			$moduleDir = $this->resolveExtractedModuleDir($tempBase);
-
-			$meta    = json_decode((string) @file_get_contents($moduleDir . '/module.json'), true);
-			$gotHash = is_array($meta) ? (string) ($meta['hash_id'] ?? '') : '';
-			if ($expectedHash !== '' && $gotHash !== '' && !hash_equals($expectedHash, $gotHash)) {
-				throw new \RuntimeException('hash_id mismatch — fetched module is not the expected one.');
-			}
-
-			$name     = $this->placeModuleFiles($moduleDir);
-			$manifest = $this->readModuleManifest($name);
-			$ver      = (string) ($manifest['version'] ?? $version);
-
-			$this->storeModuleArchive($archive, $name, $ver);
-			if ((string) ($this->readOverrides()[$name]['installed_version'] ?? '') !== '') {
-				// Files were re-provisioned for an already-installed module (a
-				// stale copy was replaced) — catch the schema up incrementally
-				// instead of re-running the initial install migrations.
-				$this->updateModule($name);
-			} else {
-				$this->installModule($name, $ver);
-			}
-			$this->recordModuleSource($name, 'local');
-			$this->distributeToLoadBalancers($name, $manifest, 'local', $ver);
-		} finally {
-			@unlink($archive);
-			$this->deleteDirectory($tempBase);
-		}
 	}
 
 	/**
@@ -918,9 +727,7 @@ class ModuleManager {
 	 * enabled module first) keeps that class: install() and getMigrations()
 	 * are then those of the version loaded. The schema files are always the
 	 * ones on disk. A caller that has just replaced the files therefore goes
-	 * through migrateReplaced(); installModuleFromSource() does not yet, so a
-	 * stale copy `console.php status` loaded and then replaced still runs its
-	 * own steps there.
+	 * through migrateReplaced().
 	 *
 	 * @param string $name Module name (lowercase, alphanumeric + hyphens).
 	 * @throws \RuntimeException If the module cannot be loaded.
