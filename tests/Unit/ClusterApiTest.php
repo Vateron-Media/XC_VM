@@ -22,6 +22,7 @@ use XcVm\Core\Database\LazyDatabaseHandler;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Logging\DatabaseLogger;
+use XcVm\Core\Logging\RefusalLog;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterApi;
 use XcVm\Domain\Cluster\ClusterBus;
@@ -1890,6 +1891,9 @@ final class ClusterApiTest extends TestCase {
 		@unlink($rCounter);
 		$rWas = DatabaseLogger::getLogFile();
 		DatabaseLogger::setLogFile($rLog);
+		$rRefusals = sys_get_temp_dir() . '/xcvm-api-refusals-' . bin2hex(random_bytes(4)) . '/';
+		mkdir($rRefusals);
+		RefusalLog::useDir($rRefusals);
 		try {
 			$rKeys = $this->active();
 			$rAsk = ['stream_id' => 100, 'ip' => '203.0.113.9', 'restream' => false, 'username' => 'nobody', 'password' => 'guess'];
@@ -1898,8 +1902,9 @@ final class ClusterApiTest extends TestCase {
 			[$rRes, $rCtx] = $this->call('rtmp_auth', $rAsk, 1, $rKeys);
 			$rOut = $this->reply($rRes, $rCtx, $rKeys);
 			$this->assertSame([false, 'AUTH_FAILED'], [$rOut['ok'], $rOut['reason']]);
-			$rLogged = json_decode((string) base64_decode(trim((string) file_get_contents($rLog))), true);
-			$this->assertSame([100, 0, 'AUTH_FAILED', '203.0.113.9'], [$rLogged['stream_id'], $rLogged['user_id'], $rLogged['action'], $rLogged['user_ip']]);
+			$rLines = array_map(static fn(string $rLine): array => json_decode((string) base64_decode($rLine), true), file($rLog, FILE_IGNORE_NEW_LINES));
+			$this->assertSame([100, 0, 'AUTH_FAILED', '203.0.113.9'], [$rLines[0]['stream_id'], $rLines[0]['user_id'], $rLines[0]['action'], $rLines[0]['user_ip']]);
+			$this->assertSame(['INVALID_CREDENTIALS', '203.0.113.9', ''], [$rLines[1]['action'], $rLines[1]['user_ip'], $rLines[1]['query_string']], 'and as a refusal an abuse detector counts (RefusalLog)');
 
 			// What the node says is checked before anything runs.
 			$rNoCredentials = $rAsk;
@@ -1932,6 +1937,8 @@ final class ClusterApiTest extends TestCase {
 			[$rRes, , $rReq] = $this->call('rtmp_auth', $rAsk, 1, $rKeys);
 			$this->denial($rRes, 409, 'NOT_ACTIVE', $rReq);
 		} finally {
+			RefusalLog::useDir(null);
+			exec('rm -rf ' . escapeshellarg($rRefusals));
 			DatabaseLogger::setLogFile($rWas);
 			@unlink($rLog);
 			@unlink($rCounter);
