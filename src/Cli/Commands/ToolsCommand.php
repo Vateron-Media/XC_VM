@@ -216,7 +216,7 @@ class ToolsCommand implements CommandInterface {
 			if (!$this->restoreMigrationBackup($database)) {
 				return 1;
 			}
-			echo "Restore completed. You can now run: console.php migrate\n\n";
+			echo "Restore completed. You can now run: /home/xc_vm/console.php migrate\n\n";
 		} else {
 			echo "You can restore a database to it using:\n";
 			echo "  mariadb -h 127.0.0.1 -P <port> -u <username> -p'<password>' xc_vm_migrate < backup.sql\n";
