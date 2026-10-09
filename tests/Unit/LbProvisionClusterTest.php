@@ -1,9 +1,11 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use XcVm\Cli\Commands\FanoutBinaryCommand;
 use XcVm\Cli\Commands\LbInstallFlow;
 use XcVm\Core\Cluster\Crypto\PanelSig;
 use XcVm\Core\Cluster\Crypto\Seal;
+use XcVm\Core\Cluster\ReplicaBoot;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Cluster\ClusterClock;
 use XcVm\Domain\Cluster\EnrolmentService;
@@ -126,6 +128,7 @@ final class LbProvisionClusterTest extends TestCase {
 		$this->assertArrayNotHasKey(LbInstallFlow::AGENT_BIN, $this->rSent, 'MAIN pushes no agent');
 		$rInstall = array_values(array_filter($this->rCommands, static fn($c) => str_contains($c, 'console.php fanout_binary agent')));
 		$this->assertCount(1, $rInstall, 'the node installs it from its release');
+		$this->assertStringNotContainsString(ReplicaBoot::OPTION, $rInstall[0], 'a legacy node boots through MAIN\'s database');
 		$rKeygenAt = array_key_first(array_filter($this->rCommands, static fn($c) => str_contains($c, ' keygen ')));
 		$rChownAt = array_key_first(array_filter($this->rCommands, static fn($c) => str_contains($c, 'chown -R xc_vm:xc_vm')));
 		$this->assertLessThan(array_search($rInstall[0], $this->rCommands, true), $rChownAt, 'into a directory that is the agent\'s');
@@ -326,6 +329,55 @@ final class LbProvisionClusterTest extends TestCase {
 		$this->assertStringContainsString('No xc_agent on the node (Failed to download xc_agent-linux-amd64); the node stays legacy', $rLog);
 		$this->assertNull(NodeRegistry::byServer(self::SID));
 		$this->assertSame(0, $this->serverStatus());
+	}
+
+	/**
+	 * An API-mode node holds no credentials and has no replica before its
+	 * enrolment: it fetches the agent booted from its empty replica, handed
+	 * MAIN's channel and canary, which a legacy node reads from MAIN's database.
+	 */
+	public function testAnApiModeNodeFetchesItsAgentFromItsReplicaWithMainsCanary(): void {
+		[$rRun, $rSend] = $this->fakeSsh();
+		SettingsManager::set(['cluster_api_enabled' => 1, 'lb_token_rotation_min' => 60, 'lb_new_node_mode' => 'api', 'update_channel_fanout' => 'beta', 'lb_binary_canary_server' => 4, 'lb_release_pin' => '1.5.0']);
+		ob_start();
+		$rOk = LbInstallFlow::provisionCluster(null, $rRun, $rSend, $this->servers(), self::SID, $this->rDb, $this->rCrypto);
+		$rLog = (string) ob_get_clean();
+		$this->assertTrue($rOk, $rLog);
+		$rFetch = array_values(array_filter($this->rCommands, static fn($c) => str_contains($c, 'console.php fanout_binary agent')));
+		$this->assertStringContainsString("console.php fanout_binary agent --replica '--channel=beta' '--canary=4' '--pin=1.5.0' 2>&1", $rFetch[0]);
+		// What the node's console makes of that line.
+		$rArgv = ['console.php', 'fanout_binary', 'agent', '--replica', '--channel=beta', '--canary=4', '--pin=1.5.0'];
+		$this->assertSame(ReplicaBoot::ALWAYS, ReplicaBoot::forArgv($rArgv));
+		$this->assertSame(['update_channel_fanout' => 'beta', 'lb_binary_canary_server' => '4', 'lb_release_pin' => '1.5.0'], FanoutBinaryCommand::mainSettings(array_slice($rArgv, 2)));
+		$this->assertSame([], FanoutBinaryCommand::mainSettings(['agent', 'force', '--pin', '--other=1']), 'a bare option, or another, is no setting');
+	}
+
+	/** An API-mode node starts once its replica is built: XC_VM restarted, then the startup's commands; never before. */
+	public function testAnApiModeNodeStartsOnceItsReplicaIsBuilt(): void {
+		$rAnswers = ['WAIT', 'WAIT', 'READY'];
+		$rRan = [];
+		$rRun = static function ($rConn, string $rCmd) use (&$rAnswers, &$rRan): array {
+			$rRan[] = $rCmd;
+			return ['output' => str_contains($rCmd, 'ReplicaBoot::now()') ? array_shift($rAnswers) . "\n" : '', 'error' => ''];
+		};
+		$rPauses = 0;
+		$rLine = LbInstallFlow::startOnReplica(null, $rRun, static function () use (&$rPauses): void {
+			$rPauses++;
+		});
+		$this->assertSame('The node booted from its replica: XC_VM restarted on it', $rLine);
+		$this->assertSame(2, $rPauses);
+		$this->assertSame(3, array_search('sudo systemctl restart xc_vm', $rRan, true), 'after the look that saw it built');
+		$rStartupAt = array_key_first(array_filter($rRan, static fn($c) => str_contains($c, 'console.php startup')));
+		$this->assertGreaterThan(3, $rStartupAt);
+		$this->assertStringContainsString('console.php ffmpeg', end($rRan));
+
+		$rRan = [];
+		$rAnswers = array_fill(0, 100, 'WAIT');
+		$rLine = LbInstallFlow::startOnReplica(null, $rRun, static function (): void {
+		});
+		$this->assertStringContainsString('restart XC_VM on the node (systemctl restart xc_vm)', $rLine);
+		$this->assertNotContains('sudo systemctl restart xc_vm', $rRan, 'never started from no replica');
+		$this->assertCount(60, $rRan);
 	}
 
 	public function testKeysThatDoNotMatchTheirSasAreRefused(): void {

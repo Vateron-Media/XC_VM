@@ -274,7 +274,8 @@ class ServerInstallCommand implements CommandInterface {
 		$this->finalizeHostAfterRuntime($rConn, $rRunSSH, $rHost, !$rApiMode);
 
 		if ($rType == 2) {
-			LbInstallFlow::runStartup($rConn, $rRunSSH);
+			// An API-mode node boots from its replica, which only its enrolment brings.
+			LbInstallFlow::runStartup($rConn, $rRunSSH, !$rApiMode);
 			$rGenBefore = LbInstallFlow::nodeGen($rServerID);
 			if (!LbInstallFlow::provisionCluster($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, null, true, $rApiMode)) {
 				return 1;
@@ -282,6 +283,9 @@ class ServerInstallCommand implements CommandInterface {
 			$rFlows = LbInstallFlow::flowsOn($rServerID, $rGenBefore);
 			if ($rFlows !== '') {
 				echo $rFlows . "\n";
+			}
+			if ($rApiMode) {
+				echo LbInstallFlow::startOnReplica($rConn, $rRunSSH) . "\n";
 			}
 		} else {
 			// finalizeHostAfterRuntime() handed the whole tree to xc_vm: the key is root's again (ProxyInstallFlow::provisionKey).

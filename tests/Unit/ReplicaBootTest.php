@@ -185,6 +185,8 @@ final class ReplicaBootTest extends TestCase {
 		$this->assertSame(ReplicaBoot::ALWAYS, ReplicaBoot::forArgv(['console.php', 'cluster:apply']));
 		$this->assertNull(ReplicaBoot::forArgv(['console.php', 'cron:cache']));
 		$this->assertNull(ReplicaBoot::forArgv(['console.php']));
+		$this->assertSame(ReplicaBoot::ALWAYS, ReplicaBoot::forArgv(['console.php', 'fanout_binary', 'agent', ReplicaBoot::OPTION]), 'any command given the option');
+		$this->assertNull(ReplicaBoot::forArgv(['console.php', ReplicaBoot::OPTION]), 'the option is no command');
 		foreach ([null, 0, 1, 2] as $rMode) {
 			$this->flows($rMode);
 			$this->assertSame(ReplicaBoot::ALWAYS, BootKernel::resolve(BootContext::Cli, ['replica' => ReplicaBoot::ALWAYS])['replica']);
