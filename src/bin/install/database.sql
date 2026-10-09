@@ -1765,6 +1765,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `lb_binary_canary_server` int(11) DEFAULT '0',
   `lb_binary_canary_hours` int(11) DEFAULT '24',
   `lb_release_pin` varchar(32) DEFAULT '',
+  `gateway_mode` varchar(32) DEFAULT 'off',
   `cluster_db_allowlist` tinyint(1) DEFAULT '0',
   `cluster_db_allowlist_extra` varchar(1024) DEFAULT '',
   `cluster_auto_mode_down_min` smallint(5) unsigned DEFAULT '0',

@@ -2,6 +2,7 @@
 
 namespace XcVm\Core\Cluster;
 
+use XcVm\Core\Gateway\GatewayPolicy;
 use XcVm\Domain\Cluster\DbAllowlist;
 
 /**
@@ -64,6 +65,8 @@ final class ClusterSettings {
 		// A node's viewer records must prove MAIN's mint (ConnectionAdmission): counted
 		// under observe, refused under enforce where MAIN withholds the node's secret.
 		'cluster_conn_binding' => ['observe', ['observe', 'enforce']],
+		// The segment gateway (Phase 12, GatewayPolicy::MODES).
+		'gateway_mode' => ['off', GatewayPolicy::MODES],
 	];
 
 	public const DEFAULT_SCAN_ROOTS = ['/home/xc_vm/content', '/mnt', '/media'];

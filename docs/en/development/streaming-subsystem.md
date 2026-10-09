@@ -398,6 +398,17 @@ window), one-shot, best-effort — a signal never breaks playback. The daemon mu
 be launched with an ffmpeg that actually has the `drawtext` filter, so the
 `service` launcher picks a drawtext-capable build.
 
+### Segment gateway
+
+The daemon can also answer the viewer's HLS requests itself, without PHP-FPM: `/hls/<token>` (segments), `/key/<token>` (keys) and a known viewer's playlist refresh, `/auth/<token>` (ADR 0005). `settings.gateway_mode` turns it on per panel:
+
+- `off` (default): PHP answers, as above.
+- `shadow`: PHP answers; nginx mirrors each request to the gateway, which only judges it, and PHP tells the gateway what it answered, so each verdict is compared with PHP's. Cluster Nodes (the Segment Gateway column) and `/metrics` show the comparison per node, and when a node is ready to serve: seven days, and a hundred requests, since its last disagreement. On the node: `curl --unix-socket /home/xc_vm/bin/xc_fanout/sockets/gw.sock http://gw/stats`.
+- `segments`: the gateway serves live and catch-up segments and keys.
+- `segments+playlist`: and playlist refreshes, on nodes whose viewers are in their agent (the cluster API's CONNECTIONS flow). The first request of each viewer stays PHP's.
+
+What the gateway is not sure of it hands back to PHP (`X-Accel-Redirect` to a named location), which then answers exactly as before; a daemon that does not answer sends the request to PHP too. It reads `tmp/gateway/policy.json`, which `cron:cache` writes every minute (`Core/Gateway/GatewayPolicy`), and the root cron writes the nginx include `bin/nginx/conf/gateway.conf` (`Core/Gateway/GatewayNginxConfig`) — only while the daemon's gateway socket exists. Fanout off means the gateway is off.
+
 ---
 
 ## Connection Management

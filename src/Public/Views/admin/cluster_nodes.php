@@ -12,6 +12,7 @@
  */
 
 use XcVm\Core\Cluster\ClusterHealth;
+use XcVm\Core\Gateway\GatewayShadow;
 use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterCutover;
@@ -144,6 +145,7 @@ $rCutAny = false;
                     <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_settings_misses_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_settings_misses'); ?></th>
                     <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_main_connects_tip'), ENT_QUOTES); ?>"><?= $language::get('cluster_main_connects'); ?></th>
                     <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_legacy_calls_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_legacy_calls'); ?></th>
+                    <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_gateway_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_gateway'); ?></th>
                     <th class="text-center"><?= $language::get('actions'); ?></th>
                 </tr>
             </thead>
@@ -334,6 +336,37 @@ $rCutAny = false;
                                             <li><?= htmlspecialchars((string) $rKey, ENT_QUOTES); ?> × <?= (int) $rCount; ?></li>
                                         <?php endforeach; ?>
                                     </ul>
+                                </details>
+                            <?php endif; ?>
+                        </td>
+                        <td class="text-center" data-col="gateway">
+                            <?php // The segment gateway (GatewayShadow::report): its mode and, in shadow, how it compares with PHP. ?>
+                            <?php $rGateway = $rNode['gateway'] ?? null; ?>
+                            <?php if (!is_array($rGateway)): ?>
+                                <span class="text-body-secondary">—</span>
+                            <?php else: ?>
+                                <?php $rReadiness = GatewayShadow::readiness($rGateway['shadow'], time()); ?>
+                                <details>
+                                    <summary class="text-nowrap">
+                                        <span class="badge bg-label-secondary"><?= htmlspecialchars((string) $rGateway['mode'], ENT_QUOTES); ?></span>
+                                        <?php if ($rReadiness !== 'none'): ?>
+                                            <?php [$rBadge, $rLabel] = ['ready' => ['success', 'cluster_gateway_ready'], 'comparing' => ['info', 'cluster_gateway_comparing'], 'disagreed' => ['danger', 'cluster_gateway_disagreed']][$rReadiness]; ?>
+                                            <span class="badge bg-label-<?= $rBadge; ?>"><?= $language::get($rLabel); ?></span>
+                                        <?php endif; ?>
+                                    </summary>
+                                    <div class="small text-start">
+                                        <?php if ((int) $rGateway['shadow']['since'] > 0): ?>
+                                            <div><?= htmlspecialchars(str_replace(['{AGREE}', '{DISAGREE}', '{DEFERRED}', '{SINCE}'], [(string) (int) $rGateway['shadow']['agree'], (string) (int) $rGateway['shadow']['disagree'], (string) (int) $rGateway['shadow']['deferred'], date('Y-m-d H:i', (int) $rGateway['shadow']['since'])], $language::get('cluster_gateway_compared')), ENT_QUOTES); ?></div>
+                                        <?php endif; ?>
+                                        <ul class="list-unstyled font-monospace mb-0">
+                                            <?php foreach (array_slice($rGateway['counts'], 0, 8, true) as $rKey => $rCount): ?>
+                                                <li><?= htmlspecialchars((string) $rKey, ENT_QUOTES); ?> × <?= (int) $rCount; ?></li>
+                                            <?php endforeach; ?>
+                                            <?php foreach ($rGateway['shadow']['samples'] as $rSample): ?>
+                                                <li class="text-danger"><?= htmlspecialchars(date('Y-m-d H:i', (int) $rSample['at']) . ' ' . $rSample['kind'] . ' #' . (int) $rSample['stream'] . ': gateway ' . $rSample['gateway'] . ', PHP ' . $rSample['php'], ENT_QUOTES); ?></li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </div>
                                 </details>
                             <?php endif; ?>
                         </td>
@@ -597,7 +630,7 @@ LayoutRenderer::renderFooter('admin');
             };
             $('#cluster-nodes-table').DataTable({
                 order: [[1, 'asc']],
-                columnDefs: [{ orderable: false, targets: [3, 4, 10, 11, 12, 13] }],
+                columnDefs: [{ orderable: false, targets: [3, 4, 10, 11, 12, 13, 14] }],
                 layout: { topStart: 'pageLength', topEnd: 'search' },
                 language: { emptyTable: <?= json_encode($language::get('cluster_no_nodes')); ?> },
                 drawCallback: function() {

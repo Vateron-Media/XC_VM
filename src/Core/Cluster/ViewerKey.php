@@ -148,13 +148,23 @@ final class ViewerKey {
 	 * @return list<string>
 	 */
 	public static function own(?int $rNow = null): array {
+		return array_column(self::held($rNow), 'value');
+	}
+
+	/**
+	 * own() with the end of each key's window (null: none), for the segment
+	 * gateway's policy (GatewayPolicy), which reads them without PHP.
+	 *
+	 * @return list<array{value: string, until: ?int}>
+	 */
+	public static function held(?int $rNow = null): array {
 		$rOwn = self::read();
 		if ($rOwn === null) {
 			return [];
 		}
-		$rKeys = [$rOwn['current']];
+		$rKeys = [['value' => $rOwn['current'], 'until' => null]];
 		if ($rOwn['previous'] !== null && ($rNow ?? time()) <= (int) $rOwn['previous_valid_until']) {
-			$rKeys[] = $rOwn['previous'];
+			$rKeys[] = ['value' => $rOwn['previous'], 'until' => (int) $rOwn['previous_valid_until']];
 		}
 		return $rKeys;
 	}

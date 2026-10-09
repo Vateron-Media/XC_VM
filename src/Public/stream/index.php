@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Gateway\GatewayShadow;
 use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 
 /**
@@ -45,6 +46,8 @@ if (!$rHandler || !isset($rRouteMap[$rHandler]) || !file_exists($rRouteMap[$rHan
 }
 
 $rFilename = $rHandler;
+// In the segment gateway's shadow, the gateway hears what this request was answered (blocked included).
+GatewayShadow::watch($rHandler);
 StreamingRequestBootstrap::init($rHandler);
 require $rRouteMap[$rHandler];
 exit;

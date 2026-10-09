@@ -23,6 +23,8 @@ use XcVm\Core\Cluster\RootCredentials;
 use XcVm\Core\Cluster\RootPin;
 use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Gateway\GatewayNginxConfig;
+use XcVm\Core\Gateway\GatewayPolicy;
 use XcVm\Core\Process\PhpFpmPools;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Process\ProcessRunner;
@@ -801,6 +803,13 @@ class RootSignalsCronJob implements CommandInterface {
 		if ($rViewerApiConf !== null && $rViewerApiConf !== (trim(@file_get_contents(BIN_PATH . 'nginx/conf/viewer_api.conf')) ?: '')) {
 			echo 'Updating the viewer API toggle...' . "\n";
 			file_put_contents(BIN_PATH . 'nginx/conf/viewer_api.conf', $rViewerApiConf);
+			$rReload = true;
+		}
+		// The segment gateway's include (Phase 12): off, or shadow's mirror to xc_fanout.
+		$rGatewayConf = GatewayNginxConfig::render(GatewayPolicy::mode(SettingsManager::getAll()), file_exists(GatewayNginxConfig::SOCKET));
+		if ($rGatewayConf !== trim((string) @file_get_contents(BIN_PATH . GatewayNginxConfig::FILE))) {
+			echo 'Updating the segment gateway include...' . "\n";
+			file_put_contents(BIN_PATH . GatewayNginxConfig::FILE, $rGatewayConf . "\n");
 			$rReload = true;
 		}
 		$rMinistraLegacyConf = 'set $ministra_legacy_redirect ' . (SettingsManager::get('mag_legacy_redirect') ? '1' : '0') . ';';
