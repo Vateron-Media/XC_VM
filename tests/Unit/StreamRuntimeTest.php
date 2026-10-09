@@ -54,6 +54,7 @@ final class StreamRuntimeTest extends TestCase {
 
 	protected function tearDown(): void {
 		ProcessRunner::useRunner(null);
+		StreamRuntime::useProcRoot(null);
 		StreamStateWriter::useSink(null);
 		StreamRuntime::useDir($this->rRuntimeDir);
 		StreamRuntime::useLimits(null);
@@ -410,10 +411,20 @@ final class StreamRuntimeTest extends TestCase {
 		$this->assertTrue(StreamRuntime::seeded());
 	}
 
-	public function testReadyIsSeededOrASeedAndNeverInModeTwo(): void {
+	/** A procfs with one process, $rArgv its command line (none: an empty one). */
+	private function procfs(string ...$rArgv): string {
+		$rRoot = $this->rDir . 'proc/';
+		@mkdir($rRoot . '4242', 0777, true);
+		$rArgv === [] ? @unlink($rRoot . '4242/cmdline') : file_put_contents($rRoot . '4242/cmdline', implode("\0", $rArgv) . "\0");
+		return $rRoot;
+	}
+
+	public function testReadyIsSeededOrASeed(): void {
 		DatabaseFactory::set($this->main());
+		StreamRuntime::useProcRoot($this->procfs('/home/xc_vm/bin/ffmpeg_bin/4.0/ffmpeg', '-i', 'http://src/1.ts'));
 		$this->flows(NodeFlows::STREAMS, 2);
-		$this->assertFalse(StreamRuntime::ready(), 'mode 2 cannot seed');
+		$this->assertFalse(StreamRuntime::ready(), 'mode 2 reads no MAIN rows, and a producer runs');
+		StreamRuntime::useDir($this->rDir . 'cluster/runtime/'); // another process: no retry wait
 		$this->flows(0, 1);
 		$this->assertFalse(StreamRuntime::ready(), 'nothing to seed without STREAMS');
 		$this->flows(NodeFlows::STREAMS, 1);
@@ -422,6 +433,35 @@ final class StreamRuntimeTest extends TestCase {
 		DatabaseFactory::reset();
 		$this->flows(NodeFlows::STREAMS, 2);
 		$this->assertTrue(StreamRuntime::ready(), 'seeded: mode 2 takes it');
+	}
+
+	/**
+	 * A node born in mode 2 (lb_new_node_mode api) has no MAIN rows to read:
+	 * with none of its streams running it seeds from what it kept itself,
+	 * asks nothing of MAIN's database, and its readers take the store.
+	 */
+	public function testModeTwoSeedsFromTheNodeWhileNoProducerRuns(): void {
+		$rDb = new QueryLogDb($this->main());
+		DatabaseFactory::set($rDb);
+		StreamRuntime::useProcRoot($this->procfs('/home/xc_vm/bin/php/bin/php', 'console.php', 'cron:streams'));
+		$this->flows(NodeFlows::STREAMS, 2);
+		$this->assertTrue(StreamRuntime::ready());
+		$this->assertTrue(StreamRuntime::seeded());
+		$this->assertSame([], $rDb->rQueries, 'nothing asked of MAIN\'s database');
+	}
+
+	/**
+	 * A producer running in mode 2 without a seed holds a pid only MAIN's row
+	 * may have: the store stays unseeded, as before, rather than lose it.
+	 */
+	public function testModeTwoDoesNotSeedWhileAProducerRuns(): void {
+		foreach ([['/home/xc_vm/bin/ffmpeg_bin/8.1/ffmpeg', '-i', 'x'], ['/home/xc_vm/bin/xc_fanout/xc_fanout', 'remux', '-i', 'x']] as $rArgv) {
+			StreamRuntime::useDir($this->rDir . 'cluster/runtime/');
+			StreamRuntime::useProcRoot($this->procfs(...$rArgv));
+			$this->flows(NodeFlows::STREAMS, 2);
+			$this->assertFalse(StreamRuntime::ready(), basename($rArgv[0]) . ' runs');
+			$this->assertFalse(StreamRuntime::seeded());
+		}
 	}
 
 	public function testAWriteWithStreamsOffGoesToMainsRowAndLapsesTheStore(): void {
