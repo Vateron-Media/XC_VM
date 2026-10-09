@@ -96,6 +96,58 @@ final class StreamProcessSupervisionTest extends TestCase {
 		$this->assertStringContainsString("-i 'http://x/a'\\''; rm -rf /;'\\''.ts'", $c);
 	}
 
+	private const CREDENTIAL_ARGUMENTS = [
+		'user_agent' => ['value' => 'VLC/3.0'],
+		'proxy' => ['value' => 'pu:pp@10.0.0.1:3128'],
+		'cookie' => ['value' => 'session=s3cret'],
+		'headers' => ['value' => "Authorization: Bearer t0ken\r\n"],
+	];
+
+	/** With a source file, nothing that can carry an account is left in argv (/proc/<pid>/cmdline). */
+	public function testNativeCommandWithSourceFileCarriesNoCredentials(): void {
+		$c = $this->native(['sourceFile' => STREAMS_PATH . '42_.source_0', 'arguments' => self::CREDENTIAL_ARGUMENTS]);
+		$this->assertStringContainsString("-source_file '" . STREAMS_PATH . "42_.source_0'", $c);
+		foreach (['-i ', '/live/u/p/', 'VLC', 'pp@', 's3cret', 't0ken', '-cookies', '-headers', '-http_proxy', '-user_agent'] as $rLeak) {
+			$this->assertStringNotContainsString($rLeak, $c);
+		}
+		$this->assertStringContainsString("-ingest 'unix:/run/fanout/ingest/42.sock'", $c);
+		$this->assertStringEndsWith("'" . STREAMS_PATH . "42_.m3u8'", $c);
+	}
+
+	/** The file holds exactly what the argv line would, under the remux flag names. */
+	public function testNativeSourceHoldsTheArgvValues(): void {
+		$rSource = self::call('nativeSource', ['source' => 'http://src.example/live/u/p/9.ts', 'arguments' => self::CREDENTIAL_ARGUMENTS]);
+		$this->assertSame('http://src.example/live/u/p/9.ts', $rSource['i']);
+		$this->assertSame('VLC/3.0', $rSource['user_agent']);
+		$this->assertSame('http://pu:pp@10.0.0.1:3128', $rSource['http_proxy']);
+		$this->assertStringContainsString('session=s3cret', $rSource['cookies']);
+		$this->assertSame("Authorization: Bearer t0ken\r\n", $rSource['headers']);
+		$this->assertSame(['i', 'user_agent', 'cookies', 'http_proxy', 'headers'], array_keys($rSource));
+	}
+
+	/** Written 0600, and only for a daemon that advertises the flag; an older one keeps argv. */
+	public function testWriteNativeSourceNeedsTheDaemonFeature(): void {
+		@mkdir(STREAMS_PATH, 0777, true);
+		$rCache = tempnam(sys_get_temp_dir(), 'fanout_features');
+		$rData = ['source' => 'http://src.example/live/u/p/9.ts', 'arguments' => self::CREDENTIAL_ARGUMENTS];
+		try {
+			\XcVm\Streaming\Fanout\FanoutClient::useFilesPaths(null, $rCache);
+			file_put_contents($rCache, json_encode(['at' => time(), 'features' => ['remux']]));
+			$this->assertNull(self::call('writeNativeSource', 42, 1, $rData));
+
+			file_put_contents($rCache, json_encode(['at' => time(), 'features' => ['remux', 'remux_source_file']]));
+			$rPath = self::call('writeNativeSource', 42, 1, $rData);
+			$this->assertSame(STREAMS_PATH . '42_.source_1', $rPath);
+			clearstatcache();
+			$this->assertSame(0600, fileperms($rPath) & 0777);
+			$this->assertSame(self::call('nativeSource', $rData), json_decode((string) file_get_contents($rPath), true));
+		} finally {
+			\XcVm\Streaming\Fanout\FanoutClient::useFilesPaths(null, null);
+			@unlink($rCache);
+			@unlink(STREAMS_PATH . '42_.source_1');
+		}
+	}
+
 	// ── eligibility ───────────────────────────────────────────────
 
 	private function plainStream(array $rOverrides = []): array {
