@@ -1264,6 +1264,23 @@ class StreamProcess {
 	}
 
 	/**
+	 * Why this live stream does not run on the native remuxer: its own Always Use
+	 * ffmpeg switch (streams.force_ffmpeg), else nativeRefusal(). The switch is not
+	 * in nativeRefusal() because a source driver is refused by that too, and ffmpeg
+	 * cannot read a driver's URL: the switch would leave such a stream with no
+	 * producer at all. PURE.
+	 *
+	 * @param array $rStreamInfo streams ⨝ streams_types row.
+	 * @param array $rArgs       Stream arguments keyed by argument_key.
+	 */
+	private static function remuxRefusal(array $rStreamInfo, array $rArgs): ?string {
+		if (intval($rStreamInfo['force_ffmpeg'] ?? 0) === 1) {
+			return 'the stream is set to always use ffmpeg';
+		}
+		return self::nativeRefusal($rStreamInfo, $rArgs);
+	}
+
+	/**
 	 * Whether one source URL is one the native remuxer reads (xc_fanout's
 	 * nativesrc: MPEG-TS over http(s) — plain or as HLS with TS segments — and
 	 * udp/rtp). What it can only discover by connecting (fMP4 or encrypted HLS)
@@ -1604,7 +1621,7 @@ class StreamProcess {
 		$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
 		$rNativeStream = false;
 		if ($rBackend !== 'ffmpeg') {
-			$rRefusal = self::nativeRefusal($rInfo, $rArgsByKey);
+			$rRefusal = self::remuxRefusal($rInfo, $rArgsByKey);
 			if ($rRefusal === null && !FanoutClient::supportsRemux()) {
 				// The node's daemon predates `xc_fanout remux`. Handing it the
 				// command would not fail cleanly — it would start a process that

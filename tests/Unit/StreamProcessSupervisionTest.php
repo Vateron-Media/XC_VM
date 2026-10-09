@@ -165,6 +165,19 @@ final class StreamProcessSupervisionTest extends TestCase {
 		], $rOverrides);
 	}
 
+	/**
+	 * The stream's Always Use ffmpeg switch refuses the remuxer, but not a source
+	 * driver (nativeRefusal): ffmpeg cannot read a driver's URL, so refusing it
+	 * would leave the stream with no producer.
+	 */
+	public function testAlwaysUseFfmpegRefusesOnlyTheRemuxer(): void {
+		$rForced = $this->plainStream(['force_ffmpeg' => 1]);
+		$this->assertSame('the stream is set to always use ffmpeg', self::call('remuxRefusal', $rForced, []));
+		$this->assertNull(self::call('nativeRefusal', $rForced, []), 'a source driver still runs');
+		$this->assertNull(self::call('remuxRefusal', $this->plainStream(), []));
+		$this->assertSame('transcoding is enabled', self::call('remuxRefusal', $this->plainStream(['enable_transcode' => 1]), []));
+	}
+
 	public function testPlainCopyStreamIsNativeEligible(): void {
 		$this->assertNull(self::call('nativeRefusal', $this->plainStream(), []));
 	}
