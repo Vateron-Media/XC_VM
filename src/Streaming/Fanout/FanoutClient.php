@@ -598,10 +598,23 @@ class FanoutClient {
 	 * @return bool False when the daemon has not been asked yet, or says no.
 	 */
 	public static function supportsRemux(): bool {
+		return self::supportsLive('remux');
+	}
+
+	/**
+	 * Whether the running daemon has $rFeature, from what this process last
+	 * asked it (monitorStates(), which a hand-over has just called; asked here
+	 * when it has not been yet). Unlike supports(), no file cache a minute
+	 * old: what a stream's command line may use is decided on the daemon
+	 * that will run it, so a downgrade is seen at the next hand-over.
+	 *
+	 * @return bool False when the daemon cannot be reached, or says no.
+	 */
+	public static function supportsLive(string $rFeature): bool {
 		if (self::$features === null) {
 			self::monitorStates();
 		}
-		return is_array(self::$features) && in_array('remux', self::$features, true);
+		return is_array(self::$features) && in_array($rFeature, self::$features, true);
 	}
 
 	/**
