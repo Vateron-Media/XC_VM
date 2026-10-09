@@ -20,12 +20,17 @@ final class GatewayLiveVectorsTest extends TestCase {
 
 	private string $rDir;
 
+	private string $rIV;
+
 	public static function setUpBeforeClass(): void {
 		self::$rV = json_decode((string) file_get_contents(dirname(__DIR__) . '/Support/gateway_live_vectors.json'), true);
 	}
 
 	protected function tearDown(): void {
 		ViewerKey::useFile(null);
+		if (isset($this->rIV)) {
+			@unlink($this->rIV);
+		}
 		if (isset($this->rDir)) {
 			exec('rm -rf ' . escapeshellarg($this->rDir));
 		}
@@ -62,7 +67,10 @@ final class GatewayLiveVectorsTest extends TestCase {
 		$rP = self::$rV['playlist'];
 		// The tokens carry this server's id (SERVER_ID): the file's, where this process has another.
 		$rServerField = '/' . $rP['uuid'] . '/';
-		file_put_contents(STREAMS_PATH . $rP['stream_id'] . '_.iv', hex2bin($rP['iv_hex']));
+		// STREAMS_PATH may be another test's, whose directory is gone by now.
+		@mkdir(STREAMS_PATH, 0700, true);
+		$this->rIV = STREAMS_PATH . $rP['stream_id'] . '_.iv';
+		file_put_contents($this->rIV, hex2bin($rP['iv_hex']));
 		foreach ($rP['cases'] as $rCase) {
 			$rFile = $this->rDir . '/viewer';
 			@unlink($rFile);
