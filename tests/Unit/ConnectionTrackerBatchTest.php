@@ -4,6 +4,7 @@ use PHPUnit\Framework\TestCase;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Tests\Support\RedisServer;
 
 /**
  * ConnectionTracker's batch readers, which share one walk each: the users'
@@ -27,12 +28,7 @@ final class ConnectionTrackerBatchTest extends TestCase {
 		}
 		self::$rRedisDir = sys_get_temp_dir() . '/xcvm-redis-' . bin2hex(random_bytes(4));
 		mkdir(self::$rRedisDir);
-		self::$rRedisPort = random_int(20000, 40000);
-		$rNull = ['file', '/dev/null', 'w'];
-		self::$rRedisProc = proc_open(['redis-server', '--port', (string) self::$rRedisPort, '--bind', '127.0.0.1', '--save', '', '--appendonly', 'no', '--dir', self::$rRedisDir], [0 => ['file', '/dev/null', 'r'], 1 => $rNull, 2 => $rNull], $rPipes) ?: null;
-		for ($i = 0; $i < 50 && !@fsockopen('127.0.0.1', self::$rRedisPort); $i++) {
-			usleep(50000);
-		}
+		[self::$rRedisProc, self::$rRedisPort] = RedisServer::start(self::$rRedisDir) ?? [null, 0];
 	}
 
 	public static function tearDownAfterClass(): void {

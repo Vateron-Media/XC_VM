@@ -9,6 +9,7 @@ use XcVm\Domain\Cluster\EventIngest;
 use XcVm\Domain\Cluster\NodeRegistry;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Tests\Support\RedisServer;
 
 /**
  * Phase 6, the P2 lane and `conn.touch` (plan, sections 7 and 8): when a
@@ -37,13 +38,9 @@ final class ConnectionTouchTest extends TestCase {
 		}
 		self::$rRedisDir = sys_get_temp_dir() . '/xcvm-touch-' . bin2hex(random_bytes(4));
 		mkdir(self::$rRedisDir);
-		self::$rRedisPort = random_int(20000, 40000);
 		// One server: MAIN's store on TCP, the cluster bus on its unix socket.
-		$rNull = ['file', '/dev/null', 'w'];
-		self::$rRedisProc = proc_open(['redis-server', '--port', (string) self::$rRedisPort, '--bind', '127.0.0.1', '--unixsocket', self::$rRedisDir . '/cluster.sock', '--unixsocketperm', '700', '--save', '', '--appendonly', 'no', '--dir', self::$rRedisDir], [0 => ['file', '/dev/null', 'r'], 1 => $rNull, 2 => $rNull], $rPipes) ?: null;
-		for ($i = 0; $i < 50 && (!@fsockopen('127.0.0.1', self::$rRedisPort) || !file_exists(self::$rRedisDir . '/cluster.sock')); $i++) {
-			usleep(50000);
-		}
+		$rSocket = self::$rRedisDir . '/cluster.sock';
+		[self::$rRedisProc, self::$rRedisPort] = RedisServer::start(self::$rRedisDir, ['--unixsocket', $rSocket, '--unixsocketperm', '700'], $rSocket) ?? [null, 0];
 	}
 
 	public static function tearDownAfterClass(): void {
