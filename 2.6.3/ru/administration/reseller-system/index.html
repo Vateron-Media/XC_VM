@@ -1,0 +1,3972 @@
+
+<!doctype html>
+<html lang="ru" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.6.3/ru/administration/reseller-system/">
+      
+      
+        <link rel="prev" href="../update-system/">
+      
+      
+        <link rel="next" href="../backup-strategy/">
+      
+      
+        
+          <link rel="alternate" href="../../../administration/reseller-system/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Система реселлеров - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Верхний колонтитул">
+    <a href="../../" title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Система реселлеров
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Выберите язык">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../administration/reseller-system/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Поиск" placeholder="Поиск" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Поиск">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Очистить" aria-label="Очистить" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Инициализация поиска
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Вкладки" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Главная
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  Руководство пользователя
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Руководство разработчика
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Навигация" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Главная
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство пользователя
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство пользователя
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Администрирование
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Администрирование
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Генерация SSL-сертификата
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обновление сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../main-lb-cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAIN и балансировщики нагрузки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Механизм обновлений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система реселлеров
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система реселлеров
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обзор
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Кредитная система
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Кредитная система">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Затраты по кредиту
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Переопределение ценообразования
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Кредитный перевод
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Линейное управление
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Линейное управление">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Процесс создания
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Испытания
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Назначение букета
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Спаривание
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Коды активации
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Управление устройствами
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Управление устройствами">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        МАГНИТНЫЕ устройства
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enigma2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Устройства Enigma2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Иерархия суб-реселлеров
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Разрешения
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Разрешения">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ключевые поля разрешений
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверки на уровне страницы
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Границы
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rest-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        REST API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Сессия и начальная загрузка
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Сессия и начальная загрузка">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Сессия
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Функции начальной загрузки
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Маршруты
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Стратегия резервного копирования
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эксплуатация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Справочник API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Справочник API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интерактивный API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кастомизация
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Кастомизация
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Переводы интерфейса
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Диагностика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сервис диагностики
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Информация и FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Информация и FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/licensing-and-activation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Лицензирование и активация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство по миграции
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Отслеживаемая папка
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/youtube-restream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рестрим YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/custom-ffmpeg-command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Свои команды FFmpeg
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Архитектура
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Архитектура
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обзор архитектуры
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автозагрузка (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Контексты бутстрапа
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и регистрация ядра
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Создание модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Жизненный цикл модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Точки расширения модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/source-drivers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Драйверы источников
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка HTTP-запросов
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AJAX-API админки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Подсистема стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/cluster-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API кластера (MAIN ↔ LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/cluster-seams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Швы кластера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система событий
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Иерархия исключений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кэширование и Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рендеринг навбара
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рабочий процесс разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Рабочий процесс разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Процесс разработки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI-инструменты и консоль
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Миграции базы данных
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Юнит-тесты
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автоматический рефакторинг (Rector)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Флаги функций
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Управление процессами
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Безопасность и доступ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Безопасность и доступ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Аутентификация и сессии
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Права и RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Валидация ввода
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка ошибок
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграции
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Интеграции
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP и гео-маршрутизация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Определение устройств и STB-блокировки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эмуляция Ministra STB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграция UCS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и релиз
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Сборка и релиз
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система сборки (MAIN и LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Чеклист перед релизом
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обзор
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Кредитная система
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Кредитная система">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Затраты по кредиту
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Переопределение ценообразования
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Кредитный перевод
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Линейное управление
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Линейное управление">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Процесс создания
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Испытания
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Назначение букета
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Спаривание
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Коды активации
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Управление устройствами
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Управление устройствами">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        МАГНИТНЫЕ устройства
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enigma2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Устройства Enigma2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Иерархия суб-реселлеров
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Разрешения
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Разрешения">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ключевые поля разрешений
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверки на уровне страницы
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Границы
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rest-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        REST API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Сессия и начальная загрузка
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Сессия и начальная загрузка">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Сессия
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Функции начальной загрузки
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Маршруты
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">Система реселлеров<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>Система реселлеров обеспечивает многоуровневое управление партнерскими отношениями с предоставлением кредитных линий.
+Реселлеры создают IPTV-линии, устройства MAG и Enigma2 и управляют ими в рамках выделенных им кредитов и разрешений.</p>
+<hr />
+<h2 id="_2">Обзор<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Admin
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  └── assigns credits + group permissions
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        └── Reseller
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>              ├── creates IPTV lines (costs credits)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>              ├── creates MAG devices (costs credits)
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>              ├── creates Enigma2 devices (costs credits)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>              ├── generates activation codes (costs credits)
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>              └── creates sub-resellers (costs credits)
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                    └── sub-reseller has own lines + credits
+</code></pre></div>
+<p>Основная бизнес-логика находится в <code>src/Domain/User/ResellerAPI.php</code>. Веб-контроллеры находятся в <code>src/Public/Controllers/Reseller/</code>. REST API находится в <code>src/Public/Controllers/Api/ResellerRestApiController.php</code>.</p>
+<hr />
+<h2 id="_3">Кредитная система<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<p>Кредиты являются валютой для всех операций посредника. Каждое действие имеет определенную стоимость, и баланс посредника должен ее покрывать.</p>
+<p>Цена берется из баланса в том виде, в каком она сохранена на данный момент, до создания линии, устройства, субпродюсера или пакета кодов. На два запроса, отправленных одновременно, не может быть потрачено одинаковое количество кредитов: на тот, который больше не покрывается балансом, дается ответ <code>STATUS_INSUFFICIENT_CREDITS</code> (пакет кода отклоняется с сообщением "Недостаточно баланса") и ничего не создается. Если запись все-таки не удается сохранить, стоимость возвращается на баланс.</p>
+<p>Цены на линии, устройства MAG, устройства Enigma2, суб-реселлеров и коды активации взимаются по мере их хранения, с указанием их доли, с четырьмя знаками после запятой, на которых поддерживается баланс (цена 0,5 стоит 0,5, 10,9 стоит 10,9). Отказ из-за недостаточного баланса, стоимость и баланс в журнале реселлера, а также цена, указанная в списках REST API, учитываются при списании. Кредитные переводы переводят целые кредиты (см. <a href="#credit-transfer">Кредитный перевод</a>). Балансы, цены, журнал зачислений и стоимость покупки кодов активации сохраняются в виде <code>DECIMAL(16,4)</code> (миграция <code>070</code>; они были ПЛАВАЮЩИМИ, точными только для целых зачислений до 16 777 216); вся сумма отображается и отвечает как целое число, как это было всегда.</p>
+<h3 id="_4">Затраты по кредиту<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Действие</th>
+<th>Источник затрат</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Создать линию (официальную)</td>
+<td><code>package.official_credits</code></td>
+</tr>
+<tr>
+<td>Создать строку (пробная версия)</td>
+<td><code>package.trial_credits</code></td>
+</tr>
+<tr>
+<td>Создать магнитное устройство</td>
+<td>то же, что линия</td>
+</tr>
+<tr>
+<td>Создание устройства Enigma2</td>
+<td>то же, что линия</td>
+</tr>
+<tr>
+<td>Удлинить линию или устройство</td>
+<td>то же, что и при создании, для выбранного пакета</td>
+</tr>
+<tr>
+<td>Генерировать коды активации</td>
+<td><code>package.official_credits</code> для каждого кода (<code>package.trial_credits</code> для пробного пакета)</td>
+</tr>
+<tr>
+<td>Создать суб-реселлера</td>
+<td><code>permissions.create_sub_resellers_price</code></td>
+</tr>
+</tbody>
+</table>
+<p>За одну цену оплачивается один период. Когда два запроса одновременно распространяются на одну и ту же линию или устройство, один сохраняется и оплачивается; на другой приходит ответ <code>STATUS_FAILURE</code>, плата не взимается, и он может быть отправлен повторно.</p>
+<h3 id="_5">Переопределение ценообразования<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<p>Реселлеры могут устанавливать индивидуальные цены для каждого пакета с помощью <code>override_packages</code> JSON в своей пользовательской записи:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="x">$rOverride = json_decode($rUserInfo['override_packages'], true);</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="x">if (isset($rOverride[$rPackage['id']]['official_credits'])) {</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="x">    $rCost = ResellerAPI::amount($rOverride[$rPackage['id']]['official_credits']);</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="x">}</span>
+</code></pre></div>
+<h3 id="_6">Кредитный перевод<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<p>Реселлер переводит все кредиты суб-реселлеру или от него в своем дереве с помощью действия <code>adjust_credits</code>; отрицательная сумма забирает кредиты обратно. Сторона, которая отдает, должна удерживать сумму в данный момент, иначе ничего не перемещается и действие завершается неудачей (<code>STATUS_FAILURE</code>). Собственная учетная запись реселлера не может быть целевой, а учетная запись администратора в дереве реселлера исключается в обоих направлениях.</p>
+<p>При удалении суб-реселлера из панели реселлеров все кредиты, которыми он располагает на данный момент, возвращаются реселлеру, включая доли; в строке <code>delete</code> журнала реселлеров отображаются целые кредиты. При выполнении остальных действий <code>delete_user</code> происходит то же самое. В любом случае строки удаленного суб-реселлера и суб-реселлеры становятся строками реселлера. Если в данный момент кредиты не могут быть переведены, ничего не удаляется и действие завершается неудачей; повторите его.</p>
+<p>Редактирование посредником данных субпродюсера никогда не приводит к изменению баланса. Администратор изменяет баланс в пользовательской форме: поле <strong>Кредиты</strong> изменяет баланс на разницу по сравнению со значением, показанным при открытии формы, и эта разница записывается в журнал зачислений. При сохранении, не касаясь поля, баланс остается неизменным. При повторной отправке той же открытой формы (например, после неверного ответа) снова применяются те же изменения: перезагрузите форму перед повторной попыткой.</p>
+<h3 id="_7">Регистрация<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<p>Все кредитные операции отражаются в <code>users_logs</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>owner</code></td>
+<td>идентификатор пользователя торгового посредника</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>line</code>, <code>mag</code>, <code>enigma</code>, <code>user</code>, <code>active_code</code></td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td><code>new</code>, <code>extend</code>, <code>edit</code>, <code>enable</code>, <code>disable</code>, <code>delete</code>, <code>convert</code>, <code>send_event</code>, <code>adjust_credits</code>, <code>generate</code></td>
+</tr>
+<tr>
+<td><code>cost</code></td>
+<td>потраченные кредиты с указанием их доли</td>
+</tr>
+<tr>
+<td><code>credits_after</code></td>
+<td>остаток после операции с его долей</td>
+</tr>
+<tr>
+<td><code>package_id</code></td>
+<td>использованный пакет</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>отметка времени</td>
+</tr>
+</tbody>
+</table>
+<p><code>cost</code> и <code>credits_after</code> сохраняют дроби с момента переноса <code>069_exact_reseller_log_amounts</code>; строки, записанные до этого, сохраняют целые значения, с которыми они были сохранены.</p>
+<hr />
+<h2 id="_8">Линейное управление<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
+<p>Строки - это подписки пользователей на IPTV. Типы:</p>
+<table>
+<thead>
+<tr>
+<th>Тип</th>
+<th>Флаги</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Стандартная линия IPTV</td>
+<td><code>is_mag=0, is_e2=0</code></td>
+</tr>
+<tr>
+<td>МАГНИТНОЕ устройство</td>
+<td><code>is_mag=1</code></td>
+</tr>
+<tr>
+<td>Устройство Enigma2</td>
+<td><code>is_e2=1</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">Процесс создания<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Проверьте доступность пакета (должен быть указан в разрешениях группы реселлеров).</li>
+<li>Проверьте <code>credits &gt;= cost</code>.</li>
+<li>Сгенерируйте имя пользователя/пароль, если это разрешено разрешениями.</li>
+<li>Применить пакет: <code>exp_date</code>, <code>max_connections</code>, <code>bouquets</code>, <code>allowed_outputs</code>.</li>
+<li>Установите ограничения: <code>allowed_ips</code> (JSON), <code>allowed_ua</code>, <code>bypass_ua</code>, <code>is_isplock</code>.</li>
+<li>Возьмите цену из сохраненного баланса (<code>UserCredits::debit()</code>); баланс, который больше не покрывает ее, останавливает запрос здесь.</li>
+<li>Сохраните строку в таблице <code>lines</code>. Новая строка вставляется через <code>REPLACE INTO</code>. Каждое сохранение существующей строки, как обычное редактирование, так и расширение, записывается только до тех пор, пока у строки все еще есть срок действия, указанный в запросе: когда срок действия истекает, ничего не сохраняется и на запрос приходит ответ <code>STATUS_FAILURE</code>. Для устройств MAG или Enigma2 строка и номер устройства сохраняются в одной транзакции; за этим следуют шаги 8 и 9.</li>
+<li>Синхронизируйте записи устройства (<code>mag_devices</code> или <code>enigma2_devices</code>).</li>
+<li>Транслируйте сигнал события на потоковые серверы.</li>
+<li>Регистрируйте транзакцию. Если не удалось сохранить строку или устройство, вместо этого возвращается цена, а строка остается прежней.</li>
+</ol>
+<p>Имя пользователя и пароль в строке не могут содержать <code>/</code>: на запрос получен ответ <code>STATUS_INVALID_USERNAME</code> или <code>STATUS_INVALID_PASSWORD</code>. Строка, в которой уже есть такое значение, сохраняет его и остается доступной для редактирования до тех пор, пока это значение не будет изменено. Как найти такие строки:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="o">`</span><span class="n">lines</span><span class="o">`</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">'%/%'</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">password</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">'%/%'</span><span class="p">;</span>
+</code></pre></div>
+<h3 id="_10">Испытания<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Пробная версия выполняется только при создании линии или устройства из пакета, помеченного как пробный; <code>trial</code> при редактировании игнорируется.</li>
+<li>Пакет с включенным <em>Пробным пакетом</em> и выключенным <em>Стандартным пакетом</em> предоставляет только пробные версии. Создание линии или устройства на ее основе без <code>trial</code> вызывает ответ <code>STATUS_INVALID_PACKAGE</code>, как и правка, в которой указано это имя: правка отклоняется, а не рассматривается как покупка. Пробная версия становится подпиской при покупке пакета вместе со стандартным пакетом.</li>
+<li>Пакет продает реселлеру то, что указано на его коммутаторах. * Стандартный пакет<em> продает подписки (линейку, устройство MAG или Enigma2) и официальные коды активации; </em>Пробный пакет * предоставляет пробные версии. Пакет, в котором не включен ни один из этих параметров, ничего не продает торговому посреднику: <code>create_line</code>/<code>edit_line</code>, <code>create_mag</code>/<code>edit_mag</code> и <code>create_enigma</code>/<code>edit_enigma</code> отвечают <code>STATUS_INVALID_PACKAGE</code> за него, и он не указан в списке торговых посредников. Администраторы не связаны этими параметрами.</li>
+<li><em>Разрешенные испытания</em> N в течение <em>Дня</em> / <em>Месяца</em> (групповая форма) означает N испытаний в течение одного календарного дня или в течение одного календарного месяца, начиная с сегодняшнего дня (от 28 до 31 дня в зависимости от даты).</li>
+<li>В сумму скидки входят пробные линии, устройства MAG и Enigma2, а также коды активации пробной версии, которыми владеет сам реселлер. У каждого суб-реселлера есть своя скидка.</li>
+<li>Скидка распространяется и на запросы, отправленные одновременно: один пробный запрос от реселлера учитывается и сохраняется единовременно (линии, устройства и коды пробной активации).</li>
+<li>Пробная версия создается у реселлера, который ее создает (<code>member_id</code> в запросе игнорируется) и сохраняет своего владельца, пока это пробная версия.</li>
+<li>В пробных версиях, включая коды активации, отказано, пока действует функция "Отключить пробные версии", пока баланс реселлера ниже минимального количества кредитов для пробных версий в группе, а также после того, как резерв будет израсходован (<code>STATUS_NO_TRIALS</code>; пакет кодов отклоняется с сообщением).</li>
+</ul>
+<h3 id="_11">Назначение букета<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<p>В каждом пакете указаны доступные букеты с помощью массива <code>bouquets</code> JSON.
+Если включено разрешение <code>allow_change_bouquets</code>, реселлер может выбрать часть букетов из пакета. В противном случае все букеты из пакета назначаются автоматически. Запрос, который не отправляет выборку, или выборка, в которой не указан ни один букет из пакета, получает все букеты из пакета.</p>
+<p>Это же разрешение (<em>Разрешить редактирование букета</em> в форме группы) управляет формой Генерации активных кодов. Без него коды будут отображаться в букетах из пакета, а сборщик будет скрыт. С его помощью торговый посредник сузит выбор в рамках пакета.</p>
+<h3 id="_12">Спаривание<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h3>
+<p>Линия или устройство могут быть подключены к линии, которой управляет реселлер (<code>pair_id</code>); затем они будут соответствовать сроку действия и комплектации этой линии. Подключение применяется к приобретенным подпискам:</p>
+<ul>
+<li>Пробная версия никогда не соединяется с другой строкой, и ни одна строка не соединяется с пробной версией.</li>
+<li>Строка или устройство не связаны со строкой кода активации, который не был активирован.</li>
+</ul>
+<p>В этих случаях запрос сохраняется непарным, без ошибок.</p>
+<h3 id="_13">Коды активации<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<p>Реселлер генерирует коды активации из линейного пакета, предлагаемого его группе, в котором включен "Стандартный пакет" или "Пробный пакет". К каждому коду прилагается дополнительная строка.</p>
+<ul>
+<li><em>Стандартный пакет</em> on предоставляет официальные коды по официальной цене; <em>Пробный пакет</em> alone предоставляет пробные коды по пробной цене. Если оба кода включены, они являются официальными, если только в запросе не запрашиваются пробные коды с <code>is_trial</code> (в форме пакет указан дважды, вторая запись помечена <em>[Пробная версия]</em> по пробной цене). Пробные коды не включены в пробное предложение; без них пробная запись отображается серым цветом. Запрос пробных кодов из пакета без <em>Пробного пакета</em> отклоняется (<em>Выбран неверный пакет.</em>).</li>
+<li>
+<p>Администратор выдает коды из любого пакета; коды администратора в пакете с включенным <em>Пробным пакетом</em> являются пробными кодами. Через API администратора <code>is_trial</code> считывается как переключатель, как и для реселлеров (<code>false</code>, <code>off</code>, <code>no</code> запрашивайте официальные коды).</p>
+</li>
+<li>
+<p>Дополнительная строка создается в выключенном виде и запускается (устанавливается срок действия, включается) после использования кода. Учетные данные и ссылки на M3U, указанные для кода, который еще есть в наличии, будут работать только после использования.</p>
+</li>
+<li>Включение или редактирование кода, имеющегося в наличии, не приводит к включению его строки. Активированный код, для строки которого администратор установил, что срок действия не истек, включается при включении кода.</li>
+<li>Включение изменяет статус только приостановленных кодов. Код, который есть в наличии или активен, сохраняет свой статус, поэтому восстановленный код, который администратор вернул на склад, остается на складе, если он является частью включенного выбора.</li>
+<li>Реселлеры не могут продлить срок действия кодов или изменить их комплектацию; в списке реселлеров нет действия по продлению. При редактировании реселлером кодов сохраняется в пакете, подключениях и сроке действия. Если вернуть использованный код на склад, он останется активным, если только администратор еще не вернул его на склад.</li>
+<li>Коды реселлера основаны на подключениях к пакету и принудительной стране; в форме реселлера нет поля "Страна".</li>
+<li>Пользовательский потоковый пароль не может содержать <code>/</code>, а код не может быть переименован в значение, содержащее <code>/</code>.</li>
+<li>Переименованный код присваивает своей строке новое имя в качестве имени пользователя, если это имя пользователя было старым кодом или сгенерированным кодом <code>ac_…</code>. В переименовании отказано (<em>уже принято</em>), если это имя пользователя есть в другой строке.</li>
+<li>Стоимость кода, приобретенного реселлером, возвращается один раз, когда этот реселлер удаляет его с возможностью возврата, пока он есть в наличии. Отключенный код ничего не возвращает, даже если он никогда не использовался: сначала включите его, и он вернется на склад. Код, удаленный другим торговым посредником из дерева или администратором, ничего не возвращает. Код, сгенерированный администратором для торгового посредника, имеет стоимость покупки 0 и ничего не возвращает.</li>
+<li>Обновление применяет эти правила один раз к кодам, сгенерированным до них (перенос базы данных <code>066_hold_unredeemed_activation_codes</code>): строка кода, которую никто не использовал, отключается, а строка или сопряженное с ней устройство принимают прежнее состояние (без истечения срока действия). Стоимость покупки по коду, который никто не использовал, или по коду, который снова есть в наличии, сохраняется только до тех пор, пока в журнале продавца (<code>users_logs</code>) хранится информация о покупке партии этим продавцом под именем партии, поэтому код, запись о котором была удалена или партия была переименована, ничего не возвращает. Количество использованных кодов и стоимость активных кодов не изменяются. При откате версии снова включаются строки ожидания, за исключением строк с приостановленными кодами (при следующем сохранении этой строки будет добавлена строка или устройство, сопряженное с ней), и стоимость покупки не восстанавливается; при следующем обновлении этот шаг повторяется.</li>
+</ul>
+<hr />
+<h2 id="_14">Управление устройствами<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
+<h3 id="_15">МАГНИТНЫЕ устройства<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h3>
+<p>Управляется с помощью <code>MagService</code> (<code>src/Domain/Device/MagService.php</code>).
+Поля блокировки: <code>ver</code>, <code>device_id2</code>, <code>device_id</code>, <code>hw_version</code>, <code>image_version</code>, <code>stb_type</code>, <code>sn</code>.</p>
+<h3 id="enigma2">Устройства Enigma2<a class="headerlink" href="#enigma2" title="Permanent link">&para;</a></h3>
+<p>Управляется с помощью <code>EnigmaService</code> (<code>src/Domain/Device/EnigmaService.php</code>).
+Поля блокировки: <code>token</code>, <code>lversion</code>, <code>cpu</code>, <code>enigma_version</code>, <code>modem_mac</code>, <code>local_ip</code>.</p>
+<p>Оба типа устройств поддерживают <code>lock_device</code> (аппаратная привязка), <code>is_isplock</code> (привязка к провайдеру) и <code>forced_country</code>.</p>
+<hr />
+<h2 id="-">Иерархия суб-реселлеров<a class="headerlink" href="#-" title="Permanent link">&para;</a></h2>
+<p>Реселлеры могут создавать суб-реселлеров (если получено разрешение <code>create_sub_resellers</code>).:</p>
+<ul>
+<li>Суб-реселлеры связаны через поле <code>owner_id</code>.</li>
+<li>Многоуровневый: суб-реселлер может создавать своих собственных суб-реселлеров.</li>
+<li>Каждое создание стоит <code>create_sub_resellers_price</code> кредитов.</li>
+<li>Присвоенный <code>member_group_id</code> должен находиться в родительском массиве разрешений <code>subresellers</code>.</li>
+<li>Субпродавец не может быть назван или переименован с использованием имени пользователя, которое есть у другой учетной записи panel (<code>STATUS_EXISTS_USERNAME</code>); пустое имя при редактировании сохраняет текущее. Имена сравниваются без регистра и конечных пробелов, и база данных сохраняет их уникальными (миграция <code>068_unique_panel_account_names</code>), поэтому два запроса, которые одновременно создают одно и то же имя, сохраняют одну учетную запись и отклоняют другую.</li>
+<li>Реселлер никогда не предоставляет пользователю группу администраторов и не может редактировать, удалять, отключать или включать учетную запись администратора в ее дереве или перемещать ее кредиты. Смотрите <a href="../../guides/permissions-and-rbac/#full-administrator">Полный статус администратора</a>.</li>
+<li>Реселлер не может удалить, отключить или включить свою собственную учетную запись: действие в строке панели соответствует <code>result: false</code>, а REST API - <code>STATUS_FAILURE</code>.</li>
+</ul>
+<p>Запросы о праве собственности:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">Authorization::check('user', $rID)   // checks reseller hierarchy</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">Authorization::check('line', $rID)   // checks if reseller's reports own the line</span>
+</code></pre></div>
+<p>Методы:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">UserRepository::getResellers($rOwner, $rIncludeSelf)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">UserRepository::getDirectReports()</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">AuthRepository::getGroupPermissions()  // builds all_reports recursively</span>
+</code></pre></div>
+<hr />
+<h2 id="_16">Разрешения<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
+<p>Разрешения берутся из таблицы <code>users_groups</code>, загружаемой через <code>AuthRepository::getPermissions()</code>.</p>
+<h3 id="_17">Ключевые поля разрешений<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Разрешение</th>
+<th>Тип</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_reseller</code></td>
+<td><code>bool</code></td>
+<td>пользователь является реселлером</td>
+</tr>
+<tr>
+<td><code>create_line</code></td>
+<td><code>bool</code></td>
+<td>может создавать IPTV-линии</td>
+</tr>
+<tr>
+<td><code>create_mag</code></td>
+<td><code>bool</code></td>
+<td>может создавать магнитные устройства</td>
+</tr>
+<tr>
+<td><code>create_enigma</code></td>
+<td><code>bool</code></td>
+<td>может создавать устройства Enigma2</td>
+</tr>
+<tr>
+<td><code>create_sub_resellers</code></td>
+<td><code>bool</code></td>
+<td>может создавать суб-реселлеров</td>
+</tr>
+<tr>
+<td><code>create_sub_resellers_price</code></td>
+<td><code>int</code></td>
+<td>стоимость кредита на одного суб-реселлера</td>
+</tr>
+<tr>
+<td><code>allow_change_bouquets</code></td>
+<td><code>bool</code></td>
+<td>можно выбрать подмножество букетов (линии, устройства и коды активации).</td>
+</tr>
+<tr>
+<td><code>allow_change_username</code></td>
+<td><code>bool</code></td>
+<td>можно установить пользовательское имя пользователя</td>
+</tr>
+<tr>
+<td><code>allow_change_password</code></td>
+<td><code>bool</code></td>
+<td>можно установить пользовательский пароль</td>
+</tr>
+<tr>
+<td><code>allow_restrictions</code></td>
+<td><code>bool</code></td>
+<td>можно установить ограничения по IP/UA</td>
+</tr>
+<tr>
+<td><code>can_view_vod</code></td>
+<td><code>bool</code></td>
+<td>может просматривать VOD-контент</td>
+</tr>
+<tr>
+<td><code>reseller_client_connection_logs</code></td>
+<td><code>bool</code></td>
+<td>можно просматривать журналы подключений</td>
+</tr>
+<tr>
+<td><code>minimum_username_length</code></td>
+<td><code>int</code></td>
+<td>минимальная длина имени пользователя</td>
+</tr>
+<tr>
+<td><code>minimum_password_length</code></td>
+<td><code>int</code></td>
+<td>минимальная длина пароля</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_18">Проверки на уровне страницы<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h3>
+<p><code>PageAuthorization::checkResellerPermissions()</code> сопоставляет страницы с разрешениями:</p>
+<table>
+<thead>
+<tr>
+<th>Страницы</th>
+<th>Требуемое разрешение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user</code>, <code>users</code></td>
+<td><code>create_sub_resellers</code></td>
+</tr>
+<tr>
+<td><code>line</code>, <code>lines</code></td>
+<td><code>create_line</code></td>
+</tr>
+<tr>
+<td><code>mag</code>, <code>mags</code></td>
+<td><code>create_mag</code></td>
+</tr>
+<tr>
+<td><code>enigma</code>, <code>enigmas</code></td>
+<td><code>create_enigma</code></td>
+</tr>
+<tr>
+<td><code>epg_view</code>, <code>streams</code>, <code>movies</code></td>
+<td><code>can_view_vod</code></td>
+</tr>
+<tr>
+<td><code>live_connections</code>, <code>line_activity</code></td>
+<td><code>reseller_client_connection_logs</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_19">Границы<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h3>
+<p>Что делают реселлеры <strong>не могу</strong>:</p>
+<ul>
+<li>Линии доступа/пользователи за пределами их иерархии.</li>
+<li>Создавайте или изменяйте пакеты.</li>
+<li>Доступ к настройкам доступен только для администратора.</li>
+<li>Превысить их кредитный баланс.</li>
+<li>Обходите групповые ограничения пакетов.</li>
+<li>Редактируйте, удаляйте, отключайте или включайте учетную запись администратора, перемещайте ее кредиты или присваивайте пользователю группу администраторов.</li>
+<li>Продлите действие кодов активации или измените их пакет.</li>
+</ul>
+<hr />
+<h2 id="rest-api">REST API<a class="headerlink" href="#rest-api" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Public/Controllers/Api/ResellerRestApiController.php</code></p>
+<p>Аутентификация с помощью API-ключа реселлера или одного из его [API-токенов]](../guides/permissions-and-rbac.md#api-tokens) (<code>api_key</code>): токен может быть ограничен для считывания или для строк, устройств и кодов активации. Действия:</p>
+<table>
+<thead>
+<tr>
+<th>Действие</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user_info</code></td>
+<td>информация об учетной записи реселлера</td>
+</tr>
+<tr>
+<td><code>packages</code></td>
+<td>доступные пакеты</td>
+</tr>
+<tr>
+<td><code>get_lines</code> / <code>get_mags</code> / <code>get_enigmas</code></td>
+<td>список ресурсов</td>
+</tr>
+<tr>
+<td><code>create_line</code> / <code>edit_line</code> / <code>delete_line</code></td>
+<td>грубая линия</td>
+</tr>
+<tr>
+<td><code>enable_line</code> / <code>disable_line</code></td>
+<td>переключение состояния линии</td>
+</tr>
+<tr>
+<td><code>create_mag</code> / <code>edit_mag</code> / <code>delete_mag</code></td>
+<td>МАГИЧЕСКАЯ ДРЯНЬ</td>
+</tr>
+<tr>
+<td><code>create_enigma</code> / <code>edit_enigma</code> / <code>delete_enigma</code></td>
+<td>Загадочная ДРЯНЬ</td>
+</tr>
+<tr>
+<td><code>convert_mag</code> / <code>convert_enigma</code></td>
+<td>преобразовать тип устройства</td>
+</tr>
+<tr>
+<td><code>get_users</code> / <code>get_user</code></td>
+<td>список/просмотр суб-реселлеров</td>
+</tr>
+<tr>
+<td><code>create_user</code> / <code>edit_user</code> / <code>delete_user</code></td>
+<td>грубость субпродюсера</td>
+</tr>
+<tr>
+<td><code>enable_user</code> / <code>disable_user</code></td>
+<td>переключение статуса суб-реселлера</td>
+</tr>
+<tr>
+<td><code>adjust_credits</code></td>
+<td>перевод кредитов суб-реселлеру или от него</td>
+</tr>
+<tr>
+<td><code>activity_logs</code> / <code>live_connections</code></td>
+<td>данные о подключении</td>
+</tr>
+<tr>
+<td><code>user_logs</code></td>
+<td>журналы действий суб-реселлеров</td>
+</tr>
+<tr>
+<td><code>get_active_codes</code> / <code>get_active_code</code></td>
+<td>список/просмотр кодов активации</td>
+</tr>
+<tr>
+<td><code>generate_active_codes</code> (<code>create_active_code</code>)</td>
+<td>сгенерируйте пакет кодов активации</td>
+</tr>
+<tr>
+<td><code>edit_active_code</code> / <code>delete_active_code</code></td>
+<td>изменить или удалить код</td>
+</tr>
+<tr>
+<td><code>enable_active_code</code> / <code>disable_active_code</code></td>
+<td>переключение статуса кода</td>
+</tr>
+<tr>
+<td><code>reset_active_code_device</code></td>
+<td>снимите кодовую блокировку устройства</td>
+</tr>
+<tr>
+<td><code>mass_active_codes</code></td>
+<td>одно действие с несколькими кодами</td>
+</tr>
+<tr>
+<td><code>get_active_codes_batches</code> / <code>export_active_code_batch</code></td>
+<td>сводная информация о партии и экспорт</td>
+</tr>
+<tr>
+<td><code>check_active_code</code></td>
+<td>найдите нужный код</td>
+</tr>
+</tbody>
+</table>
+<p>Ответы, которые нужно знать:</p>
+<ul>
+<li><code>create_line</code> / <code>edit_line</code> введите в качестве ответа <code>STATUS_INVALID_USERNAME</code> или <code>STATUS_INVALID_PASSWORD</code> имя пользователя или пароль, содержащие <code>/</code>.</li>
+<li><code>packages</code> перечислены только пакеты с включенным "Стандартным пакетом" или "Пробным пакетом" по цене, указанной при покупке (цена, установленная самим реселлером).</li>
+<li><code>create_line</code>, <code>create_mag</code> и <code>create_enigma</code> без <code>trial</code> отвечают на <code>STATUS_INVALID_PACKAGE</code> для пакета, в котором не включен <em>Стандартный пакет</em> (только пробные версии или ни один из них не включен), и то же самое делают <code>edit_line</code>, <code>edit_mag</code> и <code>edit_enigma</code>, когда они называют такой пакет (см. <a href="#trials">Испытания</a>).</li>
+<li><code>edit_line</code>, <code>edit_mag</code> и <code>edit_enigma</code> отвечают на <code>STATUS_FAILURE</code>, ничего не сохраняя, когда срок действия строки изменился после того, как запрос был прочитан. Отправьте запрос еще раз.</li>
+<li><code>create_line</code>, <code>create_mag</code> и <code>create_enigma</code> с помощью <code>trial</code> игнорируйте <code>pair_id</code> и <code>member_id</code>. <code>edit_mag</code> и <code>edit_enigma</code> игнорируйте <code>pair_id</code>, пока устройство находится в пробном режиме. Сообщение <code>pair_id</code>, в котором указана пробная строка или строка кода активации, который не был активирован, игнорируется. Ошибка не возвращается.</li>
+<li><code>enable_line</code>, <code>enable_mag</code> и <code>enable_enigma</code> отвечают за <code>STATUS_FAILURE</code> для строки, ожидающей ввода кода активации: собственной строки кода или сопряженной с ней строки или устройства, которые приняли ее состояние. После того как код будет активирован, сохраните строку, к которой он подключен, один раз, чтобы устройство могло перейти по ней.</li>
+<li><code>delete_line</code>, <code>disable_line</code> и <code>enable_line</code>, а также действия по удалению, отключению, включению и преобразованию устройств MAG или Enigma отвечают за <code>STATUS_FAILURE</code> для строки или устройства, не входящих в список реселлеров. Они отвечают <code>STATUS_NO_PERMISSIONS</code>, когда в группе ключей нет такого пакета: <code>create_line</code> для линейных действий, <code>create_mag</code> для действий MAG, <code>create_enigma</code> для действий Enigma.</li>
+<li><code>disable_line</code>, <code>disable_mag</code> и <code>disable_enigma</code> закрывают текущие сеансы работы линии (<code>cluster_kill_on_line_disable</code>, по умолчанию включено). Включение и выключение обоих режимов обновляют кэш линии.</li>
+<li><code>delete_user</code>, <code>disable_user</code>, <code>enable_user</code> и <code>adjust_credits</code> ответьте на <code>STATUS_FAILURE</code> для учетной записи администратора; <code>edit_user</code> ответьте на <code>STATUS_NO_PERMISSIONS</code>. <code>delete_user</code>, <code>disable_user</code> и <code>enable_user</code> ответьте на <code>STATUS_FAILURE</code> также для учетной записи реселлера.</li>
+<li><code>delete_user</code>, <code>disable_user</code>, <code>enable_user</code> и <code>adjust_credits</code> ответьте на <code>STATUS_NO_PERMISSIONS</code>, если в группе ключей нет <code>create_sub_resellers</code>; для <code>delete_user</code> также требуется <code>delete_users</code>.</li>
+<li><code>mass_active_codes</code> выдает ошибку для <code>extend</code> и <code>change_package</code>. <code>edit_active_code</code> игнорирует <code>max_connections</code> и <code>exp_date</code>, а также <code>package_id</code> из группы реселлеров; <code>package_id</code> из пакетов, не входящих в группу, отвечает на <code>STATUS_FAILURE</code>. Пакет кода не меняется ни в ту, ни в другую сторону.</li>
+<li><code>edit_active_code</code> отвечает на <code>STATUS_FAILURE</code> с ошибкой <em>уже занято</em>, когда новый код является именем пользователя в другой строке, и строка кода должна была его использовать. <code>enable_active_code</code> и <code>mass_active_codes</code> с помощью <code>enable</code> изменяют статус только приостановленных кодов: код, который есть в наличии или активен, сохраняет свой статус.</li>
+<li><code>generate_active_codes</code> принимает значение <code>is_trial</code>, считывается как переключение: <code>1</code>, <code>true</code>, <code>on</code> или <code>yes</code> запрашивает пробные коды (для пакета требуется включить пробный пакет * и указать номер реселлера в его пробном доступе); <code>0</code>, <code>false</code>, <code>off</code>, если поле пустое или отсутствует, запрашиваются официальные коды пакета. Он отвечает на запрос <code>STATUS_FAILURE</code> сообщением <em>Выбран недопустимый пакет.</em> для пакета, у которого не включен ни один из параметров.</li>
+<li><code>generate_active_codes</code> применяется <code>category_template_id</code> только к шаблону, доступному торговому посреднику, и игнорирует <code>custom_data</code>.</li>
+</ul>
+<p>Класс <code>ResellerAPIWrapper</code> проверяет API-ключ, инициализирует сеанс с помощью <code>ResellerAPI</code> и возвращает отфильтрованные ответы в формате JSON.</p>
+<hr />
+<h2 id="_20">Сессия и начальная загрузка<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h2>
+<h3 id="_21">Сессия<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Infrastructure/Bootstrap/reseller_session.php</code></p>
+<ul>
+<li>60-минутный тайм-аут с отслеживанием последней активности.</li>
+<li>Обнаружение изменения IP-адреса (если включена настройка <code>ip_logout</code>).</li>
+<li>Учетная запись по-прежнему должна быть включена: отключение реселлера завершает открытый им сеанс при следующем запросе.</li>
+<li>Ключи сеанса: <code>reseller</code> (идентификатор пользователя), <code>rip</code>, <code>rcode</code>, <code>rverify</code>, <code>rlast_activity</code>.</li>
+<li>Это файлы cookie для панелей <code>PHPSESSID</code>, <code>HttpOnly</code> и <code>SameSite=Strict</code>. Веб-пользователи сохраняют данные для входа в систему в своих собственных файлах cookie (см. <a href="../../guides/authentication-and-sessions/#cookie-configuration">Сессионные файлы cookie</a>).</li>
+</ul>
+<h3 id="_22">Функции начальной загрузки<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Infrastructure/Bootstrap/reseller_functions.php</code></p>
+<ul>
+<li>Загружает базу данных и утилиты.</li>
+<li>Инициализирует <code>$rUserInfo</code> и <code>$rPermissions</code>.</li>
+<li>Проверяет целостность сеанса (проверка хэша имени пользователя/пароля).</li>
+<li>Устанавливает часовой пояс и языковые настройки.</li>
+</ul>
+<hr />
+<h2 id="_23">Маршруты<a class="headerlink" href="#_23" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Public/routes/reseller.php</code></p>
+<p>Ключевые маршруты:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>GET  /dashboard              → ResellerDashboardController
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>GET  /edit_profile            → ResellerEditProfileController
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>POST /post                    → ResellerPostController (form handler)
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>GET  /api, POST /api          → ResellerApiController
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>GET  /table, POST /table      → ResellerTableController
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>GET  /lines                   → ResellerLinesController
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>GET  /line                    → ResellerLineController
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>GET  /mags                    → ResellerMagsController
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>GET  /mag                     → ResellerMagController
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>GET  /enigmas                 → ResellerEnigmasController
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>GET  /enigma                  → ResellerEnigmaController
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>GET  /users                   → ResellerUsersController
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>GET  /user                    → ResellerUserController
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>GET  /user_logs               → ResellerUserLogsController
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>GET  /live_connections        → ResellerLiveConnectionsController
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>GET  /line_activity           → ResellerLineActivityController
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>GET  /tickets                 → ResellerTicketsController
+</code></pre></div>
+<hr />
+<h2 id="_24">Связанные файлы<a class="headerlink" href="#_24" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Цель</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/Domain/User/ResellerAPI.php</code></td>
+<td>основная бизнес-логика</td>
+</tr>
+<tr>
+<td><code>src/Public/Controllers/Api/ResellerRestApiController.php</code></td>
+<td>REST API</td>
+</tr>
+<tr>
+<td><code>src/Public/Controllers/Reseller/*.php</code></td>
+<td>веб-контроллеры</td>
+</tr>
+<tr>
+<td><code>src/Public/routes/reseller.php</code></td>
+<td>Маршрутизация URL-адресов</td>
+</tr>
+<tr>
+<td><code>src/Public/Views/reseller/*.php</code></td>
+<td>просмотр шаблонов</td>
+</tr>
+<tr>
+<td><code>src/Infrastructure/ResellerApiDispatcher.php</code></td>
+<td>Маршрутизация действий AJAX</td>
+</tr>
+<tr>
+<td><code>src/Infrastructure/ResellerTableRenderer.php</code></td>
+<td>Рендеринг таблиц данных</td>
+</tr>
+<tr>
+<td><code>src/Infrastructure/Bootstrap/reseller_session.php</code></td>
+<td>управление сеансами</td>
+</tr>
+<tr>
+<td><code>src/Infrastructure/Bootstrap/reseller_functions.php</code></td>
+<td>инициализация</td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/Authorization.php</code></td>
+<td>проверки на право собственности</td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/PageAuthorization.php</code></td>
+<td>стробирование на уровне страницы</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  К началу
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

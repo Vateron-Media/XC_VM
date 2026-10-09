@@ -1,0 +1,3724 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.6.3/development/cluster-api/">
+      
+      
+        <link rel="prev" href="../streaming-diagnostics/">
+      
+      
+        <link rel="next" href="../cluster-seams/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../ru/development/cluster-api/" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Cluster API (MAIN ↔ LB) - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cluster-api-main-lb" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Cluster API (MAIN ↔ LB)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../ru/development/cluster-api/" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../architecture/" class="md-tabs__link">
+          
+  
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSL Certificate Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Updating a Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/main-lb-cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAIN and Load Balancers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Update Mechanism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reseller System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interactive API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Customization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Translations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diagnostics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Info & FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Info & FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/licensing-and-activation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Licensing & Activation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watch Folder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/youtube-restream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Restreaming YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/custom-ffmpeg-command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom FFmpeg Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autoloading (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Wiring & Registration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Authoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Extension Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../source-drivers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source Drivers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP Request Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin AJAX API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Subsystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster API (MAIN ↔ LB)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster API (MAIN ↔ LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-travels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What travels
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What travels">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lanes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lanes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transport-and-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transport and endpoints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flows-and-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flows and modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-node-replica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The node replica
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operating-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operating it
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operating it">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-cutover-in-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A cutover, in order
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retiring-the-legacy-link" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retiring the legacy link
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster-seams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Seams
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception Hierarchy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching and Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Navbar Rendering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Workflow
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Workflow
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Tools & Console Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unit Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Refactoring (Rector)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & Access
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security & Access
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication and Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Permissions and RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP Detection & Geo Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Detection & STB Locking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ministra STB Emulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UCS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build & Release
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Build & Release
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build System (MAIN vs LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pre-release Checklist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-travels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What travels
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What travels">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lanes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lanes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transport-and-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transport and endpoints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flows-and-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flows and modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-node-replica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The node replica
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operating-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operating it
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operating it">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-cutover-in-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A cutover, in order
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retiring-the-legacy-link" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retiring the legacy link
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="cluster-api-main-lb">Cluster API (MAIN ↔ LB)<a class="headerlink" href="#cluster-api-main-lb" title="Permanent link">&para;</a></h1>
+<p>A load balancer used to reach MAIN's MariaDB and Redis directly: its crons, daemons and
+streaming endpoints held the panel's database credentials and wrote MAIN's tables. The
+cluster API replaces that with one signed, encrypted HTTP channel the node opens to MAIN.
+This page is the protocol and the operator's view of it; the design record with every
+decision and its history is <a href="https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0004-cluster-api.md"><code>docs/adr/0004-cluster-api.md</code></a>,
+and the code seams each call goes through are in <a href="../cluster-seams/">Cluster seams</a>.</p>
+<div class="admonition info">
+<p class="admonition-title">Plain HTTP is the default</p>
+<p>The channel does not need TLS. Every request is signed and its body encrypted with keys
+derived from the node's token, so a panel with no certificate loses nothing by talking
+over <code>http://</code>. HTTPS is optional and, when a certificate verifies, preferred — see
+<a href="#transport-and-endpoints">Transport</a>.</p>
+</div>
+<h2 id="what-travels">What travels<a class="headerlink" href="#what-travels" title="Permanent link">&para;</a></h2>
+<p>The node always dials MAIN; MAIN never connects to a node (its instructions wait for the
+node to ask for them). Every call is <code>POST /cluster/v1/&lt;op&gt;</code> on MAIN's HTTP broadcast port,
+or on <code>cluster_api_port</code> when one is set.</p>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Carried as</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node → MAIN, needs an answer</td>
+<td>an op on the control lane</td>
+<td><code>hello</code>, <code>heartbeat</code>, <code>token_refresh</code>, <code>conn_admit</code>, <code>rtmp_auth</code>, <code>commands</code>, <code>ack</code></td>
+</tr>
+<tr>
+<td>Node → MAIN, a report</td>
+<td>an op on an ingest lane</td>
+<td><code>events</code>, <code>streams</code>, <code>conn_snapshot</code>, <code>queue_claim</code>, <code>queue_update</code>, <code>queue_enqueue</code>, <code>config</code>, <code>recording_complete</code>, <code>vod_analysis</code>, <code>artefact</code></td>
+</tr>
+<tr>
+<td>MAIN → node</td>
+<td>a signed command the node's next <code>commands</code> call collects</td>
+<td><code>node.rpc</code>, <code>node.root</code>, <code>node.cache</code>, <code>conn.kill_worker</code>, <code>conn.drop</code>, <code>conn.close</code>, <code>config.changed</code>, <code>artefact.fetch</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two ops the plan lists are deliberately never served: <code>rpc_result</code> (a command's result comes
+back inline with its <code>ack</code>, which takes 64 KiB) and <code>stream_bundle</code> (the replica's <code>streams</code>
+section carries a stream's whole record, and a cache miss reads it from disk). They stay in
+the op list because nginx's ingest lane is rendered from it, and the API refuses an op it
+does not serve.</p>
+<h3 id="lanes">Lanes<a class="headerlink" href="#lanes" title="Permanent link">&para;</a></h3>
+<p>Events are spooled by priority and drained by the agent:</p>
+<table>
+<thead>
+<tr>
+<th>Lane</th>
+<th>What</th>
+<th>Pace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0</td>
+<td>a viewer opening or closing, a stream's state</td>
+<td>at once</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>logs, the node's inventory, its audit</td>
+<td>batched</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>HLS touches</td>
+<td>batched, only while MAIN takes them</td>
+</tr>
+</tbody>
+</table>
+<p>MAIN serves the control ops on the <code>cluster_ctl</code> FPM pool and the ingest ops on
+<code>cluster_ingest</code>, sized by <code>cluster_ingest_concurrency</code>; half its permits are reserved for
+P0 so a flood of logs can never delay a viewer. A node that arrives while MAIN is starting
+is refused with <code>STARTING</code> and a back-off, never a 500.</p>
+<h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h2>
+<p>There is no shared secret in a file and no bearer credential on the wire.</p>
+<ol>
+<li><strong>Enrolment.</strong> MAIN gives the node an identity (<code>node_uuid</code>, an Ed25519 key pair the node
+   generates itself, MAIN's pinned public key) over SSH at install, or through a one-time
+   code the operator reads out (<code>cluster:enrol-code</code>, approved with <code>cluster:enrol-approve</code>).</li>
+<li><strong>The token</strong> is minted inside the <code>xcvm_core</code> extension from the panel's root secret and
+   the licence, bound to the node's uuid, generation and epoch. It never exists in PHP as
+   plaintext: the node receives it sealed to its own key.</li>
+<li><strong>Every request</strong> carries a timestamp, a nonce and an HMAC over a canonical
+   representation of the request, with the body encrypted (AES-256-GCM). MAIN replies the
+   same way. A replayed request is refused by the nonce store; a request whose clock is off
+   by more than the allowed skew is refused.</li>
+<li><strong>Rotation.</strong> The token's lifetime is <code>lb_token_rotation_min</code> (5–1440, default 60). The
+   agent refreshes at half its life; a refused token re-keys rather than stopping the node.
+   Revoking the licence stops new tokens being minted at all, which is how a fleet is
+   fenced.</li>
+</ol>
+<h2 id="transport-and-endpoints">Transport and endpoints<a class="headerlink" href="#transport-and-endpoints" title="Permanent link">&para;</a></h2>
+<p><code>cluster_transport</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>auto</code> (default)</td>
+<td>HTTPS first when MAIN's own certificate verifies, else plain HTTP</td>
+</tr>
+<tr>
+<td><code>http</code></td>
+<td>plain HTTP only</td>
+</tr>
+<tr>
+<td><code>https_preferred</code></td>
+<td>HTTPS first, plain HTTP as the fallback</td>
+</tr>
+<tr>
+<td><code>https_required</code></td>
+<td>HTTPS only; refused unless MAIN's certificate verifies <strong>and</strong> every active node has already reached MAIN over HTTPS (its agent reports the <code>https</code> feature)</td>
+</tr>
+</tbody>
+</table>
+<p>The URLs a node dials, their order and the transport are MAIN's <em>policy</em>, versioned by
+<code>cluster_policy_ver</code>. A node adopts a policy that is not older than the one it holds, and
+remembers the plain-HTTP URLs of every policy it has seen: under <code>https_required</code> with a
+broken certificate, the signed challenge over plain HTTP is its way back.</p>
+<p>Changing MAIN's address, its HTTPS port or <code>cluster_api_port</code> keeps the old endpoint served
+for seven days so no node is lost; <code>cluster:endpoint list</code> shows what is kept and
+<code>cron:cluster</code> releases a port once every node has moved off it.</p>
+<p>The policy also carries the fleet's heartbeat (<code>lb_telemetry_interval_sec</code>, 1–3 s), so
+changing it reaches every node with the next policy and no agent restart.</p>
+<h2 id="flows-and-modes">Flows and modes<a class="headerlink" href="#flows-and-modes" title="Permanent link">&para;</a></h2>
+<p>What a node does through the API is switched per node, on the <em>Cluster Nodes</em> page. A flow
+moves one part of its work to the agent and stands the legacy path down.</p>
+<table>
+<thead>
+<tr>
+<th>Bit</th>
+<th>Flow</th>
+<th>Moves</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>TELEMETRY</td>
+<td>the server's stats: MAIN writes the <code>servers</code> row from the heartbeats</td>
+</tr>
+<tr>
+<td>2</td>
+<td>COMMANDS</td>
+<td>kills, cache jobs and root actions arrive as signed commands</td>
+</tr>
+<tr>
+<td>4</td>
+<td>LOGS</td>
+<td>client, stream, error, activity and on-demand records become <code>log.*</code> events</td>
+</tr>
+<tr>
+<td>8</td>
+<td>STREAMS</td>
+<td>the node's streams come from its replica, its runtime state from its own store</td>
+</tr>
+<tr>
+<td>16</td>
+<td>CONTENT</td>
+<td>recordings, VOD analysis and the encoding queue go through MAIN</td>
+</tr>
+<tr>
+<td>32</td>
+<td>CONFIG</td>
+<td>the node's caches are built from the replica, not MAIN's database</td>
+</tr>
+<tr>
+<td>64</td>
+<td>CONNECTIONS</td>
+<td>the node's viewers live in its agent's registry</td>
+</tr>
+<tr>
+<td>128</td>
+<td>DATAPLANE</td>
+<td>relays and other servers' files go through the agent's loopback proxy, with tickets instead of the stream secret</td>
+</tr>
+</tbody>
+</table>
+<p><code>mode</code> is the node's independence:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Name</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>legacy</td>
+<td>reads MAIN's database as it always did</td>
+</tr>
+<tr>
+<td>1</td>
+<td>hybrid</td>
+<td>boots from its replica, may still reach MAIN's database</td>
+</tr>
+<tr>
+<td>2</td>
+<td>api</td>
+<td>every connect to MAIN's MariaDB or Redis is refused in code (<code>LbDatabaseAccessException</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Moving a node up is gated (<code>ClusterAdmin::modeGate()</code>): mode 1 needs CONFIG; mode 2 needs
+every flow, the data plane included, root's pin, and a node that can run that way now: state
+<code>active</code>, heard within <code>NodeHealth::SUSPECT_AFTER_MS</code>, and <code>streams_local</code> true in its last
+audit report. The node says that itself (<code>SettingsAudit::publish()</code>): it boots from its replica
+(<code>ReplicaBoot::ready()</code>), the replica owns its stream definitions, and its own store of their
+state is seeded. It says it again at once whenever that stops being true (<code>StreamRuntime::lapse()</code>,
+<code>ReplicaApply</code>), because in mode 2 it can neither seed the store nor read from MAIN. The Redis
+connection handler asks nothing: a node in mode 2 never opens MAIN's Redis
+(<code>ConnectionTracker::openStore()</code>), its viewers being its agent's.</p>
+<p>A node in mode 2 keeps every flow. <code>act()</code> refuses to switch one off there
+(<code>cluster_flow_mode_two</code>): without it the node has only MAIN's database for that work, which it may
+not reach. The operator moves the node one mode down first.</p>
+<p><code>cluster_auto_mode_down_min</code> (0, off, by default) has MAIN take a node in mode 2 back to mode 1 by
+itself once the node has said <code>streams_local</code> false for that many minutes
+(<code>ClusterAdmin::autoModeDown()</code>, run by <code>cron:cluster</code>): the page's Mode down, audited <code>node.mode</code>
+with the actor <code>auto</code> and when the node first said so. Only a node that can run in mode 1 is
+moved: <code>active</code>, heard within <code>NodeHealth::SUSPECT_AFTER_MS</code>, its grant not revoked, MAIN not
+locked down, and moved to mode 2 by the page at the <code>gen</code> it has now (<code>cluster_meta</code>
+<code>mode2_gen.&lt;server id&gt;</code>). A node enrolled in mode 2, or re-enrolled since the move (a reinstall in
+mode 2), holds no credentials that MAIN can tell of. When MAIN first heard the node say it is kept
+in <code>streams_lost_at.&lt;server id&gt;</code>, until the node says otherwise or leaves mode 2.</p>
+<p>The connect audit is <strong>not</strong> part of the gate. A node in mode 1 reads MAIN's database by design
+(its crons, its signals daemon, viewer authentication), so the zero the gate once waited seven
+days for could only come in mode 2. The move takes nothing from the node, so <code>mode_down</code> undoes
+it, and it is always allowed. The seven days (<code>ClusterAdmin::CUTOVER_CLEAN_DAYS</code>) stand before the
+step with no way back: <code>DbCredentials::strip()</code> refuses until the node has been in mode 2 that
+long (MAIN notes when in <code>cluster_meta</code>, <code>mode2_at.&lt;server id&gt;</code>). It also asks what the gate asks,
+at that moment: every flow (<code>ClusterAdmin::MODE2_FLOWS</code>), a node heard within
+<code>NodeHealth::SUSPECT_AFTER_MS</code>, and <code>streams_local</code> true in its last report. A node that says
+nothing of its streams is refused.</p>
+<p>The strip is judged again after it is queued:</p>
+<ul>
+<li>its command lives <code>DbCredentials::STRIP_TTL</code> (600 s), not the day another <code>node.root</code> command
+  lives: a node that is away when it is asked is asked again. A strip the node was handed keeps
+  its row a day past its <code>exp</code> (<code>CommandBus::prune()</code>), so a late ack still revokes the grant;
+  past <code>exp</code> it is not handed out;</li>
+<li><code>CommandBus::pending()</code> hands a strip out only while the node's row says mode 2;</li>
+<li><code>mode_down</code> from 2 ends every strip the node has not acked (<code>DbCredentials::cancelStrip()</code> sets
+  its <code>exp</code> to now), so it is handed out no more, also if the node returns to mode 2; one the node
+  was not handed goes at the next <code>cron:cluster</code>, one it was handed keeps its row for its ack,
+  which says what the node's config holds;</li>
+<li>root on the node runs it only while the node is in mode 2: <code>NodeCredentials::run()</code> refuses
+  <code>strip_db_credentials</code> unless <code>NodeRole::refusesConnects()</code>. The command then fails with
+  <code>strip_db_credentials: refused: this node is not in mode 2 ...</code>, and MAIN revokes nothing.</li>
+</ul>
+<p>On the node, a move into or out of mode 2 is followed within a pass: the signals, queue and
+fanout_sync daemons (<code>DaemonTrait::refreshOrBreak()</code>), the scanner and the on-demand daemon leave
+their loop when <code>NodeRole::refusesConnects()</code> is no longer what it was at their start, so none
+keeps the connection it opened. The connect audit's window starts again when the node begins to
+refuse (<code>ConnectAudit::follow()</code>): what the Cluster Nodes page shows after the move is what mode 2
+turned away.
+A crontab row whose role is <code>legacy</code> (today <code>cron:users</code>) is not sent to a node in
+mode 2 at all.</p>
+<h2 id="the-node-replica">The node replica<a class="headerlink" href="#the-node-replica" title="Permanent link">&para;</a></h2>
+<p>While CONFIG is on, the node's caches are built from what the agent stored, not from a
+query. MAIN serves the sections; <code>cluster:apply</code> turns them into the caches the node's
+readers use (a shadow diff before the flow is on, so an operator sees what would change):</p>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Carries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>settings</code></td>
+<td>the settings a node reads, never a secret</td>
+</tr>
+<tr>
+<td><code>servers</code></td>
+<td>every server's row, without liveness or telemetry</td>
+</tr>
+<tr>
+<td><code>node</code></td>
+<td>the node's own row and its node settings</td>
+</tr>
+<tr>
+<td><code>crontab</code></td>
+<td>the enabled rows whose role fits the node's mode</td>
+</tr>
+<tr>
+<td><code>cluster</code></td>
+<td>MAIN's URLs, the transport, the heartbeat, the panel keys, <code>min_proto</code></td>
+</tr>
+<tr>
+<td><code>secrets</code></td>
+<td>the viewer-token secret and <code>OPENSSL_EXTRA</code>, each with the value it replaced and how long that is still accepted</td>
+</tr>
+<tr>
+<td><code>bouquets</code>, <code>categories</code></td>
+<td>as <code>cron:cache</code> builds them</td>
+</tr>
+<tr>
+<td><code>streams</code> (R2)</td>
+<td>one record per stream the node holds, kept by deltas and a resync; with DATAPLANE on, its relay and file tickets too</td>
+</tr>
+</tbody>
+</table>
+<h2 id="settings-reference">Settings reference<a class="headerlink" href="#settings-reference" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Bounds</th>
+<th>What reads it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cluster_api_enabled</code></td>
+<td>0/1</td>
+<td>the whole API; needs <code>cluster:init</code> and the extension</td>
+</tr>
+<tr>
+<td><code>cluster_api_port</code></td>
+<td>0 or 1024–65535</td>
+<td>0 serves the API on MAIN's HTTP broadcast port</td>
+</tr>
+<tr>
+<td><code>cluster_main_host</code></td>
+<td>hostname</td>
+<td>MAIN's DNS name in the URLs nodes dial</td>
+</tr>
+<tr>
+<td><code>cluster_transport</code></td>
+<td>see above</td>
+<td>the policy</td>
+</tr>
+<tr>
+<td><code>lb_token_rotation_min</code></td>
+<td>5–1440 (60)</td>
+<td>the token's lifetime; grace is <code>clamp(L/4, 5, 60)</code></td>
+</tr>
+<tr>
+<td><code>lb_revocation_mode</code></td>
+<td>graceful | hard</td>
+<td>how fast a fleet stops after a licence revocation</td>
+</tr>
+<tr>
+<td><code>lb_telemetry_interval_sec</code></td>
+<td>1–3 (2)</td>
+<td>the fleet's heartbeat, carried by the policy</td>
+</tr>
+<tr>
+<td><code>cluster_offline_after_sec</code></td>
+<td>10–300 (30)</td>
+<td>silence before MAIN marks a node offline</td>
+</tr>
+<tr>
+<td><code>cluster_orphan_conn_ttl_sec</code></td>
+<td>30–3600 (120)</td>
+<td>silence before MAIN purges a node's viewers</td>
+</tr>
+<tr>
+<td><code>lb_offline_admission</code></td>
+<td>local | allow | deny</td>
+<td>admitting viewers while MAIN is unreachable; unless deny, an RTMP viewer is taken on MAIN's last yes for its credentials, stream and address within ten minutes while the agent cannot reach MAIN (<code>RtmpOffline</code>)</td>
+</tr>
+<tr>
+<td><code>cluster_kill_on_line_disable</code></td>
+<td>0/1 (1)</td>
+<td>a disabled, locked or expired line loses its sessions; a reseller's disable (panel or Reseller API) counts too</td>
+</tr>
+<tr>
+<td><code>cluster_conn_binding</code></td>
+<td>observe | enforce (observe); Settings → Cluster, <em>Viewer Record Proof</em>, and the Cluster Nodes page's <em>Viewer record proof</em> card (which nodes prove, the day's counts, ready or not: <code>ClusterOverview::binding</code>)</td>
+<td>a node's record of a viewer, and its <code>conn_admit</code>, must prove MAIN minted the viewer's token; <code>observe</code> counts those that do not (<code>conn.unproven</code> in the audit), <code>enforce</code> refuses such a record from a node whose stream secret MAIN withholds (mode 2, locked down, on its own viewer key), and reserves and cuts nothing for such a <code>conn_admit</code> (ADR 0004, "The line a node names")</td>
+</tr>
+<tr>
+<td><code>cluster_ingest_concurrency</code></td>
+<td>1–64 (6)</td>
+<td>MAIN's ingest permits; half reserved for P0</td>
+</tr>
+<tr>
+<td><code>lb_new_node_mode</code></td>
+<td>legacy | api</td>
+<td>the mode a newly installed LB enrols at</td>
+</tr>
+<tr>
+<td><code>cluster_auto_mode_down_min</code></td>
+<td>0–1440 (0, off)</td>
+<td>minutes a node in mode 2 may say it no longer reads its streams on itself before MAIN moves it to mode 1</td>
+</tr>
+<tr>
+<td><code>servers_stats_retention_days</code></td>
+<td>1–365 (30)</td>
+<td><code>cron:cleanup</code> prunes <code>servers_stats</code></td>
+</tr>
+<tr>
+<td><code>cluster_audit_retention_days</code></td>
+<td>1–365 (30)</td>
+<td><code>cron:cleanup</code> prunes <code>cluster_audit</code></td>
+</tr>
+<tr>
+<td><code>cluster_db_allowlist</code> (+<code>_extra</code>)</td>
+<td>0/1</td>
+<td>firewalls 3306/6379 on MAIN to the fleet</td>
+</tr>
+<tr>
+<td><code>lb_binary_canary_server</code>, <code>lb_binary_canary_hours</code></td>
+<td>server id (0, off), 1–720 (24)</td>
+<td>the load balancer that takes each xc_fanout/xc_agent release first, and how long it runs one before MAIN raises <code>lb_release_pin</code> to it (<code>ReleaseCanary</code>, <code>cron:cluster</code>); every other server takes the newest release at or below the pin, and none before the first</td>
+</tr>
+<tr>
+<td><code>lb_scan_roots</code></td>
+<td>paths</td>
+<td>the directories the node's scan RPC may list</td>
+</tr>
+<tr>
+<td><code>lb_partition_tolerance_h</code>, <code>lb_fence_drain_min</code></td>
+<td>0–24 (12), 0–60 (10)</td>
+<td>the lease's window past token expiry, and the drain after it</td>
+</tr>
+<tr>
+<td><code>lb_lease_fence</code></td>
+<td>0/1 (0)</td>
+<td>a node stops serving when its lease runs out</td>
+</tr>
+</tbody>
+</table>
+<h2 id="operating-it">Operating it<a class="headerlink" href="#operating-it" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># MAIN, once: create the cluster root and record the panel keys (--enable also switches</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1"># the API on, new load balancers in mode 2 where Settings would allow it; the installer</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># runs it, then cluster:main-dataplane on)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>console.php<span class="w"> </span>cluster:init<span class="w"> </span><span class="o">[</span>--enable<span class="o">]</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Enrol a load balancer over SSH (or at install time, automatically)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>console.php<span class="w"> </span>server:enrol<span class="w"> </span>&lt;serverID&gt;
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># Without SSH: a one-time code the operator reads out, then approves by its SAS</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>console.php<span class="w"> </span>cluster:enrol-code<span class="w"> </span>&lt;serverID&gt;
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>console.php<span class="w"> </span>cluster:enrol-approve<span class="w"> </span>&lt;serverID&gt;<span class="w"> </span>&lt;SAS&gt;
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># The node's own side, run by its agent after every change</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>console.php<span class="w"> </span>cluster:apply<span class="w">            </span><span class="c1"># --from-disk at boot</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>console.php<span class="w"> </span>cluster:exec<span class="w">             </span><span class="c1"># one signed command</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># MAIN's endpoint and pools</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>console.php<span class="w"> </span>cluster:nginx<span class="w">            </span><span class="c1"># render and reload the API's nginx config</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>console.php<span class="w"> </span>cluster:pools<span class="w">            </span><span class="c1"># start or resize the API's FPM pools</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>console.php<span class="w"> </span>cluster:endpoint<span class="w"> </span>list<span class="w">    </span><span class="c1"># old ports and URLs still served</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>console.php<span class="w"> </span>cluster:maintain-stats<span class="w">   </span><span class="c1"># servers_stats and log table indexes, built online (cron:cleanup starts it)</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="c1"># Before switching CONNECTIONS on: load the node's viewers into its agent (on the node;</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="c1"># MAIN's guided cutover asks it with the `seed_connections` root action, cluster:cutover)</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>console.php<span class="w"> </span>cluster:seed-connections
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="c1"># MAIN: a load balancer's flows on one at a time, watched, up to mode 1; the load</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="c1"># balancers updated to MAIN's release one at a time</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>console.php<span class="w"> </span>cluster:cutover<span class="w"> </span>&lt;serverID&gt;<span class="w"> </span><span class="o">[</span>admin<span class="w"> </span>user<span class="w"> </span>id<span class="o">]</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>console.php<span class="w"> </span>cluster:rolling-update
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="c1"># Every node (MAIN too, any mode) keeps the agent, the fanout daemon and xcvm_core</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="c1"># current from GitHub itself, hourly from cron:root_signals (the agent and the daemon</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="c1"># no newer than lb_release_pin while a canary is set: ReleaseCanary); by hand, as root:</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>console.php<span class="w"> </span>fanout_binary<span class="w"> </span><span class="o">[</span>fanout<span class="p">|</span>agent<span class="o">]</span><span class="w"> </span><span class="o">[</span>force<span class="o">]</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>console.php<span class="w"> </span>xcvm_core<span class="w"> </span><span class="o">[</span>force<span class="o">]</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="c1"># Firewall MariaDB and Redis to the fleet (check first)</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>console.php<span class="w"> </span>cluster:db-allowlist<span class="w"> </span>status<span class="w"> </span><span class="p">|</span><span class="w"> </span>apply<span class="w"> </span><span class="p">|</span><span class="w"> </span>undo
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="c1"># Phase 9: a mode-2 node gives up MAIN's credentials (asks first; --wait=&lt;s&gt; waits for the revoke)</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>console.php<span class="w"> </span>cluster:strip-credentials<span class="w"> </span>&lt;serverID&gt;<span class="w"> </span><span class="o">[</span>--yes<span class="o">]</span><span class="w"> </span><span class="o">[</span>--wait<span class="o">=</span>&lt;seconds&gt;<span class="o">]</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="c1"># MAIN reads other servers' files and relays through its own agent (on | off | rekey | status)</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>console.php<span class="w"> </span>cluster:main-dataplane<span class="w"> </span>on
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="c1"># Rotate the panel's DB password (MAIN), and set it on a node MAIN cannot reach (node, root)</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>console.php<span class="w"> </span>cluster:rotate-db-password<span class="w"> </span><span class="o">[</span>--yes<span class="o">]</span><span class="w"> </span><span class="o">[</span>--password-stdin<span class="o">]</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NEW_PASSWORD</span><span class="s2">"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>console.php<span class="w"> </span>cluster:set-db-password
+<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a>
+<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="c1"># Disaster recovery of the cluster root</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>console.php<span class="w"> </span>cluster:export-keys<span class="w">   </span>/path/bundle
+<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a>console.php<span class="w"> </span>cluster:import-keys<span class="w">   </span>/path/bundle
+</code></pre></div>
+<p>The <em>Cluster Nodes</em> page is where a node is approved, its flows switched, its mode moved and
+its state read (epoch, token expiry, the fence window that follows it — token expiry plus
+<code>lb_partition_tolerance_h</code>, then <code>lb_fence_drain_min</code> — its queued commands, last seen, agent
+version and architecture, settings misses, connect audit). It warns when the licence is
+suspended (and, with <code>lb_lease_fence</code> on, by when the fleet stops at the latest) and when
+MAIN's certificate expires within 14 days while the nodes may dial HTTPS. It shows the figures
+MAIN records: command delivery and ack latency (p50/p99 over the last hour), queue depth, the
+ingest permits in use per lane, the <code>cluster_ctl</code> pool's listen queue, and the recent audit.
+<em>Rotate all tokens now</em> sends <code>token.rotate_now</code> to every active node that takes commands.
+Saving a different activation key on the dashboard does the same, once the extension accepts it.
+The <em>Servers</em> list's row menu carries the same per-node actions (mode up/down, rotate,
+enrolment code, a link to the node's flows) and shows the <code>cluster:reenrol</code> command to run
+for a re-enrolment over SSH. Every decision is written to <code>cluster_audit</code>, which
+<code>cron:cluster</code> prunes.</p>
+<h3 id="a-cutover-in-order">A cutover, in order<a class="headerlink" href="#a-cutover-in-order" title="Permanent link">&para;</a></h3>
+<ol>
+<li><code>cluster:init</code> on MAIN, <code>cluster_api_enabled</code> on, <code>cluster:nginx</code>, <code>cluster:pools</code>.</li>
+<li>Enrol the node; approve it if it came by code.</li>
+<li>Switch TELEMETRY, then COMMANDS, then LOGS — each is reversible and visible on the page.</li>
+<li>Switch STREAMS and CONTENT; watch the node's settings misses and its audit.</li>
+<li>Switch CONFIG, then <code>mode_up</code> to 1: the node now boots from its replica.</li>
+<li><code>cluster:seed-connections</code>, then CONNECTIONS.</li>
+<li>DATAPLANE, once the node's parents and the servers whose files it reads are MAIN or
+   active nodes, and its agent runs the relay proxy (the page refuses the switch
+   otherwise): relays and file reads go through its agent from each stream's next start.</li>
+<li><code>mode_up</code> to 2 once the node says <code>streams_local</code>, a minute or two after its flows are on.
+   Watch its <em>MAIN DB connects</em> box (counted afresh from the move) and its streams afterwards.</li>
+<li><code>cluster:db-allowlist apply</code> once every node is in mode 2.</li>
+<li><em>Drop DB credentials</em> on the node (or <code>cluster:strip-credentials</code>): the node's
+    <code>config.enc</code> loses MAIN's DB and Redis credentials, then MAIN revokes its grant. There is
+    no undo from the page: rolling back needs a config with credentials and a new grant.
+    MAIN sends it only after seven days in mode 2, to a node that has every flow on, was heard
+    in the last ten seconds and reports <code>streams_local</code>. The command waits ten minutes for the
+    node, and root on the node runs it only while the node is in mode 2. A drop that was
+    refused or that expired changed nothing: send it again.</li>
+</ol>
+<h2 id="retiring-the-legacy-link">Retiring the legacy link<a class="headerlink" href="#retiring-the-legacy-link" title="Permanent link">&para;</a></h2>
+<p>The legacy link is a load balancer that is not enrolled (mode 0), its <code>/api</code> with
+<code>password=&lt;live_streaming_pass&gt;</code>, and its MySQL and Redis grants on MAIN. It is deprecated, and
+goes in steps (ADR 0004, <em>Proxies and the legacy <code>/api</code>, its calls counted, and the legacy
+link's retirement</em>):</p>
+<ol>
+<li><strong>Measure.</strong> Every node in mode 1 or 2 counts the calls its <code>/api</code> answers, by action and
+   caller (<code>Core\Cluster\LegacyApiAudit</code>, <code>STORAGE_PATH/cluster/legacy_api/</code>), and reports the
+   last seven days in its heartbeat's <code>audit</code> as <code>legacy_api</code>. Cluster Nodes shows them per
+   node (<em>Legacy /api calls</em>).</li>
+<li><strong>New installs start on the cluster API.</strong> The installer runs <code>cluster:init --enable</code>
+   and then <code>cluster:main-dataplane on</code>: a fresh panel enrols its load balancers at their
+   install (in mode 2 when the extension packs a credential-free config and the Redis
+   connection handler is off), so it never runs the legacy link. Without an extension that
+   has the cluster API, the panel installs as before.</li>
+<li><strong>Announce.</strong> The release notes of the release that does step 2 say the legacy link is
+   deprecated, and which major release removes it.</li>
+<li><strong>Remove (the plan's Phase 10)</strong>, in that major release, whose update refuses a panel with a
+   load balancer below mode 2: the <code>/api</code> locations in the load balancers' nginx and
+   <code>InternalApiController::index</code> (its actions stay: <code>cluster:exec</code> runs them for <code>node.rpc</code>),
+   <code>StatusCommand::configureRedisLb</code>, the <code>users</code> cron (role <code>legacy</code>), and the database and
+   Redis paths a node in mode 2 never takes.</li>
+</ol>
+<h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>The data plane (Phase 8) covers what a node pulls from another server</strong>, and only
+  while its DATAPLANE flow is on. A child relaying a stream, a VOD or subtitle fetch and a
+  created channel's items go through the agent's loopback proxy (<code>127.0.0.1:31290</code>), which
+  signs each upstream connect with a panel-signed ticket from the R2 streams section (a relay
+  ticket valid 24 h, a file ticket 6 h, both minted anew every 3 h and never moving a
+  record's ETag or version) and checks each 4 MiB chunk of a file against its owner's
+  signed digest. What it does not cover:</li>
+<li>A parent or owner that cannot check a ticket (a legacy server, not enrolled or not
+    active) is still reached with the legacy URL and its password, even with the flow on.</li>
+<li>Streams started before the flow was switched keep their URL until they restart.</li>
+<li>Relay bytes and file chunks are AEAD-framed (D11) where the parent or owner seals
+    (<code>servers.relay_seal</code>): AES-256-GCM under a key the child's agent picks per connect and
+    SEALs to the parent's box key. Viewer bytes and <code>/images</code> stay direct, and there is no
+    forward secrecy: a parent's box key taken later opens a recorded relay's key.</li>
+<li>The node's own loopback carries no secret: the local RTMP output publishes from
+    127.0.0.1 with no password, and the recorder's pull from its own <code>/admin/live</code> and
+    <code>/admin/timeshift</code> carries a <code>LoopbackToken</code> (one stream, taken from 127.0.0.1 only;
+    the password only when the node cannot write the token's key). MAIN's admin player
+    sends a node no password either: an on-demand stream starts on the browser's own
+    <code>uitoken</code> request.</li>
+<li>MAIN pulls through it only once an operator runs <code>cluster:main-dataplane on</code>, or presses
+    <strong>Switch on</strong> under <em>MAIN's data plane</em> on Cluster Nodes, which runs that command as the
+    panel's user (<code>ClusterAdmin::act</code>, audited <code>cluster.main_dataplane_asked</code>): MAIN then
+    gets a data-plane key of its own and an entry in the signed node list, and its source
+    probe, a node's certbot log, and the relays and files of the streams it runs go through
+    <code>xc_agent run -role main</code>. Off (the default), MAIN keeps the legacy URLs. MAIN's key sits
+    in <code>config/cluster/main_agent.json</code> (0600), outside <code>xcvm_core</code>, as a node's does;
+    <code>cluster:main-dataplane rekey</code> replaces it and raises its generation.</li>
+<li>A file ticket names the owner's box key as it was when minted: an owner re-enrolled
+    since cannot open it until the next epoch's ticket (at most 3 h).</li>
+<li>The node's own legacy <code>/api</code> stays served with the flow on. <code>api_legacy.conf</code> (Phase
+    8's second increment) retires it only once nothing reads the node's files with the
+    legacy <code>getFile</code> URL any more: its own flow on, and every server of the cluster, MAIN
+    included, an active node with its data plane on. MAIN counts once
+    <code>cluster:main-dataplane on</code> is set. A proxy is never a node, so a cluster with a proxy
+    keeps every node's <code>/api</code>. The Cluster Nodes page names the servers that keep it open
+    (<code>ClusterOverview::legacyApiOpenBy</code>).</li>
+<li>The flow can be switched on only for a node whose agent runs the loopback relay proxy
+    (it says <code>relay</code> at hello): update <code>xc_agent</code> first. The agent publishes the loopback
+    key (<code>relay.key</code>) only while it holds <code>127.0.0.1:31290</code>, and the node's PHP checks
+    that the listener belongs to the key's owner. While the port is not the agent's (held
+    by another user, or the agent is stopped), the node's relays and file reads fail and
+    are retried: they never fall back to the stream secret. An agent that cannot bind the
+    port tells MAIN in every heartbeat: the Cluster Nodes page shows <em>relay port down</em> with
+    the error, and <code>server:diagnose</code> names it. The port is not freed for it: an operator
+    finds the holder on the node.</li>
+<li><code>/xfile</code> has its own rate limit (50 requests/s per server, burst 100, answered with a
+    429 the agent retries), apart from the viewers' 20 requests/s.</li>
+<li><code>cluster:rotate-stream-secret</code> rotates the stream password (the viewer-token secret) and
+    re-encrypts what is stored under it (<code>hmac_keys</code>, the image cache's names); it refuses
+    while an enrolled node still has its DATAPLANE flow off, whose URLs would carry the new
+    value too (<code>--force</code> overrides). A run cut short is finished by running it again.</li>
+<li><strong>An RTMP viewer on a load balancer is checked by MAIN at each connect</strong> (<code>rtmp_auth</code>).
+  The load balancer is not shipped the line lookup, so its <code>rtmp.php</code> hands the link's
+  credentials, the viewer's address and the stream to its agent, and MAIN makes the checks
+  <code>rtmp.php</code> makes on MAIN (<code>Domain\User\RtmpViewerAuth</code>) for that load balancer, logging a
+  refusal on MAIN as before; the node learns only <code>AUTH_FAILED</code> or <code>REFUSED</code>. A node's failed
+  checks have a budget of 300 a minute (<code>ClusterApi::RTMP_FAIL_BUDGET</code>): past it, MAIN
+  refuses its viewers without checking until the minute ends and audits <code>rtmp.auth_budget</code>.
+  Once MAIN admits the viewer, the load balancer starts an on-demand stream and records the
+  viewer itself, as before. No answer refuses the viewer: no agent (a node not enrolled),
+  an agent that predates the op, or MAIN unreachable. RTMP has no offline policy, unlike
+  <code>conn_admit</code>.</li>
+<li><strong>The licence lease is issued, checked, and enforced only behind a switch</strong> (Phase 9).
+  Every token MAIN hands a node (enrolment over SSH or by code, <code>token_refresh</code>,
+  <code>token_rekey</code>) carries a lease signed by <code>xcvm_core</code>, capped at <code>min(token_exp +
+  lb_partition_tolerance_h, iat + 26 h)</code>; when the extension refuses one (no licence, its
+  clock gate, a revoked generation) the token goes out without it, and a refusal for the
+  licence dispatches <code>ClusterLicenceLapsedEvent</code>. <code>xc_agent</code> verifies each lease it receives
+  (panel signature, its node, server and generation, the window on its estimate of MAIN's
+  time), keeps the newest in its state file and prints it with <code>xc_agent lease</code>.
+  The fence that acts on it is built in the node's PHP (<code>Core\Cluster\NodeLease</code>) behind
+  <code>lb_lease_fence</code>, which is <strong>off by default</strong>: with it on, past the lease's <code>exp</code> no new
+  viewer starts on the node (<code>stream/auth.php</code>), and past <code>lb_fence_drain_min</code> more the
+  sessions still running stop (<code>segment.php</code>, <code>key.php</code>, <code>live.php</code>), and the agent drops
+  every viewer the fanout serves, judging the same lease, clock and settings itself. It judges the lease state the
+  agent writes to <code>config/cluster/lease_state.json</code> at every heartbeat interval, whether or
+  not MAIN answers: the lease's <code>exp</code>, and MAIN's clock carried forward on the node's
+  monotonic clock from MAIN's last authenticated statement, so moving the node's wall clock
+  does not move MAIN's time as the fence reckons it, and restarting the agent resumes it. Every
+  uncertainty serves: the switch off, a legacy node, no file or a file the agent stopped
+  refreshing, no lease, no anchor on MAIN's clock. The switch must be on <em>before</em> a licence
+  lapses — it reaches a node in the replica's <code>settings</code> section, which a panel without a
+  licence cannot sign. Where the node's <code>xcvm_core</code> offers it (<code>cluster_lease_state</code>), the
+  extension judges the lease itself — against its own pin of the panel key and an anchor on
+  MAIN's clock that runs on the monotonic clock and never moves back — and the agent's file
+  is the fallback. The same verdict makes <code>license_valid()</code> true on the node, so
+  <code>LicenseGate</code> lets it use fanout. The extension's verdict needs the node's <code>core.pin</code>:
+  the SSH install pins it over its own session, and every other node that takes root
+  commands is pinned by <code>cron:cluster</code> with a signed <code>node.root pin_core</code> (the <em>core</em> badge
+  on the Cluster Nodes page, or <em>Pin core</em> to send it now).</li>
+<li><strong>The credential lockdown is partly built</strong> (Phase 9). A node in mode 2 gives up MAIN's
+  credentials with a signed <code>node.root strip_db_credentials</code> (or a credential-free
+  <code>node.root install_config</code>), run by <code>xcvm_core</code> as root; when its ack reports a config
+  without credentials, MAIN revokes the node's grant (<code>XC_VM::db_revoke</code>) and records
+  <code>cluster_nodes.db_revoked_at</code> (<code>Domain\Cluster\DbCredentials</code>). Root runs the strip only
+  while the node is in mode 2 (<code>NodeCredentials::run()</code>; <code>install_config</code> is not gated by
+  the mode). Root also sends the outcome of a credential action as a P0 <code>node.root_result</code>
+  event (COMMANDS flow), so it reaches MAIN when root's runner is slower than
+  <code>ClusterExecCommand::ROOT_WAIT</code> (5 s) and the ack says only <code>{"queued": true}</code>; MAIN takes
+  whichever comes first, once (<code>DbCredentials::acked</code>). MAIN revokes the grant only while it
+  has the node in mode 2: a node learns of a <code>mode_down</code> at its agent's next heartbeat, so a
+  strip root ran before that leaves it below mode 2 without credentials, and MAIN sends them
+  back (<code>install_config</code> with credentials, audited <code>node.credentials_restored</code>) instead of
+  revoking. Only an operator sends
+  the strip (<em>Drop DB credentials</em>, <code>cluster:strip-credentials</code>), and
+  <code>lb_new_node_mode=api</code> (a new load balancer installed in mode 2, every flow on, with a
+  credential-free config) is taken only with an extension that packs such a config. A node MAIN already keeps credential-free (mode 2, or a revoked
+  grant) stays so: a reinstall over SSH packs it a credential-free config, re-enrols it in
+  mode 2 and grants it nothing, an enrolment by code re-enrols it in mode 2 as well, with
+  every flow on and its <code>db_revoked_at</code> kept (<code>EnrolCodeService::approve()</code>), and no grant
+  path (<em>Re-authorise MySQL</em>, <code>tools mysql</code>) reaches its host.
+  <code>cluster:rotate-db-password</code> rotates the panel's DB password
+  through <code>XC_VM::db_set_password</code> and sends each node below mode 2 that takes root
+  commands a signed <code>node.root rotate_db</code> with the new password SEALed to its box key,
+  which its root side opens and hands to <code>XC_VM::config_set_db</code> (only <code>db.pass</code> changes).
+  Every other load balancer that still uses its grant keeps the old password until an
+  operator runs <code>cluster:set-db-password</code> on it. The password never rides a command in the
+  clear. <code>cluster:rotate-credentials</code> rotates the Redis password the same way, and the
+  manual <code>cluster:lockdown</code> exists too (ADR 0004, Phase 9's fifth and seventh increments).</li>
+<li>The viewer-token secret can be <em>replaced</em> gracefully (the value it replaces stays readable
+  for ten minutes, fleet-wide), and rotated in full after a leak with
+  <code>cluster:rotate-stream-secret</code> (above).</li>
+<li>A node's <code>whitelist_ips</code> is the admin's: a node no longer publishes its own addresses,
+  because that column grants the legacy <code>/api</code> allowlist.</li>
+<li>A quarantine ends every command queued for the node that grants something (handed out
+  or not, not yet acked): MAIN no longer knows who holds the node's keys, so what was
+  decided before is decided again after <em>Trust again</em>, not replayed. The quarantine's audit
+  line names each ended command, and the page says how many; the operator sends again what
+  is still wanted. A quarantined node is handed only the commands that restrict it (kills,
+  stops, a fence, the quarantine itself).</li>
+<li>A node's heartbeat sets <code>servers.status</code> to 1: at once, or with the next flush of the
+  heartbeats the cluster bus holds (every 5 s). The status 5 (updating) a node reports
+  through its <code>node.state</code> event holds against its heartbeats for 60 seconds after MAIN took
+  it (<code>cluster_meta</code>, <code>updating.&lt;server id&gt;</code>), so the node stays out of routing while its
+  update stops the service. Its "back" (1) ends the hold at once. A node that still sends
+  heartbeats after the 60 seconds is taken back into routing by itself. A 5 a node wrote to
+  its own row (TELEMETRY off), and an install state MAIN set (3 or 4), last only until the
+  node's agent is next heard.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
