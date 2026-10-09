@@ -118,7 +118,11 @@ every flow, the data plane included, root's pin, and a node that can run that wa
 audit report. The node says that itself (`SettingsAudit::publish()`): it boots from its replica
 (`ReplicaBoot::ready()`), the replica owns its stream definitions, and its own store of their
 state is seeded. It says it again at once whenever that stops being true (`StreamRuntime::lapse()`,
-`ReplicaApply`), because in mode 2 it can neither seed the store nor read from MAIN. The Redis
+`ReplicaApply`), because in mode 2 it cannot read MAIN's rows. There it seeds the store from what
+it kept itself, and only while none of its streams runs (`StreamRuntime::seedLocal()`: no ffmpeg
+or native remuxer on the node, so MAIN's rows hold no pid it still needs). That is how a node
+installed straight into mode 2 (`lb_new_node_mode=api`) gets its store; one whose store lapsed
+while its streams run stays unseeded until they stop. The Redis
 connection handler asks nothing: a node in mode 2 never opens MAIN's Redis
 (`ConnectionTracker::openStore()`), its viewers being its agent's.
 
