@@ -137,10 +137,12 @@ EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void 
 |Класс события|Местоположение|Когда отправлено|
 | ----------- | -------- | --------------- |
 | `StreamsChangedEvent` | `Events/Stream/` |Потоки были созданы или изменены (форма, импорт, EPG, категории, серверы, ...)|
-| `StreamSavedEvent` | `Events/Stream/` |Форма трансляции, импорт или admin API записывают прямые трансляции (содержит поля вкладки модуля)|
+| `StreamSavedEvent` | `Events/Stream/` |Форма трансляции, импорт или admin API записывают прямые трансляции (содержит поля вкладок модуля)|
 | `StreamsDeletedEvent` | `Events/Stream/` |Потоки были удалены|
 | `StreamArgumentsChangedEvent` | `Events/Stream/` |Изменены значения аргументов глобального потока по умолчанию|
 | `TranscodeProfileSavedEvent` | `Events/Stream/` |Профиль перекодирования был сохранен|
+| `TranscodeProfileDeletedEvent` | `Events/Stream/` |Профиль перекодирования был удален (модули перестали указывать на него)|
+| `CategoryDeletedEvent` | `Events/Stream/` |Категория потока была удалена (модули перестали указывать на нее)|
 | `BouquetDeletedEvent` | `Events/Bouquet/` |Букет был удален|
 | `VodImportedEvent` | `Events/Vod/` |Был импортирован элемент VOD|
 | `MediaAnalyzedEvent` | `Events/Vod/` |Был проанализирован VOD-файл|
@@ -149,6 +151,7 @@ EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void 
 | `SettingsChangedEvent` | `Events/Settings/` |Настройки были сохранены|
 | `CrontabChangedEvent` | `Events/Settings/` |Кронтаб изменился|
 | `PackageInstalledEvent` | `Events/Module/` |Был установлен пакет marketplace|
+| `LegacyTableMigrationEvent` | `Events/Migration/` |При переносе восстановленной резервной копии модуль получает свою таблицу (прослушиватель копирует строки и устанавливает `copied`).|
 
 !!! предупреждение "Определено, но так и не отправлено"
 `StreamStartingEvent`, `StreamStartedEvent`, `StreamStoppedEvent`,
