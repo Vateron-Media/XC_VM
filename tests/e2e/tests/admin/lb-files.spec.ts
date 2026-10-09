@@ -1,6 +1,6 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
 import { TAG, adminApi, ident, listRow, rowAction, rowWith, searchTable, submitForm, tableRows, uniq } from './support';
-import { lb, serverView } from './cluster-support';
+import { addArchiveChannel, hold, lb, serverView, timeshiftStarts } from './cluster-support';
 
 /**
  * Files a load balancer serves through its xc_fanout daemon (ADR 0004, "VOD and
@@ -51,39 +51,6 @@ async function ranged(url: string, from: number, to: number): Promise<{ status: 
   return { status: resp.status, type: resp.headers.get('content-type') ?? '', body: Buffer.from(await resp.arrayBuffer()), total };
 }
 
-/**
- * A download kept open as a player keeps it: read a chunk at a time, slowly,
- * so the daemon is still writing it while the test looks (a reader that stops
- * altogether is dropped at the daemon's write deadline, as a stalled viewer).
- * Null until it is served.
- */
-async function hold(url: string): Promise<{ status: number; type: string; abort: AbortController } | null> {
-  const abort = new AbortController();
-  try {
-    const resp = await fetch(url, { redirect: 'follow', signal: abort.signal });
-    const type = resp.headers.get('content-type') ?? '';
-    if (resp.status !== 200 || /text\/html/i.test(type) || !resp.body) {
-      abort.abort();
-      return null;
-    }
-    const reader = resp.body.getReader();
-    await reader.read();
-    void (async () => {
-      while (!abort.signal.aborted) {
-        const r = await reader.read().catch(() => ({ done: true }));
-        if (r.done) {
-          break;
-        }
-        await new Promise((res) => setTimeout(res, 400));
-      }
-    })();
-    return { status: resp.status, type, abort };
-  } catch {
-    abort.abort();
-    return null;
-  }
-}
-
 /** Held open, the download is one of the daemon's viewers (its agent reports every few seconds). */
 async function countedByTheDaemon(request: APIRequestContext, url: string, what: string): Promise<void> {
   await expect.poll(() => daemonViewers(request), { timeout: 90_000, intervals: [3_000], message: 'the daemon idle before this viewer' }).toBe(0);
@@ -116,34 +83,7 @@ async function addMovie(page: Page, m: Movie): Promise<void> {
   m.id = Number(r.id);
 }
 
-async function addArchiveChannel(page: Page): Promise<void> {
-  await page.goto('./stream');
-  await page.locator('#stream_display_name').fill(channel.name);
-  await page.locator('#notes').fill(TAG);
-  await page.locator('#bouquets').selectOption({ label: bouquet }, { force: true });
-  await page.getByRole('tab', { name: /sources/i }).click();
-  await page.locator('input[name="stream_source[]"]').first().fill(SOURCE);
-  await page.getByRole('tab', { name: /^servers$/i }).click();
-  await page.evaluate((node) => (window as any).$('#server_tree').jstree('move_node', String(node), 'source', 'last'), lb);
-  // Timeshift on the load balancer, a day kept.
-  await page.locator('#tv_archive_server_id').selectOption(String(lb), { force: true });
-  await page.locator('#tv_archive_duration').fill('1');
-  await submitForm(page, page, 'stream', page.locator('#stream-submit'));
-  await page.waitForURL(/\/(stream_view\?id=\d+|streams)/, { waitUntil: 'commit' });
-  const r = (await tableRows(page.request, 'streams', channel.name)).find((x) => x.title === channel.name);
-  expect(r, `${channel.name} is listed`).toBeTruthy();
-  channel.id = Number(r.id);
-}
-
 const movieURL = (m: Movie) => `${origin}/movie/${viewer.username}/${viewer.password}/${m.id}.mp4`;
-
-/** The archive's first minute as MAIN names timeshift starts: tried in UTC and in the panel's zone. */
-function timeshiftStarts(): string[] {
-  const at = new Date(channel.startedAt + 90_000);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const fmt = (d: Date) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}:${pad(d.getUTCHours())}-${pad(d.getUTCMinutes())}`;
-  return [fmt(at), fmt(new Date(at.getTime() + 3_600_000)), fmt(new Date(at.getTime() - 3_600_000))];
-}
 
 test.describe.serial('files served by the load balancer\'s daemon', () => {
   test('a bouquet, a line, a direct-proxy movie, a movie on the load balancer and a channel recording there', async ({ page }) => {
@@ -154,7 +94,7 @@ test.describe.serial('files served by the load balancer\'s daemon', () => {
     await page.waitForURL(/bouquets/);
     await addMovie(page, movies.proxy);
     await addMovie(page, movies.local);
-    await addArchiveChannel(page);
+    channel.id = await addArchiveChannel(page, { name: channel.name, bouquet, source: SOURCE });
 
     await page.goto('./line');
     await page.locator('#username').fill(viewer.username);
@@ -218,7 +158,7 @@ test.describe.serial('files served by the load balancer\'s daemon', () => {
     let url = '';
     await expect
       .poll(async () => {
-        for (const start of timeshiftStarts()) {
+        for (const start of timeshiftStarts(channel.startedAt)) {
           const candidate = `${origin}/timeshift/${viewer.username}/${viewer.password}/2/${start}/${channel.id}.ts`;
           const h = await hold(candidate);
           if (h) {
