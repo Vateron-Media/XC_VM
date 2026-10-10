@@ -3,6 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use XcVm\Cli\Commands\RootPathsCommand;
 use XcVm\Core\Config\ConstantsInitializer;
+use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Process\ProcessRunner;
 
@@ -383,5 +384,51 @@ final class AuditDecisionRootPathsTest extends TestCase {
 		$this->assertStringNotContainsString('RootPathsCommand', $rMakefile);
 		$this->assertStringNotContainsString('TreeOwnership', $rMakefile);
 		$this->assertSame('root:paths', (new RootPathsCommand())->getName());
+	}
+
+	/**
+	 * What root runs is taken back from xc_vm on MAIN: the entries that exist
+	 * (the base among them, as the owner of a directory replaces what is in
+	 * it), the class directories with all that is under them, and back to
+	 * xc_vm what it writes inside one of those.
+	 */
+	public function testRootOwnNamesWhatExistsAndGivesBackWhatXcVmWritesInside(): void {
+		$rBase = sys_get_temp_dir() . '/xcvm-rootown-' . bin2hex(random_bytes(4));
+		foreach (['vendor', 'Core/Localization/lang', 'bin/php/bin', 'bin/nginx/conf', 'config', 'tmp'] as $rDir) {
+			mkdir($rBase . '/' . $rDir, 0755, true);
+		}
+		touch($rBase . '/console.php');
+		touch($rBase . '/bin/yt-dlp');
+		try {
+			$this->assertSame([
+				['chown', '-h', 'root:xc_vm', $rBase, $rBase . '/console.php', $rBase . '/bin', $rBase . '/bin/php', $rBase . '/bin/nginx', $rBase . '/bin/yt-dlp'],
+				['chown', '-hR', 'root:xc_vm', $rBase . '/vendor', $rBase . '/Core', $rBase . '/bin/php/bin'],
+				['chown', '-hR', 'xc_vm:xc_vm', $rBase . '/Core/Localization/lang'],
+			], TreeOwnership::rootOwn($rBase . '/'));
+		} finally {
+			exec('rm -rf ' . escapeshellarg($rBase));
+		}
+		// Nothing of what xc_vm writes while the panel runs is taken as a whole.
+		foreach (TreeOwnership::WRITABLE as $rEntry) {
+			$this->assertArrayNotHasKey(rtrim($rEntry, '/'), TreeOwnership::ROOT_OWNED, $rEntry);
+		}
+	}
+
+	/** An updater that puts a file in place gives it to whoever the tree's policy says: root on MAIN, for what root runs. */
+	public function testAnUpdaterGivesItsFileToRootOnMainOnly(): void {
+		try {
+			NodeRole::useServers(static fn(): array => [SERVER_ID => ['is_main' => 1]]);
+			$this->assertSame('root', TreeOwnership::owner('bin/yt-dlp'));
+			$this->assertSame('root', TreeOwnership::owner('bin/php/lib/php/extensions/xcvm_core.so'));
+			$this->assertSame('root', TreeOwnership::owner('Core/Config/TreeOwnership.php'));
+			$this->assertSame('xc_vm', TreeOwnership::owner('Core/Localization/lang/pt.ini'), 'xc_vm writes the languages');
+			$this->assertSame('xc_vm', TreeOwnership::owner('bin/xc_fanout/xc_fanout'));
+			$this->assertSame('xc_vm', TreeOwnership::owner('config/modules.php'));
+
+			NodeRole::useServers(static fn(): array => [SERVER_ID => ['is_main' => 0]]);
+			$this->assertSame('xc_vm', TreeOwnership::owner('bin/yt-dlp'), "a load balancer's tree is xc_vm's");
+		} finally {
+			NodeRole::useServers(null);
+		}
 	}
 }

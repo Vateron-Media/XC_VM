@@ -3,6 +3,7 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Updates\GitHubReleases;
 
 /**
@@ -114,7 +115,8 @@ class YtDlpCommand implements CommandInterface {
 			@unlink($rTmp);
 			return 1;
 		}
-		@chown($rBinary, 'xc_vm');
+		// Root runs it for its version: root's on MAIN (TreeOwnership::ROOT_OWNED).
+		@chown($rBinary, TreeOwnership::owner('bin/yt-dlp'));
 		@chgrp($rBinary, 'xc_vm');
 		@chmod($rBinary, 0755);
 

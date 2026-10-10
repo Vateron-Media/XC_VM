@@ -107,7 +107,9 @@ class BinariesCommand implements CommandInterface {
 		// bring an older one (no cluster API), and a panel update never refreshes
 		// bin/install, so the script's own guard is not on every panel.
 		$rCommand = '/bin/bash ' . escapeshellarg($rScript) . ' ' . escapeshellarg(GIT_OWNER) . ' ' . escapeshellarg(GIT_REPO_BIN) . ' ' . escapeshellarg(BIN_PATH) . ' ' . escapeshellarg($rLatestVersion)
-			. '; ' . escapeshellarg(PHP_BIN) . ' ' . escapeshellarg(MAIN_HOME . 'console.php') . ' xcvm_core';
+			. '; ' . escapeshellarg(PHP_BIN) . ' ' . escapeshellarg(MAIN_HOME . 'console.php') . ' xcvm_core'
+			// The script hands the whole tree to xc_vm when it ends: what root runs is taken back.
+			. '; ' . escapeshellarg(PHP_BIN) . ' ' . escapeshellarg(MAIN_HOME . 'console.php') . ' root:own';
 		$rLogDir = MAIN_HOME . 'tmp/';
 		if (!is_dir($rLogDir)) {
 			@mkdir($rLogDir, 0755, true);
