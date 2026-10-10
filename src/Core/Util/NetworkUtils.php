@@ -38,19 +38,40 @@ class NetworkUtils {
 	}
 
 	/**
-	 * Whether two IPs match — exactly, or on the same /24 (first three octets)
-	 * when $rSubnetMatch is on. Used to compare a stored connection IP against
-	 * the current client IP.
+	 * Whether two IPs match: exactly, or on the same subnet when $rSubnetMatch
+	 * is on. A subnet is the /24 of an IPv4 address and the /64 of an IPv6
+	 * one, and an IPv4-mapped address (::ffff:1.2.3.4) is its IPv4 address.
+	 * One of each, or what is not an address, matches only when equal.
 	 *
-	 * @param bool        $rSubnetMatch Compare only the leading three octets.
+	 * The one comparison of a stored address (a token's, a connection's, a
+	 * session's) with the client's. It used to drop what followed the last
+	 * dot of each: an IPv6 address has none, so any two of them matched.
+	 *
+	 * @param bool        $rSubnetMatch Compare subnets, not addresses (ip_subnet_match).
 	 * @param string|null $rTargetIP    Stored / other IP.
 	 * @param string|null $rClientIP    Current client IP.
 	 */
 	public static function ipMatches(bool $rSubnetMatch, ?string $rTargetIP, ?string $rClientIP): bool {
-		if ($rSubnetMatch) {
-			return implode(".", array_slice(explode(".", (string) $rTargetIP), 0, -1)) == implode(".", array_slice(explode(".", (string) $rClientIP), 0, -1));
+		if ($rTargetIP == $rClientIP) {
+			return true;
 		}
-		return $rTargetIP == $rClientIP;
+		if (!$rSubnetMatch) {
+			return false;
+		}
+		$rTarget = self::subnetOf((string) $rTargetIP);
+		return $rTarget !== null && $rTarget === self::subnetOf((string) $rClientIP);
+	}
+
+	/** An address's subnet for ipMatches(): "4:" and its /24, "6:" and its /64; null for what is not an address. */
+	private static function subnetOf(string $rIP): ?string {
+		$rPacked = @inet_pton($rIP);
+		if ($rPacked === false) {
+			return null;
+		}
+		if (strlen($rPacked) === 16 && substr($rPacked, 0, 12) === "\0\0\0\0\0\0\0\0\0\0\xff\xff") {
+			$rPacked = substr($rPacked, 12);
+		}
+		return strlen($rPacked) === 4 ? '4:' . substr($rPacked, 0, 3) : '6:' . substr($rPacked, 0, 8);
 	}
 
 	/**

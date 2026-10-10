@@ -5,6 +5,7 @@ use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Streaming\AsyncFileOperations;
 use XcVm\Streaming\Codec\FfmpegPaths;
@@ -129,7 +130,7 @@ if (isset($_GET['token'])) {
 					if (FanoutMode::legacyDelivery($rSettings) || !file_exists(CONS_TMP_PATH . $rUUID)) {
 						generate404();
 					}
-					$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rUserIP), 0, -1)) == implode('.', array_slice(explode('.', getuserip()), 0, -1)) : $rUserIP == getuserip());
+					$rIPMatch = NetworkUtils::ipMatches((bool) $rSettings['ip_subnet_match'], $rUserIP, getuserip());
 					if (!($rIPMatch || !$rSettings['restrict_same_ip'])) {
 						generate404();
 					}
@@ -163,7 +164,7 @@ if (isset($_GET['token'])) {
 			}
 
 			// Before the viewer is heard: a request refused for its address touches nothing.
-			$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rUserIP), 0, -1)) == implode('.', array_slice(explode('.', getuserip()), 0, -1)) : $rUserIP == getuserip());
+			$rIPMatch = NetworkUtils::ipMatches((bool) $rSettings['ip_subnet_match'], $rUserIP, getuserip());
 
 			if (!$rIPMatch && $rSettings['restrict_same_ip']) {
 				generate404();

@@ -127,7 +127,7 @@ final class ResellerScopeBootstrap implements ScopeBootstrap {
 			$rPermissions['subresellers'] = $rPermissions['subresellers'] ?? [];
 			$rUserInfo['reports'] = array_map('intval', array_merge([$rUserInfo['id']], $rPermissions['all_reports']));
 			$rIP = NetworkUtils::getUserIP();
-			$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $_SESSION['rip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $_SESSION['rip'] == $rIP);
+			$rIPMatch = NetworkUtils::ipMatches((bool) $rSettings['ip_subnet_match'], $_SESSION['rip'], $rIP);
 
 			// A login needs an enabled account (status 1), and so does the session it opened.
 			if ($rUserInfo && $rUserInfo['status'] != 1) {
