@@ -1,0 +1,4476 @@
+
+<!doctype html>
+<html lang="ru" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.6.5/ru/development/streaming-subsystem/">
+      
+      
+        <link rel="prev" href="../admin-ajax-api/">
+      
+      
+        <link rel="next" href="../streaming-diagnostics/">
+      
+      
+        
+          <link rel="alternate" href="../../../development/streaming-subsystem/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Подсистема стриминга - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Верхний колонтитул">
+    <a href="../../" title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Подсистема стриминга
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Выберите язык">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../development/streaming-subsystem/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Поиск" placeholder="Поиск" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Поиск">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Очистить" aria-label="Очистить" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Инициализация поиска
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Вкладки" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Главная
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  Руководство пользователя
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../architecture/" class="md-tabs__link">
+          
+  
+  
+  Руководство разработчика
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Навигация" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Главная
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство пользователя
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство пользователя
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Администрирование
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Администрирование
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Генерация SSL-сертификата
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обновление сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/main-lb-cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAIN и балансировщики нагрузки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Механизм обновлений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система реселлеров
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Стратегия резервного копирования
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эксплуатация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Справочник API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Справочник API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интерактивный API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кастомизация
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Кастомизация
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Переводы интерфейса
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Диагностика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сервис диагностики
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Информация и FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Информация и FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/licensing-and-activation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Лицензирование и активация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство по миграции
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Отслеживаемая папка
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/youtube-restream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рестрим YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/custom-ffmpeg-command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Свои команды FFmpeg
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Архитектура
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Архитектура
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обзор архитектуры
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автозагрузка (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Контексты бутстрапа
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и регистрация ядра
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Создание модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Жизненный цикл модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Точки расширения модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../source-drivers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Драйверы источников
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка HTTP-запросов
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AJAX-API админки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Подсистема стриминга
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Подсистема стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток запросов
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Расположение каталога
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Конвейер начальной загрузки
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Конвейер начальной загрузки">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-streamingrequestbootstrapinit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. StreamingRequestBootstrap::init()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Потоковый загрузчик::bootstrap()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-legacyinitializer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. LegacyInitializer::Инициализация потока()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Аутентификация по токену
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Аутентификация по токену">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Формат токена
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hmac" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ссылки, подписанные HMAC
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Потоковая доставка
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Потоковая доставка">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#livephp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Жить (live.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vodphp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ВИДЕО (vod.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeshiftphp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Временной сдвиг (timeshift.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rtmp-rtmpphp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RTMP (rtmp.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Радио во втором веб-плеере
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#probephp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Зонд (probe.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#xc_fanout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Доставка демона — xc_fanout
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Доставка демона — xc_fanout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Управление потоковой передачей и встроенный ремультиплексор
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Выключение разветвления
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Наложение отправленного сообщения
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Сегментный шлюз
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Управление подключениями
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Управление подключениями">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Средство отслеживания подключений
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ограничитель подключения
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Устройство для выключения
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        балансировка нагрузки
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="балансировка нагрузки">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#streamauthcheckaccess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Выбор сервера (StreamAuth::checkAccess)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-proxyselector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Выбор прокси-сервера (ProxySelector::Доступный прокси)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ограничение скорости и защита от наводнений
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ограничение скорости и защита от наводнений">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-nginx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. nginx (уровень подключения)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-streamingrequestbootstrap-ip-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. StreamingRequestBootstrap (IP-блокировка)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Ограничитель подключений (для каждого пользователя)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Серверы, работающие только через прокси
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Шифрование HLS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Шаблоны аргументов потока
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Представление
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Пути к файловой системе
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Диагностика и оснастка
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обоснование проекта (ADR)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ts-delivery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Доставка MPEG-TS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API кластера (MAIN ↔ LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster-seams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Швы кластера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система событий
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Иерархия исключений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кэширование и Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рендеринг навбара
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рабочий процесс разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Рабочий процесс разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Процесс разработки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI-инструменты и консоль
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Миграции базы данных
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Юнит-тесты
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автоматический рефакторинг (Rector)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Флаги функций
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Управление процессами
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Безопасность и доступ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Безопасность и доступ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Аутентификация и сессии
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Права и RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Валидация ввода
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка ошибок
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграции
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Интеграции
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP и гео-маршрутизация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Определение устройств и STB-блокировки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эмуляция Ministra STB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграция UCS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и релиз
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Сборка и релиз
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система сборки (MAIN и LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Чеклист перед релизом
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток запросов
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Расположение каталога
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Конвейер начальной загрузки
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Конвейер начальной загрузки">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-streamingrequestbootstrapinit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. StreamingRequestBootstrap::init()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Потоковый загрузчик::bootstrap()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-legacyinitializer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. LegacyInitializer::Инициализация потока()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Аутентификация по токену
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Аутентификация по токену">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Формат токена
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hmac" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ссылки, подписанные HMAC
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Потоковая доставка
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Потоковая доставка">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#livephp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Жить (live.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vodphp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ВИДЕО (vod.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeshiftphp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Временной сдвиг (timeshift.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rtmp-rtmpphp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RTMP (rtmp.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Радио во втором веб-плеере
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#probephp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Зонд (probe.php)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#xc_fanout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Доставка демона — xc_fanout
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Доставка демона — xc_fanout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Управление потоковой передачей и встроенный ремультиплексор
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Выключение разветвления
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Наложение отправленного сообщения
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Сегментный шлюз
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Управление подключениями
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Управление подключениями">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Средство отслеживания подключений
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ограничитель подключения
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Устройство для выключения
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        балансировка нагрузки
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="балансировка нагрузки">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#streamauthcheckaccess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Выбор сервера (StreamAuth::checkAccess)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-proxyselector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Выбор прокси-сервера (ProxySelector::Доступный прокси)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ограничение скорости и защита от наводнений
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ограничение скорости и защита от наводнений">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-nginx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. nginx (уровень подключения)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-streamingrequestbootstrap-ip-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. StreamingRequestBootstrap (IP-блокировка)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Ограничитель подключений (для каждого пользователя)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Серверы, работающие только через прокси
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Шифрование HLS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Шаблоны аргументов потока
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Представление
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Пути к файловой системе
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Диагностика и оснастка
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обоснование проекта (ADR)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">Подсистема потоковой передачи<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>Подсистема потоковой передачи обрабатывает трансляцию в прямом эфире, VOD и со сдвигом по времени.
+Это быстрый путь (~10-100 тыс. запросов в минуту, &lt;50 мс p99), и он использует отдельный облегченный bootstrap, чтобы избежать загрузки всего стека администратора.</p>
+<hr />
+<h2 id="_2">Поток запросов<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>client request
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>      |
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>nginx rewrite (/auth/{token} -&gt; /stream/live.php?token={token})
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>      |
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>StreamingRequestBootstrap::init()
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>      |
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>StreamingBootstrap::bootstrap()
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>      |
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>LegacyInitializer::initStreaming()
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>      |
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>endpoint logic (live.php / vod.php / timeshift.php)
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>      |
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>ShutdownHandler::handle()
+</code></pre></div>
+<p>nginx переписывает все потоковые URL-адреса в точки входа PHP под <code>Public/stream/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Шаблон URL-адреса</th>
+<th>Точка входа</th>
+<th>Цель</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/auth/{token}</code></td>
+<td><code>live.php</code></td>
+<td>Прямая трансляция</td>
+</tr>
+<tr>
+<td><code>/vauth/{token}</code></td>
+<td><code>vod.php</code></td>
+<td>Доставка видео по запросу</td>
+</tr>
+<tr>
+<td><code>/tsauth/{token}</code></td>
+<td><code>timeshift.php</code></td>
+<td>Архивирование/воспроизведение с временным сдвигом</td>
+</tr>
+<tr>
+<td><code>/hls/{token}</code></td>
+<td><code>segment.php</code></td>
+<td>Предоставление услуг в сегменте ЗОЖ</td>
+</tr>
+<tr>
+<td><code>/key/{token}</code></td>
+<td><code>key.php</code></td>
+<td>Ключ шифрования AES-128</td>
+</tr>
+<tr>
+<td><code>/subauth/{token}</code></td>
+<td><code>subtitle.php</code></td>
+<td>Передача субтитров</td>
+</tr>
+<tr>
+<td><code>/thauth/{token}</code></td>
+<td><code>thumb.php</code></td>
+<td>Доставка миниатюр</td>
+</tr>
+</tbody>
+</table>
+<p><code>/thauth/</code> и <code>/subauth/</code> принимают только токен, который содержит <code>expires</code> и не был передан; на любой другой токен принимается ответ <code>TOKEN_EXPIRED</code>.</p>
+<hr />
+<h2 id="_3">Расположение каталога<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>src/Streaming/
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>├── StreamingBootstrap.php
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>├── AsyncFileOperations.php
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>├── Auth/
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>│   ├── StreamAuth.php
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>│   └── StreamAuthMiddleware.php
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>├── Balancer/
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>│   └── ProxySelector.php
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>├── Codec/
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>│   ├── FFmpegCommand.php
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>│   ├── FfmpegPaths.php
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>│   └── FFprobeRunner.php
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>├── Delivery/
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>│   ├── HLSGenerator.php
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>│   ├── OffAirHandler.php
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>│   ├── SegmentReader.php     # fanout off: TS chase-read segment picking
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>│   ├── SignalSender.php      # fanout off: send-message overlay
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>│   └── StreamRedirector.php
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>├── Fanout/
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>│   ├── FanoutClient.php
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>│   ├── FanoutMode.php        # the fanout_enabled master switch
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>│   └── IngestFeeder.php
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>├── Health/
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>│   └── ProcessChecker.php
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>├── Lifecycle/
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>│   └── ShutdownHandler.php
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>└── Protection/
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>    └── ConnectionLimiter.php
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>src/Public/stream/
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>├── index.php         # Entry router for the stream endpoints
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>├── auth.php          # Token validation gateway
+<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>├── live.php          # Live streaming delivery
+<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>├── vod.php           # VOD delivery
+<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>├── timeshift.php     # Archive/timeshift playback
+<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>├── segment.php       # HLS segment delivery
+<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>├── key.php           # Encryption key delivery
+<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>├── subtitle.php      # Subtitle delivery
+<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>├── thumb.php         # Thumbnail delivery
+<a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>├── probe.php         # Stream probe / off-air status
+<a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>└── rtmp.php          # RTMP publishing endpoint
+</code></pre></div>
+<hr />
+<h2 id="_4">Конвейер начальной загрузки<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<h3 id="1-streamingrequestbootstrapinit">1. StreamingRequestBootstrap::init()<a class="headerlink" href="#1-streamingrequestbootstrapinit" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php</code></p>
+<p>Действия в порядке:</p>
+<ol>
+<li>Загружайте коды ошибок, обработчик, пути, конфигурацию, двоичные файлы.</li>
+<li>Защита от наводнений (только HTTP): проверьте наличие <code>FLOOD_TMP_PATH . 'block_' . $rIP</code>.</li>
+<li>Загрузите настройки из файлового кэша (<code>CACHE_TMP_PATH . 'settings'</code>).</li>
+<li>Проверка хоста (только HTTP): проверка на соответствие <code>allowed_domains</code>.</li>
+<li>Инициализируйте регистратор.</li>
+<li>Аварийно закрытый шлюз: возвращает 404, если настройки отсутствуют (кроме <code>/status</code>).</li>
+<li>Вызовите <code>StreamingBootstrap::bootstrap()</code>.</li>
+</ol>
+<h3 id="2-bootstrap">2. Потоковый загрузчик::bootstrap()<a class="headerlink" href="#2-bootstrap" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Streaming/StreamingBootstrap.php</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">public static function bootstrap($rFilename, $rSettings)</span>
+</code></pre></div>
+<p>Классифицирует конечную точку:</p>
+<ul>
+<li><strong>Конечные точки зондирования:</strong> <code>probe</code>, <code>player_api</code> ( небольшая нагрузка)</li>
+<li><strong>Конечные точки по умолчанию:</strong> <code>live</code>, <code>thumb</code>, <code>subtitle</code>, <code>timeshift</code>, <code>vod</code>, <code>status</code></li>
+<li><strong>Привилегированные конечные точки:</strong> <code>rtmp</code>, <code>portal</code></li>
+</ul>
+<p>Загружает <code>AsyncFileOperations.php</code> и <code>DatabaseHandler.php</code>, сохраняет настройки в <code>$GLOBALS['rSettings']</code> и получает доступ к данным в <code>$GLOBALS['rAccess']</code>, затем вызывает <code>LegacyInitializer::initStreaming()</code>.</p>
+<p>Возвращает экземпляр базы данных <code>$db</code> (используемый устаревшими точками входа).</p>
+<h3 id="3-legacyinitializer">3. LegacyInitializer::Инициализация потока()<a class="headerlink" href="#3-legacyinitializer" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Core/Init/LegacyInitializer.php</code></p>
+<p>Заполняет глобальные переменные из кэша:</p>
+<ul>
+<li><code>$GLOBALS['rSettings']</code>, <code>$GLOBALS['rServers']</code>, <code>$GLOBALS['rBouquets']</code></li>
+<li><code>$GLOBALS['rBlockedUA']</code>, <code>$GLOBALS['rBlockedISP']</code>, <code>$GLOBALS['rBlockedIPs']</code></li>
+<li><code>$GLOBALS['rAllowedIPs']</code>, <code>$GLOBALS['rProxies']</code>, <code>$GLOBALS['rSegmentSettings']</code></li>
+<li><code>$GLOBALS['rFFMPEG_CPU']</code>, <code>$GLOBALS['rFFMPEG_GPU']</code>, <code>$GLOBALS['rFFPROBE']</code></li>
+</ul>
+<p>Подключается к базе данных/Redis на основе <code>$rSettings['redis_handler']</code> (<code>ConnectionTracker::openStore()</code>), но никогда к Redis MAIN в подсистеме балансировки нагрузки в режиме кластера 2, чьи средства просмотра принадлежат его агенту.</p>
+<blockquote>
+<p><strong>Важный:</strong> Путь к потоковой передаче считывается исключительно из файлового кэша. При обычной работе программа не запрашивает настройки в базе данных или запросы пользователей.</p>
+</blockquote>
+<hr />
+<h2 id="_5">Аутентификация по токену<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Streaming/Auth/StreamAuthMiddleware.php</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">StreamAuthMiddleware::decryptToken($rToken, $rSettings, $rServers, $rIP): array</span>
+</code></pre></div>
+<p>Содержимое токена:</p>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>username</code></td>
+<td>Имя пользователя строки</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td>Пароль к строке</td>
+</tr>
+<tr>
+<td><code>stream_id</code></td>
+<td>Идентификатор целевого потока</td>
+</tr>
+<tr>
+<td><code>expires</code></td>
+<td>Временная метка истечения срока действия токена</td>
+</tr>
+<tr>
+<td><code>channel_info</code></td>
+<td>Потоковые метаданные (on_demand, прокси, pid)</td>
+</tr>
+<tr>
+<td><code>user_info</code></td>
+<td>Разрешения пользователя (max_connections, is_restreamer)</td>
+</tr>
+<tr>
+<td><code>country_code</code></td>
+<td>Код страны GeoIP</td>
+</tr>
+<tr>
+<td><code>video_codec</code></td>
+<td>Запрашиваемый видеокодек</td>
+</tr>
+</tbody>
+</table>
+<p>Утверждение:</p>
+<ol>
+<li>Считайте токен с <code>Encryption::readToken()</code> в поле <code>live_streaming_pass</code>.</li>
+<li>Проверьте срок действия: <code>$rTokenData['expires'] &lt; StreamAuthMiddleware::mainNow($rServers)</code>, то есть на <code>time()</code> меньше, чем на этом сервере на <code>time_offset</code>. Время токена (<code>expires</code>, <code>activity_start</code>) - это часы MAIN, где бы он ни был отчеканен <code>auth.php</code>, и каждая их проверка (<code>live.php</code>, <code>vod.php</code>, <code>timeshift.php</code>) читает их до конца <code>mainNow()</code>.</li>
+<li>Возвращает проанализированные данные токена или вызывает ошибку.</li>
+</ol>
+<h3 id="_6">Формат токена<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<p>Токены потоковой связи создаются с помощью <code>Encryption::mintToken()</code> и считываются с помощью <code>Encryption::readToken()</code>; ничто другое не вызывает устаревший <code>encrypt()</code>/<code>decrypt()</code> для токена (<code>StreamTokenCallSitesTest</code> применяет его принудительно).</p>
+<table>
+<thead>
+<tr>
+<th><code>secure_stream_tokens</code></th>
+<th>Отчеканенные токены</th>
+<th>Устаревшие токены читаются следующим образом</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1</code> (по умолчанию при новой установке)</td>
+<td>Запечатано: AES-256-GCM, случайный номер, <code>base64url(nonce ‖ ciphertext ‖ tag)</code></td>
+<td>Только в том случае, если токен содержит учетные данные, которые снова проверяются по базе данных</td>
+</tr>
+<tr>
+<td><code>0</code></td>
+<td>Устаревший AES-CBC</td>
+<td>Везде</td>
+</tr>
+</tbody>
+</table>
+<p>Устаревший формат - AES-CBC с фиксированным значением IV и без MAC: измененный токен расшифровывается в измененные байты, а ошибка заполнения отличается от неверных учетных данных, которых достаточно для считывания токена или его подделки. Запечатанные токены не могут быть прочитаны или изменены без ключа, и они сохраняют тот же безопасный алфавит URL-адресов, поэтому маршрут или шаблон не меняются.</p>
+<p>Где устаревшие токены все еще считываются при включенной настройке и почему:</p>
+<ul>
+<li><code>auth.php</code> <code>/play/</code> ссылки, <code>rtmp.php</code> токены и <code>probe.php</code> <code>/play/</code> ссылки содержат имя пользователя и пароль, которые просматриваются повторно, поэтому подделка ничего не дает. Сохраненные плейлисты и ссылки на портал имеют старый формат. Каждый токен, который не удается прочитать <code>auth.php</code>, засчитывается по адресу, указанному в <code>BruteforceGuard</code>, что останавливает чтение старого токена из-за сообщений об ошибках.</li>
+<li>Все, чьему содержимому доверяют в том виде, в каком оно есть, — JSON-файл live/vod/ timeshift (<code>user_info</code>, <code>channel_info</code>), Сегмент HLS и ключевые токены, токены миниатюр и субтитров, <code>uitoken</code>—адрес администратора плеера, URL-адрес прокси-сервера веб-плеера и токен подтверждения портала MAG - отклоняются устаревший формат.</li>
+</ul>
+<p>Серверы более старой версии не могут считывать запечатанные токены. Поэтому при переносе <code>021_add_secure_stream_tokens.sql</code> этот параметр отключается на панели, на которой есть другие серверы; включите его в <strong>Настройки → Токены потока, защищенные от несанкционированного доступа</strong>, как только каждый сервер запустит эту версию.</p>
+<p>Заголовки ответов задаются через <code>StreamAuthMiddleware::sendStreamHeaders()</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Access-Control-Allow-Origin: *
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>X-XSS-Protection: 0
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>X-Content-Type-Options: nosniff
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>Alt-Svc: h3-29, h3-T051, h3-Q050 (HTTP/3 hints)
+</code></pre></div>
+<h3 id="hmac">Ссылки, подписанные HMAC<a class="headerlink" href="#hmac" title="Permanent link">&para;</a></h3>
+<p>Запрос, который достигает значения <code>auth.php</code> с параметром <code>hmac</code>, проверяется с помощью <code>AuthService::validateHMAC()</code> вместо поиска в строке. Это допустимо только для ссылок на прямые трансляции, фильмы и сериалы; на любой другой тип будет дан ответ <code>INVALID_TYPE_TOKEN</code>. Подпись представляет собой HMAC-SHA256, под одним из включенных ключей HMAC, из</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>&lt;stream&gt;##&lt;extension&gt;##&lt;expiry&gt;##&lt;ip&gt;##&lt;identifier&gt;##&lt;max&gt;
+</code></pre></div>
+<ul>
+<li><code>expiry</code> необязательно. Ссылка без этого поля подписывается пустым полем (<code>&lt;stream&gt;##&lt;extension&gt;####&lt;ip&gt;##&lt;identifier&gt;##&lt;max&gt;</code>); на ссылку с этим полем будет дан ответ <code>TOKEN_EXPIRED</code> по истечении этого времени.</li>
+<li>Каждое из значений <code>hmac</code>, <code>identifier</code>, <code>ip</code> и <code>expiry</code> должно быть одним значением. На запрос, отправляющий одно из них в виде списка, будет получен ответ <code>INVALID_CREDENTIALS</code>.</li>
+</ul>
+<hr />
+<h2 id="_7">Потоковая доставка<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
+<h3 id="livephp">Жить (live.php)<a class="headerlink" href="#livephp" title="Permanent link">&para;</a></h3>
+<p>Основная конечная точка доставки (~650 строк):</p>
+<ol>
+<li>Расшифруйте токен с помощью <code>StreamAuthMiddleware::decryptToken()</code>.</li>
+<li>Разрешить использование сервера/прокси-сервера: <code>StreamAuth::checkAccess()</code> + <code>ProxySelector::availableProxy()</code>.</li>
+<li>Установите ограничения на подключение: <code>StreamAuth::validateConnections()</code>.</li>
+<li>Создайте запись о подключении: <code>ConnectionTracker::createConnection()</code>.</li>
+<li>Ручная доставка в <strong><code>xc_fanout</code> демон</strong> (смотрите ниже; с разветвлением
+выключен, см. <a href="#switching-fanout-off">Отключение разветвления</a>): PHP выдает сообщение
+<code>X-Accel-Redirect</code> и завершает работу с байтовым путем — nginx передает байты в потоковом режиме.</li>
+<li><strong>тс:</strong> <code>X-Accel-Redirect: /xc_fanout/&lt;id&gt;?c=&lt;uuid&gt;&amp;prebuffer=N</code> (nginx
+перезаписывается в файл демона <code>/live/&lt;id&gt;</code>).</li>
+<li><strong>ЗОЖ:</strong> список воспроизведения указывает на выделенные сегменты; <code>segment.php</code> показы в прямом эфире
+сегментирует только через демон (<code>/xc_fanout_hls/&lt;id&gt;_&lt;seq&gt;</code>), иначе <code>404</code>.</li>
+<li>При выходе: <code>ShutdownHandler::handle()</code> → закрыть запись о подключении.</li>
+</ol>
+<p>Перед тем, как перейти по прямой ссылке, <code>auth.php</code> может показывать уведомление об истечении срока действия (<strong>Истекающее видео</strong>, <code>show_expiring_video</code>) вместо трансляции: один раз в день на линию, которая не является пробной, за семь дней до истечения срока действия. Уведомление показывается только строкам, не являющимся рестримерными, и это уведомление, а не отказ: когда клип не настроен или не найден, или на сервере, который мог бы его показать, нет свободного прокси, строка получает свой поток вместо сообщения об ошибке.</p>
+<h3 id="vodphp">ВИДЕО (vod.php)<a class="headerlink" href="#vodphp" title="Permanent link">&para;</a></h3>
+<p>Тот же процесс аутентификации, что и в live. Считывается из <code>VOD_PATH</code> вместо <code>STREAMS_PATH</code>. Диапазоны байтов (поиск) разрешаются с помощью <code>Streaming\Delivery\HttpRange</code> (одиночные диапазоны RFC 7233, включая диапазоны суффиксов). Видеофильм с прямым подключением передается с помощью cURL, запрашивая у источника точно запрошенный диапазон.</p>
+<h3 id="timeshiftphp">Временной сдвиг (timeshift.php)<a class="headerlink" href="#timeshiftphp" title="Permanent link">&para;</a></h3>
+<p>Обслуживает архивированные сегменты (со сдвигом по времени) из пути к архиву. Запрос TS передает в потоковом режиме несколько файлов подряд; им сопоставляется диапазон байт (поиск) — файлы перед началом пропускаются, первый вводится с правильным смещением, и доставка прекращается в конце диапазона.</p>
+<p>Дополнительная ссылка (<code>/timeshift/…</code> или действующая ссылка с <code>?utc=</code>) проверяется <code>auth.php</code> перед выдачей <code>/tsauth/{token}</code>:</p>
+<ul>
+<li><code>start</code> - это время в системе Unix (до 10 цифр), <code>YYYYMMDD-HH</code> или <code>YYYY-MM-DD:HH-MM</code>. Последняя форма также считывается с секундами после нее (<code>:SS</code> или <code>-SS</code>), которые игнорируются: архив считывается с этой минуты. На все остальное отвечают <code>NO_TIMESTAMP</code>, <code>auth.php</code> и снова <code>timeshift.php</code>, когда он считывает токен.</li>
+<li><code>duration</code> указывается в минутах и обслуживается до 21600 (15 дней). <code>timeshift.php</code> просматривается по одной записанной минуте за каждую минуту и никогда не задерживается дольше текущей минуты. Прямая ссылка с <code>?utc=</code> не имеет длительности: она запрашивает 360 секунд (шесть часов с момента ее запуска), а <code>duration</code>, отправленный с <code>utc</code>, игнорируется. Зритель, продолжающий просмотр в течение этих шести часов, дойдет до конца трансляции, и ему понадобится новая ссылка на более поздний выпуск <code>utc</code>.</li>
+<li>В списке воспроизведения HLS каждая ссылка на дополнительный сегмент (<code>/hls/{token}</code>) содержит девять полей, разделенных <code>/</code>: <code>TS</code>, имя пользователя, пароль, IP-адрес для просмотра, продолжительность, начало, <code>&lt;stream&gt;_&lt;file&gt;_&lt;offset&gt;</code>, uuid соединения и идентификатор сервера. Начало записывается как время Unix, а имя пользователя и пароль кодируются в URL-адресе; <code>segment.php</code> ответ 404 для дополнительной ссылки с любым другим количеством полей.</li>
+</ul>
+<h3 id="rtmp-rtmpphp">RTMP (rtmp.php)<a class="headerlink" href="#rtmp-rtmpphp" title="Permanent link">&para;</a></h3>
+<p>nginx-rtmp вызывает <code>rtmp.php</code> в <code>on_play</code>, <code>on_publish</code> и <code>on_play_done</code>. То, что говорит сам nginx-rtmp — <code>addr</code>, <code>clientid</code>, <code>call</code> и <code>name</code>, считывается из строки запроса обратного вызова с помощью <code>StreamAuth::notifyArguments()</code>. На обратный вызов, который выдает одно из четырех двух разных значений, приходит ответ 404. Собственные аргументы потока (<code>username</code>, <code>password</code>, <code>token</code>) поступают из обработанного запроса, как и в других конечных точках, поэтому URL-адрес RTMP не должен содержать аргументов с именами <code>addr</code>, <code>clientid</code>, <code>call</code> или <code>name</code>.</p>
+<h3 id="-">Радио во втором веб-плеере<a class="headerlink" href="#-" title="Permanent link">&para;</a></h3>
+<p><code>GET /&lt;code&gt;/radio?stream=&lt;id&gt;</code> отвечает от <code>302</code> до <code>&lt;domain&gt;/&lt;username&gt;/&lt;password&gt;/&lt;id&gt;.m3u8</code> (<code>DomainResolver</code>, в той же форме, что и каналы прямого эфира) для станции в строке входа в систему с <code>radio_ids</code> и <code>404</code> в противном случае; он никогда не называет <code>stream_source</code>. Записи станции <code>radio?ajax=1</code> и страницы <code>initialStations</code> равны <code>id, name, logo, category_id, direct, url</code>, где <code>url</code> - это ответ на воспроизведение, поэтому страница и копия сценария <code>localStorage</code> не содержат ни источника, ни учетных данных строки. <code>player-radio.js</code> воспроизводит <code>url</code> с помощью hls.js если в записи не указано <code>direct</code>, то с помощью звукового элемента. В случае фатальной ошибки сети hls.js программа снова запрашивает ответ на воспроизведение (с интервалом в 2 секунды, максимум 3 секунды подряд, которые пересчитываются заново после буферизации фрагмента), пока радиостанция отображается как воспроизводимая; в противном случае она отображается как приостановленная.</p>
+<p>Таким образом, радиостанция воспроизводится через панель как канал прямого эфира: ее нужно запускать или настраивать по запросу, для линии требуется выход HLS, и HLS должен быть включен в настройках (в противном случае страница радио не будет доступна), а слушатель отображается в подключениях и рассчитывается до максимального значения для линии. Станция, помеченная как "Прямой источник", авторизуется панелью, а затем перенаправляется на свой источник, поэтому она не учитывается, и ее источник достигает слушателя. Это справедливо для каждого клиента прямой трансляции, включая прямые каналы: панель не имеет ретранслятора, который браузер мог бы воспроизвести для нее. Станция или канал, которые должны воспроизводиться через панель (учитывается, что их источник скрыт от зрителя), не должны быть помечены как "Прямой источник"; вместо этого установите их по запросу, и они будут запущены при появлении первого зрителя.</p>
+<h3 id="probephp">Зонд (probe.php)<a class="headerlink" href="#probephp" title="Permanent link">&para;</a></h3>
+<p><code>/probe/{data}</code> tells a restreamer whether a channel is up and with which codecs (<code>codecs</code>, <code>container</code>, <code>bitrate</code> as JSON) without opening a connection; <code>data</code> is the base64 of a stream link's path. It answers only for a restreamer line that is not expired, banned or disabled, and only for a stream in that line's bouquets; every other request gets a 404. A probe whose username and password match no line counts that username, and the password for it, toward the address's bruteforce limit (<code>bruteforce_username_attempts</code> different names, or different passwords for one name, within <code>bruteforce_frequency</code>), the same count a refused <code>/live/</code> request adds to. It is not counted when <strong>Ignore Invalid Credentials</strong> is on together with the cache.</p>
+<h3 id="xc_fanout">Доставка демона — <code>xc_fanout</code><a class="headerlink" href="#xc_fanout" title="Permanent link">&para;</a></h3>
+<p>Оперативная доставка клиента (TS <strong>и</strong> HLS) равна <strong>только для демонов</strong>: PHP авторизует
+средство просмотра, а затем полностью покидает байтовый путь, так что средство просмотра больше не закрепляет
+PHP-FPM-рабочий для всего потока.</p>
+<ul>
+<li><strong>Расходимся веером.</strong> <code>xc_fanout</code> (встроенный демон Go) извлекает каждый источник <strong>однажды</strong> и
+он доступен каждому пользователю через сокет unix с помощью встроенного в оперативную память сегментатора HLS.
+В PHP отсутствует байтовый путь для каждого просмотрщика: рабочий процесс чтения для каждого просмотрщика
+цикл обслуживания и путь к клиенту на диске <code>generateHLS()</code> исчезли.
+<code>AsyncFileOperations::awaitFileExists()</code> по-прежнему используется для запуска потока
+ожидания и путь к байтам VOD/timeshift (см. таблицу производительности).</li>
+<li><strong>Кто кормит демона.</strong> Поскольку демон является единственным путем к клиенту, каждый живой
+продюсер должен включить его, иначе канал нельзя будет смотреть:
+поток ffmpeg переходит в свой принимающий сокет (<code>buildLive()</code>; обратная петля
+включая дочерних), создатели супервизора демонов делают то же самое, PHP
+производители — сегментатор LLOD (<code>LlodCommand</code>) и ретранслятор с обратной связью
+(<code>LoopbackCommand</code>) — протолкнуть через <code>Streaming\Fanout\IngestFeeder</code>, и
+поток <strong>отложенный</strong> подается через <code>DelayCommand</code>, который перемещает каждый задержанный сегмент
+по мере того, как он публикует его, в зависимости от продолжительности сегмента (его выходные данные с кодировщика являются
+отложенный, поэтому тройник для него не используется). <code>IngestFeeder</code> буферизует то, что
+не удалось отправить неблокирующую запись (короткая запись больше не разрывает пакеты),
+выполняет повторную регистрацию и набор номера после перезапуска демона и сохраняет ключ HLS.</li>
+<li><strong>Две розетки.</strong> Клиентский сокет (ориентированный на nginx) обслуживает <code>/live/&lt;id&gt;</code> и
+<code>/hls/...</code>; управляющий сокет, предназначенный только для PHP, регистрирует источники
+(<code>PUT /streams/&lt;id&gt;</code> / <code>/ingest/&lt;id&gt;</code>), отвечает на вопросы о статусе выхода в эфир
+(<code>GET /streams/&lt;id&gt;</code>, <code>GET /probe/&lt;id&gt;</code>) и предоставляет доступ к телеметрии.</li>
+<li><strong>Телеметрия / согласование данных.</strong> <code>fanout_sync</code> опросы <code>GET /rates</code> (для каждого uuid
+КБИТ/с → <code>lines_divergence</code>) и сверяет <code>GET /connections</code> с данными
+<code>lines_live</code> строк в обоих направлениях: строка, просмотрщик которой покинул демон, называется
+закрыто (PHP не может увидеть отключение при <code>X-Accel</code>), и демон-просмотрщик, чей
+пропущенная строка — собранная, с истекшим сроком действия или запрещенная строка — удаляется по истечении 20 секунд
+(<code>DELETE /connections/&lt;uuid&gt;</code>).</li>
+<li><strong>Удары и ограничения по подключению.</strong> Строка TS viewer, обслуживаемая демоном, содержит <code>pid = 0</code>:
+здесь нет рабочего, которого можно было бы убить. <code>ConnectionLimiter</code> / <code>ConnectionTracker::closeConnection()</code>
+завершите его с помощью <code>ConnectionTracker::dropDaemonViewer()</code> — <code>FanoutClient::dropConnection()</code>
+на этом узле, или сигнал <code>drop_con</code> о том, что узел зрителя превращается в
+тот же вызов. Ограничитель никогда не отключает запрашивающее соединение сам по себе (это
+идентифицируется по uuid, поскольку каждая строка демона имеет общий pid 0).</li>
+<li><strong>Вне эфира.</strong> Если демон сообщает об отсутствии данных (<code>has_data=false</code> / stale), PHP
+показывает страницу "не в эфире" вместо того, чтобы позволить зрителю зависнуть.</li>
+<li><strong>Сохраненный на диске HLS</strong> только для временного сдвига / миниатюр / <code>.analyse</code> /
+дочерние элементы loopback / проверки запуска по требованию — не для доставки клиенту.</li>
+</ul>
+<h4 id="_8">Управление потоковой передачей и встроенный ремультиплексор<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h4>
+<p>При включенном <strong>Контроль разветвленного энкодера</strong> (<code>fanout_supervise</code>, миграция 018, по умолчанию включено),
+в прямой трансляции не используется PHP watchdog. <code>StreamProcess::startMonitor()</code> создает свои команды и раздает
+их супервизору демона (<code>FanoutClient::supervise</code> → <code>PUT /monitor/&lt;id&gt;</code>), который запускает,
+отслеживает и перезапускает их — отработка отказа, приоритетное резервное копирование, принудительный источник, сбой вывода, потеря звука,
+включая снижение частоты кадров и перезапуск по расписанию. PHP продолжает создавать каждую команду и выполнять все
+запись в базу данных; демон выполняет то, что ему передают.</p>
+<ul>
+<li><strong>Передача</strong> — <code>StreamProcess::superviseStream()</code> сначала запрашивает у демона
+(<code>GET /monitors/state</code>: доступно, <code>accepting</code>), создает спецификацию
+(<code>StreamProcess::buildSupervisorSpec()</code>: одна команда для каждого источника, политики и работоспособности, сопоставленных с
+соблюдены настройки <code>MonitorCommand</code>), записывает pid демона как <code>monitor_pid</code>, затем передает его
+  over. Without a restart a running encoder is <strong>adopted</strong>, not replaced; <code>cron:streams</code> moves
+PHP-отслеживает потоки таким образом при следующем проходе.</li>
+<li><strong>Команды</strong> — прямая трансляция, доступная только для копирования, запускает собственный ремуксор демона, <code>xc_fanout remux</code>,
+построенный с помощью <code>StreamProcess::buildNativeLive()</code> рядом с <code>buildLive()</code>: он считывает исходный код изначально
+(MPEG-TS по протоколу http(s), HLS с сегментами TS, udp/rtp) и записывает тот же HLS на диск и демон
+передавайте как строку ffmpeg <code>-f tee</code>, без ffmpeg. Какие потоки соответствуют требованиям, это
+<code>StreamProcess::nativeRefusal()</code> / <code>isNativeSource()</code>; <code>fanout_source_backend</code> решает:
+<code>auto</code> = ремультиплексор с командой ffmpeg в виде <code>fallback_cmd</code> (используется при завершении работы ремультиплексора 3,
+"не удается обработать этот источник", или 2, сбой или командная строка, которую он не может разобрать), <code>native</code> =
+только ремиксер, <code>ffmpeg</code> = только ffmpeg. Переключатель потока <strong>Всегда используйте ffmpeg</strong> (вкладка Дополнительно,
+<code>streams.force_ffmpeg</code>, миграция 088) сохраняет этот единственный канал в ffmpeg независимо от серверной части.
+Панель записывает команду ремультиплексора только тогда, когда демон узла объявляет об этом (<code>features</code> в
+<code>GET /monitors/state</code>, <code>FanoutClient::supportsRemux()</code>) — более старый двоичный файл неправильно разобрал бы его.</li>
+<li><strong>Исходные данные</strong> — с помощью демона, который объявляет <code>remux_source_file</code>, URL-адрес источника и
+его параметры выборки (пользовательский агент, файлы cookie, прокси-сервер, заголовки) изменяются на <code>&lt;id&gt;_.source_&lt;n&gt;</code> (0600, по одному для каждого
+источник, <code>StreamProcess::writeNativeSource()</code>), и команда выполняет <code>-source_file</code> вместо,
+таким образом, учетной записи провайдера нет в <code>/proc/&lt;pid&gt;/cmdline</code>. Более старый демон или файл, который
+не может быть записан, сохраняет их в argv. Резервная строка ffmpeg по-прежнему содержит их, поскольку каждый
+команда ffmpeg выполняет это.</li>
+<li><strong>Какой продюсер баллотировался и почему</strong> — переданная команда записывается рядом с записью потока.
+файлы, подобные пути к самопроизвольному запуску <code>&lt;id&gt;_.ffmpeg</code>: <code>&lt;id&gt;_.fanout</code> для ремультиплексора,
+<code>&lt;id&gt;_.ffmpeg</code> для ffmpeg (в <code>auto</code> - для обоих). Когда включен собственный сервер и выполняется поток
+ffmpeg в любом случае, причина <code>StreamProcess::nativeRefusal()</code> добавляется к <code>&lt;id&gt;.errors</code>
+(<code>[panel] ffmpeg runs this stream: transcoding is enabled</code>), тот же файл, что и у производителя.
+stderr переходит в. Соответствующий тип <code>streams_types.type_key</code> = <code>live</code>; <code>gen_timestamps</code> и
+<code>read_native</code> намеренно не являются отказами (оба значения по умолчанию равны 1, поэтому они ничего не говорят о
+канал — смотрите программу запуска демона).</li>
+<li><strong>Reconcile</strong> — the daemon cannot write the database, so <code>StreamProcess::reconcileSupervised()</code>
+копирует его состояние в <code>streams_servers</code> (статус, pid, текущий источник, кодеки, разрешение,
+измеренный битрейт): каждый проход <code>cron:streams</code> и каждые 5 секунд от демона <code>signals</code>. A
+контролируемый поток, строка которого пропущена или помечена как остановленная, освобождается. Кодеки и размер изображения
+записываются в <code>stream_info</code> JSON, а также в плоские столбцы — этот JSON - это то, что
+отображает список потоков, из которого адаптивный мастер-плейлист берет <code>BANDWIDTH</code>/<code>RESOLUTION</code> и
+где <code>stream/auth.php</code> считывает видеокодек зрителя, и контролируемый поток никогда не запускается
+попробуйте заполнить его.</li>
+<li><strong>Остановка</strong> — <code>StreamProcess::stopStream()</code> освобождает первый (<code>DELETE /monitor/&lt;id&gt;</code>, который убивает
+продюсер); сначала супервизор перезапускает процесс, убивая продюсера.</li>
+<li><strong>Резервный вариант для PHP</strong> — демон, который отключен или не принимает, и поток указывает, что он не принимает
+берем (задержка, созданные каналы, <code>yt-dlp</code> исходники платформы), запускаем <code>MonitorCommand</code> как раньше;
+<code>MonitorCommand</code> отключается для потока, который контролирует демон.</li>
+<li><strong>- За этим следят? - спросил я.</strong> — для контролируемого потока <code>monitor_pid</code> - это pid демона, поэтому вызывающие абоненты используют
+<code>StreamProcess::isWatched()</code> (PHP-монитор активен или контролируется), а не
+<code>ProcessManager::isMonitorAlive()</code> один.</li>
+</ul>
+<p>Runbook на стороне демона - включение, проверка, откат кодов завершения работы ремультиплексора — это
+<code>docs/en/09-encoder-supervision.md</code> в репозитории <code>XC_VM_Fanout</code>.</p>
+<h4 id="_9">Выключение разветвления<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h4>
+<p><code>settings.fanout_enabled</code> (переключатель <strong>Доставка по разветвлению</strong>, расположенный рядом с другими настройками разветвления, по умолчанию
+включен; миграция <code>027</code>) - это главный переключатель, считываемый с помощью
+<code>Streaming\Fanout\FanoutMode</code>. Выключен:</p>
+<ul>
+<li><strong>Демон останавливается на каждом узле.</strong> <code>FanoutMode::applyToNode()</code> записывает флаг
+файл <code>bin/xc_fanout/disabled</code>, затем сначала убивает <code>run.sh</code> (поэтому он не может возродиться
+демон) и <code>xc_fanout</code> второй. Он запускается в режиме MAIN при заданных настройках.
+сохраняется и на каждом узле, начиная с <code>RootSignalsCronJob</code>, в течение минуты. То
+Рутсигналы продолжают работать, а почасовое самоисцеление <code>fanout_binary</code> пропускает работу демона
+пока флаг есть. То же самое можно сделать с <code>service boot</code> и <code>run.sh</code>, которые не могут считывать
+установите настройки и вместо этого проверьте файл с флагом. При повторном включении флаг исчезнет
+и программа keepalive снова запустится с <code>run.sh</code>.</li>
+<li><strong>Every daemon call behaves as "daemon down".</strong> <code>LicenseGate::fanoutUsable()</code>
+и при каждом вызове управляющей розетки <code>FanoutClient</code> проверяйте переключатель. <code>IngestFeeder</code>
+становится недоступным, поэтому разработчики PHP (LLOD, loopback, delay) сохраняют только свои
+HLS на диске. Контроль возвращается к <code>MonitorCommand</code>. <code>fanout_sync</code> останавливается
+записывает конфигурацию демона и закрывает обслуживаемое демоном (<code>pid = 0</code>) соединение
+строки, оставленные остановленным демоном.</li>
+<li><strong>Зрители проходят по маршрутам, предшествующим разветвлению</strong> (<code>FanoutMode::legacyDelivery()</code>, который
+это также верно, когда лицензия запрещает разветвление):</li>
+<li><strong>ЗОЖ:</strong> <code>live.php</code> обслуживает <code>HLSGenerator::generateHLS()</code> на диске.
+<code>&lt;id&gt;_.m3u8</code>. <code>segment.php</code> обслуживает <code>&lt;id&gt;_&lt;n&gt;.ts</code> от <code>STREAMS_PATH</code> до
+<code>X-Accel-Redirect: /xc_hls/…</code>, AES-128-шифрование при первом чтении, когда
+<code>encrypt_hls</code> включен.</li>
+<li><strong>тс:</strong> <code>live.php</code> chase - считывает сегменты на диске (<code>SegmentReader</code>) в
+Работник FPM, на весь срок службы соединения.</li>
+<li><strong>Потоки прокси-серверов:</strong> <code>StreamProcess::startProxy()</code> выполняется <code>ProxyCommand</code>
+(<code>XC_VMProxy[&lt;id&gt;]</code>). Он извлекает источник один раз и отправляет дейтаграммы каждому из них.
+unix-сокет viewer под <code>CONS_TMP_PATH/&lt;id&gt;/</code>, который <code>live.php</code> ретранслирует в
+клиент. Он закрывается через несколько секунд после последнего просмотра.</li>
+<li><strong>Отправить сообщение:</strong> файл сигнала, указанный в разделе <code>SIGNALS_PATH</code>, записывается на
+следующий сегмент просмотра на <code>SignalSender</code>.</li>
+</ul>
+<p>При разветвлении <strong>на</strong> демон, который просто не работает, все равно не выходит в эфир до тех пор, пока
+keepalive перезапускает его (примерно через 2 секунды). Доставка никогда не прерывается по каждому запросу.</p>
+<h4 id="_10">Наложение отправленного сообщения<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h4>
+<p>Действие администратора "Отправить сообщение" приводит к появлению текстового баннера на видео, которое просматривает <strong>один</strong> зритель.
+PHP отправляет его в сокет управления демоном
+(<code>FanoutClient::sendSignal</code> → <code>POST /signal/&lt;uuid&gt;</code>), и демон применяет
+наложение ffmpeg <code>drawtext</code> на следующий HLS-сегмент этого зрителя (или короткий ~5-секундный TS
+окно), однократный запуск, максимальное усилие - сигнал никогда не прерывает воспроизведение. Демон должен
+быть запущенным с помощью ffmpeg, который на самом деле имеет фильтр <code>drawtext</code>, так что
+<code>service</code> программа запуска выбирает сборку с поддержкой drawtext.</p>
+<h3 id="_11">Сегментный шлюз<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<p>Демон также может сам отвечать на HLS-запросы зрителя, без PHP-FPM: <code>/hls/&lt;token&gt;</code> (сегменты), <code>/key/&lt;token&gt;</code> (ключи) и обновления списка воспроизведения, известного зрителю, <code>/auth/&lt;token&gt;</code> (ADR 0005). <code>settings.gateway_mode</code> включает его для каждой панели:</p>
+<ul>
+<li><code>off</code> (по умолчанию): PHP отвечает, как указано выше.</li>
+<li><code>shadow</code>: PHP отвечает; nginx передает каждый запрос на шлюз, который только оценивает его, а PHP сообщает шлюзу, на что он ответил, поэтому каждый вердикт сравнивается с вердиктом PHP. Узлы кластера (столбец Segment Gateway) и <code>/metrics</code> показывают сравнение для каждого узла и время, когда узел готов к обслуживанию: семь дней и сто запросов с момента последнего несогласия. На узле: <code>curl --unix-socket /home/xc_vm/bin/xc_fanout/sockets/gw.sock http://gw/stats</code>.</li>
+<li><code>segments</code>: шлюз обслуживает текущие и дополнительные сегменты и ключи.</li>
+<li><code>segments+playlist</code>: и список воспроизведения обновляется на узлах, чьи средства просмотра находятся в их агенте (поток подключений cluster API). Первый запрос каждого средства просмотра HLS остается PHP. Программа просмотра MPEG-TS получает ответ на свой первый запрос: шлюз создает свое соединение в агенте (доступ к которому ограничен для строки с ограничением) и обслуживает поток из кольца fanout в процессе работы без запроса PHP, и то же самое повторяется при повторном подключении к своему <code>/auth/&lt;token&gt;</code> (запущенный канал без прокси-сервера; канал прямого прокси-сервера принадлежит PHP, который регистрирует свой источник с помощью демона). Сквозной путь передачи данных находится в <a href="../ts-delivery/">Доставке MPEG-TS</a>.</li>
+</ul>
+<p>То, в чем шлюз не уверен, он передает обратно в PHP (<code>X-Accel-Redirect</code> в указанное местоположение), который затем отвечает точно так же, как и раньше; демон, который не отвечает, также отправляет запрос в PHP. Он считывает <code>tmp/gateway/policy.json</code>, который <code>cron:cache</code> записывает каждую минуту (<code>Core/Gateway/GatewayPolicy</code>), а корневой cron записывает nginx include <code>bin/nginx/conf/gateway.conf</code> (<code>Core/Gateway/GatewayNginxConfig</code>) — только пока существует сокет шлюза демона. Отключение разветвления означает, что шлюз выключен.</p>
+<hr />
+<h2 id="_12">Управление подключениями<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<h3 id="_13">Средство отслеживания подключений<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<p>Управляет текущим состоянием соединения. Серверная часть выбрана с помощью <code>$rSettings['redis_handler']</code>:</p>
+<p><strong>Redis (preferred for scale):</strong></p>
+<ul>
+<li>Соединения, хранящиеся в отсортированных наборах:</li>
+<li><code>LINE#{identity}</code> — подключения для пользователя</li>
+<li><code>STREAM#{stream_id}</code> — соединения для потока</li>
+<li><code>SERVER#{server_id}</code> — соединения на сервере</li>
+</ul>
+<p><strong>MySQL (fallback):</strong></p>
+<ul>
+<li>Таблица: <code>lines_live</code> с полями: <code>activity_id</code>, <code>user_id</code>, <code>stream_id</code>, <code>server_id</code>, <code>uuid</code>, <code>pid</code>, <code>hls_end</code></li>
+</ul>
+<p><strong>Закрывающие зрители</strong> (<code>cron:users</code>). В режиме Redis MAIN просматривает все средства просмотра сервера; в режиме MySQL
+каждый сервер проверяет свой собственный, и MAIN также закрывает данные удаленного сервера или средства просмотра, которое проверяет
+в и хранил молчание в течение <code>UsersCronJob::ORPHAN_AFTER</code>.</p>
+<ul>
+<li>Время (<code>date_start</code>, <code>hls_last_read</code>, <code>date_end</code> строки действия) - это часы MAIN: узел
+помечает <code>time() - time_offset</code>, и развертка узла также сравнивается по этим часам.</li>
+<li>Просмотр, закрытый для тишины, заканчивается в тот момент, когда он был слышен в последний раз: собственная печать завершившего работу работника, последний
+Чтение HLS или последняя регистрация работника TS/VOD (каждые 300 секунд) плюс один период.</li>
+<li>Развертка сохраняет свои строки активности и записывает данные пакета только после удаления его записей;
+убитая зачистка или та, которая не смогла удалить их, оставляет их для следующей зачистки, которая регистрирует их в журнале
+однажды.</li>
+<li>uuid средства просмотра RTMP равен <code>ConnectionTracker::rtmpUuid()</code>: nginx - идентификатор клиента rtmp и сервера.</li>
+<li>Сигнал отключения в режиме Redis (<code>SIGNAL#…</code>) истекает после непрочитывания <code>ConnectionTracker::SIGNAL_TTL</code>.</li>
+</ul>
+<p>Ключевые методы:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">ConnectionTracker::createConnection($data)</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="x">ConnectionTracker::updateConnection($connection, $changes, 'open'|'close')</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="x">ConnectionTracker::getConnection($uuid)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="x">ConnectionTracker::getLineConnections($user_id)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="x">ConnectionTracker::getCapacity()</span>
+</code></pre></div>
+<h3 id="_14">Ограничитель подключения<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Streaming/Protection/ConnectionLimiter.php</code></p>
+<p>Устанавливает ограничения на подключение для каждого пользователя при превышении значения <code>max_connections</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Приоритет</th>
+<th>Критерий</th>
+<th>Действие</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+<td>Тот же IP + тот же пользовательский агент</td>
+<td>Убей первым</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Тот же IP-адрес (любой UA)</td>
+<td>Убей следующего</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Какая-либо связь</td>
+<td>Убить в качестве запасного варианта</td>
+</tr>
+</tbody>
+</table>
+<p>Настройки:</p>
+<ul>
+<li><code>disallow_2nd_ip_con</code> — принудительно использовать один IP-адрес для каждого пользователя</li>
+<li><code>ip_subnet_match</code> — соответствует подсети /24 вместо точного IP-адреса</li>
+<li><code>restrict_same_ip</code> — возвращает ошибку при несоответствии IP-адресов вместо уничтожения</li>
+</ul>
+<p>Соединение, которое только что было разрешено, никогда не будет закрытым: <code>StreamAuth::validateConnections()</code> передает свой uuid, и кандидатами являются только соединения старше него. RTMP-просмотрщик обрабатывается таким же образом (его uuid равен <code>ConnectionTracker::rtmpUuid()</code>): принятый на полную строку, он остается, а более старое соединение на линии закрывается, выбранное в соответствии с указанным выше приоритетом (обратный вызов RTMP не передает пользовательский агент, поэтому: сначала один с того же IP-адреса, в противном случае самый старый). На узле, на котором запущен поток ПОДКЛЮЧЕНИЙ, проверка передается в MAIN как событие <code>conn.limit</code>, содержащее uuid соединения и адрес пользователя — для RTMP используется адрес, указанный nginx-rtmp, поскольку сам обратный вызов поступает с сервера. Узел сам выполняет проверку только тогда, когда событие не может быть поставлено в очередь.</p>
+<p>На ГЛАВНОМ экране проверки ожидают в <code>tmp/cluster_limits/</code> <code>cron:signals</code>, которые выполняются 200 раз в секунду (<code>ConnectionLimits::drain()</code>). Узел запрашивает при каждом запросе строку с ограничением, включая обновление списка воспроизведения, поэтому очередь ограничена: у зрителя есть один файл, который заменяется его следующим запросом; передачи выполняют файлы по очереди; проверка, которая ждала пять минут, отбрасывается без выполнения (строка снова оценивается по ее количеству). следующие запросы зрителей); и ничего не ставится в очередь, пока ни один проход не был запущен в течение минуты. Скидка на вход аннулируется, если его просмотр не открылся к моменту окончания срока его бронирования.</p>
+<h3 id="_15">Устройство для выключения<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Streaming/Lifecycle/ShutdownHandler.php</code></p>
+<p>Зарегистрирован через <code>register_shutdown_function()</code>. При выходе из PHP-процесса:</p>
+<ol>
+<li>Закройте запись о подключении в <code>lines_live</code> или Redis.</li>
+<li>Удалите tmp-файлы со значением <code>CONS_TMP_PATH . $uuid</code>.</li>
+<li>Удалите поток по требованию из очереди, если это применимо.</li>
+</ol>
+<hr />
+<h2 id="_16">балансировка нагрузки<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
+<h3 id="streamauthcheckaccess">Выбор сервера (StreamAuth::checkAccess)<a class="headerlink" href="#streamauthcheckaccess" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Streaming/Auth/StreamAuth.php</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">public static function checkAccess($rUserInfo, $rUserIP, $rCountryCode, $rUserISP = ''): int|false</span>
+</code></pre></div>
+<p>Алгоритм:</p>
+<ol>
+<li>Получите доступные серверы: <code>server_online == true</code>, <code>server_type == 0</code>, <code>online_clients &lt; total_clients</code>.</li>
+<li>Сортировка по вместимости (по возрастанию) — сначала загружается наименее загруженный.</li>
+<li>Применить маршрутизацию GeoIP (если <code>enable_geoip == 1</code>):</li>
+<li>Точное соответствие стране → выберите немедленно.</li>
+<li><code>geoip_type == 'strict'</code> → исключить несоответствия.</li>
+<li>В противном случае → присвоить приоритетный вес.</li>
+<li>Применить маршрутизацию через интернет-провайдера (если <code>enable_isp == 1</code>): та же логика, что и у GeoIP.</li>
+<li>Верните сервер с наименьшей пропускной способностью из группы с наивысшим приоритетом.</li>
+</ol>
+<h3 id="-proxyselector">Выбор прокси-сервера (ProxySelector::Доступный прокси)<a class="headerlink" href="#-proxyselector" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Streaming/Balancer/ProxySelector.php</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">public static function availableProxy($rProxies, $rCountryCode, $rUserISP = ''): int|null</span>
+</code></pre></div>
+<p>Тот же алгоритм, что и <code>StreamAuth::checkAccess()</code>, но примененный к списку прокси-серверов.</p>
+<hr />
+<h2 id="_17">Ограничение скорости и защита от наводнений<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h2>
+<p>Три слоя:</p>
+<h3 id="1-nginx">1. nginx (уровень подключения)<a class="headerlink" href="#1-nginx" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">limit_req_zone</span><span class="w"> </span><span class="nv">$binary_remote_addr</span><span class="w"> </span><span class="s">zone=one:30m</span><span class="w"> </span><span class="s">rate=20r/s</span><span class="p">;</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">limit_req</span><span class="w"> </span><span class="s">zone=one</span><span class="w"> </span><span class="s">burst=8</span><span class="p">;</span>
+</code></pre></div>
+<p>20 запросов в секунду на IP-адрес с пакетом из 8 запросов. 30-минутное скользящее окно.</p>
+<p>An access code's sign-in and image resizer (<code>/CODE/login</code>, <code>/CODE/resize</code>, which carry no <code>.php</code>) are limited in a zone of the panel's own, <code>panel</code> (<code>limit_req_zone $binary_remote_addr zone=panel:10m rate=20r/s;</code>), with the code type's burst (500 for admin, reseller and player codes) and <code>nodelay</code>; a refused request answers 503. Being a separate zone, a list of thumbnails never holds back the same address's streams or client API requests. The other pages of a code are not limited by it; its <code>.php</code> location keeps its own rule in zone <code>one</code>. <code>AuthRepository::updateCodes()</code> writes the files from <code>codes/template</code>; it names zone <code>one</code> when the installed <code>nginx.conf</code> does not declare <code>panel</code>, adds the location to a template kept from an older release, and post-update runs it whenever at least one code is enabled.</p>
+<h3 id="2-streamingrequestbootstrap-ip-">2. StreamingRequestBootstrap (IP-блокировка)<a class="headerlink" href="#2-streamingrequestbootstrap-ip-" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="x">if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="x">    http_response_code(403);</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="x">    exit();</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="x">}</span>
+</code></pre></div>
+<p>Блокировка IP-адресов на основе файлов. Файлы блокировок создаются с помощью <code>BruteforceGuard::checkFlood()</code> и <code>checkBruteforce()</code> (см. <a href="../../guides/authentication-and-sessions/#bruteforceguard">Аутентификация и сеансы</a>), когда для адреса превышается ограничение, а также для адреса, внесенного в список блокировок на панели. Защита обеспечивается отклоненными запросами конечных точек потока и клиентских API, включая <code>player_api.php</code>.</p>
+<p>Количество отклоненных запросов в строке не превышает <code>flood_seconds</code> по сравнению с предыдущим; при увеличении интервала оно начинается снова. Это ограничение для коротких циклов. Разные имена пользователей или MAC-адреса и разные пароли для одного имени пользователя, которые использовались в течение длительного времени, - это то, что <code>checkBruteforce()</code> учитывается в <code>bruteforce_frequency</code>.</p>
+<h3 id="3">3. Ограничитель подключений (для каждого пользователя)<a class="headerlink" href="#3" title="Permanent link">&para;</a></h3>
+<p>Применяется после проверки токена. Ограничивает одновременные потоки для каждого пользователя на основе <code>max_connections</code>, закрывая сначала самые старые соединения (более старые соединения самого запрашивающего устройства перед другими). Средства просмотра, обслуживаемые демонами, отключаются с помощью демона — см. <a href="#daemon-delivery-xc_fanout">Daemon delivery</a>.</p>
+<h3 id="4">4. Серверы, работающие только через прокси<a class="headerlink" href="#4" title="Permanent link">&para;</a></h3>
+<p>Сервер с параметром <code>enable_proxy</code> принимает только запросы, поступающие через один из его прокси-серверов. <code>auth.php</code> проверяет TCP—пиринг nginx saw — <code>XC_PEER_ADDR</code>, значение которого равно <code>$realip_remote_addr</code> в расположении потока <code>nginx.conf</code>, а не заголовок запроса, которым управляет клиент.</p>
+<hr />
+<h2 id="hls">Шифрование HLS<a class="headerlink" href="#hls" title="Permanent link">&para;</a></h2>
+<p>Клиентский протокол HLS обслуживается демоном <code>xc_fanout</code> (см. <a href="#daemon-delivery-xc_fanout">Daemon delivery</a>), поэтому происходит шифрование <strong>сторона демона</strong>:</p>
+<ol>
+<li><code>StreamProcess</code> записывает ключ AES-128 потока/IV в <code>content/streams/&lt;id&gt;_.key</code> / <code>_.iv</code> — перед тем, как он запустит PHP producer, который регистрируется у демона через несколько мгновений после запуска.</li>
+<li>При регистрации приема (<code>FanoutClient::registerIngest</code>), когда включено <code>encrypt_hls</code>, ключ/IV передается демону, который шифрует сегменты HLS, которые он обслуживает. Каждый производитель передает их — потоки ffmpeg (включая дочерние элементы с обратной связью), контролируемые потоки и производителей PHP через <code>IngestFeeder::forStream()</code> — потому что в плейлисте всегда указывается ключ: демон, запущенный без него, подавал простые сегменты, которые ни один игрок не смог бы расшифровать.</li>
+<li><code>HLSGenerator::tokenizeDaemonPlaylist()</code> переписывает URL-адреса сегментов плейлиста демона в ссылки с авторизацией для каждого сегмента <code>/hls/&lt;token&gt;</code>, которые <code>segment.php</code> проксируются от демона, и добавляет строку <code>#EXT-X-KEY</code>.</li>
+<li>Ключ AES доставляется игрокам с помощью <code>key.php</code> (<code>src/Public/stream/key.php</code>) с использованием того же механизма токенов.</li>
+</ol>
+<p>Значение <code>#EXT-X-MEDIA-SEQUENCE</code> в плейлисте live повторно привязывается к значению <code>HlsSequence</code>, поэтому он никогда не возвращается назад при переходе из прямого эфира в прямой эфир без изменения нумерации воспроизводимого потока (его состояние сохраняется в виде <code>tmp/signals/hlsseq_&lt;id&gt;</code>, поэтому оно сохраняется после перезапуска потока).</p>
+<hr />
+<h2 id="_18">Шаблоны аргументов потока<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h2>
+<p>Исходными параметрами потоковой формы (пользовательский агент, HTTP-прокси, Cookie, заголовки, аудиокодек принудительного ввода, пропуск FFProbe) являются <code>fetch</code> строк из <code>streams_arguments</code>. Таблица также содержит <code>transcode</code> строки (скорость передачи данных, масштабирование и прочее), которые не отображаются в форме потока: профиль транскодирования сам создает эти параметры в <code>ProfileService</code>. <code>argument_cmd</code> является ли шаблон <code>StreamUtils::getArguments()</code> частью командной строки ffmpeg, для каждой строки в потоке есть опция для:</p>
+<ul>
+<li>Текстовый шаблон содержит значение <code>%s</code>, заключенное в пустые кавычки (<code>-acodec %s</code>), двойные кавычки (<code>-user_agent "%s"</code>) или одинарные кавычки (<code>-headers '%s'</code>). <code>getArguments()</code> заключает значение для этого места в кавычки, поэтому оболочка передает его в ffmpeg в качестве одного из аргументов. Два ключа переписываются перед тем, как они будут заключены в кавычки: <code>cookie</code> на <code>fixCookie()</code> (значение вводится без последнего <code>;</code>, которое равно <code>;</code>, после него ставятся пробелы, а затем добавляются <code>path=/;</code> и <code>domain=;</code>, если значение не указано) и <code>proxy</code> на <code>proxyURL()</code> (помещает <code>http://</code> перед значением без схемы); все остальные значения заключаются в кавычки как сохраненные. Шаблон не должен ожидать получения значения, которое уже экранировано.</li>
+<li>ffmpeg's <code>-cookies</code> takes Set-Cookie text and sends a cookie only when its path and domain fit the request; ffmpeg 4.0 sends nothing for a cookie without a path, hence the appended <code>path=/;</code>. A <code>path</code> or <code>domain</code> typed after a space (<code>; path=/</code>) is deliberately not recognised: the two are appended behind it and the later, empty <code>domain=</code> wins. That is required, because ffmpeg compares the cookie domain with <code>host:port</code>, so a real domain never matches a source addressed with a port. The node's <code>probe</code> action (<code>InternalApiController::probeStream</code>) completes the cookie with <code>fixCookie()</code> too, so the probe button of the stream form and a stream start hand ffprobe and ffmpeg the same text. The LLOD fetcher, the proxy command and the fan-out daemon's puller send the stored cookie as a <code>Cookie</code> header as typed.</li>
+<li>В числовых параметрах используется значение <code>%d</code> (<code>-b:v %dk</code>).</li>
+<li><code>StreamUtils::parseTranscode()</code> объединяет предложения <code>-filter_complex "…"</code> параметров перекодирования в одно. Предложение завершается двойной кавычкой, а кавычка, заключенная в обратную косую черту (<code>\"</code>), является частью предложения.</li>
+<li>Профиль, который деинтерлейсирует и масштабирует без логотипа, сохраняет цепочку в качестве команды своего параметра масштабирования, а ffmpeg получает ее как один из параметров <code>-vf "yadif,scale=…"</code>. Только профиль с логотипом сохраняет запись с логотипом: в этом случае логотип является вторым входным сигналом, а фильтры выполняются в <code>-filter_complex</code>.</li>
+</ul>
+<hr />
+<h2 id="_19">Представление<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h2>
+<p>Ключевые проектные решения, касающиеся пропускной способности и задержки:</p>
+<table>
+<thead>
+<tr>
+<th>Особенность</th>
+<th>Механизм</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Трансляция-онлайн-ожидание</td>
+<td><code>AsyncFileOperations::awaitFileExists()</code> ожидает <code>_.pid</code>/<code>_.monitor</code>/первого сегмента при появлении потока (и в байтовом пути VOD/timeshift). Оперативная доставка клиента осуществляется демоном, а не считывается с помощью PHP.</td>
+</tr>
+<tr>
+<td>Нулевой режим работы процессора</td>
+<td><code>time_nanosleep()</code> через <code>AsyncFileOperations::efficientSleep()</code></td>
+</tr>
+<tr>
+<td>буферизация nginx</td>
+<td>128 буферов по 32 КБАЙТ на запрос</td>
+</tr>
+<tr>
+<td>Объединение подключений в пул</td>
+<td>Redis (предпочтительно) или постоянный MySQL</td>
+</tr>
+<tr>
+<td>Чтение только из кэша</td>
+<td>Настройки и пользовательские данные считываются из файлового кэша без запросов к базе данных</td>
+</tr>
+<tr>
+<td>Ранний выход (VOD/timeshift)</td>
+<td>Эти байтовые циклы запрашивают <code>connection_status()</code> для остановки при отключении клиента. В Live нет байтового цикла PHP для каждого пользователя (он обслуживается демоном).</td>
+</tr>
+<tr>
+<td>Обновление настроек</td>
+<td>Каждые 5 минут (300 секунд) для отслеживания изменений конфигурации без перезапуска</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_20">Пути к файловой системе<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>STREAMS_PATH        = /home/xc_vm/content/streams/
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>VOD_PATH            = /home/xc_vm/content/vod/
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>ARCHIVE_PATH        = /home/xc_vm/content/archive/
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>VIDEO_PATH          = /home/xc_vm/content/video/
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>CONS_TMP_PATH       = /home/xc_vm/tmp/opened_cons/
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>CACHE_TMP_PATH      = /home/xc_vm/tmp/cache/
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>FLOOD_TMP_PATH      = /home/xc_vm/tmp/flood/
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>SIGNALS_TMP_PATH    = /home/xc_vm/tmp/signals/
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>SIGNALS_PATH        = /home/xc_vm/signals/
+</code></pre></div>
+<hr />
+<h2 id="_21">Диагностика и оснастка<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h2>
+<p>Автономный инструмент проверки целостности потока (<code>tools/stream-check/stream_check.py</code>) теперь доступен на отдельной странице - см. <a href="../streaming-diagnostics/">Диагностика и инструменты для потоковой передачи</a>.</p>
+<hr />
+<h2 id="adr">Обоснование проекта (ADR)<a class="headerlink" href="#adr" title="Permanent link">&para;</a></h2>
+<p>Почему live delivery отошла от tmpfs и от байтового пути PHP — решения, стоящие за текущим
+<code>xc_fanout</code> архитектура — записывается в отчетах об архитектурных решениях (repo-внутренние примечания,
+не является частью опубликованного сайта):</p>
+<ul>
+<li><a href="https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0001-tmpfs-free-streaming.md">ADR 0001 — Tmpfs-free streaming</a> — PHP out of the byte path, native fan-out, in-RAM HLS.</li>
+<li><a href="https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0002-xc-fanout-daemon.md">ADR 0002 — <code>xc_fanout</code> daemon</a> — the native live fan-out daemon.</li>
+<li><a href="https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0003-full-daemon-cutover.md">ADR 0003 — Полное отключение демона</a> — отмена устаревшего байтового пути для live.</li>
+</ul>
+<hr />
+<h2 id="_22">Связанные файлы<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Цель</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/Streaming/StreamingBootstrap.php</code></td>
+<td>основная потоковая загрузка bootstrap</td>
+</tr>
+<tr>
+<td><code>src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php</code></td>
+<td>Инициализация на уровне HTTP</td>
+</tr>
+<tr>
+<td><code>src/Streaming/Auth/StreamAuth.php</code></td>
+<td>выбор сервера и проверка подключения</td>
+</tr>
+<tr>
+<td><code>src/Streaming/Auth/StreamAuthMiddleware.php</code></td>
+<td>расшифровка токенов и заголовки ответов</td>
+</tr>
+<tr>
+<td><code>src/Streaming/Balancer/ProxySelector.php</code></td>
+<td>выбор прокси-сервера</td>
+</tr>
+<tr>
+<td><code>src/Streaming/Protection/ConnectionLimiter.php</code></td>
+<td>ограничения на подключение для каждого пользователя</td>
+</tr>
+<tr>
+<td><code>src/Streaming/Delivery/HLSGenerator.php</code></td>
+<td>Генерация плейлиста M3U8</td>
+</tr>
+<tr>
+<td><code>src/Streaming/Delivery/StreamRedirector.php</code></td>
+<td>доступность потока и маршрутизация сервера</td>
+</tr>
+<tr>
+<td><code>src/Streaming/AsyncFileOperations.php</code></td>
+<td>неблокирующие утилиты для файловой системы</td>
+</tr>
+<tr>
+<td><code>src/Streaming/Lifecycle/ShutdownHandler.php</code></td>
+<td>очистка соединения при выходе</td>
+</tr>
+<tr>
+<td><code>src/Domain/Stream/ConnectionTracker.php</code></td>
+<td>состояние соединения в Redis/MySQL</td>
+</tr>
+<tr>
+<td><code>src/Domain/Stream/StreamProcess.php</code></td>
+<td>формирование команды (<code>buildLive</code> / <code>buildNativeLive</code>), передача контроля и согласование</td>
+</tr>
+<tr>
+<td><code>src/Streaming/Fanout/FanoutClient.php</code></td>
+<td>API управления демонами (прием, контроль, принудительный источник)</td>
+</tr>
+<tr>
+<td><code>src/Core/Init/LegacyInitializer.php</code></td>
+<td>настройка глобальной переменной для потоковой передачи</td>
+</tr>
+<tr>
+<td><code>tools/stream-check/stream_check.py</code></td>
+<td>проверка целостности очереди + пакет плейлистов + панель мониторинга живого буфера + графический редактор SVG</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  К началу
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
