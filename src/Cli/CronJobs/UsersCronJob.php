@@ -70,6 +70,13 @@ class UsersCronJob implements CommandInterface {
 				$rSync = intval($rArgs[0]);
 
 				if ($rSync == 1) {
+					// The handler was off until now (the Cache page says so): the viewers
+					// are lines_live's, and what Redis holds is its snapshot from when it
+					// was last on. Left there, the sweep closed those connections as
+					// silent ones and killed the pids they named.
+					if (($rArgs[1] ?? '') === 'fresh') {
+						RedisManager::instance()?->flushAll();
+					}
 					$rDeSync = $rRedisUsers = $rRedisUpdate = $rRedisSet = [];
 					$db->query('SELECT * FROM `lines_live` WHERE `hls_end` = 0;');
 					$rRows = $db->get_rows();
@@ -92,36 +99,39 @@ class UsersCronJob implements CommandInterface {
 							}
 						}
 
-						$rRedis = RedisManager::instance()->multi();
+						// The rows leave MySQL only once Redis has them: the transaction's
+						// answer was not looked at, so a Redis restarting just then lost
+						// every viewer from both stores.
+						$rManager = RedisManager::instance();
+						$rRedis = $rManager instanceof \Redis ? $rManager->multi() : false;
+						if ($rRedis instanceof \Redis) {
+							foreach ($rRows as $rRow) {
+								echo 'Resynchronising UUID: ' . $rRow['uuid'] . "\n";
 
-						foreach ($rRows as $rRow) {
-							echo 'Resynchronising UUID: ' . $rRow['uuid'] . "\n";
+								$rRow['identity'] = StoredConnections::identity($rRow);
 
-							$rRow['identity'] = StoredConnections::identity($rRow);
+								$rRow['on_demand'] = ($rOnDemand[$rRow['stream_id']][$rRow['server_id']]);
+								$rRedis->zAdd('LINE#' . $rRow['identity'], $rRow['date_start'], $rRow['uuid']);
+								$rRedis->zAdd('STREAM#' . $rRow['stream_id'], $rRow['date_start'], $rRow['uuid']);
+								$rRedis->zAdd('SERVER#' . $rRow['server_id'], $rRow['date_start'], $rRow['uuid']);
 
-							$rRow['on_demand'] = ($rOnDemand[$rRow['stream_id']][$rRow['server_id']]);
-							$rRedis->zAdd('LINE#' . $rRow['identity'], $rRow['date_start'], $rRow['uuid']);
-							$rRedis->zAdd('LINE_ALL#' . $rRow['identity'], $rRow['date_start'], $rRow['uuid']);
-							$rRedis->zAdd('STREAM#' . $rRow['stream_id'], $rRow['date_start'], $rRow['uuid']);
-							$rRedis->zAdd('SERVER#' . $rRow['server_id'], $rRow['date_start'], $rRow['uuid']);
+								if ($rRow['user_id']) {
+									$rRedis->zAdd('SERVER_LINES#' . $rRow['server_id'], $rRow['user_id'], $rRow['uuid']);
+								}
 
-							if ($rRow['user_id']) {
-								$rRedis->zAdd('SERVER_LINES#' . $rRow['server_id'], $rRow['user_id'], $rRow['uuid']);
+								if ($rRow['proxy_id']) {
+									$rRedis->zAdd('PROXY#' . $rRow['proxy_id'], $rRow['date_start'], $rRow['uuid']);
+								}
+
+								$rRedis->zAdd('LIVE', $rRow['date_start'], $rRow['uuid']);
+								$rRedis->set($rRow['uuid'], igbinary_serialize($rRow));
+								$rDeSync[] = $rRow['uuid'];
 							}
-
-							if ($rRow['proxy_id']) {
-								$rRedis->zAdd('PROXY#' . $rRow['proxy_id'], $rRow['date_start'], $rRow['uuid']);
+							if (is_array($rRedis->exec()) && count($rDeSync) > 0) {
+								$db->query("DELETE FROM `lines_live` WHERE `uuid` IN ('" . implode("','", $rDeSync) . "');");
 							}
-
-							$rRedis->zAdd('CONNECTIONS', $rRow['date_start'], $rRow['uuid']);
-							$rRedis->zAdd('LIVE', $rRow['date_start'], $rRow['uuid']);
-							$rRedis->set($rRow['uuid'], igbinary_serialize($rRow));
-							$rDeSync[] = $rRow['uuid'];
-						}
-						$rRedis->exec();
-
-						if (count($rDeSync) > 0) {
-							$db->query("DELETE FROM `lines_live` WHERE `uuid` IN ('" . implode("','", $rDeSync) . "');");
+						} else {
+							echo 'Redis is not reachable: the connections stay in lines_live.' . "\n";
 						}
 					}
 				}
@@ -681,7 +691,9 @@ class UsersCronJob implements CommandInterface {
 
 										if (self::workerGone($rConnection, $rIsRunning, $rStartTime)) {
 											echo 'Close connection: ' . $rConnection['uuid'] . "\n";
-											ConnectionTracker::closeConnection(['date_end' => self::lastHeard($rConnection, $rStartTime)] + $rConnection, false, false);
+											// No kill: its worker is gone, or left it without a close and
+											// serves another viewer under the same pid now (workerGone()).
+											ConnectionTracker::closeConnection(['date_end' => self::lastHeard($rConnection, $rStartTime)] + $rConnection, false, false, false);
 
 											if ($rRedis) {
 												$rRedisDelete['count']++;

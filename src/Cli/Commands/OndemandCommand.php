@@ -113,10 +113,11 @@ class OndemandCommand implements CommandInterface {
 			if ($rAgentViewers) {
 				$rOnline = NodeStreams::viewers(array_map('intval', $rStreamIDs));
 			} elseif (SettingsManager::get('redis_handler') && RedisManager::instance()) {
-				$rConnections = ConnectionTracker::getStreamConnections($rStreamIDs, false, false);
-				$rOnline = [];
-				foreach ($rStreamIDs as $rStreamID) {
-					$rOnline[$rStreamID] = count($rConnections[$rStreamID][SERVER_ID] ?? []);
+				$rOnline = ConnectionTracker::streamViewerCounts($rStreamIDs, (int) SERVER_ID);
+				// Redis did not answer: that is not "no viewers", which stops the stream.
+				if ($rOnline === null) {
+					usleep(800000);
+					continue;
 				}
 			} else {
 				$rOnline = ConnectionTracker::onlineClientCounts($rStreamIDs, SERVER_ID);
