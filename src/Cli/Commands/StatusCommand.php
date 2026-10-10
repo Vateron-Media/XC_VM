@@ -253,6 +253,11 @@ class StatusCommand implements CommandInterface {
 		ProcessRunner::run(['sudo', 'chmod', '0771', MAIN_HOME . 'bin/daemons.sh']);
 		ProcessRunner::run(['sudo', 'chmod', '0775', MAIN_HOME . 'bin/certbot']);
 		ProcessRunner::run(['sudo', 'chown', '-R', 'xc_vm:xc_vm', MAIN_HOME . 'config']);
+		// The database user and password: the installer wrote the file readable
+		// by all up to 2.6.4 (only config/'s own mode kept others out).
+		if (is_file(MAIN_HOME . 'config/config.ini')) {
+			ProcessRunner::run(['sudo', 'chmod', '0600', MAIN_HOME . 'config/config.ini']);
+		}
 		shell_exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system 2> /dev/null");
 	}
 

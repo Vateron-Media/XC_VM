@@ -145,7 +145,7 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
-	verify_no_lfs_pointers \
+	verify_no_lfs_pointers verify_permissions \
 	lb_delete_files_list generate_deleted_files \
 	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive check-lb-settings-keys \
 	check-core-cluster-refs gates \
@@ -383,10 +383,10 @@ generate_deleted_files:
 # ─── MAIN targets ────────────────────────────────────────────────
 # Single archive: used for both clean install and update.
 # The update script (src/update) filters out excluded dirs at runtime.
-main: main_copy_files stamp_release_id set_permissions verify_no_lfs_pointers create_archive main_archive_move main_install_archive clean
+main: main_copy_files stamp_release_id set_permissions verify_permissions verify_no_lfs_pointers create_archive main_archive_move main_install_archive clean
 
 # ─── LoadBalancer targets ────────────────────────────────────────
-lb: lb_copy_files lb_delete_files_list stamp_release_id set_permissions verify_no_lfs_pointers create_archive lb_archive_move clean
+lb: lb_copy_files lb_delete_files_list stamp_release_id set_permissions verify_permissions verify_no_lfs_pointers create_archive lb_archive_move clean
 
 lb_copy_files:
 	@echo "==> [LB] Creating distribution directory: $(DIST_DIR)"
@@ -552,6 +552,34 @@ set_permissions:
 	# Sensitive config files
 	@chmod 0640 $(TEMP_DIR)/config/modules.php 2>/dev/null || true
 	@chmod 0550 $(TEMP_DIR)/config/rclone.conf 2>/dev/null || true
+
+# Fail the build if the staged tree does not carry the modes an install and an
+# update rely on: tar keeps them, and set_permissions ignores a chmod that
+# fails. A path the archive being built does not hold (LB) is skipped.
+verify_permissions:
+	@echo "==> Verifying staged permissions in $(TEMP_DIR)"
+	@bad=0; \
+	check() { \
+		want="$$1"; shift; \
+		for f in "$$@"; do \
+			[ -e "$(TEMP_DIR)/$$f" ] || continue; \
+			got=$$(stat -c %a "$(TEMP_DIR)/$$f"); \
+			[ "$$got" = "$$want" ] || { echo "   - $$f is $$got, expected $$want"; bad=1; }; \
+		done; \
+	}; \
+	check 750 service update bin/daemons.sh backups bin config content signals bin/nginx_rtmp/sbin/nginx_rtmp; \
+	check 755 console.php bin/guess bin/yt-dlp bin/redis/redis-server bin/xc_fanout/run.sh; \
+	check 550 bin/network bin/network.py bin/nginx/sbin/nginx; \
+	check 551 bin/php/bin/php bin/php/sbin/php-fpm; \
+	check 600 bin/nginx/conf/server.key; \
+	check 640 config/modules.php; \
+	check 770 content/streams; \
+	loose=$$(find "$(TEMP_DIR)" -perm /002 ! -type l | head -5); \
+	if [ -n "$$loose" ]; then \
+		echo "   - writable by everyone:"; echo "$$loose" | sed 's|^$(TEMP_DIR)/|       |'; bad=1; \
+	fi; \
+	if [ "$$bad" != 0 ]; then echo "ERROR: the staged tree's permissions are wrong (see set_permissions)"; exit 1; fi; \
+	echo "OK: staged permissions"
 
 # Fail the build if any staged file is still a Git LFS pointer instead of the
 # real binary. This happens when the checkout did not materialise LFS objects
