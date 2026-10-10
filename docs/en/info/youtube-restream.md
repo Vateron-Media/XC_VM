@@ -116,6 +116,11 @@ able to reach the proxy. To check a stream before going live, use the command in
 
 - **YouTube live broadcasts:** supported. The panel picks a single stream that carries
   both video and audio (up to 1080p).
+- **JavaScript runtime (recommended):** with [deno](https://deno.com) installed on the
+  server (`/usr/local/bin/deno` or anywhere on `PATH`), `yt-dlp` asks YouTube as its
+  mobile web client, whose streams keep playing. Without deno the panel falls back to a
+  client that needs no runtime, but YouTube cuts its segments off after about 30 seconds,
+  so the stream restarts every half minute.
 - **Regular (non-live) YouTube videos:** not supported for now. YouTube refuses their
   download links to the panel's `yt-dlp` without a JavaScript runtime, even through a
   proxy.
@@ -123,20 +128,21 @@ able to reach the proxy. To check a stream before going live, use the command in
   Livestream, Ustream and CNN links also go through `yt-dlp` and use the stream's proxy
   the same way.
 
-`yt-dlp` is updated automatically on every server once a day, so changes on YouTube's
-side are usually picked up without a panel update.
+`yt-dlp` is updated automatically on every server once a day and right after a panel
+update, so changes on YouTube's side are usually picked up without a panel update.
 
 ---
 
 ## Troubleshooting
 
 The quickest check is to run `yt-dlp` on the server the way the panel does, as the
-`xc_vm` user and with the stream's proxy:
+`xc_vm` user and with the stream's proxy. The panel tries `player_client=mweb` first and
+`player_client=default,android_vr` when that prints nothing:
 
 ```bash
 sudo -u xc_vm /home/xc_vm/bin/yt-dlp \
   --proxy 'http://user:password@proxy.example.com:8080' \
-  --extractor-args 'youtube:player_client=default,android_vr' \
+  --extractor-args 'youtube:player_client=mweb' \
   -q --get-url --skip-download -f best \
   'https://www.youtube.com/watch?v=VIDEO_ID'
 ```
@@ -148,6 +154,7 @@ A working setup prints one `https://manifest.googlevideo.com/...` link.
 | `Sign in to confirm you're not a bot` | No proxy on the stream, or the proxy's IP is blocked or flagged as hosting. | Set **HTTP Proxy** on the stream; use a residential/home IP; give the stream an IP no other stream uses. |
 | `Requested format is not available` | The panel version predates YouTube restream support. | Update the panel. |
 | The link is found, but the stream does not start or segments fail (`403 Forbidden`, `Failed to open segment`) | The video is downloaded from a different IP than the link was fetched from, usually because the proxy is SOCKS. | Use an HTTP proxy. |
+| The stream restarts every 30–50 seconds; the log shows `403 Forbidden` / `Failed to open segment` | No JavaScript runtime on the server, so the panel fell back to the `android_vr` client, whose segments YouTube cuts off after about 30 seconds. | Install [deno](https://deno.com) on the server. |
 | Works for a while, then stops for several streams at once | Several YouTube streams share one proxy IP and it got rate-limited. | One proxy IP per stream. |
 | `Unable to connect to proxy` / timeouts | The proxy is unreachable from this server or the login is wrong. | Test it with `curl -x 'http://user:password@host:port' https://api.ipify.org` on the server; it should print the proxy's IP. |
 

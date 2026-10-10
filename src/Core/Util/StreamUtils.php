@@ -204,18 +204,37 @@ class StreamUtils {
 			$rURL .= ' live=1 timeout=10';
 		} else {
 			if (self::needsResolver($rURL)) {
-				// ponytail: without a JS runtime YouTube's default clients give a live
-				// stream only as separate video/audio, which -f best cannot pick;
-				// android_vr still serves one muxed HLS playlist. Drop it once nodes have deno.
-				$rArgv = [YOUTUBE_BIN, '--extractor-args', 'youtube:player_client=default,android_vr', '-q', '--get-url', '--skip-download', '-f', 'best'];
-				if ($rProxy !== '') {
-					array_push($rArgv, '--proxy', self::proxyURL($rProxy));
-				}
-				[, $rURLs] = ProcessRunner::capture([...$rArgv, '--', $rURL]);
-				list($rURL) = explode("\n", trim($rURLs));
+				$rURL = self::resolveWithYtDlp($rURL, $rProxy);
 			}
 		}
 		return $rURL;
+	}
+
+	/**
+	 * First media URL yt-dlp resolves a platform page to, or '' if it resolves none.
+	 *
+	 * A live stream needs one muxed HLS playlist (-f best). YouTube's mweb client serves
+	 * one whose segments keep working, but needs a JS runtime (deno); without it mweb
+	 * yields nothing and android_vr is the fallback, whose segments YouTube 403s after
+	 * ~30s. The clients are tried one by one: in one list -f best may still pick android_vr.
+	 *
+	 * @param string $rURL   Platform page URL.
+	 * @param string $rProxy The stream's "HTTP Proxy" value ('' for none).
+	 * @return string
+	 */
+	private static function resolveWithYtDlp(string $rURL, string $rProxy) {
+		foreach (['mweb', 'default,android_vr'] as $rClients) {
+			$rArgv = [YOUTUBE_BIN, '--extractor-args', 'youtube:player_client=' . $rClients, '-q', '--get-url', '--skip-download', '-f', 'best'];
+			if ($rProxy !== '') {
+				array_push($rArgv, '--proxy', self::proxyURL($rProxy));
+			}
+			[, $rURLs] = ProcessRunner::capture([...$rArgv, '--', $rURL]);
+			$rResolved = explode("\n", trim($rURLs))[0];
+			if ($rResolved !== '') {
+				return $rResolved;
+			}
+		}
+		return '';
 	}
 
 	/** Video platforms whose page URLs parseStreamURL() resolves through yt-dlp. */

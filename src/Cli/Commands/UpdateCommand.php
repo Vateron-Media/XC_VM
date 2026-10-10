@@ -418,6 +418,10 @@ class UpdateCommand implements CommandInterface {
 				// to LB nodes so their Redis target can be pointed at the main server.
 				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php xcvm_core >/dev/null 2>&1 &');
 
+				// The archive just put back its own yt-dlp, older than the one the daily
+				// RootSignals check had installed; refresh it now, not up to a day later.
+				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'ytdlp']);
+
 				// ipset for the blocklist's sets (RootSignalsCronJob::syncSets), on a server
 				// installed before the installers took it. Background + best-effort: apt held
 				// or unreachable leaves the blocks one rule each, and the next update tries again.
