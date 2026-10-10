@@ -10,6 +10,7 @@ use XcVm\Core\Events\Vod\VodImportResultEvent;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Process\Multithread;
+use XcVm\Core\Http\CurlClient;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamProcess;
@@ -88,10 +89,36 @@ class VodItemImporter {
 			if ($rCleanTitle !== '') {
 				$rResult['title'] = $rCleanTitle;
 				$rResult['season'] = intval($rMatch[2]);
-				$rResult['episode'] = intval($rMatch[3]);
+				// A range the parser read from this very episode on (S01E02E03 as
+				// [2, 3]) is kept: written over, a double episode was named as one.
+				$rRange = $rResult['episode'] ?? null;
+				if (!(is_array($rRange) && count($rRange) == 2 && intval($rRange[0]) === intval($rMatch[3]))) {
+					$rResult['episode'] = intval($rMatch[3]);
+				}
 			}
 		}
 		return $rResult;
+	}
+
+	/**
+	 * A parsed release's title, without its "excess" word (a tag such as
+	 * MULTI). The word is taken out whole, never by trim($title, $excess): its
+	 * second argument is a list of characters, and trim('Marshals', 'MULTI')
+	 * eats the leading 'M'.
+	 *
+	 * @param array<string, mixed> $rRelease parserelease()'s answer
+	 */
+	public static function releaseTitle(array $rRelease): ?string {
+		$rTitle = $rRelease['title'] ?? null;
+		if ($rTitle === null || !isset($rRelease['excess'])) {
+			return $rTitle;
+		}
+		$rExcess = is_array($rRelease['excess']) ? ($rRelease['excess'][0] ?? '') : $rRelease['excess'];
+		if ((string) $rExcess === '') {
+			return $rTitle;
+		}
+		$rTitle = preg_replace('/\\b' . preg_quote((string) $rExcess, '/') . '\\b/u', ' ', (string) $rTitle);
+		return trim((string) preg_replace('/\\s+/u', ' ', (string) $rTitle));
 	}
 
 	/**
@@ -192,8 +219,8 @@ class VodItemImporter {
 				$rURL .= '&language=' . urlencode(SettingsManager::getAll()['tmdb_language']);
 			}
 		}
-		$rJSON = json_decode(file_get_contents($rURL), true);
-		foreach ($rJSON['results'] as $rVideo) {
+		$rJSON = json_decode((string) CurlClient::getURL($rURL), true);
+		foreach (($rJSON['results'] ?? []) as $rVideo) {
 			if (strtolower($rVideo['type']) == 'trailer' && strtolower($rVideo['site']) == 'youtube') {
 				return $rVideo['key'];
 			}
@@ -1094,18 +1121,7 @@ class VodItemImporter {
 						if ($rThreadData['disable_tmdb'] || $rMetaMatch) {
 						} else {
 							$rRelease = self::parserelease($rFilename, $rParseType);
-							$rTitle = $rRelease['title'] ?? null; // a name the parser reads nothing in
-							if (isset($rRelease['excess'])) {
-								// Strip the excess token as a WHOLE WORD — never
-								// trim($title, $excess): its 2nd arg is a char-mask,
-								// so trim('Marshals…', 'MULTI') eats the leading 'M'
-								// and yields 'arshals…', breaking the TMDb search.
-								$rExcess = is_array($rRelease['excess']) ? ($rRelease['excess'][0] ?? '') : $rRelease['excess'];
-								if ($rExcess !== '') {
-									$rTitle = preg_replace('/\b' . preg_quote((string) $rExcess, '/') . '\b/u', ' ', $rTitle);
-									$rTitle = trim(preg_replace('/\s+/u', ' ', $rTitle));
-								}
-							}
+							$rTitle = self::releaseTitle($rRelease);
 							if (isset($rRelease['group'])) {
 								$rAltTitle = $rTitle . '-' . $rRelease['group'];
 							} else {

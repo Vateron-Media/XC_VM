@@ -3,6 +3,7 @@
 namespace XcVm\Domain\Vod;
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\CurlClient;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Tmdb\TmdbApiService;
 
@@ -99,9 +100,11 @@ class TMDbService {
 			}
 		}
 
-		$rJSON = json_decode(file_get_contents($rURL), true);
+		// cURL: file_get_contents() over https does not work under PHP-FPM here, and
+		// the panel's TMDb lookup (an FPM request) got no trailer and two warnings.
+		$rJSON = json_decode((string) CurlClient::getURL($rURL), true);
 
-		foreach ($rJSON['results'] as $rVideo) {
+		foreach (($rJSON['results'] ?? []) as $rVideo) {
 			if (strtolower($rVideo['type']) == 'trailer' && strtolower($rVideo['site']) == 'youtube') {
 				return $rVideo['key'];
 			}
@@ -125,7 +128,7 @@ class TMDbService {
 			$rURL .= '&language=' . urlencode(SettingsManager::getString('tmdb_language'));
 		}
 
-		return json_decode(file_get_contents($rURL), true);
+		return json_decode((string) CurlClient::getURL($rURL), true);
 	}
 
 	/**

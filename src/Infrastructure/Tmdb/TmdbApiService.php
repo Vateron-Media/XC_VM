@@ -3,8 +3,8 @@
 namespace XcVm\Infrastructure\Tmdb;
 
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Vod\TMDbService;
+use XcVm\Domain\Vod\VodItemImporter;
 
 /**
  * TmdbApiService
@@ -66,25 +66,32 @@ class TmdbApiService {
 	 * @param int|null    $season   Номер сезона (для episode)
 	 * @return array ['result' => bool, 'data' => array|null]
 	 */
-	public static function search(string $term, string $type, ?string $language = null, ?int $season = null): array {
+	public static function search(string $term, string $type, ?string $language = null, ?int $season = null, ?object $rTMDB = null): array {
 		$apiKey = SettingsManager::getString('tmdb_api_key');
 		if ($apiKey === '') {
 			return ['result' => false];
 		}
 
 		self::requireLibrary();
-		$rTMDB = self::createClient($apiKey, $language);
+		// $rTMDB: a client of the caller's, for tests.
+		$rTMDB ??= self::createClient($apiKey, $language);
+		$rByID = [];
 
 		// Прямой поиск по числовому \TMDB ID
 		if (is_numeric($term) && in_array($type, ['movie', 'series', 'episode'])) {
 			$rResult = self::fetchByID($rTMDB, $term, $type, $season);
 			if (is_array($rResult)) {
-				return ['result' => true, 'data' => $rResult];
+				if ($type === 'episode') {
+					return ['result' => true, 'data' => $rResult];
+				}
+				// A movie or a series may be named by a number ("1917", "300"): the
+				// record of that id comes first, and the titles that match after it.
+				$rByID = array_values(array_filter($rResult, static fn($rRow): bool => is_array($rRow) && isset($rRow['id'])));
 			}
 		}
 
 		// Текстовый поиск
-		$rRelease = AdminHelpers::parserelease($term);
+		$rRelease = VodItemImporter::parserelease($term, (string) SettingsManager::get('parse_type'));
 		$searchTerm = $rRelease['title'] ?? $term;
 		$rJSON = [];
 
@@ -98,8 +105,15 @@ class TmdbApiService {
 			}
 		}
 
-		if (count($rJSON) > 0) {
-			return ['result' => true, 'data' => $rJSON];
+		$rSeen = array_column($rByID, 'id');
+		foreach ($rJSON as $rRow) {
+			if (!in_array($rRow['id'] ?? null, $rSeen)) {
+				$rByID[] = $rRow;
+			}
+		}
+
+		if (count($rByID) > 0) {
+			return ['result' => true, 'data' => $rByID];
 		}
 
 		return ['result' => false];
@@ -149,7 +163,7 @@ class TmdbApiService {
 	 * @param string   $type   Тип: movie|series|episode
 	 * @param int|null $season Номер сезона
 	 */
-	private static function fetchByID(\TMDB $tmdb, string $id, string $type, ?int $season): ?array {
+	private static function fetchByID(object $tmdb, string $id, string $type, ?int $season): ?array {
 		if ($type === 'movie') {
 			return [json_decode($tmdb->getMovie((int) $id)->getJSON(), true)];
 		}

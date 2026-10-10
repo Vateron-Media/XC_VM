@@ -390,7 +390,9 @@ class StreamProcess {
 				}
 			}
 			for ($i = 0; $i < $rCount; $i++) {
-				$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
+				// One argument each, whatever the name holds: through escapeshellcmd() a
+				// space in it ("English SDH") split it, and ffmpeg read the rest as outputs.
+				$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' ' . escapeshellarg('title=' . $rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' ' . escapeshellarg('language=' . $rSubtitles['names'][$i]) . ' ';
 			}
 		}
 		return [$rSubtitlesImport, $rSubtitlesMetadata];

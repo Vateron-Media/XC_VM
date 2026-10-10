@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 
@@ -84,7 +85,10 @@ class DeviceAjaxController extends BaseAjaxController {
 		$this->gate('adv', 'manage_events');
 
 		global $db;
-		$rData = json_decode(RequestManager::get('data'), true);
+		$rData = self::eventData((string) ($_POST['data'] ?? $_GET['data'] ?? ''));
+		if ($rData === null) {
+			$this->fail();
+		}
 
 		if (!is_numeric($rData['id'])) {
 			$rIDs = json_decode($rData['id'], true);
@@ -111,5 +115,26 @@ class DeviceAjaxController extends BaseAjaxController {
 		}
 
 		$this->ok();
+	}
+
+	/**
+	 * The event a page sends as JSON in `data`. It is decoded as it was sent,
+	 * then each value cleaned as a request's are: cleaned first, the JSON lost
+	 * the backslashes that escape its quotes, a message with a `"` in it did
+	 * not decode, and the event was dropped while the answer said sent.
+	 *
+	 * @return array<string, mixed>|null null when it is not an event
+	 */
+	public static function eventData(string $rJson): ?array {
+		$rData = json_decode($rJson, true);
+		if (!is_array($rData) || !isset($rData['id'], $rData['type'])) {
+			return null;
+		}
+		foreach ($rData as $rKey => $rValue) {
+			if (is_string($rValue)) {
+				$rData[$rKey] = InputValidator::parseCleanValue($rValue);
+			}
+		}
+		return $rData;
 	}
 }
