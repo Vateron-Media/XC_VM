@@ -29,6 +29,7 @@ use XcVm\Core\Gateway\GatewayPolicy;
 use XcVm\Core\Process\PhpFpmPools;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Process\ProcessRunner;
+use XcVm\Core\Util\AtomicFile;
 use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Cluster\ClusterEndpoint;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
@@ -92,7 +93,10 @@ class RootSignalsCronJob implements CommandInterface {
 			shell_exec("sudo kill -9 $pids");
 		}
 		cli_set_process_title('XC_VM[RootSignals]');
-		file_put_contents(CONFIG_PATH . 'signals.last', time());
+		// Written aside and renamed in: root writes this every minute in a
+		// directory xc_vm can write, and a plain write follows a link planted
+		// under the name, into whatever file it points to.
+		AtomicFile::write(CONFIG_PATH . 'signals.last', (string) time(), 0644);
 
 		self::refreshModuleCrons();
 		$this->loadCron();
