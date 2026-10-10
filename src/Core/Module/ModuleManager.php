@@ -357,7 +357,8 @@ class ModuleManager {
 			$meta = json_decode((string) @file_get_contents($dir . '/module.json'), true);
 			$old  = is_array($meta) ? trim((string) ($meta['name'] ?? '')) : '';
 			if ($old === '' || $old === $name || realpath($dir) === $keepReal
-				|| strtolower((string) ($meta['hash_id'] ?? '')) !== $hashId) {
+				|| strtolower((string) ($meta['hash_id'] ?? '')) !== $hashId
+			) {
 				continue;
 			}
 			$this->renameOverrides($old, $name);
