@@ -88,4 +88,30 @@ final class StreamUtilsTest extends TestCase {
 			ProcessRunner::useCapturer(null);
 		}
 	}
+
+	public function testParseStreamUrlFallsBackFromMwebToAndroidVr() {
+		if (!defined('YOUTUBE_BIN')) {
+			define('YOUTUBE_BIN', '/bin/yt-dlp');
+		}
+		$rClients = [];
+		$rMwebWorks = false;
+		ProcessRunner::useCapturer(function (array $rArgv) use (&$rClients, &$rMwebWorks) {
+			$rClients[] = $rClient = $rArgv[array_search('--extractor-args', $rArgv, true) + 1];
+			return [0, ($rClient === 'youtube:player_client=mweb') === $rMwebWorks ? "https://media.example/{$rClient}.m3u8\n" : ''];
+		});
+		try {
+			$rPage = 'https://www.youtube.com/watch?v=x';
+			// No JS runtime: mweb prints nothing, android_vr resolves it.
+			$this->assertSame('https://media.example/youtube:player_client=default,android_vr.m3u8', StreamUtils::parseStreamURL($rPage));
+			$this->assertSame(['youtube:player_client=mweb', 'youtube:player_client=default,android_vr'], $rClients);
+
+			// mweb resolves it: android_vr is never asked.
+			$rClients = [];
+			$rMwebWorks = true;
+			$this->assertSame('https://media.example/youtube:player_client=mweb.m3u8', StreamUtils::parseStreamURL($rPage));
+			$this->assertSame(['youtube:player_client=mweb'], $rClients);
+		} finally {
+			ProcessRunner::useCapturer(null);
+		}
+	}
 }
