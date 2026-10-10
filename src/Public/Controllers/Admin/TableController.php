@@ -1522,7 +1522,8 @@ class TableController extends BaseAdminController {
 							$rActualStatus = -1;
 						}
 						$rServerId  = (int) ($rRow["server_id"] ?: 0);
-						$rGrouped   = (SettingsManager::getAll()["streams_grouped"] == 1);
+						// This table's own grouping: a per-server view (`single`) switched it off above.
+						$rGrouped   = ($rSettings["streams_grouped"] == 1);
 						$rServerCnt = (int) ($rServerCount[$rRow["id"]] ?? 1);
 						$rSourceLabel = null;
 						if (!$rGrouped) {
@@ -1762,7 +1763,8 @@ class TableController extends BaseAdminController {
 							$rActualStatus = -1;
 						}
 						$rServerId  = (int) ($rRow["server_id"] ?: 0);
-						$rGrouped   = (SettingsManager::getAll()["streams_grouped"] == 1);
+						// This table's own grouping: a per-server view (`single`) switched it off above.
+						$rGrouped   = ($rSettings["streams_grouped"] == 1);
 						$rServerCnt = (int) ($rServerCount[$rRow["id"]] ?? 1);
 						$rStreamInfo = json_decode($rRow["stream_info"] ?? "", true);
 						if (!is_array($rStreamInfo)) {

@@ -790,7 +790,7 @@ LayoutRenderer::renderFooter('admin');
                             d.id = 'streams';
                             d.server = serverId;
                             d.filter = 1;
-                            d.simple = true;
+                            d.single = true;
                         }
                     },
                     columns: [{
