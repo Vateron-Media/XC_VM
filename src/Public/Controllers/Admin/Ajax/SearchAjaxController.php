@@ -167,7 +167,7 @@ class SearchAjaxController extends BaseAjaxController {
 				if (SettingsManager::get('redis_handler')) {
 					$rConnectionCount = ConnectionTracker::getStreamConnections($rStreamIDs, true, true);
 				} else {
-					$db->query('SELECT `stream_id`, COUNT(*) AS `count` FROM `lines_live` WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ') AND `hls_end` = 0;');
+					$db->query('SELECT `stream_id`, COUNT(*) AS `count` FROM `lines_live` WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ') AND `hls_end` = 0 GROUP BY `stream_id`;');
 
 					foreach ($db->get_rows() as $rRow) {
 						$rConnectionCount[$rRow['stream_id']] = $rRow['count'];
@@ -249,7 +249,7 @@ class SearchAjaxController extends BaseAjaxController {
 						$rLinesInfo[$rRow['user_id']]['online'] = true;
 						$rStreamNameIDs[] = intval($rRow['stream_id']);
 					}
-					$db->query('SELECT `user_id`, COUNT(*) AS `count` FROM `lines_live` WHERE `user_id` IN (' . implode(',', array_map('intval', $rLineIDs)) . ') AND `hls_end` = 0;');
+					$db->query('SELECT `user_id`, COUNT(*) AS `count` FROM `lines_live` WHERE `user_id` IN (' . implode(',', array_map('intval', $rLineIDs)) . ') AND `hls_end` = 0 GROUP BY `user_id`;');
 
 					foreach ($db->get_rows() as $rRow) {
 						$rLineConnectionCount[$rRow['user_id']] = $rRow['count'];

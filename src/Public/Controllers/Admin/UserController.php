@@ -31,7 +31,9 @@ class UserController extends BaseAdminController {
 			$db->query('SELECT * FROM `users` WHERE `id` = ?;', intval(RequestManager::get('id')));
 			$rUser = ($rStored = $db->get_raw_row()) ? UserCredits::amounts($rStored) : null;
 		}
-		if ($rUser === false) {
+		// An id that names no user (the lookup answers null, never false: this
+		// showed the "add user" form in its place).
+		if (RequestManager::has('id') && $rUser === null) {
 			$this->redirect('users');
 			return;
 		}
