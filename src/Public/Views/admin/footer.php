@@ -14,6 +14,7 @@
  * from vendors.php. Pages initialise their own plugins.
  */
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Util\AdminHelpers;
 
 if (count(get_included_files()) == 1) {
@@ -547,6 +548,93 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                     })
                     .finally(function() {
                         setTimeout(poll, 5000);
+                    });
+            }
+            poll();
+        })();
+    </script>
+<?php endif; ?>
+
+<?php if (!$xmBare && Authorization::check('adv', 'streams')): ?>
+    <!-- Stream event toasts: the stream log's starts, stops and failures, from every server, as they come in -->
+    <script>
+        (function() {
+            if (!window.xcToast) return;
+            var KEY = 'xc_stream_events_after'; // per tab: a new tab starts from now, a page change misses nothing
+            var BURST = 5; // more at once (a mass restart): one toast that counts them
+            var TYPES = {
+                STREAM_START: 'success',
+                STREAM_STOP: 'info',
+                STREAM_START_FAIL: 'error',
+                STREAM_FAILED: 'error',
+                FFMPEG_ERROR: 'error',
+                AUDIO_LOSS: 'warning'
+            };
+            var COUNT = <?= json_encode($language::get('stream_events_count')); ?>;
+            var after = null;
+            try {
+                after = sessionStorage.getItem(KEY);
+            } catch (e) {}
+
+            function show(d) {
+                var ev = d.events || [];
+                if (ev.length > BURST || d.total > ev.length) {
+                    var counts = {},
+                        order = [],
+                        bad = false;
+                    ev.forEach(function(e) {
+                        if (!counts[e.label]) {
+                            counts[e.label] = 0;
+                            order.push(e.label);
+                        }
+                        counts[e.label]++;
+                        bad = bad || TYPES[e.action] === 'error';
+                    });
+                    var parts = order.map(function(l) {
+                        return counts[l] + ' ' + l;
+                    });
+                    xcToast(COUNT.replace('{COUNT}', d.total) + ': ' + parts.join(', ') + (d.total > ev.length ? ', …' : ''), bad ? 'warning' : 'info');
+                    return;
+                }
+                ev.forEach(function(e) {
+                    xcToast(e.stream + (e.server ? ' (' + e.server + ')' : '') + ': ' + e.label, TYPES[e.action] || 'warning');
+                });
+            }
+
+            function poll() {
+                if (document.hidden) {
+                    setTimeout(poll, 5000);
+                    return;
+                }
+                var stop = false;
+                fetch('./api?action=stream_events' + (after !== null ? '&after=' + encodeURIComponent(after) : ''), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (typeof d.last !== 'number') {
+                            stop = d.result === false; // no permission: nothing to show here
+                            return;
+                        }
+                        if (after !== null) {
+                            show(d);
+                        }
+                        after = String(d.last);
+                        try {
+                            sessionStorage.setItem(KEY, after);
+                        } catch (e) {}
+                    })
+                    .catch(function() {
+                        /* try again next time */
+                    })
+                    .finally(function() {
+                        if (!stop) {
+                            setTimeout(poll, 5000);
+                        }
                     });
             }
             poll();

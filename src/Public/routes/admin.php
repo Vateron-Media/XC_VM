@@ -422,6 +422,7 @@ $router->api('category_template_get', [CategoryTemplateAjaxController::class, 'g
 $router->api('graph_stats', [StatsAjaxController::class, 'graphStats']);
 $router->api('stats', [StatsAjaxController::class, 'stats']);
 $router->api('header_stats', [StatsAjaxController::class, 'headerStats']);
+$router->api('stream_events', [StatsAjaxController::class, 'streamEvents']);
 $router->api('save_ui_prefs', [StatsAjaxController::class, 'saveUiPrefs']);
 
 // ─── Backups, Logs & Reports ───────────────────────

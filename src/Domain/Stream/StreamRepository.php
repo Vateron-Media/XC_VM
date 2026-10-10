@@ -6,6 +6,7 @@ use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Events\Stream\StreamsDeletedEvent;
+use XcVm\Core\Reference\StatusBadge;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;
@@ -24,6 +25,42 @@ use XcVm\Infrastructure\Database\DatabaseAware;
 
 class StreamRepository {
 	use DatabaseAware;
+
+	/**
+	 * The stream log past $rAfter, for the panel's toasts (start, stop, a
+	 * failed start…, from every server: a load balancer's entries reach MAIN
+	 * within a minute): the newest $rLimit, oldest first, each with its label
+	 * and the stream's and server's names. `last` is where the log stands and
+	 * `total` how many entries are past $rAfter. A negative $rAfter, or one
+	 * at or past where the log stands, only says where that is: a page shows
+	 * what happens from then on.
+	 *
+	 * @return array{last: int, total: int, events: list<array{id: int, stream_id: int, action: string, label: string, stream: string, server: string}>}
+	 */
+	public static function logSince(int $rAfter, int $rLimit = 50): array {
+		$db = self::db();
+		$db->query('SELECT MAX(`id`) AS `id` FROM `streams_logs`;');
+		$rLast = (int) ($db->get_row()['id'] ?? 0);
+		if ($rAfter < 0 || $rAfter >= $rLast) {
+			return ['last' => $rLast, 'total' => 0, 'events' => []];
+		}
+		$db->query('SELECT COUNT(*) AS `count` FROM `streams_logs` WHERE `id` > ? AND `id` <= ?;', $rAfter, $rLast);
+		$rTotal = (int) ($db->get_row()['count'] ?? 0);
+		$db->query('SELECT `l`.`id`, `l`.`stream_id`, `l`.`action`, `s`.`stream_display_name`, `v`.`server_name` FROM `streams_logs` `l` LEFT JOIN `streams` `s` ON `s`.`id` = `l`.`stream_id` LEFT JOIN `servers` `v` ON `v`.`id` = `l`.`server_id` WHERE `l`.`id` > ? AND `l`.`id` <= ? ORDER BY `l`.`id` DESC LIMIT ' . max(1, $rLimit) . ';', $rAfter, $rLast);
+		$rEvents = [];
+		foreach (array_reverse($db->get_raw_rows()) as $rRow) {
+			$rAction = (string) $rRow['action'];
+			$rEvents[] = [
+				'id' => (int) $rRow['id'],
+				'stream_id' => (int) $rRow['stream_id'],
+				'action' => $rAction,
+				'label' => StatusBadge::streamLog($rAction) ?: $rAction,
+				'stream' => (string) ($rRow['stream_display_name'] ?? '#' . $rRow['stream_id']),
+				'server' => (string) ($rRow['server_name'] ?? ''),
+			];
+		}
+		return ['last' => $rLast, 'total' => $rTotal, 'events' => $rEvents];
+	}
 
 	/**
 	 * Fetch recent error-log entries for a stream.
