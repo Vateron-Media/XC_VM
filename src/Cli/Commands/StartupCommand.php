@@ -221,6 +221,20 @@ class StartupCommand implements CommandInterface {
 	}
 
 	/**
+	 * The lock every writer of root's crontab holds from reading the modules
+	 * to replacing the list, so that a list read before another process's
+	 * write cannot land after it. Taken on this file, read-only: no lock file
+	 * for root to create where xc_vm can plant a link.
+	 *
+	 * @param bool $rWait Wait for the writer at work (`startup`, `status`); the every-minute check does not, it comes back.
+	 * @return resource|null The lock, held until it is closed or goes out of scope; null when another writer holds it.
+	 */
+	private static function crontabLock(bool $rWait) {
+		$rLock = fopen(__FILE__, 'r');
+		return $rLock !== false && flock($rLock, $rWait ? LOCK_EX : LOCK_EX | LOCK_NB) ? $rLock : null;
+	}
+
+	/**
 	 * Root's crontab: cron:root_signals, cluster:root (MAIN's signed root
 	 * commands), cron:root_mysql and the module licences, plus whatever the
 	 * modules ask for. Static and public because `status` installs the same
@@ -232,6 +246,10 @@ class StartupCommand implements CommandInterface {
 	 * @return bool Whether root's crontab holds the list now (it did, or it was written).
 	 */
 	public static function installRootCrontab(bool $rQuiet = false): bool {
+		$rLock = self::crontabLock(!$rQuiet);
+		if ($rLock === null) {
+			return false;
+		}
 		$rCrons = [];
 		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # XC_VM';
 		// MAIN's signed root commands (cluster API, Phase 4); a no-op until the node's root pin exists.

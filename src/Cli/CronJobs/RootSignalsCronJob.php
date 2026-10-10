@@ -108,9 +108,11 @@ class RootSignalsCronJob implements CommandInterface {
 	 * (the anti-abuse shield, and with it its honeypot ports).
 	 *
 	 * Nothing is kept of the last write: installRootCrontab() compares the
-	 * crontab itself and writes only when its list differs. So a `startup` or
-	 * `status` that wrote an older list over a newer one is put right the next
-	 * minute, and root writes no file of its own where xc_vm can plant a link.
+	 * crontab itself and writes only when its list differs, one writer at a
+	 * time (crontabLock()), so a list read before another's write cannot land
+	 * after it; and a list written just before the modules changed is put
+	 * right the next minute. Root writes no file of its own where xc_vm can
+	 * plant a link.
 	 *
 	 * @param (callable(): bool)|null $rWrite What brings the crontab up to date (tests); StartupCommand::installRootCrontab(true).
 	 * @return bool Whether the crontab holds the modules' lines now.

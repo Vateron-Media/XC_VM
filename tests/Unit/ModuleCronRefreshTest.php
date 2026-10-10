@@ -40,4 +40,20 @@ final class ModuleCronRefreshTest extends TestCase {
 		$this->assertStringContainsString('StartupCommand::installRootCrontab(true)', (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php'));
 		$this->assertStringContainsString('if ($rQuiet && $rListed !== 0)', (string) file_get_contents(MAIN_HOME . 'Cli/Commands/StartupCommand.php'), 'an unreadable crontab is not rewritten each minute');
 	}
+
+	/** One writer of root's crontab at a time, from reading the modules to replacing the list. */
+	public function testAWriterAtWorkKeepsTheOthersOut(): void {
+		$rLock = new ReflectionMethod(StartupCommand::class, 'crontabLock');
+		$rHeld = $rLock->invoke(null, false);
+		$this->assertIsResource($rHeld);
+		$this->assertNull($rLock->invoke(null, false), 'held: the every-minute check comes back, it does not queue');
+		fclose($rHeld);
+		$rAgain = $rLock->invoke(null, false);
+		$this->assertIsResource($rAgain, 'released: the next writer has it');
+		fclose($rAgain);
+
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/StartupCommand.php');
+		$rBody = substr($rSource, (int) strpos($rSource, 'function installRootCrontab('));
+		$this->assertLessThan(strpos($rBody, 'loadAll()'), strpos($rBody, 'self::crontabLock(!$rQuiet)'), 'taken before the modules are read');
+	}
 }
