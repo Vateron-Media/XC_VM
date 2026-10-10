@@ -116,12 +116,17 @@ final class GatewayPolicyTest extends TestCase {
 		$this->assertSame(self::NOW, GatewayPolicy::build($this->settings(), $this->servers(), 1, self::NOW)['serve_until'], 'not the drain\'s end read as a length');
 	}
 
-	public function testTheModeIsOffWithoutFanoutOrAKnownValue(): void {
+	public function testTheModeIsOffWithoutFanoutOrTheSetting(): void {
 		$this->assertSame('shadow', GatewayPolicy::mode($this->settings()));
 		$this->assertSame('off', GatewayPolicy::mode($this->settings(['fanout_enabled' => 0])), 'the gateway serves from fanout');
 		$this->assertSame('segments', GatewayPolicy::mode($this->settings(['gateway_mode' => 'segments'])));
 		$this->assertSame('segments+playlist', GatewayPolicy::mode($this->settings(['gateway_mode' => 'segments+playlist'])));
-		$this->assertSame('off', GatewayPolicy::mode($this->settings(['gateway_mode' => 'playlist'])), 'not a mode');
+		$this->assertSame('segments+playlist', GatewayPolicy::mode($this->settings(['gateway_mode' => 'playlist'])), 'not a mode: the default');
+		$this->assertSame('segments+playlist', GatewayPolicy::mode($this->settings(['gateway_mode' => null])), 'NULL in the column: the default');
+		$rUnheard = $this->settings();
+		unset($rUnheard['gateway_mode']);
+		$this->assertSame('off', GatewayPolicy::mode($rUnheard), 'a node whose MAIN has not sent the setting');
+		$this->assertSame('off', GatewayPolicy::mode($this->settings(['gateway_mode' => 'playlist', 'fanout_enabled' => 0])), 'no fanout, whatever the value');
 		$this->assertSame('off', GatewayPolicy::mode([]));
 	}
 
