@@ -2,7 +2,6 @@
 
 namespace XcVm\Core\Util;
 
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Validation\InputValidator;
@@ -435,19 +434,6 @@ class AdminHelpers {
 		}
 
 		return "<script>history.replaceState({},'','" . $rURL . "');</script>";
-	}
-
-	/**
-	 * Parse a release filename into metadata via guessit or the python parser.
-	 *
-	 * @param string $rRelease Release/file name.
-	 * @return array|null Parsed metadata, or null on failure.
-	 */
-	public static function parserelease(string $rRelease) {
-		if (SettingsManager::get('parse_type') == 'guessit') {
-			return self::runReleaseParser('guessit', pathinfo($rRelease)['filename'] . '.mkv');
-		}
-		return self::runReleaseParser('ptn', pathinfo(str_replace('-', '_', $rRelease))['filename']);
 	}
 
 	/**
