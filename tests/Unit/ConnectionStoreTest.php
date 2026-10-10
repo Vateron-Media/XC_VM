@@ -12,6 +12,7 @@ use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Tests\Support\BusServer;
+use XcVm\Tests\Support\RedisServer;
 
 /**
  * The connection store seam (cluster plan, Phase 6): the stream endpoints
@@ -37,14 +38,7 @@ final class ConnectionStoreTest extends TestCase {
 		}
 		self::$rRedisDir = sys_get_temp_dir() . '/xcvm-redis-' . bin2hex(random_bytes(4));
 		mkdir(self::$rRedisDir);
-		self::$rRedisPort = random_int(20000, 40000);
-		// In the foreground, owned by this process: a daemon would outlive a
-		// failed run and hold the test's output pipe open.
-		$rNull = ['file', '/dev/null', 'w'];
-		self::$rRedisProc = proc_open(['redis-server', '--port', (string) self::$rRedisPort, '--bind', '127.0.0.1', '--save', '', '--appendonly', 'no', '--dir', self::$rRedisDir], [0 => ['file', '/dev/null', 'r'], 1 => $rNull, 2 => $rNull], $rPipes) ?: null;
-		for ($i = 0; $i < 50 && !@fsockopen('127.0.0.1', self::$rRedisPort); $i++) {
-			usleep(50000);
-		}
+		[self::$rRedisProc, self::$rRedisPort] = RedisServer::start(self::$rRedisDir) ?? [null, 0];
 	}
 
 	public static function tearDownAfterClass(): void {

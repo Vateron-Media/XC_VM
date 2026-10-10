@@ -1391,7 +1391,7 @@ class AdminAPIWrapper {
 		if (!is_null($rStored['title_sync'])) {
 			$rKept['title_sync'] = $rStored['title_sync'];
 		}
-		$rSwitches = array_intersect_key($rStored, array_flip(['fps_restart', 'gen_timestamps', 'allow_record', 'rtmp_output', 'stream_all', 'direct_source', 'direct_proxy', 'read_native']));
+		$rSwitches = array_intersect_key($rStored, array_flip(['fps_restart', 'gen_timestamps', 'allow_record', 'rtmp_output', 'stream_all', 'direct_source', 'direct_proxy', 'read_native', 'force_ffmpeg']));
 		$rData = self::keepFields(self::keepStreamFields($rData, $rStored, 'bouquet_channels', true), $rKept, $rSwitches, ['stream_source' => [], 'adaptive_link' => []]);
 		$rReturn = parseerror(StreamService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {

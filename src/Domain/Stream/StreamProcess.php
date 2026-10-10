@@ -17,6 +17,7 @@ use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Module\SourceDriverInterface;
 use XcVm\Core\Module\SourceDriverRegistry;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\AtomicFile;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Infrastructure\Database\DatabaseAware;
@@ -1131,36 +1132,29 @@ class StreamProcess {
 	 * the daemon runs it, redirects its stderr to <id>.errors and writes the pid.
 	 *
 	 * @param array $data streamID, source (resolved URL), arguments (rows keyed by
-	 *                    argument_key), segmentSettings, ingestSock, settings, binary.
+	 *                    argument_key), segmentSettings, ingestSock, settings, binary,
+	 *                    and sourceFile: the writeNativeSource() path that carries the
+	 *                    source in place of -i and its options (null: argv, as before).
 	 * @return string The shell command line.
 	 */
 	private static function buildNativeLive(array $data): string {
 		$rStreamID = intval($data['streamID']);
 		$rSeg = $data['segmentSettings'];
-		$rArgs = $data['arguments'];
 		$rSettings = $data['settings'];
 		$rSegTime = max(1, intval($rSeg['seg_time']));
-
-		// The fetch identity the daemon's own puller uses for this stream
-		// (user_agent / proxy / cookie resolution is shared, not re-derived).
-		$rSource = FanoutClient::buildSource(['stream_source' => json_encode([$data['source']])], $rArgs);
 
 		$rCmd = [
 			$data['binary'], 'remux',
 			'-loglevel', (!empty($rSettings['ffmpeg_warnings']) ? 'warning' : 'error'),
-			'-i', escapeshellarg($data['source']),
 		];
-		if ($rSource['ua'] !== '') {
-			$rCmd[] = '-user_agent ' . escapeshellarg($rSource['ua']);
-		}
-		if ($rSource['cookie'] !== '') {
-			$rCmd[] = '-cookies ' . escapeshellarg(StreamUtils::fixCookie($rSource['cookie']));
-		}
-		if ($rSource['proxy'] !== '') {
-			$rCmd[] = '-http_proxy ' . escapeshellarg(StreamUtils::proxyURL($rSource['proxy']));
-		}
-		if (!empty($rArgs['headers']['value'])) {
-			$rCmd[] = '-headers ' . escapeshellarg($rArgs['headers']['value']);
+		if (!empty($data['sourceFile'])) {
+			$rCmd[] = '-source_file ' . escapeshellarg($data['sourceFile']);
+		} else {
+			foreach (self::nativeSource($data) as $rFlag => $rValue) {
+				if ($rValue !== '') {
+					$rCmd[] = '-' . $rFlag . ' ' . escapeshellarg($rValue);
+				}
+			}
 		}
 		if (!isset($rSettings['fanout_source_insecure']) || !empty($rSettings['fanout_source_insecure'])) {
 			$rCmd[] = '-insecure';
@@ -1177,6 +1171,45 @@ class StreamProcess {
 		$rCmd[] = escapeshellarg(STREAMS_PATH . $rStreamID . '_.m3u8');
 
 		return implode(' ', $rCmd);
+	}
+
+	/**
+	 * One native source's URL and fetch options, keyed by their `xc_fanout remux`
+	 * flag: the fetch identity the daemon's own puller uses for this stream
+	 * (user_agent / proxy / cookie resolution is shared, not re-derived). Every one
+	 * can carry credentials. PURE.
+	 *
+	 * @param array $data source, arguments (see buildNativeLive()).
+	 * @return array{i:string,user_agent:string,cookies:string,http_proxy:string,headers:string}
+	 */
+	private static function nativeSource(array $data): array {
+		$rSource = FanoutClient::buildSource(['stream_source' => json_encode([$data['source']])], $data['arguments']);
+		return [
+			'i'          => (string) $data['source'],
+			'user_agent' => $rSource['ua'],
+			'cookies'    => $rSource['cookie'] !== '' ? StreamUtils::fixCookie($rSource['cookie']) : '',
+			'http_proxy' => $rSource['proxy'] !== '' ? StreamUtils::proxyURL($rSource['proxy']) : '',
+			'headers'    => (string) ($data['arguments']['headers']['value'] ?? ''),
+		];
+	}
+
+	/**
+	 * Write one native source to `<id>_.source_<n>` (0600) for `xc_fanout remux
+	 * -source_file`, which keeps the provider's account out of /proc/<pid>/cmdline.
+	 * It goes with the stream's other `<id>_*` files when the stream stops.
+	 *
+	 * @param array $data See buildNativeLive().
+	 * @return string|null The path, or null when the daemon predates the flag or
+	 *                     the file cannot be written: the command then carries
+	 *                     the source in argv, as before.
+	 */
+	private static function writeNativeSource(int $rStreamID, int $rIndex, array $data): ?string {
+		if (!FanoutClient::supports('remux_source_file')) {
+			return null;
+		}
+		$rJson = json_encode(self::nativeSource($data), JSON_UNESCAPED_SLASHES);
+		$rPath = STREAMS_PATH . $rStreamID . '_.source_' . $rIndex;
+		return ($rJson !== false && AtomicFile::write($rPath, $rJson, 0600)) ? $rPath : null;
 	}
 
 	/**
@@ -1228,6 +1261,23 @@ class StreamProcess {
 			return 'an input audio codec is forced'; // re-interprets the audio
 		}
 		return null;
+	}
+
+	/**
+	 * Why this live stream does not run on the native remuxer: its own Always Use
+	 * ffmpeg switch (streams.force_ffmpeg), else nativeRefusal(). The switch is not
+	 * in nativeRefusal() because a source driver is refused by that too, and ffmpeg
+	 * cannot read a driver's URL: the switch would leave such a stream with no
+	 * producer at all. PURE.
+	 *
+	 * @param array $rStreamInfo streams ⨝ streams_types row.
+	 * @param array $rArgs       Stream arguments keyed by argument_key.
+	 */
+	private static function remuxRefusal(array $rStreamInfo, array $rArgs): ?string {
+		if (intval($rStreamInfo['force_ffmpeg'] ?? 0) === 1) {
+			return 'the stream is set to always use ffmpeg';
+		}
+		return self::nativeRefusal($rStreamInfo, $rArgs);
 	}
 
 	/**
@@ -1571,7 +1621,7 @@ class StreamProcess {
 		$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
 		$rNativeStream = false;
 		if ($rBackend !== 'ffmpeg') {
-			$rRefusal = self::nativeRefusal($rInfo, $rArgsByKey);
+			$rRefusal = self::remuxRefusal($rInfo, $rArgsByKey);
 			if ($rRefusal === null && !FanoutClient::supportsRemux()) {
 				// The node's daemon predates `xc_fanout remux`. Handing it the
 				// command would not fail cleanly — it would start a process that
@@ -1621,11 +1671,13 @@ class StreamProcess {
 
 			$rEntry = ['label' => $rLabels[$i], 'cmd' => $rFFMPEG];
 			if ($rNativeStream && self::isNativeSource($rStreamSource)) {
-				$rEntry['cmd'] = self::buildNativeLive([
+				$rNative = [
 					'streamID' => $rStreamID, 'source' => $rStreamSource, 'arguments' => array_column($rArguments, null, 'argument_key'),
 					'segmentSettings' => $rSegmentSettings, 'ingestSock' => $rIngestSock,
 					'settings' => $rSettings, 'binary' => FanoutClient::binaryPath(),
-				]);
+				];
+				$rNative['sourceFile'] = self::writeNativeSource($rStreamID, intval($i), $rNative);
+				$rEntry['cmd'] = self::buildNativeLive($rNative);
 				if ($rBackend === 'auto') {
 					$rEntry['fallback_cmd'] = $rFFMPEG;
 				}

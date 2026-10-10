@@ -196,6 +196,9 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                             </div>
                         <?php endif; ?>
                         <div class="col-md-6">
+                            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="force_ffmpeg" name="force_ffmpeg" value="1" <?= ($rIsEdit && ($rStream['force_ffmpeg'] ?? 0) == 1) ? 'checked' : ''; ?>><label class="form-check-label" for="force_ffmpeg"><?= $language::get('always_use_ffmpeg'); ?> <i class="icon-base ti tabler-help-circle text-muted" title="<?= $language::get('always_use_ffmpeg_tooltip'); ?>"></i></label></div>
+                        </div>
+                        <div class="col-md-6">
                             <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fps_restart" name="fps_restart" value="1" <?= ($rIsEdit && ($rStream['fps_restart'] ?? 0) == 1) ? 'checked' : ''; ?>><label class="form-check-label" for="fps_restart">Restart on FPS Drop</label></div>
                         </div>
                         <div class="col-md-6"><label class="form-label" for="fps_threshold">FPS Threshold %</label><input type="text" inputmode="numeric" class="form-control" id="fps_threshold" name="fps_threshold" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['fps_threshold'], ENT_QUOTES) : '90'; ?>"></div>
@@ -976,7 +979,7 @@ LayoutRenderer::renderFooter('admin');
             });
 
         // ---- direct source / proxy enable-disable ----
-        var dsFields = ['llod', 'fps_restart', 'fps_threshold', 'adaptive_link', 'custom_sid', 'custom_ffmpeg', 'read_native', 'gen_timestamps', 'stream_all', 'allow_record', 'rtmp_output', 'delay_minutes', 'custom_map', 'probesize_ondemand', 'transcode_profile_id', 'days_to_restart', 'time_to_restart', 'on_demand', 'tv_archive_duration', 'tv_archive_server_id', 'vframes_server_id', 'restart_on_edit'];
+        var dsFields = ['llod', 'fps_restart', 'fps_threshold', 'adaptive_link', 'custom_sid', 'custom_ffmpeg', 'force_ffmpeg', 'read_native', 'gen_timestamps', 'stream_all', 'allow_record', 'rtmp_output', 'delay_minutes', 'custom_map', 'probesize_ondemand', 'transcode_profile_id', 'days_to_restart', 'time_to_restart', 'on_demand', 'tv_archive_duration', 'tv_archive_server_id', 'vframes_server_id', 'restart_on_edit'];
 
         function setDis(id, off) {
             var el = document.getElementById(id);
