@@ -192,6 +192,29 @@ class ResellerAPI {
 	 * @param array $rData Submitted MAG/line data.
 	 * @return array|false Result status payload, or false on authorization/validation failure.
 	 */
+	/**
+	 * The line a device's line is paired with once a reseller saved the device.
+	 *
+	 * A save that names no line keeps the pairing the device has: the reseller
+	 * forms have no such field, so every reseller edit removed a pairing an
+	 * administrator had made. A line the reseller may name pairs the device
+	 * with it; an empty pair_id asks for none. A device that is a trial is not
+	 * paired (see processData).
+	 *
+	 * @param array $rData   The request, as processData() left it.
+	 * @param array $rLine   The device's line: as stored, or new.
+	 * @param bool  $rUnpair The request sent an empty pair_id.
+	 */
+	private static function pairing(array $rData, array $rLine, bool $rUnpair): ?int {
+		if (!empty($rLine['is_trial']) || $rUnpair) {
+			return null;
+		}
+		if (isset($rData['pair_id']) && Authorization::check('line', $rData['pair_id'])) {
+			return intval($rData['pair_id']);
+		}
+		return empty($rLine['pair_id']) ? null : intval($rLine['pair_id']);
+	}
+
 	public static function processMAG(array $rData) {
 		return self::holdingTrials($rData, static fn() => self::saveMAG($rData));
 	}
@@ -204,6 +227,8 @@ class ResellerAPI {
 	 */
 	private static function saveMAG(array $rData) {
 		$db = self::db();
+		// Read before processData() drops a pair_id it refuses: see pairing().
+		$rUnpair = array_key_exists('pair_id', $rData) && empty($rData['pair_id']);
 		$rData = self::processData('mag', $rData);
 
 		if (self::$rPermissions['create_mag']) {
@@ -394,12 +419,7 @@ class ResellerAPI {
 				if (0 >= $db->num_rows()) {
 					$rArray['mac'] = $rData['mac'];
 
-					// A device that is a trial is not paired (see processData).
-					if (isset($rData['pair_id']) && empty($rUserArray['is_trial']) && Authorization::check('line', $rData['pair_id'])) {
-						$rUserArray['pair_id'] = intval($rData['pair_id']);
-					} else {
-						$rUserArray['pair_id'] = null;
-					}
+					$rUserArray['pair_id'] = self::pairing($rData, $rUserArray, $rUnpair);
 
 					if (isset($rData['category_template_id'])) {
 						if ($rData['category_template_id'] === '0' || $rData['category_template_id'] === 'none') {
@@ -507,6 +527,8 @@ class ResellerAPI {
 	 */
 	private static function saveEnigma(array $rData) {
 		$db = self::db();
+		// Read before processData() drops a pair_id it refuses: see pairing().
+		$rUnpair = array_key_exists('pair_id', $rData) && empty($rData['pair_id']);
 		$rData = self::processData('enigma', $rData);
 
 		if (self::$rPermissions['create_enigma']) {
@@ -696,12 +718,7 @@ class ResellerAPI {
 				if (0 >= $db->num_rows()) {
 					$rArray['mac'] = $rData['mac'];
 
-					// A device that is a trial is not paired (see processData).
-					if (isset($rData['pair_id']) && empty($rUserArray['is_trial']) && Authorization::check('line', $rData['pair_id'])) {
-						$rUserArray['pair_id'] = intval($rData['pair_id']);
-					} else {
-						$rUserArray['pair_id'] = null;
-					}
+					$rUserArray['pair_id'] = self::pairing($rData, $rUserArray, $rUnpair);
 
 					// The price leaves the balance as it is stored now, before anything
 					// is sold: a balance that no longer covers it sells nothing.

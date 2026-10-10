@@ -166,6 +166,29 @@ final class AuditResellerFollowPairStockLineTest extends TestCase {
 		$this->assertEquals(['pair_id' => null, 'exp_date' => $rTerm, 'enabled' => 1, 'is_activecode' => 0], $this->held($rStock + 1));
 	}
 
+	/**
+	 * A reseller's form of a device has no field for the pairing: saving it
+	 * keeps the pairing the device has (one an administrator made, here with a
+	 * line the reseller does not manage). An empty pair_id asks for none.
+	 */
+	#[DataProvider('devices')]
+	public function testASaveThatNamesNoLineKeepsTheDevicesPairing(string $rKind): void {
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['package' => self::PACKAGE]));
+		$this->rDb->query('SELECT MAX(`id`) FROM `lines`');
+		$rLine = (int) $this->rDb->get_col();
+		$this->rDb->query('UPDATE `lines` SET `pair_id` = 4242 WHERE `id` = ?', $rLine);
+
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => '1']));
+		$this->assertEquals(4242, $this->held($rLine)['pair_id'], 'kept');
+
+		// A line the reseller may not name changes nothing either.
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => '1', 'pair_id' => '999999']));
+		$this->assertEquals(4242, $this->held($rLine)['pair_id'], 'kept');
+
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => '1', 'pair_id' => '']));
+		$this->assertNull($this->held($rLine)['pair_id'], 'removed on request');
+	}
+
 	#[DataProvider('kinds')]
 	public function testTheLineOfARedeemedCodeIsPairedWithAsAnyLine(string $rKind): void {
 		$rCode = $this->buyCode();
