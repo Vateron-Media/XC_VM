@@ -483,7 +483,15 @@ paths:
     get:
       tags: [Files]
       summary: Recursive directory scan
-      description: Recursively scans a directory using `find`, optionally filtering by file extension. Has a 30-second time limit.
+      description: |
+        Recursively scans a directory using `find`, optionally filtering by file extension. Has a
+        30-second time limit. The directory must lie under the node's Scan Roots, and `allowed` may
+        hold only extensions (letters and digits); otherwise the answer is `{"result": false}`.
+
+        With `stat`, the node answers files only, with their modification times, a page at a time
+        (each page under 64 KB, what the cluster command queue carries): ask again with `after`
+        set to the page's `next` until `next` is null. A node from before `stat` ignores it and
+        answers the plain list.
       parameters:
         - name: dir
           in: query
@@ -493,14 +501,44 @@ paths:
         - name: allowed
           in: query
           required: false
-          schema: { type: string }
+          schema: { type: string, pattern: '^[A-Za-z0-9]{1,16}(\\|[A-Za-z0-9]{1,16}){0,63}$' }
           description: URL-encoded pipe-separated list of allowed extensions (e.g. `mp4|mkv`)
+        - name: stat
+          in: query
+          required: false
+          schema: { type: integer, enum: [0, 1] }
+          description: 1 to answer files with their modification times, by page
+        - name: after
+          in: query
+          required: false
+          schema: { type: string }
+          description: With `stat`, the previous page's `next` (URL-encoded); omitted for the first page
       responses:
         '200':
-          description: File paths
+          description: |
+            Without `stat`, the paths. With `stat`, one page: `files` maps each path (in path order,
+            after `after`) to its modification time in Unix seconds, always an object (`{}` when
+            empty), and `next` is the cursor for the following page, or null on the last.
+            `{"result": false}` when the directory or `allowed` is refused.
           content:
             application/json:
-              schema: { type: array, items: { type: string } }
+              schema:
+                oneOf:
+                  - type: array
+                    items: { type: string }
+                  - type: object
+                    required: [files, next]
+                    properties:
+                      files:
+                        type: object
+                        additionalProperties: { type: integer }
+                      next:
+                        type: string
+                        nullable: true
+                  - type: object
+                    required: [result]
+                    properties:
+                      result: { type: boolean, enum: [false] }
 
   /api.php?action=scandir:
     get:
