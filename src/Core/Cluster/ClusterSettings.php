@@ -65,8 +65,9 @@ final class ClusterSettings {
 		// A node's viewer records must prove MAIN's mint (ConnectionAdmission): counted
 		// under observe, refused under enforce where MAIN withholds the node's secret.
 		'cluster_conn_binding' => ['observe', ['observe', 'enforce']],
-		// The segment gateway (Phase 12, GatewayPolicy::MODES).
-		'gateway_mode' => ['off', GatewayPolicy::MODES],
+		// The segment gateway (Phase 12, GatewayPolicy::MODES): serving by default on a
+		// new panel. A node that has not heard the setting stays off (GatewayPolicy::mode()).
+		'gateway_mode' => ['segments+playlist', GatewayPolicy::MODES],
 	];
 
 	public const DEFAULT_SCAN_ROOTS = ['/home/xc_vm/content', '/mnt', '/media'];
