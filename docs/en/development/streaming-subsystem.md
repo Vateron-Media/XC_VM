@@ -319,9 +319,17 @@ database write; the daemon runs what it is handed.
   feed as ffmpeg's `-f tee` line, with no ffmpeg. Which streams qualify is
   `StreamProcess::nativeRefusal()` / `isNativeSource()`; `fanout_source_backend` decides:
   `auto` = remuxer with the ffmpeg command as `fallback_cmd` (used when the remuxer exits 3,
-  "cannot serve this source"), `native` = remuxer only, `ffmpeg` = ffmpeg only. The panel only
-  writes a remuxer command when the node's daemon advertises it (`features` in
+  "cannot serve this source", or 2, a crash or a command line it cannot parse), `native` =
+  remuxer only, `ffmpeg` = ffmpeg only. A stream's **Always Use ffmpeg** switch (Advanced tab,
+  `streams.force_ffmpeg`, migration 088) keeps that one channel on ffmpeg whatever the backend.
+  The panel only writes a remuxer command when the node's daemon advertises it (`features` in
   `GET /monitors/state`, `FanoutClient::supportsRemux()`) — an older binary would misparse it.
+- **Source credentials** — with a daemon that advertises `remux_source_file`, the source URL and
+  its fetch options (user agent, cookies, proxy, headers) go to `<id>_.source_<n>` (0600, one per
+  source, `StreamProcess::writeNativeSource()`) and the command carries `-source_file` instead,
+  so the provider's account is not in `/proc/<pid>/cmdline`. An older daemon, or a file that
+  cannot be written, keeps them in argv. The ffmpeg fallback line still carries them, as every
+  ffmpeg command does.
 - **Which producer ran, and why** — the command handed over is recorded beside the stream's
   files like the self-launched path's `<id>_.ffmpeg`: `<id>_.fanout` for the remuxer,
   `<id>_.ffmpeg` for ffmpeg (in `auto`, both). When the native backend is on and a stream runs

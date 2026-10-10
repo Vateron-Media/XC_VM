@@ -159,6 +159,14 @@ $rAutoRestart = ['days' => [], 'at' => '06:00'];
                     </div>
 
                     <div class="row mb-3 align-items-center">
+                        <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="force_ffmpeg" name="c_force_ffmpeg"></div>
+                        <label class="col-md-3 col-form-label" for="force_ffmpeg"><?= $language::get('always_use_ffmpeg'); ?> <i class="icon-base ti tabler-help-circle text-muted" title="<?= $language::get('always_use_ffmpeg_tooltip'); ?>"></i></label>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="force_ffmpeg" id="force_ffmpeg"></div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="stream_all" name="c_stream_all"></div>
                         <label class="col-md-3 col-form-label" for="stream_all"><?= $language::get('stream_all_codecs'); ?></label>
                         <div class="col-md-8">

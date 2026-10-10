@@ -1860,6 +1860,7 @@ CREATE TABLE IF NOT EXISTS `streams` (
   `fps_restart` tinyint(1) DEFAULT '0',
   `fps_threshold` int(11) DEFAULT '90',
   `direct_proxy` tinyint(1) DEFAULT '0',
+  `force_ffmpeg` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `type` (`type`),
   KEY `enable_transcode` (`enable_transcode`),

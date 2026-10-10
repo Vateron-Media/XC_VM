@@ -116,6 +116,7 @@ require_once __DIR__ . '/Support/ClusterReference.php';
 require_once __DIR__ . '/Support/FakeClusterCrypto.php';
 require_once __DIR__ . '/Support/FakeSshFleet.php';
 require_once __DIR__ . '/Support/BusServer.php';
+require_once __DIR__ . '/Support/RedisServer.php';
 require_once __DIR__ . '/Support/QueryLogDb.php';
 require_once __DIR__ . '/Support/InstallSchema.php';
 require_once __DIR__ . '/Support/ReplicaFixture.php';

@@ -220,6 +220,46 @@ On mode 0/1 nodes without CONNECTIONS, every refresh goes to `@live_php`. The st
 
 ## 4. Phase 13 — native restreamer `xc_restream` (Go, separate binary)
 
+### 13.0 inventory (Oct 9, 2026): most of this phase already exists
+
+The design below assumed ffmpeg still runs every copy-only stream. It does not. `xc_fanout remux` (XC_VM 30eea763, 269eee01) is the drop-in this section describes, inside the existing binary:
+
+- **Selection:** `StreamProcess::buildSupervisorSpec` + `nativeRefusal()` (type `live`, no transcode, custom ffmpeg, custom map, RTMP output, external push or forced audio codec) + `isNativeSource()` (http, https, udp, rtp). `fanout_source_backend` is `auto` and `fanout_supervise` is `1` by default (migrations 017, 018), so every fanout node already runs copy-only channels natively, with the ffmpeg line as `fallback_cmd`.
+- **Output contract:** on-disk HLS through `tsseg` (written as `.tmp`, renamed into place, deleted past the window), the ingest feed (redials after a daemon restart), ffmpeg-style `-progress` with the keys `StreamsCronJob` reads, credentials redacted in `<id>.errors`, exit `3` → fallback, VOD playlists paced to real time (`nativesrc` `pace()`).
+- **Process identity:** `ProcessManager::producerRunsStream`, `isStreamProducerCmdline` and `producerKind` know `xc_fanout remux`. The other name checks are correct as they stand: `QueueCommand` and `VodCronJob` are VOD-only (ffmpeg), `StreamsCronJob::handOverNeedsRestart` is ffmpeg-only on purpose, and the `ps | grep /<id>_.m3u8` sweeps match the remuxer too, since it names the playlist.
+- **Probe:** `ffprobe` reads the on-disk playlist for `stream_info`, the same for both producers. A `probe --json` subcommand is not needed.
+- **Licence gate (R1) and per-process model (R2):** inherited from `xc_fanout`. **Default `auto` (R4):** already the default.
+
+What is missing, and is now Phase 13:
+
+| Step | Gap | Repo |
+| --- | --- | --- |
+| 13.1 | **Crash fallback.** A remuxer panic exits 2 (Go runtime), and the supervisor only switched on 3, so a source that crashes the remuxer restarted the crash forever. Exit 2 now switches to the fallback too (also the remuxer's bad-usage status). | Fanout (done) |
+| 13.2 | **Credentials out of argv.** `-i`, `-cookies`, `-headers` and `-http_proxy` are in `/proc/<pid>/cmdline`. Move them to a 0600 source file, behind a daemon `features` flag so an older daemon keeps the argv line. | both |
+| 13.3 | **Per-stream engine override** (force ffmpeg for one channel) and the engine and its reason on the stream page (today only the producer kind on the list, and the reason in the stream log). | XC_VM |
+| 13.4 | **Measure on a live node:** CPU and RSS of `remux` against `ffmpeg -c copy` on the same sources, timeshift and thumbnails from native HLS. Fanout's docs still say "not yet exercised on a live node". | test LB |
+| 13.5 | Later (R3): RTMP, RTSP, SRT and local-file sources; RTMP push; LLOD v3. | Fanout |
+
+#### 13.4 results (Oct 9, 2026, test LB: 1 vCPU, 2 GB, xc_fanout 0.14.8)
+
+Each producer ran the exact command the panel builds for a supervised copy-only channel (`buildLive`, `buildNativeLive`: HLS 6 s × 6, delete threshold 4, tee/`-ingest` to a sink socket). The source was a 720p25 H.264 3 Mbps + AAC clip looped live on 127.0.0.1, as HTTP-TS and as HLS (6 s segments). Measured over 120 s after a 30 s warm-up, from `/proc` (utime+stime; PSS and RSS from `smaps_rollup`). Every producer stayed up and cut 6.0 s segments. Figures are per channel:
+
+| Source, channels | Producer | CPU % | PSS MB | RSS MB |
+| --- | --- | --- | --- | --- |
+| HTTP-TS, 10 | remux | 1.50 | 6.2 | 11.5 |
+| HTTP-TS, 10 | ffmpeg 4.0 | 1.73 | 13.8 | 23.7 |
+| HTTP-TS, 10 | ffmpeg 8.1 | 1.68 | 11.5 | 22.7 |
+| HTTP-TS, 20 | remux | 1.25 | 6.0 | 11.4 |
+| HTTP-TS, 20 | ffmpeg 4.0 | 1.57 | 13.9 | 24.1 |
+| HLS, 10 | remux | 0.92 | 13.7 | 19.0 |
+| HLS, 10 | ffmpeg 4.0 | 1.94 | 16.6 | 26.5 |
+| HLS, 10 | ffmpeg 8.1 | 1.71 | 10.2 | 21.3 |
+
+- **The "≥ 50% CPU and RSS" acceptance holds only in part.** On HTTP-TS sources, memory falls by about 55% but the producer's CPU only by 13–20%: `ffmpeg -c copy` is already cheap there. On HLS sources, CPU falls by 46–53%, but memory falls less (−28% RSS against ffmpeg 4.0), and the PSS is above ffmpeg 8.1's.
+- **The HLS memory is by design:** `nativesrc` buffers each segment whole before passing it on (`hls.go`: a failure halfway through a download must not emit a partial segment that the retry would duplicate), and keeps the buffer at its largest size. That is about one segment (2.5 MB here) plus Go's GC headroom.
+- **Functional check passes** (`tests/e2e/tests/admin/lb-native-restream.spec.ts`, 7/7 on the test LB in mode 2): a copy-only channel there runs on `xc_fanout remux`, its timeshift is served as TS and HLS from the remuxer's segments, and its thumbnail is taken from them. It first needed a separate fix (branch `fix/mode2-runtime-seed`): a node installed straight into mode 2 never seeded `StreamRuntime`, so every stream start died on a refused MySQL read in `killPhpMonitor()`.
+- **Whole box, 20 HTTP-TS channels:** 57% busy with remux against 76% with ffmpeg 4.0. Part of that gap is the bench's Python sink taking ffmpeg's smaller ingest writes, so it overstates what the daemon would see.
+
 ### Goal
 
 Replace ffmpeg for streams that only **copy** their source (no transcode, logo, filter or custom command), as a separate per-stream process that keeps ffmpeg's output contract. PHP's process model stays unchanged: pid files, the monitor, `ProcessManager`, kill and restart. ffmpeg stays for everything else and remains the automatic fallback.

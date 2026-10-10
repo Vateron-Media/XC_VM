@@ -144,7 +144,7 @@ final class ReplicaSections {
 		'tv_archive_server_id' => 'int', 'vframes_server_id' => 'int', 'movie_symlink' => 'int', 'rtmp_output' => 'int',
 		'allow_record' => 'int', 'probesize_ondemand' => 'int', 'custom_map' => 'str', 'external_push' => 'str',
 		'delay_minutes' => 'int', 'llod' => 'int', 'adaptive_link' => 'str', 'fps_restart' => 'int',
-		'fps_threshold' => 'int', 'direct_proxy' => 'int',
+		'fps_threshold' => 'int', 'direct_proxy' => 'int', 'force_ffmpeg' => 'int',
 	];
 
 	/**
