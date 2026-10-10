@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
+use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
@@ -86,8 +87,24 @@ class BlocklistAjaxController extends BaseAjaxController {
 	public function ipWhois(): never {
 		$this->requireXhr();
 
+		// Any page that shows an address offers the lookup.
+		$rAllowed = false;
+		foreach (['users', 'enigmas', 'live_connections', 'line_activity', 'client_logs', 'login_logs', 'restream_logs', 'mysql_syslog'] as $rPage) {
+			if (PageAuthorization::checkPermissions($rPage, false)) {
+				$rAllowed = true;
+				break;
+			}
+		}
+		if (!$rAllowed) {
+			$this->fail();
+		}
+
 		global $db;
-		$rIP = RequestManager::get('ip');
+		$rIP = (string) RequestManager::get('ip');
+		// The reader throws on anything that is not an address.
+		if (filter_var($rIP, FILTER_VALIDATE_IP) === false) {
+			$this->fail();
+		}
 		$rReader = new \MaxMind\Db\Reader(GEOLITE2C_BIN);
 		$rResponse = $rReader->get($rIP);
 

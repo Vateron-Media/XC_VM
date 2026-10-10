@@ -26,6 +26,7 @@ class StatsAjaxController extends BaseAjaxController {
 	/** action=graph_stats — per-minute time-series for the dashboard graphs. */
 	public function graphStats(): never {
 		$this->requireXhr();
+		$this->gate('adv', 'index');
 
 		global $db, $rServers;
 		$rLimit = 3600;

@@ -146,6 +146,7 @@ class PackageAjaxController extends BaseAjaxController {
 	/** action=get_package — package details + resolved bouquets (with reseller overrides). */
 	public function getPackage(): never {
 		$this->requireXhr();
+		$this->gateAny([['adv', 'add_user'], ['adv', 'edit_user'], ['adv', 'mng_packages']]);
 
 		global $db, $rUserInfo;
 		$rOverride = json_decode($rUserInfo['override_packages'], true);
@@ -177,6 +178,7 @@ class PackageAjaxController extends BaseAjaxController {
 	/** action=get_package_trial — trial package details + resolved bouquets. */
 	public function getPackageTrial(): never {
 		$this->requireXhr();
+		$this->gateAny([['adv', 'add_user'], ['adv', 'edit_user'], ['adv', 'mng_packages']]);
 
 		global $db;
 		$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `can_gen_mag`, `can_gen_e2`, `only_mag`, `only_e2` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
