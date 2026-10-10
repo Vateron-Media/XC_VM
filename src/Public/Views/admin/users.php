@@ -142,7 +142,7 @@ LayoutRenderer::renderFooter('admin');
         var esc = function(s) {
             var d = document.createElement('div');
             d.textContent = (s == null ? '' : String(s));
-            return d.innerHTML;
+            return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         };
         var isLocal = function(ip) {
             return !ip || ip === '127.0.0.1' || ip === '::1';

@@ -1042,7 +1042,7 @@ window.XC_VM = window.XC_VM || {}, window.XC_VM.Affixer = function () {
         var i, s, c;
         c = "showGuide('" + e.ListingId + "', " + e.ChannelId + ");";
         if (e.isTiny) {
-            t = ' tooltip-top" title="' + e.StartTime + " - " + e.Title.replace('"', '\"');
+            t = ' tooltip-top" title="' + e.StartTime + " - " + String(e.Title).replace(/"/g, '&quot;');
         } else {
             t = '';
         }

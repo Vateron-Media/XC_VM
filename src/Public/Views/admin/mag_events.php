@@ -58,7 +58,7 @@ LayoutRenderer::renderFooter('admin');
         var esc = function(s) {
             var d = document.createElement('div');
             d.textContent = (s == null ? '' : String(s));
-            return d.innerHTML;
+            return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         };
         var fmtDate = function(ts) {
             return ts ? new Date(ts * 1000).toLocaleString() : '';

@@ -503,7 +503,7 @@ LayoutRenderer::renderFooter('admin');
         var isImport = <?= $rIsImport ? 'true' : 'false'; ?>;
 
         function esc(s) {
-            return $('<div>').text(s == null ? '' : s).html();
+            return $('<div>').text(s == null ? '' : s).html().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
         // Render the legacy probe HTML table (mdi icons, not in the new-UI) as clean
         // Bootstrap badges with Tabler icons: dims / video codec / audio codec / fps

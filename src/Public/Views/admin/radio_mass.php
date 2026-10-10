@@ -294,7 +294,7 @@ LayoutRenderer::renderFooter('admin');
         function esc(s) {
             var d = document.createElement('div');
             d.textContent = (s == null ? '' : s);
-            return d.innerHTML;
+            return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
         var STREAM_BADGE = {
             '-1': ['secondary', 'NO SERVERS'],

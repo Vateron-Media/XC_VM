@@ -120,7 +120,7 @@ LayoutRenderer::renderFooter('admin');
         var esc = function(s) {
             var d = document.createElement('div');
             d.textContent = (s == null ? '' : String(s));
-            return d.innerHTML;
+            return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         };
         var dot = function(color, title) {
             return '<i class="icon-base ti tabler-square-rounded-filled text-' + color + '"' + (title ? ' title="' + esc(title) + '"' : '') + '></i>';
