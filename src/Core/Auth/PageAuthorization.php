@@ -364,6 +364,11 @@ class PageAuthorization {
 			case 'stream_review':
 				return Authorization::check('adv', 'import_streams') || Authorization::check('adv', 'mass_edit_streams');
 
+			// Its lists decide whose MAC guesses are counted and whose address is
+			// blocked at once: the navbar's permission, which no rule asked for.
+			case 'magscan_settings':
+				return Authorization::check('adv', 'manage_mag');
+
 			case 'mass_edit_streams':
 				return Authorization::check('adv', 'edit_stream');
 

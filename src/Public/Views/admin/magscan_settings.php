@@ -9,9 +9,9 @@
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\LayoutRenderer;
 
-$rWhiteMacs = $gData['value']['whitelist_macs'] ?? [];
-$rBlackMacs = $gData['value']['blacklist_macs'] ?? [];
-$rWhiteIps  = $gData['value']['whitelist_ips'] ?? [];
+$rWhiteMacs = $rLists['whitelist_macs'] ?? [];
+$rBlackMacs = $rLists['blacklist_macs'] ?? [];
+$rWhiteIps  = $rLists['whitelist_ips'] ?? [];
 ?>
 
 <div class="d-flex align-items-center mb-4">

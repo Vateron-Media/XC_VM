@@ -68,6 +68,30 @@ final class AlertsTest extends TestCase {
 		$this->assertSame(['cpu:fired:2'], $rOut[16], 'after the quiet period');
 	}
 
+	/**
+	 * The quiet period holds an announcement back, it does not drop it: a
+	 * trouble that begins within it and still holds when it ends is announced
+	 * then (and resolved later, as any other). Held back, it was never looked
+	 * at again, and an outage of hours that began within fifteen minutes of
+	 * the last one stayed silent.
+	 */
+	public function testATroubleThatOutlastsTheQuietPeriodIsAnnounced(): void {
+		$rHot = ['cpu' => ['2' => 'LB-2: 95 %']];
+		$rTimeline = [0 => $rHot, 1 => []];
+		for ($i = 2; $i <= 17; $i++) {
+			$rTimeline[$i] = $rHot;
+		}
+		$rTimeline[18] = [];
+		$rOut = self::minutes($rTimeline);
+		$this->assertSame(['cpu:suppressed:2'], $rOut[2], 'held back, said once');
+		for ($i = 3; $i <= 14; $i++) {
+			$this->assertSame([], $rOut[$i], 'minute ' . $i);
+		}
+		$this->assertSame(['cpu:fired:2'], $rOut[15], 'the quiet period over, and still in trouble');
+		$this->assertSame([], $rOut[16]);
+		$this->assertSame(['cpu:resolved:2'], $rOut[18], 'announced, so its end is too');
+	}
+
 	public function testADisabledRuleEndsItsTroublesSilently(): void {
 		$rDown = ['server_down' => ['2' => 'LB-2']];
 		$rState = [];
