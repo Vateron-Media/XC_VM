@@ -5,6 +5,8 @@ use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Vod\VodImportResultEvent;
 use XcVm\Domain\Vod\VodItemImporter;
 use XcVm\Domain\Vod\VodItemImportHalt;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Tests\Support\InstallSchema;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,13 +29,16 @@ final class VodItemImporterUpgradeTest extends TestCase {
         if (!defined('SERVER_ID')) {
             define('SERVER_ID', 1);
         }
+        $this->db->exec(InstallSchema::table('queue'));
         VodItemImporter::setDb($this->db);
+        DatabaseFactory::set($this->db);
     }
 
     protected function tearDown(): void {
         ob_end_clean();
         NodeRpc::useTransport(null);
         EventDispatcher::clear();
+        DatabaseFactory::reset();
         foreach ($this->tmpFiles as $rPath) {
             @unlink($rPath);
         }
@@ -163,11 +168,13 @@ final class VodItemImporterUpgradeTest extends TestCase {
             return (string) json_encode(array('files' => (object) array(), 'sizes' => (object) (isset($rSizes[$rPath]) ? array($rPath => $rSizes[$rPath]) : array()), 'next' => null));
         });
         $this->db->exec("INSERT INTO streams (id, stream_source, target_container) VALUES (10, '[\"" . $rOldSource . "\"]', 'mkv')");
+        // The episode as server 2 holds it, and a row of this server's that is not the file's.
+        $this->db->exec('INSERT INTO streams_servers (stream_id, server_id, bitrate, pid, stream_status) VALUES (10, 2, 1234, 55, 0), (10, ' . SERVER_ID . ', 1234, 55, 0)');
         $rCached = null;
         try {
             VodItemImporter::applyUpgrade(
                 array('id' => 10, 'source' => $rOldSource),
-                $this->threadData(array('import' => true, 'servers' => array(2))),
+                $this->threadData(array('import' => true, 'servers' => array(2), 'auto_encode' => true)),
                 's:2:/lb/Show/new.mkv', array('stream_source' => '["s:2:/lb/Show/new.mkv"]', 'target_container' => 'mkv'), 2, 'episode',
                 function ($rUpgradeData, $rNewSource) use (&$rCached) { $rCached = $rNewSource; }
             );
@@ -175,7 +182,15 @@ final class VodItemImporterUpgradeTest extends TestCase {
         } catch (VodItemImportHalt) {
         }
         $this->db->query('SELECT stream_source FROM streams WHERE id = 10');
-        return array('statuses' => $rStatuses, 'source' => $this->db->get_col(), 'cached' => $rCached);
+        $rSource = $this->db->get_col();
+        $this->db->query('SELECT server_id, bitrate, pid FROM streams_servers WHERE stream_id = 10 ORDER BY server_id');
+        $rRows = array();
+        foreach ($this->db->get_rows() as $rRow) {
+            $rRows[(int) $rRow['server_id']] = array($rRow['bitrate'] === null ? null : (int) $rRow['bitrate'], $rRow['pid'] === null ? null : (int) $rRow['pid']);
+        }
+        $this->db->query('SELECT type, server_id, stream_id FROM queue');
+        $rQueued = array_map(static fn(array $rRow): string => $rRow['type'] . ' ' . $rRow['stream_id'] . ' on ' . $rRow['server_id'], $this->db->get_rows());
+        return array('statuses' => $rStatuses, 'source' => $rSource, 'cached' => $rCached, 'rows' => $rRows, 'queued' => $rQueued);
     }
 
     public function testALoadBalancersBetterCopyIsUpgradedByTheSizesItGives(): void {
@@ -184,6 +199,10 @@ final class VodItemImporterUpgradeTest extends TestCase {
         $this->assertSame(array(VodImportResultEvent::STATUS_UPGRADED), $rOut['statuses']);
         $this->assertSame('["s:2:/lb/Show/new.mkv"]', $rOut['source']);
         $this->assertSame('s:2:/lb/Show/new.mkv', $rOut['cached'], 'the cache names the file on its own server');
+        // The file's server starts over and encodes the new file: it was this
+        // server's row and queue, so the node went on serving the old file.
+        $this->assertSame(array(SERVER_ID => array(1234, 55), 2 => array(null, null)), $rOut['rows']);
+        $this->assertSame(array('movie 10 on 2'), $rOut['queued']);
     }
 
     public function testALoadBalancersCopyThatIsGoneIsReplaced(): void {
@@ -198,6 +217,8 @@ final class VodItemImporterUpgradeTest extends TestCase {
         $this->assertSame(array(VodImportResultEvent::STATUS_DUPLICATE), $rOut['statuses'], 'the watch log gets a row: the file was skipped in silence on every scan');
         $this->assertSame('["s:2:/lb/Show/old.mkv"]', $rOut['source']);
         $this->assertNull($rOut['cached']);
+        $this->assertSame(array(SERVER_ID => array(1234, 55), 2 => array(1234, 55)), $rOut['rows'], 'nothing starts over');
+        $this->assertSame(array(), $rOut['queued']);
     }
 
     public function testANodeThatGivesNoSizesUpgradesNothing(): void {
