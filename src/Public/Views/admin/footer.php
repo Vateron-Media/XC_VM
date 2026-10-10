@@ -4,8 +4,8 @@
  * Bootstrap 5 admin footer — closes the Vertical Menu shell opened in
  * header.php and loads the core Bootstrap 5 script set.
  *
- * Reached only for pages opted in via xc_admin_use_newui() (modal/setup pages
- * are routed to the legacy footer.php upstream). Views call
+ * Every admin page's footer (LayoutRenderer::renderFooter('admin')); modal
+ * and setup pages get a bare shell ($xmBare). Views call
  * LayoutRenderer::renderFooter('admin') at their end, then append their own page
  * <script> and close </body></html> themselves.
  *
@@ -14,6 +14,7 @@
  * from vendors.php. Pages initialise their own plugins.
  */
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Util\AdminHelpers;
 
 if (count(get_included_files()) == 1) {
@@ -547,6 +548,124 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                     })
                     .finally(function() {
                         setTimeout(poll, 5000);
+                    });
+            }
+            poll();
+        })();
+    </script>
+<?php endif; ?>
+
+<?php if (!$xmBare && !empty($rSettings['save_restart_logs']) && Authorization::check('adv', 'streams')): ?>
+    <!-- Stream event toasts: the stream log's starts, stops and failures, from every server, as they come in
+         (the stream log is what Settings → Logs → Stream Restart Logs keeps: off, there is nothing to show) -->
+    <script>
+        (function() {
+            if (!window.xcToast) return;
+            var BURST = 5; // more at once (a mass restart): one toast that counts them
+            var HOLD = 60000; // how long a missing id is waited for (a row committed after a higher one)
+            var TYPES = {
+                STREAM_START: 'success',
+                STREAM_STOP: 'info',
+                STREAM_START_FAIL: 'error',
+                STREAM_FAILED: 'error',
+                FFMPEG_ERROR: 'error',
+                AUDIO_LOSS: 'warning'
+            };
+            var COUNT = <?= json_encode($language::get('stream_events_count')); ?>;
+            // The cursor is this tab's, kept across its page changes. A tab opened from this one
+            // copies its sessionStorage, so the key carries an id held in window.name, which a new
+            // tab does not inherit: it starts from where the log stands, not from this tab's cursor.
+            var tab = /^xcse-[a-z0-9]+$/.test(window.name) ? window.name : null;
+            if (!tab && !window.name) {
+                tab = 'xcse-' + Math.random().toString(36).slice(2, 10);
+                window.name = tab;
+            }
+            var KEY = tab ? 'xc_stream_events:' + tab : null;
+            var state = null; // {after: last id read, holes: {id: first missed (ms)}}
+            try {
+                state = KEY ? JSON.parse(sessionStorage.getItem(KEY) || 'null') : null;
+            } catch (e) {}
+
+            function show(ev) {
+                if (ev.length > BURST) {
+                    var counts = {},
+                        order = [],
+                        bad = false;
+                    ev.forEach(function(e) {
+                        if (!counts[e.label]) {
+                            counts[e.label] = 0;
+                            order.push(e.label);
+                        }
+                        counts[e.label]++;
+                        bad = bad || TYPES[e.action] === 'error';
+                    });
+                    xcToast(COUNT.replace('{COUNT}', ev.length) + ': ' + order.map(function(l) {
+                        return counts[l] + ' ' + l;
+                    }).join(', '), bad ? 'error' : 'info');
+                    return;
+                }
+                ev.forEach(function(e) {
+                    xcToast(e.stream + (e.server ? ' (' + e.server + ')' : '') + ': ' + e.label, TYPES[e.action] || 'warning');
+                });
+            }
+
+            function poll() {
+                if (document.hidden) {
+                    setTimeout(poll, 5000);
+                    return;
+                }
+                var stop = false;
+                var url = './api?action=stream_events';
+                if (state) {
+                    url += '&after=' + encodeURIComponent(state.after);
+                    var ids = Object.keys(state.holes || {});
+                    if (ids.length) {
+                        url += '&holes=' + ids.join(',');
+                    }
+                }
+                fetch(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (typeof d.last !== 'number') {
+                            // No permission: nothing to show here. The database not answering: keep
+                            // the cursor and ask again.
+                            stop = d.result === false;
+                            return;
+                        }
+                        if (state) {
+                            show(d.events || []);
+                        }
+                        var now = Date.now(),
+                            holes = {};
+                        (d.holes || []).forEach(function(id) {
+                            var since = state && state.holes && state.holes[id] ? state.holes[id] : now;
+                            if (now - since < HOLD) {
+                                holes[id] = since;
+                            }
+                        });
+                        state = {
+                            after: d.last,
+                            holes: holes
+                        };
+                        try {
+                            if (KEY) {
+                                sessionStorage.setItem(KEY, JSON.stringify(state));
+                            }
+                        } catch (e) {}
+                    })
+                    .catch(function() {
+                        /* try again next time */
+                    })
+                    .finally(function() {
+                        if (!stop) {
+                            setTimeout(poll, 5000);
+                        }
                     });
             }
             poll();

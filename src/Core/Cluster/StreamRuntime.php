@@ -2,7 +2,6 @@
 
 namespace XcVm\Core\Cluster;
 
-use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Util\AtomicFile;
 use XcVm\Domain\Stream\StreamStateWriter;
@@ -59,9 +58,8 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  * only if no write landed while it read. A write that goes to MAIN's row
  * alone (STREAMS off, or the agent took no event in mode 0 or 1) lapses the
  * store once it landed (lapse()): the next reader seeds again. A node in
- * mode 2 cannot read MAIN's rows: it seeds from what it kept itself, while
- * none of its streams runs (seedLocal()), which is how a node born in mode 2
- * gets its store at all.
+ * mode 2 cannot read MAIN's rows: it seeds from what it kept itself
+ * (seedLocal()), which is how a node born in mode 2 gets its store at all.
  */
 final class StreamRuntime {
 	use DirSeam;
@@ -110,20 +108,12 @@ final class StreamRuntime {
 	/** @var array{streams: int, recordings: int, value: int}|null tests: other bounds */
 	private static ?array $rLimits = null;
 
-	/** Tests: another procfs for seedLocal()'s producer scan; null is /proc. */
-	private static ?string $rProcRoot = null;
-
 	/** Tests: another directory, and what this process read forgotten; null restores the default. */
 	public static function useDir(?string $rDir): void {
 		self::$rDir = $rDir;
 		self::$rSsids = [];
 		self::$rIndexSsids = null;
 		self::$rSeedFailed = null;
-	}
-
-	/** Tests: another procfs for seedLocal()'s producer scan; null restores /proc. */
-	public static function useProcRoot(?string $rProcRoot): void {
-		self::$rProcRoot = $rProcRoot;
 	}
 
 	/** Tests: smaller bounds (streams, recordings, a value's bytes); null restores them. */
@@ -389,7 +379,7 @@ final class StreamRuntime {
 			error_log('XC_VM: stream state not seeded on this node: ' . count($rRows) . ' streams with state, more than ' . $rMax);
 			return false;
 		}
-		$rSeeded = self::locked(static function () use ($rRows, $rServerID, $rGeneration): bool {
+		$rSeeded = self::locked(static function () use ($rRows, $rGeneration): bool {
 			if (self::seeded()) {
 				return true;
 			}
@@ -410,7 +400,7 @@ final class StreamRuntime {
 			}
 			// One flush for every entry, before the marker says they are there (no shell; its errors to /dev/null).
 			ProcessRunner::run(['sync', '-f', rtrim($rDir, '/')], true);
-			return self::put($rDir . self::SEEDED, ['at' => time(), 'server_id' => $rServerID, 'streams' => count($rRows)]);
+			return self::markSeeded(count($rRows));
 		}, self::SEED_WAIT);
 		if ($rSeeded) {
 			// The node reads its streams on itself again, and says so (as lapse() says it does not).
@@ -422,25 +412,28 @@ final class StreamRuntime {
 	/**
 	 * Seed the store in mode 2, where MAIN's rows are out of reach: whole
 	 * with what the node kept itself (keep() takes its writes, seeded or
-	 * not), nothing copied. Only while no stream producer runs on the node
-	 * (ffmpeg, the native remuxer): MAIN's rows then hold nothing it still
-	 * needs, as their pids name processes that are gone. A node born in
-	 * mode 2 (lb_new_node_mode api) seeds here on its first CLI reader; one
-	 * whose store lapsed while its streams run stays unseeded until they
-	 * stop or it is seeded in mode 1. False when a producer runs, or the
-	 * lock is busy.
+	 * not), nothing copied. Waiting would not make it any more whole, as
+	 * MAIN's rows never become readable in mode 2, and a mode-2 store never
+	 * lapses (missed(), StreamStateWriter): this is a node born in mode 2
+	 * (lb_new_node_mode api), or one whose store was wiped. A producer
+	 * still running unknown to the store is cron:streams' to judge, which it
+	 * can only do once its readers take the store. False when the lock is busy.
 	 */
 	private static function seedLocal(): bool {
-		if (!defined('SERVER_ID') || ProcessManager::countStreamProducers(self::$rProcRoot ?? '/proc') > 0) {
+		if (!defined('SERVER_ID')) {
 			return false;
 		}
-		$rServerID = (int) SERVER_ID;
-		$rSeeded = self::locked(static fn (): bool => self::seeded() || self::put(self::dir() . self::SEEDED, ['at' => time(), 'server_id' => $rServerID, 'streams' => count(self::ids())]), self::SEED_WAIT);
+		$rSeeded = self::locked(static fn (): bool => self::seeded() || self::markSeeded(count(self::ids())), self::SEED_WAIT);
 		if ($rSeeded) {
 			// The node reads its streams on itself, and says so (as seed() does).
 			SettingsAudit::republish();
 		}
 		return $rSeeded;
+	}
+
+	/** Write the marker that says the store is whole for this server ($rCount: its entries). Under the store's lock. */
+	private static function markSeeded(int $rCount): bool {
+		return self::put(self::dir() . self::SEEDED, ['at' => time(), 'server_id' => (int) SERVER_ID, 'streams' => $rCount]);
 	}
 
 	/**
@@ -621,8 +614,9 @@ final class StreamRuntime {
 	/**
 	 * A write for this node's stream that the store did not keep: logged,
 	 * and on a node that may still reach MAIN's database the store lapses,
-	 * to be seeded again. A node in mode 2 cannot seed, so it keeps it (the
-	 * readers may then miss that write: a known limit past MAX_STREAMS).
+	 * to be seeded again from MAIN's rows. A node in mode 2 could only seed
+	 * again from itself, which still lacks the write, so it keeps the store
+	 * (the readers may then miss that write: a known limit past MAX_STREAMS).
 	 *
 	 * @param array<string, int> $rKey
 	 */

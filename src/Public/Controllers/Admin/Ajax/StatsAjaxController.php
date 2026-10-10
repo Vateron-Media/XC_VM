@@ -6,11 +6,12 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\StreamRepository;
 
 /**
  * Admin-ajax controller for the "Stats & Graphs" group.
  *
- * Actions: graph_stats, stats, header_stats.
+ * Actions: graph_stats, stats, header_stats, stream_events.
  *
  * `graph_stats` has no per-action permission gate (only the shared
  * admin-session + XHR guard). All three responses are custom JSON shapes kept
@@ -323,6 +324,16 @@ class StatsAjaxController extends BaseAjaxController {
 		}
 
 		$this->json($rReturn, JSON_PARTIAL_OUTPUT_ON_ERROR);
+	}
+
+	/** action=stream_events — the stream log past `after` (and its `holes`), for the panel's start / stop / failure toasts (footer). */
+	public function streamEvents(): never {
+		$this->requireXhr();
+		$this->gate('adv', 'streams');
+		$rHoles = array_map('intval', array_filter(explode(',', (string) RequestManager::get('holes')), 'is_numeric'));
+		$rLog = StreamRepository::logSince(RequestManager::has('after') ? (int) RequestManager::get('after') : -1, $rHoles);
+		// No answer from the database: no `last`, so the tab keeps its cursor and asks again.
+		$this->json($rLog ?? ['error' => 'unavailable']);
 	}
 
 	/** action=header_stats — compact fleet totals for the top navbar. */

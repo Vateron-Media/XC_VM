@@ -88,8 +88,8 @@ final class ClusterAdmin {
 	 * root actions then reach it only as node.root commands), and a node that
 	 * can run that way now: active (a quarantined node takes no command), heard
 	 * by MAIN a moment ago, and saying by itself that it boots and reads its
-	 * streams from its own copy ($rStreamsLocal). In mode 2 it can neither seed
-	 * that store nor read them from MAIN.
+	 * streams from its own copy ($rStreamsLocal). In mode 2 it can seed that
+	 * store only from what it kept itself, and cannot read them from MAIN.
 	 *
 	 * The node's connect audit is not asked. A node in mode 1 reads MAIN's
 	 * database by design (its crons, its signals daemon, viewer authentication),
