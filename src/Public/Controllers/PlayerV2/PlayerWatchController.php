@@ -195,6 +195,8 @@ class PlayerWatchController extends BasePlayerV2Controller {
 
 			// Series metadata
 			$rSeries = null;
+			// The first episode has none before it, the last none after.
+			$prevEp = $nextEp = null;
 			if ($seriesId > 0) {
 				$db->query('SELECT * FROM `streams_series` WHERE `id` = ?', $seriesId);
 				$rSeries = $db->get_row();

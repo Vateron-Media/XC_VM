@@ -192,6 +192,7 @@ class ResellerAPI {
 	 * @param array $rData Submitted MAG/line data.
 	 * @return array|false Result status payload, or false on authorization/validation failure.
 	 */
+
 	/**
 	 * The line a device's line is paired with once a reseller saved the device.
 	 *

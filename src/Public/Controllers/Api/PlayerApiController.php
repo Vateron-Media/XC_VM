@@ -1081,10 +1081,6 @@ class PlayerApiController {
 			'allowed_output_formats' => $this->getOutputFormats($this->userInfo['allowed_outputs'])
 		];
 
-		if (!empty($token)) {
-			$output['user_info']['token'] = $token;
-		}
-
 		$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 			|| (!empty($_SERVER['REQUEST_SCHEME']) && strtolower($_SERVER['REQUEST_SCHEME']) === 'https')
 			|| (isset($_SERVER['SERVER_PORT']) && in_array((int) $_SERVER['SERVER_PORT'], [443, 3434], true))

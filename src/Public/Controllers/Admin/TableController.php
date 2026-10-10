@@ -586,7 +586,7 @@ class TableController extends BaseAdminController {
 							"stream_display_name" => $rRow["stream_display_name"] ?? null,
 							"last_active" => !empty($rRow["last_active"]) ? (int) $rRow["last_active"] : null,
 							"last_str" => $rLastStr,
-							"notes" => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], 'strlen')),
+							"notes" => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], static fn(string $rNote): bool => $rNote !== '')),
 							"admin_enabled" => (bool) $rRow["admin_enabled"],
 							"enabled" => (bool) $rRow["enabled"],
 							"contact" => $rRow["contact"],
@@ -749,7 +749,7 @@ class TableController extends BaseAdminController {
 							"stream_id"           => $rRow["stream_id"] ? (int) $rRow["stream_id"] : null,
 							"stream_display_name" => $rRow["stream_display_name"] ?? null,
 							"last_active"         => $rRow["last_active"] ? (int) $rRow["last_active"] : null,
-							"notes"               => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], 'strlen')),
+							"notes"               => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], static fn(string $rNote): bool => $rNote !== '')),
 						];
 					}
 				}
@@ -908,7 +908,7 @@ class TableController extends BaseAdminController {
 							"stream_id"           => $rRow["stream_id"] ? (int) $rRow["stream_id"] : null,
 							"stream_display_name" => $rRow["stream_display_name"] ?? null,
 							"last_active"         => $rRow["last_active"] ? (int) $rRow["last_active"] : null,
-							"notes"               => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], 'strlen')),
+							"notes"               => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], static fn(string $rNote): bool => $rNote !== '')),
 						];
 					}
 				}
@@ -2098,6 +2098,8 @@ class TableController extends BaseAdminController {
 			}
 			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? '') !== "desc";
 			$rFilterBefore = true;
+			$rServerID = $rStreamID = $rUserID = null;
+			$rKeyCount = 0;
 			if (RequestManager::has("refresh")) {
 				$rStart = 0;
 				$rLimit = 1000;

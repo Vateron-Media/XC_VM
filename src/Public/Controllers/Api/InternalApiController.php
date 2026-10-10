@@ -220,7 +220,7 @@ class InternalApiController {
 								// Handed to the fanout supervisor synchronously, or a PHP
 								// monitor spawned — those are staggered so a bulk start does
 								// not fork hundreds of PHP processes in the same instant.
-								if (StreamProcess::startMonitor($rStreamID, true) === StreamProcess::MONITOR_PHP) {
+								if (StreamProcess::startMonitor($rStreamID, 1) === StreamProcess::MONITOR_PHP) {
 									usleep(50000);
 								}
 							}
@@ -265,7 +265,7 @@ class InternalApiController {
 				exit(json_encode(['result' => true]));
 
 			case 'closeConnection':
-				ConnectionTracker::closeConnection(intval($rRequest['activity_id']));
+				ConnectionTracker::closeConnection(ConnectionTracker::reference($rRequest['activity_id'] ?? ''));
 
 				exit(json_encode(['result' => true]));
 

@@ -53,7 +53,7 @@ class XPluginApiController {
 			$this->deny = false;
 
 			if ($rRequest['pversion'] == '0.0.1') {
-				echo json_encode(strtoupper(implode(':', str_split(substr(md5(mt_rand()), 0, 12), 2))));
+				echo json_encode(strtoupper(implode(':', str_split(substr(md5((string) mt_rand()), 0, 12), 2))));
 			}
 
 			exit();
@@ -123,7 +123,7 @@ class XPluginApiController {
 			}
 		}
 
-		$rToken = strtoupper(md5(uniqid(rand(), true)));
+		$rToken = strtoupper(md5(uniqid((string) rand(), true)));
 		$rTimeout = mt_rand(60, 70);
 		$db->query('UPDATE `enigma2_devices` SET `original_mac` = ?,`dns` = ?,`key_auth` = ?,`lversion` = ?,`watchdog_timeout` = ?,`modem_mac` = ?,`local_ip` = ?,`public_ip` = ?,`enigma_version` = ?,`cpu` = ?,`version` = ?,`token` = ?,`last_updated` = ? WHERE `device_id` = ?', $rCMAC, $rDNS, $rUserAgent, $rLVersion, $rTimeout, $rModemMAC, $rLocalIP, $rIP, $rEnigmaVersion, $rCPU, $rPluginVersion, $rToken, time(), $rDevice['enigma2']['device_id']);
 		$rDetails = [];

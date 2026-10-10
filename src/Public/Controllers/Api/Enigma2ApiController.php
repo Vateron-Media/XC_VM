@@ -191,12 +191,12 @@ class Enigma2ApiController {
 		$rXML = new SimpleXMLExtended('<items/>');
 		$rXML->addChild('playlist_name', 'Live [ ' . $rSettings['server_name'] . ' ]');
 		$rCategory = $rXML->addChild('category');
-		$rCategory->addChild('category_id', 1);
+		$rCategory->addChild('category_id', '1');
 		$rCategory->addChild('category_title', 'Live [ ' . $rSettings['server_name'] . ' ]');
 		$rChannels = $rXML->addChild('channel');
 		$rChannels->addChild('title', base64_encode('All'));
 		$rChannels->addChild('description', base64_encode('Live Streams Category [ ALL ]'));
-		$rChannels->addChild('category_id', 0);
+		$rChannels->addChild('category_id', '0');
 		$rCData = $rChannels->addChild('playlist_url');
 		$rCData->addCData($this->url . 'enigma2?' . $this->credentials() . '&type=get_live_streams&cat_id=0' . $rCategory['id']);
 
@@ -217,12 +217,12 @@ class Enigma2ApiController {
 		$rXML = new SimpleXMLExtended('<items/>');
 		$rXML->addChild('playlist_name', 'Movie [ ' . $rSettings['server_name'] . ' ]');
 		$rCategory = $rXML->addChild('category');
-		$rCategory->addChild('category_id', 1);
+		$rCategory->addChild('category_id', '1');
 		$rCategory->addChild('category_title', 'Movie [ ' . $rSettings['server_name'] . ' ]');
 		$rChannels = $rXML->addChild('channel');
 		$rChannels->addChild('title', base64_encode('All'));
 		$rChannels->addChild('description', base64_encode('Movie Streams Category [ ALL ]'));
-		$rChannels->addChild('category_id', 0);
+		$rChannels->addChild('category_id', '0');
 		$rCData = $rChannels->addChild('playlist_url');
 		$rCData->addCData($this->url . 'enigma2?' . $this->credentials() . '&type=get_vod_streams&cat_id=0' . $rCategory['id']);
 
@@ -243,12 +243,12 @@ class Enigma2ApiController {
 		$rXML = new SimpleXMLExtended('<items/>');
 		$rXML->addChild('playlist_name', 'SubCategory [ ' . $rSettings['server_name'] . ' ]');
 		$rCategory = $rXML->addChild('category');
-		$rCategory->addChild('category_id', 1);
+		$rCategory->addChild('category_id', '1');
 		$rCategory->addChild('category_title', 'SubCategory [ ' . $rSettings['server_name'] . ' ]');
 		$rChannels = $rXML->addChild('channel');
 		$rChannels->addChild('title', base64_encode('All'));
 		$rChannels->addChild('description', base64_encode('TV Series Category [ ALL ]'));
-		$rChannels->addChild('category_id', 0);
+		$rChannels->addChild('category_id', '0');
 		$rCData = $rChannels->addChild('playlist_url');
 		$rCData->addCData($this->url . 'enigma2?' . $this->credentials() . '&type=get_series&cat_id=0' . $rCategory['id']);
 
@@ -282,7 +282,7 @@ class Enigma2ApiController {
 		$rXML = new SimpleXMLExtended('<items/>');
 		$rXML->addChild('playlist_name', 'TV Series [ ' . $rCategoryName . ' ]');
 		$rCategory = $rXML->addChild('category');
-		$rCategory->addChild('category_id', 1);
+		$rCategory->addChild('category_id', '1');
 		$rCategory->addChild('category_title', 'TV Series [ ' . $rCategoryName . ' ]');
 
 		if (count($this->userInfo['series_ids']) > 0) {
@@ -331,7 +331,7 @@ class Enigma2ApiController {
 		$rXML = new SimpleXMLExtended('<items/>');
 		$rXML->addChild('playlist_name', 'TV Series [ ' . $rCategoryName . ' ]');
 		$rCategory = $rXML->addChild('category');
-		$rCategory->addChild('category_id', 1);
+		$rCategory->addChild('category_id', '1');
 		$rCategory->addChild('category_title', 'TV Series [ ' . $rCategoryName . ' ]');
 		$db->query('SELECT * FROM `streams_episodes` t1 INNER JOIN `streams` t2 ON t2.id=t1.stream_id WHERE t1.series_id = ? ORDER BY t1.season_num ASC, t1.episode_num ASC', $rSeriesID);
 		$rRows = $db->get_rows(true, 'season_num', false);
@@ -362,7 +362,7 @@ class Enigma2ApiController {
 		$rXML = new SimpleXMLExtended('<items/>');
 		$rXML->addChild('playlist_name', 'TV Series [ ' . $rSeriesInfo['title'] . ' Season ' . $rSeason . ' ]');
 		$rCategory = $rXML->addChild('category');
-		$rCategory->addChild('category_id', 1);
+		$rCategory->addChild('category_id', '1');
 		$rCategory->addChild('category_title', 'TV Series [ ' . $rSeriesInfo['title'] . ' Season ' . $rSeason . ' ]');
 		$db->query('SELECT t2.direct_source,t2.stream_source,t2.target_container,t2.id,t1.series_id,t1.season_num FROM `streams_episodes` t1 INNER JOIN `streams` t2 ON t2.id=t1.stream_id WHERE t1.series_id = ? AND t1.season_num = ? ORDER BY  t1.episode_num ASC', $rSeriesID, $rSeason);
 		$rSeriesEpisodes = $db->get_rows();
@@ -375,7 +375,7 @@ class Enigma2ApiController {
 			$rDescChannel = $rChannels->addChild('desc_image');
 			$rDescChannel->addCData(ImageUtils::validateURL($rSeriesInfo['cover']));
 			$rChannels->addChild('description', base64_encode($rDesc));
-			$rChannels->addChild('category_id', $rCatID);
+			$rChannels->addChild('category_id', $rCatID === null ? null : (string) $rCatID);
 			$rCDataURL = $rChannels->addChild('stream_url');
 			$rEncData = 'movie/' . $this->username . '/' . $this->password . '/' . $rEpisode['id'] . '/' . $rEpisode['target_container'];
 			$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
@@ -397,7 +397,7 @@ class Enigma2ApiController {
 		$rXML = new SimpleXMLExtended('<items/>');
 		$rXML->addChild('playlist_name', 'Live [ ' . $rSettings['server_name'] . ' ]');
 		$rCategory = $rXML->addChild('category');
-		$rCategory->addChild('category_id', 1);
+		$rCategory->addChild('category_id', '1');
 		$rCategory->addChild('category_title', 'Live [ ' . $rSettings['server_name'] . ' ]');
 
 		foreach ($this->liveStreams as $rStream) {
@@ -469,7 +469,7 @@ class Enigma2ApiController {
 		$rXML = new SimpleXMLExtended('<items/>');
 		$rXML->addChild('playlist_name', 'Movie [ ' . $rSettings['server_name'] . ' ]');
 		$rCategory = $rXML->addChild('category');
-		$rCategory->addChild('category_id', 1);
+		$rCategory->addChild('category_id', '1');
 		$rCategory->addChild('category_title', 'Movie [ ' . $rSettings['server_name'] . ' ]');
 
 		foreach ($this->vodStreams as $rStream) {
@@ -515,14 +515,14 @@ class Enigma2ApiController {
 		$rXML = new SimpleXMLExtended('<items/>');
 		$rXML->addChild('playlist_name', $rSettings['server_name']);
 		$rCategory = $rXML->addChild('category');
-		$rCategory->addChild('category_id', 1);
+		$rCategory->addChild('category_id', '1');
 		$rCategory->addChild('category_title', $rSettings['server_name']);
 
 		if ($this->liveStreams !== []) {
 			$rChannels = $rXML->addChild('channel');
 			$rChannels->addChild('title', base64_encode('Live Streams'));
 			$rChannels->addChild('description', base64_encode('Live Streams Category'));
-			$rChannels->addChild('category_id', 0);
+			$rChannels->addChild('category_id', '0');
 			$rCData = $rChannels->addChild('playlist_url');
 			$rCData->addCData($this->url . 'enigma2?' . $this->credentials() . '&type=get_live_categories');
 		}
@@ -531,7 +531,7 @@ class Enigma2ApiController {
 			$rChannels = $rXML->addChild('channel');
 			$rChannels->addChild('title', base64_encode('VOD'));
 			$rChannels->addChild('description', base64_encode('Video On Demand Category'));
-			$rChannels->addChild('category_id', 1);
+			$rChannels->addChild('category_id', '1');
 			$rCData = $rChannels->addChild('playlist_url');
 			$rCData->addCData($this->url . 'enigma2?' . $this->credentials() . '&type=get_vod_categories');
 		}
@@ -539,7 +539,7 @@ class Enigma2ApiController {
 		$rChannels = $rXML->addChild('channel');
 		$rChannels->addChild('title', base64_encode('TV Series'));
 		$rChannels->addChild('description', base64_encode('TV Series Category'));
-		$rChannels->addChild('category_id', 2);
+		$rChannels->addChild('category_id', '2');
 		$rCData = $rChannels->addChild('playlist_url');
 		$rCData->addCData($this->url . 'enigma2?' . $this->credentials() . '&type=get_series_categories');
 

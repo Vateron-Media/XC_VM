@@ -78,10 +78,9 @@ class HomeController extends BasePlayerController {
 		}
 
 		shuffle($rPopularNow);
-		$searchParam = isset($rSearchBy) ? $rSearchBy : null;
 		$rPopularNow = array_slice($rPopularNow, 0, 20);
 		$rMovies = getUserStreams($rUserInfo, ['movie'], null, null, 'added', null, [], 0, 20);
-		$rSeries = getUserSeries($rUserInfo, null, null, 'added', $searchParam, [], 0, 20);
+		$rSeries = getUserSeries($rUserInfo, null, null, 'added', null, [], 0, 20);
 
 		$GLOBALS['_TITLE'] = 'Home';
 

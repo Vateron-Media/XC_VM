@@ -1588,6 +1588,17 @@ class ConnectionTracker {
 	 *                                    given that worker, its pid, to someone else since.
 	 * @return bool True on successful close, false otherwise.
 	 */
+
+	/**
+	 * A connection as a request names it, for closeConnection(): its uuid (the
+	 * Redis handler's key and the `uuid` column) or its row id in `lines_live`.
+	 * Anything else, the names of the index sets included, names none ('').
+	 */
+	public static function reference(mixed $rID): string {
+		$rID = is_scalar($rID) ? (string) $rID : '';
+		return preg_match(AgentConnections::CONN_UUID, $rID) === 1 ? $rID : '';
+	}
+
 	public static function closeConnection(array|string $rActivityInfo, bool $rRemove = true, bool $rEnd = true, bool $rKill = true): bool {
 		if (!empty($rActivityInfo)) {
 			global $rSettings, $rServers;
