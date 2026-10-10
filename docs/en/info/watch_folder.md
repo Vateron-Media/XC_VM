@@ -63,7 +63,7 @@ Watch Folder is an automated content import system. It monitors local directorie
 | `read_native` | Read native title from TMDB |
 | `movie_symlink` | Create symlinks instead of referencing original path |
 | `auto_encode` | Auto-encode imported content |
-| `auto_upgrade` | Replace existing lower-quality version if TMDB ID matches |
+| `auto_upgrade` | Replace the existing copy when a bigger file with the same TMDB ID (and episode) turns up on the same server. The two files are compared on the server that holds them: a load balancer's folder scanned from MAIN is asked for their sizes, so the load balancer must run a version that gives them. A copy that is kept is logged as `DUPLICATE` |
 | `duplicate_tmdb` | Allow multiple imports with the same TMDB ID |
 | `ffprobe_input` | Run ffprobe on source file to extract codec metadata |
 | `extract_metadata` | Extract additional metadata from file |

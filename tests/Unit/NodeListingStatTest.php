@@ -127,6 +127,38 @@ final class NodeListingStatTest extends TestCase {
 		$this->assertSame(['/mnt/films/a.mkv'], ApiClient::scanRecursive(2, '/mnt/films', ['mkv'], true), 'a node from before stat: its plain list');
 	}
 
+	/**
+	 * One file's size, for MAIN's auto-upgrade of a folder it scans here: the
+	 * node answers a file with its bytes, a file that is gone with nothing, and
+	 * MAIN reads both, or knows nothing (a node from before `size`, a refusal).
+	 */
+	public function testAFilesSizeIsAskedOfTheNodeThatHoldsIt(): void {
+		$rFile = $this->rDir . '/Movie (2020).mkv';
+		file_put_contents($rFile, str_repeat('x', 1234));
+		touch($rFile, 1700000000);
+
+		$this->assertSame('{"files":{' . json_encode($rFile) . ':1700000000},"sizes":{' . json_encode($rFile) . ':1234},"next":null}', json_encode(self::call('fileStat', $rFile)));
+		$this->assertSame('{"files":{},"sizes":{},"next":null}', json_encode(self::call('fileStat', $this->rDir . '/gone.mkv')));
+		$this->assertSame('{"files":{},"sizes":{},"next":null}', json_encode(self::call('fileStat', $this->rDir . '/Show S01')), 'a folder is no file');
+
+		// MAIN: one request per file, the path encoded once more for the node's urldecode().
+		$rAsked = [];
+		NodeRpc::useTransport(static function (string $rKind, array $rServers, array $rData) use (&$rAsked): string {
+			$rAsked[] = $rData;
+			$rPath = urldecode($rData['dir']);
+			return (string) json_encode($rPath === '/lb/gone.mkv' ? ['files' => (object) [], 'sizes' => (object) [], 'next' => null] : ['files' => [$rPath => 1], 'sizes' => [$rPath => 500], 'next' => null]);
+		});
+		$this->assertSame(['/lb/a+b 100%.mkv' => 500, '/lb/gone.mkv' => null], ApiClient::fileSizes(2, ['/lb/a+b 100%.mkv', '/lb/gone.mkv']));
+		$this->assertSame(['action' => 'scandir_recursive', 'dir' => '%2Flb%2Fa%2Bb%20100%25.mkv', 'allowed' => '', 'stat' => 1, 'size' => 1], $rAsked[0]);
+
+		NodeRpc::useTransport(static fn(): string => '{"files":{"/lb/a.mkv":1},"next":null}');
+		$this->assertNull(ApiClient::fileSizes(2, ['/lb/a.mkv']), 'a node from before size: nothing is known');
+		NodeRpc::useTransport(static fn(): string => '{"result":false}');
+		$this->assertNull(ApiClient::fileSizes(2, ['/etc/shadow']), 'a refusal');
+		NodeRpc::useTransport(static fn(): string => '');
+		$this->assertNull(ApiClient::fileSizes(2, ['/lb/a.mkv']), 'no answer');
+	}
+
 	public function testApiClientAsksForTimesOnlyWhenTold(): void {
 		$rSent = [];
 		NodeRpc::useTransport(static function (string $rKind, array $rServers, array $rData) use (&$rSent): string {
