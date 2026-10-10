@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Infrastructure\Redis\RedisManager;
 
 /**
@@ -92,7 +93,8 @@ class CacheAjaxController extends BaseAjaxController {
 			posix_kill($rPID, 9);
 		}
 
-		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:users 1' . ($rWasOff ? ' fresh' : '') . ' > /dev/null 2>/dev/null &');
+		// Started as its own arguments, through no shell line (ProcessRunner::start()).
+		ProcessRunner::start(array_merge([PHP_BIN, MAIN_HOME . 'console.php', 'cron:users', '1'], $rWasOff ? ['fresh'] : []));
 
 		$this->ok();
 	}
