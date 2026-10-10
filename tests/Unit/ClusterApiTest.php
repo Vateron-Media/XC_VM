@@ -1856,8 +1856,9 @@ final class ClusterApiTest extends TestCase {
 			$this->assertSame([self::SID, '42', 100], [(int) $rRows[0]['server_id'], (string) $rRows[0]['identity'], (int) $rRows[0]['stream_id']], 'the reservation is the authenticated node\'s');
 
 			// The cut goes by `lines` (limit 1), never by the node's 50, and spares the viewer.
-			$this->assertSame(2, \XcVm\Domain\Cluster\ConnectionLimits::drain());
-			$this->assertSame([[42, 0, '203.0.113.9', $rUUID], [42, 0, '203.0.113.9', $rUUID]], $rCuts);
+			// One cut for the viewer: its retry replaced the one its first request queued.
+			$this->assertSame(1, \XcVm\Domain\Cluster\ConnectionLimits::drain());
+			$this->assertSame([[42, 0, '203.0.113.9', $rUUID]], $rCuts);
 
 			// A line auth.php would refuse is refused; a malformed request is a bad request.
 			[$rRes, $rCtx] = $this->call('conn_admit', ['uuid' => str_repeat('b', 32), 'line_id' => 50] + $rAsk, 1, $rKeys);

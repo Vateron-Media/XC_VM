@@ -538,7 +538,7 @@ LUA;
 			}
 			// The cut counts the reservations in flight when it runs (cut()).
 			if ($rReserved && $rIsLine) {
-				ConnectionLimits::queueAdmission($rServerID, $rUUID, (int) $rLineID, $rIP, $rUserAgent);
+				ConnectionLimits::queueAdmission($rServerID, $rUUID, (int) $rLineID, $rIP, $rUserAgent, self::now() + $rTtl);
 			}
 		}
 		return ['admit' => true, 'exp' => self::now() + $rTtl];
@@ -554,8 +554,16 @@ LUA;
 	 * meanwhile is already counted among the open ones, so it takes no room
 	 * of its own; it is never cut. A store that cannot be read cuts nothing,
 	 * as at mint: conn.limit follows the open.
+	 *
+	 * A viewer that has not opened by $rExp, when its reservation runs out,
+	 * never will on this admission: there is no one to leave room for, and a
+	 * cut run late (a queue behind) would close a viewer of the line to keep a
+	 * place nobody takes. Null: the caller knows no expiry.
 	 */
-	public static function cut(bool $rRedisMode, int $rLineID, bool $rOpen, string $rIP, string $rUserAgent, string $rUUID): bool {
+	public static function cut(bool $rRedisMode, int $rLineID, bool $rOpen, string $rIP, string $rUserAgent, string $rUUID, ?int $rExp = null): bool {
+		if (!$rOpen && $rExp !== null && $rExp < self::now()) {
+			return false;
+		}
 		$rDb = self::db();
 		$rDb->query('SELECT `max_connections`, `pair_id` FROM `lines` WHERE `id` = ?;', $rLineID);
 		if ($rDb->num_rows() !== 1) {
