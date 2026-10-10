@@ -310,10 +310,15 @@ class VodItemImporter {
 		echo 'Upgrade ' . $rLabel . '!' . "\n";
 		$db = self::db();
 		$db->query('UPDATE `streams` SET `stream_source` = ?, `target_container` = ? WHERE `id` = ?;', $rImportArray['stream_source'], $rImportArray['target_container'], $rUpgradeData['id']);
-		$db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `compatible` = 0, `video_codec` = NULL, `audio_codec` = NULL, `resolution` = NULL, `stream_status` = 0 WHERE `stream_id` = ? AND `server_id` = ?', $rUpgradeData['id'], SERVER_ID);
+		// The server that holds the file, where the copies were compared: its row
+		// starts over and it encodes the new file. It was this server's, so an
+		// upgrade MAIN made for a load balancer changed the source and left the
+		// node serving the old file.
+		$rServerID = $rNew[0];
+		$db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `compatible` = 0, `video_codec` = NULL, `audio_codec` = NULL, `resolution` = NULL, `stream_status` = 0 WHERE `stream_id` = ? AND `server_id` = ?', $rUpgradeData['id'], $rServerID);
 		EventDispatcher::dispatch(new StreamsChangedEvent([(int) $rUpgradeData['id']]));
 		if ($rThreadData['auto_encode']) {
-			StreamProcess::queueMovie($rUpgradeData['id']);
+			StreamProcess::queueMovie((int) $rUpgradeData['id'], $rServerID);
 		}
 		self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_UPGRADED);
 		$rWriteCache($rUpgradeData, $rNewSource);
