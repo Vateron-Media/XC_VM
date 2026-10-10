@@ -83,6 +83,25 @@ final class UpdateChannels {
 	}
 
 	/**
+	 * The panel's channel in the single `update_channel` setting a server on an
+	 * older release reads to pick its update (stable 2.3.9 and the betas up to
+	 * 2.4.x; they know 'stable' and 'unstable' only, and take anything else,
+	 * a missing value included, as 'stable'). A load balancer still on such a
+	 * release under an updated MAIN follows the panel's channel through it.
+	 *
+	 * @param array $rSettings Settings about to be saved (column => value).
+	 * @return array The same, with `update_channel` set from `update_channel_main`
+	 *               when that is saved, and never taken from the request.
+	 */
+	public static function withLegacy(array $rSettings): array {
+		unset($rSettings['update_channel']);
+		if (isset($rSettings['update_channel_main'])) {
+			$rSettings['update_channel'] = in_array($rSettings['update_channel_main'], ['beta', 'dev', 'unstable'], true) ? 'unstable' : 'stable';
+		}
+		return $rSettings;
+	}
+
+	/**
 	 * Normalize a raw channel value. 'unstable' is a legacy alias for 'beta';
 	 * anything unrecognized (including 'dev' outside MAIN) falls back to 'stable'.
 	 *
