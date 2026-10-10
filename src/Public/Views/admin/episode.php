@@ -372,7 +372,7 @@ LayoutRenderer::renderFooter('admin');
         var videoExt = ['mp4', 'mkv', 'mov', 'avi', 'mpg', 'mpeg', 'flv', 'wmv', 'm4v'];
 
         function esc(s) {
-            return $('<div>').text(s == null ? '' : s).html();
+            return $('<div>').text(s == null ? '' : s).html().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         function pad(n) {

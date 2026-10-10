@@ -290,7 +290,7 @@ LayoutRenderer::renderFooter('admin');
                 function esc(s) {
                     var d = document.createElement('div');
                     d.textContent = (s == null ? '' : s);
-                    return d.innerHTML;
+                    return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                 }
                 function streamIcon(url) {
                     if (!url) {

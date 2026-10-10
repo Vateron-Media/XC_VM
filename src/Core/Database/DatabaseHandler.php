@@ -351,10 +351,12 @@ class DatabaseHandler extends Database {
 
 			$this->close_mysql();
 
-			// Reconnect to the MAIN configured schema, gracefully (no exit()) so
-			// the retry/backoff loop can continue. migrate=true here would
-			// silently reconnect to `xc_vm_migrate` instead of the panel DB.
-			if ($this->db_connect(false, true)) {
+			// Reconnect to the schema this handle was opened on, gracefully (no
+			// exit()) so the retry/backoff loop can continue. The panel's for
+			// every handle but the migration's: that one came back on the
+			// panel's schema, whose tables were then read, and dropped, as the
+			// backup's.
+			if ($this->db_connect($this->migrate, true)) {
 				$this->log('info', 'Reconnected successfully');
 				return true;
 			}

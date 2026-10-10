@@ -388,6 +388,9 @@ class ResellerAPIWrapper {
 		if (!($rUser = UserRepository::getRegisteredUserById($rID)) || !Authorization::check('user', $rUser['id'])) {
 			return ['status' => 'STATUS_FAILURE'];
 		}
+		// Never a sub-reseller's password hash or API key, whatever columns are
+		// asked for: get_user, and the row create_user and edit_user answer with.
+		unset($rUser['password'], $rUser['api_key']);
 		return ['status' => 'STATUS_SUCCESS', 'data' => $rUser];
 	}
 

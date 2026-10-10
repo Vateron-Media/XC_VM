@@ -38,6 +38,9 @@ class Database {
 
 	protected $dbport;
 
+	/** The backup database (xc_vm_migrate), not the panel's: what a reconnect must return to. */
+	protected bool $migrate = false;
+
 	/**
 	 * Constructor - Initializes database connection
 	 *
@@ -54,6 +57,7 @@ class Database {
 		$this->dbname = $db_name;
 		$this->dbhost = $this->normalizeHost($host);
 		$this->dbport = $db_port;
+		$this->migrate = (bool) $migrate;
 		$this->db_connect($migrate);
 	}
 

@@ -59,6 +59,13 @@ class ResellerAPI {
 		}
 
 		if (in_array($rType, ['line', 'mag', 'enigma'], true)) {
+			// A line's restrictions (allowed addresses and user agents, the blocked
+			// user agents' bypass, the ISP lock) are set with allow_restrictions
+			// only. Each save skips its restrictions block without it, but a new
+			// line is first filled from what was posted: it kept them.
+			if (empty(self::$rPermissions['allow_restrictions'])) {
+				unset($rData['allowed_ips'], $rData['allowed_ua'], $rData['bypass_ua'], $rData['is_isplock'], $rData['isp_clear']);
+			}
 			// The bouquets chosen are a list of bouquet ids. Anything else is no
 			// choice (the line form sends an empty field when none is ticked), and
 			// the line gets the bouquets of its package.

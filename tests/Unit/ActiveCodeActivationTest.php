@@ -41,6 +41,14 @@ class ActivationScriptedDb extends DatabaseHandler {
 			$this->rows = isset($this->lines[$rBinds[0]]) ? [$this->lines[$rBinds[0]]] : [];
 		} elseif (str_contains($query, 'FROM `users_packages` WHERE `id` = ?')) {
 			$this->rows = isset($this->packages[$rBinds[0]]) ? [$this->packages[$rBinds[0]]] : [];
+		} elseif (preg_match('/^UPDATE `activation_codes` SET ((?:`(?:mac|device_id)` = \?(?:, )?)+) WHERE `id` = \?;$/', trim($query), $rBinding)) {
+			// A later sign-in's binding of the device it came from.
+			preg_match_all('/`(mac|device_id)`/', $rBinding[1], $rColumns);
+			$rID = array_pop($rBinds);
+			foreach ($rColumns[1] as $i => $rColumn) {
+				$this->codes[$rID][$rColumn] = $rBinds[$i];
+			}
+			$this->affected = 1;
 		} elseif (str_starts_with(trim($query), 'UPDATE `activation_codes`')) {
 			[$rAt, $rMac, $rDevice, $rID] = $rBinds;
 			$rRow = &$this->codes[$rID];
@@ -116,6 +124,23 @@ class ActiveCodeActivationTest extends TestCase {
 		$this->assertSame('SUCCESS', $rRes['status']);
 		$this->assertSame('u7', $rRes['credentials']['username']);
 		$this->assertFalse($rRes['is_new_activation']);
+	}
+
+	/**
+	 * A request the device lock refuses binds nothing. The binding was saved
+	 * before the lock was checked: the code, no MAC and a device id of the
+	 * caller's choosing left that id on the code, and its own box was refused
+	 * from then on.
+	 */
+	public function testARefusedRequestLeavesTheCodeAsItWas(): void {
+		$this->db->codes[1] = $this->code(['mac' => '00:1A:79:AA:BB:CC']);
+
+		$this->assertSame('DEVICE_MISMATCH', ActiveCodeService::activateCode('ABCD234567', ['device_id' => 'EVIL-BOX'])['status']);
+		$this->assertNull($this->db->codes[1]['device_id'], 'nothing bound by the refused request');
+
+		$rOwn = ActiveCodeService::activateCode('ABCD234567', ['mac' => '00:1A:79:AA:BB:CC', 'device_id' => 'REAL-BOX']);
+		$this->assertSame('SUCCESS', $rOwn['status'], 'its own box still signs in');
+		$this->assertSame('REAL-BOX', $this->db->codes[1]['device_id'], 'and binds its own id');
 	}
 
 	public function testUnboundCodeServesAnyone(): void {

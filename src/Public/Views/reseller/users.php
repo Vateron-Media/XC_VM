@@ -164,7 +164,7 @@ LayoutRenderer::renderFooter('reseller');
 ?>
 <script>
     (function() {
-        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
         var isLocal = function(ip) { return !ip || ip === '127.0.0.1' || ip === '::1'; };
         var canDelete = <?= $rCanDelete ? 'true' : 'false'; ?>;
         var reservedUsers = <?= json_encode($rReservedUsers); ?>;

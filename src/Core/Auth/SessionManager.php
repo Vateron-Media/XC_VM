@@ -298,7 +298,7 @@ class SessionManager {
 
 		$rIP = NetworkUtils::getUserIP();
 		if ($rSettings['ip_subnet_match']) {
-			return implode('.', array_slice(explode('.', $_SESSION['ip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1));
+			return NetworkUtils::ipMatches(true, (string) $_SESSION['ip'], (string) $rIP);
 		}
 
 		return $_SESSION['ip'] == $rIP;

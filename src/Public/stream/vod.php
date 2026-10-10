@@ -4,6 +4,7 @@ use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Logging\DatabaseLogger;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Infrastructure\Database\DatabaseFactory;
@@ -123,7 +124,7 @@ if ($rChannelInfo) {
 	$rLinkUUID = $rTokenData['uuid'];
 	$rConnection = ConnectionTracker::findByUuid($rSettings, $rTokenData['uuid'], '`server_id`, `activity_id`, `pid`, `user_ip`, `uuid`, `hls_end`', $rRangeMatch);
 	if ($rConnection !== null) {
-		$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rConnection['user_ip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rConnection['user_ip'] == $rIP);
+		$rIPMatch = NetworkUtils::ipMatches((bool) $rSettings['ip_subnet_match'], $rConnection['user_ip'], $rIP);
 
 		// A row found by that match, not by this link's uuid, at an address that
 		// is not this viewer's is the line's other device: no match.

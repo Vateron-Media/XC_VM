@@ -322,7 +322,7 @@ LayoutRenderer::renderFooter('admin');
         var changeTitle = false;
 
         function esc(s) {
-            return $('<div>').text(s == null ? '' : s).html();
+            return $('<div>').text(s == null ? '' : s).html().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         function collectNew(sel) {

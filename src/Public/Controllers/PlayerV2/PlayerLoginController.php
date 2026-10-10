@@ -370,6 +370,11 @@ class PlayerLoginController {
 
 		$res = ActiveCodeService::activateCode($code, $deviceInfo);
 		if (($res['status'] ?? '') !== 'SUCCESS') {
+			// A refused code is a guess, counted as the code API counts it
+			// (ActiveCodeApiController) and as a refused password is above:
+			// codes can be short and numeric, and one that hits signs in.
+			BruteforceGuard::checkBruteforce(null, null, $code);
+			BruteforceGuard::checkFlood();
 			return [
 				'success' => false,
 				'message' => $res['message'] ?? 'Invalid, expired, or locked activation code.'

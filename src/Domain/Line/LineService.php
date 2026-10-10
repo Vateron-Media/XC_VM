@@ -48,6 +48,29 @@ class LineService {
 	}
 
 	/**
+	 * The expiry a mass edit sets (lines, MAG and Enigma devices): null for
+	 * "no expiry", a Unix time for a date, and false to leave each line's own.
+	 * False for the box ticked with no date, or with one that is not a date:
+	 * `new DateTime('')` is now, and every selected line expired at once.
+	 *
+	 * @param array<string, mixed> $rData The form: `exp_date`, `no_expire`.
+	 */
+	public static function massExpiry(array $rData): string|false|null {
+		if (isset($rData['no_expire'])) {
+			return null;
+		}
+		$rDate = trim((string) ($rData['exp_date'] ?? ''));
+		if ($rDate === '') {
+			return false;
+		}
+		try {
+			return (new \DateTime($rDate))->format('U');
+		} catch (\Exception) {
+			return false;
+		}
+	}
+
+	/**
 	 * Apply bulk edits to selected lines.
 	 *
 	 * @param array $rData Selected ids plus the fields/values to apply.
@@ -93,14 +116,9 @@ class LineService {
 			}
 
 			if (isset($rData['c_exp_date'])) {
-				if (isset($rData['no_expire'])) {
-					$rArray['exp_date'] = null;
-				} else {
-					try {
-						$rDate = new \DateTime($rData['exp_date']);
-						$rArray['exp_date'] = $rDate->format('U');
-					} catch (\Exception $e) {
-					}
+				$rExpiry = self::massExpiry($rData);
+				if ($rExpiry !== false) {
+					$rArray['exp_date'] = $rExpiry;
 				}
 			}
 

@@ -550,7 +550,7 @@ LayoutRenderer::renderFooter('admin');
         }
 
         function esc(s) {
-            return $('<div>').text(s == null ? '' : s).html();
+            return $('<div>').text(s == null ? '' : s).html().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
         document.querySelectorAll('#filebrowser, #filebrowser-sub').forEach(function(b) {
             b.addEventListener('click', function() {

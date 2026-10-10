@@ -161,6 +161,12 @@ class BlocklistService {
 			$rArray['exact_match'] = false;
 		}
 
+		// An agent with nothing in it is contained in every agent: saved, it
+		// blocked every client (checkBlockedUAs()).
+		if (trim((string) ($rArray['blocked_ua'] ?? '')) === '') {
+			return ['status' => STATUS_INVALID_NAME, 'data' => $rData];
+		}
+
 		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `blocked_uas`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -184,6 +190,10 @@ class BlocklistService {
 	public static function checkBlockedUAs(array $rBlockedUA, string $rUserAgent, bool $rReturn = false) {
 		$rUserAgent = strtolower($rUserAgent);
 		foreach ($rBlockedUA as $rBlocked) {
+			// Nothing to match on: stristr($rUserAgent, '') is the whole agent.
+			if (trim((string) ($rBlocked['blocked_ua'] ?? '')) === '') {
+				continue;
+			}
 			if ($rBlocked['exact_match'] == 1) {
 				if ($rBlocked['blocked_ua'] == $rUserAgent) {
 					return true;
@@ -210,6 +220,9 @@ class BlocklistService {
 		$rUserAgent = strtolower($rUserAgent);
 		$rFoundID = false;
 		foreach ($rBlockedUA as $rKey => $rBlocked) {
+			if (trim((string) ($rBlocked['blocked_ua'] ?? '')) === '') {
+				continue;
+			}
 			if ($rBlocked['exact_match'] == 1) {
 				if ($rBlocked['blocked_ua'] == $rUserAgent) {
 					$rFoundID = $rKey;

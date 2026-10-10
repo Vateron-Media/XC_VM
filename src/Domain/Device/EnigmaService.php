@@ -87,14 +87,9 @@ class EnigmaService {
 			}
 
 			if (isset($rData['c_exp_date'])) {
-				if (isset($rData['no_expire'])) {
-					$rUserArray['exp_date'] = null;
-				} else {
-					try {
-						$rDate = new \DateTime($rData['exp_date']);
-						$rUserArray['exp_date'] = $rDate->format('U');
-					} catch (\Exception $e) {
-					}
+				$rExpiry = LineService::massExpiry($rData);
+				if ($rExpiry !== false) {
+					$rUserArray['exp_date'] = $rExpiry;
 				}
 			}
 

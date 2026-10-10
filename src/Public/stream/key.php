@@ -4,6 +4,7 @@ use XcVm\Core\Cluster\NodeLease;
 use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\NetworkUtils;
 
 /**
  * HLS encryption key endpoint
@@ -36,7 +37,7 @@ if (NodeLease::refusesEverything($rSettings)) {
 if (isset($_GET['token'])) {
 	$rIP = getuserip();
 	$rTokenArray = explode('/', (string) Encryption::readToken($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, empty($rSettings['secure_stream_tokens'])));
-	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenArray[0]), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rTokenArray[0] == $rIP);
+	$rIPMatch = NetworkUtils::ipMatches((bool) $rSettings['ip_subnet_match'], $rTokenArray[0], $rIP);
 
 	// An unreadable token splits into one empty piece: no stream, no key.
 	if (count($rTokenArray) >= 2 && ($rIPMatch || !$rSettings['restrict_same_ip'])) {

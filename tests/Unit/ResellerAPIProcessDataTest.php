@@ -36,4 +36,26 @@ final class ResellerAPIProcessDataTest extends TestCase {
 			$this->assertArrayNotHasKey('pair_id', ResellerAPI::processData($rType, ['pair_id' => '42']), $rType);
 		}
 	}
+
+	/**
+	 * A line's restrictions (allowed addresses and user agents, the blocked
+	 * user agents' bypass, the ISP lock) are a reseller's to set only with
+	 * allow_restrictions. The save skipped its restrictions block without it,
+	 * but a new line had already been filled from what was posted.
+	 */
+	public function testRestrictionsNeedThePermission(): void {
+		$rPosted = ['username' => 'u', 'allowed_ips' => ['203.0.113.9'], 'allowed_ua' => ['x'], 'bypass_ua' => '1', 'is_isplock' => '1', 'isp_clear' => ''];
+		$rBefore = ResellerAPI::$rPermissions;
+		try {
+			ResellerAPI::$rPermissions = ['allow_restrictions' => 0];
+			foreach (['line', 'mag', 'enigma'] as $rType) {
+				$rKept = array_keys(ResellerAPI::processData($rType, $rPosted));
+				$this->assertSame([], array_values(array_intersect($rKept, ['allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear'])), $rType);
+			}
+			ResellerAPI::$rPermissions = ['allow_restrictions' => 1];
+			$this->assertSame($rPosted, ResellerAPI::processData('line', $rPosted), 'with the permission: as posted');
+		} finally {
+			ResellerAPI::$rPermissions = $rBefore;
+		}
+	}
 }

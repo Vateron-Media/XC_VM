@@ -224,7 +224,7 @@ class StreamToolsAjaxController extends BaseAjaxController {
 					$rInfo['width'] = intval($rCodec['width'] ?? 0);
 					$rInfo['height'] = intval($rCodec['height'] ?? 0);
 					$rInfo['vbitrate'] = intval($rCodec['bit_rate'] ?? 0);
-					$rInfo['vcodec'] = $rCodec['codec_name'] ?? '';
+					$rInfo['vcodec'] = self::probeText($rCodec['codec_name'] ?? '');
 					$rInfo['fps'] = intval(explode('/', $rCodec['r_frame_rate'] ?? '0/0')[0]);
 
 					if (!$rInfo['fps']) {
@@ -232,7 +232,7 @@ class StreamToolsAjaxController extends BaseAjaxController {
 					}
 				} elseif ($rCodec['codec_type'] == 'audio') {
 					$rInfo['abitrate'] = intval($rCodec['bit_rate'] ?? 0);
-					$rInfo['acodec'] = $rCodec['codec_name'] ?? '';
+					$rInfo['acodec'] = self::probeText($rCodec['codec_name'] ?? '');
 				}
 			}
 
@@ -317,7 +317,7 @@ class StreamToolsAjaxController extends BaseAjaxController {
 						$rInfo['width'] = intval($rCodec['width']);
 						$rInfo['height'] = intval($rCodec['height']);
 						$rInfo['vbitrate'] = intval($rCodec['bit_rate'] ?? 0);
-						$rInfo['vcodec'] = $rCodec['codec_name'];
+						$rInfo['vcodec'] = self::probeText($rCodec['codec_name'] ?? '');
 						$rInfo['fps'] = intval(explode('/', $rCodec['r_frame_rate'])[0]);
 
 						if (!$rInfo['fps']) {
@@ -325,7 +325,7 @@ class StreamToolsAjaxController extends BaseAjaxController {
 						}
 					} elseif ($rCodec['codec_type'] == 'audio') {
 						$rInfo['abitrate'] = intval($rCodec['bit_rate'] ?? 0);
-						$rInfo['acodec'] = $rCodec['codec_name'];
+						$rInfo['acodec'] = self::probeText($rCodec['codec_name'] ?? '');
 					}
 				}
 
@@ -461,5 +461,14 @@ class StreamToolsAjaxController extends BaseAjaxController {
 			$rUp = false;
 		}
 		return "<table style='width: 300px;' class='table-data' align='center'><tbody><tr><td colspan='4'>Module source " . ($rUp ? 'available' : 'unavailable') . '</td></tr></tbody></table>';
+	}
+
+	/**
+	 * A probe's text for the table this controller answers as HTML. A codec
+	 * name comes from ffprobe, or as it is from the source's own /probe (an
+	 * Xtream-style provider): whatever it holds is text, never markup.
+	 */
+	private static function probeText(mixed $rValue): string {
+		return htmlspecialchars(is_scalar($rValue) ? (string) $rValue : '', ENT_QUOTES, 'UTF-8');
 	}
 }
