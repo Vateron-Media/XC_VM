@@ -35,6 +35,34 @@ use XcVm\Streaming\Fanout\FanoutClient;
 class ConnectionTracker {
 	use DatabaseAware;
 
+	/** Seconds a viewer is placed by the servers' load as it was last counted. */
+	public const CAPACITY_SECONDS = 3;
+
+	/**
+	 * The servers' load for placing a viewer: getCapacity() as it was last
+	 * counted while that is no older than CAPACITY_SECONDS (the watchdog counts
+	 * every few seconds and leaves the file), else counted now. Each playback
+	 * start counted every server's viewers itself (in MySQL, a GROUP BY over
+	 * `lines_live`) and wrote a file that nothing read.
+	 *
+	 * @param bool $rProxy As getCapacity().
+	 * @return array<int, array{online_clients: int, capacity?: float}>
+	 */
+	public static function capacity(bool $rProxy = false): array {
+		if (defined('CACHE_TMP_PATH')) {
+			$rPath = CACHE_TMP_PATH . ($rProxy ? 'proxy_capacity' : 'servers_capacity');
+			clearstatcache(true, $rPath);
+			$rCounted = @filemtime($rPath);
+			if ($rCounted !== false && time() - $rCounted <= self::CAPACITY_SECONDS) {
+				$rRows = json_decode((string) @file_get_contents($rPath), true);
+				if (is_array($rRows)) {
+					return $rRows;
+				}
+			}
+		}
+		return self::getCapacity($rProxy);
+	}
+
 	/**
 	 * Calculate server/proxy load capacity.
 	 *
@@ -53,7 +81,7 @@ class ConnectionTracker {
 			$rServers = ServerRepository::getAll();
 		}
 		$db = self::db();
-		$rRedis = RedisManager::instance();
+		$rRedis = $rSettings['redis_handler'] ? RedisManager::instance() : null;
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
 		if ($rSettings['redis_handler'] && $rProxy && $rSettings['split_by'] == 'maxclients') {
 			$rSettings['split_by'] = 'guar_band';
@@ -172,7 +200,7 @@ class ConnectionTracker {
 	public static function getConnections(?int $rServerID = null, ?int $rUserID = null, ?int $rStreamID = null): array {
 		global $rSettings;
 		$db = self::db();
-		$rRedis = RedisManager::instance();
+		$rRedis = $rSettings['redis_handler'] ? RedisManager::instance() : null;
 		if ($rSettings['redis_handler'] && $rRedis) {
 			if ($rServerID) {
 				$rKeys = $rRedis->zRangeByScore('SERVER#' . $rServerID, '-inf', '+inf');
@@ -565,9 +593,12 @@ class ConnectionTracker {
 		if (!$rRedis instanceof \Redis) {
 			return [];
 		}
-		$rMulti = $rRedis->multi();
+		// Reads need no transaction: a pipeline sends them in one round trip (a
+		// MULTI sends each command and waits for its QUEUED). And a count is the
+		// set's size, not its members read and counted here.
+		$rMulti = $rRedis->multi(\Redis::PIPELINE);
 		foreach ($rIDs as $rID) {
-			$rMulti->zRevRangeByScore($rPrefix . $rID, '+inf', '-inf');
+			$rCount ? $rMulti->zCard($rPrefix . $rID) : $rMulti->zRevRangeByScore($rPrefix . $rID, '+inf', '-inf');
 		}
 		$rGroups = $rMulti->exec();
 		$rConnectionMap = $rRedisKeys = [];
@@ -576,8 +607,8 @@ class ConnectionTracker {
 		}
 		foreach ($rGroups as $rGroupID => $rKeys) {
 			if ($rCount) {
-				$rConnectionMap[$rIDs[$rGroupID]] = count($rKeys);
-			} else {
+				$rConnectionMap[$rIDs[$rGroupID]] = (int) $rKeys;
+			} elseif (is_array($rKeys)) {
 				if (0 < count($rKeys)) {
 					$rRedisKeys = array_merge($rRedisKeys, $rKeys);
 				}
@@ -586,9 +617,11 @@ class ConnectionTracker {
 		$rRedisKeys = array_unique($rRedisKeys);
 		if (!$rKeysOnly) {
 			if (!$rCount && $rRedisKeys !== []) {
-				foreach ($rRedis->mGet($rRedisKeys) as $rRow) {
-					$rRow = igbinary_unserialize($rRow);
-					$rConnectionMap[$rRow[$rGroupField]][] = $rRow;
+				// In batches, and a record gone since its set was read is none.
+				foreach (self::records($rRedis, array_values($rRedisKeys)) ?? [] as $rRow) {
+					if (is_array($rRow)) {
+						$rConnectionMap[$rRow[$rGroupField]][] = $rRow;
+					}
 				}
 			}
 			return $rConnectionMap;
@@ -631,6 +664,46 @@ class ConnectionTracker {
 			$rConnectionMap[$rRow['user_id']] = $rRow;
 		}
 		return $rConnectionMap;
+	}
+
+	/**
+	 * How many of each stream's viewers a server serves, in Redis mode: stream
+	 * id => count. The streams' sets and the server's are read as uuids, in one
+	 * round trip, and intersected here: the on-demand watcher read and decoded
+	 * every viewer's record of every running stream, each pass, to learn which
+	 * streams had none.
+	 *
+	 * @param int[] $rStreamIDs
+	 * @return array<int, int>|null Null when Redis did not answer: nothing is known, which is not "no viewers".
+	 */
+	public static function streamViewerCounts(array $rStreamIDs, int $rServerID): ?array {
+		$rRedis = RedisManager::instance();
+		if (!$rRedis instanceof \Redis) {
+			return null;
+		}
+		$rStreamIDs = array_values($rStreamIDs);
+		try {
+			$rPipe = $rRedis->multi(\Redis::PIPELINE);
+			$rPipe->zRange('SERVER#' . $rServerID, 0, -1);
+			foreach ($rStreamIDs as $rStreamID) {
+				$rPipe->zRange('STREAM#' . $rStreamID, 0, -1);
+			}
+			$rSets = $rPipe->exec();
+		} catch (\RedisException) {
+			return null;
+		}
+		if (!is_array($rSets) || count($rSets) !== count($rStreamIDs) + 1 || !is_array($rSets[0])) {
+			return null;
+		}
+		$rHere = array_flip($rSets[0]);
+		$rCounts = [];
+		foreach ($rStreamIDs as $rIndex => $rStreamID) {
+			if (!is_array($rSets[$rIndex + 1])) {
+				return null;
+			}
+			$rCounts[$rStreamID] = count(array_intersect_key(array_flip($rSets[$rIndex + 1]), $rHere));
+		}
+		return $rCounts;
 	}
 
 	/**
@@ -856,9 +929,10 @@ class ConnectionTracker {
 	/**
 	 * Create a new connection in Redis.
 	 *
-	 * Atomically (MULTI/EXEC) adds UUID to all sorted sets:
-	 * LINE#, LINE_ALL#, STREAM#, SERVER#, SERVER_LINES#, PROXY#,
-	 * CONNECTIONS, LIVE, and stores igbinary-serialized data.
+	 * Atomically (MULTI/EXEC) adds UUID to its sorted sets (LINE#, STREAM#,
+	 * SERVER#, SERVER_LINES#, PROXY#, LIVE) and stores igbinary-serialized
+	 * data. LINE_ALL# and CONNECTIONS are no longer written: nothing read
+	 * them. They are still cleared on removal, for what an older node wrote.
 	 *
 	 * @param array $rData Connection data (uuid, identity, stream_id, server_id, etc.).
 	 * @return array|false MULTI/EXEC result.
@@ -874,7 +948,6 @@ class ConnectionTracker {
 		// close and delete this fresh connection as the old ended one.
 		$rMulti->sRem('ENDED', $rData['uuid']);
 		$rMulti->zAdd('LINE#' . $rData['identity'], $rData['date_start'], $rData['uuid']);
-		$rMulti->zAdd('LINE_ALL#' . $rData['identity'], $rData['date_start'], $rData['uuid']);
 		$rMulti->zAdd('STREAM#' . $rData['stream_id'], $rData['date_start'], $rData['uuid']);
 		$rMulti->zAdd('SERVER#' . $rData['server_id'], $rData['date_start'], $rData['uuid']);
 		if ($rData['user_id']) {
@@ -883,7 +956,6 @@ class ConnectionTracker {
 		if ($rData['proxy_id']) {
 			$rMulti->zAdd('PROXY#' . $rData['proxy_id'], $rData['date_start'], $rData['uuid']);
 		}
-		$rMulti->zAdd('CONNECTIONS', $rData['date_start'], $rData['uuid']);
 		$rMulti->zAdd('LIVE', $rData['date_start'], $rData['uuid']);
 		$rMulti->set($rData['uuid'], igbinary_serialize($rData));
 		return $rMulti->exec();
@@ -1049,6 +1121,7 @@ class ConnectionTracker {
 	 * @return array<string, mixed>|null The Redis record, or `pid` and `hls_end` on the table path.
 	 */
 	public static function heartbeat(array $rSettings, string $rUUID, int $rLastRead): ?array {
+		self::$rStoreSilent = false;
 		if (AgentConnections::enabled()) {
 			$rTouched = AgentConnections::touch($rUUID, $rLastRead);
 			if ($rTouched !== null) {
@@ -1057,14 +1130,24 @@ class ConnectionTracker {
 		}
 		// A node in mode 2 has no other store: its agent did not answer.
 		if (NodeRole::refusesConnects()) {
+			self::$rStoreSilent = true;
 			return null;
 		}
 		$rConnection = null;
 		if ($rSettings['redis_handler']) {
-			RedisManager::ensureConnected();
-			$rExisting = self::getConnection($rUUID);
-			if ($rExisting) {
-				$rConnection = self::ended($rExisting) ? $rExisting : self::updateConnection($rExisting, ['hls_last_read' => $rLastRead]);
+			// Not reached, or lost on the way: the store said nothing of the viewer.
+			try {
+				if (!RedisManager::ensureConnected()) {
+					self::$rStoreSilent = true;
+					return null;
+				}
+				$rExisting = self::getConnection($rUUID);
+				if ($rExisting) {
+					$rConnection = self::ended($rExisting) ? $rExisting : self::updateConnection($rExisting, ['hls_last_read' => $rLastRead]);
+				}
+			} catch (\RedisException) {
+				self::$rStoreSilent = true;
+				$rConnection = null;
 			}
 			RedisManager::closeInstance();
 			return $rConnection ?: null;
@@ -1072,12 +1155,52 @@ class ConnectionTracker {
 		DatabaseFactory::connectLazy();
 		$db = self::store();
 		$db->query('UPDATE `lines_live` SET `hls_last_read` = ? WHERE `uuid` = ?', $rLastRead, $rUUID);
-		$db->query('SELECT `pid`, `hls_end` FROM `lines_live` WHERE `uuid` = ?', $rUUID);
-		if ($db->num_rows() == 1) {
+		// A read the database refused is no answer either.
+		if ($db->query('SELECT `pid`, `hls_end` FROM `lines_live` WHERE `uuid` = ?', $rUUID) === false) {
+			self::$rStoreSilent = true;
+		} elseif ($db->num_rows() == 1) {
 			$rConnection = $db->get_row();
 		}
 		DatabaseFactory::close();
 		return $rConnection;
+	}
+
+	/** Whether the last heartbeat() could not ask the store (not: asked, and the connection is gone). */
+	private static bool $rStoreSilent = false;
+
+	/** Check-ins in a row that could not ask the store. */
+	private static int $rSilentCheckIns = 0;
+
+	/** A check-in that could not ask the store is made again after this many seconds. */
+	public const CHECK_IN_RETRY = 30;
+
+	/** After this many such check-ins in a row (ten minutes) the worker stops, as for a connection that is gone. */
+	public const CHECK_IN_TRIES = 20;
+
+	/**
+	 * A streaming worker's check-in every five minutes: heartbeat(), and
+	 * whether the worker goes on. It does while its connection is open and its
+	 * own. A store that could not be asked (Redis restarting or out of reach,
+	 * a silent agent, a refused query) says nothing about the viewer: the
+	 * worker goes on and asks again in CHECK_IN_RETRY seconds, CHECK_IN_TRIES
+	 * times. It stopped at once, so a Redis restart ended every stream whose
+	 * check-in fell in it.
+	 *
+	 * @param array<string, mixed> $rSettings Settings (reads redis_handler).
+	 * @param int $rPID       The worker's pid: the connection is its own while the record names it.
+	 * @param int $rLastCheck When the caller made this check-in (it asks again 300 s later): moved back for an early retry.
+	 */
+	public static function checkIn(array $rSettings, string $rUUID, int $rLastRead, int $rPID, int &$rLastCheck): bool {
+		$rConnection = self::heartbeat($rSettings, $rUUID, $rLastRead);
+		if ($rConnection === null && self::$rStoreSilent) {
+			if (++self::$rSilentCheckIns > self::CHECK_IN_TRIES) {
+				return false;
+			}
+			$rLastCheck = time() - 300 + self::CHECK_IN_RETRY;
+			return true;
+		}
+		self::$rSilentCheckIns = 0;
+		return is_array($rConnection) && $rConnection['hls_end'] == 0 && $rConnection['pid'] == $rPID;
 	}
 
 	/**
@@ -1103,7 +1226,9 @@ class ConnectionTracker {
 			"stream_id" => $rCtx["stream_id"],
 			"server_id" => $rCtx["server_id"],
 			"proxy_id" => $rCtx["proxy_id"],
-			"user_agent" => $rCtx["user_agent"],
+			// As the table holds it (varchar(255)): a record took the whole header,
+			// and a viewer sending a new long one each time filled Redis with them.
+			"user_agent" => substr((string) $rCtx["user_agent"], 0, 255),
 			"user_ip" => $rCtx["user_ip"],
 			"container" => $rContainer,
 			"pid" => $rPid,
@@ -1319,7 +1444,7 @@ class ConnectionTracker {
 	 * @param list<string> $rKeys
 	 * @return list<array<string, mixed>|false>|null
 	 */
-	private static function records(\Redis $rRedis, array $rKeys): ?array {
+	public static function records(\Redis $rRedis, array $rKeys): ?array {
 		$rData = [];
 		foreach (array_chunk($rKeys, self::READ_CHUNK) as $rChunk) {
 			$rPart = $rRedis->mGet($rChunk);
@@ -1457,16 +1582,20 @@ class ConnectionTracker {
 	 * @param array|string $rActivityInfo Connection data or UUID/activity_id.
 	 * @param bool         $rRemove       Remove connection from Redis/MySQL.
 	 * @param bool         $rEnd          Mark HLS connection as ended.
+	 * @param bool         $rKill         End the PHP worker that serves it (TS, VOD). Not from the
+	 *                                    sweep: a connection it closes for silence was left by a
+	 *                                    worker that could not write its close, and PHP-FPM has
+	 *                                    given that worker, its pid, to someone else since.
 	 * @return bool True on successful close, false otherwise.
 	 */
-	public static function closeConnection(array|string $rActivityInfo, bool $rRemove = true, bool $rEnd = true): bool {
+	public static function closeConnection(array|string $rActivityInfo, bool $rRemove = true, bool $rEnd = true, bool $rKill = true): bool {
 		if (!empty($rActivityInfo)) {
 			global $rSettings, $rServers;
 			$db = self::db();
 			if ($rSettings['redis_handler'] && !is_object(RedisManager::instance())) {
 				RedisManager::ensureConnected();
 			}
-			$rRedisObj = RedisManager::instance();
+			$rRedisObj = $rSettings['redis_handler'] ? RedisManager::instance() : null;
 			if (!$rRedisObj && $rSettings['redis_handler']) {
 				return false;
 			}
@@ -1524,12 +1653,12 @@ class ConnectionTracker {
 					} else {
 						if (intval($rActivityInfo['pid']) === 0) {
 							self::dropDaemonViewer($rActivityInfo);
-						} elseif (!$rEnded && $rActivityInfo['server_id'] == SERVER_ID) {
+						} elseif (!$rEnded && $rKill && $rActivityInfo['server_id'] == SERVER_ID) {
 							// An ended connection's worker ended with it and now serves someone else (self::ended).
 							if ($rActivityInfo['pid'] != getmypid() && is_numeric($rActivityInfo['pid']) && 0 < $rActivityInfo['pid']) {
 								posix_kill(intval($rActivityInfo['pid']), 9);
 							}
-						} elseif (!$rEnded) {
+						} elseif (!$rEnded && $rKill) {
 							if ($rSettings['redis_handler']) {
 								self::redisSignal($rActivityInfo['pid'], $rActivityInfo['server_id'], 0);
 							} else {
@@ -1684,15 +1813,10 @@ class ConnectionTracker {
 			$rCount = 0;
 
 			if ($rProxy) {
-				$rParentIDs = ServerRepository::getAll()[$rServerID]['parent_id'];
-
-				foreach ($rParentIDs as $rParentID) {
-					foreach (self::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
-						if ($rConnection['proxy_id'] == $rServerID) {
-							$rCount++;
-						}
-					}
-				}
+				// The proxy's own set, which getCapacity() counts too: every record of
+				// its parent servers was read and decoded for this one number.
+				$rRedis = RedisManager::instance();
+				$rCount = $rRedis instanceof \Redis ? (int) $rRedis->zCard('PROXY#' . $rServerID) : 0;
 			} else {
 				list($rCount) = self::getRedisConnections(null, $rServerID, null, true, true, false);
 			}

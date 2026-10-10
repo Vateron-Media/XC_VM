@@ -83,7 +83,7 @@ class StreamRedirector {
 		}
 
 		shuffle($rAvailableServers);
-		$rServerCapacity = ConnectionTracker::getCapacity();
+		$rServerCapacity = ConnectionTracker::capacity();
 		$rAcceptServers = [];
 		foreach ($rAvailableServers as $rServerID) {
 			$rOnlineClients = (isset($rServerCapacity[$rServerID]['online_clients']) ? $rServerCapacity[$rServerID]['online_clients'] : 0);

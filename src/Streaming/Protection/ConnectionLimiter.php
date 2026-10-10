@@ -44,7 +44,10 @@ class ConnectionLimiter {
 	 */
 	public static function closeConnections(?int $rUserID, int $rMaxConnections, ?int $rIsHMAC = null, string $rIdentifier = '', ?string $rIP = null, ?string $rUserAgent = null, ?string $rCurrentUUID = null) {
 		global $rSettings, $rServers, $db;
-		$redis = RedisManager::instance();
+		// Asked for only where the viewers are: with them in MySQL (the default)
+		// every viewer request still connected to Redis, authenticated and
+		// pinged it, from a load balancer over the network to MAIN.
+		$redis = $rSettings['redis_handler'] ? RedisManager::instance() : null;
 		if ($rSettings['redis_handler']) {
 			if (!$redis instanceof \Redis) {
 				return null;
@@ -182,7 +185,7 @@ class ConnectionLimiter {
 
 	public static function closeConnection($rActivityInfo) {
 		global $rSettings, $rServers, $db;
-		$redis = RedisManager::instance();
+		$redis = $rSettings['redis_handler'] ? RedisManager::instance() : null;
 		if (empty($rActivityInfo)) {
 			return false;
 		}

@@ -437,8 +437,11 @@ final class ConnectionStoreTest extends TestCase {
 		$rRec = $this->record('ffff');
 		$this->assertNotFalse(ConnectionTracker::openRecord($rSettings, $rRec, ['ignored' => 'on this path']));
 		$this->assertSame($rRec, igbinary_unserialize($rRedis->get('ffff')));
-		foreach (['LINE#7', 'LINE_ALL#7', 'STREAM#100', 'SERVER#5', 'CONNECTIONS', 'LIVE'] as $rSet) {
+		foreach (['LINE#7', 'STREAM#100', 'SERVER#5', 'LIVE'] as $rSet) {
 			$this->assertNotFalse($rRedis->zScore($rSet, 'ffff'), $rSet);
+		}
+		foreach (['LINE_ALL#7', 'CONNECTIONS'] as $rSet) {
+			$this->assertFalse($rRedis->zScore($rSet, 'ffff'), $rSet . ': written for every connection, read by nothing');
 		}
 		$this->assertSame($rRec, ConnectionTracker::findByUuid($rSettings, 'ffff', 'unused', ['user_id' => 7]));
 		$this->assertNull(ConnectionTracker::findByUuid($rSettings, 'none', 'unused', ['user_id' => 7]), 'no Range fallback on Redis, as before');

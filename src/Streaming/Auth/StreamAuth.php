@@ -34,7 +34,7 @@ class StreamAuth {
 		}
 
 		shuffle($rAvailableServers);
-		$rServerCapacity = ConnectionTracker::getCapacity();
+		$rServerCapacity = ConnectionTracker::capacity();
 		$rAcceptServers = [];
 
 		foreach ($rAvailableServers as $rServerID) {

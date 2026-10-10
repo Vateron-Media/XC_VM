@@ -72,6 +72,10 @@ class CacheAjaxController extends BaseAjaxController {
 		$this->gate('adv', 'database');
 
 		global $db;
+		// Off until now: what Redis holds is then its snapshot from when it was
+		// last on, not anyone watching (the sync below empties it first).
+		$db->query('SELECT `redis_handler` FROM `settings`;');
+		$rWasOff = !intval($db->get_row()['redis_handler'] ?? 0);
 		$db->query('UPDATE `settings` SET `redis_handler` = 1;');
 
 		if (file_exists(CACHE_TMP_PATH . 'settings')) {
@@ -88,7 +92,7 @@ class CacheAjaxController extends BaseAjaxController {
 			posix_kill($rPID, 9);
 		}
 
-		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:users 1 > /dev/null 2>/dev/null &');
+		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:users 1' . ($rWasOff ? ' fresh' : '') . ' > /dev/null 2>/dev/null &');
 
 		$this->ok();
 	}

@@ -408,6 +408,10 @@ class StreamsCronJob implements CommandInterface {
 
 		$rProxied = NodeStreams::proxied($db);
 		if (count($rProxied) > 0) {
+			// This server's viewers, read once for all its streams: the read takes
+			// no stream (getConnections() answers the whole server either way), so
+			// each stream cost every viewer's record again.
+			$rServerConnections = null;
 			foreach ($rProxied as $rStream) {
 				if (file_exists(STREAMS_PATH . $rStream['id'] . '.analyse')) {
 					$rFFProbeOutput = FFprobeRunner::probeStream(STREAMS_PATH . $rStream['id'] . '.analyse');
@@ -433,7 +437,7 @@ class StreamsCronJob implements CommandInterface {
 
 				// With the agent's registry, each viewer's socket is checked there
 				// (one it could not answer for stays).
-				$rUUIDs = $rAgentViewers ? null : $this->connectionUuidsForStream(ConnectionTracker::getConnections(SERVER_ID, null, $rStream['id']), $rStream['id']);
+				$rUUIDs = $rAgentViewers ? null : $this->connectionUuidsForStream($rServerConnections ??= ConnectionTracker::getConnections(SERVER_ID), $rStream['id']);
 
 				$rConDir = CONS_TMP_PATH . $rStream['id'] . '/';
 				// The per-stream connection dir only exists once a client connects,
