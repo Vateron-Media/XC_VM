@@ -760,6 +760,9 @@ def install_distribution_binaries(dist_id, version):
             "/home/xc_vm/bin/php/sbin/php-fpm",
             "/home/xc_vm/bin/nginx/sbin/nginx",
             "/home/xc_vm/bin/nginx_rtmp/sbin/nginx_rtmp",
+            # As update_binaries.sh leaves them on an update.
+            "/home/xc_vm/bin/network",
+            "/home/xc_vm/bin/network.py",
         ]
         for exe_path in executables_to_chmod:
             if os.path.exists(exe_path):
@@ -1379,6 +1382,15 @@ def generate_mysql_config(total_ram_mb):
     printc(f"Thread pool max threads: {thread_pool_max_threads}", col.OKGREEN)
 
     return config
+
+
+def write_secret(path, text):
+    """Write a file only its owner may read: 0600 from the moment it exists
+    (a file left by an earlier run is closed too)."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with io.open(fd, "w", encoding="utf-8") as rFile:
+        rFile.write(text)
+    os.chmod(path, 0o600)
 
 
 def generate_random_password(length=32):
@@ -2097,8 +2109,8 @@ if __name__ == "__main__":
     printc("Writing XC_VM configuration", col.OKBLUE)
     os.makedirs(os.path.dirname(rConfigPath), exist_ok=True)
     rConfigData = rConfig % (rUsername, rPassword)
-    with io.open(rConfigPath, "w", encoding="utf-8") as rFile:
-        rFile.write(rConfigData)
+    # The database user and password: the panel's user only (chown -R below).
+    write_secret(rConfigPath, rConfigData)
 
     # Per-install OPENSSL_EXTRA secret — key material for Encryption (hmac_keys,
     # cached image filenames, proxy URL keys, stream tokens). Generated ONCE and
@@ -2358,22 +2370,28 @@ if __name__ == "__main__":
     printc("Saving credentials", col.OKBLUE)
 
     # Save to /root/credentials.txt
-    with io.open("/root/credentials.txt", "w", encoding="utf-8") as rFile:
-        rFile.write("MariaDB Root \n")
-        rFile.write("Username: root\n")
-        rFile.write(f"Password: {root_password}\n\n")
-        rFile.write(f"XC_VM Username: {rUsername}\n")
-        rFile.write(f"XC_VM Password: {rPassword}\n")
-        rFile.write(f"Database: {rDatabase}\n")
+    write_secret(
+        "/root/credentials.txt",
+        "MariaDB Root \n"
+        "Username: root\n"
+        f"Password: {root_password}\n\n"
+        f"XC_VM Username: {rUsername}\n"
+        f"XC_VM Password: {rPassword}\n"
+        f"Database: {rDatabase}\n",
+    )
 
-    # Also save to installer directory (like original install script)
+    # Also save to installer directory (like original install script). The
+    # installer may have been unpacked anywhere (/tmp, a home directory): the
+    # file is root's alone, as the one in /root.
     local_creds_path = os.path.join(rPath, "credentials.txt")
-    with io.open(local_creds_path, "w", encoding="utf-8") as rFile:
-        rFile.write(f"MariaDB Root Password: {root_password}\n")
-        rFile.write(f"MariaDB Username: {rUsername}\n")
-        rFile.write(f"MariaDB Password: {rPassword}\n")
-        rFile.write(f"Database: {rDatabase}\n")
-        rFile.write(f"Admin Access Code: {admin_code}\n")
+    write_secret(
+        local_creds_path,
+        f"MariaDB Root Password: {root_password}\n"
+        f"MariaDB Username: {rUsername}\n"
+        f"MariaDB Password: {rPassword}\n"
+        f"Database: {rDatabase}\n"
+        f"Admin Access Code: {admin_code}\n",
+    )
 
     # Remove the old mariadb_root_password.txt file if it exists
     if os.path.exists("/root/mariadb_root_password.txt"):

@@ -14,6 +14,13 @@
 		"Faster stream requests on large panels: the bouquets map is no longer decoded for every segment, key and playlist request, and cached lists are decoded once per process. Line lookup files no longer carry the username and password in their name.",
 		"Watch folders: Auto-Upgrade now works for a load balancer's folder scanned from MAIN (the load balancer must be updated too), and a copy that is kept is logged as DUPLICATE. An import with no TMDb title falls back to the folder's name.",
 		"Fixed the M3U review importing only the table page shown, a created channel losing its on-demand servers on edit, Enigma2 links always using http and unencoded credentials, a subtitle name with a space breaking a movie's start, and error pages being cached as images.",
-		"Bulk delete of streams now removes a stream taken off its last server, and a proxy action can no longer disable the main server."
+		"Bulk delete of streams now removes a stream taken off its last server, and a proxy action can no longer disable the main server.",
+		"Updates: a load balancer still on stable 2.3.9 (or a beta up to 2.4.x) can update to the betas again. Since 2.6.0 the setting it reads for its channel was missing, so it stayed on its release answering 'Already up to date'. Update MAIN first, then the load balancer.",
+		"Cluster: MAIN's connection-limit queue is bounded. A node asks about a line's limit on every request, and each request left a file in tmp; when requests outran the loop the files filled the temporary filesystem (over a million in one report). A viewer now has one file, old checks are dropped, and an admission that ran out no longer closes a viewer for a place nobody takes.",
+		"Legacy panel_api.php (when enabled) lists the line's categories and streams again; it answered the sign-in data only.",
+		"Episodes page: a link to a series' episodes now opens on that series (it listed every series'), and an episode whose file failed shows Down instead of 'On Demand' with a live play button.",
+		"Resellers: saving a MAG or Enigma device no longer removes the pairing an administrator made. The admin API's kill_connection now works with the Redis connection handler.",
+		"Install and update: the installer wrote config.ini (the database password) and its credentials files readable by everyone; they are now private, and an update closes config.ini on existing panels. The build checks the archives' file modes.",
+		"Dashboard: a 'Database ports' check warns while MariaDB and Redis on MAIN answer any address, with a pointer to the DB Allowlist setting."
 	]
 }

@@ -225,6 +225,7 @@ The admin dashboard lists one row per check, failing and warning rows first. Eve
 - **Disk space**: MAIN's tmp mount from 90 % used (red from 95 %), where the cache is written; the panel disk at the same points, but only once less than 10 GiB is free, since it also holds VOD, archives and created channels.
 - **Backups**: with automatic backups on, red when there is no backup or the newest is more than a quarter of a period late, yellow when its Dropbox upload failed (the error is on the Backups page).
 - **HTTPS certificates**: the certificates `cron:certbot` keeps for enabled servers with HTTPS; yellow with under 5 days left (two daily renewals missed), red once one expired.
+- **Database ports**: yellow while MariaDB (3306) and Redis (6379) on MAIN answer any address, behind their passwords only. Turn on **DB Allowlist** (Settings → Cluster) to limit them to the panel's own servers and the addresses you list; green once it is on. Never red, so `/healthz` is not affected.
 - **Cache**: red when the last scheduled run of `cron:cache_engine` failed or one never finished (killed by the next, a restart or an update), until a run finishes cleanly; yellow until the first build after a boot completes. The Cache page's *Last complete run* stops moving while runs fail, and each failed run leaves a `cron` row in Panel Logs.
 
 ## Related files

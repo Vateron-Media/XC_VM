@@ -227,6 +227,14 @@ final class DashboardStatusChecksTest extends TestCase {
 		$this->assertSame('fail', DashboardController::cacheCheck(true, true, false, true, self::NOW - 600, self::NOW)['state']);
 	}
 
+	/** MAIN's database ports open to any address are a warning with its remedy, never a failure. */
+	public function testTheDatabasePortsRow(): void {
+		$rOpen = DashboardController::dbAccessCheck(false);
+		$this->assertSame(['warn', 'dbaccess'], [$rOpen['state'], $rOpen['key']]);
+		$this->assertStringContainsString('DB Allowlist', $rOpen['help']);
+		$this->assertSame(['ok', ''], [DashboardController::dbAccessCheck(true)['state'], DashboardController::dbAccessCheck(true)['help']]);
+	}
+
 	/** @return array<string,mixed> A ClusterAdmin::nodes() row, as the checklist reads it. */
 	private function node(string $name, string $state, string $health): array {
 		return ['server_id' => 5, 'server_name' => $name, 'state' => $state, 'health' => $health];

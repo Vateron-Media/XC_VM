@@ -11,6 +11,7 @@ use XcVm\Domain\Cluster\ClusterClock;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
 use XcVm\Domain\Server\SettingsService;
 use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Tests\Support\InstallSchema;
 
 if (!defined('STATUS_FAILURE')) {
 	define('STATUS_FAILURE', 0);
@@ -60,12 +61,19 @@ final class SettingsServiceClusterPortTest extends TestCase {
 		'maxmind_editions' => ['text', ''],
 		'shared_mount_prefixes' => ['text', ''],
 		'allow_countries' => ['text', ''],
+		'update_channel_main' => ['varchar', 'stable'],
+		'update_channel_fanout' => ['varchar', 'stable'],
+		'update_channel' => ['varchar', 'stable'],
 	];
 
 	protected function setUp(): void {
 		$this->rDir = sys_get_temp_dir() . '/xcvm-settings-port-' . bin2hex(random_bytes(4)) . '/';
 		mkdir($this->rDir . 'bin/nginx/conf/ports', 0777, true);
 		mkdir($this->rDir . 'cache', 0777, true);
+		// A save that succeeds drops the cached settings file.
+		if (!defined('CACHE_TMP_PATH')) {
+			define('CACHE_TMP_PATH', $this->rDir . 'cache/');
+		}
 		file_put_contents($this->rDir . 'bin/nginx/conf/ports/http.conf', 'listen 25461;');
 		copy(MAIN_HOME . 'bin/nginx/conf/nginx.conf', $this->rDir . 'bin/nginx/conf/nginx.conf');
 
@@ -145,6 +153,41 @@ final class SettingsServiceClusterPortTest extends TestCase {
 
 	private function save(string $rPort): array {
 		return SettingsService::edit(['user_agent' => '', 'http_proxy' => '', 'cookie' => '', 'headers' => '', 'search_items' => '15', 'cluster_api_port' => $rPort]);
+	}
+
+	private function legacyChannel(): ?string {
+		$this->rDb->query('SELECT * FROM `settings`');
+		return $this->rDb->get_row()['update_channel'] ?? null;
+	}
+
+	/**
+	 * A load balancer still on stable 2.3.9 reads `update_channel` and knows
+	 * 'stable' and 'unstable' only: the save writes the panel's channel there,
+	 * whatever the request sends for the column.
+	 */
+	public function testThePanelChannelIsKeptForServersOnAnOlderRelease(): void {
+		foreach (['beta' => 'unstable', 'stable' => 'stable', 'dev' => 'unstable'] as $rChannel => $rLegacy) {
+			$rResult = SettingsService::edit(['user_agent' => '', 'http_proxy' => '', 'cookie' => '', 'headers' => '', 'search_items' => '15', 'update_channel_main' => $rChannel, 'update_channel' => 'beta']);
+			$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+			$this->assertSame($rLegacy, $this->legacyChannel(), $rChannel);
+		}
+
+		// A save that does not post the channel leaves the column alone.
+		SettingsService::edit(['user_agent' => '', 'http_proxy' => '', 'cookie' => '', 'headers' => '', 'search_items' => '15', 'update_channel' => 'stable']);
+		$this->assertSame('unstable', $this->legacyChannel());
+	}
+
+	/** The migration brings the column back on a panel that dropped it (016), from the panel's channel. */
+	public function testTheMigrationRestoresTheColumnFromThePanelChannel(): void {
+		foreach (['beta' => 'unstable', 'stable' => 'stable', 'dev' => 'unstable'] as $rChannel => $rLegacy) {
+			$this->rDb->exec('ALTER TABLE `settings` DROP COLUMN IF EXISTS `update_channel`');
+			$this->rDb->query('UPDATE `settings` SET `update_channel_main` = ?', $rChannel);
+			$this->rDb->exec(InstallSchema::migration('090_restore_legacy_update_channel'));
+			$this->assertSame($rLegacy, $this->legacyChannel(), $rChannel);
+		}
+
+		$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/down/090_restore_legacy_update_channel.sql'));
+		$this->assertNull($this->legacyChannel());
 	}
 
 	public function testAPortNginxRefusesFailsTheSave(): void {

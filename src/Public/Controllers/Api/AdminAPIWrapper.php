@@ -23,6 +23,7 @@ use XcVm\Domain\Server\ServerService;
 use XcVm\Domain\Server\SettingsService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\ChannelService;
+use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\ProfileService;
 use XcVm\Domain\Stream\ProviderService;
 use XcVm\Domain\Stream\RadioService;
@@ -437,7 +438,7 @@ class AdminAPIWrapper {
 	 * @return array
 	 */
 	private static function keepServerFields(array $rData, array $rServer, bool $rProxy) {
-		$rSplit = static fn($rList) => array_values(array_filter(explode(',', (string) $rList), 'strlen'));
+		$rSplit = static fn($rList) => array_values(array_filter(explode(',', (string) $rList), static fn(string $rItem): bool => $rItem !== ''));
 		$rKept = ['server_ip' => $rServer['server_ip'], 'domain_name' => $rSplit($rServer['domain_name']), 'geoip_countries' => self::storedList($rServer['geoip_countries'])];
 		$rSwitches = array_intersect_key($rServer, array_flip(['enable_https', 'random_ip', 'enable_geoip', 'enabled']));
 		if (!$rProxy) {
@@ -1908,7 +1909,9 @@ class AdminAPIWrapper {
 	}
 
 	public static function killConnection($rServerID, $rActivityID) {
-		$rData = json_decode(NodeRpc::request($rServerID, ['action' => 'closeConnection', 'activity_id' => intval($rActivityID)]), true);
+		// A connection is named by its row id (MySQL) or by its uuid (the Redis
+		// handler, which has no row ids): intval() made every uuid 0.
+		$rData = json_decode(NodeRpc::request($rServerID, ['action' => 'closeConnection', 'activity_id' => ConnectionTracker::reference($rActivityID)]), true);
 		if (!$rData['result']) {
 			return ['status' => 'STATUS_FAILURE'];
 		}

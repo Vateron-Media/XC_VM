@@ -664,6 +664,8 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 0551 ' . MAIN_HOME . 'bin/php/sbin/php-fpm');
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 0550 ' . MAIN_HOME . 'bin/nginx/sbin/nginx');
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 0750 ' . MAIN_HOME . 'bin/nginx_rtmp/sbin/nginx_rtmp');
+		// As update_binaries.sh leaves them on an update (cron:servers runs bin/network).
+		call_user_func($rRunSSH, $rConn, 'sudo chmod 0750 ' . MAIN_HOME . 'bin/network ' . MAIN_HOME . 'bin/network.py 2>/dev/null');
 
 		$rVersionFile = BIN_PATH . 'bin_version.json';
 		$rVersionData = [

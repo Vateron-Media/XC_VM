@@ -391,7 +391,8 @@ final class ConnectionAdmissionTest extends TestCase {
 			$this->assertSame($rFirst, $this->forNode($rAsk));
 			$this->assertSame(1, $this->reservations(), 'one reservation, refreshed');
 			ConnectionLimits::drain();
-			$this->assertSame([1, 1, 1, 1], array_column($this->rCuts, 1), 'the viewer never counts itself as in flight');
+			// One cut (the pair, then the line) for the viewer, however often it asked.
+			$this->assertSame([1, 1], array_column($this->rCuts, 1), 'the viewer never counts itself as in flight');
 		} finally {
 			ConnectionLimits::useQueue(null);
 			exec('rm -rf ' . escapeshellarg($rDir));

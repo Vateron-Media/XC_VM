@@ -2,6 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
+use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Vod\SeriesService;
+
 /**
  * EpisodeListController — список эпизодов.
  *
@@ -32,7 +35,11 @@ class EpisodeListController extends BaseAdminController {
 			$rVideoCodecs[] = $rRow['video_codec'];
 		}
 
+		// episodes?series=<id> (the series list, an episode's Back, the search):
+		// the page opens on that series, shown as the filter's choice.
+		$rSeries = (int) RequestManager::get('series') > 0 ? (SeriesService::getById((int) RequestManager::get('series')) ?: null) : null;
+
 		$this->setTitle('Episodes');
-		$this->render('episodes', ['rAudioCodecs' => $rAudioCodecs, 'rVideoCodecs' => $rVideoCodecs]);
+		$this->render('episodes', ['rAudioCodecs' => $rAudioCodecs, 'rVideoCodecs' => $rVideoCodecs, 'rSeries' => $rSeries]);
 	}
 }

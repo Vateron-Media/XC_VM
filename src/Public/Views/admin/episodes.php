@@ -9,7 +9,8 @@
  * video / audio. Bulk-select (action=multi&type=episode), row actions (encode/stop,
  * edit, delete via action=episode), player and live-connections link are inline. The
  * "+N servers" and duplicate drill-downs are links to the same table filtered by
- * stream_id / source_id (read from the URL on load). Reached full-page in the new-UI shell.
+ * stream_id / source_id (read from the URL on load); ?series=<id> opens the page on that
+ * series (EpisodeListController). Reached full-page in the new-UI shell.
  */
 
 use XcVm\Core\Auth\Authorization;
@@ -54,7 +55,11 @@ $rFilters = [1 => 'encoded', 2 => 'encoding', 3 => 'down', 4 => 'ready', 5 => 'd
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label" for="filter-series"><?= $language::get('series') ?: 'Series'; ?></label>
-                <select id="filter-series" class="form-select"></select>
+                <select id="filter-series" class="form-select">
+                    <?php if (!empty($rSeries)): ?>
+                        <option value="<?= (int) $rSeries['id']; ?>" selected><?= htmlspecialchars((string) $rSeries['title'], ENT_QUOTES); ?></option>
+                    <?php endif; ?>
+                </select>
             </div>
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label" for="filter-server"><?= $language::get('server'); ?></label>
@@ -176,14 +181,14 @@ LayoutRenderer::renderFooter('admin');
         var confirmSwal = function(text) {
             return window.xcConfirm ? window.xcConfirm(text) : Promise.resolve(window.confirm(text));
         };
-        // StatusBadge::vod — episode encode-state codes.
+        // StatusBadge::vod — episode encode-state codes, as on the movies page.
         var STATUS = {
             '0': ['dark', 'Not Encoded'],
             '1': ['success', 'Encoded'],
             '2': ['warning', 'Encoding'],
-            '3': ['danger', 'Down'],
-            '4': ['info', 'On Demand'],
-            '5': ['primary', 'Direct']
+            '3': ['primary', 'Direct Source'],
+            '4': ['danger', 'Down'],
+            '5': ['info', 'Direct Stream']
         };
         var qs = new URLSearchParams(location.search);
         var urlStreamId = qs.get('stream_id') || '',
@@ -353,7 +358,7 @@ LayoutRenderer::renderFooter('admin');
                         if (canEdit) {
                             if (row.status === 2) {
                                 items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="stop">' + esc(lang.stopEnc) + '</a>';
-                            } else if (row.status !== 3) {
+                            } else if (row.status !== 3 && row.status !== 5) {
                                 items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="start">' + esc(lang.encode) + '</a>';
                             }
                             if (row.clients > 0) {
@@ -377,7 +382,7 @@ LayoutRenderer::renderFooter('admin');
                     searchable: false,
                     className: 'text-center',
                     render: function(d, t, row) {
-                        var playable = (row.status === 1 || row.status === 4);
+                        var playable = (row.status === 1 || row.status === 3);
                         if (!canPlayer || !playable) {
                             return '<button class="btn btn-sm btn-icon btn-label-secondary" disabled><i class="icon-base ti tabler-player-play"></i></button>';
                         }

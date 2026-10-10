@@ -14,6 +14,7 @@ use XcVm\Core\Events\Settings\CrontabChangedEvent;
 use XcVm\Core\Events\Settings\SettingsChangedEvent;
 use XcVm\Core\Events\Stream\StreamArgumentsChangedEvent;
 use XcVm\Core\Localization\Translator;
+use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Domain\Cluster\ClusterEndpoint;
 use XcVm\Domain\Cluster\ClusterMeta;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
@@ -214,6 +215,8 @@ class SettingsService {
 		// MAIN's own cluster state, never the form's: a POST cannot rewind the
 		// transport policy's version or drop a port kept for the nodes.
 		$rArray = array_diff_key($rArray, array_flip(self::CLUSTER_STATE));
+		// Servers on a release that reads the single `update_channel` follow the panel's.
+		$rArray = UpdateChannels::withLegacy($rArray);
 
 		$isFullForm = isset($rData['submit_settings']);
 		foreach (self::checkboxes() as $rSetting) {

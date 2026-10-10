@@ -14,6 +14,7 @@ use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Backup\BackupVerifier;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterOverview;
+use XcVm\Domain\Cluster\DbAllowlist;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Infrastructure\Cache\CacheRunState;
 use XcVm\Streaming\Fanout\FanoutMode;
@@ -175,6 +176,7 @@ class DashboardController extends BaseAdminController {
 			self::backupCheck($rSchedule, isset(BackupService::PERIODS[$rSchedule]) ? BackupService::newestBackup() : null, $now, class_exists(BackupVerifier::class) ? BackupVerifier::last((string) SettingsManager::get('backup_verify')) : null),
 			self::certificateCheck($servers, $now, $bin),
 			self::cacheCheck(!empty(SettingsManager::get('enable_cache')), file_exists(CACHE_TMP_PATH . 'cache_complete'), $rCache['failed'], $rCache['stalled'], (int) SettingsManager::get('last_cache'), $now),
+			self::dbAccessCheck(!empty(SettingsManager::get('cluster_db_allowlist')) || DbAllowlist::lockedDown()),
 		];
 		// Failing and warning rows first: the card scrolls, and a red row below
 		// the fold would only be a number in the badge. The sort is stable.
@@ -305,6 +307,21 @@ class DashboardController extends BaseAdminController {
 			return self::check('warn', 'tabler-bolt', 'dashboard_check_cache', Translator::get('dashboard_check_cache_building'));
 		}
 		return self::check('ok', 'tabler-bolt', 'dashboard_check_cache', $rDetail);
+	}
+
+	/**
+	 * MAIN's database ports (MariaDB 3306, Redis 6379). Both listen on every
+	 * address, behind their passwords only, unless the allowlist firewall
+	 * (`cluster_db_allowlist`, or a lockdown) limits them to the fleet. Open is
+	 * a warning, never a failure: nothing is broken, and /healthz stays up.
+	 *
+	 * @return array{state:string,icon:string,title:string,detail:string,help:string,key:string}
+	 */
+	public static function dbAccessCheck(bool $limited): array {
+		if ($limited) {
+			return self::check('ok', 'tabler-shield-lock', 'dashboard_check_dbaccess', Translator::get('dashboard_check_dbaccess_ok'));
+		}
+		return self::check('warn', 'tabler-shield-lock', 'dashboard_check_dbaccess', Translator::get('dashboard_check_dbaccess_open'), Translator::get('dashboard_status_dbaccess_text'));
 	}
 
 	/**

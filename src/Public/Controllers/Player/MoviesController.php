@@ -19,6 +19,10 @@ class MoviesController extends BasePlayerController {
 	public function index() {
 		global $db, $rUserInfo;
 
+		// The pages of the plain list; a "popular" list has none.
+		$rPage = 1;
+		$rLimit = 48;
+
 		if (RequestManager::has('sort') && RequestManager::get('sort') == 'popular') {
 			$rPopular = (igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['movies'] ?: []);
 
@@ -116,7 +120,7 @@ class MoviesController extends BasePlayerController {
 			'rSortBy' => isset($rSortBy) ? $rSortBy : null,
 			'rCategoryID' => isset($rCategoryID) ? $rCategoryID : null,
 			'rSearchBy' => isset($rSearchBy) ? $rSearchBy : null,
-			'rPage' => isset($rPage) ? $rPage : 1,
+			'rPage' => $rPage,
 			'rPages' => isset($rPages) ? $rPages : 1,
 			'rPagination' => isset($rPagination) ? $rPagination : [],
 			'rYearStart' => isset($rYearStart) ? $rYearStart : 1900,

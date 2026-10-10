@@ -480,6 +480,8 @@ Settings:
 
 The connection that has just been admitted is never the one closed: `StreamAuth::validateConnections()` passes its uuid, and only connections older than it are candidates. An RTMP viewer is treated the same way (its uuid is `ConnectionTracker::rtmpUuid()`): admitted on a full line, it stays and an older connection of the line is closed, chosen by the priority above (the RTMP callback passes no user agent, so: one from the same IP first, otherwise the oldest). On a node whose CONNECTIONS flow is on, the check goes to MAIN as a `conn.limit` event carrying the connection's uuid and the viewer's address — for RTMP the address nginx-rtmp reported, since the callback itself comes from the server. The node makes the check itself only when the event cannot be queued.
 
+On MAIN the checks wait in `tmp/cluster_limits/` for `cron:signals`, which runs 200 a second (`ConnectionLimits::drain()`). A node asks on every request of a line with a limit, a playlist refresh included, so the queue is bounded: a viewer has one file, which its next request replaces; passes take the files in turn; a check that waited five minutes is dropped unrun (the line is judged again on its viewers' next requests); and nothing is queued while no pass has run for a minute. An admission's cut is dropped when its viewer has not opened by the time its reservation runs out.
+
 ### ShutdownHandler
 
 File: `src/Streaming/Lifecycle/ShutdownHandler.php`

@@ -135,4 +135,19 @@ final class ConnectionTrackerBatchTest extends TestCase {
 		$this->assertSame([], ConnectionTracker::onlineClientCounts([], 1));
 		$this->assertSame([], ConnectionTracker::attachedRestreamCounts([], 1));
 	}
+
+	/**
+	 * A request names a connection by its uuid (the Redis handler has no row
+	 * ids) or by its row id. The admin API's "kill connection" made both a
+	 * number, so under the Redis handler it named connection 0: none.
+	 */
+	public function testAConnectionIsNamedByItsUuidOrItsRowId(): void {
+		$rUuid = md5('viewer');
+		$this->assertSame($rUuid, ConnectionTracker::reference($rUuid));
+		$this->assertSame('4711', ConnectionTracker::reference(4711));
+		$this->assertSame('4711', ConnectionTracker::reference('4711'));
+		foreach (['', null, [], 'LIVE', 'ENDED', "a\nb", '../x', str_repeat('a', 65)] as $rNone) {
+			$this->assertSame('', ConnectionTracker::reference($rNone), var_export($rNone, true));
+		}
+	}
 }

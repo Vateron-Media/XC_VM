@@ -202,6 +202,7 @@ return [
 		'stream_max_analyze',
 		'thread_count',
 		'tmdb_language',
+		'update_channel',
 		'update_channel_bin',
 		'update_channel_fanout',
 		'update_channel_main',

@@ -67,6 +67,8 @@ Downloads and applies the latest update from GitHub. Usually triggered automatic
 | `Beta` | Stable releases and pre-releases |
 | `Dev (nightly)` | Everything in `Beta`, plus nightly builds of the `main` branch (`X.Y.Z-dev.N`) |
 
+A load balancer still on stable 2.3.9, or on a beta up to 2.4.x, reads one setting for its channel (`update_channel`: `stable` or `unstable`). MAIN keeps it in step with the panel channel (`unstable` for `Beta` and `Dev`), so such a server follows the panel onto the betas. From 2.6.0 to 2.6.4 that setting was missing and such a load balancer stayed on its release, answering "Already up to date": update MAIN first, then update the load balancer again.
+
 `Dev` is offered for the panel only. Nightly builds are published to the separate [XC_VM_Dev](https://github.com/Vateron-Media/XC_VM_Dev/releases) repository, at most once a day and only when `main` has changed.
 
 > ⚠️ Nightly builds are untested. Use `Dev` on test servers only: a nightly may apply a database migration that a later build revises.

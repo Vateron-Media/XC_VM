@@ -316,8 +316,49 @@ class PlayerApiController {
 			case 'get_vod_streams':
 				return $this->getVodStreams();
 			default:
-				return $this->getDefaultInfo();
+				return $this->getDefaultInfo() + ($this->panelAPI ? $this->getLegacyLists($rCategories) : []);
 		}
+	}
+
+	/**
+	 * What the legacy panel_api.php answers after the sign-in data: the line's
+	 * categories by type, and its channels, radios and movies by stream id.
+	 * Built from the lists player_api serves, so both follow the same bouquets,
+	 * order and category templates.
+	 *
+	 * @param array $rCategories The loaded categories.
+	 * @return array ['categories' => [type => rows], 'available_channels' => [stream id => row]]
+	 */
+	private function getLegacyLists(array $rCategories): array {
+		$rLists = ['series' => $this->getSeriesCategories($rCategories), 'movie' => $this->getVodCategories($rCategories), 'live' => $this->getLiveCategories($rCategories)];
+		$rNames = array_column(array_merge(...array_values($rLists)), 'category_name', 'category_id');
+		$rTypeNames = ['live' => 'Live Streams', 'movie' => 'Movies', 'created_live' => 'Created Live Channels', 'radio_streams' => 'Radio'];
+		$rChannels = [];
+
+		foreach (array_merge($this->getLiveStreams(), $this->getVodStreams()) as $rRow) {
+			// A stream listed under several categories is given once, under the first.
+			$rChannels[$rRow['stream_id']] ??= [
+				'num' => $rRow['num'],
+				'name' => $rRow['name'],
+				'stream_type' => $rRow['stream_type'],
+				'type_name' => $rTypeNames[$rRow['stream_type']] ?? '',
+				'stream_id' => strval($rRow['stream_id']),
+				'stream_icon' => $rRow['stream_icon'],
+				'epg_channel_id' => $rRow['epg_channel_id'] ?? null,
+				'added' => strval($rRow['added']),
+				'category_name' => $rNames[$rRow['category_id']] ?? null,
+				'category_id' => $rRow['category_id'],
+				'series_no' => null,
+				'live' => $rRow['stream_type'] === 'movie' ? '0' : '1',
+				'container_extension' => $rRow['container_extension'] ?? null,
+				'custom_sid' => $rRow['custom_sid'],
+				'tv_archive' => $rRow['tv_archive'] ?? 0,
+				'direct_source' => $rRow['direct_source'],
+				'tv_archive_duration' => $rRow['tv_archive_duration'] ?? 0,
+			];
+		}
+
+		return ['categories' => $rLists, 'available_channels' => $rChannels];
 	}
 
 	private function getEpg() {
@@ -1039,10 +1080,6 @@ class PlayerApiController {
 			'max_connections' => strval($this->userInfo['max_connections'] ?? '1'),
 			'allowed_output_formats' => $this->getOutputFormats($this->userInfo['allowed_outputs'])
 		];
-
-		if (!empty($token)) {
-			$output['user_info']['token'] = $token;
-		}
 
 		$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 			|| (!empty($_SERVER['REQUEST_SCHEME']) && strtolower($_SERVER['REQUEST_SCHEME']) === 'https')
