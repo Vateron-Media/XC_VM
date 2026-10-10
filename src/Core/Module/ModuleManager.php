@@ -198,7 +198,11 @@ class ModuleManager {
 		$this->assertCoreCompatible($moduleDir, $name);
 		// Guarantee a hash_id (generating + persisting one when the upload lacks it)
 		// so the module is always placed in a `{name}_{hash5}` directory, never bare.
-		$targetDir = $this->modulesPath . '/' . $this->moduleDirName($name, $this->ensureHashId($moduleDir));
+		$hashId    = $this->ensureHashId($moduleDir);
+		$targetDir = $this->modulesPath . '/' . $this->moduleDirName($name, $hashId);
+
+		// A release that renamed the module: the copy installed under its old name.
+		$this->adoptRenamedCopies($name, $hashId, $moduleDir);
 
 		// Remove every other copy of this module (a legacy bare `{name}` directory,
 		// or an install under a different hash). The source is skipped on purpose: a
@@ -338,6 +342,38 @@ class ModuleManager {
 				$this->deleteDirectory($dir);
 			}
 		}
+	}
+
+	/**
+	 * Hand an install made under a module's old name over to $name. A directory
+	 * whose manifest carries the same hash_id under another name is this module
+	 * before a rename: its config/modules.php entry (state, installed_version)
+	 * moves to $name and the directory goes, so the loader never boots both and
+	 * the schema is not installed a second time.
+	 */
+	private function adoptRenamedCopies(string $name, string $hashId, string $keep): void {
+		$keepReal = realpath($keep);
+		foreach (glob($this->modulesPath . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
+			$meta = json_decode((string) @file_get_contents($dir . '/module.json'), true);
+			$old  = is_array($meta) ? trim((string) ($meta['name'] ?? '')) : '';
+			if ($old === '' || $old === $name || realpath($dir) === $keepReal
+				|| strtolower((string) ($meta['hash_id'] ?? '')) !== $hashId) {
+				continue;
+			}
+			$this->renameOverrides($old, $name);
+			$this->deleteDirectory($dir);
+		}
+	}
+
+	/** Move $old's config/modules.php entry to $new, unless $new already has one. */
+	private function renameOverrides(string $old, string $new): void {
+		$overrides = $this->readOverrides();
+		if (!isset($overrides[$old])) {
+			return;
+		}
+		$overrides[$new] ??= $overrides[$old];
+		unset($overrides[$old]);
+		$this->writeOverrides($overrides);
 	}
 
 	/**
@@ -1237,6 +1273,18 @@ class ModuleManager {
 
 				if ($backupDir !== null) {
 					$this->deleteDirectory($backupDir);
+				}
+
+				// A release that renamed the module landed in the old directory and
+				// config entry — both move to the new name (identity was pinned above).
+				$newName = $this->sanitizeModuleName($this->manifestNameFromDir($targetDir));
+				if ($newName !== $name) {
+					$this->renameOverrides($name, $newName);
+					$renamedDir = $this->modulesPath . '/' . $this->moduleDirName($newName, $this->ensureHashId($targetDir));
+					if (!@rename($targetDir, $renamedDir)) {
+						$this->copyDirectory($targetDir, $renamedDir);
+						$this->deleteDirectory($targetDir);
+					}
 				}
 
 				return $resolvedVer;
