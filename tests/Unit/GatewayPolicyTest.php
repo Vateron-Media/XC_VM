@@ -93,9 +93,9 @@ final class GatewayPolicyTest extends TestCase {
 		$this->assertSame(['server' => 'XC', 'protection' => true, 'altsvc_port' => 8443], $rPolicy['headers']);
 		$this->assertSame(0, $rPolicy['serve_until'], 'no lease limits a node without one');
 		$this->assertSame(['cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH, 'agent_sock' => AgentPaths::file(AgentPaths::SOCKET), 'spool' => AgentPaths::file(AgentPaths::DIR . 'spool/'), 'flows' => AgentPaths::file(AgentPaths::DIR . 'flows.json')], $rPolicy['paths']);
-		$this->assertSame(['use_buffer' => false, 'on_demand_instant_off' => false, 'disallow_2nd_ip_con' => false, 'disallow_2nd_ip_max' => 0, 'unique_header' => false], $rPolicy['live'], 'use_buffer unset is live.php\'s "== 0"');
-		$rLive = GatewayPolicy::build($this->settings(['use_buffer' => '1', 'on_demand_instant_off' => 1, 'disallow_2nd_ip_con' => 1, 'disallow_2nd_ip_max' => '3', 'send_unique_header' => 'xc']), $this->servers(), 1, self::NOW)['live'];
-		$this->assertSame(['use_buffer' => true, 'on_demand_instant_off' => true, 'disallow_2nd_ip_con' => true, 'disallow_2nd_ip_max' => 3, 'unique_header' => true], $rLive);
+		$this->assertSame(['use_buffer' => false, 'on_demand_instant_off' => false, 'disallow_2nd_ip_con' => false, 'disallow_2nd_ip_max' => 0, 'unique_header' => false, 'ts' => true, 'client_prebuffer' => 0, 'restreamer_prebuffer' => 0, 'seg_time' => 1], $rPolicy['live'], 'use_buffer unset is live.php\'s "== 0"; seg_time at least a second');
+		$rLive = GatewayPolicy::build($this->settings(['use_buffer' => '1', 'on_demand_instant_off' => 1, 'disallow_2nd_ip_con' => 1, 'disallow_2nd_ip_max' => '3', 'send_unique_header' => 'xc', 'client_prebuffer' => '30', 'restreamer_prebuffer' => 5, 'seg_time' => '10']), $this->servers(), 1, self::NOW)['live'];
+		$this->assertSame(['use_buffer' => true, 'on_demand_instant_off' => true, 'disallow_2nd_ip_con' => true, 'disallow_2nd_ip_max' => 3, 'unique_header' => true, 'ts' => true, 'client_prebuffer' => 30, 'restreamer_prebuffer' => 5, 'seg_time' => 10], $rLive, 'a TS reconnect\'s prebuffer, as live.php picks it');
 		$this->assertSame([false, []], [$rPolicy['verify_host'], $rPolicy['allowed_domains']]);
 		$rHost = GatewayPolicy::build($this->settings(['verify_host' => 1]), $this->servers(), 1, self::NOW, ['tv.example', 7, 'lb.example']);
 		$this->assertSame([true, ['tv.example', 'lb.example']], [$rHost['verify_host'], $rHost['allowed_domains']], 'the host check and its list, names only');
