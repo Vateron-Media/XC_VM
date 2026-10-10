@@ -81,7 +81,7 @@ final class ScanMinorFixesTest extends TestCase {
 	public function testArchiveCleanupTakesTheStreamsDirectoryOnly(): void {
 		$rSource = self::source('Cli/CronJobs/CleanupCronJob.php');
 		$this->assertStringContainsString('basename($rStreamID) === (string) $rID && is_dir($rStreamID)', $rSource);
-		$this->assertStringContainsString("exec('rm -rf ' . escapeshellarg(\$rStreamID));", $rSource);
+		$this->assertStringContainsString("ProcessRunner::run(['rm', '-rf', '--', \$rStreamID], true);", $rSource);
 	}
 
 	/** Shown as stored, "s:<server>:<path>": shown without it and posted back, an edit lost the movie's server. */

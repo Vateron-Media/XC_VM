@@ -136,7 +136,8 @@ class CleanupCronJob implements CommandInterface {
 				if (0 < $rID && basename($rStreamID) === (string) $rID && is_dir($rStreamID)) {
 					if (!isset($rArchive[$rID])) {
 						echo 'Deleting: ' . $rStreamID . "\n";
-						exec('rm -rf ' . escapeshellarg($rStreamID));
+						// An argument list, no shell: the directory is one argument whatever its name.
+						ProcessRunner::run(['rm', '-rf', '--', $rStreamID], true);
 					} else {
 						$rDuration = $rArchive[$rID];
 						$rDeleteBefore = time() - $rDuration * 86400 + 3600;
