@@ -166,19 +166,19 @@ class ErrorResponder {
 	}
 
 	/**
-	 * Apply an outcome: echo the body, set the HTTP status, then terminate.
+	 * Apply an outcome: set the HTTP status, echo the body, then terminate.
 	 *
 	 * The ONE side-effecting method. In test mode a terminating outcome throws the
-	 * exception instead of calling exit(). Ordering (echo -> http_response_code ->
-	 * exit) mirrors the legacy generate404() exactly.
+	 * exception instead of calling exit(). The status goes first: once the body
+	 * is out (no output buffer) the headers are sent and it could not be set.
 	 */
 	public static function emit(ErrorResponseException $outcome): void {
-		if ($outcome->body !== '') {
-			echo $outcome->body;
+		if ($outcome->httpCode !== null && !headers_sent()) {
+			http_response_code($outcome->httpCode);
 		}
 
-		if ($outcome->httpCode !== null) {
-			http_response_code($outcome->httpCode);
+		if ($outcome->body !== '') {
+			echo $outcome->body;
 		}
 
 		if ($outcome->shouldExit) {

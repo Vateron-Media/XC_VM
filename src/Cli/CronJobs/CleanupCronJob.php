@@ -120,7 +120,7 @@ class CleanupCronJob implements CommandInterface {
 		if (intval(SettingsManager::get('cleanup')) == 1) {
 			$rStreams = NodeStreams::fileStreams($db);
 			foreach ($rStreams === null ? [] : glob(STREAMS_PATH . '*') as $rFilename) {
-				$rID = intval(rtrim(explode('.', basename($rFilename))[0], '_')) . "\n";
+				$rID = intval(rtrim(explode('.', basename($rFilename))[0], '_'));
 				if (0 < $rID && !in_array($rID, $rStreams)) {
 					echo 'Deleting: ' . $rFilename . "\n";
 					unlink($rFilename);
@@ -133,7 +133,7 @@ class CleanupCronJob implements CommandInterface {
 				if (0 < $rID && is_dir(ARCHIVE_PATH . $rID)) {
 					if (!isset($rArchive[$rID])) {
 						echo 'Deleting: ' . $rStreamID . "\n";
-						exec('rm -rf ' . $rStreamID);
+						exec('rm -rf ' . escapeshellarg($rStreamID));
 					} else {
 						$rDuration = $rArchive[$rID];
 						$rDeleteBefore = time() - $rDuration * 86400 + 3600;
@@ -151,7 +151,7 @@ class CleanupCronJob implements CommandInterface {
 			}
 			$rCreated = NodeStreams::createdIDs($db);
 			foreach ($rCreated === null ? [] : glob(CREATED_PATH . '*') as $rFilename) {
-				$rID = intval(rtrim(explode('.', basename($rFilename))[0], '_')) . "\n";
+				$rID = intval(rtrim(explode('.', basename($rFilename))[0], '_'));
 				if (0 < $rID && !in_array($rID, $rCreated)) {
 					echo 'Deleting: ' . $rFilename . "\n";
 					unlink($rFilename);
