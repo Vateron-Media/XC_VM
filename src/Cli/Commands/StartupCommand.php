@@ -225,8 +225,11 @@ class StartupCommand implements CommandInterface {
 	 * commands), cron:root_mysql and the module licences, plus whatever the
 	 * modules ask for. Static and public because `status` installs the same
 	 * list — two writers meant the second one deleted what the first added.
+	 * root_signals installs it again when the modules change.
+	 *
+	 * @return bool Whether root's crontab holds the list now (it did, or it was written).
 	 */
-	public static function installRootCrontab(): void {
+	public static function installRootCrontab(): bool {
 		$rCrons = [];
 		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # XC_VM';
 		// MAIN's signed root commands (cluster API, Phase 4); a no-op until the node's root pin exists.
@@ -272,7 +275,7 @@ class StartupCommand implements CommandInterface {
 		// Written only when the list changed: every `startup` and `status` comes here.
 		if ($rOutput === $rInstalled) {
 			echo "Crontab already installed\n";
-			return;
+			return true;
 		}
 		// The whole list in a file before root's crontab is touched. Not in
 		// tmp/: that tmpfs can be full, and in the system's temporary
@@ -282,7 +285,7 @@ class StartupCommand implements CommandInterface {
 		if ($rCronFile === false || @file_put_contents($rCronFile, $rText) !== strlen($rText)) {
 			@unlink((string) $rCronFile);
 			echo "Crontab not installed: its new list could not be written\n";
-			return;
+			return false;
 		}
 		exec('sudo chattr -i /var/spool/cron/crontabs/root');
 		// `crontab -` takes its list on standard input, here that file: it
@@ -293,6 +296,7 @@ class StartupCommand implements CommandInterface {
 		exec('sudo chattr +i /var/spool/cron/crontabs/root');
 		@unlink($rCronFile);
 		echo $rCode === 0 ? "Crontab installed\n" : "Crontab not installed: crontab refused its new list\n";
+		return $rCode === 0;
 	}
 
 	private function generateCacheIfNeeded(): void {

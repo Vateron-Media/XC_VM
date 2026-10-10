@@ -4,6 +4,7 @@ namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\Commands\FfmpegBuildsCommand;
+use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\Commands\UpdateCommand;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Cache\FileCache;
@@ -93,9 +94,37 @@ class RootSignalsCronJob implements CommandInterface {
 		cli_set_process_title('XC_VM[RootSignals]');
 		file_put_contents(CONFIG_PATH . 'signals.last', time());
 
+		self::refreshModuleCrons();
 		$this->loadCron();
 
 		return 0;
+	}
+
+	/**
+	 * Root's crontab again once config/modules.php has changed. A module
+	 * installed, enabled, disabled or removed from the panel brings or takes
+	 * its cron lines (CronProviderInterface), and only `startup` and `status`
+	 * wrote them: a module's cron did not run until the next restart (the
+	 * anti-abuse shield, and with it its honeypot ports). The hash of the
+	 * modules.php last written from is kept in config/crontab.modules, and
+	 * left as it was when the crontab could not be written, to try again.
+	 *
+	 * @param (callable(): bool)|null $rWrite What writes the crontab (tests); StartupCommand::installRootCrontab().
+	 * @param string|null $rDir The config directory (tests); CONFIG_PATH.
+	 * @return bool Whether the crontab was written.
+	 */
+	public static function refreshModuleCrons(?callable $rWrite = null, ?string $rDir = null): bool {
+		$rDir ??= CONFIG_PATH;
+		$rHash = @md5_file($rDir . 'modules.php');
+		$rMark = $rDir . 'crontab.modules';
+		if ($rHash === false || @file_get_contents($rMark) === $rHash) {
+			return false;
+		}
+		if (!($rWrite ?? [StartupCommand::class, 'installRootCrontab'])()) {
+			return false;
+		}
+		@file_put_contents($rMark, $rHash);
+		return true;
 	}
 
 	/**
