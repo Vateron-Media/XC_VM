@@ -5,6 +5,7 @@ namespace XcVm\Core\Gateway;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\AgentPaths;
+use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\NodeLease;
 use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Config\OpensslExtra;
@@ -71,14 +72,19 @@ final class GatewayPolicy {
 	}
 
 	/**
-	 * The node's mode: the setting, and off whenever fanout does not deliver
-	 * (switched off or unlicensed), since the gateway serves from fanout.
+	 * The node's mode: the setting as ClusterSettings::enum() takes it (a value
+	 * that is not a mode is its default), and off whenever fanout does not
+	 * deliver (switched off or unlicensed), since the gateway serves from
+	 * fanout. Off too where the setting is missing: a node whose MAIN has not
+	 * sent it yet.
 	 *
 	 * @param array<string, mixed> $rSettings
 	 */
 	public static function mode(array $rSettings): string {
-		$rMode = (string) ($rSettings['gateway_mode'] ?? 'off');
-		return in_array($rMode, self::MODES, true) && !FanoutMode::legacyDelivery($rSettings) ? $rMode : 'off';
+		if (!array_key_exists('gateway_mode', $rSettings) || FanoutMode::legacyDelivery($rSettings)) {
+			return 'off';
+		}
+		return ClusterSettings::enum('gateway_mode', $rSettings['gateway_mode']);
 	}
 
 	/**
