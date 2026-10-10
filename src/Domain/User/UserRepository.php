@@ -43,6 +43,29 @@ class UserRepository {
 	}
 
 	/**
+	 * The name a line's username and password are looked up by in the lines
+	 * cache (`line_c_<key>`): a hash of the two, with the first one's length,
+	 * so no two pairs share a name. It was the pair itself joined by `_`:
+	 * every password stood in a file name (and in the log line of a write
+	 * that failed), `a_b` + `c` named the same file as `a` + `b_c`, and a
+	 * pair with a `/` or a long one had no entry at all.
+	 *
+	 * @param bool $rCaseSensitive The `case_sensitive_line` setting.
+	 */
+	public static function credentialKey(bool $rCaseSensitive, string $rUsername, string $rPassword): string {
+		if (!$rCaseSensitive) {
+			$rUsername = strtolower($rUsername);
+			$rPassword = strtolower($rPassword);
+		}
+		return hash('sha256', strlen($rUsername) . ':' . $rUsername . $rPassword);
+	}
+
+	/** The name the lookup had before credentialKey(): still read until the next cache pass has renamed every line's. */
+	public static function legacyCredentialKey(bool $rCaseSensitive, string $rUsername, string $rPassword): string {
+		return $rCaseSensitive ? $rUsername . '_' . $rPassword : strtolower($rUsername) . '_' . strtolower($rPassword);
+	}
+
+	/**
 	 * Load the raw line row for a streaming request from cache files or the DB,
 	 * resolving credentials (32-char access token, username+password, or id).
 	 * `$rUserID` is resolved in place (by reference) so the caller's cached
@@ -63,8 +86,12 @@ class UserRepository {
 				$rTokenPath = LINES_TMP_PATH . 'line_t_' . $rKey;
 				$rUserID = file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0;
 			} elseif (!empty($rUsername) && !empty($rPassword)) {
-				$rKey = $rSettings['case_sensitive_line'] ? ($rUsername . '_' . $rPassword) : (strtolower($rUsername) . '_' . strtolower($rPassword));
-				$rCachePath = LINES_TMP_PATH . 'line_c_' . $rKey;
+				$rSensitive = !empty($rSettings['case_sensitive_line']);
+				$rCachePath = LINES_TMP_PATH . 'line_c_' . self::credentialKey($rSensitive, $rUsername, $rPassword);
+				if (!file_exists($rCachePath)) {
+					// An entry from before the names were hashed, until the next cache pass renames it.
+					$rCachePath = LINES_TMP_PATH . 'line_c_' . self::legacyCredentialKey($rSensitive, $rUsername, $rPassword);
+				}
 				$rUserID = file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0;
 			}
 
@@ -96,8 +123,7 @@ class UserRepository {
 			if ($rCached && $rUserID > 0) {
 				FileCache::writeAtomic(LINES_TMP_PATH . 'line_i_' . $rUserID, igbinary_serialize($row));
 				if (!empty($row['username']) && !empty($row['password'])) {
-					$rKey = !empty($rSettings['case_sensitive_line']) ? ($row['username'] . '_' . $row['password']) : (strtolower($row['username']) . '_' . strtolower($row['password']));
-					FileCache::writeAtomic(LINES_TMP_PATH . 'line_c_' . $rKey, (string) $rUserID);
+					FileCache::writeAtomic(LINES_TMP_PATH . 'line_c_' . self::credentialKey(!empty($rSettings['case_sensitive_line']), (string) $row['username'], (string) $row['password']), (string) $rUserID);
 				}
 				if (!empty($row['access_token'])) {
 					FileCache::writeAtomic(LINES_TMP_PATH . 'line_t_' . $row['access_token'], (string) $rUserID);

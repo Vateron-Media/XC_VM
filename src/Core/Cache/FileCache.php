@@ -65,16 +65,23 @@ class FileCache implements CacheInterface {
 	public function get($key, $maxAge = null) {
 		$file = $this->basePath . $key;
 
-		if (!file_exists($file)) {
+		// Asked of the file itself each time: PHP keeps the last stat it made.
+		clearstatcache(true, $file);
+		$stat = @stat($file);
+		if ($stat === false) {
+			unset(self::$rRead[$file]);
 			return false;
 		}
 
 		// Check TTL based on file modification time
-		if ($maxAge !== null) {
-			$age = time() - filemtime($file);
-			if ($age >= $maxAge) {
-				return false;
-			}
+		$now = time();
+		if ($maxAge !== null && $now - $stat['mtime'] >= $maxAge) {
+			return false;
+		}
+
+		$read = self::$rRead[$file] ?? null;
+		if ($read !== null && $read[0] === $stat['ino'] && $read[1] === $stat['mtime'] && $read[2] === $stat['size']) {
+			return $read[3];
 		}
 
 		$data = @file_get_contents($file);
@@ -88,10 +95,33 @@ class FileCache implements CacheInterface {
 
 		if ($result === false) {
 			@unlink($file);
+		} elseif ($stat['mtime'] < $now) {
+			if (count(self::$rRead) >= self::READ_MEMO) {
+				self::$rRead = [];
+			}
+			self::$rRead[$file] = [$stat['ino'], $stat['mtime'], $stat['size'], $result];
 		}
 
 		return $result;
 	}
+
+	/** How many files' values a process keeps (the caches read over and over are a handful). */
+	private const READ_MEMO = 32;
+
+	/**
+	 * What this process last read of each file: path => [inode, mtime, size,
+	 * value]. A file that is still the one read is not read and decoded again:
+	 * the servers' cache was read whole for every row of a table and every
+	 * `ServerRepository::getAll()[$id]` of a request.
+	 *
+	 * A write replaces the file (writeAtomic(): a new inode), so the three
+	 * together tell a change. They can coincide for a file written twice
+	 * within one second, so a value is kept only once its file's second is
+	 * over: no later write can carry that time again.
+	 *
+	 * @var array<string, array{0: int, 1: int, 2: int, 3: mixed}>
+	 */
+	private static array $rRead = [];
 
 	/**
 	 * {@inheritdoc}

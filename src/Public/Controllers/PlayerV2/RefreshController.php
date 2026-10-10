@@ -26,8 +26,11 @@ class RefreshController extends BasePlayerV2Controller {
 			if (defined('LINES_TMP_PATH')) {
 				@unlink(LINES_TMP_PATH . 'line_i_' . $userId);
 				if (!empty($username) && !empty($password)) {
-					@unlink(LINES_TMP_PATH . 'line_c_' . strtolower($username . '_' . $password));
-					@unlink(LINES_TMP_PATH . 'line_c_' . ($username . '_' . $password));
+					// Under either case setting, by the lookup's name and the one it had before.
+					foreach ([true, false] as $rSensitive) {
+						@unlink(LINES_TMP_PATH . 'line_c_' . UserRepository::credentialKey($rSensitive, (string) $username, (string) $password));
+						@unlink(LINES_TMP_PATH . 'line_c_' . UserRepository::legacyCredentialKey($rSensitive, (string) $username, (string) $password));
+					}
 				}
 				if (!empty($rUserInfo['access_token'])) {
 					@unlink(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token']);

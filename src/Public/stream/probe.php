@@ -4,6 +4,7 @@ use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Streaming\Delivery\StreamRedirector;
 
 /**
@@ -21,6 +22,8 @@ register_shutdown_function('shutdown');
 // The path to probe is one plain value: a list of them is no path.
 if (isset($rRequest['data']) && !is_array($rRequest['data'])) {
 	$rIP = $_SERVER['REMOTE_ADDR'];
+	// The bouquets, for the line's sign-in below (the streaming boot no longer loads them for every request).
+	$rBouquets ??= CacheReader::get('bouquets') ?: [];
 	$rPath = base64_decode($rRequest['data']);
 	$rPathSize = count(explode('/', $rPath));
 	$rUserInfo = $rStreamID = $rUsername = $rPassword = null;

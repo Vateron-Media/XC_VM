@@ -108,4 +108,39 @@ final class FileCacheTest extends TestCase {
 	public function testWriteAtomicFailsIntoMissingDirectory(): void {
 		$this->assertFalse(FileCache::writeAtomic($this->dir . '/missing/sub/file', 'x'));
 	}
+
+	/**
+	 * A file that is still the one read is not read and decoded again by the
+	 * same process; one that was replaced is; and a value read within its
+	 * file's own second is not kept (a second write in it could look the same).
+	 */
+	public function testAFileIsDecodedOnceWhileItIsTheSameFile(): void {
+		$file = $this->cache->getPath('servers');
+		$this->assertTrue($this->cache->set('servers', ['a' => 1]));
+		touch($file, time() - 10);
+		$this->assertSame(['a' => 1], $this->cache->get('servers'));
+
+		// The same inode, time and size, other bytes: only a second read would see them.
+		$inPlace = igbinary_serialize(['a' => 2]);
+		$this->assertSame(filesize($file), strlen($inPlace));
+		$handle = fopen($file, 'r+');
+		fwrite($handle, $inPlace);
+		fclose($handle);
+		touch($file, time() - 10);
+		$this->assertSame(['a' => 1], $this->cache->get('servers'), 'not read again');
+		$this->assertFalse($this->cache->get('servers', 5), 'its age still counts');
+
+		// Replaced, as every writer replaces it: a new file, read again.
+		$this->assertTrue($this->cache->set('servers', ['a' => 3]));
+		$this->assertSame(['a' => 3], $this->cache->get('servers'));
+
+		// Read in the second it was written in: not kept.
+		$handle = fopen($file, 'r+');
+		fwrite($handle, igbinary_serialize(['a' => 4]));
+		fclose($handle);
+		$this->assertSame(['a' => 4], $this->cache->get('servers'));
+
+		$this->cache->delete('servers');
+		$this->assertFalse($this->cache->get('servers'));
+	}
 }

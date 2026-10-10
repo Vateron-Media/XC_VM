@@ -11,6 +11,7 @@ use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Process\Multithread;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Stream\StreamCacheBuilder;
+use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Cache\CacheRunState;
 
 /**
@@ -115,19 +116,20 @@ class CacheEngineCronJob implements CommandInterface {
 	private function getChangedLines(): array {
 		global $db;
 		$rReturn = ['changes' => [], 'delete_i' => [], 'delete_c' => [], 'delete_t' => []];
-		$cacheMemoryAllocation = glob(LINES_TMP_PATH . 'line_i_*');
-		$cacheFailureHandler = glob(LINES_TMP_PATH . 'line_c_*');
-		$cacheSuccessIndicator = glob(LINES_TMP_PATH . 'line_t_*');
 		$cacheRevalidationCheck = $cacheDataCompression = $cacheDataDecompression = [];
 		$db->query('SELECT `id`, `username`, `password`, `access_token`, UNIX_TIMESTAMP(`updated`) AS `updated` FROM `lines`;');
 		if ($db->dbh && $db->result) {
 			if ($db->result->rowCount() > 0) {
 				foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rRow) {
-					if (!file_exists(LINES_TMP_PATH . 'line_i_' . $rRow['id']) || (filemtime(LINES_TMP_PATH . 'line_i_' . $rRow['id']) ?: 0) <= $rRow['updated']) {
+					// A line without its lookup is rewritten too: the lookups of a cache
+					// built before their names were hashed are made on the first pass
+					// (and the old ones, which no line has any more, dropped below).
+					$rKey = $this->credentialKey($rRow['username'], $rRow['password']);
+					if (!file_exists(LINES_TMP_PATH . 'line_i_' . $rRow['id']) || (filemtime(LINES_TMP_PATH . 'line_i_' . $rRow['id']) ?: 0) <= $rRow['updated'] || !file_exists(LINES_TMP_PATH . 'line_c_' . $rKey)) {
 						$rReturn['changes'][] = $rRow['id'];
 					}
 					$cacheRevalidationCheck[] = $rRow['id'];
-					$cacheDataCompression[] = (SettingsManager::get('case_sensitive_line') ? $rRow['username'] . '_' . $rRow['password'] : strtolower($rRow['username'] . '_' . $rRow['password']));
+					$cacheDataCompression[] = $rKey;
 					if ($rRow['access_token']) {
 						$cacheDataDecompression[] = $rRow['access_token'];
 					}
@@ -135,25 +137,35 @@ class CacheEngineCronJob implements CommandInterface {
 			}
 		}
 		$cacheRevalidationCheck = array_flip($cacheRevalidationCheck);
-		foreach ($cacheMemoryAllocation as $rFile) {
-			$rUserID = (intval(explode('line_i_', $rFile, 2)[1]) ?: null);
-			if ($rUserID && !isset($cacheRevalidationCheck[$rUserID])) {
-				$rReturn['delete_i'][] = $rUserID;
-			}
-		}
 		$cacheDataCompression = array_flip($cacheDataCompression);
-		foreach ($cacheFailureHandler as $rFile) {
-			$cacheExpirationTime = (explode('line_c_', $rFile, 2)[1] ?: null);
-			if ($cacheExpirationTime && !isset($cacheDataCompression[$cacheExpirationTime])) {
-				$rReturn['delete_c'][] = $cacheExpirationTime;
+		$cacheDataDecompression = array_flip($cacheDataDecompression);
+		// The directory read once, a name at a time: three glob()s of it listed
+		// and sorted every file's full path (three files a line) before any was
+		// looked at, a second and half a gigabyte at 200,000 lines, every run.
+		$rDirectory = @opendir(LINES_TMP_PATH);
+		while ($rDirectory !== false && ($rFile = readdir($rDirectory)) !== false) {
+			$rName = substr($rFile, 7);
+			switch (substr($rFile, 0, 7)) {
+				case 'line_i_':
+					$rUserID = intval($rName);
+					if ($rUserID && !isset($cacheRevalidationCheck[$rUserID])) {
+						$rReturn['delete_i'][] = $rUserID;
+					}
+					break;
+				case 'line_c_':
+					if ($rName && !isset($cacheDataCompression[$rName])) {
+						$rReturn['delete_c'][] = $rName;
+					}
+					break;
+				case 'line_t_':
+					if ($rName && !isset($cacheDataDecompression[$rName])) {
+						$rReturn['delete_t'][] = $rName;
+					}
+					break;
 			}
 		}
-		$cacheDataDecompression = array_flip($cacheDataDecompression);
-		foreach ($cacheSuccessIndicator as $rFile) {
-			$rToken = (explode('line_t_', $rFile, 2)[1] ?: null);
-			if ($rToken && !isset($cacheDataDecompression[$rToken])) {
-				$rReturn['delete_t'][] = $rToken;
-			}
+		if ($rDirectory !== false) {
+			closedir($rDirectory);
 		}
 		return $rReturn;
 	}
@@ -467,7 +479,7 @@ class CacheEngineCronJob implements CommandInterface {
 
 	/** The cache key a line's username and password are looked up by (`line_c_<key>`). */
 	private function credentialKey($rUsername, $rPassword): string {
-		return SettingsManager::get('case_sensitive_line') ? $rUsername . '_' . $rPassword : strtolower($rUsername . '_' . $rPassword);
+		return UserRepository::credentialKey((bool) SettingsManager::get('case_sensitive_line'), (string) $rUsername, (string) $rPassword);
 	}
 
 	/**
