@@ -732,7 +732,10 @@ final class ArtefactHashRefusalTest extends TestCase {
 			'|touch ' . $rMark . 'pipe &',
 			'',
 		];
-		$rProgram = 'fwrite(STDERR, "to stderr\n"); echo json_encode(array_slice($argv, 1)), "\n"; exit(3);';
+		// Each line in one write: stdout and stderr are two pipes read as they
+		// come, so a line written in two (the text, then its newline) can have
+		// the other pipe's line land in the middle of it.
+		$rProgram = 'fwrite(STDERR, "to stderr\n"); echo json_encode(array_slice($argv, 1)) . "\n"; exit(3);';
 		$rRun = new \ReflectionMethod(RootSignalsCronJob::class, 'run');
 		[$rCode, $rOutput] = $rRun->invoke(null, array_merge([PHP_BINARY, '-n', '-r', $rProgram, '--'], $rArgs));
 		$this->assertSame(3, $rCode);
