@@ -451,6 +451,29 @@ final class ModuleManagerMigrationsTest extends TestCase {
         $this->assertSame('1.0.0', $this->readOverrides()['upl-mod']['installed_version'] ?? null);
     }
 
+    public function testUploadOfARenamedModuleTakesOverTheOldInstall(): void {
+        // Same hash_id, new name: the old directory must go (else both boot) and
+        // its state must follow (else the module loses installed_version/state).
+        $hash = str_repeat('ef56', 8);
+        $old  = $this->modulesPath . '/old-name_ef56e';
+        mkdir($old, 0775, true);
+        file_put_contents($old . '/module.json', json_encode(['name' => 'old-name', 'hash_id' => $hash, 'version' => '1.0.0']));
+        $this->writeOverrides(['old-name' => ['state' => 'disabled', 'installed_version' => '1.0.0']]);
+
+        try {
+            $this->manager()->uploadAndInstall($this->makeModuleTar('new-name', '1.1.0', $hash));
+        } catch (Error $e) {
+            $this->assertStringContainsString('XC_VM', $e->getMessage()); // LB fan-out, see above
+        }
+
+        $overrides = $this->readOverrides();
+        $this->assertDirectoryExists($this->modulesPath . '/new-name_ef56e');
+        $this->assertDirectoryDoesNotExist($old);
+        $this->assertArrayNotHasKey('old-name', $overrides);
+        $this->assertSame('disabled', $overrides['new-name']['state'] ?? null);
+        $this->assertSame('1.1.0', $overrides['new-name']['installed_version'] ?? null);
+    }
+
     // ── requires_core ─────────────────────────────────────────────────────
 
     public function testUploadRefusesAModuleForAnotherCoreAndKeepsTheInstalledCopy(): void {
