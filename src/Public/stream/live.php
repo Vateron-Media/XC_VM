@@ -459,7 +459,12 @@ if ($rChannelInfo) {
 				DatabaseFactory::close();
 			}
 
-			$rCloseCon = true;
+			// A daemon viewer's record has pid 0 and outlives this worker: the
+			// agent or fanout_sync closes it when the daemon drops the viewer.
+			// The shutdown handler has nothing to close for it (it closes only
+			// this worker's pid) and would delete its marker at once, so neither
+			// is asked of it: no store round-trip after the hand-off.
+			$rCloseCon = !$rTSDaemon;
 
 			if ($rSettings["monitor_connection_status"]) {
 				ob_implicit_flush(true);
@@ -468,7 +473,26 @@ if ($rChannelInfo) {
 				}
 			}
 
-			touch(CONS_TMP_PATH . $rTokenData["uuid"]);
+			if (!$rTSDaemon) {
+				touch(CONS_TMP_PATH . $rTokenData["uuid"]);
+			}
+
+			// The daemon hand-off, the same for proxy and non-proxy channels.
+			// client_prebuffer / restreamer_prebuffer (seconds) → the daemon
+			// front-loads that much keyframe-aligned history on join, filling the
+			// player's cache (without it it sends only the current GOP); a
+			// restreamer's link that asks for a prebuffer gets a segment's time.
+			// The daemon clamps the value to its retention ceiling.
+			$rDaemonHandOff = static function () use ($rUserInfo, $rTokenData, $rSettings, $rStreamID, $rVideoCodec): void {
+				$rDaemonPrebuffer = $rUserInfo["is_restreamer"]
+					? (!empty($rTokenData["prebuffer"])
+						? max(1, intval($rSettings["seg_time"]))
+						: intval($rSettings["restreamer_prebuffer"] ?? 0))
+					: intval($rSettings["client_prebuffer"] ?? 0);
+				header("Content-Type: video/mp2t");
+				header("X-Accel-Buffering: no");
+				header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer . "&vc=" . rawurlencode((string) $rVideoCodec));
+			};
 
 			if ($rChannelInfo["proxy"]) {
 				// ────────────────────────────────────────────────────────────────
@@ -522,19 +546,7 @@ if ($rChannelInfo) {
 				if (!$rTSDaemon) {
 					OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
 				}
-				// client_prebuffer / restreamer_prebuffer (seconds) → the daemon
-				// front-loads that much keyframe-aligned history on join, filling
-				// the player's cache. Without it the daemon sends only the current
-				// GOP (~1s, "no cache"). Same hand-off contract as the non-proxy
-				// $rTSDaemon branch below; the daemon clamps to its retention ceiling.
-				$rDaemonPrebuffer = $rUserInfo["is_restreamer"]
-					? (!empty($rTokenData["prebuffer"])
-						? intval($rSegmentSettings["seg_time"] ?? 0)
-						: intval($rSettings["restreamer_prebuffer"] ?? 0))
-					: intval($rSettings["client_prebuffer"] ?? 0);
-				header("Content-Type: video/mp2t");
-				header("X-Accel-Buffering: no");
-				header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer . "&vc=" . rawurlencode((string) $rVideoCodec));
+				$rDaemonHandOff();
 				exit;
 			}
 
@@ -549,20 +561,7 @@ if ($rChannelInfo) {
 			// arm. With fanout off the chase-read below serves it.
 			// ────────────────────────────────────────────────────────────────
 			if ($rTSDaemon) {
-				// client_prebuffer / restreamer_prebuffer (seconds) → the daemon
-				// front-loads that much keyframe-aligned history on join, filling
-				// the player's cache. The X-Accel hand-off must pass them through or
-				// they would be lost
-				// (the daemon otherwise sends only the current GOP). The daemon
-				// clamps the value to its own retention ceiling.
-				$rDaemonPrebuffer = $rUserInfo["is_restreamer"]
-					? (!empty($rTokenData["prebuffer"])
-						? intval($rSegmentSettings["seg_time"] ?? 0)
-						: intval($rSettings["restreamer_prebuffer"] ?? 0))
-					: intval($rSettings["client_prebuffer"] ?? 0);
-				header("Content-Type: video/mp2t");
-				header("X-Accel-Buffering: no");
-				header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer . "&vc=" . rawurlencode((string) $rVideoCodec));
+				$rDaemonHandOff();
 				exit;
 			}
 

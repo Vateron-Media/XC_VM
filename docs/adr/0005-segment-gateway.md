@@ -51,6 +51,18 @@ StreamingRequestBootstrap's checks (a flood block marker, `verify_host`) apply f
 - The token formats, `live.php`'s refresh and `HlsSequence` now have a second implementation; the shared vectors keep them in step — a change on either side that breaks one fails both suites.
 - Rollback is `gateway_mode = off`: the root cron renders an empty include and reloads nginx within a minute.
 
+## Amendment (2026-10-10): MPEG-TS reconnects
+
+A TS viewer also reaches the node at `/auth/<token>`. Its first request stays PHP's (admission, the connection's creation, the stream's start, a proxy channel's source registered and probed), and PHP then hands the byte path to fanout (`X-Accel-Redirect: /xc_fanout/<id>`), so a session costs one FPM request. Each reconnect with the same token (a player that retries its redirected URL) cost one more. In `segments+playlist` the gateway now answers a known TS viewer's reconnect as it answers an HLS refresh, and as live.php's TS arm does:
+
+- **Judged** in `JudgeLive` with the same checks as a refresh (token, conn store, lease, on-demand instant off, the producer alive, its on-disk playlist, the second-address rule, the IP rule, the line's limit and the spool), then: the record is the token's `uuid` (live.php keys only HLS on the viewer), container `ts`, open, and fanout's (`pid` 0: live.php would kill a PHP worker still feeding it); the stream is fed (`has_data`, in-process).
+- **Served**: the record re-opened in the agent with `pid` 0 and `hls_last_read` (live.php's `updateLive`), `conn.limit` spooled (no viewer marker: live.php's hand-off leaves none), then fanout's own `/live/<id>?c=<uuid>&prebuffer=<s>&vc=<codec>` in-process: the hand-off's URL without the nginx hop, so the viewer is counted under its uuid as before.
+- **To PHP**: a direct-proxy channel (PHP registers its source from the database on each request), an ended connection (PHP re-opens it), a record a PHP worker still feeds, any other container, and a panel whose policy has no `live.ts` (it writes the prebuffer settings: `client_prebuffer`, `restreamer_prebuffer`, `max(1, seg_time)` for a restreamer's link that asks for one).
+- **Verdict** `live serve ts` in `/stats`; shadow compares it with PHP's hand-off (`serve`).
+- **nginx**: no change. The stream runs through `/stream/live`'s location (`proxy_buffering off`, `proxy_read_timeout 60s`); fanout's viewer idle timeout (30 s by default) ends a silent stream first.
+
+live.php's prebuffer for a restreamer's link that asks for one read `$rSegmentSettings` before it was set, so it was always 0; it is now `max(1, seg_time)` (what its legacy arm uses), and the gateway uses the same. live.php's daemon hand-off also no longer asks the shutdown handler to close the connection (it closes only the worker's own pid, never a daemon viewer's 0) nor touches the viewer's marker (which that handler deleted at once). The whole path is mapped in `docs/en/development/ts-delivery.md`.
+
 ## Rollout: shadow, compared with PHP
 
 In shadow, nginx gives PHP and the mirrored copy the same request id (`$request_id`). PHP tells the gateway what it answered once the viewer has the answer (`Core/Gateway/GatewayShadow::watch`, from the stream router: serve, deny, redirect, blocked, status-<code>), and the gateway's `ShadowBook` pairs it with its own verdict, whichever comes first: agree, disagree (with a sample: kind, both answers, stream — never a token), deferred (the gateway would have handed it to PHP) or unmatched. The comparison is kept in `bin/xc_fanout/gateway_shadow.json` across restarts.

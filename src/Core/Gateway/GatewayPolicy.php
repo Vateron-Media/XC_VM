@@ -32,7 +32,8 @@ use XcVm\Streaming\Fanout\FanoutMode;
  *  "restrict_same_ip": true, "ip_subnet_match": false, "encrypt_hls": true,
  *  "headers": {"server": "", "protection": true, "altsvc_port": 0},
  *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
- *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0, "unique_header": false},
+ *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0, "unique_header": false,
+ *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10},
  *  "verify_host": false, "allowed_domains": [],
  *  "conn_store": "agent", "time_offset": 0, "redirect": {"5": ["http://lb5.example:8080"]}}
  * ```
@@ -46,6 +47,11 @@ use XcVm\Streaming\Fanout\FanoutMode;
  * CONNECTIONS flow on (the gateway hears a catch-up viewer there, as
  * ConnectionTracker::heartbeat does), else `php` (MAIN's Redis or MySQL, which
  * the gateway leaves to PHP).
+ *
+ * `live` is what live.php reads for a known viewer's playlist refresh and,
+ * with `ts` (the fields after it are written), for a known MPEG-TS viewer's
+ * reconnect: the seconds of history it joins fanout's stream with
+ * (`?prebuffer=`), as live.php picks them.
  *
  * `serve_until` is NodeLease's fence on this host's clock: the gateway serves
  * nothing past it (0: no lease limits this node), and PHP answers from then.
@@ -131,13 +137,17 @@ final class GatewayPolicy {
 				'cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH,
 				'agent_sock' => AgentPaths::file(AgentPaths::SOCKET), 'spool' => AgentPaths::file(AgentPaths::DIR . 'spool/'), 'flows' => AgentPaths::file(AgentPaths::DIR . 'flows.json'),
 			],
-			// What live.php reads for a playlist refresh, its comparisons made here.
+			// What live.php reads for a playlist refresh or a TS reconnect, its comparisons made here.
 			'live' => [
 				'use_buffer' => !(($rSettings['use_buffer'] ?? null) == 0),
 				'on_demand_instant_off' => !empty($rSettings['on_demand_instant_off']),
 				'disallow_2nd_ip_con' => !empty($rSettings['disallow_2nd_ip_con']),
 				'disallow_2nd_ip_max' => (int) ($rSettings['disallow_2nd_ip_max'] ?? 0),
 				'unique_header' => !empty($rSettings['send_unique_header']),
+				'ts' => true,
+				'client_prebuffer' => (int) ($rSettings['client_prebuffer'] ?? 0),
+				'restreamer_prebuffer' => (int) ($rSettings['restreamer_prebuffer'] ?? 0),
+				'seg_time' => max(1, (int) ($rSettings['seg_time'] ?? 0)),
 			],
 			// StreamingRequestBootstrap's host check, before every stream endpoint.
 			'verify_host' => !empty($rSettings['verify_host']),

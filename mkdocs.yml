@@ -126,6 +126,7 @@ plugins:
             Admin AJAX API: AJAX-API админки
             Streaming Subsystem: Подсистема стриминга
             Streaming Diagnostics: Диагностика стриминга
+            MPEG-TS Delivery: Доставка MPEG-TS
             Cluster API (MAIN ↔ LB): API кластера (MAIN ↔ LB)
             Cluster Seams: Швы кластера
             Event System: Система событий
@@ -193,6 +194,7 @@ nav:
           - Admin AJAX API: en/development/admin-ajax-api.md
           - Streaming Subsystem: en/development/streaming-subsystem.md
           - Streaming Diagnostics: en/development/streaming-diagnostics.md
+          - MPEG-TS Delivery: en/development/ts-delivery.md
           - Cluster API (MAIN ↔ LB): en/development/cluster-api.md
           - Cluster Seams: en/development/cluster-seams.md
           - Event System: en/development/event-system.md
