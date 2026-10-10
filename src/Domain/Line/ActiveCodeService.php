@@ -514,14 +514,6 @@ class ActiveCodeService {
 				$boundUpdated = true;
 			}
 
-			if ($boundUpdated && $updateFields !== []) {
-				$updateParams[] = $codeRow['id'];
-				$db->query(
-					"UPDATE `activation_codes` SET " . implode(', ', $updateFields) . " WHERE `id` = ?;",
-					...$updateParams
-				);
-			}
-
 			// A code bound to a device answers that device only. A request naming
 			// no device (or a different one) is not that device: an absent MAC must
 			// still fail the check, or any client could read a locked code's
@@ -538,6 +530,18 @@ class ActiveCodeService {
 				if (!$requestHasRealDevice || strcasecmp(trim($codeRow['device_id']), trim($explicitDeviceId)) !== 0) {
 					return ['status' => 'DEVICE_MISMATCH', 'message' => 'Code is locked to another hardware device.'];
 				}
+			}
+
+			// The binding is saved once the request has passed the lock, not
+			// before: a request the lock refused (the code, no MAC, a device id
+			// of its own) left that id on the code, and the code's own device
+			// was refused from then on.
+			if ($boundUpdated && $updateFields !== []) {
+				$updateParams[] = $codeRow['id'];
+				$db->query(
+					"UPDATE `activation_codes` SET " . implode(', ', $updateFields) . " WHERE `id` = ?;",
+					...$updateParams
+				);
 			}
 		}
 
