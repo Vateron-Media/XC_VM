@@ -197,6 +197,73 @@ class BruteforceGuard {
 		}
 	}
 
+	/** The lists of MAGSCAN Settings, each empty until an administrator fills it. */
+	private const MAGSCAN_LISTS = ['whitelist_macs' => [], 'blacklist_macs' => [], 'whitelist_ips' => []];
+
+	/**
+	 * The lists as the page posts them, kept: MAC addresses in one form
+	 * (AA:BB:CC:DD:EE:FF), addresses that are addresses, each once.
+	 *
+	 * @param array<string, mixed> $input
+	 * @return array{whitelist_macs: list<string>, blacklist_macs: list<string>, whitelist_ips: list<string>}
+	 */
+	public static function magscanClean(array $input): array {
+		$out = self::MAGSCAN_LISTS;
+		foreach (array_keys($out) as $list) {
+			foreach (is_array($input[$list] ?? null) ? $input[$list] : [] as $value) {
+				if (!is_string($value)) {
+					continue;
+				}
+				$value = trim($value);
+				if ($list === 'whitelist_ips') {
+					$value = filter_var($value, FILTER_VALIDATE_IP) !== false ? $value : '';
+				} else {
+					$value = preg_match('/^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/', $value) ? strtoupper(str_replace('-', ':', $value)) : '';
+				}
+				if ($value !== '' && !in_array($value, $out[$list], true)) {
+					$out[$list][] = $value;
+				}
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * The lists of MAGSCAN Settings, from the `magscan_settings` setting (JSON).
+	 *
+	 * @param array<string, mixed> $settings
+	 * @return array{whitelist_macs: list<string>, blacklist_macs: list<string>, whitelist_ips: list<string>}
+	 */
+	public static function magscanLists(array $settings): array {
+		$lists = json_decode((string) ($settings['magscan_settings'] ?? ''), true);
+		return self::magscanClean(is_array($lists) ? $lists : []);
+	}
+
+	/**
+	 * What MAGSCAN Settings says of a MAC guess from $ip: `bypass` (a
+	 * whitelisted MAC or address: not counted), `block` (a blacklisted MAC:
+	 * its address is blocked at once) or `count` (the guard's own counting).
+	 * $mac is what a caller names the device by: the MAC itself, or the
+	 * sha256 digest the portal hands over, of the MAC in the case it was sent.
+	 *
+	 * @param array<string, mixed> $settings
+	 */
+	public static function magscanVerdict(array $settings, string $ip, string $mac): string {
+		$lists = self::magscanLists($settings);
+		$listed = static function (array $macs) use ($mac): bool {
+			foreach ($macs as $listedMac) {
+				if (in_array($mac, [$listedMac, strtolower($listedMac), hash('sha256', $listedMac), hash('sha256', strtolower($listedMac))], true)) {
+					return true;
+				}
+			}
+			return false;
+		};
+		if (in_array($ip, $lists['whitelist_ips'], true) || $listed($lists['whitelist_macs'])) {
+			return 'bypass';
+		}
+		return $listed($lists['blacklist_macs']) ? 'block' : 'count';
+	}
+
 	/**
 	 * Check for brute-force attacks (too many unique MACs/usernames, or too
 	 * many unique passwords for one username).
@@ -213,6 +280,23 @@ class BruteforceGuard {
 		}
 
 		$settings = self::getSettings();
+
+		// MAGSCAN Settings: a whitelisted MAC or address is never counted, and a
+		// blacklisted MAC blocks the address at its first request, whether MAC
+		// guesses are counted or not.
+		if ($mac) {
+			$from = $ip ?: self::getUserIP();
+			$verdict = self::magscanVerdict($settings, (string) $from, $mac);
+			if ($verdict === 'bypass') {
+				return;
+			}
+			if ($verdict === 'block') {
+				if (filter_var($from, FILTER_VALIDATE_IP) && !in_array($from, self::getAllowedIPs())) {
+					self::blockIP((string) $from, 'BRUTEFORCE MAC BLACKLIST', $useCachedMode);
+				}
+				return;
+			}
+		}
 
 		if ($mac && (empty($settings['bruteforce_mac_attempts']) || $settings['bruteforce_mac_attempts'] == 0)) {
 			return;

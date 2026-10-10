@@ -20,7 +20,7 @@ use XcVm\Public\Controllers\Admin\DashboardController;
  * check). A subject that has been in trouble for the rule's minutes fires
  * once; when it is fine again, a resolved message follows. A subject that
  * fired is not announced again for QUIET seconds, so one that flaps is
- * reported once. Each minute's fired and resolved subjects of a rule go out
+ * reported once; one still in trouble when they end is announced then. Each minute's fired and resolved subjects of a rule go out
  * as one message on the rule's channels (none chosen: every enabled channel),
  * and every message is kept in `alert_log`.
  *
@@ -215,12 +215,17 @@ final class Alerts {
 					$rRow = array_merge($rRow, ['active' => 1, 'since' => $rNow, 'notified' => 0, 'sent' => 0]);
 				}
 				$rRow['label'] = $rLabel;
-				if (!$rRow['notified'] && $rNow - $rRow['since'] >= $rDef['minutes'] * 60) {
-					$rRow['notified'] = 1;
+				// `notified`: 0 not yet due, 1 announced, 2 due but held back by the
+				// quiet period. Held back is looked at again each minute: said once
+				// (suppressed), then announced when the quiet period ends if the
+				// trouble still holds. Set to 1 there, it was never looked at again,
+				// and an outage that began within the quiet period stayed silent.
+				if ((int) $rRow['notified'] !== 1 && $rNow - $rRow['since'] >= $rDef['minutes'] * 60) {
 					if ($rNow - $rRow['fired_at'] >= self::QUIET) {
-						$rRow = array_merge($rRow, ['sent' => 1, 'fired_at' => $rNow]);
+						$rRow = array_merge($rRow, ['notified' => 1, 'sent' => 1, 'fired_at' => $rNow]);
 						$rEvents[] = ['rule' => $rRule, 'kind' => 'fired', 'subject' => (string) $rSubject, 'label' => $rLabel];
-					} else {
+					} elseif (!$rRow['notified']) {
+						$rRow['notified'] = 2;
 						$rEvents[] = ['rule' => $rRule, 'kind' => 'suppressed', 'subject' => (string) $rSubject, 'label' => $rLabel];
 					}
 				}

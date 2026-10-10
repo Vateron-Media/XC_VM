@@ -124,6 +124,7 @@ return [
 		'legacy_panel_api',
 		'legacy_xmltv',
 		'mag_legacy_redirect',
+		'magscan_settings',
 		'maintenance_message',
 		'maintenance_mode',
 		'maintenance_until',

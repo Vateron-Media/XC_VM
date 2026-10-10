@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Security;
 
+use XcVm\Cli\CronJobs\RootSignalsCronJob;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\BlocklistChanges;
@@ -9,6 +10,8 @@ use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -25,19 +28,38 @@ class BlocklistService {
 	use DatabaseAware;
 
 	/**
-	 * Add an IP (or CIDR) to the blocklist.
+	 * Add an address, or an IPv4 range, to the blocklist.
+	 *
+	 * A range is kept by its network ("a.b.c.0/24") and only when the firewall
+	 * sync enforces it (RootSignalsCronJob::blockRange(): IPv4, a /16 or
+	 * narrower, public): every range used to be accepted and listed, and
+	 * blocked nowhere. One that holds a server of the panel, or the address
+	 * it is entered from, is refused: it would cut the panel off.
 	 *
 	 * @param array $rData Submitted IP/notes data.
 	 * @return array Result status payload.
 	 */
 	public static function blockIP(array $rData) {
 		$db = self::db();
-		if (!AdminHelpers::validateCIDR($rData['ip'])) {
+		$rIP = trim((string) ($rData['ip'] ?? ''));
+		if (preg_match('#^(\d{1,3}(?:\.\d{1,3}){3})/32\z#', $rIP, $rOne)) {
+			$rIP = $rOne[1]; // one address, written as a range
+		}
+		if (strpos($rIP, '/') !== false) {
+			$rIP = RootSignalsCronJob::blockRange($rIP);
+			if ($rIP === null || self::holdsOwnAddress($rIP)) {
+				return ['status' => STATUS_INVALID_IP, 'data' => $rData];
+			}
+		} elseif (!AdminHelpers::validateCIDR($rIP)) {
 			return ['status' => STATUS_INVALID_IP, 'data' => $rData];
 		}
+		$rData['ip'] = $rIP;
 
 		$rArray = ['ip' => $rData['ip'], 'notes' => $rData['notes'], 'date' => time()];
-		touch(FLOOD_TMP_PATH . 'block_' . $rData['ip']);
+		// The flood guard's file is an address's: a range has none (the set drops it).
+		if (strpos($rIP, '/') === false) {
+			touch(FLOOD_TMP_PATH . 'block_' . $rData['ip']);
+		}
 		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'REPLACE INTO `blocked_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -48,6 +70,22 @@ class BlocklistService {
 		}
 
 		return ['status' => STATUS_FAILURE, 'data' => $rData];
+	}
+
+	/** Does $rRange hold a server of the panel, or the address this request comes from? */
+	private static function holdsOwnAddress(string $rRange): bool {
+		global $rServers;
+		$rOwn = [NetworkUtils::getUserIP()];
+		foreach ((is_array($rServers) ? $rServers : ServerRepository::getAll()) as $rServer) {
+			$rOwn[] = (string) ($rServer['server_ip'] ?? '');
+			$rOwn[] = (string) ($rServer['private_ip'] ?? '');
+		}
+		foreach ($rOwn as $rAddress) {
+			if ($rAddress !== '' && NetworkUtils::ipInCIDR($rAddress, $rRange)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

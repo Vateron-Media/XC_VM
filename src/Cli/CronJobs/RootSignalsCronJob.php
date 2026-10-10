@@ -4,6 +4,7 @@ namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\Commands\FfmpegBuildsCommand;
+use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\Commands\UpdateCommand;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Cache\FileCache;
@@ -93,9 +94,70 @@ class RootSignalsCronJob implements CommandInterface {
 		cli_set_process_title('XC_VM[RootSignals]');
 		file_put_contents(CONFIG_PATH . 'signals.last', time());
 
+		self::refreshModuleCrons();
 		$this->loadCron();
 
 		return 0;
+	}
+
+	/** The widest IPv4 range the panel blocks: a /16, 65,536 addresses of a set's IPSET_MAX. */
+	public const RANGE_MIN_PREFIX = 16;
+
+	/**
+	 * An IPv4 range the panel blocks, by its network address ("a.b.c.0/24");
+	 * null for anything else: one address (blockTool()'s), a range wider than
+	 * RANGE_MIN_PREFIX, a private or reserved one, an IPv6 one. A range lives
+	 * in the family's ipset set alone (syncSets()): a hash:ip set takes an IPv4
+	 * range expanded into its addresses and refuses an IPv6 one, and an INPUT
+	 * rule with a network is never the panel's (ownBlocks()).
+	 */
+	public static function blockRange(string $rEntry): ?string {
+		if (!preg_match('#^(\d{1,3}(?:\.\d{1,3}){3})/(\d{1,2})\z#', $rEntry, $rMatch)) {
+			return null;
+		}
+		$rPrefix = (int) $rMatch[2];
+		$rAddress = ip2long($rMatch[1]);
+		if ($rAddress === false || $rPrefix < self::RANGE_MIN_PREFIX || $rPrefix > 31) {
+			return null;
+		}
+		$rNetwork = long2ip($rAddress & ((0xFFFFFFFF << (32 - $rPrefix)) & 0xFFFFFFFF));
+		return self::blockTool($rNetwork) === 'iptables' ? $rNetwork . '/' . $rPrefix : null;
+	}
+
+	/**
+	 * What an entry of the panel's list is in the sets: the tool of its
+	 * family, and what its set is given (an address as it is, a range by its
+	 * network). Null for what the panel does not block.
+	 *
+	 * @return array{0: string, 1: string}|null
+	 */
+	public static function setEntry(string $rEntry): ?array {
+		if (($rTool = self::blockTool($rEntry)) !== null) {
+			return [$rTool, $rEntry];
+		}
+		$rRange = self::blockRange($rEntry);
+		return $rRange === null ? null : ['iptables', $rRange];
+	}
+
+	/**
+	 * Root's crontab as the modules now ask for it, checked every minute. A
+	 * module installed, enabled, disabled or removed from the panel brings or
+	 * takes its cron lines (CronProviderInterface), and only `startup` and
+	 * `status` wrote them: a module's cron did not run until the next restart
+	 * (the anti-abuse shield, and with it its honeypot ports).
+	 *
+	 * Nothing is kept of the last write: installRootCrontab() compares the
+	 * crontab itself and writes only when its list differs, one writer at a
+	 * time (crontabLock()), so a list read before another's write cannot land
+	 * after it; and a list written just before the modules changed is put
+	 * right the next minute. Root writes no file of its own where xc_vm can
+	 * plant a link.
+	 *
+	 * @param (callable(): bool)|null $rWrite What brings the crontab up to date (tests); StartupCommand::installRootCrontab(true).
+	 * @return bool Whether the crontab holds the modules' lines now.
+	 */
+	public static function refreshModuleCrons(?callable $rWrite = null): bool {
+		return (bool) ($rWrite ?? static fn(): bool => StartupCommand::installRootCrontab(true))();
 	}
 
 	/**
@@ -226,8 +288,8 @@ class RootSignalsCronJob implements CommandInterface {
 		}
 		$rWant = ['iptables' => [], 'ip6tables' => []];
 		foreach (array_unique(array_map('strval', $rBlocked)) as $rIP) {
-			if (($rTool = self::blockTool($rIP)) !== null) {
-				$rWant[$rTool][] = $rIP;
+			if (($rEntry = self::setEntry($rIP)) !== null && !in_array($rEntry[1], $rWant[$rEntry[0]], true)) {
+				$rWant[$rEntry[0]][] = $rEntry[1];
 			}
 		}
 		foreach (self::IPSETS as $rTool => [$rSet, $rFamily]) {
@@ -264,7 +326,10 @@ class RootSignalsCronJob implements CommandInterface {
 				@unlink(FLOOD_TMP_PATH . 'block_' . $rIP);
 			}
 			foreach ($rWant[$rTool] as $rIP) {
-				@touch(FLOOD_TMP_PATH . 'block_' . $rIP);
+				// The flood guard's file is an address's: a range has none (the set drops it).
+				if (strpos($rIP, '/') === false) {
+					@touch(FLOOD_TMP_PATH . 'block_' . $rIP);
+				}
 			}
 		}
 		return true;
