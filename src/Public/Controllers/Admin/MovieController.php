@@ -64,13 +64,12 @@ class MovieController extends BaseAdminController {
 			if (!is_array($rMovieSource)) {
 				$rMovieSource = [''];
 			}
+			// The source as it is stored, "s:<server>:<path>" for a file on a server
+			// (what the file browser writes in the field). The form showed the path
+			// alone, url-decoded, and posted that back: a saved edit lost the
+			// movie's server, and a `+` in its file name became a space.
 			$rSource = $rMovieSource[0] ?? '';
-			if (str_starts_with($rSource, 's:')) {
-				$parts = explode(':', $rSource, 3);
-				$rPathSources = (count($parts) >= 3) ? urldecode($parts[2]) : '';
-			} else {
-				$rPathSources = $rSource;
-			}
+			$rPathSources = $rSource;
 
 			foreach ($rServers as $rServer) {
 				if (($rServer['direct_source'] ?? 0) == 0 && ($rServer['stream_status'] ?? 0) == 1) {
