@@ -89,16 +89,16 @@ final class UpdateChannels {
 	 * a missing value included, as 'stable'). A load balancer still on such a
 	 * release under an updated MAIN follows the panel's channel through it.
 	 *
-	 * @param array $rSettings Settings about to be saved (column => value).
+	 * @param array $rSave Settings about to be saved (column => value).
 	 * @return array The same, with `update_channel` set from `update_channel_main`
 	 *               when that is saved, and never taken from the request.
 	 */
-	public static function withLegacy(array $rSettings): array {
-		unset($rSettings['update_channel']);
-		if (isset($rSettings['update_channel_main'])) {
-			$rSettings['update_channel'] = in_array($rSettings['update_channel_main'], ['beta', 'dev', 'unstable'], true) ? 'unstable' : 'stable';
+	public static function withLegacy(array $rSave): array {
+		unset($rSave['update_channel']);
+		if (isset($rSave['update_channel_main'])) {
+			$rSave['update_channel'] = in_array($rSave['update_channel_main'], ['beta', 'dev', 'unstable'], true) ? 'unstable' : 'stable';
 		}
-		return $rSettings;
+		return $rSave;
 	}
 
 	/**
