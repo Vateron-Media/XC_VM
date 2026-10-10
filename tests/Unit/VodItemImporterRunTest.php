@@ -112,6 +112,67 @@ final class VodItemImporterRunTest extends TestCase {
         $this->assertSame((string) SERVER_ID, (string) $this->db->get_col());
     }
 
+    /**
+     * A watch folder's file on another server is imported like an M3U entry,
+     * named by its title (the file's name). With the folder's "fallback title"
+     * the folder's name is tried next, as for a file scanned where it lies:
+     * the title used to stand in for that try too, which then never matched.
+     */
+    public function testAnImportFallsBackToItsFoldersName(): void {
+        $rData = array('title' => 'lpsy.S01E02', 'file' => 's:2:/mnt/series/Les Psys/lpsy.S01E02.mkv', 'servers' => array(2), 'fallback_title' => true) + $this->threadData();
+        $rAsked = array();
+        $rTmdb = new FakeTmdbClient(array(
+            'searchTVShow' => function ($rTitle) use (&$rAsked) {
+                $rAsked[] = $rTitle;
+                return $rTitle === 'Les Psys' ? array(new TVShow(array('id' => 1399, 'name' => 'Les Psys', 'first_air_date' => '2026-01-01'))) : array();
+            },
+            'getTVShow' => fn() => new TVShow(array('id' => 1399, 'name' => 'Les Psys', 'seasons' => array(array('poster_path' => '/s1.jpg')), 'genres' => array(), 'credits' => array('cast' => array(), 'crew' => array()), 'episode_run_time' => array(45))),
+            'getSeason' => fn() => new Season(array('episodes' => array(array('episode_number' => 2, 'name' => 'Épisode 2', 'id' => 222, 'air_date' => '2026-01-08', 'overview' => '', 'vote_average' => 7.1, 'still_path' => null)))),
+        ));
+        $this->expectOutputRegex('/Success!/');
+
+        VodItemImporter::run($rData, 60, $rTmdb);
+
+        $this->assertSame(array('lpsy', 'Les Psys'), $rAsked, 'the title first, then the folder');
+        $this->assertSame(VodImportResultEvent::STATUS_IMPORTED, $this->results[0]->status);
+        $this->db->query('SELECT `server_id` FROM `streams_servers` WHERE `stream_id` = ?;', $this->results[0]->streamId);
+        $this->assertSame('2', (string) $this->db->get_col());
+    }
+
+    /**
+     * On a fallback match the episode and whether it is a range are both read
+     * from the name the episode came from, the title: the folder's name, parsed
+     * last, used to decide the range, so a double episode lost its second half
+     * and a single one could take a range from its folder's name.
+     *
+     * @dataProvider fallbackEpisodes
+     */
+    public function testAFallbackMatchKeepsTheTitlesEpisodes(array $rParsed, string $rName): void {
+        \XcVm\Core\Process\ProcessRunner::useCapturer(static fn(array $rArgv): array => array(0, json_encode($rParsed[basename((string) end($rArgv), '.mkv')] ?? array())));
+        $rData = array('title' => 'lpsy 1x02', 'file' => 's:2:/mnt/series/Les Psys/lpsy 1x02.mkv', 'servers' => array(2), 'fallback_title' => true) + $this->threadData();
+        $rTmdb = new FakeTmdbClient(array(
+            'searchTVShow' => fn($rTitle) => $rTitle === 'Les Psys' ? array(new TVShow(array('id' => 1399, 'name' => 'Les Psys', 'first_air_date' => '2026-01-01'))) : array(),
+            'getTVShow' => fn() => new TVShow(array('id' => 1399, 'name' => 'Les Psys', 'seasons' => array(array('poster_path' => '/s1.jpg')), 'genres' => array(), 'credits' => array('cast' => array(), 'crew' => array()), 'episode_run_time' => array(45))),
+            'getSeason' => fn() => new Season(array('episodes' => array())),
+        ));
+        $this->expectOutputRegex('/Success!/');
+        try {
+            VodItemImporter::run($rData, 60, $rTmdb);
+        } finally {
+            \XcVm\Core\Process\ProcessRunner::useCapturer(null);
+        }
+
+        $this->db->query('SELECT `stream_display_name` FROM `streams` WHERE `id` = ?;', $this->results[0]->streamId);
+        $this->assertSame($rName, $this->db->get_col());
+    }
+
+    public static function fallbackEpisodes(): array {
+        return array(
+            'a double episode under a plain folder' => array(array('lpsy 1x02' => array('title' => 'lpsy', 'season' => 1, 'episode' => array(2, 3)), 'Les Psys' => array('title' => 'Les Psys')), 'Les Psys - S01E02-03'),
+            'a single episode under a folder named with a range' => array(array('lpsy 1x02' => array('title' => 'lpsy', 'season' => 1, 'episode' => 2), 'Les Psys' => array('title' => 'Les Psys', 'season' => 1, 'episode' => array(1, 10))), 'Les Psys - S01E02'),
+        );
+    }
+
     public function testRunPayloadRefusesAnythingButBase64Json(): void {
         $this->expectOutputString("vod_import_item: payload must be base64-encoded JSON object\nvod_import_item: payload must be base64-encoded JSON object\nvod_import_item: unsupported type\n");
 
