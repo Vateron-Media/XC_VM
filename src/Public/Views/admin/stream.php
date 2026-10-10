@@ -322,7 +322,13 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                         <div class="alert alert-info" role="alert"><?= $language::get('custom_map_info'); ?></div>
                         <div>
                             <label class="form-label" for="custom_map"><?= $language::get('custom_map'); ?></label>
-                            <input type="text" class="form-control" id="custom_map" name="custom_map" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['custom_map'], ENT_QUOTES) : ''; ?>">
+                            <div class="d-flex gap-2">
+                                <input type="text" class="form-control" id="custom_map" name="custom_map" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['custom_map'], ENT_QUOTES) : ''; ?>">
+                                <button type="button" class="btn btn-label-info text-nowrap" id="scan-map"><?= $language::get('scan_source'); ?></button>
+                                <button type="button" class="btn btn-label-secondary" id="clear-map"><?= $language::get('clear'); ?></button>
+                            </div>
+                            <div class="form-text"><?= $language::get('custom_map_scan_info'); ?></div>
+                            <div id="map-result" class="mt-3"></div>
                         </div>
                     </div>
 
@@ -836,26 +842,106 @@ LayoutRenderer::renderFooter('admin');
                 window.addStream();
             });
         }
+        var probingBadge = '<span class="badge bg-label-secondary"><span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem;vertical-align:-1px"></span>Probing…</span>';
+
+        // Probe through the first selected server, with the stream's own user agent,
+        // proxy, cookies and headers, as the real stream fetches the source.
+        function probeURL(url) {
+            var onlineSrv = $('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            });
+            var server = (onlineSrv[1] !== undefined) ? onlineSrv[1].id : '';
+            return './api?action=probe_stream&url=' + encodeURIComponent(url) + '&user_agent=' + encodeURIComponent($('#user_agent').val()) + '&proxy=' + encodeURIComponent($('#http_proxy').val()) + '&cookies=' + encodeURIComponent($('#cookie').val()) + '&headers=' + encodeURIComponent($('#headers').val()) + '&server=' + server;
+        }
+
         var scanBtn = document.getElementById('scan-sources');
         if (scanBtn) {
             scanBtn.addEventListener('click', function() {
-                var onlineSrv = $('#server_tree').jstree(true).get_json('source', {
-                    flat: true
-                });
-                var server = (onlineSrv[1] !== undefined) ? onlineSrv[1].id : '';
                 list.querySelectorAll('.source-row').forEach(function(row) {
                     var url = row.querySelector('.src-input').value;
                     if (!url) {
                         return;
                     }
                     var info = row.querySelector('.src-info');
-                    info.innerHTML = '<span class="badge bg-label-secondary"><span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem;vertical-align:-1px"></span>Probing…</span>';
-                    $.get('./api?action=probe_stream&url=' + encodeURIComponent(url) + '&user_agent=' + encodeURIComponent($('#user_agent').val()) + '&proxy=' + encodeURIComponent($('#http_proxy').val()) + '&cookies=' + encodeURIComponent($('#cookie').val()) + '&headers=' + encodeURIComponent($('#headers').val()) + '&server=' + server, function(data) {
+                    info.innerHTML = probingBadge;
+                    $.get(probeURL(url), function(data) {
                         info.innerHTML = renderProbe(data);
                     });
                 });
             });
         }
+
+        // ---- custom map: scan the source, click a row to toggle its -map ----
+        var mapField = $('#custom_map');
+        var mapResult = $('#map-result');
+
+        function mapPattern(spec) {
+            return new RegExp('(^|\\s)-map\\s+' + spec + '(?=\\s|$)');
+        }
+
+        function markMapRows() {
+            mapResult.find('tr[data-map]').each(function() {
+                $(this).toggleClass('table-primary', mapPattern($(this).attr('data-map')).test(mapField.val()));
+            });
+        }
+
+        function streamDetails(s) {
+            if (s.codec_type === 'video') {
+                var fps = String(s.avg_frame_rate || s.r_frame_rate || '').split('/');
+                var rate = (fps.length === 2 && +fps[1]) ? Math.round(fps[0] / fps[1] * 100) / 100 : 0;
+                return (s.width ? s.width + 'x' + s.height : '') + (rate ? ' @ ' + rate + ' fps' : '');
+            }
+            if (s.codec_type === 'audio') {
+                return (s.sample_rate ? s.sample_rate + ' Hz' : '') + (s.channels ? ', ' + s.channels + ' ch' : '') + (s.channel_layout ? ' (' + s.channel_layout + ')' : '');
+            }
+            return '';
+        }
+
+        $('#scan-map').on('click', function() {
+            var url = $('#sources-list .src-input').filter(function() {
+                return this.value;
+            }).first().val();
+            if (!url) {
+                mapResult.html('<span class="badge bg-label-warning">' + esc(<?= json_encode($language::get('custom_map_no_source')); ?>) + '</span>');
+                return;
+            }
+            mapResult.html(probingBadge);
+            $.getJSON(probeURL(url) + '&map=1').done(function(info) {
+                var streams = (info && Array.isArray(info.streams)) ? info.streams : [];
+                if (!streams.length) {
+                    mapResult.html('<span class="badge bg-label-danger"><i class="icon-base ti tabler-alert-triangle me-1"></i>' + esc(<?= json_encode($language::get('probe_failed')); ?>) + '</span>');
+                    return;
+                }
+                var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead><tr>' +
+                    <?= json_encode(array_map(fn($rKey) => $language::get($rKey), ['map', 'type', 'codec', 'details', 'language'])); ?>.map(function(t) {
+                        return '<th>' + esc(t) + '</th>';
+                    }).join('') +
+                    '</tr></thead><tbody>';
+                streams.forEach(function(s, i) {
+                    var spec = '0:' + (parseInt(s.index, 10) >= 0 ? parseInt(s.index, 10) : i);
+                    html += '<tr data-map="' + spec + '" style="cursor:pointer"><td><code>' + spec + '</code></td><td>' + esc(s.codec_type) + '</td><td>' + esc(s.codec_name) +
+                        '</td><td>' + esc(streamDetails(s)) + '</td><td>' + esc((s.tags && s.tags.language) || '') + '</td></tr>';
+                });
+                mapResult.html(html + '</tbody></table></div>');
+                markMapRows();
+            }).fail(function() {
+                mapResult.html('<span class="badge bg-label-danger">' + esc(errText) + '</span>');
+            });
+        });
+
+        mapResult.on('click', 'tr[data-map]', function() {
+            var spec = $(this).attr('data-map');
+            var value = mapField.val();
+            value = mapPattern(spec).test(value) ? value.replace(mapPattern(spec), ' ') : value + ' -map ' + spec;
+            mapField.val(value.replace(/\s+/g, ' ').trim());
+            markMapRows();
+        });
+
+        $('#clear-map').on('click', function() {
+            mapField.val('');
+            markMapRows();
+        });
+        mapField.on('input', markMapRows);
 
         // ---- provider search ----
         var provBtn = document.getElementById('provider-streams');
