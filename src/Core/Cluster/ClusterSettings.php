@@ -236,6 +236,32 @@ final class ClusterSettings {
 	}
 
 	/**
+	 * The folders the file browser shows at $rDir when $rDir lies above the
+	 * scan roots: the next path segment toward each root below it. The browser
+	 * opens at "/", which no node lists (pathAllowed()), so without this it
+	 * showed an empty folder with no way in; now "/" offers `home`, `mnt`,
+	 * `media`, and ".." walks back up the same way. Null when $rDir is inside
+	 * a root (the node lists it, and checks it) or leads to none of them.
+	 *
+	 * @param list<string> $rRoots scanRoots()'s roots
+	 * @return list<string>|null
+	 */
+	public static function dirsTowardRoots(string $rDir, array $rRoots): ?array {
+		$rDir = '/' . trim($rDir, '/');
+		$rPrefix = $rDir === '/' ? '/' : $rDir . '/';
+		$rOut = [];
+		foreach ($rRoots as $rRoot) {
+			if ($rRoot === $rDir || str_starts_with($rDir . '/', $rRoot . '/')) {
+				return null;
+			}
+			if (str_starts_with($rRoot, $rPrefix)) {
+				$rOut[] = explode('/', substr($rRoot, strlen($rPrefix)))[0];
+			}
+		}
+		return $rOut === [] ? null : array_values(array_unique($rOut));
+	}
+
+	/**
 	 * Is a path inside the roots a node may read from?
 	 *
 	 * The node system API takes paths from MAIN (`scandir`, `scandir_recursive`,

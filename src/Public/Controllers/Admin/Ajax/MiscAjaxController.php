@@ -2,7 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
+use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\NodeRpc;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\License\LicenseGate;
@@ -132,6 +134,13 @@ class MiscAjaxController extends BaseAjaxController {
 
 		if (!RequestManager::has('server') || !RequestManager::has('dir')) {
 			$this->fail();
+		}
+
+		// Above the scan roots (the browser opens at "/"), the way down to them: no node lists those folders.
+		[$rRoots] = ClusterSettings::scanRoots(SettingsManager::get('lb_scan_roots'));
+		$rToward = ClusterSettings::dirsTowardRoots((string) RequestManager::get('dir'), $rRoots);
+		if ($rToward !== null) {
+			$this->ok(['data' => ['result' => true, 'dirs' => $rToward, 'files' => []]]);
 		}
 
 		$this->ok(['data' => ApiClient::listDir(intval(RequestManager::get('server')), RequestManager::get('dir'), $rFilter)]);
