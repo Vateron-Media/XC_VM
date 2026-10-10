@@ -1,15 +1,19 @@
 {
-	"version": "2.6.4",
+	"version": "2.6.5",
 	"changes": [
-		"A new panel now starts with the segment gateway on (segments+playlist): xc_fanout answers HLS segments, keys and known viewers' playlist refreshes instead of PHP-FPM, and hands PHP anything it is not sure of. An updated panel keeps its setting, and a stored value that is not a mode falls back to the default.",
-		"The segment gateway now also answers a known MPEG-TS viewer that reconnects with its link, streaming from fanout without a PHP request (needs an xc_fanout release with TS reconnects; older ones keep sending TS to PHP).",
-		"A fanout TS viewer no longer costs a database or agent round-trip after the hand-off to the daemon.",
-		"Fixed the prebuffer of a restreamer link that asks for one on fanout: it was always 0, it is now one segment's time.",
-		"Added an Always Use ffmpeg switch per stream (Advanced tab and bulk edit): it keeps a copy-only channel on ffmpeg when the native remuxer is the source backend.",
-		"The native remuxer now reads a stream's source URL, headers, cookies and proxy from a private file instead of its command line, where any local user could read the provider's credentials (needs xc_fanout 0.14.8 or later; the stream's log says when it falls back).",
-		"Every admin page now shows a toast when a stream starts, stops, restarts or fails, on any server; a burst of events shows as one counted toast.",
-		"Fixed stream starts on a load balancer installed straight into API mode: no stream could start there.",
-		"Fixed the VOD file browser opening on an empty folder: it now leads from / to the scan roots.",
-		"The Watch module can tell a file still being copied on a load balancer from a finished one, and a load balancer's folder of thousands of files is listed whole."
+		"Security: admin pages escaped names, notes and titles without their quotes, which let a stored value run script in an administrator's browser; every page's escaping is fixed.",
+		"Fixed a mass edit of lines, MAGs or Enigmas with Expiry ticked and no date: it expired every selected line.",
+		"Fixed a backup restore whose database connection dropped mid-migration: it could reconnect to the live database and clear its tables.",
+		"Resellers: the REST table actions answered null, the guide listed streams outside the reseller's packages, sub-reseller secrets were returned, and credit transfers were logged with the wrong amount; all fixed. A package with unredeemed activation codes can no longer be deleted.",
+		"Admin permissions: bulk stream actions, the global search, the category templates, Stream Review and the dashboard graph now follow the group's permissions; a read-only API token no longer receives secret settings.",
+		"Blocked IPs accepts IPv4 ranges (/16 to /31). The MAG Scan settings page now saves and applies its lists. An alert held back by the quiet period is sent once the period ends.",
+		"IP matching for 'restrict same IP' now compares subnets for IPv6 too (any two IPv6 addresses counted as the same subnet).",
+		"A module installed or enabled from the panel gets its cron jobs at once, without a restart (the anti-abuse shield and its honeypot ports never started). A renamed module keeps its install, and an update that succeeds on a retry is no longer left Failed.",
+		"The segment gateway now also answers an MPEG-TS viewer's first request, creating its connection without a PHP request (needs an xc_fanout release with it; older daemons keep the first request on PHP).",
+		"Redis connection handler: a Redis restart no longer ends running TS, VOD and timeshift streams, the sweep no longer kills a worker that serves another viewer, and a panel with the handler off no longer connects to Redis on every viewer request.",
+		"Faster stream requests on large panels: the bouquets map is no longer decoded for every segment, key and playlist request, and cached lists are decoded once per process. Line lookup files no longer carry the username and password in their name.",
+		"Watch folders: Auto-Upgrade now works for a load balancer's folder scanned from MAIN (the load balancer must be updated too), and a copy that is kept is logged as DUPLICATE. An import with no TMDb title falls back to the folder's name.",
+		"Fixed the M3U review importing only the table page shown, a created channel losing its on-demand servers on edit, Enigma2 links always using http and unencoded credentials, a subtitle name with a space breaking a movie's start, and error pages being cached as images.",
+		"Bulk delete of streams now removes a stream taken off its last server, and a proxy action can no longer disable the main server."
 	]
 }
