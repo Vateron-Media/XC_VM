@@ -50,7 +50,7 @@ defined('XC_VM_VERSION') || define('XC_VM_VERSION', 'test');
 foreach (['CACHE_TMP_PATH' => 'cache', 'FLOOD_TMP_PATH' => 'flood', 'LINES_TMP_PATH' => 'lines', 'STREAMS_TMP_PATH' => 'streams', 'EPG_PATH' => 'epg'] as $rName => $rSub) {
 	define($rName, $rIn['dir'] . $rSub . '/');
 }
-$_SERVER = ['REMOTE_ADDR' => $rIn['ip'], 'HTTP_HOST' => 'panel.test', 'REQUEST_URI' => $rIn['uri'], 'SERVER_PROTOCOL' => 'HTTP/1.1'] + $_SERVER;
+$_SERVER = $rIn['server'] + ['REMOTE_ADDR' => $rIn['ip'], 'HTTP_HOST' => 'panel.test', 'REQUEST_URI' => $rIn['uri'], 'SERVER_PROTOCOL' => 'HTTP/1.1'] + $_SERVER;
 $rSettings = $rIn['settings'];
 $rServers = [1 => ['server_protocol' => 'http', 'enable_proxy' => 0, 'domain_name' => 'panel.test', 'server_ip' => '192.0.2.1', 'http_broadcast_port' => 80, 'https_broadcast_port' => 443, 'rtmp_port' => 8880, 'server_type' => 0, 'is_main' => 1]];
 $rCached = false;
@@ -103,8 +103,8 @@ PHP;
 	 * @param class-string $rController
 	 * @param array<string, mixed> $rRequest
 	 */
-	private function request(string $rController, array $rRequest, string $rUri = '/player_api.php'): string {
-		$rIn = ['schema' => $this->rDb->schema(), 'dir' => $this->rDir, 'ip' => self::IP, 'uri' => $rUri, 'settings' => $this->rSettings, 'request' => $rRequest, 'controller' => $rController];
+	private function request(string $rController, array $rRequest, string $rUri = '/player_api.php', array $rServer = []): string {
+		$rIn = ['schema' => $this->rDb->schema(), 'dir' => $this->rDir, 'ip' => self::IP, 'uri' => $rUri, 'settings' => $this->rSettings, 'request' => $rRequest, 'controller' => $rController, 'server' => $rServer];
 		$rProc = proc_open([...xcvm_test_child_php(), '-d', 'display_errors=stderr', $this->rDir . 'child.php', (string) json_encode($rIn)], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);
 		$this->assertIsResource($rProc);
 		$rOut = (string) stream_get_contents($rPipes[1]);
@@ -249,6 +249,34 @@ PHP;
 			$rTitles[] = base64_decode((string) $rEntry->title);
 		}
 		return $rTitles;
+	}
+
+	/**
+	 * The links of an Enigma2 list are the request's own scheme, and carry
+	 * the line's credentials as a query can: SERVER_PROTOCOL ("HTTP/2.0") was
+	 * read for the scheme, so every link was http://, and a username or
+	 * password with `&`, `#` or a space was written as it is.
+	 */
+	public function testEnigma2LinksKeepTheSchemeAndTheCredentials(): void {
+		$this->catalogue();
+		$this->line('a&b', ['password' => 'p#1 x+y']);
+
+		$rLinks = static function (string $rXml): array {
+			preg_match_all('~<playlist_url><!\[CDATA\[(.*?)\]\]></playlist_url>~s', $rXml, $rFound);
+			return $rFound[1];
+		};
+		$rPlain = $rLinks($this->request(Enigma2ApiController::class, ['username' => 'a&b', 'password' => 'p#1 x+y'], '/enigma2.php'));
+		$rSecure = $rLinks($this->request(Enigma2ApiController::class, ['username' => 'a&b', 'password' => 'p#1 x+y'], '/enigma2.php', ['HTTPS' => 'on', 'SERVER_PROTOCOL' => 'HTTP/2.0']));
+
+		$this->assertNotSame([], $rPlain);
+		foreach ($rPlain as $rLink) {
+			$this->assertStringStartsWith('http://panel.test/enigma2?', $rLink);
+		}
+		foreach ($rSecure as $rLink) {
+			$this->assertStringStartsWith('https://panel.test/enigma2?', $rLink);
+			parse_str((string) parse_url($rLink, PHP_URL_QUERY), $rQuery);
+			$this->assertSame(['a&b', 'p#1 x+y'], [$rQuery['username'] ?? null, $rQuery['password'] ?? null], $rLink);
+		}
 	}
 
 	public function testEnigma2ServesOnlyALineThatIsActive(): void {
