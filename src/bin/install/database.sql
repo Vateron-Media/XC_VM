@@ -1467,6 +1467,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `show_all_category_mag` tinyint(4) DEFAULT '1',
   `flood_limit` int(11) DEFAULT '40',
   `flood_ips_exclude` mediumtext COLLATE utf8_unicode_ci,
+  `magscan_settings` mediumtext COLLATE utf8_unicode_ci,
   `flood_seconds` int(11) DEFAULT '2',
   `vod_bitrate_plus` int(11) DEFAULT '60',
   `read_buffer_size` int(11) DEFAULT '8192',

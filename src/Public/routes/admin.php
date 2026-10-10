@@ -213,7 +213,7 @@ $router->get('server_install', [ServerInstallController::class, 'index']);
 
 $router->get('settings', [SettingsController::class, 'index']);
 $router->get('modules', [ModulesController::class, 'index']);
-$router->get('magscan_settings', [MagscanSettingsController::class, 'index']);
+$router->any('magscan_settings', [MagscanSettingsController::class, 'index']);
 
 // ─── Lines ─────────────────────────────────────────
 
