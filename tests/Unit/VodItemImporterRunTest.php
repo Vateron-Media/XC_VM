@@ -112,6 +112,33 @@ final class VodItemImporterRunTest extends TestCase {
         $this->assertSame((string) SERVER_ID, (string) $this->db->get_col());
     }
 
+    /**
+     * A watch folder's file on another server is imported like an M3U entry,
+     * named by its title (the file's name). With the folder's "fallback title"
+     * the folder's name is tried next, as for a file scanned where it lies:
+     * the title used to stand in for that try too, which then never matched.
+     */
+    public function testAnImportFallsBackToItsFoldersName(): void {
+        $rData = array('title' => 'lpsy.S01E02', 'file' => 's:2:/mnt/series/Les Psys/lpsy.S01E02.mkv', 'servers' => array(2), 'fallback_title' => true) + $this->threadData();
+        $rAsked = array();
+        $rTmdb = new FakeTmdbClient(array(
+            'searchTVShow' => function ($rTitle) use (&$rAsked) {
+                $rAsked[] = $rTitle;
+                return $rTitle === 'Les Psys' ? array(new TVShow(array('id' => 1399, 'name' => 'Les Psys', 'first_air_date' => '2026-01-01'))) : array();
+            },
+            'getTVShow' => fn() => new TVShow(array('id' => 1399, 'name' => 'Les Psys', 'seasons' => array(array('poster_path' => '/s1.jpg')), 'genres' => array(), 'credits' => array('cast' => array(), 'crew' => array()), 'episode_run_time' => array(45))),
+            'getSeason' => fn() => new Season(array('episodes' => array(array('episode_number' => 2, 'name' => 'Épisode 2', 'id' => 222, 'air_date' => '2026-01-08', 'overview' => '', 'vote_average' => 7.1, 'still_path' => null)))),
+        ));
+        $this->expectOutputRegex('/Success!/');
+
+        VodItemImporter::run($rData, 60, $rTmdb);
+
+        $this->assertSame(array('lpsy', 'Les Psys'), $rAsked, 'the title first, then the folder');
+        $this->assertSame(VodImportResultEvent::STATUS_IMPORTED, $this->results[0]->status);
+        $this->db->query('SELECT `server_id` FROM `streams_servers` WHERE `stream_id` = ?;', $this->results[0]->streamId);
+        $this->assertSame('2', (string) $this->db->get_col());
+    }
+
     public function testRunPayloadRefusesAnythingButBase64Json(): void {
         $this->expectOutputString("vod_import_item: payload must be base64-encoded JSON object\nvod_import_item: payload must be base64-encoded JSON object\nvod_import_item: unsupported type\n");
 

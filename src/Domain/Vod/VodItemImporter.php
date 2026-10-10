@@ -754,7 +754,8 @@ class VodItemImporter {
 			unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
 			self::applyCommonStreamSettings($rImportArray, $rThreadData, false);
 			if ($rReleaseSeason !== null && $rReleaseEpisode !== null) {
-				if (is_array($rRelease['episode']) && count($rRelease['episode']) == 2) {
+				// $rRelease is the last name parsed: the folder's on a fallback match, with no episode.
+				if (is_array($rRelease['episode'] ?? null) && count($rRelease['episode']) == 2) {
 					$rImportArray['stream_display_name'] = $rShowData['name'] . ' - S' . sprintf('%02d', intval($rReleaseSeason)) . 'E' . sprintf('%02d', $rRelease['episode'][0]) . '-' . sprintf('%02d', $rRelease['episode'][1]);
 				} else {
 					$rImportArray['stream_display_name'] = $rShowData['name'] . ' - S' . sprintf('%02d', intval($rReleaseSeason)) . 'E' . sprintf('%02d', $rReleaseEpisode);
@@ -1075,13 +1076,15 @@ class VodItemImporter {
 					}
 					$rMetaMatch = false;
 				}
-				foreach ($rPaths as $rFilename) {
+				foreach ($rPaths as $rIndex => $rFilename) {
+					// An import is matched on its title (an M3U entry's: its URL names
+					// nothing). The fallback, its folder's name, is tried as it is.
+					if ($rThreadData['import'] && $rIndex === 0) {
+						$rFilename = $rThreadData['title'];
+					}
 					echo 'Scanning: ' . $rFilename . "\n";
 					$rTitle = null;
 					$rAltTitle = null;
-					if ($rThreadData['import']) {
-						$rFilename = $rThreadData['title'];
-					}
 					if ($rThreadData['fallback_parser'] && !$rThreadData['disable_tmdb'] && !$rMetaMatch) {
 						$rParseTypes = [$rSettings['parse_type'], ($rSettings['parse_type'] == 'guessit' ? 'ptn' : 'guessit')];
 					} else {
@@ -1091,7 +1094,7 @@ class VodItemImporter {
 						if ($rThreadData['disable_tmdb'] || $rMetaMatch) {
 						} else {
 							$rRelease = self::parserelease($rFilename, $rParseType);
-							$rTitle = $rRelease['title'];
+							$rTitle = $rRelease['title'] ?? null; // a name the parser reads nothing in
 							if (isset($rRelease['excess'])) {
 								// Strip the excess token as a WHOLE WORD — never
 								// trim($title, $excess): its 2nd arg is a char-mask,
