@@ -11,7 +11,7 @@ use RuntimeException;
 defined('DB_ACCESS_ENABLED') || define('DB_ACCESS_ENABLED', false);
 defined('DB_ACCESS_PWD') || define('DB_ACCESS_PWD', '');
 defined('DEV_MODE') || define('DEV_MODE', false);
-defined('XC_VM_VERSION') || define('XC_VM_VERSION', '2.6.3');
+defined('XC_VM_VERSION') || define('XC_VM_VERSION', '2.6.4');
 // Per-build watermark stamped into the deploy root by `make main` (see the
 // Makefile stamp_release_id target). A source/dev checkout is never stamped, so
 // runtime and the licence activation call report 'dev'. Unique per build, so a

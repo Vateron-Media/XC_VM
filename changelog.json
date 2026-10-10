@@ -1,17 +1,15 @@
 {
-  "version": "2.6.3",
-  "changes": [
-    "Fixed installing a load balancer on a panel in API mode (the default since 2.6.2): the install no longer stops at \"No xc_agent on the node\" with \"MySQL: Cannot connect to database\", and the node starts its services once its enrolment has brought the replica.",
-    "Fixed a fresh install whose nginx refused the access-code configuration (an unfilled alias and rate-limit zone), which left every page unreachable.",
-    "Added the segment gateway, off by default: with fanout delivering, xc_fanout answers a load balancer's HLS segments, keys, catch-up minutes and known viewers' playlist refreshes instead of PHP-FPM (Settings → Cluster → Segment Gateway). It needs an xc_fanout release that includes the gateway; a node without one keeps serving through PHP.",
-    "Added the gateway's shadow mode: PHP keeps serving while the gateway judges a copy of each request, and the two answers are compared. Cluster Nodes (Segment Gateway column) and /metrics show the comparison, and a node is marked ready after 7 days without a disagreement.",
-    "A catch-up segment refused for the viewer's address no longer keeps that viewer's session alive.",
-    "No module installs by itself any more: Watch and Plex are no longer downloaded at every start, and a deleted module stays deleted.",
-    "The Modules page drops Uninstall: Delete removes a module and its data, and Disable switches it off and keeps everything.",
-    "With xcvm_core 2.4.0, the module store lists modules and installs free ones without an API key; the Store tab searches, sorts and pages.",
-    "Migrating a backup now hands module tables (such as Watch's watch folders) to their modules, which copy them when they are installed, instead of losing them without the module.",
-    "The TMDb refresh queue now belongs to the core, so TMDb refreshes and category or profile deletion work without the Watch module.",
-    "Invalid stream ids, and credentials that match no line, are now logged as client refusals, so scraping and credential guessing can be counted per address across every server.",
-    "The verification banner's button now copies the HWID and opens the page to get a key."
-  ]
+	"version": "2.6.4",
+	"changes": [
+		"A new panel now starts with the segment gateway on (segments+playlist): xc_fanout answers HLS segments, keys and known viewers' playlist refreshes instead of PHP-FPM, and hands PHP anything it is not sure of. An updated panel keeps its setting, and a stored value that is not a mode falls back to the default.",
+		"The segment gateway now also answers a known MPEG-TS viewer that reconnects with its link, streaming from fanout without a PHP request (needs an xc_fanout release with TS reconnects; older ones keep sending TS to PHP).",
+		"A fanout TS viewer no longer costs a database or agent round-trip after the hand-off to the daemon.",
+		"Fixed the prebuffer of a restreamer link that asks for one on fanout: it was always 0, it is now one segment's time.",
+		"Added an Always Use ffmpeg switch per stream (Advanced tab and bulk edit): it keeps a copy-only channel on ffmpeg when the native remuxer is the source backend.",
+		"The native remuxer now reads a stream's source URL, headers, cookies and proxy from a private file instead of its command line, where any local user could read the provider's credentials (needs xc_fanout 0.14.8 or later; the stream's log says when it falls back).",
+		"Every admin page now shows a toast when a stream starts, stops, restarts or fails, on any server; a burst of events shows as one counted toast.",
+		"Fixed stream starts on a load balancer installed straight into API mode: no stream could start there.",
+		"Fixed the VOD file browser opening on an empty folder: it now leads from / to the scan roots.",
+		"The Watch module can tell a file still being copied on a load balancer from a finished one, and a load balancer's folder of thousands of files is listed whole."
+	]
 }
