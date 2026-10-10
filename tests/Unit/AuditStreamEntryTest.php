@@ -385,7 +385,9 @@ final class AuditStreamEntryTest extends TestCase {
 	}
 
 	public function testAuthsCheckForAKnownLineReadsOnlyPlainNamesAndPasswords(): void {
+		// One line's lookup under the name it had (the pair, joined), another's under its name now (a hash of the pair).
 		touch($this->rHome . 'cache/line_c_line_secret');
+		touch($this->rHome . 'cache/line_c_' . \XcVm\Domain\User\UserRepository::credentialKey(false, 'other', 'secret'));
 		// The check auth.php makes before anything else, where lines are cached and unknown ones ignored.
 		$rCheck = fn(array $rGet, int $rCase = 0): string => $this->lines(
 			'Public/stream/auth.php',
@@ -399,6 +401,8 @@ final class AuditStreamEntryTest extends TestCase {
 		$this->assertSame('"goes on"', $rCheck(['username' => 'Line', 'password' => 'secret']));
 		$this->assertSame('refused INVALID_CREDENTIALS', $rCheck(['username' => 'Line', 'password' => 'secret'], 1));
 		$this->assertSame('refused INVALID_CREDENTIALS', $rCheck(['username' => 'guess', 'password' => 'secret']));
+		$this->assertSame('"goes on"', $rCheck(['username' => 'Other', 'password' => 'SECRET']), 'known by its hashed lookup, in any case while case is not told apart');
+		$this->assertSame('refused INVALID_CREDENTIALS', $rCheck(['username' => 'Other', 'password' => 'SECRET'], 1));
 		// A list is no cached line's name: it goes on to the lookup's own read, which refuses it.
 		$this->assertSame('"goes on"', $rCheck(['username' => ['line'], 'password' => 'secret']));
 		$this->assertSame('"goes on"', $rCheck(['username' => 'line', 'password' => ['secret']]));
