@@ -342,7 +342,8 @@ class PlayerWatchController extends BasePlayerV2Controller {
 		// Query related movies in same category for sidebar quick switcher
 		$relatedMovies = [];
 		if ($primaryCatId > 0) {
-			$db->query('SELECT `id`, `stream_display_name`, `stream_icon`, `target_container`, `movie_properties` FROM `streams` WHERE `category_id` = ? AND `type` = 2 AND `id` != ? ORDER BY `id` DESC LIMIT 25', $primaryCatId, $id);
+			// category_id is a JSON list of ids: `= ?` matched none of them, and the list was always empty.
+			$db->query('SELECT `id`, `stream_display_name`, `stream_icon`, `target_container`, `movie_properties` FROM `streams` WHERE JSON_CONTAINS(`category_id`, ?, \'$\') AND `type` = 2 AND `id` != ? ORDER BY `id` DESC LIMIT 25', $primaryCatId, $id);
 			$relRows = $db->get_rows() ?: [];
 			foreach ($relRows as $rm) {
 				if (!empty($rUserInfo['vod_ids']) && !in_array((int) $rm['id'], $rUserInfo['vod_ids'], true)) {
