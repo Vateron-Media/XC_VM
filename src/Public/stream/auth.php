@@ -13,6 +13,7 @@ use XcVm\Domain\Cluster\ConnectionAdmission;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Infrastructure\Signal\SignalQueue;
 use XcVm\Streaming\Auth\StreamAuthMiddleware;
 use XcVm\Streaming\Balancer\ProxySelector;
@@ -157,13 +158,12 @@ if ($rExtension) {
 		} else {
 			// Only a plain name and password can be a cached line's: a list is left to the lookup's own read below.
 			if (is_string($_GET['username'] ?? null) && is_string($_GET['password'] ?? null)) {
-				if ($rSettings['case_sensitive_line']) {
-					$rPath = LINES_TMP_PATH . 'line_c_' . $_GET['username'] . '_' . $_GET['password'];
-				} else {
-					$rPath = LINES_TMP_PATH . 'line_c_' . strtolower($_GET['username']) . '_' . strtolower($_GET['password']);
-				}
-
-				if (!file_exists($rPath)) {
+				// The lookup's name (UserRepository::credentialKey()), or the one it had
+				// before, until the next cache pass has renamed every line's.
+				$rSensitive = !empty($rSettings['case_sensitive_line']);
+				if (!file_exists(LINES_TMP_PATH . 'line_c_' . UserRepository::credentialKey($rSensitive, $_GET['username'], $_GET['password']))
+					&& !file_exists(LINES_TMP_PATH . 'line_c_' . UserRepository::legacyCredentialKey($rSensitive, $_GET['username'], $_GET['password']))
+				) {
 					generateError('INVALID_CREDENTIALS');
 				}
 			}
@@ -261,6 +261,7 @@ if ($rExtension) {
 			generateError('INVALID_CREDENTIALS');
 		}
 
+		$rBouquets ??= CacheReader::get('bouquets') ?: [];
 		$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rAccessToken, null, false, false, $rIP);
 	} else {
 		if (isset($rRequest['hmac'])) {
@@ -307,6 +308,7 @@ if ($rExtension) {
 				generateError('INVALID_CREDENTIALS');
 			}
 
+			$rBouquets ??= CacheReader::get('bouquets') ?: [];
 			$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, false, false, $rIP);
 		}
 	}
