@@ -152,9 +152,6 @@ class ResellerRestApiController {
 					echo json_encode(ResellerAPIWrapper::convertEnigma(RequestManager::get('id')));
 					break;
 				case 'get_user':
-					if (!in_array('password', $rHideColumns)) {
-						$rHideColumns[] = 'password';
-					}
 					echo json_encode(ResellerAPIWrapper::filterRow(ResellerAPIWrapper::getUser($rData['id']), $rShowColumns, $rHideColumns));
 					break;
 				case 'create_user':
