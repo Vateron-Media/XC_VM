@@ -420,7 +420,7 @@ class UpdateCommand implements CommandInterface {
 
 				// The archive just put back its own yt-dlp, older than the one the daily
 				// RootSignals check had installed; refresh it now, not up to a day later.
-				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ytdlp >/dev/null 2>&1 &');
+				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'ytdlp']);
 
 				// ipset for the blocklist's sets (RootSignalsCronJob::syncSets), on a server
 				// installed before the installers took it. Background + best-effort: apt held
