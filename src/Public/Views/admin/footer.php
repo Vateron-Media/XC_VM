@@ -4,8 +4,8 @@
  * Bootstrap 5 admin footer — closes the Vertical Menu shell opened in
  * header.php and loads the core Bootstrap 5 script set.
  *
- * Reached only for pages opted in via xc_admin_use_newui() (modal/setup pages
- * are routed to the legacy footer.php upstream). Views call
+ * Every admin page's footer (LayoutRenderer::renderFooter('admin')); modal
+ * and setup pages get a bare shell ($xmBare). Views call
  * LayoutRenderer::renderFooter('admin') at their end, then append their own page
  * <script> and close </body></html> themselves.
  *
@@ -555,13 +555,14 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
     </script>
 <?php endif; ?>
 
-<?php if (!$xmBare && Authorization::check('adv', 'streams')): ?>
-    <!-- Stream event toasts: the stream log's starts, stops and failures, from every server, as they come in -->
+<?php if (!$xmBare && !empty($rSettings['save_restart_logs']) && Authorization::check('adv', 'streams')): ?>
+    <!-- Stream event toasts: the stream log's starts, stops and failures, from every server, as they come in
+         (the stream log is what Settings → Logs → Stream Restart Logs keeps: off, there is nothing to show) -->
     <script>
         (function() {
             if (!window.xcToast) return;
-            var KEY = 'xc_stream_events_after'; // per tab: a new tab starts from now, a page change misses nothing
             var BURST = 5; // more at once (a mass restart): one toast that counts them
+            var HOLD = 60000; // how long a missing id is waited for (a row committed after a higher one)
             var TYPES = {
                 STREAM_START: 'success',
                 STREAM_STOP: 'info',
@@ -571,14 +572,22 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                 AUDIO_LOSS: 'warning'
             };
             var COUNT = <?= json_encode($language::get('stream_events_count')); ?>;
-            var after = null;
+            // The cursor is this tab's, kept across its page changes. A tab opened from this one
+            // copies its sessionStorage, so the key carries an id held in window.name, which a new
+            // tab does not inherit: it starts from where the log stands, not from this tab's cursor.
+            var tab = /^xcse-[a-z0-9]+$/.test(window.name) ? window.name : null;
+            if (!tab && !window.name) {
+                tab = 'xcse-' + Math.random().toString(36).slice(2, 10);
+                window.name = tab;
+            }
+            var KEY = tab ? 'xc_stream_events:' + tab : null;
+            var state = null; // {after: last id read, holes: {id: first missed (ms)}}
             try {
-                after = sessionStorage.getItem(KEY);
+                state = KEY ? JSON.parse(sessionStorage.getItem(KEY) || 'null') : null;
             } catch (e) {}
 
-            function show(d) {
-                var ev = d.events || [];
-                if (ev.length > BURST || d.total > ev.length) {
+            function show(ev) {
+                if (ev.length > BURST) {
                     var counts = {},
                         order = [],
                         bad = false;
@@ -590,10 +599,9 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                         counts[e.label]++;
                         bad = bad || TYPES[e.action] === 'error';
                     });
-                    var parts = order.map(function(l) {
+                    xcToast(COUNT.replace('{COUNT}', ev.length) + ': ' + order.map(function(l) {
                         return counts[l] + ' ' + l;
-                    });
-                    xcToast(COUNT.replace('{COUNT}', d.total) + ': ' + parts.join(', ') + (d.total > ev.length ? ', …' : ''), bad ? 'warning' : 'info');
+                    }).join(', '), bad ? 'error' : 'info');
                     return;
                 }
                 ev.forEach(function(e) {
@@ -607,7 +615,15 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                     return;
                 }
                 var stop = false;
-                fetch('./api?action=stream_events' + (after !== null ? '&after=' + encodeURIComponent(after) : ''), {
+                var url = './api?action=stream_events';
+                if (state) {
+                    url += '&after=' + encodeURIComponent(state.after);
+                    var ids = Object.keys(state.holes || {});
+                    if (ids.length) {
+                        url += '&holes=' + ids.join(',');
+                    }
+                }
+                fetch(url, {
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
                         }
@@ -617,15 +633,30 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                     })
                     .then(function(d) {
                         if (typeof d.last !== 'number') {
-                            stop = d.result === false; // no permission: nothing to show here
+                            // No permission: nothing to show here. The database not answering: keep
+                            // the cursor and ask again.
+                            stop = d.result === false;
                             return;
                         }
-                        if (after !== null) {
-                            show(d);
+                        if (state) {
+                            show(d.events || []);
                         }
-                        after = String(d.last);
+                        var now = Date.now(),
+                            holes = {};
+                        (d.holes || []).forEach(function(id) {
+                            var since = state && state.holes && state.holes[id] ? state.holes[id] : now;
+                            if (now - since < HOLD) {
+                                holes[id] = since;
+                            }
+                        });
+                        state = {
+                            after: d.last,
+                            holes: holes
+                        };
                         try {
-                            sessionStorage.setItem(KEY, after);
+                            if (KEY) {
+                                sessionStorage.setItem(KEY, JSON.stringify(state));
+                            }
                         } catch (e) {}
                     })
                     .catch(function() {

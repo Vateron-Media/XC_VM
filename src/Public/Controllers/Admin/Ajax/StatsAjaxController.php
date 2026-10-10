@@ -326,11 +326,14 @@ class StatsAjaxController extends BaseAjaxController {
 		$this->json($rReturn, JSON_PARTIAL_OUTPUT_ON_ERROR);
 	}
 
-	/** action=stream_events — the stream log past `after`, for the panel's start / stop / failure toasts (footer). */
+	/** action=stream_events — the stream log past `after` (and its `holes`), for the panel's start / stop / failure toasts (footer). */
 	public function streamEvents(): never {
 		$this->requireXhr();
 		$this->gate('adv', 'streams');
-		$this->json(StreamRepository::logSince(RequestManager::has('after') ? (int) RequestManager::get('after') : -1));
+		$rHoles = array_map('intval', array_filter(explode(',', (string) RequestManager::get('holes')), 'is_numeric'));
+		$rLog = StreamRepository::logSince(RequestManager::has('after') ? (int) RequestManager::get('after') : -1, $rHoles);
+		// No answer from the database: no `last`, so the tab keeps its cursor and asks again.
+		$this->json($rLog ?? ['error' => 'unavailable']);
 	}
 
 	/** action=header_stats — compact fleet totals for the top navbar. */
