@@ -1,0 +1,3701 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.6.4/superpowers/specs/2026-10-08-lb-segment-gateway-and-native-restreamer-design/">
+      
+      
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../../ru/superpowers/specs/2026-10-08-lb-segment-gateway-and-native-restreamer-design/" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>LB segment gateway and native restreamer — plan - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#lb-segment-gateway-and-native-restreamer-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              LB segment gateway and native restreamer — plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../ru/superpowers/specs/2026-10-08-lb-segment-gateway-and-native-restreamer-design/" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSL Certificate Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Updating a Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../administration/main-lb-cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAIN and Load Balancers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Update Mechanism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reseller System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../administration/operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interactive API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Customization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Translations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diagnostics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Info & FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Info & FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../info/licensing-and-activation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Licensing & Activation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watch Folder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../info/youtube-restream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Restreaming YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../info/custom-ffmpeg-command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom FFmpeg Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autoloading (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Wiring & Registration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Authoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Extension Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/source-drivers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source Drivers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP Request Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin AJAX API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Subsystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/ts-delivery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MPEG-TS Delivery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/cluster-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster API (MAIN ↔ LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/cluster-seams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Seams
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception Hierarchy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching and Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Navbar Rendering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Workflow
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Workflow
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Tools & Console Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unit Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Refactoring (Rector)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & Access
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security & Access
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication and Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Permissions and RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP Detection & Geo Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Detection & STB Locking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ministra STB Emulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UCS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build & Release
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Build & Release
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build System (MAIN vs LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pre-release Checklist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-where-the-cluster-plan-stands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Where the cluster plan stands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Where the cluster plan stands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-phase-10-still-owes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Phase 10 still owes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-how-load-balancers-serve-viewers-today" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. How load balancers serve viewers today
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. How load balancers serve viewers today">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-request-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The request chain
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cost-per-hls-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost per HLS viewer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-legacy-and-pre-fanout-paths-that-still-exist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The legacy and pre-fanout paths that still exist
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-phase-12-segment-gateway-go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Phase 12 — segment gateway (Go)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Phase 12 — segment gateway (Go)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#goal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-it-runs-inside-xc_fanout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where it runs: inside xc_fanout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inputs-gatewayjson-written-by-php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inputs: gateway.json, written by PHP
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-compatibility-the-critical-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token compatibility (the critical contract)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#endpoints-and-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoints and behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-playlist-refresh-step-124" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The playlist refresh (step 12.4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rollout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-phase-13-native-restreamer-xc_restream-go-separate-binary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Phase 13 — native restreamer xc_restream (Go, separate binary)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Phase 13 — native restreamer xc_restream (Go, separate binary)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#130-inventory-oct-9-2026-most-of-this-phase-already-exists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.0 inventory (Oct 9, 2026): most of this phase already exists
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="13.0 inventory (Oct 9, 2026): most of this phase already exists">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#134-results-oct-9-2026-test-lb-1-vcpu-2-gb-xc_fanout-0148" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.4 results (Oct 9, 2026, test LB: 1 vCPU, 2 GB, xc_fanout 0.14.8)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#goal_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-a-separate-binary-and-why-one-process-per-stream" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why a separate binary, and why one process per stream
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-contract-what-ffmpeg-does-today-which-xc_restream-must-match" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output contract (what ffmpeg does today, which xc_restream must match)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-restreamengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection: RestreamEngine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#protocol-coverage-by-step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocol coverage, by step
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#steps_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-how-it-fits-together-on-a-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. How it fits together on a node
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-decisions-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Decisions needed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Risks
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="lb-segment-gateway-and-native-restreamer-plan">LB segment gateway and native restreamer — plan<a class="headerlink" href="#lb-segment-gateway-and-native-restreamer-plan" title="Permanent link">&para;</a></h1>
+<p>Oct 8, 2026 · draft for review</p>
+<p>This plan builds on the MAIN ↔ LB API plan (<code>2026-09-21-main-lb-api-communication-design.md</code>, "the cluster plan"). That plan stops at Phase 10 and leaves out two things:</p>
+<ul>
+<li>PHP-FPM still answers every HLS playlist refresh, every segment and every key request on a node.</li>
+<li>ffmpeg still runs for each stream that only copies its source.</li>
+</ul>
+<p>This plan adds two Go phases for that work, and lists what Phase 10 still owes. Go is the owner's preferred language for this work. Both new pieces are built in the <code>XC_VM_Fanout</code> repository, beside <code>xc_fanout</code> and <code>xc_agent</code>, so they can reuse its MPEG-TS, HLS and crypto packages.</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>What</th>
+<th>Binary</th>
+<th>Effort (pw)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10 (rest)</td>
+<td>Remove the legacy LB link: <code>/api</code>, <code>configureRedisLb</code>, the daemons' DB branches</td>
+<td>— (PHP)</td>
+<td>~1.5</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>Segment gateway:</strong> <code>/hls/</code>, <code>/key/</code> and HLS playlist refreshes answered in Go</td>
+<td>inside <code>xc_fanout</code> (new <code>internal/gateway</code>)</td>
+<td>~5</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>Native restreamer:</strong> a Go replacement for <code>ffmpeg -c copy</code></td>
+<td>new <code>xc_restream</code> (separate binary)</td>
+<td>~7–9</td>
+</tr>
+</tbody>
+</table>
+<p>The phases are independent of each other. Phase 12's third step needs the cluster plan's CONNECTIONS flow (Phase 6, built). Phase 13 needs nothing from the cluster plan.</p>
+<hr />
+<h2 id="1-where-the-cluster-plan-stands">1. Where the cluster plan stands<a class="headerlink" href="#1-where-the-cluster-plan-stands" title="Permanent link">&para;</a></h2>
+<p>Phases 2–8 are built and accepted on test panels with the reference crypto. Phase 9 (cutover, lease, lockdown, secret rotation) and Phase 10 are gated on the <code>xcvm_core</code> cluster API release. The Rust extension now has the <code>cluster_*</code> functions (<code>cluster_token_issue</code>, <code>cluster_lease_issue</code>/<code>verify</code>/<code>store</code>, <code>cluster_sign</code>/<code>verify</code>, <code>cluster_open_sealed</code>, …), but the last released version is 2.3.3, and its changelog does not list them as released. <strong>Confirm the release status before scheduling Phase 9.</strong> Until it ships, every production node stays in mode 0.</p>
+<h3 id="what-phase-10-still-owes">What Phase 10 still owes<a class="headerlink" href="#what-phase-10-still-owes" title="Permanent link">&para;</a></h3>
+<p>Already built: the dashboard's <em>Cluster API</em> row and the Servers list's node hints; <code>server:diagnose</code> reporting the agent's standing; <code>docs/en/development/cluster-api.md</code>; <code>connection_sync_timer</code> dropped (migration 049); <code>/api</code> closing per node through <code>api_legacy.conf</code>, with each node in mode ≥ 1 reporting the calls its <code>/api</code> still answers (<code>legacy_api</code>).</p>
+<p>Still to do:</p>
+<ol>
+<li><strong>Remove</strong> the LB <code>/api</code> and <code>/api.php</code> locations, <code>InternalApiController</code>, <code>configureRedisLb</code>, and the MAIN-DB branches of the LB daemons (<code>signals</code>, <code>watchdog</code>, <code>queue</code>, <code>cron:users</code>, <code>fanout_sync</code>, <code>cron:cache</code>'s DB pull, <code>cron:root_signals</code>'s <code>signals</code> read).</li>
+<li><strong>The release that carries the removal refuses to update an LB below mode 2.</strong> <code>UpdateCommand</code> on MAIN refuses to send it, and the LB's updater refuses to apply it. The Servers page names each node that blocks the update.</li>
+<li><strong>Run the final <code>verify-lb-archive.sh</code></strong> after the removal, and add the removed files to its SENSITIVE list so they cannot come back.</li>
+<li><strong>Rewrite <code>server:diagnose</code></strong> around the API link only: <code>health</code>, a signed round trip, token expiry, clock skew and outbox lag.</li>
+<li><strong>Docs:</strong> <code>cluster-api.md</code> gets a "Legacy removal" section, followed by <code>make docs-build</code>.</li>
+<li><strong>External callers</strong> of an LB's <code>/api</code> (XC_VM_Proxy's old builds) break here. The release notes must name the XC_VM_Proxy version they need.</li>
+</ol>
+<p><strong>Recommendation:</strong> keep Phase 10 as the cleanup it is, and ship it in the major release <em>after</em> Phase 12, not before it. Phase 12 takes a large share of the LB's remaining PHP traffic. Measuring it on a fleet that still has the legacy branches lets Phase 10 remove code without guessing what still depends on it.</p>
+<hr />
+<h2 id="2-how-load-balancers-serve-viewers-today">2. How load balancers serve viewers today<a class="headerlink" href="#2-how-load-balancers-serve-viewers-today" title="Permanent link">&para;</a></h2>
+<p>This is the model XC_VM inherited from Xtream Codes, where an LB is nginx + PHP-FPM + ffmpeg, plus the fanout daemon added in ADRs 0002/0003.</p>
+<h3 id="the-request-chain">The request chain<a class="headerlink" href="#the-request-chain" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>player ─▶ MAIN /live/u/p/123.m3u8 ──(auth.php: line, bouquet, max_connections,
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                                      server pick, ConnectionAdmission reserve)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>       ◀─ 302 http://LB/auth/&lt;live token&gt;      (sealed with K_n or live_streaming_pass)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>player ─▶ LB /auth/&lt;token&gt;  → nginx rewrite → /stream/live → PHP-FPM live.php
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>            ├─ m3u8: open store, lookup/createLive (hls key = md5(identity|stream|ip|UA)),
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>            │        fetch daemon playlist, mint ONE sealed token PER SEGMENT LINE,
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            │        rebase MEDIA-SEQUENCE (HlsSequence), prepend #EXT-X-KEY → body
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            └─ ts:   register with xc_fanout, X-Accel-Redirect /xc_fanout/&lt;id&gt; (FPM freed)
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>player ─▶ LB /hls/&lt;seg token&gt;  → nginx rewrite → /stream/segment → PHP-FPM segment.php
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            unserialize settings + servers caches, Encryption::readToken (up to 4 key tries),
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            stat CONS_TMP_PATH/&lt;uuid&gt;, IP match, X-Accel-Redirect /xc_fanout_hls/&lt;id&gt;_&lt;seq&gt;
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>player ─▶ LB /key/&lt;key token&gt;  → PHP-FPM key.php  → returns &lt;id&gt;_.key
+</code></pre></div>
+<p>When the player refreshes its playlist (every <code>seg_time</code>, often 2–10 s), it hits <code>live.php</code> again, which runs the store lookup, the <code>updateLive</code> touch, the playlist fetch, and N GCM seals.</p>
+<h3 id="cost-per-hls-viewer">Cost per HLS viewer<a class="headerlink" href="#cost-per-hls-viewer" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Request</th>
+<th>Frequency per viewer</th>
+<th>Handled by</th>
+<th>Work per request</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Playlist refresh</td>
+<td>1 / <code>seg_time</code></td>
+<td>PHP-FPM <code>live.php</code></td>
+<td>bootstrap, 2 igbinary cache reads, token open, store lookup + update (agent socket, or MAIN Redis/MySQL over the WAN in mode 0), N × AES-GCM seal</td>
+</tr>
+<tr>
+<td>Segment</td>
+<td>1 / <code>seg_time</code></td>
+<td>PHP-FPM <code>segment.php</code></td>
+<td>2 igbinary cache reads, 1–4 GCM opens, stat, X-Accel</td>
+</tr>
+<tr>
+<td>Key (encrypted HLS)</td>
+<td>about 1 per playlist</td>
+<td>PHP-FPM <code>key.php</code></td>
+<td>same as a segment</td>
+</tr>
+</tbody>
+</table>
+<p>For 10,000 HLS viewers at <code>seg_time</code> 4 that is about 5,000 FPM requests/s on one node, from four FPM sockets, and none of them carry video. TS viewers already avoid this: PHP authenticates once and hands off.</p>
+<h3 id="the-legacy-and-pre-fanout-paths-that-still-exist">The legacy and pre-fanout paths that still exist<a class="headerlink" href="#the-legacy-and-pre-fanout-paths-that-still-exist" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Mode 0 LB:</strong> the same chain, but the stores are MAIN's Redis and MySQL over the WAN. Settings and servers come from MAIN's DB every minute. The commands come over the plaintext <code>/api</code> with <code>live_streaming_pass</code>.</li>
+<li><strong><code>fanout_enabled = 0</code>, or unlicensed (ADR 0003 amendment):</strong> <code>segment.php</code> serves on-disk <code>&lt;id&gt;_N.ts</code> from <code>STREAMS_PATH</code> through <code>/xc_hls/</code>, and AES-encrypts on first read into <code>.enc</code>. TS viewers pin one FPM worker each (<code>SegmentReader</code> chase-read). <strong>This must stay as the fallback.</strong></li>
+<li><strong>ffmpeg per stream:</strong> every non-proxy stream runs one ffmpeg, even when the profile is pure <code>-c copy</code>. It writes on-disk HLS for timeshift, thumbnails, <code>.analyse</code> and the PHP monitor, and tees MPEG-TS into the daemon's ingest socket (ADR 0003 A2). Proxy streams are pulled by the daemon itself (<code>nativesrc</code>, in-process, ffmpeg only as fallback).</li>
+</ul>
+<hr />
+<h2 id="3-phase-12-segment-gateway-go">3. Phase 12 — segment gateway (Go)<a class="headerlink" href="#3-phase-12-segment-gateway-go" title="Permanent link">&para;</a></h2>
+<h3 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h3>
+<p>Answer <code>/hls/&lt;token&gt;</code>, <code>/key/&lt;token&gt;</code>, and a known viewer's HLS playlist refresh without PHP-FPM, with no change to any URL, token format or player-visible behaviour. Anything the gateway does not fully own goes to the existing PHP endpoint through an internal redirect, so <strong>every step can be undone</strong> by removing one nginx include.</p>
+<h3 id="where-it-runs-inside-xc_fanout">Where it runs: inside <code>xc_fanout</code><a class="headerlink" href="#where-it-runs-inside-xc_fanout" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>For</th>
+<th>Against</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A. Package <code>internal/gateway</code> in <code>xc_fanout</code>, own socket <code>gw.sock</code> (recommended)</strong></td>
+<td>The bytes are already there: a segment is served from the hub's in-RAM HLS with no X-Accel hop. Runs on every node with fanout on, MAIN and mode-0 LBs included. It follows the existing <code>fanout_enabled</code> switch and licence gate.</td>
+<td>Fanout gets viewer-key material (it runs as <code>xc_vm</code>, the same user as PHP-FPM, which already reads those keys).</td>
+</tr>
+<tr>
+<td>B. In <code>xc_agent</code></td>
+<td>The agent already has the replica, the connection registry and the lease.</td>
+<td>Not on mode-0 nodes or in MAIN's role. Adds a viewer-facing listener to the process that holds the MAIN link. Needs an X-Accel hop to reach the bytes.</td>
+</tr>
+<tr>
+<td>C. New <code>xc_gateway</code> binary</td>
+<td>Isolation</td>
+<td>A fourth process to package, update and supervise, for code that exists to reach fanout's memory.</td>
+</tr>
+</tbody>
+</table>
+<p>Choose A. Fanout's control and client sockets stay as they are. The gateway listens on a third socket, <code>bin/xc_fanout/sockets/gw.sock</code>, so the internal <code>/hls/&lt;id&gt;/&lt;seq&gt;.ts</code> surface is never exposed to viewers.</p>
+<h3 id="inputs-gatewayjson-written-by-php">Inputs: <code>gateway.json</code>, written by PHP<a class="headerlink" href="#inputs-gatewayjson-written-by-php" title="Permanent link">&para;</a></h3>
+<p>The gateway reads PHP's igbinary caches only through a small policy file that PHP writes. That keeps one source of truth (PHP's settings loader, the replica on API nodes, the DB on MAIN and mode 0) and works in every mode.</p>
+<p><code>tmp/gateway/policy.json</code>, mode 0600, owner <code>xc_vm</code>, written atomically by <code>Core/Gateway/GatewayPolicy::write()</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"v"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"server_id"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nt">"written_at"</span><span class="p">:</span><span class="w"> </span><span class="mi">1759900000</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"keys"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">"viewer"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;hex K_n&gt;"</span><span class="p">,</span><span class="w"> </span><span class="nt">"until"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="nt">"key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;hex prev&gt;"</span><span class="p">,</span><span class="w"> </span><span class="nt">"until"</span><span class="p">:</span><span class="w"> </span><span class="mi">1759903600</span><span class="p">}],</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">"shared"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;live_streaming_pass&gt;"</span><span class="p">,</span><span class="w"> </span><span class="nt">"until"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="nt">"key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;old&gt;"</span><span class="p">,</span><span class="w"> </span><span class="nt">"until"</span><span class="p">:</span><span class="w"> </span><span class="mi">1759903600</span><span class="p">}],</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">"context"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"v"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;OPENSSL_EXTRA&gt;"</span><span class="p">,</span><span class="w"> </span><span class="nt">"until"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="nt">"v"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;prev&gt;"</span><span class="p">,</span><span class="w"> </span><span class="nt">"until"</span><span class="p">:</span><span class="w"> </span><span class="mi">1759903600</span><span class="p">}],</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nt">"accept_legacy_cbc"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">"restrict_same_ip"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"ip_subnet_match"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="nt">"encrypt_hls"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">"headers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"server"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w"> </span><span class="nt">"protection"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"altsvc_port"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="nt">"lease_refuse_after"</span><span class="p">:</span><span class="w"> </span><span class="mi">1759990000</span><span class="p">,</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="nt">"redirect"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"5"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://lb5.example:8080"</span><span class="p">,</span><span class="w"> </span><span class="nt">"7"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http"</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="s2">"a.example"</span><span class="p">,</span><span class="s2">"b.example"</span><span class="p">],</span><span class="w"> </span><span class="mi">8080</span><span class="p">]},</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="nt">"playlist"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"conn_store"</span><span class="p">:</span><span class="w"> </span><span class="s2">"agent"</span><span class="p">}</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><strong>Writers:</strong> <code>cron:cache</code> (every minute, all modes), <code>cluster:apply</code> (when the replica changes), <code>SettingsChangedEvent</code>/<code>ServerSavedEvent</code> on MAIN, <code>ViewerKey::adopt</code>, <code>cluster:rotate-stream-secret</code>, <code>NodeLease</code> state changes. The gateway re-reads the file when its mtime changes (checked once a second) and never caches past <code>until</code>.</li>
+<li><strong>After lockdown</strong> (cluster plan, the per-node-keys third increment), <code>shared</code> is empty and only <code>viewer</code> keys remain. The gateway handles that exactly as <code>Encryption::readToken</code> does: no shared key means no shared-key open.</li>
+<li><strong>A missing, unreadable or stale file</strong> (older than 10 minutes, or a different <code>server_id</code>) makes the gateway redirect every request to PHP. It never fails a viewer for lack of policy.</li>
+</ul>
+<h3 id="token-compatibility-the-critical-contract">Token compatibility (the critical contract)<a class="headerlink" href="#token-compatibility-the-critical-contract" title="Permanent link">&para;</a></h3>
+<p>Go must open what PHP mints and mint what PHP opens, byte for byte, because PHP stays the fallback for every request:</p>
+<ul>
+<li><strong>Sealed (v2):</strong> <code>base64url(nonce12 ‖ AES-256-GCM(ct) ‖ tag16)</code>, key = <code>HMAC-SHA256(secret, "xc_vm stream token v2|" + context)</code>.</li>
+<li><strong>Legacy CBC</strong> (only when <code>accept_legacy_cbc</code>, i.e. <code>secure_stream_tokens</code> off): AES-256-CBC, key = <code>md5hex(sha1hex(context) + secret)</code> as 32 ASCII bytes, IV = first 16 chars of <code>md5hex(sha1hex(secret))</code>.</li>
+<li><strong>Try order</strong>, the same as <code>readToken</code>: viewer keys (current, then previous inside its window) → shared current → shared under the previous <code>OPENSSL_EXTRA</code> → previous shared secret → legacy CBC in the same order.</li>
+<li><strong>Shared vectors:</strong> a PHP script (<code>tools/ci/gateway-vectors.php</code>) emits <code>testdata/gateway/tokens.json</code>: segment, archive, key and live tokens, each sealed under every key slot, plus tampered, truncated and wrong-context cases. Go's <code>internal/gateway/token_test.go</code> must open, mint and refuse exactly the same set, and CI runs both sides. This is the same pattern <code>clustercrypto/testdata</code> already uses.</li>
+</ul>
+<h3 id="endpoints-and-behaviour">Endpoints and behaviour<a class="headerlink" href="#endpoints-and-behaviour" title="Permanent link">&para;</a></h3>
+<p>nginx (rendered as <code>gateway.conf</code> by a new <code>GatewayNginxConfig</code>, like <code>api_legacy.conf</code>; empty when the gateway is off):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># replaces the server-level rewrites for ^/hls/ and ^/key/ while the gateway is on</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">location</span><span class="w"> </span><span class="p">~</span><span class="w"> </span><span class="sr">^(/[^/]+)?/(hls|key)/[^/]+$</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="kn">limit_req</span><span class="w"> </span><span class="s">zone=one</span><span class="w"> </span><span class="s">burst=8</span><span class="p">;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="kn">proxy_pass</span><span class="w"> </span><span class="s">http://unix:/home/xc_vm/bin/xc_fanout/sockets/gw.sock</span><span class="p">;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="kn">proxy_http_version</span><span class="w"> </span><span class="mi">1</span><span class="s">.1</span><span class="p">;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">Connection</span><span class="w"> </span><span class="s">""</span><span class="p">;</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-XC-Client-IP</span><span class="w"> </span><span class="nv">$remote_addr</span><span class="p">;</span><span class="w">        </span><span class="c1"># after real_ip, as PHP's REMOTE_ADDR</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-XC-Peer</span><span class="w">      </span><span class="nv">$realip_remote_addr</span><span class="p">;</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="kn">proxy_buffering</span><span class="w"> </span><span class="no">off</span><span class="p">;</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="kn">error_page</span><span class="w"> </span><span class="mi">502</span><span class="w"> </span><span class="mi">504</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">@segment_php</span><span class="p">;</span><span class="w">                   </span><span class="c1"># gateway down → PHP, never the viewer</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">}</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="k">location</span><span class="w"> </span><span class="s">@segment_php</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kn">...</span><span class="w"> </span><span class="s">fastcgi_pass</span><span class="w"> </span><span class="s">php</span><span class="p">;</span><span class="w"> </span><span class="kn">SCRIPT_FILENAME</span><span class="w"> </span><span class="s">Public/stream/index.php</span><span class="p">;</span><span class="w"> </span><span class="kn">XC_STREAM</span><span class="w"> </span><span class="s">segment|key</span><span class="w"> </span><span class="s">...</span><span class="w"> </span><span class="err">}</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="s">location</span><span class="w"> </span><span class="s">@live_php</span><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="kn">...</span><span class="w"> </span><span class="s">XC_STREAM</span><span class="w"> </span><span class="s">live</span><span class="w"> </span><span class="s">...</span><span class="w"> </span><span class="err">}</span>
+</code></pre></div>
+<p>The gateway answers with one of three things:</p>
+<ol>
+<li><strong>Bytes:</strong> it serves the response itself.</li>
+<li><strong>A denial</strong> (404, as PHP does today).</li>
+<li><strong><code>X-Accel-Redirect: @segment_php</code></strong> (or <code>@live_php</code>): "PHP, take this one." nginx re-runs the original request against FPM, so PHP sees the same URI and arguments as today.</li>
+</ol>
+<p>Rule: <em>anything not proven equivalent goes to PHP.</em></p>
+<table>
+<thead>
+<tr>
+<th>Request</th>
+<th>Gateway does</th>
+<th>Goes to PHP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/hls/&lt;t&gt;</code> live daemon segment <code>&lt;id&gt;_d&lt;seq&gt;.ts</code></td>
+<td>Open, <code>server_id == own</code> (else 302 to the owner's base, as <code>segment.php</code>), lease, <code>CONS_TMP_PATH/&lt;uuid&gt;</code> exists, IP / subnet match, then serve <code>&lt;seq&gt;</code> from the hub in-process, with the send-message overlay (<code>c</code>, <code>vc</code>) and AES as today</td>
+<td>Fanout in legacy delivery, or stream not fed</td>
+</tr>
+<tr>
+<td><code>/hls/&lt;t&gt;</code> on-disk live segment (fanout off)</td>
+<td>—</td>
+<td>Always (fanout off means the gateway is off)</td>
+</tr>
+<tr>
+<td><code>/hls/&lt;t&gt;</code> archive segment (<code>TS/…</code>, 9 fields)</td>
+<td>Step 12.3: validate the name, <code>uuid</code>, file; touch via the agent's <code>POST /v1/conn/{uuid}/touch</code> and refuse when <code>hls_end</code>; serve the file with <code>offset</code> through fanout's file server</td>
+<td>Before 12.3, or with no agent store (mode 0)</td>
+</tr>
+<tr>
+<td><code>/key/&lt;t&gt;</code></td>
+<td>Open, IP match, return the stream's key from the hub's memory (given at <code>registerIngest</code>), else <code>STREAMS_PATH/&lt;id&gt;_.key</code></td>
+<td>Never needed</td>
+</tr>
+<tr>
+<td><code>/auth/&lt;t&gt;</code> m3u8 refresh</td>
+<td>Step 12.4 (below)</td>
+<td>First request, any TS, any refusal path</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Response headers parity:</strong> CORS <code>*</code>, <code>nosniff</code>, <code>Server</code>, the protection headers, <code>Alt-Svc</code>, and <code>Content-Type</code> (<code>video/mp2t</code>, <code>video/iso.segment</code>, <code>application/octet-stream</code>), all from the policy.</p>
+<p><strong>Proxy routes:</strong> an XC_VM_Proxy in front prefixes <code>/&lt;route&gt;/hls/…</code> (<code>ProxyRoute::segment</code>). The location matches the optional prefix, and the gateway sends prefixed requests to PHP until the proxy's route check is ported.</p>
+<h3 id="the-playlist-refresh-step-124">The playlist refresh (step 12.4)<a class="headerlink" href="#the-playlist-refresh-step-124" title="Permanent link">&para;</a></h3>
+<p>This is where most of the remaining FPM load is. A player's playlist URL on the LB is <code>/auth/&lt;live token&gt;</code>. Its first request must stay in PHP: admission, <code>disallow_2nd_ip_con</code>, off-air, on-demand start, <code>createLive</code>. Later refreshes only need four things: the connection still exists and has not ended, the IP rule, <code>hls_last_read</code>, and a freshly tokenised playlist. The gateway can do that when the node's connection store is the agent (CONNECTIONS on):</p>
+<ol>
+<li>Open the live token (sealed JSON from <code>StreamAuthMiddleware</code>). If it is not <code>m3u8</code>, or is <code>video_path</code>/<code>off_air</code>/adaptive/proxied, send it to <code>@live_php</code>.</li>
+<li>Compute <code>uuid = md5("hls#" + identity + "#" + stream + "#" + ip + "#" + htmlentities(trim(UA)))</code>, exactly as <code>ConnectionTracker::hlsConnectionKey</code>. The shared vectors cover this, including <code>htmlentities</code> on non-ASCII user agents.</li>
+<li>Ask the agent (<code>GET /v1/conn/{uuid}</code> on <code>agent.sock</code>, which already exists). If there is no record or <code>hls_end</code>, send it to <code>@live_php</code>, which recreates or refuses exactly as now. If the IP rule fails, return <code>IP_MISMATCH</code>.</li>
+<li>Touch: <code>POST /v1/conn/{uuid}/touch</code> on the agent (already there; it feeds the agent's HLS reaper and the P2 <code>conn.touch</code> lane to MAIN).</li>
+<li>Build the body from the hub's playlist in-process: one sealed segment token per line (same payload as <code>tokenizeDaemonPlaylist</code>), the MEDIA-SEQUENCE rebased with the <strong>same persisted offset file</strong> <code>HlsSequence</code> uses (ported, with that file's locking), and <code>#EXT-X-KEY</code> with a key token and the IV.</li>
+</ol>
+<p>On mode 0/1 nodes without CONNECTIONS, every refresh goes to <code>@live_php</code>. The step is still safe there; it just does not offload anything.</p>
+<h3 id="rollout">Rollout<a class="headerlink" href="#rollout" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>settings.gateway_mode</code>: <code>off</code> (default) | <code>segments</code> | <code>segments+playlist</code>. Per node through the policy file; the Servers page shows each node's mode and the gateway's verdict counters.</li>
+<li><strong>Shadow first:</strong> in <code>shadow</code>, nginx <code>mirror</code>s each <code>/hls/</code> request to the gateway, which computes its verdict and logs it next to the token's fields, without serving. PHP still serves. A <code>cron:cluster</code> step on MAIN compares the gateway's refusals with PHP's <code>clientLog</code> for the same uuid. The gateway goes live per node only after 7 days with zero disagreements.</li>
+<li><strong>Rollback:</strong> set <code>gateway_mode=off</code>. <code>GatewayNginxConfig</code> renders an empty include and reloads nginx, and the server-level rewrites take over again.</li>
+</ul>
+<h3 id="steps">Steps<a class="headerlink" href="#steps" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Content</th>
+<th>pw</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>12.1</td>
+<td>Token package (<code>internal/gateway/token</code>), shared vectors, policy writer and reader, <code>gateway.conf</code> renderer, shadow mirror</td>
+<td>1.5</td>
+</tr>
+<tr>
+<td>12.2</td>
+<td>Live daemon segments and keys served in-process; headers parity; metrics (<code>/metrics</code>: verdicts, p50/p99, PHP handoffs by reason)</td>
+<td>1</td>
+</tr>
+<tr>
+<td>12.3</td>
+<td>Archive segments: the agent's existing <code>GET /v1/conn/{uuid}</code> and touch, file serving with offset</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td>12.4</td>
+<td>Playlist refresh on CONNECTIONS nodes; <code>HlsSequence</code> port</td>
+<td>1.5</td>
+</tr>
+<tr>
+<td>12.5</td>
+<td>Load test and canary; ADR 0005 "Segment gateway"</td>
+<td>0.5</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Acceptance:</strong></p>
+<ul>
+<li>With <code>segments+playlist</code> on a CONNECTIONS node, an HLS viewer's FPM requests drop to one per session, plus re-auths.</li>
+<li>Gateway auth adds ≤ 1 ms p99 at 5,000 req/s on one core.</li>
+<li>Killing <code>xc_fanout</code> mid-stream degrades to PHP within one request (nginx 502 → <code>@segment_php</code>) with no viewer error beyond what fanout-down already causes.</li>
+<li>The shared vectors pass on both sides.</li>
+<li>A tampered or wrong-node token is refused by both sides with the same status.</li>
+</ul>
+<p><strong>Tests:</strong></p>
+<ul>
+<li>Go: <code>token_test.go</code> (vectors), <code>gateway_test.go</code> (each row of the table above, the redirect to the owner, lease refusal, a stale policy going to PHP), <code>playlist_test.go</code> (golden playlists against PHP output).</li>
+<li>PHP: <code>GatewayPolicyTest</code> (no secret beyond the allowlist, 0600, atomic), <code>GatewayNginxConfigTest</code>.</li>
+<li>E2E: <code>lb-hls-gateway.spec.ts</code>: plays HLS clear and encrypted through MAIN → LB, then checks the FPM access log shows one <code>/stream/live</code> per session.</li>
+</ul>
+<hr />
+<h2 id="4-phase-13-native-restreamer-xc_restream-go-separate-binary">4. Phase 13 — native restreamer <code>xc_restream</code> (Go, separate binary)<a class="headerlink" href="#4-phase-13-native-restreamer-xc_restream-go-separate-binary" title="Permanent link">&para;</a></h2>
+<h3 id="130-inventory-oct-9-2026-most-of-this-phase-already-exists">13.0 inventory (Oct 9, 2026): most of this phase already exists<a class="headerlink" href="#130-inventory-oct-9-2026-most-of-this-phase-already-exists" title="Permanent link">&para;</a></h3>
+<p>The design below assumed ffmpeg still runs every copy-only stream. It does not. <code>xc_fanout remux</code> (XC_VM 30eea763, 269eee01) is the drop-in this section describes, inside the existing binary:</p>
+<ul>
+<li><strong>Selection:</strong> <code>StreamProcess::buildSupervisorSpec</code> + <code>nativeRefusal()</code> (type <code>live</code>, no transcode, custom ffmpeg, custom map, RTMP output, external push or forced audio codec) + <code>isNativeSource()</code> (http, https, udp, rtp). <code>fanout_source_backend</code> is <code>auto</code> and <code>fanout_supervise</code> is <code>1</code> by default (migrations 017, 018), so every fanout node already runs copy-only channels natively, with the ffmpeg line as <code>fallback_cmd</code>.</li>
+<li><strong>Output contract:</strong> on-disk HLS through <code>tsseg</code> (written as <code>.tmp</code>, renamed into place, deleted past the window), the ingest feed (redials after a daemon restart), ffmpeg-style <code>-progress</code> with the keys <code>StreamsCronJob</code> reads, credentials redacted in <code>&lt;id&gt;.errors</code>, exit <code>3</code> → fallback, VOD playlists paced to real time (<code>nativesrc</code> <code>pace()</code>).</li>
+<li><strong>Process identity:</strong> <code>ProcessManager::producerRunsStream</code>, <code>isStreamProducerCmdline</code> and <code>producerKind</code> know <code>xc_fanout remux</code>. The other name checks are correct as they stand: <code>QueueCommand</code> and <code>VodCronJob</code> are VOD-only (ffmpeg), <code>StreamsCronJob::handOverNeedsRestart</code> is ffmpeg-only on purpose, and the <code>ps | grep /&lt;id&gt;_.m3u8</code> sweeps match the remuxer too, since it names the playlist.</li>
+<li><strong>Probe:</strong> <code>ffprobe</code> reads the on-disk playlist for <code>stream_info</code>, the same for both producers. A <code>probe --json</code> subcommand is not needed.</li>
+<li><strong>Licence gate (R1) and per-process model (R2):</strong> inherited from <code>xc_fanout</code>. <strong>Default <code>auto</code> (R4):</strong> already the default.</li>
+</ul>
+<p>What is missing, and is now Phase 13:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Gap</th>
+<th>Repo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13.1</td>
+<td><strong>Crash fallback.</strong> A remuxer panic exits 2 (Go runtime), and the supervisor only switched on 3, so a source that crashes the remuxer restarted the crash forever. Exit 2 now switches to the fallback too (also the remuxer's bad-usage status).</td>
+<td>Fanout (done)</td>
+</tr>
+<tr>
+<td>13.2</td>
+<td><strong>Credentials out of argv.</strong> <code>-i</code>, <code>-cookies</code>, <code>-headers</code> and <code>-http_proxy</code> are in <code>/proc/&lt;pid&gt;/cmdline</code>. Move them to a 0600 source file, behind a daemon <code>features</code> flag so an older daemon keeps the argv line.</td>
+<td>both</td>
+</tr>
+<tr>
+<td>13.3</td>
+<td><strong>Per-stream engine override</strong> (force ffmpeg for one channel) and the engine and its reason on the stream page (today only the producer kind on the list, and the reason in the stream log).</td>
+<td>XC_VM</td>
+</tr>
+<tr>
+<td>13.4</td>
+<td><strong>Measure on a live node:</strong> CPU and RSS of <code>remux</code> against <code>ffmpeg -c copy</code> on the same sources, timeshift and thumbnails from native HLS. Fanout's docs still say "not yet exercised on a live node".</td>
+<td>test LB</td>
+</tr>
+<tr>
+<td>13.5</td>
+<td>Later (R3): RTMP, RTSP, SRT and local-file sources; RTMP push; LLOD v3.</td>
+<td>Fanout</td>
+</tr>
+</tbody>
+</table>
+<h4 id="134-results-oct-9-2026-test-lb-1-vcpu-2-gb-xc_fanout-0148">13.4 results (Oct 9, 2026, test LB: 1 vCPU, 2 GB, xc_fanout 0.14.8)<a class="headerlink" href="#134-results-oct-9-2026-test-lb-1-vcpu-2-gb-xc_fanout-0148" title="Permanent link">&para;</a></h4>
+<p>Each producer ran the exact command the panel builds for a supervised copy-only channel (<code>buildLive</code>, <code>buildNativeLive</code>: HLS 6 s × 6, delete threshold 4, tee/<code>-ingest</code> to a sink socket). The source was a 720p25 H.264 3 Mbps + AAC clip looped live on 127.0.0.1, as HTTP-TS and as HLS (6 s segments). Measured over 120 s after a 30 s warm-up, from <code>/proc</code> (utime+stime; PSS and RSS from <code>smaps_rollup</code>). Every producer stayed up and cut 6.0 s segments. Figures are per channel:</p>
+<table>
+<thead>
+<tr>
+<th>Source, channels</th>
+<th>Producer</th>
+<th>CPU %</th>
+<th>PSS MB</th>
+<th>RSS MB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP-TS, 10</td>
+<td>remux</td>
+<td>1.50</td>
+<td>6.2</td>
+<td>11.5</td>
+</tr>
+<tr>
+<td>HTTP-TS, 10</td>
+<td>ffmpeg 4.0</td>
+<td>1.73</td>
+<td>13.8</td>
+<td>23.7</td>
+</tr>
+<tr>
+<td>HTTP-TS, 10</td>
+<td>ffmpeg 8.1</td>
+<td>1.68</td>
+<td>11.5</td>
+<td>22.7</td>
+</tr>
+<tr>
+<td>HTTP-TS, 20</td>
+<td>remux</td>
+<td>1.25</td>
+<td>6.0</td>
+<td>11.4</td>
+</tr>
+<tr>
+<td>HTTP-TS, 20</td>
+<td>ffmpeg 4.0</td>
+<td>1.57</td>
+<td>13.9</td>
+<td>24.1</td>
+</tr>
+<tr>
+<td>HLS, 10</td>
+<td>remux</td>
+<td>0.92</td>
+<td>13.7</td>
+<td>19.0</td>
+</tr>
+<tr>
+<td>HLS, 10</td>
+<td>ffmpeg 4.0</td>
+<td>1.94</td>
+<td>16.6</td>
+<td>26.5</td>
+</tr>
+<tr>
+<td>HLS, 10</td>
+<td>ffmpeg 8.1</td>
+<td>1.71</td>
+<td>10.2</td>
+<td>21.3</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>The "≥ 50% CPU and RSS" acceptance holds only in part.</strong> On HTTP-TS sources, memory falls by about 55% but the producer's CPU only by 13–20%: <code>ffmpeg -c copy</code> is already cheap there. On HLS sources, CPU falls by 46–53%, but memory falls less (−28% RSS against ffmpeg 4.0), and the PSS is above ffmpeg 8.1's.</li>
+<li><strong>The HLS memory is by design:</strong> <code>nativesrc</code> buffers each segment whole before passing it on (<code>hls.go</code>: a failure halfway through a download must not emit a partial segment that the retry would duplicate), and keeps the buffer at its largest size. That is about one segment (2.5 MB here) plus Go's GC headroom.</li>
+<li><strong>Functional check passes</strong> (<code>tests/e2e/tests/admin/lb-native-restream.spec.ts</code>, 7/7 on the test LB in mode 2): a copy-only channel there runs on <code>xc_fanout remux</code>, its timeshift is served as TS and HLS from the remuxer's segments, and its thumbnail is taken from them. It first needed a separate fix (branch <code>fix/mode2-runtime-seed</code>): a node installed straight into mode 2 never seeded <code>StreamRuntime</code>, so every stream start died on a refused MySQL read in <code>killPhpMonitor()</code>.</li>
+<li><strong>Whole box, 20 HTTP-TS channels:</strong> 57% busy with remux against 76% with ffmpeg 4.0. Part of that gap is the bench's Python sink taking ffmpeg's smaller ingest writes, so it overstates what the daemon would see.</li>
+</ul>
+<h3 id="goal_1">Goal<a class="headerlink" href="#goal_1" title="Permanent link">&para;</a></h3>
+<p>Replace ffmpeg for streams that only <strong>copy</strong> their source (no transcode, logo, filter or custom command), as a separate per-stream process that keeps ffmpeg's output contract. PHP's process model stays unchanged: pid files, the monitor, <code>ProcessManager</code>, kill and restart. ffmpeg stays for everything else and remains the automatic fallback.</p>
+<h3 id="why-a-separate-binary-and-why-one-process-per-stream">Why a separate binary, and why one process per stream<a class="headerlink" href="#why-a-separate-binary-and-why-one-process-per-stream" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>xc_fanout</code> already pulls <strong>proxy</strong> streams in-process (<code>nativesrc</code>). Non-proxy streams are different: they must write on-disk HLS for timeshift, <code>ArchiveCommand</code>, thumbnails, <code>.analyse</code> and the PHP monitor, and they are started, killed and supervised as processes by PHP (<code>StreamProcess</code>, <code>MonitorCommand</code>) and by the fanout supervisor. A separate binary drops into the place where <code>ffmpeg</code> sits today.</li>
+<li>One process per stream isolates a bad source (a parser panic or a memory blow-up kills one channel, not the node's whole fan-out), and keeps <code>kill &lt;pid&gt;</code> semantics. A multi-stream server mode can come later if per-process overhead (~5–8 MB RSS) matters.</li>
+<li>It lives in <code>XC_VM_Fanout/cmd/xc_restream</code> so it can import the module's <code>internal/</code> packages, which already do most of the work: <code>nativesrc</code> (HTTP-TS, HLS incl. AES/byte-range/fMP4/packed AAC, UDP/RTP), <code>tsjoin</code>, <code>tsseg</code>, <code>tsmux</code>, <code>tspes</code>, <code>tsmeta</code> (SPS: resolution, profile), <code>fmp4</code>, <code>hlscrypt</code> and <code>redact</code>. It ships as its own release asset, <code>xc_restream-linux-&lt;arch&gt;</code>, with a version sidecar.</li>
+</ul>
+<h3 id="output-contract-what-ffmpeg-does-today-which-xc_restream-must-match">Output contract (what ffmpeg does today, which <code>xc_restream</code> must match)<a class="headerlink" href="#output-contract-what-ffmpeg-does-today-which-xc_restream-must-match" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Output</th>
+<th>ffmpeg today (<code>StreamProcess::buildLive</code>)</th>
+<th><code>xc_restream</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>On-disk HLS</td>
+<td><code>-f hls -hls_time T -hls_list_size N -hls_flags delete_segments…</code> → <code>&lt;id&gt;_%d.ts</code>, <code>&lt;id&gt;_.m3u8</code></td>
+<td><code>--hls-dir STREAMS_PATH --hls-time T --hls-list-size N</code>. Cuts on keyframes (<code>tsseg</code>), writes a segment then renames it into place, then rewrites the playlist (the <code>ArchiveCommand</code> "N+1 exists ⇒ N complete" rule holds), and deletes past the window</td>
+</tr>
+<tr>
+<td>Fanout feed</td>
+<td><code>tee … [f=mpegts:onfail=ignore]unix:&lt;ingest.sock&gt;</code></td>
+<td><code>--ingest &lt;sock&gt;</code>, non-blocking; a dead socket never stalls the on-disk HLS; reconnects</td>
+</tr>
+<tr>
+<td>Progress</td>
+<td><code>-progress &lt;file&gt;</code> key=value blocks</td>
+<td>Same keys (<code>frame</code>, <code>fps</code>, <code>bitrate</code>, <code>total_size</code>, <code>out_time_us</code>/<code>_ms</code>, <code>speed</code>, <code>progress=continue/end</code>) to the same file, once a second</td>
+</tr>
+<tr>
+<td>Probe</td>
+<td><code>ffprobe -show_streams -show_format -of json</code> (<code>FFprobeRunner</code>)</td>
+<td><code>xc_restream probe &lt;url&gt; --json</code>, an ffprobe-compatible subset: <code>streams[].{index,codec_type,codec_name,profile,width,height,r_frame_rate,sample_rate,channels,bit_rate}</code>, <code>format.{format_name,bit_rate}</code></td>
+</tr>
+<tr>
+<td>Stream selection</td>
+<td><code>-map 0:v:0? -map 0:a? …</code>, <code>resolveOutputMap</code></td>
+<td>The default map: first video, every audio, DVB subtitles and teletext passed through; a custom map → ffmpeg</td>
+</tr>
+<tr>
+<td>Timestamps</td>
+<td><code>-fflags +genpts</code>, <code>-copyts</code> variants, <code>-re</code> (<code>{READ_NATIVE}</code>)</td>
+<td>Continuity counters rewritten, PAT/PMT regenerated, discontinuity → <code>#EXT-X-DISCONTINUITY</code>, PTS wrap handled; <strong>real-time pacing on PCR</strong> for files and VOD playlists (the known bug in ADR 0003's LB validation: the native remuxer raced a VOD playlist at about 300×)</td>
+</tr>
+<tr>
+<td>Source options</td>
+<td><code>-user_agent</code>, <code>-headers</code>, <code>-http_proxy</code>, cookies, <code>-rw_timeout</code></td>
+<td>Same knobs (<code>nativesrc.Options</code>), credentials redacted in logs and in <code>/proc/*/cmdline</code> (URL and headers passed by fd or a 0600 spec file, never argv)</td>
+</tr>
+<tr>
+<td>Exit</td>
+<td>Non-zero → the monitor restarts / rotates the source</td>
+<td>Exit codes: <code>0</code> end of finite source, <code>1</code> source error (retryable), <code>3</code> <strong>unsupported format</strong> (fall back to ffmpeg), <code>4</code> bad arguments</td>
+</tr>
+<tr>
+<td>Process identity</td>
+<td><code>ProcessManager::isRunning($pid, 'ffmpeg')</code></td>
+<td><code>isRunning</code> accepts <code>xc_restream</code> too (and the fanout supervisor's process match). <strong>Every <code>'ffmpeg'</code> name check in PHP must be found and widened</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="selection-restreamengine">Selection: <code>RestreamEngine</code><a class="headerlink" href="#selection-restreamengine" title="Permanent link">&para;</a></h3>
+<p>A new <code>Streaming/Codec/RestreamEngine::choose(array $rStream, array $rSettings): string</code> returns <code>native</code> or <code>ffmpeg</code>, with a reason:</p>
+<ul>
+<li><strong>Native only when</strong> the global <code>restream_engine</code> setting is <code>auto</code> (default <code>ffmpeg</code> until 13.4), the stream's <code>restream_engine</code> override is not <code>ffmpeg</code>, the profile is copy for audio and video (<code>applyDefaultCopyCodecs</code> result with no extra flags), and there is no logo, <code>custom_ffmpeg</code>, custom map, subtitle import, GPU, delay or LLOD v1/v2 with transcode. The source scheme must be in the native set, and the binary must be installed and licence-allowed.</li>
+<li><strong>Fallback:</strong> exit code <code>3</code>, or two crashes within 60 s, writes <code>STREAMS_PATH/&lt;id&gt;_.engine</code> (<code>ffmpeg</code>, the reason, and an expiry of 1 h). <code>buildLive</code> respects it, and the stream log records it.</li>
+<li>The admin stream page shows the engine in use and the reason ("native: copy profile", "ffmpeg: logo overlay").</li>
+</ul>
+<h3 id="protocol-coverage-by-step">Protocol coverage, by step<a class="headerlink" href="#protocol-coverage-by-step" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Sources</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13.1</td>
+<td>HTTP(S) MPEG-TS, HLS (all <code>nativesrc</code> cases), UDP/RTP (multicast with <code>localaddr</code>/interface), local file</td>
+<td>Covers the common IPTV restream</td>
+</tr>
+<tr>
+<td>13.3</td>
+<td>RTMP pull (FLV H.264/HEVC-enhanced, AAC → TS), RTSP (<code>gortsplib</code>, MIT), SRT (<code>datarhei/gosrt</code>, MIT)</td>
+<td>Each behind its own allow-list bit; licences checked against AGPL</td>
+</tr>
+<tr>
+<td>13.5</td>
+<td>Optional: RTMP <strong>push</strong> output (<code>buildFlvOutput</code>), and LLOD v3: replace <code>LlodCommand</code>'s PHP segmenter with <code>xc_restream --ingest</code></td>
+<td>Removes the last PHP byte loop in the producer</td>
+</tr>
+</tbody>
+</table>
+<h3 id="steps_1">Steps<a class="headerlink" href="#steps_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Content</th>
+<th>pw</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13.0</td>
+<td>Inventory of every ffmpeg assumption in PHP (process-name checks, the progress-file reader, <code>FFprobeRunner</code> consumers, <code>ArchiveCommand</code>'s segment rule, thumbnails, <code>.analyse</code>)</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td>13.1</td>
+<td><code>cmd/xc_restream</code>: pull → remux → on-disk HLS + ingest feed + progress; PCR pacing; spec file; exit codes</td>
+<td>3</td>
+</tr>
+<tr>
+<td>13.2</td>
+<td><code>probe --json</code>; <code>RestreamEngine</code>, <code>buildLive</code> branch, fallback file, admin display; <code>fanout_binary</code> installs and self-heals <code>xc_restream</code> with the same hourly GitHub-release rule (ADR 0004, "Binaries from GitHub on every node")</td>
+<td>1.5</td>
+</tr>
+<tr>
+<td>13.3</td>
+<td>RTMP/RTSP/SRT sources</td>
+<td>2</td>
+</tr>
+<tr>
+<td>13.4</td>
+<td>Canary: <code>restream_engine=auto</code> on one LB, 7-day comparison with ffmpeg on the same sources; then default <code>auto</code></td>
+<td>1</td>
+</tr>
+<tr>
+<td>13.5</td>
+<td>Optional: RTMP push, LLOD v3</td>
+<td>1–2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Acceptance:</strong></p>
+<ul>
+<li>On a node with 200 copy channels, CPU and RSS per channel fall by at least 50% against ffmpeg -c copy.</li>
+<li>Timeshift, catch-up, thumbnails and the PHP monitor work unchanged against native-written HLS (<code>ArchiveCommand</code> records every minute).</li>
+<li>A VOD-playlist "channel" plays in real time.</li>
+<li>An unsupported source falls back to ffmpeg within one restart.</li>
+<li>No credential appears in <code>/proc/*/cmdline</code>.</li>
+</ul>
+<p><strong>Tests:</strong></p>
+<ul>
+<li>Go: golden TS and HLS against ffmpeg output on the <code>tsfixture</code> corpus (PID, CC and PTS continuity; segment durations within ±1 GOP); a hostile-input fuzz test of the demux path; pacing tests; progress-file format tests.</li>
+<li>PHP: <code>RestreamEngineTest</code> (each eligibility rule), <code>ProcessNameTest</code> (the widened checks).</li>
+<li>E2E: <code>lb-native-restream.spec.ts</code>: one copy channel each over HTTP-TS, HLS and UDP; timeshift playback from it.</li>
+</ul>
+<hr />
+<h2 id="5-how-it-fits-together-on-a-node">5. How it fits together on a node<a class="headerlink" href="#5-how-it-fits-together-on-a-node" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>flowchart LR
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  P[player] --&gt;|/auth first req| N[nginx]
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  P --&gt;|/auth refresh, /hls, /key| N
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  N --&gt;|first request, fallback| FPM[PHP-FPM live/segment/key]
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  N --&gt;|gw.sock| GW
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  subgraph FAN [xc_fanout]
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    GW[internal/gateway] --&gt; HUB[hub: ring + in-RAM HLS]
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  end
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  GW --&gt;|conn get / touch| AG[xc_agent]
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>  RS[xc_restream per stream] --&gt;|ingest.sock| HUB
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>  RS --&gt;|&lt;id&gt;_N.ts, _.m3u8, progress| DISK[(STREAMS_PATH)]
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>  SRC[source] --&gt; RS
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  FPM -. policy.json .-&gt; GW
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>  AG --&gt;|cluster API| MAIN[(MAIN)]
+</code></pre></div>
+<h2 id="6-decisions-needed">6. Decisions needed<a class="headerlink" href="#6-decisions-needed" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>Recommended</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G1</td>
+<td>Gateway inside <code>xc_fanout</code> (A), in the agent (B), or a new binary (C)?</td>
+<td>A</td>
+</tr>
+<tr>
+<td>G2</td>
+<td>Is the viewer key in a 0600 file read by fanout acceptable (same user as PHP-FPM)?</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>G3</td>
+<td>Ship the playlist refresh (12.4) only on CONNECTIONS nodes, or also read MAIN's Redis from Go in mode 0?</td>
+<td>CONNECTIONS only; mode 0 goes to PHP</td>
+</tr>
+<tr>
+<td>G4</td>
+<td>Phase 10's removal release: after Phase 12 has run a release cycle?</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>R1</td>
+<td><code>xc_restream</code> licence-gated like fanout (<code>LicenseGate</code>)?</td>
+<td>Same gate as fanout</td>
+</tr>
+<tr>
+<td>R2</td>
+<td>Per-stream process (drop-in) now, a multi-stream server later only if measured?</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>R3</td>
+<td>RTMP/RTSP/SRT (13.3) in scope for the first release?</td>
+<td>No; HTTP/HLS/UDP first</td>
+</tr>
+<tr>
+<td>R4</td>
+<td>Default <code>restream_engine</code> after the canary: <code>auto</code>?</td>
+<td>Yes, with the per-stream override</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-risks">7. Risks<a class="headerlink" href="#7-risks" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Token drift between PHP and Go.</strong> Mitigated by shared vectors in CI on both repos, and by "unknown means PHP".</li>
+<li><strong><code>hlsConnectionKey</code> mismatch</strong> (UA <code>htmlentities</code>, IP form): the uuid would differ, so refreshes would go to PHP and recreate connections. That is safe (PHP still works) but would double-count. The vectors cover it, and the shadow compares uuids.</li>
+<li><strong>A segment cut that differs from ffmpeg's</strong> breaks <code>ArchiveCommand</code> or thumbnails. Covered by the golden comparison and the canary, and the per-stream override reverts at once.</li>
+<li><strong>ffmpeg name checks missed</strong> make a native stream look dead, so the monitor restart-loops it. 13.0's inventory and <code>ProcessNameTest</code> cover this.</li>
+<li><strong>New attack surface in fanout</strong> (token parsing on a viewer-facing socket). Bounded input sizes, fuzzing of the token and URL parser, and no MAIN credentials in the policy file (only viewer keys, which nodes already hold).</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
