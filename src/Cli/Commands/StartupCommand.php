@@ -225,11 +225,13 @@ class StartupCommand implements CommandInterface {
 	 * commands), cron:root_mysql and the module licences, plus whatever the
 	 * modules ask for. Static and public because `status` installs the same
 	 * list — two writers meant the second one deleted what the first added.
-	 * root_signals installs it again when the modules change.
+	 * root_signals checks it every minute, so a module's lines follow its
+	 * install without a restart.
 	 *
+	 * @param bool $rQuiet The every-minute check: nothing said when the list is there, nothing written when the crontab cannot be read.
 	 * @return bool Whether root's crontab holds the list now (it did, or it was written).
 	 */
-	public static function installRootCrontab(): bool {
+	public static function installRootCrontab(bool $rQuiet = false): bool {
 		$rCrons = [];
 		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # XC_VM';
 		// MAIN's signed root commands (cluster API, Phase 4); a no-op until the node's root pin exists.
@@ -251,7 +253,13 @@ class StartupCommand implements CommandInterface {
 		}
 
 		$rInstalled = [];
-		exec('sudo crontab -l', $rInstalled);
+		exec('sudo crontab -l', $rInstalled, $rListed);
+		// The check runs from root's crontab, so there is one: a list that
+		// cannot be read is not an empty one, and writing over it would drop
+		// the lines the administrator put there.
+		if ($rQuiet && $rListed !== 0) {
+			return false;
+		}
 
 		// Удаляем старые записи XC_VM: путь v1.x.x (crons/root_) и любые
 		// строки с нашим маркером — включая старый '# \XC_VM' от прошлой
@@ -274,7 +282,9 @@ class StartupCommand implements CommandInterface {
 		}
 		// Written only when the list changed: every `startup` and `status` comes here.
 		if ($rOutput === $rInstalled) {
-			echo "Crontab already installed\n";
+			if (!$rQuiet) {
+				echo "Crontab already installed\n";
+			}
 			return true;
 		}
 		// The whole list in a file before root's crontab is touched. Not in

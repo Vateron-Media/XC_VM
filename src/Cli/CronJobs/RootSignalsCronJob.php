@@ -101,30 +101,22 @@ class RootSignalsCronJob implements CommandInterface {
 	}
 
 	/**
-	 * Root's crontab again once config/modules.php has changed. A module
-	 * installed, enabled, disabled or removed from the panel brings or takes
-	 * its cron lines (CronProviderInterface), and only `startup` and `status`
-	 * wrote them: a module's cron did not run until the next restart (the
-	 * anti-abuse shield, and with it its honeypot ports). The hash of the
-	 * modules.php last written from is kept in config/crontab.modules, and
-	 * left as it was when the crontab could not be written, to try again.
+	 * Root's crontab as the modules now ask for it, checked every minute. A
+	 * module installed, enabled, disabled or removed from the panel brings or
+	 * takes its cron lines (CronProviderInterface), and only `startup` and
+	 * `status` wrote them: a module's cron did not run until the next restart
+	 * (the anti-abuse shield, and with it its honeypot ports).
 	 *
-	 * @param (callable(): bool)|null $rWrite What writes the crontab (tests); StartupCommand::installRootCrontab().
-	 * @param string|null $rDir The config directory (tests); CONFIG_PATH.
-	 * @return bool Whether the crontab was written.
+	 * Nothing is kept of the last write: installRootCrontab() compares the
+	 * crontab itself and writes only when its list differs. So a `startup` or
+	 * `status` that wrote an older list over a newer one is put right the next
+	 * minute, and root writes no file of its own where xc_vm can plant a link.
+	 *
+	 * @param (callable(): bool)|null $rWrite What brings the crontab up to date (tests); StartupCommand::installRootCrontab(true).
+	 * @return bool Whether the crontab holds the modules' lines now.
 	 */
-	public static function refreshModuleCrons(?callable $rWrite = null, ?string $rDir = null): bool {
-		$rDir ??= CONFIG_PATH;
-		$rHash = @md5_file($rDir . 'modules.php');
-		$rMark = $rDir . 'crontab.modules';
-		if ($rHash === false || @file_get_contents($rMark) === $rHash) {
-			return false;
-		}
-		if (!($rWrite ?? [StartupCommand::class, 'installRootCrontab'])()) {
-			return false;
-		}
-		@file_put_contents($rMark, $rHash);
-		return true;
+	public static function refreshModuleCrons(?callable $rWrite = null): bool {
+		return (bool) ($rWrite ?? static fn(): bool => StartupCommand::installRootCrontab(true))();
 	}
 
 	/**
