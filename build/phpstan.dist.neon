@@ -1,3 +1,8 @@
+# What src/Public/Controllers held when it joined `paths` (`make
+# phpstan-baseline` writes it; it should only ever shrink).
+includes:
+    - phpstan-baseline.neon
+
 parameters:
     # Start low for a legacy codebase, then raise one step at a time (0 → max).
     # Every increment surfaces a new class of issues; fix or baseline, then bump.
@@ -14,6 +19,9 @@ parameters:
         - ../src/Modules
         - ../src/Ministra
         - ../src/Cli
+        # The admin, reseller, player and API controllers. What they held when
+        # they were added is in phpstan-baseline.neon: new code is checked.
+        - ../src/Public/Controllers
 
     # The bootstrap only defines global constants; it does NOT wire a project
     # autoloader. PHPStan resolves every symbol statically from `paths` +
