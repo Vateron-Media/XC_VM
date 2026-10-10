@@ -618,6 +618,43 @@ final class ModuleManagerMigrationsTest extends TestCase {
         $this->assertSame('disabled', $this->readOverrides()['solo-base']['state'] ?? null);
     }
 
+    // ── two writers of config/modules.php ─────────────────────────────────
+
+    /**
+     * A manager writes what it changed since it read the file onto the file
+     * as it is now. It wrote back the whole file as it had read it, so of two
+     * processes changing it at once the second undid the first's change.
+     */
+    public function testAManagerWritesOnlyWhatItChangedSinceItReadTheFile(): void {
+        $this->writeOverrides(['one' => ['installed_version' => '1.0.0'], 'two' => ['installed_version' => '1.0.0']]);
+        $first = $this->manager();
+        $read = new ReflectionMethod($first, 'readOverrides');
+        $write = new ReflectionMethod($first, 'writeOverrides');
+
+        $mine = $read->invoke($first);
+        // Another process, meanwhile: module two is updated and module three installed.
+        $second = $this->manager();
+        (new ReflectionMethod($second, 'readOverrides'))->invoke($second);
+        (new ReflectionMethod($second, 'writeOverrides'))->invoke($second, ['one' => ['installed_version' => '1.0.0'], 'two' => ['installed_version' => '2.0.0'], 'three' => ['installed_version' => '1.0.0']]);
+
+        $mine['one']['state'] = 'disabled';
+        $write->invoke($first, $mine);
+
+        $this->assertSame(
+            ['one' => ['installed_version' => '1.0.0', 'state' => 'disabled'], 'three' => ['installed_version' => '1.0.0'], 'two' => ['installed_version' => '2.0.0']],
+            $this->readOverrides()
+        );
+
+        // Field by field within one module, and a removal is a removal.
+        $this->assertSame(
+            ['a' => ['installed_version' => '2.0.0', 'state' => 'disabled']],
+            ModuleManager::mergeOverrides(['a' => ['installed_version' => '1.0.0'], 'b' => ['x' => 1]], ['a' => ['installed_version' => '1.0.0', 'state' => 'disabled']], ['a' => ['installed_version' => '2.0.0'], 'b' => ['x' => 1, 'y' => 2]])
+        );
+        $this->assertSame(['a' => ['v' => 1]], ModuleManager::mergeOverrides(['a' => ['v' => 1, 'state' => 'failed']], ['a' => ['v' => 1]], ['a' => ['v' => 1, 'state' => 'failed']]), 'a field taken away');
+        $this->assertSame(['a' => ['v' => 1]], ModuleManager::mergeOverrides([], ['a' => ['v' => 1]], []), 'a first entry');
+        $this->assertSame(['other' => []], ModuleManager::mergeOverrides(['a' => ['v' => 1]], ['a' => ['v' => 1]], ['other' => []]), 'nothing of mine changed: theirs as it is');
+    }
+
     private function manager(): ModuleManager {
         return new ModuleManager($this->modulesPath, $this->overridesPath, ServiceContainer::getInstance());
     }

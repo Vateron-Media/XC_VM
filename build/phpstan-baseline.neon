@@ -1,0 +1,373 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^PHPDoc tag @renders has invalid value \(\(none — redirect only\)\)\: Unexpected token "—", expected ''\)'' at offset 121 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: ../src/Public/Controllers/Admin/AdminLogoutController.php
+
+		-
+			message: '#^Offset ''available_version'' does not exist on array\{name\: string, description\: string, version\: string, requires_core\: string, environment\: string, priority\: int, dependencies\: array, optional_dependencies\: array, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: ../src/Public/Controllers/Admin/Ajax/ModuleAjaxController.php
+
+		-
+			message: '#^Variable \$language in PHPDoc tag @var does not match any global variable\: \$db, \$rServers$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: ../src/Public/Controllers/Admin/Ajax/SearchAjaxController.php
+
+		-
+			message: '#^Parameter \#1 \$array \(non\-empty\-list\<int\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: ../src/Public/Controllers/Admin/Ajax/ServerAjaxController.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 2
+			path: ../src/Public/Controllers/Admin/Ajax/StatsAjaxController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 2
+			path: ../src/Public/Controllers/Admin/BaseAdminController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: ../src/Public/Controllers/Admin/BouquetSortController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: ../src/Public/Controllers/Admin/GroupEditController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: ../src/Public/Controllers/Admin/PackageEditController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: ../src/Public/Controllers/Admin/ProfileEditController.php
+
+		-
+			message: '#^Variable \$rStation in isset\(\) always exists and is always null\.$#'
+			identifier: isset.variable
+			count: 1
+			path: ../src/Public/Controllers/Admin/RadioController.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: ../src/Public/Controllers/Admin/RecordController.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: ../src/Public/Controllers/Admin/RecordController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: ../src/Public/Controllers/Admin/RtmpIpEditController.php
+
+		-
+			message: '#^PHPDoc tag @renders has invalid value \(\(none — JSON response\)\)\: Unexpected token "—", expected ''\)'' at offset 227 on line 6$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: ../src/Public/Controllers/Admin/SessionController.php
+
+		-
+			message: '#^Left side of \|\| is always false\.$#'
+			identifier: booleanOr.leftAlwaysFalse
+			count: 2
+			path: ../src/Public/Controllers/Admin/TableController.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(string\)\: bool\)\|null, ''strlen'' given\.$#'
+			identifier: argument.type
+			count: 3
+			path: ../src/Public/Controllers/Admin/TableController.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 3
+			path: ../src/Public/Controllers/Admin/TableController.php
+
+		-
+			message: '#^Right side of \|\| is always false\.$#'
+			identifier: booleanOr.rightAlwaysFalse
+			count: 1
+			path: ../src/Public/Controllers/Admin/TableController.php
+
+		-
+			message: '#^Variable \$rKeyCount might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: ../src/Public/Controllers/Admin/TableController.php
+
+		-
+			message: '#^Variable \$rServerID might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/Public/Controllers/Admin/TableController.php
+
+		-
+			message: '#^Variable \$rStreamID might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/Public/Controllers/Admin/TableController.php
+
+		-
+			message: '#^Variable \$rUserID might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/Public/Controllers/Admin/TableController.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(string\)\: bool\)\|null, ''strlen'' given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/Public/Controllers/Api/AdminAPIWrapper.php
+
+		-
+			message: '#^Call to function is_null\(\) with null will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 4
+			path: ../src/Public/Controllers/Api/Enigma2ApiController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method SimpleXMLElement\:\:addChild\(\) expects string\|null, int given\.$#'
+			identifier: argument.type
+			count: 15
+			path: ../src/Public/Controllers/Api/Enigma2ApiController.php
+
+		-
+			message: '#^Parameter \#2 \$value of method SimpleXMLElement\:\:addChild\(\) expects string\|null, int\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/Public/Controllers/Api/Enigma2ApiController.php
+
+		-
+			message: '#^Property XcVm\\Public\\Controllers\\Api\\Enigma2ApiController\:\:\$userInfo \(array\|false\|null\) is never assigned false so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: ../src/Public/Controllers/Api/Enigma2ApiController.php
+
+		-
+			message: '#^Binary operation "\-" between int\<0, max\>\|false and '''' results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: ../src/Public/Controllers/Api/InternalApiController.php
+
+		-
+			message: '#^Call to function is_array\(\) with list\<string\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: ../src/Public/Controllers/Api/InternalApiController.php
+
+		-
+			message: '#^Parameter \#1 \$rActivityInfo of static method XcVm\\Domain\\Stream\\ConnectionTracker\:\:closeConnection\(\) expects array\|string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/Public/Controllers/Api/InternalApiController.php
+
+		-
+			message: '#^Parameter \#2 \$rRestart of static method XcVm\\Domain\\Stream\\StreamProcess\:\:startMonitor\(\) expects int, true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/Public/Controllers/Api/InternalApiController.php
+
+		-
+			message: '#^Binary operation "\+" between string and 0 results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 6
+			path: ../src/Public/Controllers/Api/PlayerApiController.php
+
+		-
+			message: '#^Undefined variable\: \$token$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/Public/Controllers/Api/PlayerApiController.php
+
+		-
+			message: '#^Variable \$token in empty\(\) is never defined\.$#'
+			identifier: empty.variable
+			count: 1
+			path: ../src/Public/Controllers/Api/PlayerApiController.php
+
+		-
+			message: '#^Parameter \#1 \$prefix of function uniqid expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/Public/Controllers/Api/XPluginApiController.php
+
+		-
+			message: '#^Parameter \#1 \$string of function md5 expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: ../src/Public/Controllers/Api/XPluginApiController.php
+
+		-
+			message: '#^Undefined variable\: \$rSearchBy$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/Public/Controllers/Player/HomeController.php
+
+		-
+			message: '#^Variable \$rSearchBy in isset\(\) is never defined\.$#'
+			identifier: isset.variable
+			count: 1
+			path: ../src/Public/Controllers/Player/HomeController.php
+
+		-
+			message: '#^Offset ''EndTime'' on array\{ChannelId\: mixed, Title\: ''No Programme…'', RelativeSize\: 100, StartTime\: ''N/A'', EndTime\: '''', Specialisation\: ''tv'', Archive\: null\}\|array\{ListingId\: mixed, ChannelId\: mixed, Title\: mixed, RelativeSize\: float, StartTime\: string, EndTime\: string, Start\: mixed, End\: mixed, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: ../src/Public/Controllers/Player/ListingsController.php
+
+		-
+			message: '#^Offset ''RelativeSize'' on array\{ChannelId\: mixed, Title\: ''No Programme…'', RelativeSize\: 100, StartTime\: ''N/A'', EndTime\: '''', Specialisation\: ''tv'', Archive\: null\}\|array\{ListingId\: mixed, ChannelId\: mixed, Title\: mixed, RelativeSize\: float, StartTime\: string, EndTime\: string, Start\: mixed, End\: mixed, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: ../src/Public/Controllers/Player/ListingsController.php
+
+		-
+			message: '#^Offset ''StartTime'' on array\{ChannelId\: mixed, Title\: ''No Programme…'', RelativeSize\: 100, StartTime\: ''N/A'', EndTime\: '''', Specialisation\: ''tv'', Archive\: null\}\|array\{ListingId\: mixed, ChannelId\: mixed, Title\: mixed, RelativeSize\: float, StartTime\: string, EndTime\: string, Start\: mixed, End\: mixed, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: ../src/Public/Controllers/Player/ListingsController.php
+
+		-
+			message: '#^Variable \$rLimit might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/Public/Controllers/Player/MoviesController.php
+
+		-
+			message: '#^Variable \$rPage might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: ../src/Public/Controllers/Player/MoviesController.php
+
+		-
+			message: '#^Variable \$rLimit might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/Public/Controllers/Player/SeriesController.php
+
+		-
+			message: '#^Variable \$rPage might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: ../src/Public/Controllers/Player/SeriesController.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$type$#'
+			identifier: parameter.notFound
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerCategoryHelper.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$userInfo$#'
+			identifier: parameter.notFound
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerCategoryHelper.php
+
+		-
+			message: '#^Variable \$activationCode in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerLoginController.php
+
+		-
+			message: '#^Variable \$serverUrl in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerLoginController.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array\<mixed, mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerLogoutController.php
+
+		-
+			message: '#^Offset ''domain'' on array\{lifetime\: int\<0, max\>, path\: non\-falsy\-string, domain\: string, secure\: bool, httponly\: bool, samesite\: ''Lax''\|''lax''\|''None''\|''none''\|''Strict''\|''strict''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerLogoutController.php
+
+		-
+			message: '#^Offset ''httponly'' on array\{lifetime\: int\<0, max\>, path\: non\-falsy\-string, domain\: string, secure\: bool, httponly\: bool, samesite\: ''Lax''\|''lax''\|''None''\|''none''\|''Strict''\|''strict''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerLogoutController.php
+
+		-
+			message: '#^Offset ''path'' on array\{lifetime\: int\<0, max\>, path\: non\-falsy\-string, domain\: string, secure\: bool, httponly\: bool, samesite\: ''Lax''\|''lax''\|''None''\|''none''\|''Strict''\|''strict''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerLogoutController.php
+
+		-
+			message: '#^Offset ''secure'' on array\{lifetime\: int\<0, max\>, path\: non\-falsy\-string, domain\: string, secure\: bool, httponly\: bool, samesite\: ''Lax''\|''lax''\|''None''\|''none''\|''Strict''\|''strict''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerLogoutController.php
+
+		-
+			message: '#^Variable \$nextEp might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerWatchController.php
+
+		-
+			message: '#^Variable \$prevEp might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: ../src/Public/Controllers/PlayerV2/PlayerWatchController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 2
+			path: ../src/Public/Controllers/Reseller/BaseResellerController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: ../src/Public/Controllers/Reseller/ResellerEnigmaController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: ../src/Public/Controllers/Reseller/ResellerLineController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: ../src/Public/Controllers/Reseller/ResellerTicketController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: ../src/Public/Controllers/Reseller/ResellerTicketViewController.php

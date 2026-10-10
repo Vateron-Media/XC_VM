@@ -1754,8 +1754,25 @@ class AdminAPIWrapper {
 		return ['status' => 'STATUS_FAILURE'];
 	}
 
+	/**
+	 * The settings a token that is not a full one does not read: what a load
+	 * balancer's replica is not given either (lb_settings_keys.php's
+	 * `withheld`), and the two secrets only MAIN uses.
+	 *
+	 * @return list<string>
+	 */
+	public static function secretSettings(): array {
+		return array_merge((require MAIN_HOME . 'Core/Cluster/lb_settings_keys.php')['withheld'], ['metrics_token', 'reminders_webhook']);
+	}
+
 	public static function getSettings() {
-		return ['status' => 'STATUS_SUCCESS', 'data' => SettingsManager::getAll()];
+		$rSettings = SettingsManager::getAll();
+		// A token that may only read gets no secret: every setting went to it,
+		// the stream tokens' key and the Redis password among them.
+		if (!ApiTokens::fullAccess()) {
+			$rSettings = array_diff_key($rSettings, array_flip(self::secretSettings()));
+		}
+		return ['status' => 'STATUS_SUCCESS', 'data' => $rSettings];
 	}
 
 	public static function editSettings($rData) {

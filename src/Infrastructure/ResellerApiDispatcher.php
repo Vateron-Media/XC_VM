@@ -998,7 +998,12 @@ class ResellerApiDispatcher {
 					$rDefaultEPG = ['ChannelId' => null, 'Title' => 'No Programme Information...', 'RelativeSize' => 100, 'StartTime' => 'Not Available', 'EndTime' => '', 'Specialisation' => 'tv', 'Archive' => null];
 					$db->query('SELECT `id`, `stream_icon`, `stream_display_name`, `tv_archive_duration`, `tv_archive_server_id`, `category_id` FROM `streams` WHERE `id` IN (' . implode(',', $rChannels) . ') ORDER BY FIELD(`id`, ' . implode(',', $rChannels) . ') ASC;');
 
-					foreach ($db->get_rows() as $rStream) {
+					// The categories, read once for the guide: they were read again for each of
+					// its streams. After the streams are taken from the handle, which the
+					// categories' own query uses.
+					$rStreams = $db->get_rows();
+					$rCategories = CategoryService::getAllByType('live');
+					foreach ($rStreams as $rStream) {
 						if (0 < $rStream['tv_archive_duration'] && 0 < $rStream['tv_archive_server_id']) {
 							$rArchive = $rStream['tv_archive_duration'];
 						} else {
@@ -1009,7 +1014,6 @@ class ResellerApiDispatcher {
 						$rDefaultArray['ChannelId'] = $rStream['id'];
 						// A stream in no category (NULL, or an empty list) is one, not the end of the guide.
 						$rCategoryIDs = json_decode((string) $rStream['category_id'], true) ?: [];
-						$rCategories = CategoryService::getAllByType('live');
 
 						if ((string) RequestManager::get('category') !== '') {
 							$rCategory = (($rCategories[intval(RequestManager::get('category'))]['category_name'] ?? null) ?: 'No Category');

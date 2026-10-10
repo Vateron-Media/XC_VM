@@ -385,7 +385,7 @@ class RadioService {
 	 */
 	private static function planServerTreeForStream(object $db, array $rData, int|string $rStreamID, array $rExistingServers, string &$rAddQuery, array &$rDeleteServers): void {
 		$rStreamsAdded = [];
-		foreach (json_decode($rData['server_tree_data'], true) as $rServer) {
+		foreach (json_decode((string) ($rData['server_tree_data'] ?? ''), true) ?: [] as $rServer) {
 			if ($rServer['parent'] == '#') {
 				continue;
 			}

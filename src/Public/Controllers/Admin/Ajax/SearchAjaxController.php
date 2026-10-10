@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Localization\Translator;
@@ -50,7 +51,16 @@ class SearchAjaxController extends BaseAjaxController {
 		if (!empty($rTermSP)) {
 			$rItems = [];
 
+			// A group finds in a search what its pages show it: the search listed
+			// every kind of record, with its details, to every group.
+			$rPages = ['lines' => 'lines', 'mag_devices' => 'mags', 'enigma2_devices' => 'enigmas', 'users' => 'users', 'streams_series' => 'series'];
+			$rStreamPages = [1 => 'streams', 2 => 'movies', 3 => 'created_channels', 4 => 'radios', 5 => 'episodes'];
+			$rStreamTypes = array_filter($rStreamPages, static fn(string $rPage): bool => PageAuthorization::checkPermissions($rPage));
+
 			foreach ($rTables as $rTable => $rTableInfo) {
+				if ($rTable == 'streams' ? $rStreamTypes === [] : !PageAuthorization::checkPermissions($rPages[$rTable])) {
+					continue;
+				}
 				if ($rTable == 'streams') {
 					$db->query('SELECT `' . $rTable . '`.*, MATCH(' . $rTableInfo[2] . ') AGAINST (? IN BOOLEAN MODE) AS `score1`, MATCH(' . $rTableInfo[2] . ') AGAINST (? IN BOOLEAN MODE) AS `score2` FROM `' . $rTable . '` WHERE MATCH(' . $rTableInfo[2] . ') AGAINST (? IN BOOLEAN MODE) OR `id` = ? ORDER BY `score1` + `score2` DESC LIMIT ' . $rLimit . ';', $rTermSP, $rTermSP . '*', $rTermSP . '*', intval($rTerm));
 				} else {
@@ -58,6 +68,9 @@ class SearchAjaxController extends BaseAjaxController {
 				}
 
 				foreach ($db->get_rows() as $rRow) {
+					if ($rTable == 'streams' && !isset($rStreamTypes[intval($rRow['type'])])) {
+						continue;
+					}
 					similar_text($rTerm, strtolower(preg_replace('/[^[:alnum:][:space:]]/u', '', $rRow[$rTableInfo[4]])), $rPerc);
 
 					if ($rTable == 'streams' && $rRow['id'] == intval($rTerm)) {
@@ -564,7 +577,7 @@ class SearchAjaxController extends BaseAjaxController {
 				}
 			}
 
-			if (count(json_decode($rServerItem['cchannel_rsources'], true)) != count(json_decode($rItem['stream_source'], true)) && !$rServerItem['parent_id']) {
+			if (count(json_decode((string) $rServerItem['cchannel_rsources'], true) ?: []) != count(json_decode((string) $rItem['stream_source'], true) ?: []) && !$rServerItem['parent_id']) {
 				return 6;
 			}
 

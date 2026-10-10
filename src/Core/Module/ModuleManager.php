@@ -2275,6 +2275,14 @@ class ModuleManager {
 	 * @return array<string, array> Module overrides keyed by module name.
 	 */
 	private function readOverrides(): array {
+		return $this->rOverridesRead = $this->loadOverrides();
+	}
+
+	/** What readOverrides() last answered: writeOverrides() puts only what changed since onto the file. */
+	private ?array $rOverridesRead = null;
+
+	/** config/modules.php as it is on disk now. */
+	private function loadOverrides(): array {
 		if (!file_exists($this->overridesPath)) {
 			return [];
 		}
@@ -2282,6 +2290,43 @@ class ModuleManager {
 		self::revalidate($this->overridesPath);
 		$data = require $this->overridesPath;
 		return is_array($data) ? $data : [];
+	}
+
+	/**
+	 * $rMine's changes since $rBase, put onto $rTheirs: a module's entry field
+	 * by field, an entry that was removed removed. What $rMine left as it read
+	 * it stays as $rTheirs has it.
+	 *
+	 * @param array<string, mixed> $rBase   The file as this manager read it.
+	 * @param array<string, mixed> $rMine   What it wants written.
+	 * @param array<string, mixed> $rTheirs The file as it is now.
+	 * @return array<string, mixed>
+	 */
+	public static function mergeOverrides(array $rBase, array $rMine, array $rTheirs): array {
+		foreach (array_keys($rBase + $rMine) as $rName) {
+			$rWas = $rBase[$rName] ?? null;
+			$rIs = $rMine[$rName] ?? null;
+			if ($rWas === $rIs) {
+				continue;
+			}
+			if (!is_array($rIs) || !is_array($rTheirs[$rName] ?? null)) {
+				if ($rIs === null) {
+					unset($rTheirs[$rName]);
+				} else {
+					$rTheirs[$rName] = $rIs;
+				}
+				continue;
+			}
+			$rWas = is_array($rWas) ? $rWas : [];
+			foreach (array_keys($rWas + $rIs) as $rField) {
+				if (!array_key_exists($rField, $rIs)) {
+					unset($rTheirs[$rName][$rField]);
+				} elseif (!array_key_exists($rField, $rWas) || $rWas[$rField] !== $rIs[$rField]) {
+					$rTheirs[$rName][$rField] = $rIs[$rField];
+				}
+			}
+		}
+		return $rTheirs;
 	}
 
 	/**
@@ -2308,6 +2353,31 @@ class ModuleManager {
 	 * @throws \RuntimeException If the file cannot be written or renamed.
 	 */
 	private function writeOverrides(array $overrides): void {
+		// One writer at a time, and each writes what it changed since it read
+		// the file onto the file as it is now. It was written back whole, as it
+		// was read: of two processes changing it at once (a module job, a cron,
+		// `status`, a load balancer's install) the second undid the first's
+		// change. The lock is on this file, read-only: none to create.
+		$rLock = @fopen(__FILE__, 'r');
+		if ($rLock !== false) {
+			flock($rLock, LOCK_EX);
+		}
+		try {
+			if ($this->rOverridesRead !== null) {
+				$overrides = self::mergeOverrides($this->rOverridesRead, $overrides, $this->loadOverrides());
+			}
+			$this->storeOverrides($overrides);
+			$this->rOverridesRead = $overrides;
+		} finally {
+			if ($rLock !== false) {
+				flock($rLock, LOCK_UN);
+				fclose($rLock);
+			}
+		}
+	}
+
+	/** Replace config/modules.php with $overrides (writeOverrides(), under its lock). */
+	private function storeOverrides(array $overrides): void {
 		ksort($overrides);
 
 		$content = "<?php\n\nreturn " . var_export($overrides, true) . ";\n";

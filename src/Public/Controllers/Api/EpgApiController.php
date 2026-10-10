@@ -69,8 +69,10 @@ class EpgApiController extends BaseApiController {
 
 		$rBouquets = [];
 
+		// The bouquets there are, read once: they were read again for each of the line's.
+		$rKnown = BouquetService::getAll();
 		foreach ($rUserInfo['bouquet'] as $rBouquetID) {
-			if (in_array($rBouquetID, array_keys(BouquetService::getAll()))) {
+			if (in_array($rBouquetID, array_keys($rKnown))) {
 				$rBouquets[] = $rBouquetID;
 			}
 		}
