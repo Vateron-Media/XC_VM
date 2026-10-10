@@ -36,6 +36,19 @@ final class NodeApiGuardsTest extends TestCase {
 
 	// ── paths ────────────────────────────────────────────────────────────────
 
+	/** The file browser opens at "/": above the roots it gets the way down to them, inside one the node lists it. */
+	public function testTheFileBrowserWalksDownToTheScanRoots(): void {
+		$rRoots = ['/home/xc_vm/content', '/mnt', '/media'];
+		$this->assertSame(['home', 'mnt', 'media'], ClusterSettings::dirsTowardRoots('/', $rRoots));
+		$this->assertSame(['xc_vm'], ClusterSettings::dirsTowardRoots('/home/', $rRoots));
+		$this->assertSame(['content'], ClusterSettings::dirsTowardRoots('/home/xc_vm', $rRoots));
+		$this->assertNull(ClusterSettings::dirsTowardRoots('/home/xc_vm/content/', $rRoots), 'a root: the node lists it');
+		$this->assertNull(ClusterSettings::dirsTowardRoots('/mnt/films/', $rRoots), 'inside a root: the node lists it');
+		$this->assertNull(ClusterSettings::dirsTowardRoots('/etc/', $rRoots), 'outside every root: the node refuses it');
+		$this->assertNull(ClusterSettings::dirsTowardRoots('/mn/', $rRoots), 'a name prefix is not a parent');
+		$this->assertSame(['data'], ClusterSettings::dirsTowardRoots('/srv', ['/srv/data/a', '/srv/data/b']), 'one segment, once');
+	}
+
 	public function testAPathInsideARootIsAllowed(): void {
 		$this->assertTrue(ClusterSettings::pathAllowed($this->rRoot . '/root/sub/movie.mp4', $this->roots()));
 		$this->assertTrue(ClusterSettings::pathAllowed($this->rRoot . '/root', $this->roots()));
