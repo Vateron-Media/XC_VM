@@ -493,7 +493,7 @@ class SearchAjaxController extends BaseAjaxController {
 			'connections' => $rConn,
 			'flags' => ['restreamer' => (bool) ($rLineInfo['is_restreamer'] ?? false), 'trial' => (bool) $rLineInfo['is_trial']],
 			'badge' => ['variant' => 'pink'],
-			'actions' => $this->lineActions(intval($rLineInfo['id']), $rType . '?id=' . intval($rItem[$rItem['table'] == 'mag_devices' ? 'mag_id' : 'device_id']), $rItem['admin_enabled'], $rItem['enabled'], $rConn),
+			'actions' => $this->lineActions(intval($rLineInfo['id']), $rType . '?id=' . intval($rItem[$rItem['table'] == 'mag_devices' ? 'mag_id' : 'device_id']), $rLineInfo['admin_enabled'], $rLineInfo['enabled'], $rConn),
 		];
 	}
 

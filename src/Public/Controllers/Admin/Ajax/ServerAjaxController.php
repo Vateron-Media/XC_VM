@@ -194,7 +194,7 @@ class ServerAjaxController extends BaseAjaxController {
 		}
 
 		if ($rSub == 'disable') {
-			$db->query('UPDATE `servers` SET `enabled` = 0 WHERE `id` = ?;', RequestManager::get('server_id'));
+			$db->query('UPDATE `servers` SET `enabled` = 0 WHERE `id` = ? AND `is_main` = 0;', RequestManager::get('server_id'));
 			$this->ok();
 		}
 
