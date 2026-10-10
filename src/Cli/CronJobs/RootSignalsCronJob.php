@@ -4,6 +4,7 @@ namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\Commands\FfmpegBuildsCommand;
+use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\Commands\UpdateCommand;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Cache\FileCache;
@@ -93,6 +94,7 @@ class RootSignalsCronJob implements CommandInterface {
 		cli_set_process_title('XC_VM[RootSignals]');
 		file_put_contents(CONFIG_PATH . 'signals.last', time());
 
+		self::refreshModuleCrons();
 		$this->loadCron();
 
 		return 0;
@@ -135,6 +137,27 @@ class RootSignalsCronJob implements CommandInterface {
 		}
 		$rRange = self::blockRange($rEntry);
 		return $rRange === null ? null : ['iptables', $rRange];
+	}
+
+	/**
+	 * Root's crontab as the modules now ask for it, checked every minute. A
+	 * module installed, enabled, disabled or removed from the panel brings or
+	 * takes its cron lines (CronProviderInterface), and only `startup` and
+	 * `status` wrote them: a module's cron did not run until the next restart
+	 * (the anti-abuse shield, and with it its honeypot ports).
+	 *
+	 * Nothing is kept of the last write: installRootCrontab() compares the
+	 * crontab itself and writes only when its list differs, one writer at a
+	 * time (crontabLock()), so a list read before another's write cannot land
+	 * after it; and a list written just before the modules changed is put
+	 * right the next minute. Root writes no file of its own where xc_vm can
+	 * plant a link.
+	 *
+	 * @param (callable(): bool)|null $rWrite What brings the crontab up to date (tests); StartupCommand::installRootCrontab(true).
+	 * @return bool Whether the crontab holds the modules' lines now.
+	 */
+	public static function refreshModuleCrons(?callable $rWrite = null): bool {
+		return (bool) ($rWrite ?? static fn(): bool => StartupCommand::installRootCrontab(true))();
 	}
 
 	/**
