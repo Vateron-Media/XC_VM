@@ -7,6 +7,7 @@ use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Events\Vod\VodImportResultEvent;
+use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Process\Multithread;
@@ -290,13 +291,20 @@ class VodItemImporter {
 			echo 'Upgrade disabled' . "\n";
 			throw new VodItemImportHalt();
 		}
-		if (substr($rUpgradeData['source'], 0, 3 + strlen(strval(SERVER_ID))) != 's:' . SERVER_ID . ':') {
-			echo "Old file path doesn't match this server, don't upgrade." . "\n";
-			throw new VodItemImportHalt();
-		}
-		list(, $rActualPath) = explode('s:' . SERVER_ID . ':', $rUpgradeData['source']);
-		if (file_exists($rActualPath) && filesize($rActualPath) >= filesize($rFile)) {
-			echo "File isn't a better source, don't upgrade." . "\n";
+		// The new copy's source, as run() stores it: a file of this server, or
+		// what an import names (another server's file is `s:<server>:<path>`).
+		$rNewSource = !empty($rThreadData['import']) ? (string) $rFile : 's:' . SERVER_ID . ':' . $rFile;
+		$rNew = self::located($rNewSource);
+		$rOld = self::located((string) $rUpgradeData['source']);
+		// The two copies are compared where they are: on the server that holds
+		// them both. It was this server's disk whatever the file's server, so a
+		// load balancer's folder scanned from MAIN was never upgraded, and said nothing.
+		$rBetter = $rNew !== null && $rOld !== null && $rNew[0] === $rOld[0] ? self::betterCopy($rNew[0], $rOld[1], $rNew[1]) : false;
+		if ($rBetter !== true) {
+			echo ($rNew === null || $rOld === null || $rNew[0] !== $rOld[0]
+				? "Old file is not on the new file's server, don't upgrade."
+				: ($rBetter === null ? "The two files could not be compared on server {$rNew[0]}, don't upgrade." : "File isn't a better source, don't upgrade.")) . "\n";
+			self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_DUPLICATE, (int) $rUpgradeData['id']);
 			throw new VodItemImportHalt();
 		}
 		echo 'Upgrade ' . $rLabel . '!' . "\n";
@@ -308,8 +316,36 @@ class VodItemImporter {
 			StreamProcess::queueMovie($rUpgradeData['id']);
 		}
 		self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_UPGRADED);
-		$rWriteCache($rUpgradeData);
+		$rWriteCache($rUpgradeData, $rNewSource);
 		throw new VodItemImportHalt();
+	}
+
+	/**
+	 * Where a server's file is: [server id, path] of `s:<server>:<path>`. Null
+	 * for any other source (a URL): it is no file of a server.
+	 *
+	 * @return array{0: int, 1: string}|null
+	 */
+	private static function located(string $rSource): ?array {
+		return preg_match('/^s:(\d+):(.+)$/s', $rSource, $rParts) ? [(int) $rParts[1], $rParts[2]] : null;
+	}
+
+	/**
+	 * Whether the file at $rNewPath is a better copy than the one at
+	 * $rOldPath, both on $rServerID: a bigger one, or the old one is gone.
+	 * Another server is asked for the sizes (ApiClient::fileSizes()). Null
+	 * when it cannot be told: the server did not answer, refused a path (it
+	 * lists only under its Scan Roots), or predates the size of a file.
+	 */
+	private static function betterCopy(int $rServerID, string $rOldPath, string $rNewPath): ?bool {
+		if ($rServerID === (int) SERVER_ID) {
+			return !(file_exists($rOldPath) && filesize($rOldPath) >= filesize($rNewPath));
+		}
+		$rSizes = ApiClient::fileSizes($rServerID, [$rOldPath, $rNewPath]);
+		if ($rSizes === null || $rSizes[$rNewPath] === null) {
+			return null;
+		}
+		return $rSizes[$rOldPath] === null || $rSizes[$rOldPath] < $rSizes[$rNewPath];
 	}
 
 	/**
@@ -599,8 +635,8 @@ class VodItemImporter {
 		}
 
 		if ($rUpgradeData) {
-			self::applyUpgrade($rUpgradeData, $rThreadData, $rFile, $rImportArray, $rThreadType, 'movie', function ($rUpgradeData) use ($rMatch, $rFile) {
-				file_put_contents(WATCH_TMP_PATH . 'movie_' . $rMatch->get('id') . '.cache', json_encode(['id' => $rUpgradeData['id'], 'source' => 's:' . SERVER_ID . ':' . $rFile]));
+			self::applyUpgrade($rUpgradeData, $rThreadData, $rFile, $rImportArray, $rThreadType, 'movie', function ($rUpgradeData, $rNewSource) use ($rMatch) {
+				file_put_contents(WATCH_TMP_PATH . 'movie_' . $rMatch->get('id') . '.cache', json_encode(['id' => $rUpgradeData['id'], 'source' => $rNewSource]));
 			});
 		}
 		$rMovie = $rTMDB->getMovie($rMatch->get('id'));
@@ -678,9 +714,9 @@ class VodItemImporter {
 			$rUpgradeData = self::getEpisode($rMatch->get('id'), $rReleaseSeason, $rReleaseEpisode);
 		}
 		if ($rUpgradeData) {
-			self::applyUpgrade($rUpgradeData, $rThreadData, $rFile, $rImportArray, $rThreadType, 'episode', function ($rUpgradeData) use ($rMatch, $rReleaseSeason, $rReleaseEpisode, $rFile) {
+			self::applyUpgrade($rUpgradeData, $rThreadData, $rFile, $rImportArray, $rThreadType, 'episode', function ($rUpgradeData, $rNewSource) use ($rMatch, $rReleaseSeason, $rReleaseEpisode) {
 				$rCacheData = json_decode(file_get_contents(WATCH_TMP_PATH . 'series_' . $rMatch->get('id') . '.cache'), true);
-				$rCacheData[$rReleaseSeason . '_' . $rReleaseEpisode] = ['id' => $rUpgradeData['id'], 'source' => 's:' . SERVER_ID . ':' . $rFile];
+				$rCacheData[$rReleaseSeason . '_' . $rReleaseEpisode] = ['id' => $rUpgradeData['id'], 'source' => $rNewSource];
 				file_put_contents(WATCH_TMP_PATH . 'series_' . $rMatch->get('id') . '.cache', json_encode($rCacheData));
 			});
 		}

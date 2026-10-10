@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Cluster\NodeRpc;
+use XcVm\Core\Events\EventDispatcher;
+use XcVm\Core\Events\Vod\VodImportResultEvent;
 use XcVm\Domain\Vod\VodItemImporter;
 use XcVm\Domain\Vod\VodItemImportHalt;
 use PHPUnit\Framework\TestCase;
@@ -29,6 +32,8 @@ final class VodItemImporterUpgradeTest extends TestCase {
 
     protected function tearDown(): void {
         ob_end_clean();
+        NodeRpc::useTransport(null);
+        EventDispatcher::clear();
         foreach ($this->tmpFiles as $rPath) {
             @unlink($rPath);
         }
@@ -135,5 +140,98 @@ final class VodItemImporterUpgradeTest extends TestCase {
             $this->threadData(), $rNewFile, array('stream_source' => 'new-source', 'target_container' => 'mkv'), 1, 'movie',
             function () {}
         );
+    }
+
+    // ── another server's file (a load balancer's folder scanned from MAIN) ──
+
+    /**
+     * An import of server 2's file, upgraded or not by the sizes server 2 gives.
+     *
+     * @param array<string, int|null>|null $rSizes path => bytes on the node; null: it knows no sizes
+     * @return array{statuses: list<int>, source: ?string, cached: ?string}
+     */
+    private function upgradeOnNode(?array $rSizes, string $rOldSource = 's:2:/lb/Show/old.mkv'): array {
+        $rStatuses = array();
+        EventDispatcher::listen(VodImportResultEvent::class, static function (VodImportResultEvent $rEvent) use (&$rStatuses): void {
+            $rStatuses[] = $rEvent->status;
+        });
+        NodeRpc::useTransport(static function (string $rKind, array $rServers, array $rData) use ($rSizes): string {
+            $rPath = urldecode($rData['dir']);
+            if ($rSizes === null) {
+                return (string) json_encode(array('files' => array($rPath => 1), 'next' => null));
+            }
+            return (string) json_encode(array('files' => (object) array(), 'sizes' => (object) (isset($rSizes[$rPath]) ? array($rPath => $rSizes[$rPath]) : array()), 'next' => null));
+        });
+        $this->db->exec("INSERT INTO streams (id, stream_source, target_container) VALUES (10, '[\"" . $rOldSource . "\"]', 'mkv')");
+        $rCached = null;
+        try {
+            VodItemImporter::applyUpgrade(
+                array('id' => 10, 'source' => $rOldSource),
+                $this->threadData(array('import' => true, 'servers' => array(2))),
+                's:2:/lb/Show/new.mkv', array('stream_source' => '["s:2:/lb/Show/new.mkv"]', 'target_container' => 'mkv'), 2, 'episode',
+                function ($rUpgradeData, $rNewSource) use (&$rCached) { $rCached = $rNewSource; }
+            );
+            $this->fail('Expected VodItemImportHalt');
+        } catch (VodItemImportHalt) {
+        }
+        $this->db->query('SELECT stream_source FROM streams WHERE id = 10');
+        return array('statuses' => $rStatuses, 'source' => $this->db->get_col(), 'cached' => $rCached);
+    }
+
+    public function testALoadBalancersBetterCopyIsUpgradedByTheSizesItGives(): void {
+        $rOut = $this->upgradeOnNode(array('/lb/Show/old.mkv' => 700, '/lb/Show/new.mkv' => 900));
+
+        $this->assertSame(array(VodImportResultEvent::STATUS_UPGRADED), $rOut['statuses']);
+        $this->assertSame('["s:2:/lb/Show/new.mkv"]', $rOut['source']);
+        $this->assertSame('s:2:/lb/Show/new.mkv', $rOut['cached'], 'the cache names the file on its own server');
+    }
+
+    public function testALoadBalancersCopyThatIsGoneIsReplaced(): void {
+        $rOut = $this->upgradeOnNode(array('/lb/Show/new.mkv' => 900));
+
+        $this->assertSame(array(VodImportResultEvent::STATUS_UPGRADED), $rOut['statuses']);
+    }
+
+    public function testACopyThatIsNotBetterIsKeptAndSaidSo(): void {
+        $rOut = $this->upgradeOnNode(array('/lb/Show/old.mkv' => 900, '/lb/Show/new.mkv' => 900));
+
+        $this->assertSame(array(VodImportResultEvent::STATUS_DUPLICATE), $rOut['statuses'], 'the watch log gets a row: the file was skipped in silence on every scan');
+        $this->assertSame('["s:2:/lb/Show/old.mkv"]', $rOut['source']);
+        $this->assertNull($rOut['cached']);
+    }
+
+    public function testANodeThatGivesNoSizesUpgradesNothing(): void {
+        $rOut = $this->upgradeOnNode(null);
+
+        $this->assertSame(array(VodImportResultEvent::STATUS_DUPLICATE), $rOut['statuses']);
+        $this->assertSame('["s:2:/lb/Show/old.mkv"]', $rOut['source']);
+    }
+
+    public function testACopyOnAnotherServerOrAURLIsNotCompared(): void {
+        foreach (array('s:3:/lb/Show/old.mkv', 'http://example.test/old.mkv') as $rOldSource) {
+            $this->db->exec('DELETE FROM streams');
+            $rOut = $this->upgradeOnNode(array('/lb/Show/old.mkv' => 1, '/lb/Show/new.mkv' => 900), $rOldSource);
+            $this->assertSame(VodImportResultEvent::STATUS_DUPLICATE, end($rOut['statuses']), $rOldSource);
+            $this->assertSame('["' . $rOldSource . '"]', $rOut['source'], $rOldSource);
+        }
+    }
+
+    public function testThisServersCopyThatIsNotBetterIsSaidTooAndStillComparedOnItsDisk(): void {
+        $rStatuses = array();
+        EventDispatcher::listen(VodImportResultEvent::class, static function (VodImportResultEvent $rEvent) use (&$rStatuses): void {
+            $rStatuses[] = $rEvent->status;
+        });
+        NodeRpc::useTransport(function (): string {
+            $this->fail('this server\'s files are not asked of a node');
+        });
+        $rOld = $this->tmpFile(200);
+        $rNew = $this->tmpFile(100);
+        try {
+            VodItemImporter::applyUpgrade(array('id' => 10, 'source' => 's:' . SERVER_ID . ':' . $rOld), $this->threadData(), $rNew, array('stream_source' => 'x', 'target_container' => 'mkv'), 1, 'movie', function () {});
+            $this->fail('Expected VodItemImportHalt');
+        } catch (VodItemImportHalt) {
+        }
+
+        $this->assertSame(array(VodImportResultEvent::STATUS_DUPLICATE), $rStatuses);
     }
 }

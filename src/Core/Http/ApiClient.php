@@ -100,6 +100,30 @@ class ApiClient {
 	}
 
 	/**
+	 * The sizes of files on a remote server, by its listing asked for one file
+	 * at a time (`scandir_recursive` with `stat` and `size`): path => bytes,
+	 * null for a file that is not there. Null as a whole when nothing can be
+	 * told: the server did not answer, refused a path (it lists only under its
+	 * Scan Roots), or predates `size`.
+	 *
+	 * @param string[] $rPaths
+	 * @return array<string, int|null>|null
+	 */
+	public static function fileSizes(int $rServerID, array $rPaths): ?array {
+		$rSizes = [];
+		foreach ($rPaths as $rPath) {
+			// Encoded once more: the server urldecode()s what it is sent, and a
+			// file name may hold a `+` or a `%`.
+			$rAnswer = json_decode((string) NodeRpc::request($rServerID, ['action' => 'scandir_recursive', 'dir' => rawurlencode($rPath), 'allowed' => '', 'stat' => 1, 'size' => 1]), true);
+			if (!is_array($rAnswer) || !is_array($rAnswer['sizes'] ?? null)) {
+				return null;
+			}
+			$rSizes[$rPath] = isset($rAnswer['sizes'][$rPath]) ? (int) $rAnswer['sizes'][$rPath] : null;
+		}
+		return $rSizes;
+	}
+
+	/**
 	 * Recursively list a directory on a remote server via the system API.
 	 *
 	 * @param int           $rServerID Target server id.

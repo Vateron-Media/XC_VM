@@ -22,13 +22,15 @@ final class VodImportResultEvent {
 	public const STATUS_NO_MATCH = 4;
 	public const STATUS_BROKEN_FILE = 5;
 	public const STATUS_UPGRADED = 6;
+	/** Already imported, and auto-upgrade kept the copy there is (not a better one, or it could not be compared). */
+	public const STATUS_DUPLICATE = 7;
 
 	/**
 	 * @param int    $type     1 = movie, 2 = series.
 	 * @param int    $serverId Server the item was processed on.
 	 * @param string $filename Source file path or URL, raw (not HTML-escaped).
 	 * @param int    $status   One of the STATUS_* constants.
-	 * @param int    $streamId Created stream id (STATUS_IMPORTED only, else 0).
+	 * @param int    $streamId The stream created (STATUS_IMPORTED) or kept (STATUS_DUPLICATE), else 0.
 	 * @param string $title    The entry's name from an M3U import, raw; '' for a folder scan.
 	 */
 	public function __construct(
