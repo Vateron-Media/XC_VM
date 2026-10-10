@@ -139,6 +139,58 @@ PHP);
 		return $rRaw === null ? null : json_decode($rRaw, true);
 	}
 
+	/**
+	 * A TS viewer fanout serves (pid 0), as live.php records it and has it
+	 * admitted: tests/Support/gateway_live_vectors.json (`first_ts`) fixes the
+	 * record and the admission request each token gives, and xc_fanout's
+	 * gateway, which creates that connection itself on a viewer's first
+	 * request, passes the same file. The context is built from the token as
+	 * live.php builds it; the record and the admission are createLive()'s.
+	 */
+	public function testATsViewersRecordAndAdmissionAreTheGateways(): void {
+		$rV = json_decode((string) file_get_contents(dirname(__DIR__) . '/Support/gateway_live_vectors.json'), true)['first_ts'];
+		$this->agent(array_fill(0, count($rV['cases']), [200, '{}']));
+		$rSorted = static function (mixed $rValue) use (&$rSorted): mixed {
+			if (is_array($rValue)) {
+				ksort($rValue);
+				return array_map($rSorted, $rValue);
+			}
+			return $rValue;
+		};
+
+		foreach ($rV['cases'] as $rIndex => $rCase) {
+			$rToken = $rCase['token'];
+			$rChannel = $rToken['channel_info'];
+			$rCtx = [
+				'is_hmac' => $rToken['hmac_id'] ?? null,
+				'identifier' => isset($rToken['hmac_id']) ? $rToken['identifier'] : null,
+				'user_id' => $rToken['user_info']['id'] ?? null,
+				'stream_id' => intval($rToken['stream_id']),
+				'server_id' => $rChannel['originator_id'] ?: ($rChannel['redirect_id'] ?: $rV['server_id']),
+				'proxy_id' => null,
+				'user_agent' => $rV['user_agent'],
+				'user_ip' => $rV['ip'],
+				'date_start' => $rToken['activity_start'],
+				'geoip_country_code' => $rToken['country_code'],
+				'isp' => $rToken['user_info']['con_isp_name'],
+				'external_device' => $rToken['external_device'],
+				'on_demand' => $rChannel['on_demand'],
+				'uuid' => $rToken['uuid'],
+				'adaptive' => false,
+				'time_offset' => $rV['time_offset'],
+				'token' => $rToken,
+			];
+
+			$this->assertTrue(ConnectionTracker::createLive(['redis_handler' => 0], $rCtx, 'ts', 0), $rCase['name']);
+
+			$rRecord = $this->requests()[$rIndex]['body'];
+			$this->assertEqualsWithDelta(time() - $rV['time_offset'], $rRecord['hls_last_read'], 5, $rCase['name']);
+			$rRecord['hls_last_read'] = $rCase['record']['hls_last_read']; // MAIN's clock when it was written
+			$this->assertSame($rSorted($rCase['record']), $rSorted($rRecord), $rCase['name']);
+			$this->assertSame($rSorted($rCase['admission']), $rSorted($this->header($rIndex)), $rCase['name']);
+		}
+	}
+
 	public function testANewViewersRegisterCarriesItsAdmissionRequest(): void {
 		$this->agent([[200, '{}'], [200, '{}'], [200, '{}'], [200, '{}']]);
 		$rUUID = str_repeat('a', 32);

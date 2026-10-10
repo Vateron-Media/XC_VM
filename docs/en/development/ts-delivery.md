@@ -107,6 +107,11 @@ The viewer's record stays open after PHP has answered (`pid` 0). The record is c
 - **The agent** (CONNECTIONS): it reconciles its registry against the daemon's `/connections` itself.
 - **Otherwise** `fanout_sync` (`FanoutSyncCommand`): it closes the open `pid = 0` rows the daemon no longer lists (after a short grace for the connect race), ends daemon viewers with no open row (`dropOrphans()`), and writes the per-viewer rates and divergence.
 
-## 5. The segment gateway (TS reconnect)
+## 5. The segment gateway
 
-With `gateway_mode = segments+playlist`, nginx sends `/auth/<token>` to the gateway in `xc_fanout` first. A known TS viewer that asks again with the same token is answered there, without PHP, as section 2 would answer it: the gateway checks the token and the connection, re-opens the record in the agent with `pid` 0, spools `conn.limit` (no marker, as above), and streams from the daemon's `/live/<id>` in-process. Everything else, including each session's first request and every proxy channel (whose source only `live.php` registers), goes to `live.php`. See ADR 0005, "MPEG-TS reconnects".
+With `gateway_mode = segments+playlist`, nginx sends `/auth/<token>` to the gateway in `xc_fanout` first. It answers a TS viewer there, without PHP, as section 2 would answer it:
+
+- **A first request** (no record under the token's `uuid` yet): the gateway creates the connection as `createLive()` does, from the token MAIN sealed. It registers the record in the agent (`container` ts, `pid` 0, the token's start, country, ISP and device, MAIN's proof of the mint), with the admission request for a line with a limit (`X-XCVM-Admission`), spools `conn.limit` (no marker, as above), and streams from the daemon's `/live/<id>` in-process.
+- **A reconnect** (the same token again): it checks the connection, re-opens the record with `pid` 0, spools `conn.limit` and streams the same way.
+
+`live.php` still answers, before anything is written: a token older than `create_expiration` (its `TOKEN_EXPIRED`), a stream that is not running or not fed (it starts an on-demand one), every proxy channel (whose source only `live.php` registers), a line under the second-address rule, and a panel or daemon that predates this. After the register, it also answers a viewer the agent refuses (it asks the agent again and shows the refusal) and one the agent did not answer for. See ADR 0005, "MPEG-TS reconnects" and "MPEG-TS first requests".

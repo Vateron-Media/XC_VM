@@ -250,5 +250,239 @@
                 "output": "#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"/key/uRYuq9HbKVUo9cG1RBVycNRnRoiC7MThY96G-aXnQzI\",IV=0x00112233445566778899aabbccddeeff\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:4\n#EXTINF:4.000,\n/hls/_2nlZKeAC5w17yZFdPIytnubwP1HMcjALxgF6o579q0mjVopvgP66bZap-YSZYz7bKz90TIbcnKbKZuCC6HC7w0MIJbncue9htnhsoYiEei5VjxD2ELd1-6k2l6AeaZn\n#EXT-X-DISCONTINUITY\n#EXTINF:3.960,\n/hls/_2nlZKeAC5w17yZFdPIytnubwP1HMcjALxgF6o579q1TWaGaEprmDxcoTTKlOAyRfwAnvWGwiRCX64E4mtsOY9x4Gx0tDxWnizl3V4RpNAHoYnd_O5YD730F_1Im2J8K\nnot12.ts\n#EXTINF:4.000,\n/hls/_2nlZKeAC5w17yZFdPIytnubwP1HMcjALxgF6o579q3ylPHYMpdshUv14ADeus0bSfhSiwulNlxQqDrbhsyHDbuXXNzs4UCNeiaO8h3j7FZkopMqfKNjBqtKEaE1Boa9\n"
             }
         ]
+    },
+    "first_ts": {
+        "now": 1800000000,
+        "time_offset": 10,
+        "server_id": 3,
+        "ip": "198.51.100.7",
+        "user_agent": "VLC/3.0.18 LibVLC/3.0.18",
+        "cases": [
+            {
+                "name": "a line with MAIN's admission and its proof of the mint",
+                "token": {
+                    "username": "user1",
+                    "password": "pass1",
+                    "stream_id": 12,
+                    "extension": "ts",
+                    "video_codec": "h264",
+                    "channel_info": {
+                        "redirect_id": 3,
+                        "originator_id": null,
+                        "on_demand": 0,
+                        "proxy": false,
+                        "pid": 4242
+                    },
+                    "user_info": {
+                        "id": 41,
+                        "max_connections": 2,
+                        "is_restreamer": 0,
+                        "con_isp_name": "Example ISP"
+                    },
+                    "uuid": "a3f1c2d4e5b60718293a4b5c6d7e8f90",
+                    "activity_start": 1799999988,
+                    "country_code": "PT",
+                    "external_device": "",
+                    "adm": {
+                        "exp": 4102444800,
+                        "sid": 3
+                    },
+                    "prf": {
+                        "iat": 1799999985,
+                        "p": "abababababababababababababababab"
+                    }
+                },
+                "record": {
+                    "stream_id": 12,
+                    "server_id": 3,
+                    "proxy_id": null,
+                    "user_agent": "VLC/3.0.18 LibVLC/3.0.18",
+                    "user_ip": "198.51.100.7",
+                    "container": "ts",
+                    "pid": 0,
+                    "date_start": 1799999988,
+                    "geoip_country_code": "PT",
+                    "isp": "Example ISP",
+                    "external_device": "",
+                    "hls_end": 0,
+                    "hls_last_read": 1799999990,
+                    "on_demand": 0,
+                    "uuid": "a3f1c2d4e5b60718293a4b5c6d7e8f90",
+                    "user_id": 41,
+                    "identity": 41,
+                    "mint": "a3f1c2d4e5b60718293a4b5c6d7e8f90.1799999985.abababababababababababababababab"
+                },
+                "admission": {
+                    "adm": {
+                        "exp": 4102444800,
+                        "sid": 3
+                    },
+                    "mint": "a3f1c2d4e5b60718293a4b5c6d7e8f90.1799999985.abababababababababababababababab",
+                    "line_id": 41,
+                    "stream_id": 12,
+                    "max_connections": 2,
+                    "ip": "198.51.100.7",
+                    "ua": "VLC/3.0.18 LibVLC/3.0.18"
+                }
+            },
+            {
+                "name": "an admission made for another node",
+                "token": {
+                    "username": "user1",
+                    "password": "pass1",
+                    "stream_id": 12,
+                    "extension": "ts",
+                    "video_codec": "h264",
+                    "channel_info": {
+                        "redirect_id": 3,
+                        "originator_id": null,
+                        "on_demand": 0,
+                        "proxy": false,
+                        "pid": 4242
+                    },
+                    "user_info": {
+                        "id": 41,
+                        "max_connections": 2,
+                        "is_restreamer": 0,
+                        "con_isp_name": "Example ISP"
+                    },
+                    "uuid": "a3f1c2d4e5b60718293a4b5c6d7e8f90",
+                    "activity_start": 1799999988,
+                    "country_code": "PT",
+                    "external_device": "",
+                    "adm": {
+                        "exp": 4102444800,
+                        "sid": 9
+                    }
+                },
+                "record": {
+                    "stream_id": 12,
+                    "server_id": 3,
+                    "proxy_id": null,
+                    "user_agent": "VLC/3.0.18 LibVLC/3.0.18",
+                    "user_ip": "198.51.100.7",
+                    "container": "ts",
+                    "pid": 0,
+                    "date_start": 1799999988,
+                    "geoip_country_code": "PT",
+                    "isp": "Example ISP",
+                    "external_device": "",
+                    "hls_end": 0,
+                    "hls_last_read": 1799999990,
+                    "on_demand": 0,
+                    "uuid": "a3f1c2d4e5b60718293a4b5c6d7e8f90",
+                    "user_id": 41,
+                    "identity": 41
+                },
+                "admission": {
+                    "line_id": 41,
+                    "stream_id": 12,
+                    "max_connections": 2,
+                    "ip": "198.51.100.7",
+                    "ua": "VLC/3.0.18 LibVLC/3.0.18"
+                }
+            },
+            {
+                "name": "an HMAC viewer",
+                "token": {
+                    "stream_id": 12,
+                    "extension": "ts",
+                    "video_codec": "h264",
+                    "channel_info": {
+                        "redirect_id": 3,
+                        "originator_id": null,
+                        "on_demand": 0,
+                        "proxy": false,
+                        "pid": 4242
+                    },
+                    "user_info": {
+                        "max_connections": 3,
+                        "is_restreamer": 0,
+                        "con_isp_name": ""
+                    },
+                    "uuid": "a3f1c2d4e5b60718293a4b5c6d7e8f90",
+                    "activity_start": 1799999988,
+                    "country_code": "PT",
+                    "external_device": "",
+                    "hmac_id": 7,
+                    "identifier": "dev-1"
+                },
+                "record": {
+                    "stream_id": 12,
+                    "server_id": 3,
+                    "proxy_id": null,
+                    "user_agent": "VLC/3.0.18 LibVLC/3.0.18",
+                    "user_ip": "198.51.100.7",
+                    "container": "ts",
+                    "pid": 0,
+                    "date_start": 1799999988,
+                    "geoip_country_code": "PT",
+                    "isp": "",
+                    "external_device": "",
+                    "hls_end": 0,
+                    "hls_last_read": 1799999990,
+                    "on_demand": 0,
+                    "uuid": "a3f1c2d4e5b60718293a4b5c6d7e8f90",
+                    "hmac_id": 7,
+                    "hmac_identifier": "dev-1",
+                    "identity": "7_dev-1"
+                },
+                "admission": {
+                    "hmac_id": 7,
+                    "identifier": "dev-1",
+                    "stream_id": 12,
+                    "max_connections": 3,
+                    "ip": "198.51.100.7",
+                    "ua": "VLC/3.0.18 LibVLC/3.0.18"
+                }
+            },
+            {
+                "name": "a line with no limit",
+                "token": {
+                    "username": "user1",
+                    "password": "pass1",
+                    "stream_id": 12,
+                    "extension": "ts",
+                    "video_codec": "h264",
+                    "channel_info": {
+                        "redirect_id": 3,
+                        "originator_id": null,
+                        "on_demand": 0,
+                        "proxy": false,
+                        "pid": 4242
+                    },
+                    "user_info": {
+                        "id": 41,
+                        "max_connections": 0,
+                        "is_restreamer": 0,
+                        "con_isp_name": "Example ISP"
+                    },
+                    "uuid": "a3f1c2d4e5b60718293a4b5c6d7e8f90",
+                    "activity_start": 1799999988,
+                    "country_code": "PT",
+                    "external_device": ""
+                },
+                "record": {
+                    "stream_id": 12,
+                    "server_id": 3,
+                    "proxy_id": null,
+                    "user_agent": "VLC/3.0.18 LibVLC/3.0.18",
+                    "user_ip": "198.51.100.7",
+                    "container": "ts",
+                    "pid": 0,
+                    "date_start": 1799999988,
+                    "geoip_country_code": "PT",
+                    "isp": "Example ISP",
+                    "external_device": "",
+                    "hls_end": 0,
+                    "hls_last_read": 1799999990,
+                    "on_demand": 0,
+                    "uuid": "a3f1c2d4e5b60718293a4b5c6d7e8f90",
+                    "user_id": 41,
+                    "identity": 41
+                },
+                "admission": null
+            }
+        ]
     }
 }

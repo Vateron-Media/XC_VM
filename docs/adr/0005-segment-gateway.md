@@ -63,6 +63,17 @@ A TS viewer also reaches the node at `/auth/<token>`. Its first request stays PH
 
 live.php's prebuffer for a restreamer's link that asks for one read `$rSegmentSettings` before it was set, so it was always 0; it is now `max(1, seg_time)` (what its legacy arm uses), and the gateway uses the same. live.php's daemon hand-off also no longer asks the shutdown handler to close the connection (it closes only the worker's own pid, never a daemon viewer's 0) nor touches the viewer's marker (which that handler deleted at once). The whole path is mapped in `docs/en/development/ts-delivery.md`.
 
+## Amendment (2026-10-10): MPEG-TS first requests
+
+A reconnect is the rare case: each sign-in on MAIN mints a new `uuid`, so almost every TS connection is a first request, and each still cost one FPM request. In `segments+playlist` the gateway now answers it too, by creating the connection as live.php's TS arm does (`ConnectionTracker::createLive`, `openRecord`, `AgentConnections::admission`):
+
+- **Judged** as a reconnect is, up to the record: with none under the token's `uuid`, the token must still open a connection (`activity_start + create_expiration` not past on MAIN's clock, else live.php answers `TOKEN_EXPIRED`), and the record and the admission request are built from the token alone: MAIN sealed everything they hold (the line or HMAC identity, the stream, the start, country, ISP, device, the `adm` claim, the `prf` proof kept as `mint`). The node looks nothing up.
+- **Served**: the record registered in the agent (`PUT /v1/conn/<uuid>`), with `X-XCVM-Admission` for a line with a limit on a node MAIN has left active (within the register's 2.5 s); then `conn.limit` spooled and fanout's `/live/<id>` in-process, as for a reconnect.
+- **To PHP**: before the register, everything a reconnect hands over (a proxy channel, a stream that is down or not fed, the second-address rule, instant-off) and an expired token. After it, a viewer the agent refuses (403 `admit: false`: PHP asks again, is refused the same, and answers with `StreamAuth::refuseAdmission`) and a register the agent did not answer (PHP finds the record if it was stored, and creates it if not).
+- **Policy**: `live.create_expiration` (live.php's `?: 5`) and `live.admission` (the node's state is `active`). A gateway given no `create_expiration` leaves the first request to PHP, so an older panel or an older daemon behaves as before.
+- **Parity**: `tests/Support/gateway_live_vectors.json` (`first_ts`) holds the record and the admission request the panel's own code gives for a set of tokens; the panel's `AgentAdmissionTest` and the gateway's tests both pass it.
+- **Verdict** `live serve ts-new` in `/stats`. In shadow a new viewer the agent would have to admit is not compared (`live php admission`): only asking the agent tells whether it is admitted, and judging asks nothing.
+
 ## Rollout: shadow, compared with PHP
 
 In shadow, nginx gives PHP and the mirrored copy the same request id (`$request_id`). PHP tells the gateway what it answered once the viewer has the answer (`Core/Gateway/GatewayShadow::watch`, from the stream router: serve, deny, redirect, blocked, status-<code>), and the gateway's `ShadowBook` pairs it with its own verdict, whichever comes first: agree, disagree (with a sample: kind, both answers, stream — never a token), deferred (the gateway would have handed it to PHP) or unmatched. The comparison is kept in `bin/xc_fanout/gateway_shadow.json` across restarts.
