@@ -1626,7 +1626,10 @@ StreamVersions::seedHolders($db);
 StreamVersions::reset($db);
 echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
 
-if (saveModuleTables($odb)) {
+// Both drop tables through $odb: only while it is on the backup's schema.
+if (!MigrateCommand::onItsOwnSchema($odb, $db)) {
+	echo 'The migration database was not emptied: its connection is not on a schema of its own.' . "\n";
+} elseif (saveModuleTables($odb)) {
 	clearMigrationDatabase($odb);
 }
 file_put_contents(TMP_PATH . '.migration.status', 2);

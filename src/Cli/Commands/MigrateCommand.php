@@ -2,6 +2,7 @@
 
 namespace XcVm\Cli\Commands;
 
+use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Cli\CommandInterface;
 
 /**
@@ -70,6 +71,22 @@ class MigrateCommand implements CommandInterface {
 
 	public function getDescription(): string {
 		return 'Migrate — database migration from xc_vm_migrate';
+	}
+
+	/**
+	 * Is the backup's handle on a schema of its own, not the panel's? Asked
+	 * before anything of the backup is saved aside and dropped: tables dropped
+	 * through a handle that had moved to the panel's schema were the panel's.
+	 */
+	public static function onItsOwnSchema(DatabaseHandler $rBackup, DatabaseHandler $rPanel): bool {
+		$rNames = [];
+		foreach ([$rBackup, $rPanel] as $rHandle) {
+			if (!$rHandle->query('SELECT DATABASE() AS `name`;')) {
+				return false;
+			}
+			$rNames[] = (string) ($rHandle->get_row()['name'] ?? '');
+		}
+		return $rNames[0] !== '' && $rNames[0] !== $rNames[1];
 	}
 
 	public function execute(array $rArgs): int {
