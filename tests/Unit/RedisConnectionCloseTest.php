@@ -118,6 +118,130 @@ final class RedisConnectionCloseTest extends TestCase {
 		$this->assertFalse($this->running($rProc), 'the worker serving it is killed, as before');
 	}
 
+	/**
+	 * The sweep closes a connection that went silent without a kill: its worker
+	 * could not write its close, and PHP-FPM has given that worker, its pid, to
+	 * another viewer since.
+	 */
+	public function testTheSweepsCloseOfASilentConnectionKillsNoWorker(): void {
+		[$rProc, $rPID] = $this->worker();
+		$this->assertTrue(ConnectionTracker::closeConnection($this->connection('ts', $rPID, 0, 'silent-ts'), false, false, false));
+		$this->assertTrue($this->running($rProc), 'the worker serves someone else now: it lives');
+	}
+
+	/** A count is a set's size, read in one round trip; a record gone since its set was read is no connection. */
+	public function testCountsAreTheSetsSizesAndAMissingRecordIsNoConnection(): void {
+		$this->connection('hls', 0, 0, 'one');
+		$this->connection('hls', 0, 0, 'two');
+		$this->rRedis->zAdd('PROXY#9', 1, 'one');
+		$this->rRedis->zAdd('PROXY#9', 2, 'two');
+
+		$this->assertSame([7 => 2, 8 => 0], ConnectionTracker::getUserConnections([7, 8], true));
+		$this->assertSame([SERVER_ID => 2], ConnectionTracker::getServerConnections([SERVER_ID], false, true));
+
+		SettingsManager::set(['redis_handler' => 1]);
+		try {
+			$this->assertSame(2, ConnectionTracker::getLiveConnections(9, true), 'a proxy\'s viewers are its own set');
+		} finally {
+			SettingsManager::set([]);
+		}
+
+		// Its record gone, its index entry still there (a delete caught halfway).
+		$this->rRedis->del('one');
+		$rByLine = ConnectionTracker::getUserConnections([7]);
+		$this->assertSame(['two'], array_column($rByLine[7], 'uuid'));
+		$this->assertSame([7], array_keys($rByLine), 'no row under an empty key');
+	}
+
+	/** The on-demand watcher's count: a stream's viewers on this server, and nothing known when Redis is silent. */
+	public function testAStreamsViewersOnAServerAreCountedFromTheSets(): void {
+		$this->connection('ts', 0, 0, 'here-1');
+		$this->connection('ts', 0, 0, 'here-2');
+		$this->connection('ts', 0, 0, 'elsewhere', SERVER_ID + 1);
+
+		$this->assertSame([11 => 2, 12 => 0], ConnectionTracker::streamViewerCounts([11, 12], SERVER_ID));
+		$this->assertSame([11 => 1], ConnectionTracker::streamViewerCounts([11], SERVER_ID + 1));
+
+		$this->manager(null);
+		RedisManager::useConnector(static fn() => null);
+		try {
+			$this->assertNull(ConnectionTracker::streamViewerCounts([11], SERVER_ID), 'not "no viewers": the watcher stops a stream with none');
+		} finally {
+			RedisManager::useConnector(null);
+			(new \ReflectionProperty(RedisManager::class, 'rFailedAt'))->setValue(null, 0);
+		}
+	}
+
+	/**
+	 * A worker's check-in: it goes on while its connection is open and its own,
+	 * and while the store cannot be asked (a restart, a lost route), asking
+	 * again sooner. A Redis that did not answer ended the stream at once.
+	 */
+	public function testACheckInThatCannotAskTheStoreDoesNotEndTheStream(): void {
+		$rSettings = ['redis_handler' => 1];
+		$this->connection('ts', 4242, 0, 'mine');
+		(new \ReflectionProperty(ConnectionTracker::class, 'rSilentCheckIns'))->setValue(null, 0);
+
+		$rLastCheck = $rAt = time();
+		$this->assertTrue(ConnectionTracker::checkIn($rSettings, 'mine', $rAt, 4242, $rLastCheck));
+		$this->assertSame($rAt, $rLastCheck, 'answered: the next check-in is in five minutes');
+		$this->assertSame($rAt, igbinary_unserialize($this->rRedis->get('mine'))['hls_last_read']);
+		$this->manager($this->rRedis); // heartbeat() closes its connection, as between a loop's check-ins
+
+		// Redis out of reach.
+		$this->manager(null);
+		RedisManager::useConnector(static fn() => null);
+		try {
+			for ($i = 1; $i <= ConnectionTracker::CHECK_IN_TRIES; $i++) {
+				$rLastCheck = time();
+				$this->assertTrue(ConnectionTracker::checkIn($rSettings, 'mine', time(), 4242, $rLastCheck), 'try ' . $i);
+				$this->assertEqualsWithDelta(time() - 300 + ConnectionTracker::CHECK_IN_RETRY, $rLastCheck, 1, 'asked again in half a minute');
+			}
+			$this->assertFalse(ConnectionTracker::checkIn($rSettings, 'mine', time(), 4242, $rLastCheck), 'silent for ten minutes: the worker stops');
+		} finally {
+			RedisManager::useConnector(null);
+			(new \ReflectionProperty(RedisManager::class, 'rFailedAt'))->setValue(null, 0);
+		}
+
+		// Back: a connection that is another worker's, ended, or gone ends the stream as before.
+		(new \ReflectionProperty(ConnectionTracker::class, 'rSilentCheckIns'))->setValue(null, 0);
+		foreach (['mine' => [4243, 'another worker took it over'], 'none' => [4242, 'gone']] as $rUUID => [$rPID, $rWhy]) {
+			$this->manager($this->rRedis);
+			RedisManager::useConnector(fn() => $this->rRedis);
+			try {
+				$this->assertFalse(ConnectionTracker::checkIn($rSettings, $rUUID, time(), $rPID, $rLastCheck), $rWhy);
+			} finally {
+				RedisManager::useConnector(null);
+			}
+		}
+	}
+
+	/** With the viewers in MySQL, Redis is not asked for: every viewer request connected to it for nothing. */
+	public function testViewersKeptInMySqlAskNothingOfRedis(): void {
+		$rAsked = 0;
+		$this->manager(null);
+		(new \ReflectionProperty(RedisManager::class, 'rFailedAt'))->setValue(null, 0);
+		RedisManager::useConnector(function () use (&$rAsked) {
+			$rAsked++;
+			return null;
+		});
+		$rDb = new TestDb();
+		$rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `uuid` text, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int DEFAULT 0, `user_ip` text, `user_agent` text, `pid` int, `date_start` int, `hls_end` int DEFAULT 0, `hmac_id` int, `hmac_identifier` text)');
+		$rDb->exec('CREATE TABLE `streams_servers` (`stream_id` int, `server_id` int, `on_demand` int DEFAULT 0)');
+		DatabaseFactory::set($rDb);
+		$GLOBALS['db'] = $rDb;
+		$GLOBALS['rSettings'] = ['redis_handler' => 0, 'save_closed_connection' => 0, 'split_by' => 'conn'];
+		try {
+			ConnectionLimiter::closeConnections(7, 2, null, '', '198.51.100.7', 'VLC', 'u1');
+			ConnectionTracker::getCapacity();
+		} finally {
+			RedisManager::useConnector(null);
+			unset($GLOBALS['db']);
+		}
+
+		$this->assertSame(0, $rAsked);
+	}
+
 	public function testARecordWithoutHlsEndHasNotEnded(): void {
 		$this->assertFalse(ConnectionTracker::ended(['pid' => 5]));
 		$this->assertFalse(ConnectionTracker::ended(['hls_end' => 0]));

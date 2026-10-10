@@ -296,10 +296,7 @@ if ($rChannelInfo) {
 					$rConnection = null;
 					$rSettings = CacheReader::get('settings');
 
-					$rConnection = ConnectionTracker::heartbeat($rSettings, $rTokenData['uuid'], time() - intval($rServers[SERVER_ID]['time_offset']));
-
-					if (!(!is_array($rConnection) || $rConnection['hls_end'] != 0 || $rConnection['pid'] != $rPID)) {
-					} else {
+					if (!ConnectionTracker::checkIn($rSettings, $rTokenData['uuid'], time() - intval($rServers[SERVER_ID]['time_offset']), $rPID, $rLastCheck)) {
 						exit();
 					}
 				}

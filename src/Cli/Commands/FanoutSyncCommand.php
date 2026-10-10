@@ -378,22 +378,15 @@ class FanoutSyncCommand implements CommandInterface {
 			if (!$rRedis) {
 				return null;
 			}
+			// The records in batches (ConnectionTracker::records()): one GET per
+			// viewer, every pass, was minutes of round trips from a load balancer.
 			try {
 				$rKeys = $rRedis->zRangeByScore('SERVER#' . SERVER_ID, '-inf', '+inf');
+				$rRows = is_array($rKeys) ? ConnectionTracker::records($rRedis, $rKeys) : null;
 			} catch (\Throwable $rError) {
 				return null;
 			}
-			if (!is_array($rKeys)) {
-				return null;
-			}
-			$rOut = [];
-			foreach ($rKeys as $rUUID) {
-				$rConn = ConnectionTracker::getConnection($rUUID);
-				if (is_array($rConn)) {
-					$rOut[] = $rConn;
-				}
-			}
-			return $rOut;
+			return $rRows === null ? null : array_values(array_filter($rRows, 'is_array'));
 		}
 
 		DatabaseFactory::connect();

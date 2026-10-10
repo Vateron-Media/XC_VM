@@ -20,7 +20,7 @@ class ProxySelector {
 		if (empty($rProxies)) {
 			return null;
 		}
-		$rServerCapacity = ConnectionTracker::getCapacity(true);
+		$rServerCapacity = ConnectionTracker::capacity(true);
 		$rAcceptServers = [];
 		foreach ($rProxies as $rServerID) {
 			$rOnlineClients = (isset($rServerCapacity[$rServerID]['online_clients']) ? $rServerCapacity[$rServerID]['online_clients'] : 0);
