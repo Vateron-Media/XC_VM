@@ -102,10 +102,12 @@ class ApiClient {
 	 * @param int           $rServerID Target server id.
 	 * @param string        $rDirectory Directory to scan.
 	 * @param string[]|null $rAllowed   Allowed file extensions filter.
+	 * @param bool          $rStat      Files only, as path => modification time (a node
+	 *                                  from before this option answers the plain list).
 	 * @return array|null Decoded directory listing, or null on failure.
 	 */
-	public static function scanRecursive(int $rServerID, string $rDirectory, ?array $rAllowed = null) {
-		return json_decode(NodeRpc::request($rServerID, ['action' => 'scandir_recursive', 'dir' => $rDirectory, 'allowed' => implode('|', $rAllowed)]), true);
+	public static function scanRecursive(int $rServerID, string $rDirectory, ?array $rAllowed = null, bool $rStat = false) {
+		return json_decode(NodeRpc::request($rServerID, ['action' => 'scandir_recursive', 'dir' => $rDirectory, 'allowed' => implode('|', $rAllowed ?? [])] + ($rStat ? ['stat' => 1] : [])), true);
 	}
 
 	/**

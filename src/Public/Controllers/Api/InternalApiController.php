@@ -299,19 +299,16 @@ class InternalApiController {
 				set_time_limit(30);
 				$rDirectory = urldecode($rRequest['dir']);
 				$rAllowed = !empty($rRequest['allowed']) ? urldecode($rRequest['allowed']) : null;
+				// `stat`: each file with its modification time, so MAIN's watch scan skips a
+				// file still being written here as it does in its own folders.
+				$rStat = !empty($rRequest['stat']);
 
 				if (!file_exists($rDirectory) || !ClusterSettings::pathAllowed($rDirectory, $rSettings['lb_scan_roots'] ?? null)) {
 					exit(json_encode(['result' => false]));
 				}
 
-				if ($rAllowed) {
-					$rCommand = '/usr/bin/find ' . escapeshellarg($rDirectory) . ' -regex ".*\\.\\(' . escapeshellcmd($rAllowed) . '\\)"';
-				} else {
-					$rCommand = '/usr/bin/find ' . escapeshellarg($rDirectory);
-				}
-
-				exec($rCommand, $rReturn);
-				echo json_encode($rReturn, JSON_UNESCAPED_UNICODE);
+				exec(self::findCommand($rDirectory, $rAllowed, $rStat), $rReturn);
+				echo json_encode($rStat ? self::findTimes($rReturn) : $rReturn, JSON_UNESCAPED_UNICODE);
 
 				exit();
 
@@ -545,6 +542,36 @@ class InternalApiController {
 		fclose($rFP);
 
 		exit();
+	}
+
+	/**
+	 * `scandir_recursive`'s find: every path under $rDirectory, those whose
+	 * extension is in $rAllowed (a|b|c), and with $rStat files only, each
+	 * line "<mtime>\t<path>" (findTimes()).
+	 */
+	private static function findCommand(string $rDirectory, ?string $rAllowed, bool $rStat): string {
+		$rCommand = '/usr/bin/find ' . escapeshellarg($rDirectory);
+		if ($rAllowed) {
+			$rCommand .= ' -regex ".*\\.\\(' . escapeshellcmd($rAllowed) . '\\)"';
+		}
+		return $rStat ? $rCommand . " -type f -printf '%T@\\t%p\\n'" : $rCommand;
+	}
+
+	/**
+	 * findCommand()'s stat lines as path => modification time (whole seconds).
+	 *
+	 * @param list<string> $rLines
+	 * @return array<string, int>
+	 */
+	private static function findTimes(array $rLines): array {
+		$rTimes = [];
+		foreach ($rLines as $rLine) {
+			$rParts = explode("\t", $rLine, 2);
+			if (count($rParts) === 2 && $rParts[1] !== '' && is_numeric($rParts[0])) {
+				$rTimes[$rParts[1]] = (int) $rParts[0];
+			}
+		}
+		return $rTimes;
 	}
 
 	private function probeStream($rRequest) {
