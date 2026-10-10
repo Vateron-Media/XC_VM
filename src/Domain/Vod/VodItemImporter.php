@@ -622,7 +622,7 @@ class VodItemImporter {
 	 *
 	 * @param object $rTMDB
 	 * @param object $rMatch The matched TMDB TVShow.
-	 * @param array|null $rRelease The parserelease() result for the current file.
+	 * @param array|null $rRelease The parserelease() result $rReleaseEpisode was read from: its `episode` says whether it is a range.
 	 * @param array $rThreadData
 	 * @param array $rSettings
 	 * @param array $rWatchCategories watch_categories for both types, keyed by type.
@@ -754,7 +754,6 @@ class VodItemImporter {
 			unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
 			self::applyCommonStreamSettings($rImportArray, $rThreadData, false);
 			if ($rReleaseSeason !== null && $rReleaseEpisode !== null) {
-				// $rRelease is the last name parsed: the folder's on a fallback match, with no episode.
 				if (is_array($rRelease['episode'] ?? null) && count($rRelease['episode']) == 2) {
 					$rImportArray['stream_display_name'] = $rShowData['name'] . ' - S' . sprintf('%02d', intval($rReleaseSeason)) . 'E' . sprintf('%02d', $rRelease['episode'][0]) . '-' . sprintf('%02d', $rRelease['episode'][1]);
 				} else {
@@ -1027,6 +1026,7 @@ class VodItemImporter {
 			$rLanguage = !empty($rThreadData['language']) ? (string) $rThreadData['language'] : null;
 			$rReleaseSeason = null;
 			$rReleaseEpisode = null;
+			$rEpisodeRelease = null;
 			$rYear = null;
 
 			$rTMDB ??= TmdbApiService::createClient((string) ($rSettings['tmdb_api_key'] ?? ''), $rLanguage);
@@ -1124,6 +1124,9 @@ class VodItemImporter {
 									$rReleaseSeason = $rRelease['season'];
 								}
 								if ($rReleaseEpisode == null && isset($rRelease['episode'])) {
+									// The name the episode is read from says whether it is a
+									// range too: not a name parsed after it (the folder's).
+									$rEpisodeRelease = $rRelease;
 									if (is_array($rRelease['episode'])) {
 										$rReleaseEpisode = $rRelease['episode'][0];
 									} else {
@@ -1181,7 +1184,7 @@ class VodItemImporter {
 							$rCategoryIDs = $rBuilt['categoryIDs'];
 							$rBouquetIDs = $rBuilt['bouquetIDs'];
 						} else {
-							$rBuilt = self::buildSeriesImportArray($rTMDB, $rMatch, $rRelease ?? null, $rThreadData, $rSettings, $rWatchCategories, $rFile, $rThreadType, $rTimeout, $rReleaseSeason, $rReleaseEpisode, $rImportArray, $rCategoryIDs, $rBouquetIDs, $rLanguage);
+							$rBuilt = self::buildSeriesImportArray($rTMDB, $rMatch, $rEpisodeRelease ?? $rRelease ?? null, $rThreadData, $rSettings, $rWatchCategories, $rFile, $rThreadType, $rTimeout, $rReleaseSeason, $rReleaseEpisode, $rImportArray, $rCategoryIDs, $rBouquetIDs, $rLanguage);
 							$rImportArray = $rBuilt['importArray'];
 							$rCategoryIDs = $rBuilt['categoryIDs'];
 							$rBouquetIDs = $rBuilt['bouquetIDs'];
