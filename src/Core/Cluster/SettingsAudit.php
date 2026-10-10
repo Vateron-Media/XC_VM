@@ -3,6 +3,7 @@
 namespace XcVm\Core\Cluster;
 
 use XcVm\Core\Config\ConfigReader;
+use XcVm\Core\Gateway\GatewayShadow;
 use XcVm\Core\Util\AtomicFile;
 
 /**
@@ -205,7 +206,7 @@ final class SettingsAudit {
 			if ($rSum === null || $rConnects === null || $rLegacy === null) {
 				return false;
 			}
-			$rDoc = ['settings_misses' => (object) self::top($rSum)] + $rConnects + $rLegacy;
+			$rDoc = ['settings_misses' => (object) self::top($rSum)] + $rConnects + $rLegacy + GatewayShadow::report();
 			// A load balancer's build only: MAIN's would ask the servers whether it
 			// is MAIN, at a connect that has no database yet.
 			if (!NodeRole::mainBuild() && StreamRuntime::keeps()) {

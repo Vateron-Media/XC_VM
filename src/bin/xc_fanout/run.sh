@@ -65,12 +65,20 @@ while true; do
     # we bind fresh.
     pkill -u xc_vm -x xc_fanout 2>/dev/null
     FF=$(pick_ffmpeg)
+    # The segment gateway's socket (Phase 12), only for a daemon that knows the
+    # flag: an older one would exit on it. Until the gateway answers there,
+    # nginx sends /hls/ and /key/ to PHP.
+    GW=()
+    if "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-gw-policy'; then
+      GW=(-gw "$FANOUT_DIR/sockets/gw.sock" -gw-policy "$SCRIPT/tmp/gateway/policy.json")
+    fi
     echo "=== $(date '+%F %T') supervisor pid=$$ spawning daemon (ffmpeg=$FF) ===" >> "$LOG"
     "$FANOUT_DIR/xc_fanout" \
       -sock "$FANOUT_DIR/sockets/http.sock" \
       -ctl "$FANOUT_DIR/sockets/control.sock" \
       -ffmpeg "${FF:-ffmpeg}" \
       -font "$SCRIPT/bin/free-sans.ttf" \
+      "${GW[@]}" \
       >> "$LOG" 2>&1
     rc=$?
     echo "=== $(date '+%F %T') daemon EXITED rc=$rc (supervisor pid=$$) ===" >> "$LOG"

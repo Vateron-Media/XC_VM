@@ -410,10 +410,8 @@ final class StreamRuntimeTest extends TestCase {
 		$this->assertTrue(StreamRuntime::seeded());
 	}
 
-	public function testReadyIsSeededOrASeedAndNeverInModeTwo(): void {
+	public function testReadyIsSeededOrASeed(): void {
 		DatabaseFactory::set($this->main());
-		$this->flows(NodeFlows::STREAMS, 2);
-		$this->assertFalse(StreamRuntime::ready(), 'mode 2 cannot seed');
 		$this->flows(0, 1);
 		$this->assertFalse(StreamRuntime::ready(), 'nothing to seed without STREAMS');
 		$this->flows(NodeFlows::STREAMS, 1);
@@ -422,6 +420,24 @@ final class StreamRuntimeTest extends TestCase {
 		DatabaseFactory::reset();
 		$this->flows(NodeFlows::STREAMS, 2);
 		$this->assertTrue(StreamRuntime::ready(), 'seeded: mode 2 takes it');
+	}
+
+	/**
+	 * A node born in mode 2 (lb_new_node_mode api) has no MAIN rows to read:
+	 * it seeds from what it kept itself, keeps those entries, asks nothing of
+	 * MAIN's database, and its readers take the store.
+	 */
+	public function testModeTwoSeedsFromWhatTheNodeKept(): void {
+		$rDb = new QueryLogDb($this->main());
+		DatabaseFactory::set($rDb);
+		mkdir($this->rDir . 'cluster/runtime/streams', 0700, true);
+		file_put_contents($this->rDir . 'cluster/runtime/streams/10.json', json_encode(['id' => 10, 'ssid' => 7, 'fields' => ['pid' => 4242], 'unsent' => []]));
+		AgentUser::own($this->rDir . 'cluster/runtime'); // as the node's writers leave it
+		$this->flows(NodeFlows::STREAMS, 2);
+		$this->assertTrue(StreamRuntime::ready());
+		$this->assertTrue(StreamRuntime::seeded());
+		$this->assertSame(['pid' => 4242], StreamRuntime::get(10), 'the node\'s own entry is kept');
+		$this->assertSame([], $rDb->rQueries, 'nothing asked of MAIN\'s database');
 	}
 
 	public function testAWriteWithStreamsOffGoesToMainsRowAndLapsesTheStore(): void {

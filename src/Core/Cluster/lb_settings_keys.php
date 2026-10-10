@@ -96,6 +96,7 @@ return [
 		'force_epg_timezone',
 		'fps_check_type',
 		'fps_delay',
+		'gateway_mode',
 		'id',
 		'ignore_keyframes',
 		'ip_logout',

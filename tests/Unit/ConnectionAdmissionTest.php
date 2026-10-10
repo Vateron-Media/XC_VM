@@ -8,6 +8,7 @@ use XcVm\Domain\Cluster\ConnectionLimits;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Tests\Support\InstallSchema;
+use XcVm\Tests\Support\RedisServer;
 
 /**
  * Admission at token mint (cluster plan, Phase 6): for a viewer bound for a
@@ -28,6 +29,8 @@ final class ConnectionAdmissionTest extends TestCase {
 	private array $rCutUUIDs = [];
 
 	private static ?int $rRedisPort = null;
+
+	private static ?string $rRedisDir = null;
 
 	/** @var resource|null */
 	private static $rRedisProc = null;
@@ -60,6 +63,9 @@ final class ConnectionAdmissionTest extends TestCase {
 		if (self::$rRedisProc !== null) {
 			proc_terminate(self::$rRedisProc);
 			proc_close(self::$rRedisProc);
+		}
+		if (self::$rRedisDir !== null) {
+			exec('rm -rf ' . escapeshellarg(self::$rRedisDir));
 		}
 	}
 
@@ -487,11 +493,11 @@ final class ConnectionAdmissionTest extends TestCase {
 			$this->markTestSkipped('redis-server or phpredis not available');
 		}
 		if (self::$rRedisProc === null) {
-			self::$rRedisPort = random_int(20000, 40000);
-			$rNull = ['file', '/dev/null', 'w'];
-			self::$rRedisProc = proc_open(['redis-server', '--port', (string) self::$rRedisPort, '--bind', '127.0.0.1', '--unixsocket', sys_get_temp_dir() . '/xcvm-adm-' . self::$rRedisPort . '.sock', '--save', '', '--appendonly', 'no'], [0 => ['file', '/dev/null', 'r'], 1 => $rNull, 2 => $rNull], $rPipes) ?: null;
-			for ($i = 0; $i < 50 && !@fsockopen('127.0.0.1', self::$rRedisPort); $i++) {
-				usleep(50000);
+			self::$rRedisDir ??= sys_get_temp_dir() . '/xcvm-adm-' . bin2hex(random_bytes(4));
+			@mkdir(self::$rRedisDir);
+			[self::$rRedisProc, self::$rRedisPort] = RedisServer::start(self::$rRedisDir, ['--unixsocket', self::$rRedisDir . '/cluster.sock'], self::$rRedisDir . '/cluster.sock') ?? [null, null];
+			if (self::$rRedisProc === null) {
+				$this->markTestSkipped('redis-server did not start');
 			}
 		}
 		$rRedis = new \Redis();
@@ -504,7 +510,7 @@ final class ConnectionAdmissionTest extends TestCase {
 
 	public function testReservationsGoToTheClusterBusWhenItRuns(): void {
 		$rRedis = $this->redis();
-		\XcVm\Domain\Cluster\ClusterBus::useSocket(sys_get_temp_dir() . '/xcvm-adm-' . self::$rRedisPort . '.sock');
+		\XcVm\Domain\Cluster\ClusterBus::useSocket(self::$rRedisDir . '/cluster.sock');
 		// MySQL mode, yet the bus holds them: the table stays empty.
 		$this->assertSame(0, ConnectionAdmission::reserve(false, '42', str_repeat('a', 32), 15));
 		$this->assertSame(1, ConnectionAdmission::reserve(false, '42', str_repeat('b', 32), 15));

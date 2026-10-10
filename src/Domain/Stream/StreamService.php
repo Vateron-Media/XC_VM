@@ -76,7 +76,7 @@ class StreamService {
 			$rArray['auto_restart'] = '';
 		}
 
-		foreach (['fps_restart', 'gen_timestamps', 'allow_record', 'rtmp_output', 'stream_all', 'direct_source', 'direct_proxy', 'read_native'] as $rKey) {
+		foreach (['fps_restart', 'gen_timestamps', 'allow_record', 'rtmp_output', 'stream_all', 'direct_source', 'direct_proxy', 'read_native', 'force_ffmpeg'] as $rKey) {
 			$rArray[$rKey] = (int) isset($rData[$rKey]);
 		}
 
@@ -562,7 +562,7 @@ class StreamService {
 			}
 		}
 
-		foreach (['gen_timestamps', 'allow_record', 'rtmp_output', 'fps_restart', 'stream_all', 'read_native'] as $rKey) {
+		foreach (['gen_timestamps', 'allow_record', 'rtmp_output', 'fps_restart', 'stream_all', 'read_native', 'force_ffmpeg'] as $rKey) {
 			if (isset($rData['c_' . $rKey])) {
 				$rArray[$rKey] = (int) isset($rData[$rKey]);
 			}

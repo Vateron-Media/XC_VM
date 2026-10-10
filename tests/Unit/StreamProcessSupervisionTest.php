@@ -96,6 +96,66 @@ final class StreamProcessSupervisionTest extends TestCase {
 		$this->assertStringContainsString("-i 'http://x/a'\\''; rm -rf /;'\\''.ts'", $c);
 	}
 
+	private const CREDENTIAL_ARGUMENTS = [
+		'user_agent' => ['value' => 'VLC/3.0'],
+		'proxy' => ['value' => 'pu:pp@10.0.0.1:3128'],
+		'cookie' => ['value' => 'session=s3cret'],
+		'headers' => ['value' => "Authorization: Bearer t0ken\r\n"],
+	];
+
+	/** With a source file, nothing that can carry an account is left in argv (/proc/<pid>/cmdline). */
+	public function testNativeCommandWithSourceFileCarriesNoCredentials(): void {
+		$c = $this->native(['sourceFile' => STREAMS_PATH . '42_.source_0', 'arguments' => self::CREDENTIAL_ARGUMENTS]);
+		$this->assertStringContainsString("-source_file '" . STREAMS_PATH . "42_.source_0'", $c);
+		foreach (['-i ', '/live/u/p/', 'VLC', 'pp@', 's3cret', 't0ken', '-cookies', '-headers', '-http_proxy', '-user_agent'] as $rLeak) {
+			$this->assertStringNotContainsString($rLeak, $c);
+		}
+		$this->assertStringContainsString("-ingest 'unix:/run/fanout/ingest/42.sock'", $c);
+		$this->assertStringEndsWith("'" . STREAMS_PATH . "42_.m3u8'", $c);
+	}
+
+	/** The file holds exactly what the argv line would, under the remux flag names. */
+	public function testNativeSourceHoldsTheArgvValues(): void {
+		$rSource = self::call('nativeSource', ['source' => 'http://src.example/live/u/p/9.ts', 'arguments' => self::CREDENTIAL_ARGUMENTS]);
+		$this->assertSame('http://src.example/live/u/p/9.ts', $rSource['i']);
+		$this->assertSame('VLC/3.0', $rSource['user_agent']);
+		$this->assertSame('http://pu:pp@10.0.0.1:3128', $rSource['http_proxy']);
+		$this->assertStringContainsString('session=s3cret', $rSource['cookies']);
+		$this->assertSame("Authorization: Bearer t0ken\r\n", $rSource['headers']);
+		$this->assertSame(['i', 'user_agent', 'cookies', 'http_proxy', 'headers'], array_keys($rSource));
+	}
+
+	/** Written 0600, holding exactly nativeSource(), at the path the command names. */
+	public function testWriteNativeSourceIsPrivate(): void {
+		@mkdir(STREAMS_PATH, 0777, true);
+		$rData = ['streamID' => 42, 'source' => 'http://src.example/live/u/p/9.ts', 'arguments' => self::CREDENTIAL_ARGUMENTS];
+		try {
+			$rPath = self::call('writeNativeSource', $rData, 1);
+			$this->assertSame(STREAMS_PATH . '42_.source_1', $rPath);
+			clearstatcache();
+			$this->assertSame(0600, fileperms($rPath) & 0777);
+			$this->assertSame(self::call('nativeSource', $rData), json_decode((string) file_get_contents($rPath), true));
+		} finally {
+			@unlink(STREAMS_PATH . '42_.source_1');
+		}
+	}
+
+	/** The source file is used only on a daemon that says it reads one, as this process last asked it; an older one keeps argv. */
+	public function testSourceFilesNeedTheRunningDaemonsFeature(): void {
+		$rFeatures = new ReflectionProperty(\XcVm\Streaming\Fanout\FanoutClient::class, 'features');
+		$rFeatures->setAccessible(true);
+		$rWas = $rFeatures->getValue();
+		try {
+			$rFeatures->setValue(null, ['remux']);
+			$this->assertFalse(\XcVm\Streaming\Fanout\FanoutClient::supportsLive('remux_source_file'));
+			$rFeatures->setValue(null, ['remux', 'remux_source_file']);
+			$this->assertTrue(\XcVm\Streaming\Fanout\FanoutClient::supportsLive('remux_source_file'));
+			$this->assertTrue(\XcVm\Streaming\Fanout\FanoutClient::supportsRemux());
+		} finally {
+			$rFeatures->setValue(null, $rWas);
+		}
+	}
+
 	// ── eligibility ───────────────────────────────────────────────
 
 	private function plainStream(array $rOverrides = []): array {
@@ -111,6 +171,19 @@ final class StreamProcessSupervisionTest extends TestCase {
 			'gen_timestamps' => 0,
 			'read_native' => 0,
 		], $rOverrides);
+	}
+
+	/**
+	 * The stream's Always Use ffmpeg switch refuses the remuxer, but not a source
+	 * driver (nativeRefusal): ffmpeg cannot read a driver's URL, so refusing it
+	 * would leave the stream with no producer.
+	 */
+	public function testAlwaysUseFfmpegRefusesOnlyTheRemuxer(): void {
+		$rForced = $this->plainStream(['force_ffmpeg' => 1]);
+		$this->assertSame('the stream is set to always use ffmpeg', self::call('remuxRefusal', $rForced, []));
+		$this->assertNull(self::call('nativeRefusal', $rForced, []), 'a source driver still runs');
+		$this->assertNull(self::call('remuxRefusal', $this->plainStream(), []));
+		$this->assertSame('transcoding is enabled', self::call('remuxRefusal', $this->plainStream(['enable_transcode' => 1]), []));
 	}
 
 	public function testPlainCopyStreamIsNativeEligible(): void {

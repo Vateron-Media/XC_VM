@@ -1,5 +1,5 @@
 import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
-import { adminApi } from './support';
+import { TAG, adminApi, submitForm, tableRows } from './support';
 
 /**
  * The Cluster Nodes page's row of the load balancer the LB specs drive
@@ -144,4 +144,71 @@ export async function endsWithin(v: Viewer, ms: number): Promise<boolean> {
   } catch {
     return true; // the connection was cut
   }
+}
+
+/**
+ * A download kept open as a player keeps it: read a chunk at a time, slowly,
+ * so the daemon is still writing it while the test looks (a reader that stops
+ * altogether is dropped at the daemon's write deadline, as a stalled viewer).
+ * Null until it is served; `first` is the first chunk it read.
+ */
+export async function hold(url: string): Promise<{ status: number; type: string; first: Uint8Array; abort: AbortController } | null> {
+  const abort = new AbortController();
+  try {
+    const resp = await fetch(url, { redirect: 'follow', signal: abort.signal });
+    const type = resp.headers.get('content-type') ?? '';
+    if (resp.status !== 200 || /text\/html/i.test(type) || !resp.body) {
+      abort.abort();
+      return null;
+    }
+    const reader = resp.body.getReader();
+    const first = (await reader.read()).value ?? new Uint8Array();
+    void (async () => {
+      while (!abort.signal.aborted) {
+        const r = await reader.read().catch(() => ({ done: true }));
+        if (r.done) {
+          break;
+        }
+        await new Promise((res) => setTimeout(res, 400));
+      }
+    })();
+    return { status: resp.status, type, first, abort };
+  } catch {
+    abort.abort();
+    return null;
+  }
+}
+
+/**
+ * A live channel on the load balancer from `source`, in `bouquet`, its
+ * timeshift recorded there (a day kept) and, with `thumbnails`, its
+ * thumbnails taken there: its stream id.
+ */
+export async function addArchiveChannel(page: Page, c: { name: string; bouquet: string; source: string; thumbnails?: boolean }): Promise<number> {
+  await page.goto('./stream');
+  await page.locator('#stream_display_name').fill(c.name);
+  await page.locator('#notes').fill(TAG);
+  await page.locator('#bouquets').selectOption({ label: c.bouquet }, { force: true });
+  await page.getByRole('tab', { name: /sources/i }).click();
+  await page.locator('input[name="stream_source[]"]').first().fill(c.source);
+  await page.getByRole('tab', { name: /^servers$/i }).click();
+  await page.evaluate((node) => (window as any).$('#server_tree').jstree('move_node', String(node), 'source', 'last'), lb);
+  await page.locator('#tv_archive_server_id').selectOption(String(lb), { force: true });
+  await page.locator('#tv_archive_duration').fill('1');
+  if (c.thumbnails) {
+    await page.locator('#vframes_server_id').selectOption(String(lb), { force: true });
+  }
+  await submitForm(page, page, 'stream', page.locator('#stream-submit'));
+  await page.waitForURL(/\/(stream_view\?id=\d+|streams)/, { waitUntil: 'commit' });
+  const r = (await tableRows(page.request, 'streams', c.name)).find((x) => x.title === c.name);
+  expect(r, `${c.name} is listed`).toBeTruthy();
+  return Number(r.id);
+}
+
+/** The archive's first full minute as MAIN names timeshift starts, for a channel started at `startedAt`: tried in UTC and an hour either side. */
+export function timeshiftStarts(startedAt: number): string[] {
+  const at = new Date(startedAt + 90_000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const fmt = (d: Date) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}:${pad(d.getUTCHours())}-${pad(d.getUTCMinutes())}`;
+  return [fmt(at), fmt(new Date(at.getTime() + 3_600_000)), fmt(new Date(at.getTime() - 3_600_000))];
 }

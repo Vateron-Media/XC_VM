@@ -1,31 +1,15 @@
 {
-  "version": "2.6.2",
-  "changes": [
-    "New panels now start on the cluster API: the installer switches it on, new load balancers join in mode 2 when possible, and MAIN's data plane is switched on.",
-    "Deprecated the old load-balancer link (a load balancer not enrolled in the cluster API, its /api with the stream password, and its access to MAIN's database and Redis); it will be removed in a later major release.",
-    "Redesigned the Cluster Nodes page in the Manage Servers format, with a searchable table, a row actions menu and a Legacy /api calls column that shows what still uses each load balancer's old /api.",
-    "Proxies no longer keep the load balancers' legacy /api open, and the legacy /api no longer sends a CORS header.",
-    "Added rolling load-balancer updates, a guided cutover to mode 1, moving a node to mode 2 from the page, an optional automatic mode down, and new load balancers joining directly in mode 2.",
-    "Added RTMP viewers on load balancers with their line checked by MAIN, mode 2 with the Redis connection handler, and Viewer Record Proof with a readiness card.",
-    "Added a fleet canary for the binaries every server takes from GitHub, a release pin, and a switch for MAIN's data plane on the Cluster Nodes page.",
-    "Firewall blocks now live in ipset sets, installed on new servers and on update; large blocklists sync in parts.",
-    "Added cluster alerts and /metrics for Prometheus with a /healthz endpoint.",
-    "Added two-factor sign-in for admins and resellers.",
-    "Replaced the single API key with named, scoped API tokens.",
-    "Added an audit log of what admins change.",
-    "Added a maintenance mode that closes the client APIs and reseller access.",
-    "Added alerts and expiry reminders by Telegram, webhook and e-mail.",
-    "Added off-site backup copies, a sealed recovery bundle and restore tests; the live database is dumped before a restore and before an update.",
-    "The dashboard now checks every server, adds disk, backup, certificate and cache rows, and warns when a server's clock is off MAIN's; servers wait for NTP's first synchronisation at boot.",
-    "Rewrote the Modules page around module status and the official store, with module actions run as background jobs.",
-    "Exposed the custom ffmpeg command in the stream form, made the Instant Off grace period configurable, and read subtitles from shared mounts.",
-    "Improved EPG, log, cache and playlist performance with one-pass deduplication, batched retention, new indexes and broader playlist caching.",
-    "Blocked addresses that try many passwords for one username, counted refused sign-ins on every client entry point, and hardened session cookies.",
-    "Enforced the right permission on every admin page, action, table and admin API call, and kept resellers to their own tree, packages and trials with atomic credits stored as DECIMAL(16,4).",
-    "Kept both web players to the line's own content with a session cookie of their own, and restricted the image resizer to public addresses.",
-    "Ministra: a MAG device is served only once the portal has verified it, the Stalker API answers at /server/load.php, and handshake and field formats were fixed.",
-    "The installer verifies its downloads and validates certificate host names; updates report a failed migration.",
-    "Fixed record edits so fields an edit leaves out are kept, and fixed dates shown in the panel timezone.",
-    "Fixed hanging cron:servers and cron:streams runs, cron locks, and stream starts from stored values with complete source cookies."
-  ]
+	"version": "2.6.4",
+	"changes": [
+		"A new panel now starts with the segment gateway on (segments+playlist): xc_fanout answers HLS segments, keys and known viewers' playlist refreshes instead of PHP-FPM, and hands PHP anything it is not sure of. An updated panel keeps its setting, and a stored value that is not a mode falls back to the default.",
+		"The segment gateway now also answers a known MPEG-TS viewer that reconnects with its link, streaming from fanout without a PHP request (needs an xc_fanout release with TS reconnects; older ones keep sending TS to PHP).",
+		"A fanout TS viewer no longer costs a database or agent round-trip after the hand-off to the daemon.",
+		"Fixed the prebuffer of a restreamer link that asks for one on fanout: it was always 0, it is now one segment's time.",
+		"Added an Always Use ffmpeg switch per stream (Advanced tab and bulk edit): it keeps a copy-only channel on ffmpeg when the native remuxer is the source backend.",
+		"The native remuxer now reads a stream's source URL, headers, cookies and proxy from a private file instead of its command line, where any local user could read the provider's credentials (needs xc_fanout 0.14.8 or later; the stream's log says when it falls back).",
+		"Every admin page now shows a toast when a stream starts, stops, restarts or fails, on any server; a burst of events shows as one counted toast.",
+		"Fixed stream starts on a load balancer installed straight into API mode: no stream could start there.",
+		"Fixed the VOD file browser opening on an empty folder: it now leads from / to the scan roots.",
+		"The Watch module can tell a file still being copied on a load balancer from a finished one, and a load balancer's folder of thousands of files is listed whole."
+	]
 }

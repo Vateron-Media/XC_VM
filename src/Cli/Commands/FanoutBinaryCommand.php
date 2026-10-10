@@ -42,6 +42,9 @@ use XcVm\Core\Updates\UpdateChannels;
  *
  * Usage: `console.php fanout_binary [fanout|agent] [force]` (neither: both;
  * `force` reinstalls the same version and retries one that did not stay).
+ * An install hands a node MAIN keeps credential-free MAIN's channel and
+ * canary as options (MAIN_OPTIONS), with `--replica` to boot without MAIN's
+ * database: no replica holds them before its enrolment.
  *
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -56,6 +59,9 @@ class FanoutBinaryCommand implements CommandInterface {
 	/** Beside the agent: the last version this command installed or tried to. */
 	public const AGENT_TRIED = 'xc_agent.tried';
 
+	/** MAIN's settings an install passes on the command line (mainOptions()): option => setting. */
+	public const MAIN_OPTIONS = ['--channel' => 'update_channel_fanout', '--canary' => 'lb_binary_canary_server', '--pin' => 'lb_release_pin'];
+
 	public function getName(): string {
 		return 'fanout_binary';
 	}
@@ -68,6 +74,10 @@ class FanoutBinaryCommand implements CommandInterface {
 		if (posix_getpwuid(posix_geteuid())['name'] !== 'root') {
 			echo "Please run as root!\n";
 			return 1;
+		}
+		$rMain = self::mainSettings($rArgs);
+		if ($rMain !== []) {
+			SettingsManager::set($rMain + SettingsManager::getAll());
 		}
 		$rForce = in_array('force', $rArgs, true);
 		$rTools = array_values(array_intersect(['fanout', 'agent'], $rArgs)) ?: ['fanout', 'agent'];
@@ -114,6 +124,36 @@ class FanoutBinaryCommand implements CommandInterface {
 			$rOk = ($rTool === 'fanout' ? $this->fanout($rBase, $rArch, $rLatest, $rForce, $rHeld) : self::agent($rBase, $rArch, $rLatest, $rForce, $rHeld)) && $rOk;
 		}
 		return $rOk ? 0 : 1;
+	}
+
+	/**
+	 * The options that hand MAIN's $rSettings to a node's `fanout_binary`.
+	 *
+	 * @param array<string, mixed> $rSettings
+	 */
+	public static function mainOptions(array $rSettings): string {
+		$rOut = '';
+		foreach (self::MAIN_OPTIONS as $rOption => $rKey) {
+			$rOut .= ' ' . escapeshellarg($rOption . '=' . (string) ($rSettings[$rKey] ?? '')); // lb-settings: update_channel_fanout, lb_binary_canary_server, lb_release_pin
+		}
+		return $rOut;
+	}
+
+	/**
+	 * MAIN's settings in $rArgs (mainOptions()), which override the node's.
+	 *
+	 * @param list<string> $rArgs
+	 * @return array<string, string>
+	 */
+	public static function mainSettings(array $rArgs): array {
+		$rOut = [];
+		foreach ($rArgs as $rArg) {
+			[$rOption, $rValue] = explode('=', (string) $rArg, 2) + [1 => null];
+			if ($rValue !== null && isset(self::MAIN_OPTIONS[$rOption])) {
+				$rOut[self::MAIN_OPTIONS[$rOption]] = $rValue;
+			}
+		}
+		return $rOut;
 	}
 
 	/** Is this server held to MAIN's pin (a canary is set, and it is not this server)? */

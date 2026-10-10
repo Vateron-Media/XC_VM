@@ -461,6 +461,7 @@ Streaming/TimeshiftClient.php
 # bin/ffmpeg_bin/8.0/ffmpeg
 # bin/ffmpeg_bin/8.0/ffprobe
 # bin/maxmind/GeoIP2-ISP.mmdb
+config/bundled_modules.php
 config/permissions.php
 migrations/001_update_crontab_filenames.sql
 migrations/002_add_maxmind_cron.sql

@@ -7,6 +7,7 @@ use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\CredentialFreeConfig;
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
+use XcVm\Core\Cluster\ReplicaBoot;
 use XcVm\Core\Cluster\RootPin;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Process\PhpFpmPools;
@@ -473,11 +474,15 @@ class LbInstallFlow {
 		return $rServices;
 	}
 
-	public static function runStartup($rConn, callable $rRunSSH): void {
+	/** @param bool $rCommands false: ownership only, for an API-mode node, whose commands wait for its replica (startOnReplica()). */
+	public static function runStartup($rConn, callable $rRunSSH, bool $rCommands = true): void {
 		// Fix ownership BEFORE any PHP runs, so the extension never creates or reads
 		// install_id / config.enc as root. A root-owned install_id is unreadable by
 		// FPM (xc_vm) and makes config.enc decryption fall back to a default config.
 		call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm -R /home/xc_vm >/dev/null 2>&1');
+		if (!$rCommands) {
+			return;
+		}
 		// No `status 1` here: it runs as root only, and the service restart before
 		// this ran it (`startup`, as root).
 		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php startup');
@@ -485,6 +490,32 @@ class LbInstallFlow {
 		// The node's ffmpeg builds, which no release archive carries: before its
 		// first stream (cron:root_signals keeps them current daily).
 		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ffmpeg');
+	}
+
+	/**
+	 * An API-mode node's startup, once enrolled: it holds no credentials, so
+	 * nothing boots on it until its agent has applied MAIN's settings and
+	 * servers (ReplicaBoot::now()), and the service started before that
+	 * wrote no crontab. Then XC_VM is restarted on it (`startup` as root,
+	 * the daemons from the replica) and runStartup()'s commands run.
+	 *
+	 * @param (callable(): void)|null $rPause Between two looks at the node (tests).
+	 * @return string The install log's line.
+	 */
+	public static function startOnReplica($rConn, callable $rRunSSH, ?callable $rPause = null): string {
+		$rPause ??= static function (): void {
+			sleep(3);
+		};
+		$rReady = 'sudo -u xc_vm ' . PHP_BIN . ' -r ' . escapeshellarg('require "' . MAIN_HOME . 'bootstrap.php"; XC_Bootstrap::boot(XcVm\Core\Enum\BootContext::Minimal); echo XcVm\Core\Cluster\ReplicaBoot::now() ? "READY" : "WAIT";') . ' 2>/dev/null';
+		for ($rLooks = 0; $rLooks < 60; $rLooks++) {
+			if (str_ends_with(trim((string) call_user_func($rRunSSH, $rConn, $rReady)['output']), 'READY')) {
+				call_user_func($rRunSSH, $rConn, 'sudo systemctl restart xc_vm');
+				self::runStartup($rConn, $rRunSSH);
+				return 'The node booted from its replica: XC_VM restarted on it';
+			}
+			$rPause();
+		}
+		return "The node's replica is not built yet: once its agent has applied it, restart XC_VM on the node (systemctl restart xc_vm) to start its crons";
 	}
 
 	/**
@@ -721,7 +752,10 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, 'sudo pkill -u xc_vm -f ' . escapeshellarg(dirname(self::AGENT_BIN) . '/run.sh') . '; sudo pkill -u xc_vm -x xc_agent; true');
 		call_user_func($rRunSSH, $rConn, 'sudo mkdir -p ' . escapeshellarg(dirname(self::AGENT_BIN)) . ' ' . escapeshellarg(dirname(self::AGENT_STATE)) . ' && sudo rm -f ' . escapeshellarg(dirname(self::AGENT_BIN) . '/stopped') . ' && sudo chown -R xc_vm:xc_vm ' . escapeshellarg(dirname(self::AGENT_BIN)) . ' ' . escapeshellarg(dirname(self::AGENT_STATE)) . ' && sudo chmod 0700 ' . escapeshellarg(dirname(self::AGENT_STATE)));
 		// The node takes the agent from its GitHub release itself, as it keeps it current.
-		$rGot = trim((string) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_binary agent 2>&1; sudo test -x ' . escapeshellarg(self::AGENT_BIN) . ' && echo AGENT_OK')['output']);
+		// An API-mode node cannot reach MAIN's database, and has no replica yet:
+		// it boots from the empty one and is handed MAIN's channel and canary.
+		$rFetch = 'fanout_binary agent' . ($rApiMode ? ' ' . ReplicaBoot::OPTION . FanoutBinaryCommand::mainOptions($rSettings) : '');
+		$rGot = trim((string) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . $rFetch . ' 2>&1; sudo test -x ' . escapeshellarg(self::AGENT_BIN) . ' && echo AGENT_OK')['output']);
 		if (!str_ends_with($rGot, 'AGENT_OK')) {
 			$rWhy = trim((string) strrchr("\n" . $rGot, "\n")) ?: 'it could not install one';
 			if ($rApiMode) {

@@ -2,6 +2,7 @@
 
 namespace XcVm\Core\Cluster;
 
+use XcVm\Core\Gateway\GatewayPolicy;
 use XcVm\Domain\Cluster\DbAllowlist;
 
 /**
@@ -64,6 +65,9 @@ final class ClusterSettings {
 		// A node's viewer records must prove MAIN's mint (ConnectionAdmission): counted
 		// under observe, refused under enforce where MAIN withholds the node's secret.
 		'cluster_conn_binding' => ['observe', ['observe', 'enforce']],
+		// The segment gateway (Phase 12, GatewayPolicy::MODES): serving by default on a
+		// new panel. A node that has not heard the setting stays off (GatewayPolicy::mode()).
+		'gateway_mode' => ['segments+playlist', GatewayPolicy::MODES],
 	];
 
 	public const DEFAULT_SCAN_ROOTS = ['/home/xc_vm/content', '/mnt', '/media'];
@@ -230,6 +234,32 @@ final class ClusterSettings {
 			return false;
 		}
 		return (bool) preg_match('/^(?=.{1,253}\z)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+\z/', $rHost);
+	}
+
+	/**
+	 * The folders the file browser shows at $rDir when $rDir lies above the
+	 * scan roots: the next path segment toward each root below it. The browser
+	 * opens at "/", which no node lists (pathAllowed()), so without this it
+	 * showed an empty folder with no way in; now "/" offers `home`, `mnt`,
+	 * `media`, and ".." walks back up the same way. Null when $rDir is inside
+	 * a root (the node lists it, and checks it) or leads to none of them.
+	 *
+	 * @param list<string> $rRoots scanRoots()'s roots
+	 * @return list<string>|null
+	 */
+	public static function dirsTowardRoots(string $rDir, array $rRoots): ?array {
+		$rDir = '/' . trim($rDir, '/');
+		$rPrefix = $rDir === '/' ? '/' : $rDir . '/';
+		$rOut = [];
+		foreach ($rRoots as $rRoot) {
+			if ($rRoot === $rDir || str_starts_with($rDir . '/', $rRoot . '/')) {
+				return null;
+			}
+			if (str_starts_with($rRoot, $rPrefix)) {
+				$rOut[] = explode('/', substr($rRoot, strlen($rPrefix)))[0];
+			}
+		}
+		return $rOut === [] ? null : array_values(array_unique($rOut));
 	}
 
 	/**

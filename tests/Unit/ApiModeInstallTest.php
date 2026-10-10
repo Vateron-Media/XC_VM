@@ -176,6 +176,9 @@ final class ApiModeInstallTest extends TestCase {
 		$this->assertStringContainsString('provisionConfig($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, $rApiMode)', $rInstall);
 		$this->assertStringContainsString('provisionCluster($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, null, true, $rApiMode)', $rInstall);
 		$this->assertMatchesRegularExpression('/if \(\$rGrant\) \{\s*BackupService::grantPrivileges\(\$rHost\);/', $rInstall);
+		// Nothing boots on it before its enrolment brings its replica: its startup waits for that.
+		$this->assertStringContainsString('LbInstallFlow::runStartup($rConn, $rRunSSH, !$rApiMode);', $rInstall);
+		$this->assertStringContainsString('echo LbInstallFlow::startOnReplica($rConn, $rRunSSH) . "\n";', $rInstall);
 
 		// Without the cluster API's crypto an API-mode install fails rather than "stays legacy".
 		ob_start();

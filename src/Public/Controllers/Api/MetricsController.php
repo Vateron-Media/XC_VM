@@ -6,6 +6,7 @@ use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Gateway\GatewayShadow;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterOverview;
 use XcVm\Domain\Cluster\NodeLag;
@@ -171,7 +172,7 @@ class MetricsController {
 		} catch (\Throwable) {
 			return ''; // the cluster tables or the bus not there: the rest still answers
 		}
-		$rSeries = ['node' => [], 'seen' => [], 'clock' => [], 'lag' => [], 'urls' => [], 'local' => [], 'queued' => []];
+		$rSeries = ['node' => [], 'seen' => [], 'clock' => [], 'lag' => [], 'urls' => [], 'local' => [], 'queued' => [], 'gw' => [], 'gw_shadow' => [], 'gw_ready' => []];
 		foreach ($rNodes as $rNode) {
 			$rLabels = ['server' => (string) $rNode['server_id'], 'name' => (string) $rNode['server_name']];
 			$rSeries['node'][] = [$rLabels + ['state' => (string) $rNode['state'], 'health' => (string) $rNode['health'], 'mode' => (string) (int) $rNode['mode']], 1];
@@ -188,6 +189,18 @@ class MetricsController {
 				$rSeries['local'][] = [$rLabels, $rNode['streams_local'] ? 1 : 0];
 			}
 			$rSeries['queued'][] = [$rLabels, (int) ($rCommands['per_node'][(int) $rNode['server_id']] ?? 0)];
+			// The segment gateway, as the node reported it (NodeAudit::gatewayOf).
+			if (is_array($rNode['gateway'] ?? null)) {
+				foreach ($rNode['gateway']['counts'] as $rKey => $rCount) {
+					[$rKind, $rAction, $rReason] = explode(' ', (string) $rKey, 3);
+					$rSeries['gw'][] = [$rLabels + ['kind' => $rKind, 'action' => $rAction, 'reason' => $rReason], (int) $rCount];
+				}
+				foreach (['agree', 'disagree', 'deferred', 'unmatched'] as $rResult) {
+					$rSeries['gw_shadow'][] = [$rLabels + ['result' => $rResult], (int) $rNode['gateway']['shadow'][$rResult]];
+				}
+				$rReadiness = GatewayShadow::readiness($rNode['gateway']['shadow'], $rNow);
+				$rSeries['gw_ready'][] = [$rLabels + ['mode' => (string) $rNode['gateway']['mode'], 'readiness' => $rReadiness], $rReadiness === 'ready' ? 1 : 0];
+			}
 		}
 		$rLatency = [];
 		foreach (['deliver', 'ack'] as $rStage) {
@@ -204,7 +217,10 @@ class MetricsController {
 			. self::family('xcvm_cluster_node_unreachable_urls', 'MAIN URLs the node reports it cannot reach.', $rSeries['urls'])
 			. self::family('xcvm_cluster_node_streams_local', 'Whether the node reads its streams on itself (1) or not (0), as it reports.', $rSeries['local'])
 			. self::family('xcvm_cluster_node_commands_queued', 'Commands queued for the node and not yet acknowledged.', $rSeries['queued'])
-			. self::family('xcvm_cluster_command_latency_seconds', 'MAIN\'s commands over the last window: seconds from queued to delivered or acknowledged.', $rLatency);
+			. self::family('xcvm_cluster_command_latency_seconds', 'MAIN\'s commands over the last window: seconds from queued to delivered or acknowledged.', $rLatency)
+			. self::family('xcvm_gateway_requests', 'Requests the node\'s segment gateway judged since it started, by kind, action and reason.', $rSeries['gw'])
+			. self::family('xcvm_gateway_shadow_requests', 'The segment gateway\'s shadow comparison with PHP: requests agreeing, disagreeing, deferred to PHP, unmatched.', $rSeries['gw_shadow'])
+			. self::family('xcvm_gateway_ready', 'Whether the node\'s segment gateway is ready to serve (1): compared with PHP for 7 days since its last disagreement.', $rSeries['gw_ready']);
 	}
 
 	/**

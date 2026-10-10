@@ -319,9 +319,17 @@ database write; the daemon runs what it is handed.
   feed as ffmpeg's `-f tee` line, with no ffmpeg. Which streams qualify is
   `StreamProcess::nativeRefusal()` / `isNativeSource()`; `fanout_source_backend` decides:
   `auto` = remuxer with the ffmpeg command as `fallback_cmd` (used when the remuxer exits 3,
-  "cannot serve this source"), `native` = remuxer only, `ffmpeg` = ffmpeg only. The panel only
-  writes a remuxer command when the node's daemon advertises it (`features` in
+  "cannot serve this source", or 2, a crash or a command line it cannot parse), `native` =
+  remuxer only, `ffmpeg` = ffmpeg only. A stream's **Always Use ffmpeg** switch (Advanced tab,
+  `streams.force_ffmpeg`, migration 088) keeps that one channel on ffmpeg whatever the backend.
+  The panel only writes a remuxer command when the node's daemon advertises it (`features` in
   `GET /monitors/state`, `FanoutClient::supportsRemux()`) — an older binary would misparse it.
+- **Source credentials** — with a daemon that advertises `remux_source_file`, the source URL and
+  its fetch options (user agent, cookies, proxy, headers) go to `<id>_.source_<n>` (0600, one per
+  source, `StreamProcess::writeNativeSource()`) and the command carries `-source_file` instead,
+  so the provider's account is not in `/proc/<pid>/cmdline`. An older daemon, or a file that
+  cannot be written, keeps them in argv. The ffmpeg fallback line still carries them, as every
+  ffmpeg command does.
 - **Which producer ran, and why** — the command handed over is recorded beside the stream's
   files like the self-launched path's `<id>_.ffmpeg`: `<id>_.fanout` for the remuxer,
   `<id>_.ffmpeg` for ffmpeg (in `auto`, both). When the native backend is on and a stream runs
@@ -397,6 +405,17 @@ ffmpeg `drawtext` overlay to that viewer's next HLS segment (or a short ~5s TS
 window), one-shot, best-effort — a signal never breaks playback. The daemon must
 be launched with an ffmpeg that actually has the `drawtext` filter, so the
 `service` launcher picks a drawtext-capable build.
+
+### Segment gateway
+
+The daemon can also answer the viewer's HLS requests itself, without PHP-FPM: `/hls/<token>` (segments), `/key/<token>` (keys) and a known viewer's playlist refresh, `/auth/<token>` (ADR 0005). `settings.gateway_mode` turns it on per panel:
+
+- `off` (default): PHP answers, as above.
+- `shadow`: PHP answers; nginx mirrors each request to the gateway, which only judges it, and PHP tells the gateway what it answered, so each verdict is compared with PHP's. Cluster Nodes (the Segment Gateway column) and `/metrics` show the comparison per node, and when a node is ready to serve: seven days, and a hundred requests, since its last disagreement. On the node: `curl --unix-socket /home/xc_vm/bin/xc_fanout/sockets/gw.sock http://gw/stats`.
+- `segments`: the gateway serves live and catch-up segments and keys.
+- `segments+playlist`: and playlist refreshes, on nodes whose viewers are in their agent (the cluster API's CONNECTIONS flow). The first request of each viewer stays PHP's. The same goes for MPEG-TS: a known TS viewer that reconnects with its `/auth/<token>` gets the stream again from fanout's ring, in-process, with no PHP request (a non-proxy channel; a direct-proxy channel stays PHP's, which registers its source with the daemon). The TS path end to end is in [MPEG-TS Delivery](ts-delivery.md).
+
+What the gateway is not sure of it hands back to PHP (`X-Accel-Redirect` to a named location), which then answers exactly as before; a daemon that does not answer sends the request to PHP too. It reads `tmp/gateway/policy.json`, which `cron:cache` writes every minute (`Core/Gateway/GatewayPolicy`), and the root cron writes the nginx include `bin/nginx/conf/gateway.conf` (`Core/Gateway/GatewayNginxConfig`) — only while the daemon's gateway socket exists. Fanout off means the gateway is off.
 
 ---
 
