@@ -1,6 +1,6 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { TAG, adminApi, ident, listRow, rowAction, rowWith, searchTable, submitForm, tableRows, uniq } from './support';
-import { lb } from './cluster-support';
+import { addArchiveChannel, hold, lb, timeshiftStarts } from './cluster-support';
 
 /**
  * A copy-only channel on a load balancer runs on xc_fanout's native remuxer
@@ -22,34 +22,6 @@ const bouquet = uniq('native-bouquet');
 const viewer = { username: ident('native'), password: ident('nativepass') };
 const channel = { name: uniq('native-channel'), id: 0, startedAt: 0 };
 
-async function addChannel(page: Page): Promise<void> {
-  await page.goto('./stream');
-  await page.locator('#stream_display_name').fill(channel.name);
-  await page.locator('#notes').fill(TAG);
-  await page.locator('#bouquets').selectOption({ label: bouquet }, { force: true });
-  await page.getByRole('tab', { name: /sources/i }).click();
-  await page.locator('input[name="stream_source[]"]').first().fill(SOURCE);
-  await page.getByRole('tab', { name: /^servers$/i }).click();
-  await page.evaluate((node) => (window as any).$('#server_tree').jstree('move_node', String(node), 'source', 'last'), lb);
-  // Timeshift and thumbnails on the load balancer, from the remuxer's HLS.
-  await page.locator('#tv_archive_server_id').selectOption(String(lb), { force: true });
-  await page.locator('#tv_archive_duration').fill('1');
-  await page.locator('#vframes_server_id').selectOption(String(lb), { force: true });
-  await submitForm(page, page, 'stream', page.locator('#stream-submit'));
-  await page.waitForURL(/\/(stream_view\?id=\d+|streams)/, { waitUntil: 'commit' });
-  const r = (await tableRows(page.request, 'streams', channel.name)).find((x) => x.title === channel.name);
-  expect(r, `${channel.name} is listed`).toBeTruthy();
-  channel.id = Number(r.id);
-}
-
-/** The archive's first full minute as MAIN names timeshift starts: tried in UTC and an hour either side. */
-function timeshiftStarts(): string[] {
-  const at = new Date(channel.startedAt + 90_000);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const fmt = (d: Date) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}:${pad(d.getUTCHours())}-${pad(d.getUTCMinutes())}`;
-  return [fmt(at), fmt(new Date(at.getTime() + 3_600_000)), fmt(new Date(at.getTime() - 3_600_000))];
-}
-
 test.describe.serial('a copy-only channel on the native remuxer', () => {
   test('a bouquet, a line and a channel on the load balancer, recording and taking thumbnails there', async ({ page }) => {
     test.setTimeout(300_000);
@@ -57,7 +29,7 @@ test.describe.serial('a copy-only channel on the native remuxer', () => {
     await page.locator('#bouquet_name').fill(bouquet);
     await submitForm(page, page, 'bouquet');
     await page.waitForURL(/bouquets/);
-    await addChannel(page);
+    channel.id = await addArchiveChannel(page, { name: channel.name, bouquet, source: SOURCE, thumbnails: true });
 
     await page.goto('./line');
     await page.locator('#username').fill(viewer.username);
@@ -96,18 +68,11 @@ test.describe.serial('a copy-only channel on the native remuxer', () => {
     let url = '';
     await expect
       .poll(async () => {
-        for (const start of timeshiftStarts()) {
+        for (const start of timeshiftStarts(channel.startedAt)) {
           const candidate = `${origin}/timeshift/${viewer.username}/${viewer.password}/2/${start}/${channel.id}.ts`;
-          const ac = new AbortController();
-          const resp = await fetch(candidate, { redirect: 'follow', signal: ac.signal }).catch(() => null);
-          const ok = !!resp && resp.status === 200 && /video|octet/i.test(resp.headers.get('content-type') ?? '');
-          let first = 0;
-          if (ok && resp!.body) {
-            const reader = resp!.body.getReader();
-            first = (await reader.read()).value?.[0] ?? 0;
-          }
-          ac.abort();
-          if (ok && first === 0x47) {
+          const h = await hold(candidate);
+          h?.abort.abort();
+          if (h && h.first[0] === 0x47) { // an MPEG-TS sync byte
             url = candidate;
             return 'served';
           }

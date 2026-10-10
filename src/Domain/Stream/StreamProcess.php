@@ -1196,19 +1196,16 @@ class StreamProcess {
 	/**
 	 * Write one native source to `<id>_.source_<n>` (0600) for `xc_fanout remux
 	 * -source_file`, which keeps the provider's account out of /proc/<pid>/cmdline.
-	 * It goes with the stream's other `<id>_*` files when the stream stops.
+	 * Only for a daemon that offers `remux_source_file` (the caller asks). It
+	 * goes with the stream's other `<id>_*` files when the stream stops.
 	 *
 	 * @param array $data See buildNativeLive().
-	 * @return string|null The path, or null when the daemon predates the flag or
-	 *                     the file cannot be written: the command then carries
-	 *                     the source in argv, as before.
+	 * @return string|null The path, or null when the file cannot be written: the
+	 *                     command then carries the source in argv, as before.
 	 */
-	private static function writeNativeSource(int $rStreamID, int $rIndex, array $data): ?string {
-		if (!FanoutClient::supports('remux_source_file')) {
-			return null;
-		}
+	private static function writeNativeSource(array $data, int $rIndex): ?string {
 		$rJson = json_encode(self::nativeSource($data), JSON_UNESCAPED_SLASHES);
-		$rPath = STREAMS_PATH . $rStreamID . '_.source_' . $rIndex;
+		$rPath = STREAMS_PATH . intval($data['streamID']) . '_.source_' . $rIndex;
 		return ($rJson !== false && AtomicFile::write($rPath, $rJson, 0600)) ? $rPath : null;
 	}
 
@@ -1635,6 +1632,8 @@ class StreamProcess {
 			}
 		}
 		$rPriority = !empty($rSettings['priority_backup']) && count($rSources) > 1 && !$rLoopback;
+		// Asked once, of the daemon the hand-over just asked (supportsRemux() above).
+		$rSourceFiles = $rNativeStream && FanoutClient::supportsLive('remux_source_file');
 
 		$rSpecSources = [];
 		foreach ($rSources as $i => $rSource) {
@@ -1676,7 +1675,11 @@ class StreamProcess {
 					'segmentSettings' => $rSegmentSettings, 'ingestSock' => $rIngestSock,
 					'settings' => $rSettings, 'binary' => FanoutClient::binaryPath(),
 				];
-				$rNative['sourceFile'] = self::writeNativeSource($rStreamID, intval($i), $rNative);
+				$rNative['sourceFile'] = $rSourceFiles ? self::writeNativeSource($rNative, intval($i)) : null;
+				if ($rSourceFiles && $rNative['sourceFile'] === null) {
+					// Like every other way this code falls back, said in the stream's log.
+					self::noteProducer($rStreamID, 'source #' . $i . ': its source file could not be written, so its URL and fetch options are on the command line');
+				}
 				$rEntry['cmd'] = self::buildNativeLive($rNative);
 				if ($rBackend === 'auto') {
 					$rEntry['fallback_cmd'] = $rFFMPEG;

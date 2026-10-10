@@ -125,26 +125,34 @@ final class StreamProcessSupervisionTest extends TestCase {
 		$this->assertSame(['i', 'user_agent', 'cookies', 'http_proxy', 'headers'], array_keys($rSource));
 	}
 
-	/** Written 0600, and only for a daemon that advertises the flag; an older one keeps argv. */
-	public function testWriteNativeSourceNeedsTheDaemonFeature(): void {
+	/** Written 0600, holding exactly nativeSource(), at the path the command names. */
+	public function testWriteNativeSourceIsPrivate(): void {
 		@mkdir(STREAMS_PATH, 0777, true);
-		$rCache = tempnam(sys_get_temp_dir(), 'fanout_features');
-		$rData = ['source' => 'http://src.example/live/u/p/9.ts', 'arguments' => self::CREDENTIAL_ARGUMENTS];
+		$rData = ['streamID' => 42, 'source' => 'http://src.example/live/u/p/9.ts', 'arguments' => self::CREDENTIAL_ARGUMENTS];
 		try {
-			\XcVm\Streaming\Fanout\FanoutClient::useFilesPaths(null, $rCache);
-			file_put_contents($rCache, json_encode(['at' => time(), 'features' => ['remux']]));
-			$this->assertNull(self::call('writeNativeSource', 42, 1, $rData));
-
-			file_put_contents($rCache, json_encode(['at' => time(), 'features' => ['remux', 'remux_source_file']]));
-			$rPath = self::call('writeNativeSource', 42, 1, $rData);
+			$rPath = self::call('writeNativeSource', $rData, 1);
 			$this->assertSame(STREAMS_PATH . '42_.source_1', $rPath);
 			clearstatcache();
 			$this->assertSame(0600, fileperms($rPath) & 0777);
 			$this->assertSame(self::call('nativeSource', $rData), json_decode((string) file_get_contents($rPath), true));
 		} finally {
-			\XcVm\Streaming\Fanout\FanoutClient::useFilesPaths(null, null);
-			@unlink($rCache);
 			@unlink(STREAMS_PATH . '42_.source_1');
+		}
+	}
+
+	/** The source file is used only on a daemon that says it reads one, as this process last asked it; an older one keeps argv. */
+	public function testSourceFilesNeedTheRunningDaemonsFeature(): void {
+		$rFeatures = new ReflectionProperty(\XcVm\Streaming\Fanout\FanoutClient::class, 'features');
+		$rFeatures->setAccessible(true);
+		$rWas = $rFeatures->getValue();
+		try {
+			$rFeatures->setValue(null, ['remux']);
+			$this->assertFalse(\XcVm\Streaming\Fanout\FanoutClient::supportsLive('remux_source_file'));
+			$rFeatures->setValue(null, ['remux', 'remux_source_file']);
+			$this->assertTrue(\XcVm\Streaming\Fanout\FanoutClient::supportsLive('remux_source_file'));
+			$this->assertTrue(\XcVm\Streaming\Fanout\FanoutClient::supportsRemux());
+		} finally {
+			$rFeatures->setValue(null, $rWas);
 		}
 	}
 
