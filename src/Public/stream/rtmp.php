@@ -197,6 +197,7 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 function shutdown() {
 	global $rDeny;
 	global $rIP;
+	global $db;
 
 	if (!$rDeny) {
 	} else {

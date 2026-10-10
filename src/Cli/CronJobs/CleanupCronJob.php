@@ -130,10 +130,13 @@ class CleanupCronJob implements CommandInterface {
 			date_default_timezone_set('UTC');
 			foreach ($rArchive === null ? [] : glob(ARCHIVE_PATH . '*') as $rStreamID) {
 				$rID = intval(basename($rStreamID));
-				if (0 < $rID && is_dir(ARCHIVE_PATH . $rID)) {
+				// The stream's own directory, "<id>": a recording writes "<id>.ts" and
+				// "<id>_.record" beside it under ITS id, and those were taken for the
+				// stream of that number's archive and removed with it.
+				if (0 < $rID && basename($rStreamID) === (string) $rID && is_dir($rStreamID)) {
 					if (!isset($rArchive[$rID])) {
 						echo 'Deleting: ' . $rStreamID . "\n";
-						exec('rm -rf ' . $rStreamID);
+						exec('rm -rf ' . escapeshellarg($rStreamID));
 					} else {
 						$rDuration = $rArchive[$rID];
 						$rDeleteBefore = time() - $rDuration * 86400 + 3600;
