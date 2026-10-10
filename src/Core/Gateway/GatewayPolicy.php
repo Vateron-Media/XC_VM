@@ -6,6 +6,7 @@ use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\AgentPaths;
 use XcVm\Core\Cluster\ClusterSettings;
+use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeLease;
 use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Config\OpensslExtra;
@@ -33,7 +34,7 @@ use XcVm\Streaming\Fanout\FanoutMode;
  *  "headers": {"server": "", "protection": true, "altsvc_port": 0},
  *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
  *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0, "unique_header": false,
- *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10},
+ *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10, "create_expiration": 5, "admission": true},
  *  "verify_host": false, "allowed_domains": [],
  *  "conn_store": "agent", "time_offset": 0, "redirect": {"5": ["http://lb5.example:8080"]}}
  * ```
@@ -49,9 +50,14 @@ use XcVm\Streaming\Fanout\FanoutMode;
  * the gateway leaves to PHP).
  *
  * `live` is what live.php reads for a known viewer's playlist refresh and,
- * with `ts` (the fields after it are written), for a known MPEG-TS viewer's
- * reconnect: the seconds of history it joins fanout's stream with
- * (`?prebuffer=`), as live.php picks them.
+ * with `ts` (the fields after it are written), for an MPEG-TS viewer: the
+ * seconds of history it joins fanout's stream with (`?prebuffer=`), as
+ * live.php picks them, and for its first request, whose connection the
+ * gateway creates as live.php does, `create_expiration` (a token older than
+ * that on MAIN's clock opens none: live.php answers TOKEN_EXPIRED) and
+ * `admission` (the agent admits a viewer with a limit: only on a node MAIN
+ * has left active, as AgentConnections::admission() decides). A gateway
+ * given no `create_expiration` leaves a first request to live.php.
  *
  * `serve_until` is NodeLease's fence on this host's clock: the gateway serves
  * nothing past it (0: no lease limits this node), and PHP answers from then.
@@ -148,6 +154,11 @@ final class GatewayPolicy {
 				'client_prebuffer' => (int) ($rSettings['client_prebuffer'] ?? 0),
 				'restreamer_prebuffer' => (int) ($rSettings['restreamer_prebuffer'] ?? 0),
 				'seg_time' => max(1, (int) ($rSettings['seg_time'] ?? 0)),
+				// A TS viewer's first request: how long after its mint a token still
+				// opens a connection (live.php's `?: 5`), and whether the agent
+				// admits a viewer with a limit (AgentConnections::admission()).
+				'create_expiration' => ((int) ($rSettings['create_expiration'] ?? 0)) ?: 5,
+				'admission' => NodeFlows::current()['state'] === 'active',
 			],
 			// StreamingRequestBootstrap's host check, before every stream endpoint.
 			'verify_host' => !empty($rSettings['verify_host']),
