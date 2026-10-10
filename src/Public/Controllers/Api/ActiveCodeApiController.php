@@ -269,7 +269,7 @@ class ActiveCodeApiController extends BaseApiController {
 			case 'get_active_code':
 			case 'get':
 			case 'details':
-				$idOrCode = $data['id'] ?? $data['code'] ?? 0;
+				$idOrCode = ActiveCodeService::reference($data['id'] ?? null, $data['code'] ?? null);
 				echo json_encode(AdminAPIWrapper::getActiveCode($idOrCode), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 				break;
 
@@ -308,7 +308,7 @@ class ActiveCodeApiController extends BaseApiController {
 
 			case 'reset_active_code_device':
 			case 'reset_device':
-				$idOrCode = $data['id'] ?? $data['code'] ?? 0;
+				$idOrCode = ActiveCodeService::reference($data['id'] ?? null, $data['code'] ?? null);
 				echo json_encode(AdminAPIWrapper::resetActiveCodeDevice($idOrCode), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 				break;
 
@@ -368,7 +368,7 @@ class ActiveCodeApiController extends BaseApiController {
 			case 'get_active_code':
 			case 'get':
 			case 'details':
-				$idOrCode = $data['id'] ?? $data['code'] ?? 0;
+				$idOrCode = ActiveCodeService::reference($data['id'] ?? null, $data['code'] ?? null);
 				echo json_encode(ResellerAPIWrapper::getActiveCode($idOrCode), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 				break;
 
@@ -407,7 +407,7 @@ class ActiveCodeApiController extends BaseApiController {
 
 			case 'reset_active_code_device':
 			case 'reset_device':
-				$idOrCode = $data['id'] ?? $data['code'] ?? 0;
+				$idOrCode = ActiveCodeService::reference($data['id'] ?? null, $data['code'] ?? null);
 				echo json_encode(ResellerAPIWrapper::resetActiveCodeDevice($idOrCode), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 				break;
 

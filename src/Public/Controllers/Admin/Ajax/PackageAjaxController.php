@@ -37,8 +37,12 @@ class PackageAjaxController extends BaseAjaxController {
 		$rSub = RequestManager::get('sub');
 
 		if ($rSub == 'delete') {
-			PackageService::deleteById(RequestManager::get('package_id'));
-			$this->ok();
+			$rPackageID = intval(RequestManager::get('package_id'));
+			if (PackageService::deleteById($rPackageID)) {
+				$this->ok();
+			}
+
+			$this->fail(PackageService::hasUnusedCodes($rPackageID) ? ['error' => 'Activation codes not redeemed yet are sold for this package.'] : []);
 		}
 
 		// The flags that are columns of the table: the name goes into the

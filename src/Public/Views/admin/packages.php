@@ -117,12 +117,12 @@ LayoutRenderer::renderFooter('admin');
                     })
                     .then(function(d) {
                         if (!d || d.result !== true) {
-                            throw new Error('fail');
+                            throw new Error((d && d.error) || '');
                         }
                         table.row(row).remove().draw(false);
                     })
-                    .catch(function() {
-                        xcToast(errMsg, 'error');
+                    .catch(function(e) {
+                        xcToast((e && e.message) || errMsg, 'error');
                     });
             });
         });

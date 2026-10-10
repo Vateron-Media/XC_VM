@@ -347,9 +347,11 @@ class ResellerApiDispatcher {
 				if ($rUser && is_numeric(RequestManager::get('credits')) && !in_array(intval($rUser['member_group_id']), GroupService::reservedGroups())) {
 					// Credits move between the reseller and one of its sub-resellers:
 					// each side gives only what its balance holds now.
-					if (UserCredits::transfer($rUserInfo['id'], $rUser['id'], intval(RequestManager::get('credits')))) {
-						$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['id'], $rUserInfo['id'], RequestManager::get('credits'), time(), RequestManager::get('reason'));
-						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'adjust_credits', RequestManager::get('id'), intval(RequestManager::get('credits')), intval(UserCredits::balance($rUserInfo['id'])), time(), json_encode($rUser));
+					// Whole credits move, and the logs say what moved: "2.9" moved 2 and was logged as 2.9.
+					$rCredits = intval(RequestManager::get('credits'));
+					if (UserCredits::transfer($rUserInfo['id'], $rUser['id'], $rCredits)) {
+						$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['id'], $rUserInfo['id'], $rCredits, time(), RequestManager::get('reason'));
+						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'adjust_credits', RequestManager::get('id'), $rCredits, intval(UserCredits::balance($rUserInfo['id'])), time(), json_encode($rUser));
 						echo json_encode(['result' => true]);
 						exit();
 					}
@@ -943,7 +945,8 @@ class ResellerApiDispatcher {
 				$rTimezone = (RequestManager::get('timezone') ?: 'Europe/London');
 				date_default_timezone_set($rTimezone);
 				$rReturn = ['Channels' => []];
-				$rChannels = array_map('intval', explode(',', RequestManager::get('channels')));
+				// The streams of this reseller's packages only: the list is the request's.
+				$rChannels = array_values(array_intersect(array_map('intval', explode(',', RequestManager::get('channels'))), array_map('intval', $rPermissions['stream_ids'])));
 
 				if (count($rChannels) != 0) {
 					$rHours = (intval(RequestManager::get('hours')) ?: 3);
@@ -1004,13 +1007,14 @@ class ResellerApiDispatcher {
 
 						$rDefaultArray = $rDefaultEPG;
 						$rDefaultArray['ChannelId'] = $rStream['id'];
-						$rCategoryIDs = json_decode($rStream['category_id'], true);
+						// A stream in no category (NULL, or an empty list) is one, not the end of the guide.
+						$rCategoryIDs = json_decode((string) $rStream['category_id'], true) ?: [];
 						$rCategories = CategoryService::getAllByType('live');
 
 						if ((string) RequestManager::get('category') !== '') {
-							$rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?: 'No Category');
+							$rCategory = (($rCategories[intval(RequestManager::get('category'))]['category_name'] ?? null) ?: 'No Category');
 						} else {
-							$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
+							$rCategory = (($rCategories[$rCategoryIDs[0] ?? 0]['category_name'] ?? null) ?: 'No Category');
 						}
 
 						if (1 < count($rCategoryIDs)) {
@@ -1042,7 +1046,7 @@ class ResellerApiDispatcher {
 			$rTimezone = (RequestManager::get('timezone') ?: 'Europe/London');
 			date_default_timezone_set($rTimezone);
 
-			if (RequestManager::has('id')) {
+			if (RequestManager::has('id') && in_array(intval(RequestManager::get('stream_id')), array_map('intval', (array) ($rPermissions['stream_ids'] ?? [])), true)) {
 				$rRow = EpgService::getProgramme(RequestManager::get('stream_id'), RequestManager::get('id'));
 
 				if ($rRow) {

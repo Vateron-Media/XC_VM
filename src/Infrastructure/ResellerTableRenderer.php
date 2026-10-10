@@ -1208,12 +1208,10 @@ class ResellerTableRenderer {
 			foreach (ConnectionTracker::readConnections(RedisManager::instance(), $rKeys) as $rRow) {
 				$rRow = igbinary_unserialize($rRow);
 				if (is_array($rRow)) {
-					if (!$rStreamID || $rStreamID == $rRow['stream_id']) {
-						if (!in_array($rRow['user_id'], $rReports)) {
-							$rKeyCount--;
-						}
-					} else {
+					// Counted out and left out: it was counted out only, and still listed.
+					if ($rStreamID && $rStreamID != $rRow['stream_id'] || !in_array($rRow['user_id'], $rReports)) {
 						$rKeyCount--;
+						continue;
 					}
 					$rRow['activity_id'] = $rRow['uuid'];
 					$rRow['identifier'] = ($rRow['user_id'] ?: $rRow['hmac_id'] . '_' . $rRow['hmac_identifier']);

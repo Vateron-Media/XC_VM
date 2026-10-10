@@ -1333,6 +1333,23 @@ class ActiveCodeService {
 	}
 
 	/**
+	 * What an API request names a code by, for getCodeDetails() and
+	 * resetDevice(): its `id` as an integer when it is one, else the code as
+	 * text (the `code` parameter, or an `id` that is no number, as before).
+	 *
+	 * @param mixed $rID   The request's `id`.
+	 * @param mixed $rCode The request's `code`.
+	 * @return int|string
+	 */
+	public static function reference($rID, $rCode) {
+		if (is_int($rID) || (is_string($rID) && ctype_digit($rID))) {
+			return (int) $rID;
+		}
+
+		return (string) (is_scalar($rID) && (string) $rID !== '' ? $rID : (is_scalar($rCode) ? $rCode : ''));
+	}
+
+	/**
 	 * Retrieve full details of a single active code by ID or code string with permission verification.
 	 *
 	 * @param int|string $codeOrId Numeric ID or activation code string
@@ -1342,7 +1359,9 @@ class ActiveCodeService {
 	 */
 	public static function getCodeDetails($codeOrId, array $user, bool $isAdmin): ?array {
 		self::db();
-		$isNumeric = is_numeric($codeOrId) && (int) $codeOrId > 0;
+		// An id is an integer, a code is text: a code of digits ("00001234",
+		// the numeric format) was read as the id 1234, another code's.
+		$isNumeric = is_int($codeOrId) && $codeOrId > 0;
 
 		if ($isNumeric) {
 			$codeRow = self::getById((int) $codeOrId);
@@ -1527,7 +1546,9 @@ class ActiveCodeService {
 	 */
 	public static function resetDevice($codeOrId, array $user, bool $isAdmin): array {
 		$db = self::db();
-		$isNumeric = is_numeric($codeOrId) && (int) $codeOrId > 0;
+		// An id is an integer, a code is text: a code of digits ("00001234",
+		// the numeric format) was read as the id 1234, another code's.
+		$isNumeric = is_int($codeOrId) && $codeOrId > 0;
 
 		if ($isNumeric) {
 			$codeRow = self::getById((int) $codeOrId);

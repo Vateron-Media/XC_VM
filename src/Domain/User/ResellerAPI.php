@@ -451,15 +451,10 @@ class ResellerAPI {
 							if (isset($rPackage)) {
 								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
-								if (isset($rArray['id'])) {
-									if ($rUserArray['package_id']) {
-										$rType = 'extend';
-									} else {
-										$rType = 'edit';
-									}
-								} else {
-									$rType = 'new';
-								}
+								// What the save did: made, a package bought for one there is, or edited.
+								// A device row has no `id`, so every device save was logged as a new one,
+								// and a line saved with its package unchanged as extended.
+								$rType = !isset($rData['edit']) ? 'new' : (!empty($rData['package']) ? 'extend' : 'edit');
 
 								$rData = MagService::getById($rInsertID);
 								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'mag', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
@@ -744,15 +739,10 @@ class ResellerAPI {
 							if (isset($rPackage)) {
 								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
-								if (isset($rArray['id'])) {
-									if ($rArray['package_id']) {
-										$rType = 'extend';
-									} else {
-										$rType = 'edit';
-									}
-								} else {
-									$rType = 'new';
-								}
+								// What the save did: made, a package bought for one there is, or edited.
+								// A device row has no `id`, so every device save was logged as a new one,
+								// and a line saved with its package unchanged as extended.
+								$rType = !isset($rData['edit']) ? 'new' : (!empty($rData['package']) ? 'extend' : 'edit');
 
 								$rData = EnigmaService::getById($rInsertID);
 								$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'enigma', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
@@ -831,7 +821,8 @@ class ResellerAPI {
 				return false;
 			}
 
-			$rGroups = array_values(array_diff($rGroups, $rReserved));
+			// Groups there are: one deleted before its id left the list is none.
+			$rGroups = array_values(array_intersect(array_diff($rGroups, $rReserved), array_keys(GroupService::getAll())));
 
 			if (!self::$rPermissions['allow_change_username']) {
 				if (isset($rArray['id'])) {
@@ -1308,15 +1299,10 @@ class ResellerAPI {
 					if (isset($rPackage)) {
 						$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
-						if (isset($rArray['id'])) {
-							if ($rArray['package_id']) {
-								$rType = 'extend';
-							} else {
-								$rType = 'edit';
-							}
-						} else {
-							$rType = 'new';
-						}
+						// What the save did: made, a package bought for one there is, or edited.
+						// A device row has no `id`, so every device save was logged as a new one,
+						// and a line saved with its package unchanged as extended.
+						$rType = !isset($rData['edit']) ? 'new' : (!empty($rData['package']) ? 'extend' : 'edit');
 
 						$rData = UserRepository::getLineById($rInsertID);
 						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost ?? 0, $rNewCredits, time(), json_encode($rData));

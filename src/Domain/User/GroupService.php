@@ -222,6 +222,17 @@ class GroupService {
 
 			$db->query("UPDATE `users_packages` SET `groups` = '[" . implode(',', $groups) . "]' WHERE `id` = ?;", $rRow['id']);
 		}
+		// Nor is it a group another group's resellers make sub-resellers in: left
+		// in that list, a reseller paid for an account in a group that is gone.
+		$db->query('SELECT `group_id`, `subresellers` FROM `users_groups` WHERE `group_id` <> ?;', $rID);
+
+		foreach ($db->get_rows() as $rRow) {
+			$rSubs = array_map('intval', json_decode((string) $rRow['subresellers'], true) ?: []);
+
+			if (in_array($rID, $rSubs, true)) {
+				$db->query("UPDATE `users_groups` SET `subresellers` = '[" . implode(',', array_diff($rSubs, [$rID])) . "]' WHERE `group_id` = ?;", $rRow['group_id']);
+			}
+		}
 		$db->query('UPDATE `users` SET `member_group_id` = 0 WHERE `member_group_id` = ?;', $rID);
 		$db->query('DELETE FROM `users_groups` WHERE `group_id` = ?;', $rID);
 
