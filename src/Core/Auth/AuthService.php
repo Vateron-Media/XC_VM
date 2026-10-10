@@ -2,6 +2,7 @@
 
 namespace XcVm\Core\Auth;
 
+use XcVm\Core\Cache\IgbinaryFile;
 use XcVm\Core\Config\StreamSecret;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
@@ -221,7 +222,7 @@ class AuthService {
 
 		$rKeyID = null;
 		if ($rCached) {
-			$rKeys = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'hmac_keys'));
+			$rKeys = IgbinaryFile::read(CACHE_TMP_PATH . 'hmac_keys') ?? [];
 		} else {
 			$rKeys = [];
 			$db->query('SELECT `id`, `key` FROM `hmac_keys` WHERE `enabled` = 1;');

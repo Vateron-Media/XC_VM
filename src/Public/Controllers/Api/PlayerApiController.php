@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Api;
 
 use XcVm\Core\Auth\BruteforceGuard;
+use XcVm\Core\Cache\IgbinaryFile;
 use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Logging\RefusalLog;
@@ -52,15 +53,7 @@ class PlayerApiController {
 	 * @return array|null Decoded cache payload, or null when unavailable
 	 */
 	private function readStreamCache(string $rPath): ?array {
-		if (!is_file($rPath)) {
-			return null;
-		}
-		$rRaw = @file_get_contents($rPath);
-		if ($rRaw === false) {
-			return null;
-		}
-		$rData = @igbinary_unserialize($rRaw);
-		return is_array($rData) ? $rData : null;
+		return IgbinaryFile::read($rPath);
 	}
 
 	/**

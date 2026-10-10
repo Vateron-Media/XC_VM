@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
+use XcVm\Core\Cache\IgbinaryFile;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\CategoryService;
 
@@ -60,10 +61,10 @@ class ResellerEpgViewController extends BaseResellerController {
 			if (!empty($rRequest['sort']) && isset($rOrder[$rRequest['sort']])) {
 				$rOrderBy = $rOrder[$rRequest['sort']];
 			} else {
-				$rChannelOrder = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'channel_order'));
+				$rChannelOrder = IgbinaryFile::read(CACHE_TMP_PATH . 'channel_order') ?? [];
 
 				if (SettingsManager::get('channel_number_type') != 'manual' && count($rChannelOrder) > 0) {
-					$rOrderBy = 'FIELD(`id`,' . implode(',', $rChannelOrder) . ')';
+					$rOrderBy = 'FIELD(`id`,' . implode(',', array_map('intval', $rChannelOrder)) . ')';
 				} else {
 					$rOrderBy = '`order` ASC';
 				}

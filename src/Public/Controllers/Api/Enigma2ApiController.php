@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Api;
 
 use XcVm\Core\Auth\BruteforceGuard;
+use XcVm\Core\Cache\IgbinaryFile;
 use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
@@ -126,7 +127,11 @@ class Enigma2ApiController {
 
 		foreach ($rChannels as $rChannel) {
 			if ($rSettings['enable_cache']) {
-				$rChannel = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannel)))['info'];
+				// A channel the cache has no file for (deleted, not rebuilt yet) is skipped.
+				$rChannel = IgbinaryFile::read(STREAMS_TMP_PATH . 'stream_' . intval($rChannel))['info'] ?? null;
+				if (!$rChannel) {
+					continue;
+				}
 			}
 
 			if ($rChannel['live'] == 0) {
