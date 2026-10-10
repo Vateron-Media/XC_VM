@@ -38,7 +38,7 @@ defined('XC_VM_VERSION') || define('XC_VM_VERSION', 'test');
 foreach (['CACHE_TMP_PATH' => 'cache', 'FLOOD_TMP_PATH' => 'flood', 'LINES_TMP_PATH' => 'lines', 'STREAMS_TMP_PATH' => 'streams', 'EPG_PATH' => 'epg'] as $rName => $rSub) {
 	define($rName, $rIn['dir'] . $rSub . '/');
 }
-$_SERVER = ['REMOTE_ADDR' => '203.0.113.9', 'HTTP_HOST' => 'panel.test', 'REQUEST_URI' => '/player_api.php', 'SERVER_PROTOCOL' => 'HTTP/1.1'] + $_SERVER;
+$_SERVER = ['REMOTE_ADDR' => '203.0.113.9', 'HTTP_HOST' => 'panel.test', 'REQUEST_URI' => $rIn['uri'], 'SERVER_PROTOCOL' => 'HTTP/1.1'] + $_SERVER;
 $rSettings = $rIn['settings'];
 $rServers = [1 => ['server_protocol' => 'http', 'enable_proxy' => 0, 'domain_name' => 'panel.test', 'server_ip' => '192.0.2.1', 'http_broadcast_port' => 80, 'https_broadcast_port' => 443, 'rtmp_port' => 8880, 'server_type' => 0, 'is_main' => 1]];
 $rCached = false;
@@ -95,8 +95,8 @@ PHP;
 	}
 
 	/** @return list<array<string, mixed>> the list a request answered */
-	private function list(string $rAction, array $rRequest = [], array $rSettings = []): array {
-		$rIn = ['schema' => $this->rDb->schema(), 'dir' => $this->rDir, 'settings' => $rSettings + self::SETTINGS, 'request' => ['username' => 'viewer', 'password' => 'secret', 'action' => $rAction] + $rRequest];
+	private function list(string $rAction, array $rRequest = [], array $rSettings = [], string $rUri = '/player_api.php'): array {
+		$rIn = ['schema' => $this->rDb->schema(), 'dir' => $this->rDir, 'uri' => $rUri, 'settings' => $rSettings + self::SETTINGS, 'request' => ['username' => 'viewer', 'password' => 'secret', 'action' => $rAction] + $rRequest];
 		$rProc = proc_open([...xcvm_test_child_php(), '-d', 'display_errors=stderr', $this->rDir . 'child.php', (string) json_encode($rIn)], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);
 		$rOut = (string) stream_get_contents($rPipes[1]);
 		$rErr = (string) stream_get_contents($rPipes[2]);
@@ -125,6 +125,38 @@ PHP;
 
 	public function testManualNumberingListsByTheOrderColumn(): void {
 		$this->assertSame(['10 3 0 null', '40 4 0 null', '30 3 8.2 "thirty plot"', '20 3 6 "twenty plot"', '50 3 0 "fifty plot"'], $this->movies([], ['channel_number_type' => 'manual']));
+	}
+
+	/**
+	 * The legacy panel_api.php answers the sign-in data, the line's categories
+	 * by type and its streams by id, as an app written for it reads them.
+	 */
+	public function testTheLegacyPanelApiListsTheLinesCategoriesAndStreams(): void {
+		$rCategory = static fn(int $rId, string $rType, string $rName): array => ['id' => $rId, 'category_type' => $rType, 'category_name' => $rName, 'parent_id' => 0, 'cat_order' => $rId, 'is_adult' => 0];
+		$rCache = new \XcVm\Core\Cache\FileCache($this->rDir . 'cache/');
+		// The line's bouquet holds categories 1 to 4.
+		$rCache->set('category_map', [1 => [1, 2, 3, 4]]);
+		$rCache->set('categories', [1 => $rCategory(1, 'live', 'News'), 2 => $rCategory(2, 'radio', 'Radio'), 3 => $rCategory(3, 'movie', 'Films'), 4 => $rCategory(4, 'movie', 'Drama'), 9 => $rCategory(9, 'movie', 'Not the line\'s')]);
+
+		$rAnswer = $this->list('', [], ['legacy_panel_api' => 1], '/panel_api.php');
+
+		$this->assertSame('viewer', $rAnswer['user_info']['username']);
+		$this->assertArrayHasKey('server_info', $rAnswer);
+		$this->assertSame(['series' => [], 'movie' => ['3 Films', '4 Drama'], 'live' => ['1 News', '2 Radio']], array_map(static fn(array $rRows): array => array_map(static fn(array $rRow): string => $rRow['category_id'] . ' ' . $rRow['category_name'], $rRows), $rAnswer['categories']));
+		// The line's channels and radio, then its movies, each once, by stream id.
+		$this->assertSame([9, 7, 8, 30, 10, 20, 40, 50], array_keys($rAnswer['available_channels']));
+		$this->assertSame(
+			['num' => 1, 'name' => 'Nine', 'stream_type' => 'live', 'type_name' => 'Live Streams', 'stream_id' => '9', 'stream_icon' => '', 'epg_channel_id' => null, 'added' => '1700000009', 'category_name' => 'News', 'category_id' => '1', 'series_no' => null, 'live' => '1', 'container_extension' => null, 'custom_sid' => '', 'tv_archive' => 0, 'direct_source' => '', 'tv_archive_duration' => 0],
+			$rAnswer['available_channels'][9]
+		);
+		$rMovie = $rAnswer['available_channels'][20];
+		$this->assertSame(['movie', 'Movies', '20', 'Films', '3', '0'], [$rMovie['stream_type'], $rMovie['type_name'], $rMovie['stream_id'], $rMovie['category_name'], $rMovie['category_id'], $rMovie['live']]);
+		$this->assertNotEmpty($rMovie['container_extension']);
+
+		// player_api's own sign-in answer stays what it was.
+		$this->assertSame(['user_info', 'server_info'], array_keys($this->list('')));
+		// Switched off, the endpoint answers no lists.
+		$this->assertArrayNotHasKey('available_channels', $this->list('', [], [], '/panel_api.php'));
 	}
 
 	public function testChannelsAreListedOnceInTheLinesOrder(): void {
