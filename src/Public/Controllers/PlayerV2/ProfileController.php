@@ -7,6 +7,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Line\LineService;
+use XcVm\Domain\User\UserRepository;
 
 /**
  * ProfileController — Subscriber Profile & Settings Controller for Web Player V2.
@@ -245,8 +246,9 @@ class ProfileController extends BasePlayerV2Controller {
 		if (defined('LINES_TMP_PATH')) {
 			@unlink(LINES_TMP_PATH . 'line_i_' . $userId);
 			if (!empty($rUserInfo['username']) && !empty($rUserInfo['password'])) {
-				$key = strtolower($rUserInfo['username']) . '_' . strtolower($rUserInfo['password']);
-				@unlink(LINES_TMP_PATH . 'line_c_' . $key);
+				$rSensitive = (bool) SettingsManager::get('case_sensitive_line');
+				@unlink(LINES_TMP_PATH . 'line_c_' . UserRepository::credentialKey($rSensitive, (string) $rUserInfo['username'], (string) $rUserInfo['password']));
+				@unlink(LINES_TMP_PATH . 'line_c_' . UserRepository::legacyCredentialKey($rSensitive, (string) $rUserInfo['username'], (string) $rUserInfo['password']));
 			}
 			if (!empty($rUserInfo['access_token'])) {
 				@unlink(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token']);

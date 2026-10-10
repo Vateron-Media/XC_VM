@@ -29,20 +29,23 @@ $rInner = new class (TestDb::connect($rIn['schema'])) extends \XcVm\Core\Databas
 };
 // generateLines() reads the statement's result from the handle: the query log only records finishRun()'s.
 $rLog = new \XcVm\Tests\Support\QueryLogDb($rInner);
-$GLOBALS['db'] = $rIn['do'] === 'lines' ? $rInner : $rLog;
+$GLOBALS['db'] = $rIn['do'] === 'finish' ? $rLog : $rInner;
 if ($rIn['block'] !== null) {
 	// Something in the way of the entry's temporary file: its write fails.
 	mkdir(LINES_TMP_PATH . '.' . $rIn['block'] . '.' . getmypid() . '.tmp');
 }
 $rJob = new \XcVm\Cli\CronJobs\CacheEngineCronJob();
 ob_start();
+$rChanged = null;
 if ($rIn['do'] === 'lines') {
 	(new ReflectionMethod($rJob, 'generateLines'))->invoke($rJob, 0, 3);
+} elseif ($rIn['do'] === 'changed') {
+	$rChanged = (new ReflectionMethod($rJob, 'getChangedLines'))->invoke($rJob);
 } else {
 	(new ReflectionMethod($rJob, 'finishRun'))->invoke($rJob, $rIn['failed'], time() - 5);
 }
 $rOutput = ob_get_clean();
-echo json_encode(['failed' => file_exists(CACHE_TMP_PATH . 'cache_engine_failed'), 'output' => $rOutput, 'queries' => $rLog->rQueries]);
+echo json_encode(['failed' => file_exists(CACHE_TMP_PATH . 'cache_engine_failed'), 'output' => $rOutput, 'queries' => $rLog->rQueries, 'changed' => $rChanged]);
 PHP;
 
 	private TestDb $rDb;
@@ -124,5 +127,40 @@ PHP;
 		$this->assertCount(1, preg_grep('/UPDATE `settings` SET `last_cache`/', $rRun['queries']));
 		$this->assertStringContainsString('Cache updated!', $rRun['output']);
 		$this->assertSame([], $this->logged());
+	}
+
+	/**
+	 * What a run has to rewrite and to drop, from one reading of the lines'
+	 * directory: an entry of a line that is gone, a lookup no line has any
+	 * more, and never a file still being written (a dotfile).
+	 */
+	public function testTheLinesDirectoryIsReadOnceForWhatToDrop(): void {
+		$this->line(1, 'secret');
+		$this->line(2, 'secret');
+		$this->rDb->exec("UPDATE `lines` SET `access_token` = 'aaaabbbbccccddddeeeeffff00001111' WHERE `id` = 1");
+		$this->rDb->exec('UPDATE `lines` SET `updated` = FROM_UNIXTIME(' . (time() - 3600) . ')');
+		// Line 1's lookup under its name (a hash of the pair), and the name it had before.
+		$rLookup = 'line_c_' . \XcVm\Domain\User\UserRepository::credentialKey(true, 'user1', 'secret');
+		foreach (['line_i_1', 'line_i_9', $rLookup, 'line_c_user1_secret', 'line_c_user9_gone', 'line_t_aaaabbbbccccddddeeeeffff00001111', 'line_t_ffff0000', '.line_i_3.123.tmp', 'unrelated'] as $rFile) {
+			touch($this->rDir . 'lines/' . $rFile);
+		}
+
+		$rChanged = $this->child(['do' => 'changed'])['changed'];
+
+		$this->assertSame([2], array_map('intval', $rChanged['changes']), 'line 2 has no entry yet; line 1\'s is newer than the line');
+		$this->assertSame([9], $rChanged['delete_i']);
+		$rDropped = $rChanged['delete_c'];
+		sort($rDropped);
+		$this->assertSame(['user1_secret', 'user9_gone'], $rDropped, 'a lookup no line has: one gone, and one under the name it had before');
+		$this->assertSame(['ffff0000'], $rChanged['delete_t']);
+
+		// A line whose lookup is not there under its name is written again (a cache from before the names were hashed).
+		unlink($this->rDir . 'lines/' . $rLookup);
+		$this->assertSame([1, 2], array_map('intval', $this->child(['do' => 'changed'])['changed']['changes']));
+
+		$this->assertSame(64, strlen(\XcVm\Domain\User\UserRepository::credentialKey(false, 'User', 'Pass')));
+		$this->assertSame(\XcVm\Domain\User\UserRepository::credentialKey(false, 'User', 'Pass'), \XcVm\Domain\User\UserRepository::credentialKey(false, 'user', 'pass'));
+		$this->assertNotSame(\XcVm\Domain\User\UserRepository::credentialKey(true, 'a_b', 'c'), \XcVm\Domain\User\UserRepository::credentialKey(true, 'a', 'b_c'), 'the pair joined by _ named one file for both');
+		$this->assertNotSame(\XcVm\Domain\User\UserRepository::credentialKey(true, 'ab', 'c'), \XcVm\Domain\User\UserRepository::credentialKey(true, 'a', 'bc'));
 	}
 }
