@@ -1676,6 +1676,10 @@ class StreamProcess {
 					'settings' => $rSettings, 'binary' => FanoutClient::binaryPath(),
 				];
 				$rNative['sourceFile'] = $rSourceFiles ? self::writeNativeSource($rNative, intval($i)) : null;
+				if ($rSourceFiles && $rNative['sourceFile'] === null) {
+					// Like every other way this code falls back, said in the stream's log.
+					self::noteProducer($rStreamID, 'source #' . $i . ': its source file could not be written, so its URL and fetch options are on the command line');
+				}
 				$rEntry['cmd'] = self::buildNativeLive($rNative);
 				if ($rBackend === 'auto') {
 					$rEntry['fallback_cmd'] = $rFFMPEG;
