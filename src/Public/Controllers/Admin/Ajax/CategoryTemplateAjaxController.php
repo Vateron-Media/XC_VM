@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
+use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Stream\CategoryTemplateService;
 
@@ -31,6 +32,11 @@ class CategoryTemplateAjaxController extends BaseAjaxController {
 		$user = $GLOBALS['rUserInfo'] ?? ($GLOBALS['rAdminUserInfo'] ?? null);
 		if (!$user) {
 			$this->fail(['message' => 'Unauthenticated']);
+		}
+		// The page's own permission: its actions (create, save, delete, apply
+		// to every stream) ran for any signed-in group.
+		if (!PageAuthorization::checkPermissions('category_templates')) {
+			$this->fail(['message' => 'No permission']);
 		}
 
 		$isAdmin = (int) ($user['is_admin'] ?? 0) === 1 || (int) ($user['member_group_id'] ?? 0) === 1;

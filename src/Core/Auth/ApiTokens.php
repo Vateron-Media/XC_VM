@@ -119,6 +119,11 @@ final class ApiTokens {
 		};
 	}
 
+	/** Whether the request may read secrets: it signed in with no token (a session, a legacy key) or with a full one. */
+	public static function fullAccess(): bool {
+		return self::$rCurrent === null || self::$rCurrent['scope'] === 'full';
+	}
+
 	public static function isRead(string $rAction): bool {
 		return str_starts_with($rAction, 'get_') || in_array($rAction, self::READ, true);
 	}

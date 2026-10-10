@@ -6,7 +6,10 @@ use XcVm\Core\Reference\PermissionReference;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Public\Controllers\Admin\Ajax\ActiveCodeAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BackupAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\CategoryTemplateAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\MultiAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\SearchAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\StatsAjaxController;
 use XcVm\Tests\Support\QueryLogDb;
 
 /**
@@ -27,6 +30,7 @@ final class AuditAdminAuthzAjaxTest extends TestCase {
 		'action on a batch of codes' => [AuditAdminAuthzActiveCode::class, 'batchAction', ['batch_name' => 'B1', 'sub_action' => 'disable'], ['edit_user', 'mass_edit_lines']],
 		'export a batch of codes' => [AuditAdminAuthzActiveCode::class, 'exportTxt', ['batch_name' => 'B1'], ['users']],
 		'download the panel log' => [AuditAdminAuthzBackup::class, 'downloadPanelLogs', [], ['panel_logs']],
+		'the load graph of the dashboard and of a server' => [AuditAdminAuthzStats::class, 'graphStats', ['server_id' => 1], ['index', 'servers']],
 	];
 
 	/** The log tables clear_logs empties, each with the permission of the page that lists it. */
@@ -146,6 +150,39 @@ final class AuditAdminAuthzAjaxTest extends TestCase {
 	}
 
 	/** A key no group can be given opens what it guards for group 1 alone: actions, pages and tables name catalogue keys. */
+	/** A search asks only for the kinds of record the group's pages show it: it listed every kind to every group. */
+	public function testASearchAsksOnlyForWhatTheGroupsPagesShow(): void {
+		foreach ([['series'], ['users'], ['movies']] as $rAdvanced) {
+			$this->signIn($rAdvanced);
+			$this->assertTrue($this->runs(AuditAdminAuthzSearch::class, 'search', ['search' => 'matrix']), implode(',', $rAdvanced));
+			$this->assertStringContainsString(['series' => 'FROM `streams_series`', 'users' => 'FROM `lines`', 'movies' => 'FROM `streams`'][$rAdvanced[0]], (string) $this->rStatement, 'the first table asked');
+		}
+
+		$this->signIn(['panel_logs']);
+		$this->runs(AuditAdminAuthzSearch::class, 'search', ['search' => 'matrix']);
+		$this->assertStringNotContainsString('MATCH(', (string) $this->rStatement, 'none of its pages lists a record: no table is searched');
+	}
+
+	/** The category templates' actions ran for any signed-in group: they take the page's permission. */
+	public function testTheCategoryTemplateActionsTakeThePagesPermission(): void {
+		$rAnswer = function (array $rAdvanced): mixed {
+			$this->signIn($rAdvanced);
+			RequestManager::set(['id' => 1]);
+			$this->rStatement = null;
+			try {
+				(new AuditAdminAuthzTemplates())->get();
+			} catch (AuditAdminAuthzAnswer $rThrown) {
+				return $rThrown->rData;
+			} catch (\Throwable) {
+				return 'ran';
+			}
+			return null;
+		};
+
+		$this->assertSame(['result' => false, 'message' => 'No permission'], $rAnswer(['streams']));
+		$this->assertNotSame(['result' => false, 'message' => 'No permission'], $rAnswer(['categories']));
+	}
+
 	public function testAdminControllersNameOnlyPermissionsAGroupCanHold(): void {
 		$rKnown = array_merge(PermissionReference::keys(), self::MODULE_KEYS);
 		$rUnknown = [];
@@ -217,5 +254,17 @@ final class AuditAdminAuthzActiveCode extends ActiveCodeAjaxController {
 }
 
 final class AuditAdminAuthzBackup extends BackupAjaxController {
+	use AuditAdminAuthzAnswers;
+}
+
+final class AuditAdminAuthzStats extends StatsAjaxController {
+	use AuditAdminAuthzAnswers;
+}
+
+final class AuditAdminAuthzSearch extends SearchAjaxController {
+	use AuditAdminAuthzAnswers;
+}
+
+final class AuditAdminAuthzTemplates extends CategoryTemplateAjaxController {
 	use AuditAdminAuthzAnswers;
 }

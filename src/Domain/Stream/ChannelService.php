@@ -99,7 +99,7 @@ class ChannelService {
 		if (0 < count($rArray['stream_source'])) {
 			$rBouquetCreate = [];
 
-			foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
+			foreach (json_decode((string) ($rData['bouquet_create_list'] ?? ''), true) ?: [] as $rBouquet) {
 				$rPrepare = QueryHelper::prepareArray(['bouquet_name' => $rBouquet, 'bouquet_channels' => [], 'bouquet_movies' => [], 'bouquet_series' => [], 'bouquet_radios' => []]);
 				$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -110,7 +110,7 @@ class ChannelService {
 			}
 			$rCategoryCreate = [];
 
-			foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
+			foreach (json_decode((string) ($rData['category_create_list'] ?? ''), true) ?: [] as $rCategory) {
 				$rPrepare = QueryHelper::prepareArray(['category_type' => 'live', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0]);
 				$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 

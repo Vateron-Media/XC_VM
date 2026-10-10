@@ -1221,7 +1221,7 @@ class TableController extends BaseAdminController {
 								} else {
 									$rActualStatus = 0;
 								}
-								if (count(json_decode($rRow["cchannel_rsources"], true)) != count(json_decode($rRow["stream_source"], true)) && !$rRow["parent_id"]) {
+								if (count(json_decode((string) $rRow["cchannel_rsources"], true) ?: []) != count(json_decode((string) $rRow["stream_source"], true) ?: []) && !$rRow["parent_id"]) {
 									$rActualStatus = 6;
 								}
 							}
