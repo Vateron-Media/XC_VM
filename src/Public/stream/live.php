@@ -529,7 +529,7 @@ if ($rChannelInfo) {
 				// $rTSDaemon branch below; the daemon clamps to its retention ceiling.
 				$rDaemonPrebuffer = $rUserInfo["is_restreamer"]
 					? (!empty($rTokenData["prebuffer"])
-						? intval($rSegmentSettings["seg_time"] ?? 0)
+						? max(1, intval($rSettings["seg_time"]))
 						: intval($rSettings["restreamer_prebuffer"] ?? 0))
 					: intval($rSettings["client_prebuffer"] ?? 0);
 				header("Content-Type: video/mp2t");
@@ -557,7 +557,7 @@ if ($rChannelInfo) {
 				// clamps the value to its own retention ceiling.
 				$rDaemonPrebuffer = $rUserInfo["is_restreamer"]
 					? (!empty($rTokenData["prebuffer"])
-						? intval($rSegmentSettings["seg_time"] ?? 0)
+						? max(1, intval($rSettings["seg_time"]))
 						: intval($rSettings["restreamer_prebuffer"] ?? 0))
 					: intval($rSettings["client_prebuffer"] ?? 0);
 				header("Content-Type: video/mp2t");
