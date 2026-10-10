@@ -304,6 +304,15 @@ class InternalApiController {
 				// from `after` (findPage()).
 				$rStat = !empty($rRequest['stat']);
 
+				// `size` with `stat`, for one file: its size too, and an empty answer for
+				// a file that is gone from a folder this node lists (MAIN's auto-upgrade
+				// compares two copies here, where they are: ApiClient::fileSizes()).
+				// The file itself must be under a Scan Root (a link out of one is not); one
+				// that is gone is answered for when its folder is.
+				if ($rStat && !empty($rRequest['size']) && !is_dir($rDirectory) && ClusterSettings::pathAllowed(file_exists($rDirectory) ? $rDirectory : dirname($rDirectory), $rSettings['lb_scan_roots'] ?? null)) {
+					exit(json_encode(self::fileStat($rDirectory), JSON_UNESCAPED_UNICODE));
+				}
+
 				if (!file_exists($rDirectory) || !ClusterSettings::pathAllowed($rDirectory, $rSettings['lb_scan_roots'] ?? null)) {
 					exit(json_encode(['result' => false]));
 				}
@@ -610,6 +619,20 @@ class InternalApiController {
 			$rLast = $rPath;
 		}
 		return ['files' => (object) $rPage, 'next' => null];
+	}
+
+	/**
+	 * One file's `stat` answer with its size: `files` its modification time,
+	 * `sizes` its bytes, both `{}` when it is not there (or is no regular file).
+	 *
+	 * @return array{files: object, sizes: object, next: null}
+	 */
+	private static function fileStat(string $rPath): array {
+		clearstatcache(true, $rPath);
+		if (!is_file($rPath)) {
+			return ['files' => (object) [], 'sizes' => (object) [], 'next' => null];
+		}
+		return ['files' => (object) [$rPath => (int) filemtime($rPath)], 'sizes' => (object) [$rPath => (int) filesize($rPath)], 'next' => null];
 	}
 
 	/**

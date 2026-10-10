@@ -492,6 +492,11 @@ paths:
         (each page under 64 KB, what the cluster command queue carries): ask again with `after`
         set to the page's `next` until `next` is null. A node from before `stat` ignores it and
         answers the plain list.
+
+        With `stat` and `size`, and `dir` naming one file instead of a directory, the answer also
+        carries that file's size in `sizes` (MAIN's auto-upgrade compares two copies on the node
+        that holds them). A file that is gone from a folder under the Scan Roots is answered with
+        empty `files` and `sizes`. A node from before `size` answers without `sizes`.
       parameters:
         - name: dir
           in: query
@@ -513,12 +518,18 @@ paths:
           required: false
           schema: { type: string }
           description: With `stat`, the previous page's `next` (URL-encoded); omitted for the first page
+        - name: size
+          in: query
+          required: false
+          schema: { type: integer, enum: [0, 1] }
+          description: With `stat` and a `dir` that names one file, 1 to answer its size too
       responses:
         '200':
           description: |
             Without `stat`, the paths. With `stat`, one page: `files` maps each path (in path order,
             after `after`) to its modification time in Unix seconds, always an object (`{}` when
-            empty), and `next` is the cursor for the following page, or null on the last.
+            empty), and `next` is the cursor for the following page, or null on the last. With
+            `size` for one file, `sizes` maps it to its size in bytes (`{}` when it is not there).
             `{"result": false}` when the directory or `allowed` is refused.
           content:
             application/json:
@@ -535,6 +546,9 @@ paths:
                       next:
                         type: string
                         nullable: true
+                      sizes:
+                        type: object
+                        additionalProperties: { type: integer }
                   - type: object
                     required: [result]
                     properties:
