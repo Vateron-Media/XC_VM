@@ -5,7 +5,7 @@ if (count($rPopularNow) > 0): ?>
 <section class="home">
 	<div class="owl-carousel home__bg">
 		<?php foreach ($rPopularNow as $rItem): ?>
-		<div class="item home__cover" data-bg="<?= $rItem['backdrop'] ?>"></div>
+		<div class="item home__cover" data-bg="<?= htmlspecialchars((string) $rItem['backdrop']) ?>"></div>
 		<?php endforeach; ?>
 	</div>
 	<div class="container">

@@ -1,9 +1,9 @@
 <section class="section details">
-	<div class="details__bg" data-bg="<?= $rCover ?>"></div>
+	<div class="details__bg" data-bg="<?= htmlspecialchars((string) $rCover) ?>"></div>
 	<div class="container top-margin">
 		<div class="row">
 			<div class="col-12">
-				<h1 class="details__title"><?= $rStream['stream_display_name'] ?><br/>
+				<h1 class="details__title"><?= htmlspecialchars((string) $rStream['stream_display_name']) ?><br/>
 					<ul class="card__list">
 						<?php 
 use XcVm\Core\Config\SettingsManager;
@@ -11,7 +11,7 @@ use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Stream\CategoryService;
 
 foreach (json_decode($rStream['category_id'], true) as $rCategoryID): ?>
-						<li><?= CategoryService::getFromDatabase()[$rCategoryID]['category_name'] ?></li>
+						<li><?= htmlspecialchars((string) CategoryService::getFromDatabase()[$rCategoryID]['category_name']) ?></li>
 						<?php endforeach; ?>
 					</ul>
 				</h1>
@@ -21,24 +21,24 @@ foreach (json_decode($rStream['category_id'], true) as $rCategoryID): ?>
 					<div class="row">
 						<div class="col-12 col-sm-3 col-md-3 col-lg-3 col-xl-3">
 							<div class="card__cover">
-								<img src="<?= $rPoster ?>" alt="">
+								<img src="<?= htmlspecialchars((string) $rPoster) ?>" alt="">
 							</div>
 						</div>
 						<div class="col-12 col-sm-9 col-md-9 col-lg-9 col-xl-9">
 							<div class="card__content">
 								<div class="card__wrap">
-									<span class="card__rate"><?= $rStream['year'] ? $rStream['year'] . ' &nbsp; ' : '' ?><i class="icon ion-ios-star"></i><?= $rProperties['rating'] ?: 'N/A' ?></span>
+									<span class="card__rate"><?= $rStream['year'] ? htmlspecialchars((string) $rStream['year']) . ' &nbsp; ' : '' ?><i class="icon ion-ios-star"></i><?= htmlspecialchars((string) ($rProperties['rating'] ?: 'N/A')) ?></span>
 								</div>
 								<ul class="card__meta">
 									<li><span><strong>Duration:</strong></span> <?= intval($rProperties['duration_secs'] / 60) ?> min</li>
-									<li><span><strong>Country:</strong></span> <a href="#"><?= $rProperties['country'] ?></a></li>
+									<li><span><strong>Country:</strong></span> <a href="#"><?= htmlspecialchars((string) $rProperties['country']) ?></a></li>
 									<li>
 										<span><strong>Cast:</strong></span>
-										<?= implode(', ', array_slice(explode(',', $rProperties['cast']), 0, 5)) ?>
+										<?= htmlspecialchars((string) implode(', ', array_slice(explode(',', $rProperties['cast']), 0, 5))) ?>
 									</li>
 								</ul>
 								<div class="card__description card__description--details">
-									<?= $rProperties['description'] ?>
+									<?= htmlspecialchars((string) $rProperties['description']) ?>
 								</div>
 							</div>
 						</div>
@@ -49,9 +49,9 @@ foreach (json_decode($rStream['category_id'], true) as $rCategoryID): ?>
 							<div id="player_row">
 								<?php if ($rLegacy): ?>
 								<video controls width="100%" autoplay>
-									<source src="<?= $rURLs[0] ?>" type="video/mp4" />
+									<source src="<?= htmlspecialchars((string) $rURLs[0]) ?>" type="video/mp4" />
 									<?php foreach ($rSubtitles[0] as $rSubtitle): ?>
-									<track label="<?= $rSubtitle['label'] ?>" kind="subtitles" src="proxy.php?url=<?= Encryption::mintToken($rSubtitle['file'], SettingsManager::get('live_streaming_pass'), 'd8de497ebccf4f4697a1da20219c7c33', (bool) SettingsManager::get('secure_stream_tokens')) ?>">
+									<track label="<?= htmlspecialchars((string) $rSubtitle['label']) ?>" kind="subtitles" src="proxy.php?url=<?= Encryption::mintToken($rSubtitle['file'], SettingsManager::get('live_streaming_pass'), 'd8de497ebccf4f4697a1da20219c7c33', (bool) SettingsManager::get('secure_stream_tokens')) ?>">
 									<?php endforeach; ?>
 								</video>
 								<?php else: ?>

@@ -100,9 +100,9 @@ if (SettingsManager::get('player_allow_bouquet')): ?>
 										<select id="download_type" class="profile__input" data-toggle="select2">
 											<?php $db->query('SELECT * FROM `output_devices` WHERE `copy_text` IS NULL ORDER BY `device_id` ASC;'); ?>
 											<?php foreach ($db->get_rows() as $rRow): ?>
-											<optgroup label="<?= $rRow['device_name'] ?>">
-												<option value="<?= $rRow['device_key'] ?>?output=hls"><?= $rRow['device_name'] ?> - HLS</option>
-												<option value="<?= $rRow['device_key'] ?>"><?= $rRow['device_name'] ?> - MPEGTS</option>
+											<optgroup label="<?= htmlspecialchars((string) $rRow['device_name']) ?>">
+												<option value="<?= $rRow['device_key'] ?>?output=hls"><?= htmlspecialchars((string) $rRow['device_name']) ?> - HLS</option>
+												<option value="<?= $rRow['device_key'] ?>"><?= htmlspecialchars((string) $rRow['device_name']) ?> - MPEGTS</option>
 											</optgroup>
 											<?php endforeach; ?>
 										</select>

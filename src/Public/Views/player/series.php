@@ -1,5 +1,5 @@
 <section class="section section--first">
-	<div class="details__bg" data-bg="<?= $rCover ?>"></div>
+	<div class="details__bg" data-bg="<?= htmlspecialchars((string) $rCover) ?>"></div>
 	<div class="container">
 		<div class="row">
 			<div class="col-12">
@@ -27,12 +27,12 @@ if ($rSearchBy): ?>
 						<div class="filter__item" id="filter__genre">
 							<span class="filter__item-label">GENRE:</span>
 							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-								<input type="button" value="<?= isset($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : 'All Genres' ?>">
+								<input type="button" value="<?= htmlspecialchars((string) (isset($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : 'All Genres')) ?>">
 								<span></span>
 							</div>
 							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">
 								<?php foreach (getOrderedCategories($rUserInfo['category_ids'], 'series') as $rCategory): ?>
-								<li><?= $rCategory['title'] ?></li>
+								<li><?= htmlspecialchars((string) $rCategory['title']) ?></li>
 								<?php endforeach; ?>
 							</ul>
 						</div>
@@ -65,7 +65,7 @@ if ($rSearchBy): ?>
 						<div class="filter__item" id="filter__sort">
 							<span class="filter__item-label">SORT:</span>
 							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-								<input type="button" value="<?= isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added' ?>">
+								<input type="button" value="<?= htmlspecialchars((string) (isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added')) ?>">
 								<span></span>
 							</div>
 							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-quality">
@@ -157,7 +157,7 @@ if (!$rPopular):
 		}
 ?>
 <section class="section">
-	<div class="details__bg" data-bg="<?= $rCover ?>"></div>
+	<div class="details__bg" data-bg="<?= htmlspecialchars((string) $rCover) ?>"></div>
 	<div class="container">
 		<div class="row">
 			<div class="col-12">

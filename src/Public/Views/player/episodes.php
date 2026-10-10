@@ -1,15 +1,15 @@
 <section class="section details">
-	<div class="details__bg" data-bg="<?= $rCover ?>"></div>
+	<div class="details__bg" data-bg="<?= htmlspecialchars((string) $rCover) ?>"></div>
 	<div class="container top-margin">
 		<div class="row">
 			<div class="col-12">
-				<h1 class="details__title"><?= $rSeries['title'] ?><br/>
+				<h1 class="details__title"><?= htmlspecialchars((string) $rSeries['title']) ?><br/>
 					<ul class="card__list">
 						<?php 
 use XcVm\Domain\Stream\CategoryService;
 
 foreach (json_decode($rSeries['category_id'], true) as $rCategoryID): ?>
-						<li><?= CategoryService::getFromDatabase()[$rCategoryID]['category_name'] ?></li>
+						<li><?= htmlspecialchars((string) CategoryService::getFromDatabase()[$rCategoryID]['category_name']) ?></li>
 						<?php endforeach; ?>
 					</ul>
 				</h1>
@@ -19,23 +19,23 @@ foreach (json_decode($rSeries['category_id'], true) as $rCategoryID): ?>
 					<div class="row">
 						<div class="col-12 col-sm-3 col-md-3 col-lg-3 col-xl-3">
 							<div class="card__cover">
-								<img src="<?= $rPoster ?>" alt="">
+								<img src="<?= htmlspecialchars((string) $rPoster) ?>" alt="">
 							</div>
 						</div>
 						<div class="col-12 col-sm-9 col-md-9 col-lg-9 col-xl-9">
 							<div class="card__content">
 								<div class="card__wrap">
-									<span class="card__rate"><?= $rSeries['year'] ? $rSeries['year'] . ' &nbsp; ' : '' ?><i class="icon ion-ios-star"></i><?= $rSeries['rating'] ?: 'N/A' ?></span>
+									<span class="card__rate"><?= $rSeries['year'] ? htmlspecialchars((string) $rSeries['year']) . ' &nbsp; ' : '' ?><i class="icon ion-ios-star"></i><?= htmlspecialchars((string) ($rSeries['rating'] ?: 'N/A')) ?></span>
 								</div>
 								<ul class="card__meta">
 									<li><span><strong>Duration:</strong></span> <?= intval($rSeries['episode_run_time']) ?> min</li>
 									<li>
 										<span><strong>Cast:</strong></span>
-										<?= implode(', ', array_slice(explode(',', $rSeries['cast']), 0, 5)) ?>
+										<?= htmlspecialchars((string) implode(', ', array_slice(explode(',', $rSeries['cast']), 0, 5))) ?>
 									</li>
 								</ul>
 								<div class="card__description card__description--details">
-									<?= $rSeries['plot'] ?>
+									<?= htmlspecialchars((string) $rSeries['plot']) ?>
 								</div>
 							</div>
 						</div>
@@ -76,7 +76,7 @@ foreach (json_decode($rSeries['category_id'], true) as $rCategoryID): ?>
 	<?php else: ?>
 	<div class="owl-carousel seasons__bg">
 		<?php foreach ($rEpisodes as $rEpisode): ?>
-		<div class="item seasons__cover" data-bg="<?= $rSeasonArray[$rEpisode['episode_num']]['image_cover'] ?>"></div>
+		<div class="item seasons__cover" data-bg="<?= htmlspecialchars((string) $rSeasonArray[$rEpisode['episode_num']]['image_cover']) ?>"></div>
 		<?php endforeach; ?>
 	</div>
 	<div class="container">
@@ -108,13 +108,13 @@ foreach (json_decode($rSeries['category_id'], true) as $rCategoryID): ?>
 					<div class="item" id="episode_<?= $rRow['id'] ?>" data-index="<?= $i - 1 ?>">
 						<div class="card card--big">
 							<div class="card__cover">
-								<img loading="lazy" src="<?= $rEpisodeData['image'] ?>" alt="">
+								<img loading="lazy" src="<?= htmlspecialchars((string) $rEpisodeData['image']) ?>" alt="">
 								<a href="javascript:void(0)" onClick="openPlayer(<?= $rRow['id'] ?>);" class="card__play">
 									<i class="icon ion-ios-play"></i>
 								</a>
 							</div>
 							<div class="card__content">
-								<h3 class="card__title"><a href="javascript:void(0);" onClick="openPlayer(<?= $rRow['id'] ?>);"><?= sprintf('%02d', $rRow['episode_num']) ?> - <?= $rEpisodeData['title'] ?></a></h3>
+								<h3 class="card__title"><a href="javascript:void(0);" onClick="openPlayer(<?= $rRow['id'] ?>);"><?= sprintf('%02d', $rRow['episode_num']) ?> - <?= htmlspecialchars((string) $rEpisodeData['title']) ?></a></h3>
 								<span class="card__episode">
 									<?= strlen($rEpisodeData['description']) > 500 ? substr($rEpisodeData['description'], 0, 500) . '...' : $rEpisodeData['description'] ?>
 								</span>

@@ -1,5 +1,5 @@
 <section class="section section--first">
-	<div class="details__bg" data-bg="<?= $rCover ?>"></div>
+	<div class="details__bg" data-bg="<?= htmlspecialchars((string) $rCover) ?>"></div>
 	<div class="container">
 		<div class="row">
 			<div class="col-12">
@@ -29,19 +29,19 @@ if (!$rSearchBy): ?>
 						<div class="filter__item" id="filter__genre">
 							<span class="filter__item-label">CATEGORY:</span>
 							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-								<input type="button" value="<?= !empty($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : $rCategories[0]['title'] ?>">
+								<input type="button" value="<?= htmlspecialchars((string) (!empty($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : $rCategories[0]['title'])) ?>">
 								<span></span>
 							</div>
 							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-genre">
 								<?php foreach ($rCategories as $rCategory): ?>
-								<li><?= $rCategory['title'] ?></li>
+								<li><?= htmlspecialchars((string) $rCategory['title']) ?></li>
 								<?php endforeach; ?>
 							</ul>
 						</div>
 						<div class="filter__item" id="filter__filter">
 							<span class="filter__item-label">FILTER:</span>
 							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-archive" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-								<input type="button" value="<?= isset($rFilterBy) ? $rFilterArray[$rFilterBy] : 'All Channels' ?>">
+								<input type="button" value="<?= htmlspecialchars((string) (isset($rFilterBy) ? $rFilterArray[$rFilterBy] : 'All Channels')) ?>">
 								<span></span>
 							</div>
 							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-archive">
@@ -53,7 +53,7 @@ if (!$rSearchBy): ?>
 						<div class="filter__item" id="filter__sort">
 							<span class="filter__item-label">SORT:</span>
 							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-								<input type="button" value="<?= isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added' ?>">
+								<input type="button" value="<?= htmlspecialchars((string) (isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added')) ?>">
 								<span></span>
 							</div>
 							<ul class="filter__item-menu dropdown-menu scrollbar-dropdown" aria-labelledby="filter-quality">
