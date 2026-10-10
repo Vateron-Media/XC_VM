@@ -1019,7 +1019,12 @@ class ModuleManager {
 			return;
 		}
 
+		// As installModule(): the state an attempt that failed left (Failed) goes
+		// once the steps have run, and a module switched off stays off. Without
+		// it a module updated at the second attempt stayed Failed, and unloaded.
+		$rRestore = $this->stateAfterInstall($name);
 		$this->applyUpdateSteps($name, $this->pendingUpdateSteps($name, $module, self::schemaVersion($overrides[$name]), $toVersion));
+		$this->writeState($name, $rRestore);
 		$this->recordInstalledVersion($name, $toVersion);
 	}
 
@@ -2377,8 +2382,27 @@ class ModuleManager {
 		throw new \RuntimeException('Cannot extract .zip: install the PHP zip extension or the `unzip` command (or upload a .tar.gz).');
 	}
 
-	/** Detect a tar/tar.gz archive by extension, or gzip magic bytes for tmp uploads. */
+	/**
+	 * What kind of archive a file is, by its content: 'zip', 'tar' (plain or
+	 * gzip) or null. The name does not say: an upload has none, and a stored
+	 * archive is named .zip whatever it is (archivePathFor()).
+	 */
+	public static function archiveKind(string $path): ?string {
+		$head = (string) @file_get_contents($path, false, null, 0, 262);
+
+		return match (true) {
+			str_starts_with($head, 'PK') => 'zip',
+			str_starts_with($head, "\x1f\x8b"), substr($head, 257, 5) === 'ustar' => 'tar',
+			default => null,
+		};
+	}
+
+	/** Detect a tar/tar.gz archive by its content (archiveKind()), else by its extension. */
 	private function looksLikeTar(string $path): bool {
+		$kind = self::archiveKind($path);
+		if ($kind !== null) {
+			return $kind === 'tar';
+		}
 		$lower = strtolower($path);
 		if (str_ends_with($lower, '.tar.gz') || str_ends_with($lower, '.tgz') || str_ends_with($lower, '.tar')) {
 			return true;

@@ -166,10 +166,10 @@ class ModuleInstallCommand implements CommandInterface {
 		fclose($rFp);
 
 		// serveFile() answers with a JSON {"result":false,...} body (HTTP 200)
-		// when the file is missing/invalid — detect that by checking the zip
-		// magic bytes instead of trusting the status code alone.
-		$rMagic = @file_get_contents($rTmp, false, null, 0, 2);
-		if (!$rOk || $rCode < 200 || $rCode >= 300 || $rMagic !== 'PK') {
+		// when the file is missing/invalid — detect that by what the body is
+		// instead of trusting the status code alone: an archive, zip or tar (a
+		// module updated from its tar.gz is stored as it came).
+		if (!$rOk || $rCode < 200 || $rCode >= 300 || ModuleManager::archiveKind($rTmp) === null) {
 			@unlink($rTmp);
 			throw new \RuntimeException("Failed to download module archive from MAIN (HTTP {$rCode}).");
 		}

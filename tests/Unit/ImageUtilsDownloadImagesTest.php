@@ -21,9 +21,19 @@ usleep(150000);
 if (str_starts_with($_SERVER['REQUEST_URI'], '/err/')) {
 	http_response_code(503);
 	echo 'busy';
+} elseif (str_starts_with($_SERVER['REQUEST_URI'], '/gone/')) {
+	http_response_code(404);
+	echo '<html>Not Found</html>';
+} elseif (str_starts_with($_SERVER['REQUEST_URI'], '/moved/')) {
+	header('Location: /logo/elsewhere.png', true, 302);
+	echo '<html>Moved</html>';
+} elseif (str_starts_with($_SERVER['REQUEST_URI'], '/page/')) {
+	header('Content-Type: text/html');
+	echo '<html>Sign in</html>';
 } else {
 	header('Content-Type: image/png');
-	echo "\x89PNG " . $_SERVER['REQUEST_URI'];
+	// A real image (1x1), then the request: each URL's bytes are its own.
+	echo base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=') . $_SERVER['REQUEST_URI'];
 }
 file_put_contents(getenv('XCVM_ICON_LOG'), sprintf("%.6f %.6f %s\n", $rStart, microtime(true), $_SERVER['REQUEST_URI']), FILE_APPEND | LOCK_EX);
 PHP;
@@ -125,6 +135,24 @@ PHP;
 		$this->assertStringStartsWith('s:1:/images/', $rAnswer['batch'][$this->url('/logo/1.png')]);
 		$this->assertSame($this->url('/logo/noext'), $rAnswer['batch'][$this->url('/logo/noext')], 'no type probe');
 		$this->assertCount(2, array_filter($this->requests(), static fn(array $rRequest): bool => $rRequest[2] === '/logo/1.png' || $rRequest[2] === '/logo/2.JPG'), 'the batch asked once per URL, then the files were there');
+	}
+
+	/**
+	 * Only an image is cached as one. A 404 page, a redirect's body and a page
+	 * answered 200 were each written under the image's name and, the file
+	 * being there, never fetched again.
+	 */
+	public function testAnAnswerThatIsNoImageIsNotCached(): void {
+		$rURLs = [$this->url('/gone/a.png'), $this->url('/moved/b.png'), $this->url('/page/c.png'), $this->url('/logo/d.png')];
+
+		$rAnswer = $this->download($rURLs, 6, true);
+
+		foreach (array_slice($rURLs, 0, 3) as $rIndex => $rURL) {
+			$this->assertSame($rURL, $rAnswer['single'][$rIndex], 'downloadImage: ' . $rURL);
+			$this->assertSame($rURL, $rAnswer['batch'][$rURL], 'downloadImages: ' . $rURL);
+		}
+		$this->assertStringStartsWith('s:1:/images/', $rAnswer['batch'][$rURLs[3]]);
+		$this->assertCount(1, glob($this->rDir . 'images/*') ?: [], 'the one image, and no page under an image\'s name');
 	}
 
 	public function testUpToSixTransfersAtOnceAndNoneAgainOnceCached(): void {

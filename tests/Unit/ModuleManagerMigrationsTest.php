@@ -391,6 +391,13 @@ final class ModuleManagerMigrationsTest extends TestCase {
         $overrides = $this->readOverrides();
         $this->assertSame('1.1.0', $overrides['resume-mod']['installed_version'] ?? null);
         $this->assertSame('failed', $overrides['resume-mod']['state'] ?? null);
+
+        // The cause put right, the update runs to its end: the module is no
+        // longer Failed. It stayed so, updated and not loaded.
+        $this->db->failOn = '';
+        $this->manager()->updateModule('resume-mod');
+
+        $this->assertSame(['installed_version' => '1.2.0'], array_intersect_key($this->readOverrides()['resume-mod'], ['installed_version' => 1, 'state' => 1]));
     }
 
     public function testUpdateRecordsTargetVersionWhenEveryDeltaApplies(): void {
