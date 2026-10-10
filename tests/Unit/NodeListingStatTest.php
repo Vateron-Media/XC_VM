@@ -53,6 +53,80 @@ final class NodeListingStatTest extends TestCase {
 		$this->assertSame([], self::call('findTimes', ['not a stat line', "x\t", "\t/path"]), 'malformed lines are dropped');
 	}
 
+	/**
+	 * `allowed` reaches find's -regex: a value with paired quotes used to close
+	 * that argument and add find primaries (here -delete). Only extensions pass.
+	 */
+	public function testAnAllowedListThatIsNotExtensionsIsRefused(): void {
+		$this->assertNull(self::call('findCommand', $this->rDir, 'mkv" -o -delete -o -name "z', false));
+		$this->assertNull(self::call('findCommand', $this->rDir, 'mkv|$(id)', true));
+		$this->assertNotNull(self::call('findCommand', $this->rDir, null, false), 'no filter (an empty `allowed` arrives as null)');
+		$this->assertNotNull(self::call('findCommand', $this->rDir, 'mkv|mp4|3gp', false));
+		$this->assertFileExists($this->rDir . '/Movie (2020).mkv', 'nothing deleted');
+	}
+
+	/** A page is an object even when empty: `{"files":{},"next":null}`, never `[]`. */
+	public function testAnEmptyPageIsAnObject(): void {
+		$this->assertSame('{"files":{},"next":null}', json_encode(self::call('findPage', [], null)));
+		$this->assertSame('{"files":{},"next":null}', json_encode(self::call('findPage', ['/a.mkv' => 1], '/a.mkv')), 'nothing after the last');
+	}
+
+	/**
+	 * A big folder comes a page at a time, each under the command queue's
+	 * 64 KB, every file once; a file removed between two pages makes no other
+	 * one skipped (the cursor is a path, not a position).
+	 */
+	public function testPagesFollowThePathCursorAndFitTheQueue(): void {
+		$rTimes = [];
+		for ($i = 0; $i < 3000; $i++) {
+			$rTimes[sprintf('/mnt/films/a fairly long folder name for the test/movie %05d (2020).mkv', $i)] = 1700000000 + $i;
+		}
+		$rSeen = [];
+		$rAfter = null;
+		$rPages = 0;
+		do {
+			$rPage = self::call('findPage', $rTimes, $rAfter);
+			$this->assertLessThan(65536, strlen(json_encode($rPage, JSON_UNESCAPED_UNICODE)));
+			$rSeen += (array) $rPage['files'];
+			$rAfter = $rPage['next'];
+			$rPages++;
+			if ($rPages === 2) {
+				unset($rTimes[array_key_first($rTimes)]); // removed while the listing runs
+			}
+		} while ($rAfter !== null);
+		$this->assertGreaterThan(2, $rPages);
+		$this->assertCount(3000, $rSeen, 'every file once, none skipped');
+	}
+
+	/** MAIN reads every page; a page that fails, or pages without end, give no listing rather than part of one. */
+	public function testApiClientReadsEveryPageOrNone(): void {
+		$rTimes = [];
+		for ($i = 0; $i < 2500; $i++) {
+			$rTimes[sprintf('/mnt/films/a fairly long folder name for the test/movie %05d.mkv', $i)] = 1700000000;
+		}
+		$rFindPage = new ReflectionMethod(InternalApiController::class, 'findPage');
+		$rFindPage->setAccessible(true);
+		$rCalls = 0;
+		NodeRpc::useTransport(static function (string $rKind, array $rServers, array $rData) use ($rTimes, $rFindPage, &$rCalls): string {
+			$rCalls++;
+			return (string) json_encode($rFindPage->invoke(null, $rTimes, $rData['after'] ?? null), JSON_UNESCAPED_UNICODE);
+		});
+		$this->assertSame($rTimes, ApiClient::scanRecursive(2, '/mnt/films', ['mkv'], true));
+		$this->assertGreaterThan(1, $rCalls);
+
+		NodeRpc::useTransport(static fn(): string => '{"files":{"/a.mkv":1},"next":"/a.mkv"}');
+		$this->assertNull(ApiClient::scanRecursive(2, '/mnt/films', ['mkv'], true), 'pages without end');
+		$rPages = ['{"files":{"/a.mkv":1},"next":"/a.mkv"}', '{"files":{"/b.mkv":1},"ne'];
+		NodeRpc::useTransport(static function () use (&$rPages): string {
+			return array_shift($rPages);
+		});
+		$this->assertNull(ApiClient::scanRecursive(2, '/mnt/films', ['mkv'], true), 'a page cut short (the queue truncated it)');
+		NodeRpc::useTransport(static fn(): string => '{"result":false}');
+		$this->assertSame(['result' => false], ApiClient::scanRecursive(2, '/etc', ['mkv'], true), 'a refusal as it is');
+		NodeRpc::useTransport(static fn(): string => '["/mnt/films/a.mkv"]');
+		$this->assertSame(['/mnt/films/a.mkv'], ApiClient::scanRecursive(2, '/mnt/films', ['mkv'], true), 'a node from before stat: its plain list');
+	}
+
 	public function testApiClientAsksForTimesOnlyWhenTold(): void {
 		$rSent = [];
 		NodeRpc::useTransport(static function (string $rKind, array $rServers, array $rData) use (&$rSent): string {

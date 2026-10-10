@@ -300,15 +300,26 @@ class InternalApiController {
 				$rDirectory = urldecode($rRequest['dir']);
 				$rAllowed = !empty($rRequest['allowed']) ? urldecode($rRequest['allowed']) : null;
 				// `stat`: each file with its modification time, so MAIN's watch scan skips a
-				// file still being written here as it does in its own folders.
+				// file still being written here as it does in its own folders; a page at a time
+				// from `after` (findPage()).
 				$rStat = !empty($rRequest['stat']);
 
 				if (!file_exists($rDirectory) || !ClusterSettings::pathAllowed($rDirectory, $rSettings['lb_scan_roots'] ?? null)) {
 					exit(json_encode(['result' => false]));
 				}
 
-				exec(self::findCommand($rDirectory, $rAllowed, $rStat), $rReturn);
-				echo json_encode($rStat ? self::findTimes($rReturn) : $rReturn, JSON_UNESCAPED_UNICODE);
+				$rCommand = self::findCommand($rDirectory, $rAllowed, $rStat);
+				if ($rCommand === null) {
+					exit(json_encode(['result' => false]));
+				}
+				// The directory is escapeshellarg()'d and inside a Scan Root, the extensions are letters and digits (findCommand() refuses anything else), the rest is constant.
+				// nosemgrep: php.lang.security.exec-use.exec-use
+				exec($rCommand, $rReturn);
+				if ($rStat) {
+					echo json_encode(self::findPage(self::findTimes($rReturn), isset($rRequest['after']) ? urldecode((string) $rRequest['after']) : null), JSON_UNESCAPED_UNICODE);
+				} else {
+					echo json_encode($rReturn, JSON_UNESCAPED_UNICODE);
+				}
 
 				exit();
 
@@ -547,14 +558,58 @@ class InternalApiController {
 	/**
 	 * `scandir_recursive`'s find: every path under $rDirectory, those whose
 	 * extension is in $rAllowed (a|b|c), and with $rStat files only, each
-	 * line "<mtime>\t<path>" (findTimes()).
+	 * line "<mtime>\t<path>" (findTimes()). Null when $rAllowed is not a list
+	 * of extensions (letters and digits): it is put inside find's -regex, where
+	 * escapeshellcmd() alone leaves paired quotes, so another value could add
+	 * arguments to find (its unclosable `\(` makes find refuse such a line, but
+	 * nothing but extensions is ever meant to be there).
 	 */
-	private static function findCommand(string $rDirectory, ?string $rAllowed, bool $rStat): string {
+	private static function findCommand(string $rDirectory, ?string $rAllowed, bool $rStat): ?string {
+		if ($rAllowed !== null && !preg_match('/^[A-Za-z0-9]{1,16}(\|[A-Za-z0-9]{1,16}){0,63}$/', $rAllowed)) {
+			return null;
+		}
 		$rCommand = '/usr/bin/find ' . escapeshellarg($rDirectory);
 		if ($rAllowed) {
 			$rCommand .= ' -regex ".*\\.\\(' . escapeshellcmd($rAllowed) . '\\)"';
 		}
 		return $rStat ? $rCommand . " -type f -printf '%T@\\t%p\\n'" : $rCommand;
+	}
+
+	/**
+	 * Bytes of file entries in one `stat` page: below CommandBus::MAX_RESULT
+	 * (65536), which is all of a node's answer that reaches MAIN through the
+	 * command queue, with room for the rest of it.
+	 */
+	private const LISTING_PAGE_BYTES = 60000;
+
+	/**
+	 * One page of a `stat` listing: in path order, the files after $rAfter
+	 * (null: from the first) that fit in LISTING_PAGE_BYTES, and the last path
+	 * of the page as `next` (null on the last page). A cursor by path, not by
+	 * position: a file added or removed between two pages makes none of the
+	 * others skipped. `files` is always a JSON object, `{}` when empty.
+	 *
+	 * @param array<string, int> $rTimes
+	 * @return array{files: object, next: string|null}
+	 */
+	private static function findPage(array $rTimes, ?string $rAfter): array {
+		ksort($rTimes, SORT_STRING);
+		$rPage = [];
+		$rBytes = 0;
+		$rLast = null;
+		foreach ($rTimes as $rPath => $rTime) {
+			$rPath = (string) $rPath;
+			if ($rAfter !== null && strcmp($rPath, $rAfter) <= 0) {
+				continue;
+			}
+			$rBytes += strlen((string) json_encode($rPath, JSON_UNESCAPED_UNICODE)) + strlen((string) $rTime) + 2;
+			if ($rBytes > self::LISTING_PAGE_BYTES && $rPage !== []) {
+				return ['files' => (object) $rPage, 'next' => $rLast];
+			}
+			$rPage[$rPath] = $rTime;
+			$rLast = $rPath;
+		}
+		return ['files' => (object) $rPage, 'next' => null];
 	}
 
 	/**

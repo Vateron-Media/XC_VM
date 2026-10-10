@@ -17,6 +17,9 @@ use XcVm\Domain\Server\ServerRepository;
  */
 
 class ApiClient {
+	/** Pages of a `stat` listing read at most (about 60 KB each: some 400,000 files); past it, no listing. */
+	private const MAX_LISTING_PAGES = 500;
+
 	/**
 	 * POST a request to the local admin API endpoint.
 	 *
@@ -102,12 +105,32 @@ class ApiClient {
 	 * @param int           $rServerID Target server id.
 	 * @param string        $rDirectory Directory to scan.
 	 * @param string[]|null $rAllowed   Allowed file extensions filter.
-	 * @param bool          $rStat      Files only, as path => modification time (a node
-	 *                                  from before this option answers the plain list).
-	 * @return array|null Decoded directory listing, or null on failure.
+	 * @param bool          $rStat      Files only, as path => modification time, read
+	 *                                  page by page (a node from before this option
+	 *                                  answers its plain list, returned as it is).
+	 * @return array|null Decoded directory listing, or null on failure; with $rStat
+	 *                    never part of a listing as the whole of it.
 	 */
 	public static function scanRecursive(int $rServerID, string $rDirectory, ?array $rAllowed = null, bool $rStat = false) {
-		return json_decode(NodeRpc::request($rServerID, ['action' => 'scandir_recursive', 'dir' => $rDirectory, 'allowed' => implode('|', $rAllowed ?? [])] + ($rStat ? ['stat' => 1] : [])), true);
+		$rRequest = ['action' => 'scandir_recursive', 'dir' => $rDirectory, 'allowed' => implode('|', $rAllowed ?? [])];
+		if (!$rStat) {
+			return json_decode((string) NodeRpc::request($rServerID, $rRequest), true);
+		}
+		$rFiles = [];
+		$rAfter = null;
+		for ($rPage = 0; $rPage < self::MAX_LISTING_PAGES; $rPage++) {
+			$rAnswer = json_decode((string) NodeRpc::request($rServerID, $rRequest + ['stat' => 1] + ($rAfter !== null ? ['after' => $rAfter] : [])), true);
+			if (!is_array($rAnswer) || !array_key_exists('files', $rAnswer)) {
+				// No answer, a refusal ({"result":false}), or a node from before `stat` (its plain list).
+				return $rAnswer;
+			}
+			$rFiles += (array) $rAnswer['files'];
+			if (($rAnswer['next'] ?? null) === null) {
+				return $rFiles;
+			}
+			$rAfter = (string) $rAnswer['next'];
+		}
+		return null;
 	}
 
 	/**
