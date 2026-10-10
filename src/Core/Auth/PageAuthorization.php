@@ -359,6 +359,11 @@ class PageAuthorization {
 			case 'review':
 				return Authorization::check('adv', 'import_streams');
 
+			// It renames streams and changes their EPG, categories and bouquets.
+			// No rule named it, and a page no rule names is open to every group.
+			case 'stream_review':
+				return Authorization::check('adv', 'import_streams') || Authorization::check('adv', 'mass_edit_streams');
+
 			case 'mass_edit_streams':
 				return Authorization::check('adv', 'edit_stream');
 

@@ -173,13 +173,15 @@ class ModuleMigrator {
 			return;
 		}
 
+		// Comment lines go before the file is split on `;`, as in core's own
+		// MigrationRunner: a comment may hold a semicolon, and split first its
+		// second half led the next statement as SQL.
+		$sql = implode("\n", array_filter(
+			explode("\n", $sql),
+			static fn($line) => strpos(ltrim($line), '--') !== 0
+		));
+
 		foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
-			// Drop comment-only lines so the residual statement is real SQL.
-			$lines = array_filter(
-				explode("\n", $statement),
-				static fn($line) => strpos(ltrim($line), '--') !== 0
-			);
-			$statement = trim(implode("\n", $lines));
 			if ($statement === '') {
 				continue;
 			}

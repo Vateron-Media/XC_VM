@@ -171,12 +171,12 @@ class CreatedCommand implements CommandInterface {
 
 			if ($rServerID == SERVER_ID && intval($rStreamInfo['movie_symlink']) == 1) {
 				if (file_exists($rSourcePath)) {
-					$rOutputList .= "file '" . $rSourcePath . "'" . "\n";
+					$rOutputList .= self::concatLine($rSourcePath);
 				}
 			} else {
 				$rCreatedFile = CREATED_PATH . $rStreamID . '_' . md5($rSource) . '.ts';
 				if (file_exists($rCreatedFile)) {
-					$rOutputList .= "file '" . $rCreatedFile . "'" . "\n";
+					$rOutputList .= self::concatLine($rCreatedFile);
 				}
 			}
 		}
@@ -287,5 +287,14 @@ class CreatedCommand implements CommandInterface {
 		}
 
 		file_put_contents($createFile, getmypid());
+	}
+
+	/**
+	 * One file of the list ffmpeg's concat demuxer reads. A quote in the path
+	 * is written as ffmpeg reads one inside quotes ('\\''): bare, it ended
+	 * the path there, the list did not parse, and the channel never started.
+	 */
+	public static function concatLine(string $rPath): string {
+		return "file '" . str_replace("'", "'\\''", $rPath) . "'\n";
 	}
 }

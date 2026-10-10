@@ -102,6 +102,21 @@ final class ModuleMigratorTest extends TestCase {
 		$this->assertSame('0', (string) $this->db->get_col(), 'commented statement ran cleanly');
 	}
 
+	/**
+	 * A comment may hold a semicolon. The file was split on `;` before its
+	 * comments were dropped: the comment's second half led the next statement,
+	 * as SQL, and the module did not install.
+	 */
+	public function testACommentWithASemicolonIsStillAComment(): void {
+		$this->writeMigration('1.0.0', "-- the log; kept thirty days\nCREATE TABLE mod_s (id INTEGER PRIMARY KEY AUTO_INCREMENT);\n  -- indexes; none yet\nCREATE TABLE mod_t (id INTEGER);");
+
+		$this->assertSame(['1.0.0'], ModuleMigrator::install($this->root, $this->db, '1.0.0'));
+		$this->db->query('SELECT COUNT(*) FROM mod_s;');
+		$this->assertSame('0', (string) $this->db->get_col());
+		$this->db->query('SELECT COUNT(*) FROM mod_t;');
+		$this->assertSame('0', (string) $this->db->get_col());
+	}
+
 	public function testRunFilePropagatesFailure(): void {
 		$this->writeMigration('1.0.0', 'THIS IS NOT VALID SQL;');
 		$this->expectException(\Exception::class);

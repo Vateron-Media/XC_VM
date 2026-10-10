@@ -107,7 +107,8 @@ class ListingsController extends BasePlayerController {
 
 							if (isset($rArchiveInfo[$rChannelID])) {
 								if (0 < $rArchiveInfo[$rChannelID]['tv_archive_server_id'] && 0 < $rArchiveInfo[$rChannelID]['tv_archive_duration']) {
-									if (time() - $rEPGItem['tv_archive_duration'] * 86400 <= $rEPGItem['start']) {
+									// The channel's archive window (an EPG row has no tv_archive_duration: it read as 0, and only programmes still to come were marked).
+									if (time() - $rArchiveInfo[$rChannelID]['tv_archive_duration'] * 86400 <= $rEPGItem['start']) {
 										$rArchive = [$rEPGItem['start'], intval(($rEPGItem['end'] - $rEPGItem['start']) / 60)];
 									}
 								}

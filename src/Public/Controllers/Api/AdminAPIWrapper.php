@@ -1872,8 +1872,11 @@ class AdminAPIWrapper {
 		if (!$rData) {
 			return ['status' => 'STATUS_FAILURE'];
 		}
+		// A refusal is {"result": false}: read before it is taken out of the listing
+		// (taken out first, every refused directory answered as an empty success).
+		$rRefused = isset($rData['result']) && !$rData['result'];
 		unset($rData['result']);
-		if (!isset($rData['result']) || $rData['result']) {
+		if (!$rRefused) {
 			return ['status' => 'STATUS_SUCCESS', 'data' => $rData];
 		}
 		return ['status' => 'STATUS_FAILURE'];

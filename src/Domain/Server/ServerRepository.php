@@ -603,7 +603,8 @@ class ServerRepository {
 					return '';
 				}
 			}
-			$rHost = (defined('host') ? HOST : null);
+			// The constant is HOST: `host` is defined nowhere, and the requested host was never kept.
+			$rHost = (defined('HOST') ? HOST : null);
 			if ($rHost && in_array(strtolower($rHost), array_map('strtolower', $rServers[$rServerID]['domains']['urls']))) {
 				$rDomain = $rHost;
 			} else {

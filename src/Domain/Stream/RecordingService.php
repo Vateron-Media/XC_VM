@@ -82,9 +82,11 @@ class RecordingService {
 			if ($rRecording['created_id']) {
 				StreamRepository::deleteStream($rRecording['created_id'], $rRecording['source_id'], true, true);
 			}
-			// The only variable part is the recording id, intval()'d.
+			// The only variable part is the recording id, intval()'d. The brackets are
+			// escaped: bare, grep read them as a character class, which never matched
+			// the process's title "Record[<id>]", and a recording in progress went on.
 			// nosemgrep: php.lang.security.exec-use.exec-use
-			shell_exec("kill -9 `ps -ef | grep 'Record[" . intval($rID) . "]' | grep -v grep | awk '{print $2}'` 2>/dev/null");
+			shell_exec("kill -9 `ps -ef | grep 'Record\\[" . intval($rID) . "\\]' | grep -v grep | awk '{print $2}'` 2>/dev/null");
 			$db->query('DELETE FROM `recordings` WHERE `id` = ?;', $rID);
 			// The recorded stream's R2 record no longer carries it.
 			EventDispatcher::dispatch(new StreamsChangedEvent([intval($rRecording['stream_id'])]));
