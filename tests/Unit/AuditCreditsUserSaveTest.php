@@ -47,6 +47,9 @@ final class AuditCreditsUserSaveTest extends TestCase {
 		$this->rDb->exec("INSERT INTO `users` (`id`, `username`, `member_group_id`, `credits`, `owner_id`, `email`, `override_packages`, `api_key`, `notes`, `reseller_dns`) VALUES"
 			. " (1, 'admin', 1, 0, 0, '', '[]', '', '', ''), (5, 'reseller', 2, 100, 0, 'old@example.com', '[]', '', '', ''), (6, 'subreseller', 2, 10, 5, '', '[]', '', '', '')");
 
+		// The resellers' group: a sub-reseller is made in a group there is (ResellerAPI::processUser()).
+		$this->rDb->exec("INSERT INTO `users_groups` (`group_id`, `group_name`, `is_reseller`) VALUES (2, 'Resellers', 1)");
+
 		$this->use($this->rDb);
 		$GLOBALS['rUserInfo'] = ['id' => self::ADMIN, 'member_group_id' => 1];
 		$GLOBALS['rAdminUserInfo'] = $GLOBALS['rUserInfo'];

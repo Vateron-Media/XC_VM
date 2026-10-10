@@ -85,7 +85,7 @@ PHP;
 	}
 
 	/** The panel's adjust_credits action of the reseller on $rUserID, in a child PHP: its JSON answer. */
-	private function panel(int $rUserID, int $rCredits): mixed {
+	private function panel(int $rUserID, int|string $rCredits): mixed {
 		$rIn = ['schema' => $this->rDb->schema(), 'reseller' => self::RESELLER, 'permissions' => $GLOBALS['rPermissions'], 'request' => ['id' => (string) $rUserID, 'credits' => (string) $rCredits, 'reason' => 'test']];
 		$rProc = proc_open([...xcvm_test_child_php(), '-d', 'display_errors=stderr', $this->rChild, (string) json_encode($rIn)], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);
 		$this->assertIsResource($rProc);
@@ -133,6 +133,16 @@ PHP;
 	}
 
 	// ── a sub-reseller ──────────────────────────────────────────────
+
+	/** Whole credits move, and the credit log says what moved: "2.9" moved 2 and was logged as 2.9. */
+	public function testTheCreditLogSaysWhatMoved(): void {
+		$this->assertSame(['status' => 'STATUS_SUCCESS'], ResellerAPIWrapper::adjustCredits(self::SUB, '2.9', ''));
+		$this->assertSame(['result' => true], $this->panel(self::SUB, '2.9'));
+
+		$this->assertSame(['reseller' => 96.0, 'sub' => 14.0, 'staff' => 50.0], $this->balances());
+		$this->rDb->query('SELECT `amount` FROM `users_credits_logs` ORDER BY `id`');
+		$this->assertSame([2.0, 2.0], array_map('floatval', array_column($this->rDb->get_rows(), 'amount')));
+	}
 
 	public function testTheRestApiMovesCreditsOfASubResellerBothWays(): void {
 		$this->assertSame(['status' => 'STATUS_SUCCESS'], ResellerAPIWrapper::adjustCredits(self::SUB, 30, ''));

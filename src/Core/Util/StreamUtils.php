@@ -270,7 +270,9 @@ class StreamUtils {
 			$rSource = file_get_contents($rPlaylist);
 			if (preg_match_all('/(.*?).ts/', $rSource, $rMatches)) {
 				if (0 < $rPrebuffer) {
-					$rTotalSegments = intval($rPrebuffer / (($rSegmentDuration ?: 1)));
+					// At least one (SegmentReader's rule): none asked for was
+					// array_slice(..., -0), the whole playlist.
+					$rTotalSegments = intval($rPrebuffer / (($rSegmentDuration ?: 1))) ?: 1;
 					return array_slice($rMatches[0], -1 * $rTotalSegments);
 				}
 				if ($rPrebuffer == -1) {

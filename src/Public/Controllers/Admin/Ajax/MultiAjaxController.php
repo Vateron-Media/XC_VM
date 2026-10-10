@@ -235,11 +235,20 @@ class MultiAjaxController extends BaseAjaxController {
 		$this->ok();
 	}
 
+	/** streams.type of each bulk type (streams_types). */
+	private const STREAM_TYPES = ['stream' => 1, 'movie' => 2, 'cchannel' => 3, 'radio' => 4, 'episode' => 5];
+
 	/** Bulk operations on streams / movies / episodes / created channels / radios. */
 	private function handleStreams(string $rType, array $rRequestIDs, string $rSub): never {
 		$this->gate('adv', 'edit_' . $rType);
 
 		global $db;
+		// The permission just checked is this type's, and the type is the
+		// request's: it reaches the streams of that type only. A group allowed
+		// to edit radios deleted movies by naming their ids under type=radio.
+		$db->query('SELECT `id` FROM `streams` WHERE `type` = ? AND `id` IN (' . $this->inList($rRequestIDs) . ');', self::STREAM_TYPES[$rType]);
+		$rOfType = array_flip(array_map('intval', array_column($db->get_rows() ?: [], 'id')));
+		$rRequestIDs = array_values(array_filter($rRequestIDs, static fn($rID): bool => isset($rOfType[intval($rID)])));
 		$rNoServer = $rStreamMap = [];
 
 		foreach ($rRequestIDs as $rStream) {
@@ -286,8 +295,18 @@ class MultiAjaxController extends BaseAjaxController {
 					ApiClient::request(['action' => $rAction, 'sub' => $rSub, 'stream_ids' => $rStreamIDs, 'servers' => [$rServerID]]);
 				}
 			} elseif ($rSub == 'delete') {
+				$rDetached = [];
 				foreach ($rStreamMap as $rServerID => $rStreamIDs) {
 					StreamRepository::deleteStreamsByServer($rStreamIDs, $rServerID, true);
+					$rDetached = array_merge($rDetached, $rStreamIDs);
+				}
+
+				// A stream taken off its last server is deleted, as the row's own
+				// delete does (StreamRepository::deleteStream()): it stayed, on no
+				// server, until it was deleted a second time.
+				if (0 < count($rDetached)) {
+					$db->query('SELECT `id` FROM `streams` WHERE `id` IN (' . $this->inList($rDetached) . ') AND `id` NOT IN (SELECT `stream_id` FROM `streams_servers`);');
+					$rUnallocated = array_merge($rUnallocated, array_column($db->get_rows() ?: [], 'id'));
 				}
 
 				if (0 < count($rUnallocated)) {

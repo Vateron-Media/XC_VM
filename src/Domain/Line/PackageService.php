@@ -82,16 +82,31 @@ class PackageService {
 	}
 
 	/**
+	 * Whether activation codes not redeemed yet are sold for the package. A
+	 * code holds no term of its own: it is its package's when it is redeemed,
+	 * and without the package a code sold for a year gave a month (a trial, a
+	 * day). So such a package is not deleted.
+	 *
+	 * @param int $rID Package id.
+	 */
+	public static function hasUnusedCodes(int $rID): bool {
+		$db = self::db();
+		$db->query('SELECT 1 FROM `activation_codes` WHERE `package_id` = ? AND `activated_at` IS NULL LIMIT 1;', $rID);
+
+		return 0 < $db->num_rows();
+	}
+
+	/**
 	 * Delete a package by id.
 	 *
 	 * @param int $rID Package id.
-	 * @return bool True on deletion, false if not found.
+	 * @return bool True on deletion, false if not found or codes not redeemed yet are sold for it (hasUnusedCodes()).
 	 */
 	public static function deleteById(int $rID) {
 		$db = self::db();
 		$rPackage = self::getById($rID);
 
-		if (!$rPackage) {
+		if (!$rPackage || self::hasUnusedCodes($rID)) {
 			return false;
 		}
 

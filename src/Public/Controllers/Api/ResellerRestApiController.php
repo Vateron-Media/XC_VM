@@ -6,6 +6,7 @@ use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Line\ActiveCodeService;
 
 /**
  * ResellerRestApiController — reseller rest api controller
@@ -178,7 +179,7 @@ class ResellerRestApiController {
 					echo json_encode(ResellerAPIWrapper::getActiveCodes($rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
 					break;
 				case 'get_active_code':
-					echo json_encode(ResellerAPIWrapper::getActiveCode($rData['id'] ?? RequestManager::get('code') ?? 0));
+					echo json_encode(ResellerAPIWrapper::getActiveCode(ActiveCodeService::reference($rData['id'] ?? null, RequestManager::get('code'))));
 					break;
 				case 'generate_active_codes':
 				case 'create_active_code':
@@ -199,7 +200,7 @@ class ResellerRestApiController {
 					echo json_encode(ResellerAPIWrapper::enableActiveCode($rData['id'] ?? 0));
 					break;
 				case 'reset_active_code_device':
-					echo json_encode(ResellerAPIWrapper::resetActiveCodeDevice($rData['id'] ?? RequestManager::get('code') ?? 0));
+					echo json_encode(ResellerAPIWrapper::resetActiveCodeDevice(ActiveCodeService::reference($rData['id'] ?? null, RequestManager::get('code'))));
 					break;
 				case 'mass_active_codes':
 					echo json_encode(ResellerAPIWrapper::massActiveCodes($rData['sub_action'] ?? $rData['action_type'] ?? '', $rData['ids'] ?? [], $rData));

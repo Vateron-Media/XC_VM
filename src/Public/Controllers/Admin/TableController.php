@@ -2165,12 +2165,10 @@ class TableController extends BaseAdminController {
 					$rKeyCount--;
 				} else {
 					if (!$rFilterBefore) {
-						if ($rServerID && $rServerID != $rRow["server_id"]) {
+						// Counted out and left out: it was counted out only, and still listed.
+						if ($rServerID && $rServerID != $rRow["server_id"] || $rStreamID && $rStreamID != $rRow["stream_id"] || $rUserID && $rUserID != $rRow["user_id"]) {
 							$rKeyCount--;
-						} elseif ($rStreamID && $rStreamID != $rRow["stream_id"]) {
-							$rKeyCount--;
-						} elseif ($rUserID && $rUserID != $rRow["user_id"]) {
-							$rKeyCount--;
+							continue;
 						}
 					}
 					$rRow["activity_id"] = $rRow["uuid"];

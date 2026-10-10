@@ -860,6 +860,16 @@ LayoutRenderer::renderFooter('admin');
                 saveChanges();
                 $('#stream_form').on('submit', function() {
                     saveChanges();
+                    // The table keeps only the page shown in the document, so the
+                    // form posted that page alone: the rows of the other pages go
+                    // with it as copies of their fields.
+                    var rForm = $(this);
+                    rForm.find('.off-page').remove();
+                    $('#datatable').DataTable().rows().nodes().to$().find('input[type="hidden"]').each(function() {
+                        if (!$.contains(document.documentElement, this)) {
+                            rForm.append($('<input type="hidden" class="off-page">').attr('name', this.name).val(this.value));
+                        }
+                    });
                 });
             } else {
                 $('#stream_form select').select2({

@@ -41,6 +41,15 @@ class ImageUtils {
 	}
 
 	/**
+	 * Whether what a host answered is the image to cache: a 2xx answer whose
+	 * body is an image. A 404 page or a redirect's body was written under the
+	 * image's name and, the file being there, never fetched again.
+	 */
+	private static function isImage(int $rCode, string $rData): bool {
+		return 200 <= $rCode && $rCode < 300 && $rData !== '' && @getimagesizefromstring($rData) !== false;
+	}
+
+	/**
 	 * Download a remote image into the local image cache.
 	 *
 	 * Stores jpg/jpeg/png images and returns an internal `s:<serverId>:` reference;
@@ -72,8 +81,8 @@ class ImageUtils {
 				curl_setopt($rCurl, CURLOPT_RETURNTRANSFER, true);
 				curl_setopt($rCurl, CURLOPT_CONNECTTIMEOUT, 5);
 				curl_setopt($rCurl, CURLOPT_TIMEOUT, 5);
-				$rData = curl_exec($rCurl);
-				if ((string) $rData !== '') {
+				$rData = (string) curl_exec($rCurl);
+				if (self::isImage((int) curl_getinfo($rCurl, CURLINFO_RESPONSE_CODE), $rData)) {
 					$rPath = IMAGES_PATH . $rFilename . '.' . $rExt;
 					// The images cache dir may not exist yet on a given node (e.g. an
 					// LB running the watch import), so file_put_contents would fail
@@ -141,8 +150,9 @@ class ImageUtils {
 			while ($rInfo = curl_multi_info_read($rMulti)) {
 				[$rCurl, [$rImage, $rName, $rHost]] = $rActive[spl_object_id($rInfo['handle'])];
 				unset($rActive[spl_object_id($rInfo['handle'])]);
-				$rDone = $rInfo['result'] === CURLE_OK && curl_getinfo($rCurl, CURLINFO_RESPONSE_CODE) < 400;
-				$rData = $rDone ? (string) curl_multi_getcontent($rCurl) : '';
+				$rData = $rInfo['result'] === CURLE_OK ? (string) curl_multi_getcontent($rCurl) : '';
+				$rDone = self::isImage((int) curl_getinfo($rCurl, CURLINFO_RESPONSE_CODE), $rData);
+				$rData = $rDone ? $rData : '';
 				$rFails[$rHost] = $rDone ? 0 : ($rFails[$rHost] ?? 0) + 1;
 				curl_multi_remove_handle($rMulti, $rCurl);
 				curl_close($rCurl);

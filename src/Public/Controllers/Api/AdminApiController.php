@@ -6,6 +6,7 @@ use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Line\ActiveCodeService;
 
 /**
  * AdminApiController — admin api controller
@@ -848,7 +849,7 @@ class AdminApiController {
 					echo json_encode(AdminAPIWrapper::getActiveCodes($rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
 					break;
 				case 'get_active_code':
-					echo json_encode(AdminAPIWrapper::getActiveCode($rData['id'] ?? $rData['code'] ?? 0));
+					echo json_encode(AdminAPIWrapper::getActiveCode(ActiveCodeService::reference($rData['id'] ?? null, $rData['code'] ?? null)));
 					break;
 				case 'generate_active_codes':
 				case 'create_active_code':
@@ -869,7 +870,7 @@ class AdminApiController {
 					echo json_encode(AdminAPIWrapper::enableActiveCode($rData['id'] ?? 0));
 					break;
 				case 'reset_active_code_device':
-					echo json_encode(AdminAPIWrapper::resetActiveCodeDevice($rData['id'] ?? $rData['code'] ?? 0));
+					echo json_encode(AdminAPIWrapper::resetActiveCodeDevice(ActiveCodeService::reference($rData['id'] ?? null, $rData['code'] ?? null)));
 					break;
 				case 'mass_active_codes':
 					echo json_encode(AdminAPIWrapper::massActiveCodes($rData['sub_action'] ?? $rData['action_type'] ?? '', $rData['ids'] ?? [], $rData));

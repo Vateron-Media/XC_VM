@@ -259,4 +259,20 @@ final class AuditResellerCoreLineStoreTest extends TestCase {
 		$this->rDb->query('SELECT `log_id` FROM `users_logs` ORDER BY `id` DESC LIMIT 1');
 		$this->assertSame($rID, (int) $this->rDb->get_col(), 'the log names the device');
 	}
+
+	/**
+	 * The log names what the save did: a package bought for what is there is
+	 * an extension, a save that buys none an edit. A device save was logged as
+	 * a new device, and a line saved with its package unchanged as extended.
+	 */
+	#[DataProvider('kinds')]
+	public function testTheLogNamesWhatTheSaveDid(string $rKind): void {
+		$rID = $this->sold($rKind, time() + 86400);
+
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => $rID, 'package' => 1]));
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => $rID, 'reseller_notes' => 'seen']));
+
+		$this->rDb->query('SELECT `action` FROM `users_logs` ORDER BY `id`');
+		$this->assertSame(['new', 'extend', 'edit'], array_column($this->rDb->get_rows(), 'action'), 'sold, a month bought for it, its note changed');
+	}
 }

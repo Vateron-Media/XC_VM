@@ -281,7 +281,7 @@ final class TestDb extends DatabaseHandler {
 			return false;
 		}
 		$this->inTransaction = false;
-		return $this->pdo->commit();
+		return $this->pdo->inTransaction() ? $this->pdo->commit() : true;
 	}
 
 	public function rollback() {
@@ -289,6 +289,6 @@ final class TestDb extends DatabaseHandler {
 			return false;
 		}
 		$this->inTransaction = false;
-		return $this->pdo->rollBack();
+		return $this->pdo->inTransaction() && $this->pdo->rollBack();
 	}
 }

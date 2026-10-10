@@ -4,18 +4,19 @@ namespace XcVm\Public\Controllers\Api;
 
 use XcVm\Core\Auth\ApiTokens;
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
-use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\User\GroupService;
 use XcVm\Domain\User\ResellerAPI;
 use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\User\UserService;
+use XcVm\Public\Controllers\Reseller\ResellerTableController;
 
 class ResellerAPIWrapper {
 	public static $db;
@@ -65,22 +66,24 @@ class ResellerAPIWrapper {
 	}
 
 	public static function TableAPI($rID, $rStart = 0, $rLimit = 10, $rData = [], $rShowColumns = [], $rHideColumns = []) {
-		$rTableAPI = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/' . trim(dirname($_SERVER['PHP_SELF']), '/') . '/table.php';
+		// This asked `<code>/table.php` on the broadcast port over HTTP. Under the
+		// front controller there is no such path (SCRIPT_NAME is /public/index.php
+		// for every access code), so the answer was always null. The table is
+		// rendered in this request instead, as AdminAPIWrapper::TableAPI() does:
+		// ResellerTableController::index() checks the key, echoes the JSON and exits.
 		$rData['api_key'] = self::$rKey;
 		$rData['id'] = $rID;
 		$rData['start'] = $rStart;
 		$rData['length'] = $rLimit;
 		$rData['show_columns'] = $rShowColumns;
 		$rData['hide_columns'] = $rHideColumns;
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $rTableAPI);
-		curl_setopt($ch, CURLOPT_POST, 1);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($rData));
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_HTTPHEADER, ['X-Requested-With: xmlhttprequest']);
-		$rReturn = json_decode(curl_exec($ch), true);
-		curl_close($ch);
-		return $rReturn;
+		$rData['draw'] = 0;
+
+		RequestManager::set(array_merge(RequestManager::getAll(), $rData));
+		$_SERVER['HTTP_X_REQUESTED_WITH'] = 'xmlhttprequest';
+
+		(new ResellerTableController())->index();
+		return null; // not reached: the table echoes its answer and exits
 	}
 
 	public static function createSession() {
@@ -489,9 +492,11 @@ class ResellerAPIWrapper {
 		// An administrator's account keeps its credits: they are not a reseller's to move (GroupService::reservedGroups).
 		if (($rUser = self::getUser($rID)) && isset($rUser['data']) && !in_array(intval($rUser['data']['member_group_id']), GroupService::reservedGroups())) {
 			if (is_numeric($rCredits)) {
+				// Whole credits move, and the logs say what moved: "2.9" moved 2 and was logged as 2.9.
+				$rCredits = intval($rCredits);
 				// Credits move between the reseller and one of its sub-resellers:
 				// each side gives only what its balance holds now.
-				if (UserCredits::transfer($rUserInfo['id'], $rUser['data']['id'], intval($rCredits))) {
+				if (UserCredits::transfer($rUserInfo['id'], $rUser['data']['id'], $rCredits)) {
 					self::$db->query('INSERT INTO `users_credits_logs`(`target_id`, `admin_id`, `amount`, `date`, `reason`) VALUES(?, ?, ?, ?, ?);', $rUser['data']['id'], $rUserInfo['id'], $rCredits, time(), $rNote);
 					self::$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'user', ?, ?, null, ?, ?, ?, ?);", $rUserInfo['id'], 'adjust_credits', $rID, intval($rCredits), intval(UserCredits::balance($rUserInfo['id'])), time(), json_encode($rUser['data']));
 					return ['status' => 'STATUS_SUCCESS'];
