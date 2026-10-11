@@ -466,7 +466,11 @@ final class ReplicaApplyTest extends TestCase {
 		$rDb->exec('CREATE TABLE `cluster_nodes` (`server_id` int, `gen` int, `state` varchar(16), `node_sign_pub` blob)');
 		$rDb->exec('CREATE TABLE `crontab` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `filename` varchar(255), `time` varchar(128), `enabled` int, `role` varchar(8))');
 		$rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('streams', '* * * * *', 1, 'all'), ('tmdb', '0 * * * *', 1, 'main'), ('cache', '* * * * *', 1, 'all')");
-		foreach ([SERVER_ID => ['limit_requests' => 30, 'total_services' => 6, 'governor' => '["performance"]'], SERVER_ID + 100 => ['is_main' => 1, 'limit_requests' => 99, 'domain_name' => 'main.example.com', 'enable_https' => 1], SERVER_ID + 200 => ['enabled' => 0]] as $rID => $rFields) {
+		// MAIN's row carries its running release: ReplicaBuilder stamps the
+		// servers section from XC_VM_VERSION, so the DB column must match it for
+		// the replica to equal getAll() here (empty when the constant is unset).
+		$rMainVersion = defined('XC_VM_VERSION') ? XC_VM_VERSION : '0.0.0';
+		foreach ([SERVER_ID => ['limit_requests' => 30, 'total_services' => 6, 'governor' => '["performance"]'], SERVER_ID + 100 => ['is_main' => 1, 'xc_vm_version' => $rMainVersion, 'limit_requests' => 99, 'domain_name' => 'main.example.com', 'enable_https' => 1], SERVER_ID + 200 => ['enabled' => 0]] as $rID => $rFields) {
 			$rRow = $rFields + [
 				'id' => $rID, 'server_type' => 0, 'server_name' => 'S' . $rID, 'server_ip' => '10.0.0.' . ($rID % 250), 'private_ip' => '', 'is_main' => 0, 'enabled' => 1,
 				'parent_id' => '[]', 'geoip_countries' => '["DE"]', 'isp_names' => '[]', 'http_broadcast_port' => 8080, 'https_broadcast_port' => 8443, 'rtmp_port' => 8880,

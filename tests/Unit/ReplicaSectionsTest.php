@@ -163,6 +163,24 @@ final class ReplicaSectionsTest extends TestCase {
 		$this->assertSame(['id' => 7, 'is_adult' => 1], array_intersect_key(ReplicaSections::typed(['id' => '7', 'is_adult' => '1'], ReplicaSections::CATEGORY_FIELDS), ['id' => 0, 'is_adult' => 0]), 'typed the same whichever driver read them');
 	}
 
+	// Its own process: it defines XC_VM_VERSION (the cluster-test bootstrap leaves
+	// it unset), which must not leak into the other tests here.
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+	public function testMainsOwnVersionIsStampedFromTheConstantNotTheColumn(): void {
+		if (!defined('XC_VM_VERSION')) {
+			define('XC_VM_VERSION', '9.9.9-test');
+		}
+		// MAIN's servers.xc_vm_version column is empty (server() sets none), as on
+		// a MAIN that has not run status/post-update; a node keeps its own column.
+		$this->server(1);
+		$this->server(5, ['xc_vm_version' => '2.6.5']);
+
+		$rServers = array_column(ReplicaBuilder::serversData()['servers'], null, 'id');
+		$this->assertSame(XC_VM_VERSION, $rServers[1]['xc_vm_version'], 'MAIN publishes its running release, so a load balancer can pin to it');
+		$this->assertSame('2.6.5', $rServers[5]['xc_vm_version'], 'a node keeps the version its row records');
+	}
+
 	public function testTheServersSectionCarriesRoutingAndTheSignedNodeListOnly(): void {
 		$this->server(1);
 		$this->server(5, ['parent_id' => '[1]', 'domain_name' => 'lb5.example.com']);

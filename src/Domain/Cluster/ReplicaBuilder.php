@@ -386,7 +386,17 @@ final class ReplicaBuilder {
 		self::read('SELECT * FROM `servers` ORDER BY `id` ASC;');
 		$rServers = [];
 		foreach (self::db()->get_rows() ?: [] as $rRow) {
-			$rServers[] = ReplicaSections::typed($rRow, ReplicaSections::SERVER_FIELDS);
+			$rTyped = ReplicaSections::typed($rRow, ReplicaSections::SERVER_FIELDS);
+			// MAIN is the authority on its own running release: stamp it from the
+			// code constant, not the servers.xc_vm_version column, which lags (it
+			// is written only by `status`/post-update) and is empty on a MAIN that
+			// has not run them. A load balancer pins its update to MAIN's release
+			// (UpdateCommand::mainVersion), so an empty value there aborts its
+			// update with "MAIN's release is unknown".
+			if ((int) ($rRow['is_main'] ?? 0) === 1 && defined('XC_VM_VERSION')) {
+				$rTyped['xc_vm_version'] = XC_VM_VERSION;
+			}
+			$rServers[] = $rTyped;
 		}
 		self::read('SELECT * FROM `cluster_nodes` ORDER BY `server_id` ASC;');
 		$rNodes = [];
