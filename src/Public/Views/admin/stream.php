@@ -14,6 +14,7 @@
  * xcModalSaved in the modal. Requires jstree (declared by the controller).
  */
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Module\StreamFormRegistry;
 use XcVm\Domain\Bouquet\BouquetService;
@@ -85,7 +86,9 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                     <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-advanced" role="tab"><i class="icon-base ti tabler-adjustments me-1"></i><?= $language::get('advanced'); ?></button></li>
                     <?php if (!$rIsImport): ?>
                         <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-epg" role="tab"><i class="icon-base ti tabler-device-tv me-1"></i><?= $language::get('epg'); ?></button></li>
+                        <?php if (Authorization::isFullAdmin()): ?>
                         <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-map" role="tab"><i class="icon-base ti tabler-map me-1"></i><?= $language::get('map'); ?></button></li>
+                        <?php endif; ?>
                         <?php if (empty($rMobile)): ?>
                             <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-rtmp" role="tab"><i class="icon-base ti tabler-cloud-upload me-1"></i><?= $language::get('rtmp_push'); ?></button></li>
                         <?php endif; ?>
@@ -204,7 +207,9 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                         <div class="col-md-6"><label class="form-label" for="fps_threshold">FPS Threshold %</label><input type="text" inputmode="numeric" class="form-control" id="fps_threshold" name="fps_threshold" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['fps_threshold'], ENT_QUOTES) : '90'; ?>"></div>
                     </div>
                     <div class="mb-6"><label class="form-label" for="custom_sid">Custom Channel SID</label><input type="text" class="form-control" id="custom_sid" name="custom_sid" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['custom_sid'], ENT_QUOTES) : ''; ?>"></div>
+                    <?php if (Authorization::isFullAdmin()): ?>
                     <div class="mb-6"><label class="form-label" for="custom_ffmpeg"><?= $language::get('custom_ffmpeg_command'); ?></label><input type="text" class="form-control" id="custom_ffmpeg" name="custom_ffmpeg" placeholder="-i {STREAM_SOURCE} -c:v libx264 -c:a aac" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['custom_ffmpeg'], ENT_QUOTES) : ''; ?>"></div>
+                    <?php endif; ?>
                     <div class="row mb-6">
                         <div class="col-md-6"><label class="form-label" for="probesize_ondemand">On Demand Probesize</label><input type="text" inputmode="numeric" class="form-control" id="probesize_ondemand" name="probesize_ondemand" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['probesize_ondemand'], ENT_QUOTES) : htmlspecialchars((string) ($rSettings['probesize_ondemand'] ?? ''), ENT_QUOTES); ?>"></div>
                         <div class="col-md-6"><label class="form-label" for="delay_minutes">Minute Delay</label><input type="text" inputmode="numeric" class="form-control" id="delay_minutes" name="delay_minutes" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['delay_minutes'], ENT_QUOTES) : '0'; ?>"></div>
@@ -318,6 +323,7 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                         </div>
                     </div>
 
+                    <?php if (Authorization::isFullAdmin()): ?>
                     <div class="tab-pane fade" id="tab-map" role="tabpanel">
                         <div class="alert alert-info" role="alert"><?= $language::get('custom_map_info'); ?></div>
                         <div>
@@ -331,6 +337,7 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                             <div id="map-result" class="mt-3"></div>
                         </div>
                     </div>
+                    <?php endif; ?>
 
                     <?php if (empty($rMobile)): ?>
                         <div class="tab-pane fade" id="tab-rtmp" role="tabpanel">
