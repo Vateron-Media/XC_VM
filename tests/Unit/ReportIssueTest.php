@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Logging\FileLogger;
 use XcVm\Public\Controllers\Admin\ReportIssueController;
 
 /**
@@ -13,7 +14,7 @@ use XcVm\Public\Controllers\Admin\ReportIssueController;
 final class ReportIssueTest extends TestCase {
 	/** Category => [template file, the field ids the page prefills on it]. */
 	private const PREFILL = [
-		'bug_report.yml' => ['version', 'build_type', 'environment', 'description'],
+		'bug_report.yml' => ['version', 'build_type', 'environment', 'description', 'extra_information'],
 		'feature_request.yml' => ['description'],
 		'documentation.yml' => ['description'],
 		'other.yml' => ['version', 'issuedescription'],
@@ -77,5 +78,57 @@ final class ReportIssueTest extends TestCase {
 		} finally {
 			NodeRole::useServers(null);
 		}
+	}
+
+	public function testRedactHidesSecretsAndKeepsOrdinaryLines(): void {
+		$rIn = implode("\n", [
+			'DB password=S3cr3tPass! connecting',
+			'api_key: abcdEF1234567890',
+			'Authorization: Bearer tok_live_9f8e7d',
+			'dsn mysql://xcvm:hunter2@10.0.0.5:3306/xc_vm',
+			'PHP Fatal error: Call to a member function q() on null in /home/xc_vm/Core/X.php:42',
+			'viewer 203.0.113.9 requested playlist',
+		]);
+		$rOut = ReportIssueController::redact($rIn);
+		foreach (['S3cr3tPass!', 'abcdEF1234567890', 'tok_live_9f8e7d', 'hunter2'] as $rSecret) {
+			$this->assertStringNotContainsString($rSecret, $rOut, $rSecret . ' must be redacted');
+		}
+		// The trace, the file path and a viewer IP are kept — that is the debugging value.
+		$this->assertStringContainsString('Call to a member function q() on null', $rOut);
+		$this->assertStringContainsString('/home/xc_vm/Core/X.php:42', $rOut);
+		$this->assertStringContainsString('203.0.113.9', $rOut);
+		$this->assertStringContainsString('[redacted]', $rOut);
+	}
+
+	public function testErrorLogTailTakesTheLastLinesRedactedAndCapped(): void {
+		$rFile = sys_get_temp_dir() . '/xcvm-reportlog-' . bin2hex(random_bytes(4)) . '.log';
+		$rLines = [];
+		for ($i = 0; $i < 200; $i++) {
+			$rLines[] = 'line ' . $i . ' token=deadbeefdeadbeef';
+		}
+		file_put_contents($rFile, implode("\n", $rLines) . "\n");
+		FileLogger::setLogFile($rFile);
+		try {
+			$rTail = ReportIssueController::errorLogTail();
+		} finally {
+			FileLogger::setLogFile(null);
+			@unlink($rFile);
+		}
+		$this->assertStringNotContainsString('deadbeefdeadbeef', $rTail, 'secrets are redacted in the tail too');
+		$this->assertStringContainsString('line 199', $rTail, 'the most recent line is kept');
+		$this->assertStringNotContainsString('line 0 ', $rTail, 'only the last lines are taken');
+		$this->assertLessThanOrEqual(4200, strlen($rTail), 'the tail is capped');
+	}
+
+	public function testTheLogAttachesOnlyToTheBugFormAndIsGatedAndReviewed(): void {
+		$rView = $this->view();
+		// Only the Bug category carries a logField, into extra_information.
+		$this->assertStringContainsString("logField: 'extra_information'", $rView);
+		$this->assertSame(1, substr_count($rView, 'logField:'), 'only one category attaches the log');
+		// The log section and its read is gated on the panel_logs permission.
+		$this->assertStringContainsString('$rCanAttachLog', $rView);
+		$this->assertStringContainsString("Authorization::check('adv', 'panel_logs')", (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/ReportIssueController.php'));
+		// The admin is told to review it before submitting.
+		$this->assertStringContainsString('report_issue_log_note', $rView);
 	}
 }

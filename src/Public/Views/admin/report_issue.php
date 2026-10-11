@@ -43,6 +43,16 @@ $rSecurityUrl = 'https://github.com/' . $rRepo . '/security/advisories/new';
                 <label class="form-label mb-1"><?= $language::get('report_issue_environment'); ?></label>
                 <pre class="bg-body-tertiary border rounded p-3 mb-0 small" id="issue-env"></pre>
             </div>
+            <?php if ($rCanAttachLog && $rLog !== ''): ?>
+            <div class="col-12" id="issue-log-wrap">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="issue-log-include" checked>
+                    <label class="form-check-label" for="issue-log-include"><?= $language::get('report_issue_log_include'); ?></label>
+                </div>
+                <pre class="bg-body-tertiary border rounded p-3 mb-1 small" id="issue-log" style="max-height: 16rem; overflow: auto;"></pre>
+                <div class="form-text"><?= $language::get('report_issue_log_note'); ?></div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
     <div class="card-footer d-flex align-items-center gap-3">
@@ -66,12 +76,14 @@ LayoutRenderer::renderFooter('admin');
     (function() {
         var repo = <?= json_encode($rRepo); ?>;
         var env = <?= json_encode($rEnvironment); ?>;
+        var log = <?= json_encode($rLog); ?>;
 
         // Per category: the issue form file, the title prefix the form uses,
-        // the id of its description field, and which env fields the form asks
-        // for (so a value is prefilled only where the form has that field).
+        // the id of its description field, which env fields the form asks for
+        // (so a value is prefilled only where the form has that field), and the
+        // field the recent error log attaches to (Bug only).
         var CATEGORIES = {
-            bug: { template: 'bug_report.yml', prefix: '[BUG]: ', descField: 'description', fields: ['version', 'build_type', 'environment'] },
+            bug: { template: 'bug_report.yml', prefix: '[BUG]: ', descField: 'description', fields: ['version', 'build_type', 'environment'], logField: 'extra_information' },
             feature: { template: 'feature_request.yml', prefix: '[FEATURE]: ', descField: 'description', fields: [] },
             docs: { template: 'documentation.yml', prefix: '', descField: 'description', fields: [] },
             other: { template: 'other.yml', prefix: '[OTHER]: ', descField: 'issuedescription', fields: ['version'] }
@@ -83,6 +95,12 @@ LayoutRenderer::renderFooter('admin');
         var envPre = document.getElementById('issue-env');
         var envWrap = document.getElementById('issue-env-wrap');
         var openBtn = document.getElementById('issue-open');
+        var logWrap = document.getElementById('issue-log-wrap');
+        var logPre = document.getElementById('issue-log');
+        var logChk = document.getElementById('issue-log-include');
+        if (logPre) {
+            logPre.textContent = log;
+        }
 
         // The environment block only goes on the forms that have the field (Bug).
         function refreshEnv() {
@@ -95,6 +113,10 @@ LayoutRenderer::renderFooter('admin');
                 envWrap.style.display = '';
             } else {
                 envWrap.style.display = 'none';
+            }
+            // The log attaches only to the Bug form, which has a field for it.
+            if (logWrap) {
+                logWrap.style.display = cat.logField ? '' : 'none';
             }
         }
 
@@ -122,6 +144,10 @@ LayoutRenderer::renderFooter('admin');
             }
             if (cat.fields.indexOf('environment') !== -1) {
                 params.set('environment', env.environment);
+            }
+            // The recent error log, when the form has a field for it and the admin kept it ticked.
+            if (cat.logField && log && logChk && logChk.checked) {
+                params.set(cat.logField, log);
             }
             return 'https://github.com/' + repo + '/issues/new?' + params.toString();
         }
