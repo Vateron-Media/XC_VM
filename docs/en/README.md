@@ -44,6 +44,7 @@ XC_VM helps you deploy a full IPTV infrastructure:
 - **KeyDB** — cache/session engine  
 - **FFmpeg 8.0** — transcoding  
 - **yt-dlp** — media acquiring  
+- **Deno** — JavaScript runtime for yt-dlp (YouTube)  
 
 XC_VM officially supports Ubuntu 22.04 and is tested on 24.04.
 

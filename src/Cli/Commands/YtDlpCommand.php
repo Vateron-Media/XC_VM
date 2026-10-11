@@ -3,6 +3,7 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Updates\GitHubReleases;
 
 /**
@@ -19,6 +20,9 @@ use XcVm\Core\Updates\GitHubReleases;
  * independent, needs a system python3). Polled ~daily by `cron:root_signals`
  * (stamp `ytdlp_check`), so no dedicated cron/crontab row is required.
  *
+ * It also installs deno (the JS runtime yt-dlp needs for YouTube) to
+ * /usr/local/bin/deno when it is missing; an existing deno is left alone.
+ *
  * Usage: `console.php ytdlp` (add `force` to reinstall the same version).
  *
  * @package XC_VM_CLI_Commands
@@ -31,13 +35,14 @@ class YtDlpCommand implements CommandInterface {
 	private const REPO_OWNER = 'yt-dlp';
 	private const REPO_NAME  = 'yt-dlp';
 	private const ASSET      = 'yt-dlp'; // python-zip variant (arch independent)
+	private const DENO_BIN   = '/usr/local/bin/deno';
 
 	public function getName(): string {
 		return 'ytdlp';
 	}
 
 	public function getDescription(): string {
-		return 'Install/update the yt-dlp binary from its upstream release';
+		return 'Install/update the yt-dlp binary from its upstream release (and deno if missing)';
 	}
 
 	public function execute(array $rArgs): int {
@@ -45,8 +50,57 @@ class YtDlpCommand implements CommandInterface {
 			echo "Please run as root!\n";
 			return 1;
 		}
-		$rForce = in_array('force', $rArgs, true);
+		return max($this->updateYtDlp(in_array('force', $rArgs, true)), $this->ensureDeno());
+	}
 
+	/**
+	 * Install deno once if it is missing. yt-dlp needs a JS runtime for YouTube's
+	 * mweb client: without one, some broadcasts do not resolve at all and the rest
+	 * fall back to android_vr, whose segments YouTube cuts off after ~30s.
+	 */
+	private function ensureDeno(): int {
+		if ($this->installedVersion(self::DENO_BIN) !== null) {
+			return 0;
+		}
+		$rTriple = ['x86_64' => 'x86_64-unknown-linux-gnu', 'aarch64' => 'aarch64-unknown-linux-gnu'][php_uname('m')] ?? null;
+		if ($rTriple === null) {
+			echo 'deno: no build for ' . php_uname('m') . " — skipping\n";
+			return 0;
+		}
+		$rAsset = 'deno-' . $rTriple . '.zip';
+		$rBase = 'https://github.com/denoland/deno/releases/latest/download/';
+		// Next to yt-dlp, not in /tmp: /tmp may be mounted noexec, which fails the run-test.
+		$rTmpDir = dirname(YOUTUBE_BIN) . '/.deno-install';
+		$rZip = $rTmpDir . '/' . $rAsset;
+		$rNew = $rTmpDir . '/deno';
+		@mkdir($rTmpDir, 0700);
+		try {
+			if (!$this->download($rBase . $rAsset, $rZip)) {
+				echo "deno: failed to download {$rAsset}\n";
+				return 1;
+			}
+			$rExpected = $this->expectedSha256($rBase . $rAsset . '.sha256sum', $rAsset);
+			if ($rExpected === null || !hash_equals($rExpected, hash_file('sha256', $rZip))) {
+				echo "deno: checksum missing or mismatched — aborting\n";
+				return 1;
+			}
+			// No zip extension in the bundled PHP; python3 is there for yt-dlp anyway.
+			ProcessRunner::capture(['python3', '-m', 'zipfile', '-e', $rZip, $rTmpDir]);
+			@chmod($rNew, 0755);
+			if ($this->installedVersion($rNew) === null || !@rename($rNew, self::DENO_BIN)) {
+				echo "deno: the downloaded binary does not run or cannot be installed\n";
+				return 1;
+			}
+			echo 'deno installed: ' . strtok((string) $this->installedVersion(self::DENO_BIN), "\n") . "\n";
+			return 0;
+		} finally {
+			@unlink($rZip);
+			@unlink($rNew);
+			@rmdir($rTmpDir);
+		}
+	}
+
+	private function updateYtDlp(bool $rForce): int {
 		$rBinary = YOUTUBE_BIN;
 		$rDir = dirname($rBinary);
 		if (!is_dir($rDir)) {
