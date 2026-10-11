@@ -13,6 +13,7 @@
  * list. Requires the jstree bundle (declared by RadioController).
  */
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Domain\Bouquet\BouquetService;
@@ -113,10 +114,12 @@ $rArg = static function (string $key, $rOptId) use ($rStationOptions, $rStationA
                             <input type="text" class="form-control opt-field" id="custom_sid" name="custom_sid" value="<?= $rIsEdit ? htmlspecialchars((string) $rStation['custom_sid'], ENT_QUOTES) : ''; ?>">
                         </div>
                     </div>
+                    <?php if (Authorization::isFullAdmin()): ?>
                     <div class="mb-6">
                         <label class="form-label" for="custom_ffmpeg"><?= $language::get('custom_ffmpeg_command'); ?></label>
                         <input type="text" class="form-control opt-field" id="custom_ffmpeg" name="custom_ffmpeg" value="<?= $rIsEdit ? htmlspecialchars((string) $rStation['custom_ffmpeg'], ENT_QUOTES) : ''; ?>">
                     </div>
+                    <?php endif; ?>
                     <div class="row mb-6">
                         <div class="col-md-6">
                             <label class="form-label" for="user_agent"><?= $language::get('user_agent'); ?></label>

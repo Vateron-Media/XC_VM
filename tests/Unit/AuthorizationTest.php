@@ -91,4 +91,21 @@ final class AuthorizationTest extends TestCase {
 		$this->assertTrue(Authorization::check('adv', 'export'));
 		$this->assertFalse(Authorization::check('adv', 'delete_all'));
 	}
+
+	// ── dropFfmpegArguments(): GHSA-q9p6-374v-3jrj ───────────────────
+
+	public function testRestrictedAdminCannotSetFfmpegArguments(): void {
+		$rData = ['stream_display_name' => 'x', 'custom_ffmpeg' => '-i a b', 'custom_map' => '-map 0', 'transcode_attributes' => '{}'];
+		$this->assertSame(['stream_display_name' => 'x'], Authorization::dropFfmpegArguments($rData));
+
+		$GLOBALS['rUserInfo']['member_group_id'] = 1;
+		$this->assertSame($rData, Authorization::dropFfmpegArguments($rData), 'Administrators group');
+
+		$GLOBALS['rUserInfo']['member_group_id'] = 2;
+		$GLOBALS['rPermissions']['advanced'] = [];
+		$this->assertSame($rData, Authorization::dropFfmpegArguments($rData), 'no advanced list = full admin');
+
+		$GLOBALS['rPermissions']['is_admin'] = 0;
+		$this->assertSame(['stream_display_name' => 'x'], Authorization::dropFfmpegArguments($rData), 'reseller');
+	}
 }

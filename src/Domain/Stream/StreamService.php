@@ -38,6 +38,7 @@ class StreamService {
 	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
 	 */
 	public static function process(array $rData) {
+		$rData = Authorization::dropFfmpegArguments($rData);
 		global $rSettings;
 		$db = self::db();
 		set_time_limit(0);
