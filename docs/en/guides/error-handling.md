@@ -167,6 +167,21 @@ generate404(false);  // 404, continue execution
 
 ---
 
+### Panel error pages: `ErrorResponder::respondPage()`
+
+A panel address that answers 403, 404, 405 or 429 sends a real error page to a browser that asked for a page, and the short or empty body it always sent to everything else.
+
+- `ErrorResponder::wantsHtml()` decides: the request accepts `text/html` and is not an XHR (`X-Requested-With: XMLHttpRequest`).
+- A browser gets `renderPage()`: one self-contained page (no script, nothing fetched) with the status, what it means and a link back.
+- Players, API clients and the panel's own Ajax key off the status code and keep their body: no stream path renders HTML.
+
+It is used where the panel answered with a bare string or a redirect: a page the account may not open (`Router::denyAccess()`, 403 instead of a silent redirect to the dashboard), an unknown page (404), a change sent with GET (405) and a playlist or guide download over its limit opened in a browser (429). It is not a status-code framework: other paths keep `generateError()`.
+
+```php
+ErrorResponder::emit(ErrorResponder::respondPage(403, 'Access denied', 'dashboard'));
+//                                             status, body for non-browsers, where "Back" leads
+```
+
 ## Logger Subsystem
 
 Defined in `src/Core/Logging/Logger.php`. A `final` class that registers three global PHP handlers to capture all runtime errors and log them to a file.
