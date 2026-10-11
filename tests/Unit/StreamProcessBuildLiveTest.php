@@ -192,6 +192,9 @@ final class StreamProcessBuildLiveTest extends TestCase {
 			['stream_info' => ['enable_transcode' => 1, 'transcode_profile_id' => -1, 'transcode_attributes' => json_encode(['-vf' => "x ; touch $proof", '; touch ' . $proof => 'x', 'gpu' => ['cmd' => "; touch $proof", 'device' => 0]])]],
 			// A token inside a quoted argument: the source's own quotes would close the argument's.
 			['stream_info' => ['custom_ffmpeg' => '-i "x{STREAM_SOURCE}y" -c copy pipe:1'], 'streamSource' => "http://a/;touch $proof;"],
+			// `$` in a pattern also matches before a final newline, which the shell ends a command at.
+			['stream_info' => ['custom_ffmpeg' => "-i {STREAM_SOURCE} \"{LOGO}\n\" sh -c \"touch $proof\" x"]],
+			['stream_info' => ['enable_transcode' => 1, 'transcode_profile_id' => -1, 'transcode_attributes' => json_encode(["-vf\n" => "sh -c \"touch $proof\" x"])]],
 		] as $ov) {
 			$out = $this->build($ov + ['ffmpegCpu' => '/bin/true', 'ffmpegGpu' => '/bin/true']);
 			// The real launch tail writes into STREAMS_PATH: cut it, run the rest.

@@ -178,7 +178,7 @@ class StreamUtils {
 		}
 		// A token inside a longer argument is not one: its value's quotes would
 		// close the argument's. `{` leaves the quotes there, so none is filled.
-		return implode(' ', array_map(fn($rArg) => preg_match('/^\{[A-Z0-9_]+\}$/', $rArg) ? $rArg : str_replace('{', "'\\{'", escapeshellarg($rArg)), $rTokens));
+		return implode(' ', array_map(fn($rArg) => preg_match('/^\{[A-Z0-9_]+\}$/D', $rArg) ? $rArg : str_replace('{', "'\\{'", escapeshellarg($rArg)), $rTokens));
 	}
 
 	/**
