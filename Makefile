@@ -131,6 +131,7 @@ LB_FILES_TO_REMOVE := \
 	Core/Enum/Theme.php \
 	Core/Enum/ResellerAction.php \
 	Core/Enum/ClientFilter.php \
+	Core/Localization/TranslationStore.php \
 	bin/nginx/conf/gzip.conf \
 	bin/nginx/conf/cluster_locations.conf
 

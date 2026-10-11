@@ -5,8 +5,15 @@ namespace XcVm\Core\Localization;
 /**
  * Translator — XC_VM multilingual support system.
  *
- * Loads translations from INI files, switches language via cookie,
- * automatically copies missing keys from en.ini into the current language.
+ * Loads translations from INI files, switches language via cookie, and shows
+ * the English text for a key the current language lacks.
+ *
+ * A language is read from two directories: the bundled one, which is part of
+ * the code and which every update replaces, and over it the custom one
+ * (config/lang/), which holds what an administrator uploaded or edited
+ * (TranslationStore). Nothing here writes a language file: a missing key used
+ * to be appended to the bundled file at runtime, and the Translations page
+ * lists what a language lacks instead.
  *
  * @package XC_VM\Core\Localization
  * @author Divarion_D <https://github.com/Divarion-D>
@@ -21,6 +28,9 @@ class Translator {
 
 	private static string $langsDir = __DIR__ . '/lang/';
 
+	/** @var string|null Custom translations directory; null: not resolved yet, '': none */
+	private static ?string $customDir = null;
+
 	/** @var string[] */
 	private static array $availableLanguages = [];
 
@@ -30,11 +40,16 @@ class Translator {
 	/**
 	 * Initialize translator: scans available languages, detects current from cookie.
 	 *
-	 * @param string|null $langsDir Path to .ini files directory
+	 * @param string|null $langsDir  Path to the bundled .ini files directory
+	 * @param string|null $customDir Path to the custom .ini files directory, read over
+	 *                               the bundled one. A caller that names the bundled
+	 *                               directory (a test) names this one too, or has none:
+	 *                               the panel's own config/lang/ is not read or written for it.
 	 */
-	public static function init(?string $langsDir = null): void {
+	public static function init(?string $langsDir = null, ?string $customDir = null): void {
 		if ($langsDir !== null) {
 			self::$langsDir = rtrim($langsDir, '/') . '/';
+			self::$customDir = $customDir !== null ? rtrim($customDir, '/') . '/' : '';
 			self::$enTranslations = null; // Directory changed — drop the cached en.ini
 		}
 
@@ -70,7 +85,7 @@ class Translator {
 	}
 
 	/**
-	 * Get translation by key. If missing — copies from en.ini into current language.
+	 * Get translation by key. If missing — the English text, else the key itself.
 	 *
 	 * @param string $key Translation key
 	 * @param array<string, string> $replace Substitutions for strtr()
@@ -112,13 +127,63 @@ class Translator {
 	}
 
 	/**
-	 * Scan langs directory for .ini files.
+	 * @return string Bundled language files directory (part of the code)
+	 */
+	public static function bundledDir(): string {
+		return self::$langsDir;
+	}
+
+	/**
+	 * @return string Custom language files directory (config/lang/), or '' when there is none
+	 */
+	public static function customDir(): string {
+		// Resolved on first use: the bootstrap defines CONFIG_PATH, not the class loader.
+		return self::$customDir ??= defined('CONFIG_PATH') ? CONFIG_PATH . 'lang/' : '';
+	}
+
+	/**
+	 * Whether a value read from a language file translates its key. A value that
+	 * only repeats the English text, or the key itself, is what an exported file
+	 * holds for a key it lacks (and what the runtime once wrote for one), and is
+	 * no translation.
+	 */
+	public static function translates(string $key, string $value): bool {
+		return $value !== '' && $value !== $key && $value !== (self::englishTranslations()[$key] ?? null);
+	}
+
+	/**
+	 * A language as the panel shows it: its bundled file under its custom one.
+	 *
+	 * @param string $lang Language code
+	 * @return array<string, string>|null null when neither directory has the language
+	 */
+	public static function load(string $lang): ?array {
+		$bundled = self::readFile(self::$langsDir . $lang . '.ini');
+		$custom = self::customDir() !== '' ? self::readFile(self::customDir() . $lang . '.ini') : null;
+
+		return $custom === null ? $bundled : $custom + ($bundled ?? []);
+	}
+
+	/**
+	 * @return array<string, string>|null Parsed .ini file, null when it cannot be read
+	 */
+	public static function readFile(string $file): ?array {
+		$data = is_readable($file) ? @parse_ini_file($file, false, INI_SCANNER_RAW) : false;
+
+		return ($data !== false) ? $data : null;
+	}
+
+	/**
+	 * Scan the bundled and the custom directory for .ini files.
 	 *
 	 * @return string[]
 	 */
-	private static function scanAvailableLanguages(): array {
+	public static function scanAvailableLanguages(): array {
 		$languages = [];
 		$files = glob(self::$langsDir . '*.ini') ?: [];
+		if (self::customDir() !== '') {
+			$files = array_merge($files, glob(self::customDir() . '*.ini') ?: []);
+		}
 
 		foreach ($files as $file) {
 			if (is_file($file) && is_readable($file)) {
@@ -126,7 +191,7 @@ class Translator {
 			}
 		}
 
-		$languages = array_unique($languages);
+		$languages = array_values(array_unique($languages));
 		if ($languages === []) {
 			return ['en'];
 		}
@@ -135,101 +200,40 @@ class Translator {
 	}
 
 	/**
-	 * Load translations from .ini file into $translations. Falls back to en.ini.
+	 * Load a language (load()) into $translations. Falls back to en.ini.
 	 *
 	 * @param string $lang Language code
 	 */
 	private static function loadLanguage(string $lang): void {
-		$file = self::$langsDir . $lang . '.ini';
+		$data = self::load($lang);
 
-		if (!is_readable($file)) {
+		if ($data === null) {
 			// The requested file is gone — fall back to English and report it as
 			// the active language so current() never lies about what is loaded.
-			$file = self::$langsDir . 'en.ini';
 			self::$currentLang = 'en';
+			$data = self::load('en');
 		}
 
-		$data = parse_ini_file($file, false, INI_SCANNER_RAW);
-		self::$translations = ($data !== false) ? $data : [];
+		self::$translations = $data ?? [];
 	}
 
 	/**
 	 * Resolve a key that is absent from the current language.
 	 *
-	 * The key is always backfilled into the active language file so a developer
-	 * or translator can see exactly which strings still need work. The stored
-	 * value is the English source when it exists, otherwise the key itself acts
-	 * as a visible placeholder marking an untranslated (or undefined) string.
-	 *
 	 * @param string $key Translation key
-	 * @return string English value if known, otherwise the key itself
+	 * @return string English value if known, otherwise the key itself: a visible mark of an undefined string
 	 */
 	private static function resolveMissingKey(string $key): string {
-		$enValue = self::englishTranslations()[$key] ?? null;
-
-		self::appendKeyToLanguageFile($key, $enValue ?? $key);
-
-		return $enValue ?? $key;
+		return self::englishTranslations()[$key] ?? $key;
 	}
 
 	/**
-	 * Read en.ini once per request and cache it — every missing-key lookup would
-	 * otherwise re-parse the whole file from disk.
+	 * Read the bundled en.ini once per request and cache it — every missing-key
+	 * lookup would otherwise re-parse the whole file from disk.
 	 *
 	 * @return array<string, string>
 	 */
-	private static function englishTranslations(): array {
-		if (self::$enTranslations === null) {
-			$enFile = self::$langsDir . 'en.ini';
-			$data = is_readable($enFile)
-				? parse_ini_file($enFile, false, INI_SCANNER_RAW)
-				: false;
-			self::$enTranslations = ($data !== false) ? $data : [];
-		}
-
-		return self::$enTranslations;
-	}
-
-	/**
-	 * Append "key = value" to the current language file if it is not already there.
-	 *
-	 * The whole read-check-append runs under a single LOCK_EX so concurrent
-	 * requests cannot each pass a stale "key absent" check and write duplicate
-	 * lines — the flaw of checking the file before locking it.
-	 *
-	 * @param string $key   Translation key
-	 * @param string $value Value to store: the English source, or the key itself as a placeholder
-	 */
-	private static function appendKeyToLanguageFile(string $key, string $value): void {
-		$file = self::$langsDir . self::$currentLang . '.ini';
-
-		// 'c+' opens for read/write, creates the file if absent, and never
-		// truncates — so the exclusive lock can guard the check-then-append.
-		$fp = fopen($file, 'c+');
-		if ($fp === false) {
-			return;
-		}
-
-		if (!flock($fp, LOCK_EX)) {
-			fclose($fp);
-			return;
-		}
-
-		$content = stream_get_contents($fp) ?: '';
-		$alreadyPresent = str_contains($content, "\n{$key} =")
-			|| str_starts_with($content, "{$key} =");
-
-		if (!$alreadyPresent) {
-			$prefix = ($content === '')
-				? "; " . self::$currentLang . " language file\n"
-				: (str_ends_with($content, "\n") ? '' : "\n");
-			// Escape quotes so the closing quote is not parsed prematurely; keys
-			// are developer-controlled, so no further sanitisation is needed.
-			$escaped = str_replace('"', '\\"', $value);
-			fwrite($fp, "{$prefix}{$key} = \"{$escaped}\"\n");
-		}
-
-		flock($fp, LOCK_UN);
-		fclose($fp);
+	public static function englishTranslations(): array {
+		return self::$enTranslations ??= self::readFile(self::$langsDir . 'en.ini') ?? [];
 	}
 }

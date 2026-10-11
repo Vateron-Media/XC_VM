@@ -4,12 +4,12 @@ use XcVm\Core\Localization\Translator;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Translator — INI-backed i18n with automatic backfill. Drives it against a
+ * Translator — INI-backed i18n with an English fallback. Drives it against a
  * throwaway langs directory (en.ini + a partial ru.ini) to cover language
  * detection/switching, placeholder substitution, and the key behaviour it was
- * hardened for: a missing key is copied into the active language file (English
- * value, or the key itself as a visible placeholder) so translators can see
- * what still needs work.
+ * hardened for: a missing key is copied into the active language's custom file
+ * (English value, or the key itself as a visible placeholder) so translators
+ * can see what still needs work. The bundled directory is never written.
  */
 final class TranslatorTest extends TestCase {
 
@@ -24,9 +24,10 @@ final class TranslatorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		foreach (glob($this->dir . '/*') ?: [] as $f) {
+		foreach (array_merge(glob($this->dir . '/custom/*') ?: [], glob($this->dir . '/*.ini') ?: []) as $f) {
 			unlink($f);
 		}
+		@rmdir($this->dir . '/custom');
 		@rmdir($this->dir);
 		unset($_COOKIE['lang']);
 		// The panel's own strings again, for the tests that run after this one.
@@ -71,24 +72,30 @@ final class TranslatorTest extends TestCase {
 		$this->assertSame('ru', Translator::current());
 	}
 
-	public function testMissingKeyBackfillsEnglishValueIntoActiveLanguage(): void {
+	public function testMissingKeyIsTheEnglishTextAndNoFileIsWritten(): void {
 		$_COOKIE['lang'] = 'ru';
-		Translator::init($this->dir);
+		Translator::init($this->dir, $this->dir . '/custom');
 
-		// 'name' exists in en.ini but not ru.ini → returns the English source
+		// 'name' exists in en.ini but not ru.ini → the English source. It used
+		// to be appended to ru.ini; no language file is written at runtime now.
 		$this->assertSame('Name', Translator::get('name'));
-
-		// ...and is appended to ru.ini so the gap is visible to translators.
-		$ru = file_get_contents($this->dir . '/ru.ini');
-		$this->assertStringContainsString('name = "Name"', $ru);
+		$this->assertDirectoryDoesNotExist($this->dir . '/custom');
+		$this->assertSame("greeting = \"Привет\"\n", file_get_contents($this->dir . '/ru.ini'));
 	}
 
-	public function testUnknownKeyBackfillsItselfAsPlaceholder(): void {
+	public function testUnknownKeyIsItselfAndNoFileIsWritten(): void {
+		Translator::init($this->dir, $this->dir . '/custom');
+
+		$this->assertSame('totally_new_key', Translator::get('totally_new_key'));
+		$this->assertDirectoryDoesNotExist($this->dir . '/custom');
+		$this->assertStringNotContainsString('totally_new_key', file_get_contents($this->dir . '/en.ini'));
+	}
+
+	public function testWithoutACustomDirectoryNothingIsWritten(): void {
 		Translator::init($this->dir);
 
 		$this->assertSame('totally_new_key', Translator::get('totally_new_key'));
-
-		$en = file_get_contents($this->dir . '/en.ini');
-		$this->assertStringContainsString('totally_new_key = "totally_new_key"', $en);
+		$this->assertSame(['en.ini', 'ru.ini'], array_map('basename', glob($this->dir . '/*') ?: []));
+		$this->assertStringNotContainsString('totally_new_key', file_get_contents($this->dir . '/en.ini'));
 	}
 }
