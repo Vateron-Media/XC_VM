@@ -60,6 +60,25 @@ use XcVm\Core\Util\LayoutRenderer;
 
 <div class="card mb-6">
     <div class="card-header">
+        <h5 class="card-title mb-1"><?= $language::get('translation_add'); ?></h5>
+        <p class="mb-0 text-body-secondary"><?= $language::get('translation_add_intro'); ?></p>
+    </div>
+    <div class="card-body">
+        <form id="translation-add-form" class="row g-3" autocomplete="off">
+            <div class="col-md-4">
+                <label class="form-label" for="translation-add-code"><?= $language::get('translation_code'); ?></label>
+                <input type="text" class="form-control" id="translation-add-code" maxlength="8" pattern="[a-z]{2,3}(-[A-Za-z]{2,4})?" placeholder="tr" required>
+                <div class="form-text"><?= $language::get('translation_code_hint'); ?></div>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary"><?= $language::get('translation_add_button'); ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-6">
+    <div class="card-header">
         <h5 class="card-title mb-1"><?= $language::get('translation_upload'); ?></h5>
         <p class="mb-0 text-body-secondary"><?= $language::get('translation_upload_intro'); ?></p>
     </div>
@@ -89,6 +108,7 @@ use XcVm\Core\Util\LayoutRenderer;
             <input class="form-check-input" type="checkbox" id="translation-missing">
             <label class="form-check-label" for="translation-missing"><?= $language::get('translation_missing_only'); ?></label>
         </div>
+        <button type="button" class="btn btn-sm btn-label-secondary" id="translation-copy-english"><?= $language::get('translation_copy_english'); ?></button>
         <button type="button" class="btn btn-sm btn-primary" id="translation-save" disabled><?= $language::get('save_changes'); ?></button>
     </div>
     <div class="table-responsive">
@@ -134,6 +154,7 @@ LayoutRenderer::renderFooter('admin');
         var lang = null; // the language in the editor
         var rows = {}; // key => {tr, input, value (as stored), text (what the search looks in)}
         var dirty = {}; // key => the value typed, for the rows that differ from what is stored
+        var english = {}; // key => the English text, for "Copy English"
 
         function request(action, options) {
             options.headers = Object.assign({
@@ -174,6 +195,7 @@ LayoutRenderer::renderFooter('admin');
                     return;
                 }
                 lang = code;
+                english = d.english;
                 rows = {};
                 dirty = {};
                 var fragment = document.createDocumentFragment();
@@ -292,6 +314,44 @@ LayoutRenderer::renderFooter('admin');
             }).catch(function() {
                 failed(null);
             });
+        });
+
+        // Add a language: open the editor on a new (or existing) code, starting
+        // from English. The server fills English for every key and whatever the
+        // code already translates (nothing, for a new one); Save writes
+        // config/lang/<code>.ini. No file is created until the first Save.
+        document.getElementById('translation-add-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var input = document.getElementById('translation-add-code');
+            var code = input.value.trim();
+            if (!input.checkValidity() || code === '') {
+                input.reportValidity();
+                return;
+            }
+            if (unsaved() && !window.confirm(text.discard)) {
+                return;
+            }
+            load(code).then(function() {
+                editor.scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Copy English into the cells with no translation yet, as a starting
+        // point to edit from; existing translations are left untouched. A value
+        // left as the English text is dropped on save (it is no translation),
+        // so this only helps the translator see each string in place.
+        document.getElementById('translation-copy-english').addEventListener('click', function() {
+            Object.keys(rows).forEach(function(key) {
+                var row = rows[key];
+                if (row.input.value === '' && typeof english[key] === 'string') {
+                    row.input.value = english[key];
+                    dirty[key] = english[key];
+                    row.input.classList.add('border-warning');
+                }
+            });
+            showUnsaved();
         });
 
         window.addEventListener('beforeunload', function(e) {
