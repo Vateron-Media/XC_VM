@@ -1,7 +1,7 @@
 name: "Security Vulnerability Report"
 description: "Report a security vulnerability. For critical issues, prefer private disclosure."
 title: "[SECURITY]: "
-labels: ["security", "bug"]
+labels: ["security", "bug", "awaiting triage"]
 
 body:
   - type: markdown

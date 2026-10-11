@@ -11,38 +11,24 @@ name: CI
 # pull_request trigger. The concurrency group cancels superseded in-flight runs
 # on rapid re-pushes / new commits to the same ref.
 #
-# `paths-ignore` (blocklist, NOT an allowlist) skips CI only when EVERY changed
-# file is documentation. Any commit that also touches code still runs the full
-# gate — so this can never silently disable checks for a real source change. Do
-# not switch this to a `src/**` allowlist: the result also depends on tools/,
-# tests/, Makefile, composer.json/lock, build/phpcs.xml.dist and build/phpstan.dist.neon.
+# The `changes` job decides whether a change touches code; when it does not,
+# every gate job is skipped. Not `paths-ignore`: main's branch protection
+# requires five of these checks, and a workflow skipped by `paths-ignore` never
+# reports them, so a docs-only PR waited on them forever. A job skipped by `if:`
+# counts as passed for a required check.
 #
-# Other workflows are listed by name rather than as `.github/workflows/**`, so
-# an edit to ci.yml itself still runs CI; a newly added workflow runs CI until
-# it is listed here (the safe direction).
+# The list in `changes` is a blocklist, NOT an allowlist: the gates are skipped
+# only when EVERY changed file is non-code, so a change that also touches code
+# always runs them. Do not switch it to a `src/**` allowlist: the result also
+# depends on tools/, tests/, Makefile, composer.json/lock, build/phpcs.xml.dist
+# and build/phpstan.dist.neon. Other workflows are listed by name rather than as
+# `.github/workflows/*`, so an edit to ci.yml itself still runs CI; a newly
+# added workflow runs CI until it is listed there (the safe direction). If
+# `changes` fails or cannot diff, the gates run.
 on:
   push:
     branches: [main]
-    paths-ignore: &non-code
-      - 'docs/**'
-      - '**/*.md'
-      - 'LICENSE'
-      - 'mkdocs.yml'
-      - '.claude/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/CODEOWNERS'
-      - '.github/dependabot.yml'
-      - '.github/workflows/add-to-project.yml'
-      - '.github/workflows/build-dev.yml'
-      - '.github/workflows/build-release.yml'
-      - '.github/workflows/build_pre-release.yml'
-      - '.github/workflows/contributors.yml'
-      - '.github/workflows/move-to-review.yml'
-      - '.github/workflows/pages.yml'
-      - '.github/workflows/release-notifier.yml'
-      - '.github/workflows/security-scan.yml'
   pull_request:
-    paths-ignore: *non-code
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -52,8 +38,48 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect code changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      # A PR is checked out as its merge commit, so HEAD^1 is the base it merges
+      # into; a push to main diffs against the commit main was at before it.
+      - name: List changed files
+        id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          code=true
+          base=HEAD^1
+          if [ "$EVENT" = push ]; then
+            base=$BEFORE
+            git fetch -q --depth=1 origin "$BEFORE" || base=
+          fi
+          if [ -n "$base" ] && files=$(git diff --name-only "$base" HEAD) && [ -n "$files" ]; then
+            code=false
+            while IFS= read -r f; do
+              case "$f" in
+                docs/*|*.md|LICENSE|mkdocs.yml|.claude/*|.github/ISSUE_TEMPLATE/*|.github/CODEOWNERS|.github/dependabot.yml) ;;
+                .github/workflows/add-to-project.yml|.github/workflows/build-dev.yml|.github/workflows/build-release.yml|.github/workflows/build_pre-release.yml) ;;
+                .github/workflows/contributors.yml|.github/workflows/move-to-review.yml|.github/workflows/pages.yml|.github/workflows/release-notifier.yml|.github/workflows/security-scan.yml) ;;
+                *) code=true; break ;;
+              esac
+            done <<< "$files"
+          fi
+          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
+
   phpstan:
     name: PHPStan (static analysis)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -78,6 +104,8 @@ jobs:
 
   code-style:
     name: Code Style (phpcs + Slevomat)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -103,6 +131,8 @@ jobs:
 
   psr4-gates:
     name: PSR-4 Regression Gates
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -124,6 +154,8 @@ jobs:
 
   composer-audit:
     name: Composer Security Audit
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -153,6 +185,8 @@ jobs:
 
   test:
     name: PHPUnit
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     # The tests run on the database engine production runs (tests/Support/TestDb.php).
     services:
@@ -211,6 +245,8 @@ jobs:
   # CI runs the same against this repository's main.
   agent-interop:
     name: Agent interop (XC_VM_Fanout)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     services:
       mariadb:
