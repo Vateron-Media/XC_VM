@@ -25,6 +25,9 @@ final class ModuleCoreRequirementTest extends TestCase {
 			'caret is unreadable'      => ['^2.6', '2.6.0', false],
 			'nightly counts as release' => ['>=2.6.1', '2.6.1-dev.3', true],
 			'nightly is not the next'  => ['>=2.6.2', '2.6.1-dev.3', false],
+			'patch build counts as release' => ['=2.6.1', '2.6.1-p2', true],
+			'patch build within a bound' => ['>=2.6.0 <=2.6.1', '2.6.1-p14', true],
+			'patch build is not the next' => ['>=2.6.2', '2.6.1-p2', false],
 		];
 	}
 
