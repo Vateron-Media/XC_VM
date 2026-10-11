@@ -178,6 +178,57 @@ jobs:
           make lb LAST_TAG="${BASE}"
           make main LAST_TAG="${BASE}"
 
+      # A patch is a small update, not a re-download of the whole panel. The
+      # updater overlays the archive onto the live tree (src/update: `cp -a`,
+      # never a wipe) and then runs post-update, so the update archives only
+      # need the files that changed since the base release. XC_VM.zip stays the
+      # full installer — a fresh install lays down the whole tree — so only
+      # xc_vm.tar.gz and loadbalancer.tar.gz (what the updater downloads) are
+      # reduced to a delta here, and hashes.md5 is rebuilt over the result.
+      - name: Reduce the update archives to a delta
+        run: |
+          set -euo pipefail
+          rm -rf .delta && mkdir -p .delta/main .delta/lb
+          tar -xzf dist/xc_vm.tar.gz -C .delta/main
+          tar -xzf dist/loadbalancer.tar.gz -C .delta/lb
+
+          # Files changed under src/ since the base release, as the tree stores them.
+          mapfile -t CHANGED < <(git diff --name-only --diff-filter=ACMRT "refs/tags/${BASE}..${SHA}" -- src/ | sed 's#^src/##')
+          # Always ship the version file: it is stamped to the patch version even
+          # when it did not change between the base release and this commit.
+          CHANGED+=("Core/Config/ConstantsInitializer.php")
+          # Ship the deleted-files list only when the patch removes a file, so
+          # post-update's cleanup (MigrationRunner::runFileCleanup) takes it out.
+          if git diff --name-only --diff-filter=D "refs/tags/${BASE}..${SHA}" -- src/ | grep -q .; then
+            CHANGED+=("migrations/deleted_files.txt")
+          fi
+          mapfile -t CHANGED < <(printf '%s\n' "${CHANGED[@]}" | sort -u)
+
+          # Keep each changed file that the full build actually ships (a MAIN-only
+          # file is not in the LB tree), in the archive's ./-rooted layout.
+          : > .delta/main.list; : > .delta/lb.list
+          for f in "${CHANGED[@]}"; do
+            [ -e ".delta/main/$f" ] && printf './%s\n' "$f" >> .delta/main.list || true
+            [ -e ".delta/lb/$f" ] && printf './%s\n' "$f" >> .delta/lb.list || true
+          done
+          grep -qx "./Core/Config/ConstantsInitializer.php" .delta/main.list \
+            || { echo "::error::the stamped version file is missing from the MAIN delta"; exit 1; }
+
+          tar -C .delta/main --owner=0 --group=0 -czf dist/xc_vm.tar.gz -T .delta/main.list
+          tar -C .delta/lb   --owner=0 --group=0 -czf dist/loadbalancer.tar.gz -T .delta/lb.list
+
+          # Rebuild the hash file over the final assets (the updater refuses an
+          # asset hashes.md5 does not list); the full installer is unchanged.
+          ( cd dist && for a in XC_VM.zip xc_vm.tar.gz loadbalancer.tar.gz; do
+              md5sum "$a" | awk -v n="$a" '{print $1, n}'
+            done > hashes.md5 )
+
+          echo "MAIN delta: $(wc -l < .delta/main.list) files ($(du -h dist/xc_vm.tar.gz | cut -f1))"
+          echo "LB delta:   $(wc -l < .delta/lb.list) files ($(du -h dist/loadbalancer.tar.gz | cut -f1))"
+          tar -tzf dist/xc_vm.tar.gz | sed 's/^/  main: /'
+          tar -tzf dist/loadbalancer.tar.gz | sed 's/^/  lb: /'
+          rm -rf .delta
+
       - name: Write changelog and release notes
         run: |
           set -euo pipefail
