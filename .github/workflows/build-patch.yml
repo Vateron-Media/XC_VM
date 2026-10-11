@@ -200,13 +200,19 @@ jobs:
           # failure here aborts the build rather than shipping a wrong delta.
           gh release download "$BASE" -R "$GITHUB_REPOSITORY" -p xc_vm.tar.gz -p loadbalancer.tar.gz -D .delta/base
 
-          # Files removed from the codebase since the base release. Scoped to
-          # tracked src/ on purpose: a tracked source file is safe to delete on
-          # the live tree, where a built-tree difference (a runtime or generated
-          # path) is not — post-update rm's whatever deleted_files.txt lists, so
-          # it must never carry a config/content/bin path. The overlay cannot
-          # remove a file, so these go to the shipped deleted_files.txt.
-          mapfile -t DELETED < <(git diff --name-only --diff-filter=D "refs/tags/${BASE}..${SHA}" -- src/ | sed 's#^src/##')
+          # Files removed from the codebase since the base release, so a patch
+          # that deletes (or renames away) a file — a vulnerable script, say —
+          # does not leave it deployed. The overlay cannot remove a file, so
+          # these are added to the shipped deleted_files.txt.
+          #
+          # Produced by the SAME pipeline as `make generate_deleted_files`
+          # (--name-status --no-renames, awk on 'D', strip src/): identical to
+          # the lines the committed list already holds, so there is no format
+          # differential for MigrationRunner::runFileCleanup to trip on, and
+          # --no-renames makes a rename list its old path as a deletion. Scoped
+          # to tracked src/: the live cleanup rm's whatever this lists, so it
+          # must never carry a runtime config/content/bin path.
+          mapfile -t DELETED < <(git diff --name-status --no-renames "refs/tags/${BASE}..${SHA}" -- src/ | awk '$1 == "D" { sub(/^src\//, "", $2); print $2 }')
 
           # <patch archive> <base archive> <out archive> <kind> <append-deletions>:
           # <out> gets the files new or changed vs the base tree — by content,
