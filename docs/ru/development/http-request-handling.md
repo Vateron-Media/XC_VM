@@ -1,10 +1,10 @@
-# Обработка HTTP-запросов
+# <a id="http-request-handling"></a>Обработка HTTP-запросов
 
 В этом документе описывается, как HTTP-запросы обрабатываются в XC_VM, охватывая полный жизненный цикл от первоначального ввода до маршрутизации и отправки. В зависимости от типа запроса существует несколько путей выполнения.
 
 ---
 
-## Обзор
+## <a id="overview"></a>Обзор
 
 Уровень HTTP построен из этих основных компонентов:
 
@@ -21,7 +21,7 @@
 
 ---
 
-## Поток запросов: Страницы администратора/панели управления
+## <a id="request-flow-adminpanel-pages"></a>Поток запросов: Страницы администратора/панели управления
 
 Точка входа: `src/Public/index.php`
 
@@ -49,7 +49,7 @@ nginx -> Public/index.php
   -> Controller handler
 ```
 
-### Ключевая деталь: санитарная обработка входных данных
+### <a id="key-detail-input-sanitization"></a>Ключевая деталь: санитарная обработка входных данных
 
 В процессе производственного администрирования не используется `Request::capture()`. Вместо этого `LegacyInitializer::initCore()` управляет обработкой входных данных:
 
@@ -61,7 +61,7 @@ nginx -> Public/index.php
 
 ---
 
-## Поток запросов: REST API
+## <a id="request-flow-rest-api"></a>Поток запросов: REST API
 
 Точка входа: `src/Public/index.php` (короткое замыкание перед маршрутизатором)
 
@@ -85,7 +85,7 @@ module-owned serverSide table is therefore reachable over REST. `AdminApiControl
 
 ---
 
-## Поток запросов: Потоковая передача
+## <a id="request-flow-streaming"></a>Поток запросов: Потоковая передача
 
 Точка входа: `www/stream/*.php` конечных точек или `Public/index.php` для `player_api`
 
@@ -113,7 +113,7 @@ nginx -> StreamingRequestBootstrap::init($filename)
 
 Процедурный защитный скрипт, включенный ранее в устаревший bootstrap. Выполняется только для HTTP-запросов (пропускается, если установлено значение `$_SERVER['argc']`, указывающее на CLI).
 
-### Обязанности
+### <a id="responsibilities"></a>Обязанности
 
 1. **Защита от наводнений** -- Если файл `FLOOD_TMP_PATH/block_{IP}` существует, запрос отклоняется по протоколу HTTP 403.
 2. **Загрузка кэша настроек** -- Считывает `$rSettings` из кэша файлов, сериализованных в igbinary, по адресу `CACHE_TMP_PATH/settings`.
@@ -131,7 +131,7 @@ nginx -> StreamingRequestBootstrap::init($filename)
 
 Предоставляет статические методы для очистки входных данных и проверки на уровне действий.
 
-### Методы санитарной обработки
+### <a id="sanitization-methods"></a>Методы санитарной обработки
 
 |Метод|Описание|
 | --- | --- |
@@ -140,7 +140,7 @@ nginx -> StreamingRequestBootstrap::init($filename)
 | `parseCleanKey($key)` |Удаляет двойные точки, узоры `__wrapped__`, применяет `htmlspecialchars(urldecode())`.|
 | `parseCleanValue($value)` |Удаляет теги `<script`, HTML-комментарии, нормализует разрывы строк, обрабатывает кодировку объектов.|
 
-### Подтверждение действия
+### <a id="action-validation"></a>Подтверждение действия
 
 |Метод|Описание|
 | --- | --- |
@@ -156,7 +156,7 @@ nginx -> StreamingRequestBootstrap::init($filename)
 
 Статический интерфейс, в котором хранятся объединенные данные запроса GET+POST. Это основной шаблон доступа к данным запроса, используемый во всей базе кода.
 
-### Как данные попадают в
+### <a id="how-data-gets-in"></a>Как данные попадают в
 
 `LegacyInitializer::initCore()` вызовы:
 
@@ -167,7 +167,7 @@ RequestManager::set(InputValidator::parseIncomingRecursively($_POST, $rInput));
 
 Параметры POST переопределяют параметры GET с помощью того же ключа (POST объединяется поверх GET).
 
-### интерфейс прикладного программирования
+### <a id="api"></a>интерфейс прикладного программирования
 
 |Метод|Описание|
 | --- | --- |
@@ -176,7 +176,7 @@ RequestManager::set(InputValidator::parseIncomingRecursively($_POST, $rInput));
 | `get(string $key, $default = null)` |Извлеките одно значение по ключу.|
 | `update(string $key, $value)` |Обновите один ключ в сохраненных данных.|
 
-### Использование
+### <a id="usage"></a>Использование
 
 ```php
 // Read a request parameter
@@ -197,7 +197,7 @@ RequestManager::update('status', 'active');
 
 Объектно-ориентированная оболочка запроса. Содержит статическую фабрику `capture()` и методы экземпляра для доступа к обработанным входным данным. Хотя класс существует и полностью функционален, в основном производственном потоке вместо него используются `InputValidator` + `RequestManager`. Методы статической очистки класса `Request` (`cleanGlobals`, `parseIncomingRecursively`) используются `LegacyInitializer::initStreaming()` для обеспечения обратной совместимости.
 
-### Строительство
+### <a id="construction"></a>Строительство
 
 ```php
 // Static factory (singleton, not used in production admin flow)
@@ -207,7 +207,7 @@ $request = Request::capture();
 $request = new Request($_GET, $_POST, $_SERVER, $_COOKIE);
 ```
 
-### Методы экземпляра
+### <a id="instance-methods"></a>Методы экземпляра
 
 |Метод|Подпись|Описание|
 | --- | --- | --- |
@@ -230,7 +230,7 @@ $request = new Request($_GET, $_POST, $_SERVER, $_COOKIE);
 | `rawBody` | `rawBody()` |Необработанный текст сообщения из `php://input`|
 | `json` | `json($assoc = true)` |Текст СООБЩЕНИЯ, декодированный в формате JSON|
 
-### Методы статической дезинфекции (обратная совместимость)
+### <a id="static-sanitization-methods-backward-compatibility"></a>Методы статической дезинфекции (обратная совместимость)
 
 Они отражают `InputValidator` и используются путем потоковой инициализации:
 
@@ -249,7 +249,7 @@ $request = new Request($_GET, $_POST, $_SERVER, $_COOKIE);
 
 Одноэлементный маршрутизатор для отправки страниц и API. Заменяет устаревший шаблон `switch($rAction)`.
 
-### Регистрация маршрута
+### <a id="route-registration"></a>Регистрация маршрута
 
 |Метод|Подпись|Описание|
 | --- | --- | --- |
@@ -268,7 +268,7 @@ $request = new Request($_GET, $_POST, $_SERVER, $_COOKIE);
 - `'permission' => ['type', 'key']` -- проверяется с помощью `Authorization::check()` перед запуском обработчика
 - `'middleware' => [callable, ...]` -- массив вызываемых объектов, выполняемых после проверки прав доступа, перед обработчиком
 
-### Примеры маршрутов
+### <a id="route-examples"></a>Примеры маршрутов
 
 ```php
 $router = Router::getInstance();
@@ -292,7 +292,7 @@ $router->group('watch', function (Router $r) {
 ]);
 ```
 
-### Нормализация маршрута
+### <a id="route-normalization"></a>Нормализация маршрута
 
 Маршрутизатор нормализует устаревшие названия страниц, преобразуя символы подчеркивания в косые черты:
 
@@ -307,7 +307,7 @@ $router->group('watch', function (Router $r) {
 
 Правила доступа к страницам пишутся одинаково: `PageAuthorization` отображает правило страницы под его названием, обозначенным подчеркиванием, поэтому `line/mass`, `line_mass` и `line_mass.php` используют одно и то же правило. Новая страница администратора или торгового посредника, на которую требуется разрешение, получает доступ к `PageAuthorization` (или к `permission`); страница, на которой нет ни того, ни другого, остается открытой для каждой группы на этой панели. Смотрите [Разрешения и RBAC](../guides/permissions-and-rbac.md).
 
-### Отправка
+### <a id="dispatch"></a>Отправка
 
 ```php
 // Page dispatch (called from Public/index.php)
@@ -317,7 +317,7 @@ $router->dispatch($pageName, $method);    // returns true if matched
 $router->dispatchApi($action);            // returns true if matched
 ```
 
-#### `dispatch($page, $method)` порядок исполнения
+#### <a id="dispatchpage-method-execution-order"></a>`dispatch($page, $method)` порядок исполнения
 
 1. Нормализовать `$page` (символы подчеркивания заменить косыми чертами, зачеркнуть `.php`).
 2. Посмотрите в разделе POST routes (если используется метод POST) или GET routes. Если POST route не найден, вернитесь к GET routes.
@@ -325,7 +325,7 @@ $router->dispatchApi($action);            // returns true if matched
 4. **Выполнение промежуточного программного обеспечения**. Вызывается каждый вызываемый объект в массиве `middleware`. Если какой-либо из них возвращает значение `false`, выполнение прекращается.
 5. **Вызов обработчика** через `callHandler()`.
 
-#### `dispatchApi($action)` порядок исполнения
+#### <a id="dispatchapiaction-execution-order"></a>`dispatchApi($action)` порядок исполнения
 
 1. Найдите в API маршруты по названию действия.
 2. **Проверка прав доступа**. Если отказано, выводит `{"result": false}` и завершает работу.
@@ -335,13 +335,13 @@ $router->dispatchApi($action);            // returns true if matched
 
 Конечные точки в формате JSON на панели администратора `?action=` регистрируются таким образом и обрабатываются выделенными контроллерами в соответствии с `XcVm\Public\Controllers\Admin\Ajax`. Шаблон контроллера и контракт на структурированный поиск смотрите в [Admin AJAX API](admin-ajax-api.md).
 
-#### Когда ничего не совпадает
+#### <a id="when-nothing-matches"></a>Когда ничего не совпадает
 
 И `dispatch()`, и `dispatchApi()` возвращают `false`, если маршрут не совпадает. `Public/index.php` затем выдает `http_response_code(404); echo '404 Not Found';` — есть **нет** универсальный контроллер. (Неправильно введенный путь к ресурсу, который достигает переднего контроллера, а не обслуживается nginx, попадает на тот же 404.)
 
 > **Pitfall — two sanitization APIs + a global.** Input can be reached three ways: `InputValidator` (the global request-sanitization layer), the `Request` class's static `sanitize*()` methods (kept for backward compatibility), and the global-static `RequestManager`. They are not interchangeable and the sanitization one applies depends on the bootstrap path — pick the layer the surrounding code already uses rather than mixing them, and remember `RequestManager`'s static state makes it order-dependent and awkward to isolate in tests (set it explicitly in a test rather than relying on prior request state).
 
-### Регистрация маршрута модуля
+### <a id="module-route-registration"></a>Регистрация маршрута модуля
 
 Модули регистрируют маршруты с помощью `ModuleInterface::registerRoutes()`. Маршрутизатор поддерживает безопасный режим регистрации, предотвращающий перезапись модулями основных маршрутов:
 
@@ -357,7 +357,7 @@ $collisions = $router->drainRouteCollisions();
 
 В режиме регистрации модуля (`preserveExistingRoutes = true`), если модуль пытается зарегистрировать маршрут, который уже существует, существующий маршрут сохраняется и регистрируется коллизия. `drainRouteCollisions()` возвращает и очищает собранные коллизии в виде массива `['type' => 'get'|'post'|'api', 'key' => 'route/path']`.
 
-### Самоанализ
+### <a id="introspection"></a>Самоанализ
 
 |Метод|Описание|
 | --- | --- |
@@ -387,7 +387,7 @@ $collisions = $router->drainRouteCollisions();
 
 ---
 
-## Контексты начальной загрузки
+## <a id="bootstrap-contexts"></a>Контексты начальной загрузки
 
 `XC_Bootstrap::boot($context)` обеспечивает контекстно-зависимую инициализацию. Каждый контекст основывается на предыдущем:
 
@@ -407,7 +407,7 @@ $collisions = $router->drainRouteCollisions();
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

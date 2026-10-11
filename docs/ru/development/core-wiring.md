@@ -1,4 +1,4 @@
-# Подключение и регистрация сердечника
+# <a id="core-wiring-registration"></a>Подключение и регистрация сердечника
 
 Как панель собирается при загрузке: один служебный контейнер, как он заполняется и как
 модули помещают свои маршруты, события, команды, записи cron и элементы навигационной панели в основные реестры.
@@ -9,7 +9,7 @@
 
 ---
 
-## Один контейнер
+## <a id="the-one-container"></a>Один контейнер
 
 Все зависит от одного процесса в масштабах всего процесса `ServiceContainer`
 (`src/Core/Container/ServiceContainer.php`), синглтон PSR-11 `ContainerInterface`, полученный с помощью
@@ -24,7 +24,7 @@
 
 ---
 
-## Заполнение контейнера при загрузке
+## <a id="container-population-at-boot"></a>Заполнение контейнера при загрузке
 
 Это основа системы. `XC_Bootstrap::boot()` регистрация услуг осуществляется в два этапа.
 
@@ -60,7 +60,7 @@
 
 ---
 
-## Ссылка на сервисный контейнер
+## <a id="servicecontainer-reference"></a>Ссылка на сервисный контейнер
 
 Все установщики могут быть объединены в цепочку (`return $this`).
 
@@ -87,7 +87,7 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 
 ---
 
-## `ModuleLoader::bootAll` — организатор
+## <a id="moduleloaderbootall-the-orchestrator"></a>`ModuleLoader::bootAll` — организатор
 
 После того, как `ModuleLoader::loadAll()` обнаружил, отфильтровал и **топологически отсортированный** отобрал модули
 (see [Module Lifecycle](module-lifecycle.md)), `bootAll()` is the single place that pushes each
@@ -124,7 +124,7 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 
 ---
 
-## События
+## <a id="events"></a>События
 
 `EventDispatcher` (`src/Core/Events/EventDispatcher.php`) - это синглтон со статическим фасадом.
 `populateContainer()` выполняет `new EventDispatcher()` → `EventDispatcher::setInstance($d)` →
@@ -138,7 +138,7 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 
 ---
 
-## Регистрация команд CLI
+## <a id="cli-command-registration"></a>Регистрация команд CLI
 
 Путь CLI (`src/console.php`) создает свой набор команд в два этапа:
 
@@ -155,11 +155,11 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 
 ---
 
-## Сквозная загрузка — администрирование (web)
+## <a id="end-to-end-boot-admin-web"></a>Сквозная загрузка — администрирование (web)
 
 `src/Public/index.php`:
 
-1. `XC_Bootstrap::boot(BootContext::Admin)` — creates the container; sets `context`/`options`/`config`; loads constants; runs flood/host checks; `bootAdmin()` (session, DB, `LegacyInitializer`, Redis, admin/reseller API, translator, shutdown handler, status constants); **`populateContainer()`**; **`assertContainerHealth()`**.
+1. `XC_Bootstrap::boot(BootContext::Admin)` — создает контейнер; устанавливает `context`/`options`/`config`; загружает константы; выполняет проверку флуда/хостинга; `bootAdmin()` (сессия, база данных, `LegacyInitializer`, Redis, API администратора/реселлера, транслятор, обработчик завершения работы, константы состояния); **`populateContainer()`**; **`assertContainerHealth()`**.
 2. `Router::getInstance()`, затем `require` основные файлы маршрутов `routes/{scope}.php` (+ `routes/api.php`).
 3. Блок загрузки модуля: `router->beginModuleRegistration()` → `new ModuleLoader; loadAll(); bootAll($container, $router)` → `router->endModuleRegistration()` → `drainRouteCollisions()`. Режим регистрации модуля выполняет **выигрывают основные маршруты** по любому маршруту модуля с одинаковым путем; коллизии фиксируются, а не перезаписываются автоматически.
 4. `Router::dispatch()` / `dispatchApi()` обрабатывает запрос, разрешая `[Class, 'method']` обработчики через контейнер.
@@ -168,7 +168,7 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 
 ---
 
-## Сквозная загрузка — CLI
+## <a id="end-to-end-boot-cli"></a>Сквозная загрузка — CLI
 
 `src/console.php`:
 
@@ -179,7 +179,7 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 
 ---
 
-## Что живет в другом месте
+## <a id="what-lives-elsewhere"></a>Что живет в другом месте
 
 Чтобы избежать дублирования, информация об авторе и каждой подсистеме размещается на отдельных страницах:
 
@@ -193,7 +193,7 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 |Оформление DI, cron, миграции, исходные тексты драйверов, вкладки потоковой формы, виды импорта — хуки автора модуля|[Точки расширения модуля](module-extension-points.md)|
 |Написание модуля (манифест, контракт класса, макет каталога)|[Разработка модуля](module-authoring.md)|
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Роль|
 | --- | --- |
