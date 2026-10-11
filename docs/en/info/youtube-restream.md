@@ -150,7 +150,11 @@ through the proxy (see [Troubleshooting](#troubleshooting)), or with
 5. On the same **Advanced** tab, leave **Direct Source** off. With direct source the
    panel sends viewers to the YouTube link itself, which does not play outside the
    proxy's IP.
-6. Choose the server(s) on the **Servers** tab and save. Start the stream.
+6. Optional, on the same tab: **Maximum Resolution**. Enter a height in pixels, for
+   example `720`, to take the broadcast's own variant of at most that height instead of
+   the best one. It saves proxy traffic and needs no transcoding. When the broadcast has
+   no variant that small, the best one is taken as before. Empty means no limit.
+7. Choose the server(s) on the **Servers** tab and save. Start the stream.
 
 The stream is resolved and downloaded on the server that runs it. On a load balancer the
 same proxy is used from that node, so every node that runs YouTube streams needs to be

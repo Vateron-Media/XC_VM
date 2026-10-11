@@ -201,11 +201,12 @@ class StreamUtils {
 	 * IP that asked for it, so yt-dlp goes through the stream's own proxy, the
 	 * one ffmpeg fetches through.
 	 *
-	 * @param string $rURL   Source URL.
-	 * @param string $rProxy The stream's "HTTP Proxy" value ('' for none).
+	 * @param string $rURL       Source URL.
+	 * @param string $rProxy     The stream's "HTTP Proxy" value ('' for none).
+	 * @param int    $rMaxHeight The stream's "Maximum Resolution" (0 for none): the tallest video yt-dlp may pick.
 	 * @return string Normalized/resolved URL.
 	 */
-	public static function parseStreamURL(string $rURL, string $rProxy = '') {
+	public static function parseStreamURL(string $rURL, string $rProxy = '', int $rMaxHeight = 0) {
 		$rProtocol = strtolower(substr($rURL, 0, 4));
 		if ($rProtocol == 'rtmp') {
 			if (stristr($rURL, '$OPT')) {
@@ -215,7 +216,7 @@ class StreamUtils {
 			$rURL .= ' live=1 timeout=10';
 		} else {
 			if (self::needsResolver($rURL)) {
-				$rURL = self::resolveWithYtDlp($rURL, $rProxy);
+				$rURL = self::resolveWithYtDlp($rURL, $rProxy, $rMaxHeight);
 			}
 		}
 		return $rURL;
@@ -229,13 +230,18 @@ class StreamUtils {
 	 * yields nothing and android_vr is the fallback, whose segments YouTube 403s after
 	 * ~30s. The clients are tried one by one: in one list -f best may still pick android_vr.
 	 *
-	 * @param string $rURL   Platform page URL.
-	 * @param string $rProxy The stream's "HTTP Proxy" value ('' for none).
+	 * With a maximum height the best muxed variant no taller than it is asked for (a
+	 * platform's own 720p, say, with no transcoding), and the best of all when it has none.
+	 *
+	 * @param string $rURL       Platform page URL.
+	 * @param string $rProxy     The stream's "HTTP Proxy" value ('' for none).
+	 * @param int    $rMaxHeight The tallest video to pick (0 for no limit).
 	 * @return string
 	 */
-	private static function resolveWithYtDlp(string $rURL, string $rProxy) {
+	private static function resolveWithYtDlp(string $rURL, string $rProxy, int $rMaxHeight = 0) {
+		$rFormat = $rMaxHeight > 0 ? 'best[height<=' . $rMaxHeight . ']/best' : 'best';
 		foreach (['mweb', 'default,android_vr'] as $rClients) {
-			$rArgv = [YOUTUBE_BIN, '--extractor-args', 'youtube:player_client=' . $rClients, '-q', '--get-url', '--skip-download', '-f', 'best'];
+			$rArgv = [YOUTUBE_BIN, '--extractor-args', 'youtube:player_client=' . $rClients, '-q', '--get-url', '--skip-download', '-f', $rFormat];
 			if ($rProxy !== '') {
 				array_push($rArgv, '--proxy', self::proxyURL($rProxy));
 			}

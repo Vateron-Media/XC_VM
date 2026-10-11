@@ -443,6 +443,10 @@ class StreamService {
 							$db->query('INSERT INTO `streams_options`(`stream_id`, `argument_id`, `value`) VALUES(?, 20, ?);', $rInsertID, trim($rData['force_input_acodec']));
 						}
 
+						if (isset($rData['max_height']) && (int) $rData['max_height'] > 0) {
+							$db->query('INSERT INTO `streams_options`(`stream_id`, `argument_id`, `value`) VALUES(?, 22, ?);', $rInsertID, (string) (int) $rData['max_height']);
+						}
+
 						if ($rRestart) {
 							ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => [$rInsertID]]);
 						}

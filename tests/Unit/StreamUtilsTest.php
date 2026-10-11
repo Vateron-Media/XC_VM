@@ -114,4 +114,42 @@ final class StreamUtilsTest extends TestCase {
 			ProcessRunner::useCapturer(null);
 		}
 	}
+
+	/** A stream's "Maximum Resolution" (#345): yt-dlp is asked for the best variant no taller, and the best of all without one. */
+	public function testParseStreamUrlAsksYtDlpForNoMoreThanTheStreamsMaximumResolution() {
+		if (!defined('YOUTUBE_BIN')) {
+			define('YOUTUBE_BIN', '/bin/yt-dlp');
+		}
+		$rFormats = [];
+		ProcessRunner::useCapturer(function (array $rArgv) use (&$rFormats) {
+			$rFormats[] = $rArgv[array_search('-f', $rArgv, true) + 1];
+			return [0, "https://media.example/live.m3u8\n"];
+		});
+		try {
+			$rPage = 'https://www.youtube.com/watch?v=x';
+			StreamUtils::parseStreamURL($rPage, '', 720);
+			StreamUtils::parseStreamURL($rPage);
+			StreamUtils::parseStreamURL($rPage, '', -5);
+			$this->assertSame(['best[height<=720]/best', 'best', 'best'], $rFormats);
+		} finally {
+			ProcessRunner::useCapturer(null);
+		}
+
+		// The option is yt-dlp's, never ffmpeg's: its category is neither fetch nor transcode.
+		$rOption = ['argument_key' => 'max_height', 'argument_cat' => 'resolve', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => '', 'value' => '720'];
+		$this->assertSame([], StreamUtils::getArguments([$rOption], 'https', 'fetch'));
+		$this->assertSame([], StreamUtils::getArguments([$rOption], 'https', 'transcode'));
+		$rRow = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/092_add_stream_max_height_argument.sql');
+		$this->assertStringContainsString("(22, 'resolve', 'Maximum Resolution',", $rRow);
+		$this->assertStringContainsString("(22, 'resolve', 'Maximum Resolution',", (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql'));
+
+		// Whatever starts or probes a stream hands the resolver the stream's own limit.
+		foreach (['Domain/Stream/StreamProcess.php' => 3, 'Cli/Commands/ScannerCommand.php' => 1] as $rFile => $rCalls) {
+			preg_match_all('/^.*StreamUtils::parseStreamURL\(.*$/m', (string) file_get_contents(MAIN_HOME . $rFile), $rLines);
+			$this->assertCount($rCalls, $rLines[0], $rFile);
+			foreach ($rLines[0] as $rLine) {
+				$this->assertStringContainsString("['max_height']", $rLine, $rFile);
+			}
+		}
+	}
 }

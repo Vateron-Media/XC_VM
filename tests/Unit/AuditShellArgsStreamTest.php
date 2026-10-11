@@ -121,6 +121,8 @@ final class AuditShellArgsStreamTest extends TestCase {
 			'aspect' => ['aspect', '16:9', ['-aspect', '16:9']],
 			'delogo' => ['delogo', 'x=0:y=0:w=100:h=77:band=10', ['-filter_complex', 'delogo=x=0:y=0:w=100:h=77:band=10']],
 			'logo' => ['logo', '/home/xc_vm/logos/my logo.png', ['-i', '/home/xc_vm/logos/my logo.png', '-filter_complex', 'overlay']],
+			// yt-dlp's alone (StreamUtils::parseStreamURL()): ffmpeg and ffprobe never get it.
+			'maximum resolution' => ['max_height', '720', []],
 		];
 	}
 

@@ -115,7 +115,7 @@ class ScannerCommand implements CommandInterface {
 
 			foreach ($rSources as $rSource) {
 				$rProcessed = false;
-				$rStreamSource = StreamUtils::parseStreamURL($rSource, (string) (array_column($rStreamArguments, 'value', 'argument_key')['proxy'] ?? ''));
+				$rStreamSource = StreamUtils::parseStreamURL($rSource, (string) (array_column($rStreamArguments, 'value', 'argument_key')['proxy'] ?? ''), (int) (array_column($rStreamArguments, 'value', 'argument_key')['max_height'] ?? 0));
 				echo 'Checking source: ' . $rSource . "\n";
 				$rURLInfo = parse_url($rStreamSource);
 				$rIsXC_VM = StreamUtils::detectXC_VM($rStreamSource);

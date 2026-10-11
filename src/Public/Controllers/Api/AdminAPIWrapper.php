@@ -363,7 +363,7 @@ class AdminAPIWrapper {
 			}
 			$rEmpty['days_to_restart'] = [];
 			$rOptions = array_column(self::storedRows('SELECT `argument_id`, `value` FROM `streams_options` WHERE `stream_id` = ?;', $rStream['id']), 'value', 'argument_id');
-			foreach ([1 => 'user_agent', 2 => 'http_proxy', 17 => 'cookie', 19 => 'headers', 20 => 'force_input_acodec'] as $rArgument => $rKey) {
+			foreach ([1 => 'user_agent', 2 => 'http_proxy', 17 => 'cookie', 19 => 'headers', 20 => 'force_input_acodec', 22 => 'max_height'] as $rArgument => $rKey) {
 				if (isset($rOptions[$rArgument])) {
 					$rKept[$rKey] = $rOptions[$rArgument];
 				}
