@@ -193,7 +193,8 @@ class OndemandCommand implements CommandInterface {
 				@unlink($queueFile);
 				@unlink(SIGNALS_TMP_PATH . 'admin_' . $rStreamID);
 
-				StreamStateWriter::update(intval($rStreamID), intval(SERVER_ID), ['bitrate' => null, 'current_source' => null, 'to_analyze' => 0, 'pid' => null, 'stream_started' => null, 'stream_info' => null, 'audio_codec' => null, 'video_codec' => null, 'resolution' => null, 'compatible' => 0, 'stream_status' => 0, 'monitor_pid' => null], $db);
+				// stream_info is kept: an adaptive master lists the idle variant by its last probe.
+				StreamStateWriter::update(intval($rStreamID), intval(SERVER_ID), ['bitrate' => null, 'current_source' => null, 'to_analyze' => 0, 'pid' => null, 'stream_started' => null, 'audio_codec' => null, 'video_codec' => null, 'resolution' => null, 'compatible' => 0, 'stream_status' => 0, 'monitor_pid' => null], $db);
 
 				// MAIN refreshes its cache from the node's events once its store keeps the streams.
 				if (!$rLocal) {

@@ -850,12 +850,17 @@ class StreamProcess {
 	 *
 	 * @param int  $rStreamID    Stream id.
 	 * @param bool $rWithMonitor Also clear monitor_pid (full stop vs. movie stop).
+	 * @param bool $rKeepInfo    Keep stream_info: an idle on-demand stream's last
+	 *                           probe is what an adaptive master lists it by (issue #61).
 	 * @return void
 	 */
-	private static function resetStreamServerRow(int $rStreamID, bool $rWithMonitor = false) {
+	private static function resetStreamServerRow(int $rStreamID, bool $rWithMonitor = false, bool $rKeepInfo = false) {
 		$rFields = ['bitrate' => null, 'current_source' => null, 'to_analyze' => 0, 'pid' => null, 'stream_started' => null, 'stream_info' => null, 'audio_codec' => null, 'video_codec' => null, 'resolution' => null, 'compatible' => 0, 'stream_status' => 0];
 		if ($rWithMonitor) {
 			$rFields['monitor_pid'] = null;
+		}
+		if ($rKeepInfo) {
+			unset($rFields['stream_info']);
 		}
 		StreamStateWriter::update($rStreamID, intval(SERVER_ID), $rFields, self::db());
 	}
@@ -2152,9 +2157,11 @@ class StreamProcess {
 	 *
 	 * @param int  $rStreamID Stream id.
 	 * @param bool $rStop     Mark the stream as fully stopped (not just restarting).
+	 * @param bool $rIdle     An on-demand stream stopped for having no viewers:
+	 *                        its stream_info is kept (see resetStreamServerRow).
 	 * @return mixed Stop result.
 	 */
-	public static function stopStream(int $rStreamID, bool $rStop = false) {
+	public static function stopStream(int $rStreamID, bool $rStop = false, bool $rIdle = false) {
 		// A supervised stream is released FIRST: its producer dying is exactly
 		// what the fanout supervisor restarts, so killing it before the release
 		// would have the daemon start a replacement and the stream refuse to stop.
@@ -2187,7 +2194,7 @@ class StreamProcess {
 
 		if ($rStop) {
 			shell_exec('rm -f ' . DELAY_PATH . intval($rStreamID) . '_*');
-			self::resetStreamServerRow($rStreamID, true);
+			self::resetStreamServerRow($rStreamID, true, $rIdle);
 			self::updateStream($rStreamID);
 		}
 	}

@@ -241,7 +241,7 @@ class StreamsCronJob implements CommandInterface {
 						}
 						if ($rQueue == 0 && $rAdminQueue == 0 && $rStream['online_clients'] == 0 && (file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.m3u8') || SettingsManager::getInt('on_demand_wait_time') < time() - intval($rStream['stream_started']) || $rStream['stream_status'] == 1)) {
 							echo 'Stop on-demand stream...' . "\n\n";
-							StreamProcess::stopStream($rStream['stream_id'], true);
+							StreamProcess::stopStream($rStream['stream_id'], true, true);
 							// Stopped: nothing below applies (it would start a thumbnail
 							// and a TV archive worker for the stream just stopped).
 							continue;
