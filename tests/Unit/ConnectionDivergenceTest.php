@@ -381,7 +381,7 @@ final class ConnectionDivergenceTest extends TestCase {
 		$this->assertSame(['aaaa' => 50], $this->divergences());
 
 		// Redis gone: the event is dropped, and the lane (logs too) goes on.
-		(new \ReflectionProperty(RedisManager::class, 'instance'))->setValue(null, new \Redis());
+		(new \ReflectionProperty(RedisManager::class, 'instance'))->setValue(null, RedisServer::unreachable());
 		$rOut = EventIngest::ingest($this->node(), 'p1', 2, [$this->event(['aaaa' => 0])]);
 		$this->assertSame([2, 0, 1], [$rOut['useq'], $rOut['applied'], $rOut['dropped']]);
 	}

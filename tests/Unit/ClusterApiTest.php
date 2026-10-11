@@ -52,6 +52,7 @@ use XcVm\Tests\Support\QueryLogDb;
 use XcVm\Tests\Support\ClusterReference;
 use XcVm\Tests\Support\FakeClusterCrypto;
 use XcVm\Tests\Support\InstallSchema;
+use XcVm\Tests\Support\RedisServer;
 
 /**
  * MAIN's cluster API end to end, against the real migrations' schema: SSH
@@ -1515,7 +1516,7 @@ final class ClusterApiTest extends TestCase {
 		// A store that cannot be written: 503 DB, and the node keeps its touches for a retry.
 		SettingsManager::set($this->rSettings + ['redis_handler' => 1]);
 		$rInstance = new \ReflectionProperty(\XcVm\Infrastructure\Redis\RedisManager::class, 'instance');
-		$rInstance->setValue(null, new \Redis()); // not connected
+		$rInstance->setValue(null, RedisServer::unreachable());
 		(new \ReflectionProperty(\XcVm\Infrastructure\Redis\RedisManager::class, 'lastPingCheck'))->setValue(null, time());
 		try {
 			[$rRes, , $rReq] = $this->call('events', ['lane' => 'p2', 'events' => [$rTouch]], 1, $rKeys);

@@ -40,6 +40,22 @@ final class RedisServer {
 		return [$rProc, $rPort];
 	}
 
+	/**
+	 * A client of no server: every command throws. A bare `new \Redis()` is not
+	 * one since phpredis 6, where its first command dials 127.0.0.1:6379 and is
+	 * answered by whatever Redis the machine runs there. One whose connect()
+	 * failed dials nothing, on phpredis 5 and 6 alike.
+	 */
+	public static function unreachable(): \Redis {
+		$rRedis = new \Redis();
+		try {
+			@$rRedis->connect('/nonexistent/xcvm-test-redis.sock');
+		} catch (\RedisException) {
+			// what a missing socket answers
+		}
+		return $rRedis;
+	}
+
 	/** @param resource $rProc */
 	public static function stop($rProc): void {
 		proc_terminate($rProc);
