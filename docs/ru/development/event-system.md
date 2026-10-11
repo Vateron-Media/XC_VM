@@ -1,4 +1,4 @@
-# Система событий
+# <a id="event-system"></a>Система событий
 
 XC_VM использует типизированный диспетчер событий в стиле PSR-14. Все события представляют собой простые классы PHP
 отправлено и получено по имени. Диспетчер основан на экземпляре и хранится в
@@ -6,7 +6,7 @@ XC_VM использует типизированный диспетчер со�
 
 ---
 
-## Диспетчер событий
+## <a id="eventdispatcher"></a>Диспетчер событий
 
 `EventDispatcher` - это синглтон с мостом экземпляра. Статические методы делегируют
 активный экземпляр, поэтому существующие сайты вызовов работают без изменений.
@@ -37,7 +37,7 @@ protected function tearDown(): void {
 
 ---
 
-## Диспетчеризация и прослушивание
+## <a id="dispatching-and-listening"></a>Диспетчеризация и прослушивание
 
 ```php
 // Dispatch
@@ -59,9 +59,9 @@ EventDispatcher::hasListeners(StreamStartedEvent::class); // bool
 
 ---
 
-## Регистрация слушателей в модуле
+## <a id="registering-listeners-in-a-module"></a>Регистрация слушателей в модуле
 
-### Вариант 1 — Получить массив eventsubscribers()
+### <a id="option-1-geteventsubscribers-array"></a>Вариант 1 — Получить массив eventsubscribers()
 
 ```php
 public function getEventSubscribers(): array {
@@ -79,7 +79,7 @@ public function getEventSubscribers(): array {
 > `#[ListensTo]` attribute (Option 2) instead — `getEventSubscribers()` keeps a
 > одна запись обработчика для каждого события.
 
-### Вариант 2 — атрибут #[ListensTo]
+### <a id="option-2-listensto-attribute"></a>Вариант 2 — атрибут #[ListensTo]
 
 ```php
 use ListensTo;
@@ -107,7 +107,7 @@ class MyModuleModule extends BaseModule {
 
 ---
 
-## Останавливаемые события
+## <a id="stoppable-events"></a>Останавливаемые события
 
 Продлить `AbstractEvent` и вызвать `$e->stopPropagation()`:
 
@@ -130,7 +130,7 @@ EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void 
 
 ---
 
-## Встроенные основные события
+## <a id="built-in-core-events"></a>Встроенные основные события
 
 Отправлено ядром:
 
@@ -162,7 +162,7 @@ EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void 
 
 ---
 
-## Создание пользовательского события
+## <a id="writing-a-custom-event"></a>Создание пользовательского события
 
 Простой класс — используйте свойства `readonly` для неизменяемых полезных нагрузок:
 
@@ -203,7 +203,7 @@ EventDispatcher::dispatch(new MyModuleEvent($lineId, 'reason'));
 
 ---
 
-## Ссылка на атрибут ListensTo
+## <a id="listensto-attribute-reference"></a>Ссылка на атрибут ListensTo
 
 ```php
 #[\Attribute(\Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
@@ -221,7 +221,7 @@ final class ListensTo {
 - `IS_REPEATABLE` — зарегистрировано несколько `#[ListensTo]` для одного и того же метода
 - Если `eventClass` не существует во время выполнения, атрибут корректно пропускается (без исключений).
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Роль|
 | --- | --- |

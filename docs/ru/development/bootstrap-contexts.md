@@ -1,4 +1,4 @@
-# Контексты начальной загрузки
+# <a id="bootstrap-contexts"></a>Контексты начальной загрузки
 
 `XC_Bootstrap` - это единая точка входа для инициализации системы.
 Каждый контекст загружает только те подсистемы, которые необходимы для его пути выполнения.
@@ -11,7 +11,7 @@
 
 ---
 
-## Краткий справочник
+## <a id="quick-reference"></a>Краткий справочник
 
 |Случай перечисления|Типичное использование|
 | --- | --- |
@@ -22,9 +22,9 @@
 
 ---
 
-## Детали контекста
+## <a id="context-details"></a>Детали контекста
 
-### BootContext::Минимальный
+### <a id="bootcontextminimal"></a>BootContext::Минимальный
 
 Загружает константы, пути, конфигурацию, логгер и обработчики ошибок.
 Нет подключения к базе данных.
@@ -45,7 +45,7 @@ XC_Bootstrap::boot(BootContext::Minimal);
 
 ---
 
-### Загрузочный текст::Cli
+### <a id="bootcontextcli"></a>Загрузочный текст::Cli
 
 Используется для задач cron и CLI.
 Добавляет инициализацию базы данных и устаревшего ядра поверх `MINIMAL`.
@@ -67,7 +67,7 @@ XC_Bootstrap::boot(BootContext::Cli, [
 
 ---
 
-### BootContext::Поток
+### <a id="bootcontextstream"></a>BootContext::Поток
 
 Облегченный контекст для конечных точек потоковой передачи с высокой нагрузкой.
 
@@ -85,7 +85,7 @@ XC_Bootstrap::boot(BootContext::Stream, ['cached' => true]);
 
 ---
 
-### BootContext::Администратор
+### <a id="bootcontextadmin"></a>BootContext::Администратор
 
 Полная инициализация панели администратора/реселлера.
 
@@ -107,7 +107,7 @@ XC_Bootstrap::boot(BootContext::Admin);
 
 ---
 
-## Матрица подсистемы
+## <a id="subsystem-matrix"></a>Матрица подсистемы
 
 |Подсистема|Минимальный|Кли|Течение|Администратор|
 | --- | :---: | :---: | :---: | :---: |
@@ -124,7 +124,7 @@ XC_Bootstrap::boot(BootContext::Admin);
 
 ---
 
-## `boot()` параметры
+## <a id="boot-options"></a>`boot()` параметры
 
 ```php
 XC_Bootstrap::boot(BootContext $context, array $options = []);
@@ -139,7 +139,7 @@ XC_Bootstrap::boot(BootContext $context, array $options = []);
 
 ---
 
-## Идемпотентность
+## <a id="idempotency"></a>Идемпотентность
 
 `boot()` выполняется один раз для каждого процесса. Повторные вызовы игнорируются.
 
@@ -156,7 +156,7 @@ XC_Bootstrap::reset();
 
 ---
 
-## Общедоступные методы
+## <a id="public-methods"></a>Общедоступные методы
 
 ```php
 XC_Bootstrap::getContext(): ?string          // active context's string value, e.g. 'admin' (null before boot)
@@ -167,7 +167,7 @@ XC_Bootstrap::getDatabase(): ?Database
 XC_Bootstrap::getContainer(): ServiceContainer
 ```
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Роль|
 | --- | --- |

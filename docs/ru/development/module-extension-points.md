@@ -1,8 +1,8 @@
-# Точки расширения модуля
+# <a id="module-extension-points"></a>Точки расширения модуля
 
 Основные точки расширения, к которым подключается модуль: контейнер DI, задачи cron, миграции версий, типизированные события, исходные драйверы, вкладки потоковой формы и виды импорта. Чтобы создать модуль, смотрите [Создание модуля](module-authoring.md); для загрузки/жизненного цикла смотрите [Жизненный цикл модуля](module-lifecycle.md).
 
-## Оформление контейнеров и сервизов DI
+## <a id="di-container-and-service-decoration"></a>Оформление контейнеров и сервизов DI
 
 
 Сервисы регистрируются в `boot()` через `ServiceContainer`. Контейнер поддерживает:
@@ -21,7 +21,7 @@ $container->decorate('stream.encoder', function (mixed $inner, ServiceContainer 
 Декораторы объединены в цепочки по приоритету (самый высокий и самый внешний). Защищенные сервисы
 (`db`, `settings`, `config`, `auth`) не удается оформить — любая попытка приводит к результату `RuntimeException`.
 
-### Соответствие требованиям стандарта PSR-11
+### <a id="psr-11-compliance"></a>Соответствие требованиям стандарта PSR-11
 
 `ServiceContainer` реализует `ContainerInterface`:
 
@@ -34,13 +34,13 @@ public function has(string $id): bool;
 
 ---
 
-## События PSR-14
+## <a id="psr-14-events"></a>События PSR-14
 
 Модули подписываются на типизированные события с помощью атрибута `getEventSubscribers()` или `#[ListensTo]`. Это описано в полном объеме — диспетчеризация, регистрация слушателей, приоритеты, события, которые можно остановить, и встроенный каталог событий - на специальной странице [Система событий](event-system.md).
 
 ---
 
-## Потоковое промежуточное программное обеспечение
+## <a id="stream-middleware"></a>Потоковое промежуточное программное обеспечение
 
 !!! предупреждение "Устарело — никогда не запускалось"
 Ядро никогда не запускало конвейер потокового промежуточного программного обеспечения: `getStreamMiddleware()` никогда не вызывался
@@ -50,7 +50,7 @@ public function has(string $id): bool;
 например, `StreamSavedEvent` и `StreamsDeletedEvent`, или
 [исходный драйвер](source-drivers.md).
 
-### Зарезервированные слоты на панели навигации
+### <a id="reserved-navbar-slots"></a>Зарезервированные слоты на панели навигации
 
 |Родительский узел|Гнезда для модулей|
 | ------------------- | ------------------ |
@@ -65,7 +65,7 @@ public function has(string $id): bool;
 
 ---
 
-## Кнопки на верхней панели (`TopbarProviderInterface`)
+## <a id="topbar-buttons-topbarproviderinterface"></a>Кнопки на верхней панели (`TopbarProviderInterface`)
 
 Значение для каждой страницы **верхняя панель** (основная кнопка действия и связанные с ней инструменты
 выпадающий список над страницей) собирается с помощью `XcVm\Core\Util\Topbar`. Основные страницы приходят
@@ -134,7 +134,7 @@ public function registerTopbar(TopbarRegistry $registry): void
 
 ---
 
-## Табличные данные (`TableProviderInterface`)
+## <a id="table-data-tableproviderinterface"></a>Табличные данные (`TableProviderInterface`)
 
 Серверная таблица данных отправляет свои данные `id` в конечную точку администратора `./table`
 (`TableController`). Идентификаторы основных таблиц - это жестко запрограммированный переключатель; модуль служит
@@ -187,7 +187,7 @@ public static function tableWatchOutput(array $rReturn, int $rStart, int $rLimit
 
 ---
 
-## Разрешения торгового посредника (`PermissionProviderInterface`)
+## <a id="reseller-permissions-permissionproviderinterface"></a>Разрешения торгового посредника (`PermissionProviderInterface`)
 
 Каталог дополнительных разрешений для реселлеров редактора группы
 (`XcVm\Core\Reference\PermissionReference`) - это основной список. Модуль добавляет свой
@@ -221,7 +221,7 @@ public function registerPermissions(PermissionRegistry $registry): void
 
 ---
 
-## Быстрые инструменты (`QuickToolsProviderInterface`)
+## <a id="quick-tools-quicktoolsproviderinterface"></a>Быстрые инструменты (`QuickToolsProviderInterface`)
 
 Страница "Быстрые инструменты администратора" представляет собой набор одноразовых кнопок обслуживания; каждая из них содержит
 его ключ равен `post.php?action=quick_tools`, который запускает действие сопоставления. Оба
@@ -250,7 +250,7 @@ public function registerQuickTools(QuickToolsRegistry $registry): void
 
 ---
 
-## Задача Cron
+## <a id="cron-task"></a>Задача Cron
 
 
 **Логика Cron** (`MyCron.php`) — только бизнес-логика, без подключения к интерфейсу командной строки.
@@ -305,7 +305,7 @@ public function getCronEntries(): array {
 
 ---
 
-## Версионные миграции (MigratableInterface)
+## <a id="versioned-migrations-migratableinterface"></a>Версионные миграции (MigratableInterface)
 
 
 > **Два механизма, оба аддитивные.** **файловая схема**, описанный в разделе
@@ -377,7 +377,7 @@ Redis не подключается до тех пор, пока на шаге �
 
 ---
 
-## Исходные драйверы (`SourceDriverInterface`)
+## <a id="source-drivers-sourcedriverinterface"></a>Исходные драйверы (`SourceDriverInterface`)
 
 Модулю может принадлежать какой-то живой исходный код, который ffmpeg не может прочитать (например, DASH с
 DRM) и запустит для него свой собственный движок вместо ffmpeg. Модуль объявляет драйвер
@@ -387,7 +387,7 @@ DRM) и запустит для него свой собственный дви�
 
 ---
 
-## Вкладки потоковой формы (`StreamFormRegistry`)
+## <a id="stream-form-tabs-streamformregistry"></a>Вкладки потоковой формы (`StreamFormRegistry`)
 
 Модуль может добавить свою собственную вкладку на страницу добавления/редактирования потока администратором и сохранить то, что находится на этой вкладке.
 записи в своих собственных таблицах. Зарегистрируйте вкладку с `boot()`. `bootAll()` сбрасывает реестр
@@ -456,7 +456,7 @@ public function onStreamSaved(StreamSavedEvent $event): void {
 
 ---
 
-## Виды импорта (`ImportSourceRegistry`)
+## <a id="import-kinds-importsourceregistry"></a>Виды импорта (`ImportSourceRegistry`)
 
 Модуль может добавить свой собственный источник на страницу **Импорт и обзор** для прямых трансляций, далее
 к встроенному файлу M3U. Администратор выбирает его в селекторе **Источник** и заполняет
