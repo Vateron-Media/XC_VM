@@ -201,7 +201,7 @@ if ($rChannelInfo) {
 			// Watched = a live PHP monitor, or the fanout supervisor (whose pid
 			// the PHP check rightly rejects). Either way, do not start another.
 			if (!StreamProcess::isWatched($rStreamID, $rChannelInfo["monitor_pid"])) {
-				if ($rActivityStart + $rCreateExpiration < StreamAuthMiddleware::mainNow($rServers)) {
+				if ($rActivityStart + $rCreateExpiration < StreamAuthMiddleware::mainNow($rServers) && !ConnectionTracker::adaptiveViewerOpen($rSettings, $rTokenData, $rIP, $rUserAgent)) {
 					generateError("TOKEN_EXPIRED");
 				}
 
@@ -321,7 +321,8 @@ if ($rChannelInfo) {
 		$rTokenData["adm_uuid"] = $rTokenData["uuid"] ?? null;
 		// HMAC/external-device streams have no real user id in $rUserInfo (0 is a
 		// safe placeholder: hlsConnectionKey() only uses $rUserId in the non-HMAC branch).
-		$rTokenData["uuid"] = ConnectionTracker::hlsConnectionKey($rIsHMAC, $rIdentifier, $rUserInfo["id"] ?? 0, $rStreamID, $rIP, $rUserAgent);
+		// An adaptive master's variants share the master's connection.
+		$rTokenData["uuid"] = ConnectionTracker::hlsConnectionKey($rIsHMAC, $rIdentifier, $rUserInfo["id"] ?? 0, intval($rTokenData["adaptive"][1] ?? $rStreamID), $rIP, $rUserAgent);
 	}
 
 	// Shared connection context for ConnectionTracker::createLive(); the HLS
@@ -363,7 +364,9 @@ if ($rChannelInfo) {
 					generateError("IP_MISMATCH");
 				}
 
-				$rResult = ConnectionTracker::updateLive($rSettings, $rConnection, ["server_id" => $rServerID, "proxy_id" => $rProxyID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])]);
+				// stream_id: an adaptive viewer moves to the variant it now plays, so
+				// the on-demand reaper counts it there and does not stop that variant.
+				$rResult = ConnectionTracker::updateLive($rSettings, $rConnection, ["stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])]);
 			}
 
 			if (!$rResult) {

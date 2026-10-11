@@ -599,13 +599,14 @@ if ($rExtension) {
 									$rTokenData = ['stream_id' => $rAdaptiveID, 'username' => $rUserInfo['username'], 'password' => $rUserInfo['password'], 'extension' => $rExtension, 'pid' => $rPID, 'channel_info' => ['redirect_id' => $rAdaptiveInfo['redirect_id'], 'originator_id' => ($rAdaptiveInfo['originator_id'] ?? null), 'pid' => $rAdaptiveInfo['pid'], 'on_demand' => $rAdaptiveInfo['on_demand'], 'monitor_pid' => $rAdaptiveInfo['monitor_pid']], 'user_info' => ['id' => $rUserInfo['id'], 'max_connections' => $rUserInfo['max_connections'], 'pair_id' => $rUserInfo['pair_id'], 'con_isp_name' => $rUserInfo['con_isp_name'], 'is_restreamer' => $rUserInfo['is_restreamer']], 'external_device' => $rExternalDevice, 'activity_start' => $rActivityStart, 'country_code' => $rCountryCode, 'video_codec' => ($rStreamInfo['codecs']['video']['codec_name'] ?? 'h264'), 'uuid' => $rUUID, 'adaptive' => [$rChannelInfo['redirect_id'], $rStreamID]];
 									$rTokenData = ConnectionAdmission::admitToken($rSettings, $rTokenData, $rIP, $rUserAgent);
 									$rStreamURL = (string) $rURL . '/auth/' . ViewerKey::mint(json_encode($rTokenData), $rServers, (int) (($rAdaptiveInfo['originator_id'] ?? 0) ?: $rAdaptiveInfo['redirect_id']), $rSettings);
-									$rParts[$rBitrate] = '#EXT-X-STREAM-INF:BANDWIDTH=' . $rBitrate . ',RESOLUTION=' . $rWidth . 'x' . $rHeight . "\n" . $rStreamURL;
+									// A list per bitrate: two variants of the same bitrate both stay in.
+									$rParts[$rBitrate][] = '#EXT-X-STREAM-INF:BANDWIDTH=' . $rBitrate . ',RESOLUTION=' . $rWidth . 'x' . $rHeight . "\n" . $rStreamURL;
 								}
 							}
 
 							if (0 < count($rParts)) {
 								krsort($rParts);
-								$rM3U8 = "#EXTM3U\n" . implode("\n", array_values($rParts));
+								$rM3U8 = "#EXTM3U\n" . implode("\n", array_merge(...array_values($rParts)));
 								ob_end_clean();
 								header('Content-Type: application/x-mpegurl');
 								header('Content-Length: ' . strlen($rM3U8));

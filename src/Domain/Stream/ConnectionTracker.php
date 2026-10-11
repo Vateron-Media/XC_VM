@@ -911,6 +911,8 @@ class ConnectionTracker {
 	 * or players (user-agents) stay distinct connections — preserving multiple
 	 * streams from one IP and multi-device counting — while the same player
 	 * re-requesting the same channel from the same IP collapses to one.
+	 * The variants of an adaptive master are one viewer: the caller keys them by
+	 * the master's stream (the token's `adaptive` [redirect id, master id]).
 	 *
 	 * @param int|null    $rIsHMAC     HMAC id, or null for a regular line.
 	 * @param string|null $rIdentifier HMAC identifier (null/'' for a regular line).
@@ -924,6 +926,25 @@ class ConnectionTracker {
 		$rIdentity = is_null($rIsHMAC) ? ('u' . intval($rUserId)) : ('h' . $rIsHMAC . '_' . ($rIdentifier ?? ''));
 
 		return md5('hls#' . $rIdentity . '#' . intval($rStreamId) . '#' . $rIp . '#' . $rUserAgent);
+	}
+
+	/**
+	 * Is the viewer of an adaptive master already connected, on any of its
+	 * variants? A player switches variant long after the master was issued: that
+	 * is a viewer admitted then, so starting the variant on demand is not the
+	 * replay of a stale token the create_expiration window guards against.
+	 *
+	 * @param array<string, mixed> $rTokenData The variant's token.
+	 */
+	public static function adaptiveViewerOpen(array $rSettings, array $rTokenData, string $rIp, string $rUserAgent): bool {
+		if (!isset($rTokenData['adaptive'][1], $rTokenData['user_info']['id']) || ($rTokenData['extension'] ?? '') !== 'm3u8') {
+			return false;
+		}
+		self::openStore($rSettings);
+		$rUserId = $rTokenData['user_info']['id'];
+		$rUuid = self::hlsConnectionKey(null, null, $rUserId, intval($rTokenData['adaptive'][1]), $rIp, $rUserAgent);
+
+		return self::lookupLive($rSettings, ['uuid' => $rUuid, 'user_id' => $rUserId, 'adaptive' => true], 'hls', false, true, true) !== null;
 	}
 
 	/**
