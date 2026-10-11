@@ -85,11 +85,8 @@ class LayoutRenderer {
 
 		if ($scope === 'reseller') {
 			require MAIN_HOME . 'Public/Views/layouts/reseller/header.php';
-			// header may set $rGenTrials/$rModal in local scope; propagate to
-			// $GLOBALS so the footer/renderer can read it later.
-			if (isset($rGenTrials)) {
-				$GLOBALS['rGenTrials'] = $rGenTrials;
-			}
+			// header may set $rModal in local scope; propagate to $GLOBALS so the
+			// footer/renderer can read it later.
 			if (isset($rModal)) {
 				$GLOBALS['rModal'] = $rModal;
 			}

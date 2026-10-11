@@ -18,19 +18,10 @@ use XcVm\Core\Enum\Theme;
 use XcVm\Core\Module\NavbarItem;
 use XcVm\Core\Module\ResellerNavbarRegistry;
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Domain\Line\LineService;
 
 if (count(get_included_files()) == 1) {
     exit();
 }
-
-// Trial generation gate — legacy reseller header computes and publishes this so
-// the "Generate Trial" menu entries and downstream views can read it.
-$rGenTrials = LineService::canGenerateTrials($rUserInfo['id']);
-$GLOBALS['rGenTrials'] = $rGenTrials;
-// Folded into $rPermissions so the "Generate Trial" NavbarItems can use the
-// ordinary ->permissions(['can_generate_trials']) gate like any other item.
-$rPermissions['can_generate_trials'] = $rGenTrials;
 
 $xmIsDark = Theme::fromId($rUserInfo['theme'] ?? 0)->isDark();
 

@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Reseller;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Line\LineService;
 use XcVm\Public\Controllers\Admin\BaseAdminController;
 
 /**
@@ -50,5 +51,18 @@ class BaseResellerController extends BaseAdminController {
 			AdminHelpers::goHome();
 			exit;
 		}
+	}
+
+	/**
+	 * Publish the trial gate before the page renders: the "Generate Trial" menu
+	 * entries check can_generate_trials through Authorization (the global
+	 * $rPermissions) and the line/MAG/Enigma views read $rGenTrials.
+	 */
+	protected function render(string $view, array $data = []) {
+		$rGenTrials = LineService::canGenerateTrials((int) $GLOBALS['rUserInfo']['id']);
+		$GLOBALS['rGenTrials'] = $rGenTrials;
+		$GLOBALS['rPermissions']['can_generate_trials'] = $rGenTrials;
+
+		return parent::render($view, $data);
 	}
 }
