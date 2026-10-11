@@ -26,6 +26,10 @@ final class ReferenceDataTest extends TestCase {
     public function testTmdbLanguages(): void {
         $this->assertSame('Default - EN', LocaleReference::tmdbLanguages()['']);
         $this->assertSame('English', LocaleReference::tmdbLanguages()['en']);
+        // Regional TMDb locales (#351): TMDb takes `language=xx-YY` as is.
+        foreach (['es-ES', 'es-MX', 'es-AR', 'es-CO', 'es-CL', 'en-GB', 'fr-CA', 'zh-CN', 'zh-TW', 'pt-BR'] as $rCode) {
+            $this->assertArrayHasKey($rCode, LocaleReference::tmdbLanguages());
+        }
     }
 
     public function testMagModels(): void {
