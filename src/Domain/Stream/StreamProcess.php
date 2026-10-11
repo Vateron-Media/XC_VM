@@ -260,6 +260,26 @@ class StreamProcess {
 	}
 
 	/**
+	 * A stream's own transcode attributes (profile -1): no form writes them,
+	 * any POST to a stream saves them, and parseTranscode() puts them in the
+	 * shell line as they are. Keep `-option => value` pairs only, the value
+	 * re-quoted; the structured ones (gpu, logo) come from a profile.
+	 *
+	 * @param mixed $rJSON The `transcode_attributes` column.
+	 * @return array
+	 */
+	private static function customTranscodeAttributes(mixed $rJSON): array {
+		$rAttributes = [];
+		$rDecoded = json_decode((string) $rJSON, true);
+		foreach ((is_array($rDecoded) ? $rDecoded : []) as $rKey => $rValue) {
+			if (is_string($rValue) && preg_match('/^-[A-Za-z0-9_:.\-]+$/D', (string) $rKey)) {
+				$rAttributes[$rKey] = StreamUtils::shellArguments($rValue);
+			}
+		}
+		return $rAttributes;
+	}
+
+	/**
 	 * Build the `-filter_complex` logo/overlay input from transcode attributes.
 	 *
 	 * Attribute 16 carries the logo (val/pos), 17 enables deinterlace (yadif) and
@@ -968,7 +988,7 @@ class StreamProcess {
 
 			if (!$rStream['server_info']['parent_id'] && $rStream['stream_info']['enable_transcode'] == 1 && $rStream['stream_info']['type_key'] != 'created_live') {
 				if ($rStream['stream_info']['transcode_profile_id'] == -1) {
-					$rStream['stream_info']['transcode_attributes'] = array_merge(StreamUtils::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), json_decode((string) $rStream['stream_info']['transcode_attributes'], true) ?: []);
+					$rStream['stream_info']['transcode_attributes'] = array_merge(StreamUtils::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), self::customTranscodeAttributes($rStream['stream_info']['transcode_attributes']));
 				} else {
 					$rStream['stream_info']['transcode_attributes'] = json_decode((string) $rStream['stream_info']['profile_options'], true) ?: [];
 				}
@@ -985,7 +1005,7 @@ class StreamProcess {
 			}
 		} else {
 			$rStream['stream_info']['transcode_attributes'] = [];
-			$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressFile . '" ' . $rStream['stream_info']['custom_ffmpeg'];
+			$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressFile . '" ' . StreamUtils::shellArguments((string) $rStream['stream_info']['custom_ffmpeg']);
 		}
 
 		$rLLODOptions = ($rLLOD && !$rLoopback ? self::llodOutputOptions($rStream['stream_info']['transcode_attributes']) : '');
@@ -2351,8 +2371,7 @@ class StreamProcess {
 					$rReadNative = ($rStream['stream_info']['read_native'] == 1 ? '-re' : '');
 					if ($rStream['stream_info']['enable_transcode'] == 1) {
 						if ($rStream['stream_info']['transcode_profile_id'] == -1) {
-							$rDecoded = json_decode($rStream['stream_info']['transcode_attributes'], true);
-							$rStream['stream_info']['transcode_attributes'] = array_merge(StreamUtils::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), (is_array($rDecoded) ? $rDecoded : []));
+							$rStream['stream_info']['transcode_attributes'] = array_merge(StreamUtils::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), self::customTranscodeAttributes($rStream['stream_info']['transcode_attributes']));
 						} else {
 							$rDecoded = json_decode($rStream['stream_info']['profile_options'], true);
 							$rStream['stream_info']['transcode_attributes'] = (is_array($rDecoded) ? $rDecoded : []);

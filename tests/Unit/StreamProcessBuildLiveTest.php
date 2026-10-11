@@ -176,10 +176,31 @@ final class StreamProcessBuildLiveTest extends TestCase {
 	// ── custom_ffmpeg branch ───────────────────────────────────
 
 	public function testCustomFfmpegBypassesTemplate(): void {
-		$out = $this->build(['stream_info' => ['custom_ffmpeg' => '-i INPUT -c:v libx264 OUTPUT']]);
-		$this->assertStringContainsString('-i INPUT -c:v libx264 OUTPUT', $out);
+		$out = $this->build(['stream_info' => ['custom_ffmpeg' => '-i {STREAM_SOURCE} -c:v libx264 -vf "scale=1280:720" OUTPUT']]);
+		$this->assertStringContainsString("'-i' 'http://src.example/live.ts' '-c:v' 'libx264' '-vf' 'scale=1280:720' 'OUTPUT'", $out);
 		// custom path emits neither gen_pts input flags nor a fetch-options slot
 		$this->assertStringNotContainsString('-thread_queue_size', $out);
+	}
+
+	/** GHSA-q9p6-374v-3jrj: shell syntax in custom_ffmpeg reaches ffmpeg as text, never runs. */
+	public function testCustomFfmpegCannotRunShellCommands(): void {
+		$proof = sys_get_temp_dir() . '/xcvm_rce_proof_' . getmypid();
+		@unlink($proof);
+		$payload = "-i {STREAM_SOURCE} -c copy pipe:1 ; touch $proof ; \$(touch $proof) `touch $proof` | touch $proof && touch $proof #";
+		foreach ([
+			['stream_info' => ['custom_ffmpeg' => $payload]],
+			['stream_info' => ['enable_transcode' => 1, 'transcode_profile_id' => -1, 'transcode_attributes' => json_encode(['-vf' => "x ; touch $proof", '; touch ' . $proof => 'x', 'gpu' => ['cmd' => "; touch $proof", 'device' => 0]])]],
+			// A token inside a quoted argument: the source's own quotes would close the argument's.
+			['stream_info' => ['custom_ffmpeg' => '-i "x{STREAM_SOURCE}y" -c copy pipe:1'], 'streamSource' => "http://a/;touch $proof;"],
+			// `$` in a pattern also matches before a final newline, which the shell ends a command at.
+			['stream_info' => ['custom_ffmpeg' => "-i {STREAM_SOURCE} \"{LOGO}\n\" sh -c \"touch $proof\" x"]],
+			['stream_info' => ['enable_transcode' => 1, 'transcode_profile_id' => -1, 'transcode_attributes' => json_encode(["-vf\n" => "sh -c \"touch $proof\" x"])]],
+		] as $ov) {
+			$out = $this->build($ov + ['ffmpegCpu' => '/bin/true', 'ffmpegGpu' => '/bin/true']);
+			// The real launch tail writes into STREAMS_PATH: cut it, run the rest.
+			shell_exec(explode(' >/dev/null', $out)[0] . ' 2>/dev/null');
+			$this->assertFileDoesNotExist($proof, $out);
+		}
 	}
 
 	// ── loopback ───────────────────────────────────────────────

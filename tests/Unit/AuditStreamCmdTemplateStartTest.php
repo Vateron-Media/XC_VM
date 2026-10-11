@@ -315,7 +315,7 @@ final class AuditStreamCmdTemplateStartTest extends TestCase {
 			'ffprobe' => [['-probesize', '5000000', '-analyzeduration', '2000000', '-i', 'http://vod.example/films/film.mkv', '-v', 'quiet', '-print_format', 'json', '-show_streams', '-show_format']],
 		],
 		'a movie with its own options' => [
-			'command' => '<home>/ffmpeg -y -nostdin -hide_banner -loglevel error -err_detect ignore_err   -fflags +genpts -async 1  -i \'http://vod.example/films/film.mkv\'  -filter_complex "scale=1280:-1" -scodec mov_text -vcodec libx264 -acodec aac -b:v 2500k -movflags +faststart -dn -map 0:v:0 -map 0:a:1 -copy_unknown  -ignore_unknown  <home>/vod/7.mp4 >/dev/null 2><home>/vod/7.errors & echo $! > <home>/vod/7_.pid',
+			'command' => '<home>/ffmpeg -y -nostdin -hide_banner -loglevel error -err_detect ignore_err   -fflags +genpts -async 1  -i \'http://vod.example/films/film.mkv\'  -filter_complex "scale=1280:-1" -scodec mov_text -vcodec \'libx264\' -acodec \'aac\' -b:v 2500k -movflags +faststart -dn -map 0:v:0 -map 0:a:1 -copy_unknown  -ignore_unknown  <home>/vod/7.mp4 >/dev/null 2><home>/vod/7.errors & echo $! > <home>/vod/7_.pid',
 			'ffmpeg' => [['-y', '-nostdin', '-hide_banner', '-loglevel', 'error', '-err_detect', 'ignore_err', '-fflags', '+genpts', '-async', '1', '-i', 'http://vod.example/films/film.mkv', '-filter_complex', 'scale=1280:-1', '-scodec', 'mov_text', '-vcodec', 'libx264', '-acodec', 'aac', '-b:v', '2500k', '-movflags', '+faststart', '-dn', '-map', '0:v:0', '-map', '0:a:1', '-copy_unknown', '-ignore_unknown', '<home>/vod/7.mp4']],
 			'ffprobe' => [],
 		],
