@@ -81,6 +81,48 @@ blocked later under load, so re-check your list from time to time.
 
 ---
 
+## Using your own proxy server
+
+Instead of a proxy provider you can run your own HTTP proxy (for example Squid on port
+3128) on a separate VPS or a machine on a home connection. Before you set up the proxy,
+check that YouTube gives links to that server's IP at all. Many hosting ranges are
+flagged, so a fresh VPS can be blocked from the start.
+
+Run `yt-dlp` directly on the proxy server, with a broadcast that is live right now:
+
+```bash
+curl -L -o /usr/local/bin/yt-dlp \
+  https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
+chmod +x /usr/local/bin/yt-dlp
+yt-dlp -g 'https://www.youtube.com/watch?v=VIDEO_ID'
+```
+
+| Result | Meaning |
+|---|---|
+| A `https://manifest.googlevideo.com/...` link | YouTube accepts this server's IP. A proxy on it will work. |
+| `Sign in to confirm you're not a bot` | YouTube has flagged this IP. A proxy on it will not work. Try another provider or a residential IP. |
+| `This live event has ended` | The broadcast is over. Test with one that is live now. |
+| `This video is not available` | The video itself is the problem: it is geo-blocked in the server's country, private, removed or members-only. Check it in a browser, or test with another broadcast. |
+
+Keep the link in single quotes. Without them, the `&` in a link such as
+`watch?v=...&pp=...` cuts the command and runs it in the background.
+
+The `ip/...` part of the printed link shows which address YouTube saw. If the server
+has both IPv4 and IPv6, that can be either one.
+
+The server's country matters only for geo-restricted broadcasts. A broadcast limited to
+one country needs a proxy IP in that country. Everything else works from anywhere.
+
+Once the check passes, set up the proxy and run the check again from the panel side,
+through the proxy (see [Troubleshooting](#troubleshooting)), or with
+**Tools → Proxy Checker**.
+
+!!! warning
+    Allow only your panel and load balancer IPs to use the proxy, or require a login.
+    An open proxy is found and abused within hours, and its IP gets blocked by YouTube.
+
+---
+
 ## Setting up a YouTube stream
 
 1. Open **Streams → Add Stream**.
@@ -153,7 +195,7 @@ A working setup prints one `https://manifest.googlevideo.com/...` link.
 |---|---|---|
 | `Sign in to confirm you're not a bot` | No proxy on the stream, or the proxy's IP is blocked or flagged as hosting. | Set **HTTP Proxy** on the stream; use a residential/home IP; give the stream an IP no other stream uses. |
 | `Requested format is not available` | The panel version predates YouTube restream support. | Update the panel. |
-| The link is found, but the stream does not start or segments fail (`403 Forbidden`, `Failed to open segment`) | The video is downloaded from a different IP than the link was fetched from, usually because the proxy is SOCKS. | Use an HTTP proxy. |
+| The link is found, but the stream does not start or segments fail (`403 Forbidden`, `Failed to open segment`) | The video is downloaded from a different IP than the link was fetched from. This usually happens because the proxy is SOCKS, or because a proxy server with both IPv4 and IPv6 connects over one for the link and the other for the video. | Use an HTTP proxy. On your own proxy server, make outgoing connections use only one of IPv4 or IPv6. |
 | The stream restarts every 30–50 seconds; the log shows `403 Forbidden` / `Failed to open segment` | No JavaScript runtime on the server, so the panel fell back to the `android_vr` client, whose segments YouTube cuts off after about 30 seconds. | Install [deno](https://deno.com) on the server. |
 | Works for a while, then stops for several streams at once | Several YouTube streams share one proxy IP and it got rate-limited. | One proxy IP per stream. |
 | `Unable to connect to proxy` / timeouts | The proxy is unreachable from this server or the login is wrong. | Test it with `curl -x 'http://user:password@host:port' https://api.ipify.org` on the server; it should print the proxy's IP. |

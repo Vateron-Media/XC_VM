@@ -622,6 +622,15 @@ class ActiveCodeService {
 	}
 
 	/**
+	 * The lines the Lines tables list, as a condition on `lines`: every line but
+	 * one that still waits for its activation code (lineAwaitsRedemption(), in
+	 * SQL). A code's line used to be left out for good, so a subscriber who had
+	 * redeemed a code, a trial's among them, was found under Active Codes only.
+	 */
+	public const LISTED_LINES = '(`lines`.`is_activecode` = 0 OR `lines`.`is_activecode` IS NULL OR `lines`.`exp_date` IS NOT NULL'
+		. ' OR EXISTS (SELECT 1 FROM `activation_codes` WHERE `activation_codes`.`subscriber_id` = `lines`.`id` AND `activation_codes`.`activated_at` IS NOT NULL))';
+
+	/**
 	 * Whether a line waits for an activation code to be redeemed: a code's
 	 * line with no expiry whose code nobody redeemed, or a line that took that
 	 * state from one it is paired with. Redeeming the code is what switches
