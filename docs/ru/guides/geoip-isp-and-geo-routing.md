@@ -1,4 +1,4 @@
-# GeoIP, обнаружение интернет-провайдеров и гео-маршрутизация
+# <a id="geoip-isp-detection-geo-routing"></a>GeoIP, обнаружение интернет-провайдеров и гео-маршрутизация
 
 XC_VM использует базы данных MaxMind GeoIP2/GeoLite2 для определения геолокации и провайдера / ASN. Они обеспечивают потоковую аутентификацию (управление доступом по стране/провайдеру/ASN/прокси), выбор географического сервера + прокси-сервера и ведение журнала активности.
 
@@ -6,11 +6,11 @@ XC_VM использует базы данных MaxMind GeoIP2/GeoLite2 для 
 
 ---
 
-## Поиск по GeoIP
+## <a id="geoip-lookup"></a>Поиск по GeoIP
 
 Два класса обеспечивают поиск по GeoIP:
 
-### GeoIP (утилита)
+### <a id="geoip-utility"></a>GeoIP (утилита)
 
 Файл: `src/Core/Util/GeoIP.php`
 
@@ -23,7 +23,7 @@ GeoIP::isASNBlocked($asn, $blockedServers): bool
 
 Результаты кэшируются в виде файлов с параметрами `CONS_TMP_PATH/{md5(ip)}_geo2` и `CONS_TMP_PATH/{md5(ip)}_isp`.
 
-### Геоипсервис (высокого уровня)
+### <a id="geoipservice-high-level"></a>Геоипсервис (высокого уровня)
 
 Файл: `src/Core/GeoIP/GeoIPService.php`
 
@@ -37,7 +37,7 @@ GeoIPService::matchCIDR($rASN, $rIP): array|null  // hosting/proxy detection
 
 ---
 
-## Обнаружение интернет-провайдеров и ASN
+## <a id="isp-and-asn-detection"></a>Обнаружение интернет-провайдеров и ASN
 
 Когда `show_isps` включено, каждый потоковый запрос разрешает клиентский провайдер:
 
@@ -67,11 +67,11 @@ AND enable_isp_lock = 1
 
 ---
 
-## Проверки контроля доступа (geo)
+## <a id="access-control-checks-geo"></a>Проверки контроля доступа (geo)
 
 Они выполняются в режиме `src/Public/stream/auth.php` во время проверки токена. Проверки 5-6 (Пользовательский агент, тип устройства) отображаются на странице [Обнаружение устройства и блокировка STB](device-detection-and-stb-locking.md).
 
-### 1. Валидация в стране
+### <a id="1-country-validation"></a>1. Валидация в стране
 
 ```text
 if forced_country is set:
@@ -83,7 +83,7 @@ if allow_countries whitelist exists:
     error: NOT_IN_ALLOWED_COUNTRY
 ```
 
-### 2. Принудительное применение блокировки интернет-провайдером
+### <a id="2-isp-lock-enforcement"></a>2. Принудительное применение блокировки интернет-провайдером
 
 ```text
 if is_isplock = 1 and is_stalker = 0:
@@ -91,7 +91,7 @@ if is_isplock = 1 and is_stalker = 0:
     error: ISP_BLOCKED
 ```
 
-### 3. Блокировка ASN
+### <a id="3-asn-blocking"></a>3. Блокировка ASN
 
 ```text
 if block_svp = 1:
@@ -99,7 +99,7 @@ if block_svp = 1:
     error: ASN_BLOCKED
 ```
 
-### 4. Обнаружение хостинга и прокси-серверов
+### <a id="4-hosting-and-proxy-detection"></a>4. Обнаружение хостинга и прокси-серверов
 
 ```text
 GeoIPService::matchCIDR($asn, $ip)
@@ -111,11 +111,11 @@ GeoIPService::matchCIDR($asn, $ip)
 
 ---
 
-## Географический маршрут
+## <a id="geographic-routing"></a>Географический маршрут
 
 Выбор сервера и прокси-сервера для хранения данных GeoIP:
 
-### Выбор сервера (StreamAuth::checkAccess)
+### <a id="server-selection-streamauthcheckaccess"></a>Выбор сервера (StreamAuth::checkAccess)
 
 Когда `enable_geoip == 1`:
 
@@ -123,7 +123,7 @@ GeoIPService::matchCIDR($asn, $ip)
 - `geoip_type == 'strict'` → исключить несоответствующие серверы.
 - В противном случае → назначьте приоритетный вес (1 для низкого, 2 для нормального).
 
-### Выбор прокси-сервера (ProxySelector::Доступный прокси)
+### <a id="proxy-selection-proxyselectoravailableproxy"></a>Выбор прокси-сервера (ProxySelector::Доступный прокси)
 
 Та же логика применима к списку прокси-серверов. Для маршрутизации используется как код страны, так и имя провайдера.
 
@@ -137,7 +137,7 @@ ProxySelector::availableProxy(
 
 ---
 
-## Обновления базы данных
+## <a id="database-updates"></a>Обновления базы данных
 
 Файл: `src/Core/GeoIP/MaxMindUpdater.php`
 
@@ -162,7 +162,7 @@ GEOLITE2C_BIN = BIN_PATH/maxmind/GeoLite2-City.mmdb
 GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 ```
 
-### Автоматическое обновление
+### <a id="automatic-update"></a>Автоматическое обновление
 
 Базы данных обновляются с помощью задания cron `cron:maxmind` (`src/Cli/CronJobs/MaxMindCronJob.php`).
 Он запускается из `xc_vm` crontab на каждом узле (главном и балансировщиках нагрузки), **только по вторникам** — в день, когда MaxMind публикует новые версии. Логика разветвляется в настройках панели:
@@ -172,7 +172,7 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 
 Файл из версии GitHub заменяет используемую базу данных только в том случае, если ответом является HTTP 200 и файл открывается как база данных MaxMind; в противном случае текущая база данных остается. Одно только несоответствие контрольной суммы не останавливает ее: файл сохраняется с `[WARN]`. `geolite2_version` записывается только тогда, когда оба файла GeoLite2 находятся на месте. В MAIN задании также обновляется каталог ASN, который заменяется только ответом HTTP 200; в противном случае предыдущий каталог остается.
 
-### Ручное (принудительное) обновление
+### <a id="manual-forced-update"></a>Ручное (принудительное) обновление
 
 Чтобы немедленно обновить базы данных `.mmdb` на рабочей панели, запустите задание cron вручную **как root или как `xc_vm`** с флагом `--force` (это снимает ограничение "Только по вторникам").:
 
@@ -192,7 +192,7 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 
 ---
 
-## Ведение журнала действий
+## <a id="activity-logging"></a>Ведение журнала действий
 
 Сеансы потоковой передачи записывают данные GeoIP (и устройства) в `lines_live`:
 
@@ -209,7 +209,7 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 
 ---
 
-## Конфигурация (географические настройки)
+## <a id="configuration-geo-settings"></a>Конфигурация (географические настройки)
 
 |Установка|Тип|Описание|
 | --- | --- | --- |
@@ -229,7 +229,7 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

@@ -121,6 +121,77 @@ class ErrorResponder {
 	}
 
 	/**
+	 * The statuses a panel page answers with a page of its own: what it is
+	 * called and what it means. English: the page can be asked for before any
+	 * language is loaded.
+	 */
+	private const PAGES = [
+		403 => ['Access denied', 'Your account may not open this page.'],
+		404 => ['Page not found', 'There is no page at this address.'],
+		405 => ['Method not allowed', 'This address does not take that kind of request.'],
+		429 => ['Too many requests', 'Too many requests came from this address. Try again in a little while.'],
+	];
+
+	/**
+	 * Is this a browser asking for a page: it accepts HTML, and is not a
+	 * script's XHR? Only such a request gets an error page. Players, API
+	 * clients and the panel's own Ajax key off the status code and keep the
+	 * short or empty body they always had; no stream path renders HTML.
+	 *
+	 * @param array<string,mixed>|null $server The request's server variables ($_SERVER by default).
+	 */
+	public static function wantsHtml(?array $server = null): bool {
+		$server ??= $_SERVER;
+		if (strcasecmp((string) ($server['HTTP_X_REQUESTED_WITH'] ?? ''), 'XMLHttpRequest') === 0) {
+			return false;
+		}
+		return stripos((string) ($server['HTTP_ACCEPT'] ?? ''), 'text/html') !== false;
+	}
+
+	/**
+	 * The error page of a panel address: the status, what it means and a way
+	 * back. One file with nothing to fetch, so it shows whatever state the
+	 * panel is in, in the visitor's light or dark scheme.
+	 *
+	 * @param int    $status 403, 404, 405 or 429 (anything else reads as 404).
+	 * @param string $home   Where "Back" leads, relative to the address asked for ('' for none).
+	 */
+	public static function renderPage(int $status, string $home = './'): string {
+		if (!isset(self::PAGES[$status])) {
+			$status = 404;
+		}
+		[$title, $meaning] = self::PAGES[$status];
+		$rStyle = ':root{color-scheme:light dark;--bg:#f5f5f9;--card:#fff;--ink:#384551;--dim:#6d7a86;--line:#e4e6e8;--accent:#7367f0}'
+			. '@media (prefers-color-scheme:dark){:root{--bg:#25293c;--card:#2f3349;--ink:#e1def5;--dim:#acabc1;--line:#44485e}}'
+			. '*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}'
+			. 'main{width:min(28rem,calc(100vw - 2rem));padding:2.5rem 2rem;background:var(--card);border:1px solid var(--line);border-radius:.75rem;text-align:center}'
+			. '.code{margin:0;font-size:3.5rem;font-weight:700;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}'
+			. 'h1{margin:.75rem 0 .5rem;font-size:1.25rem}p{margin:0;color:var(--dim)}'
+			. 'a{display:inline-block;margin-top:1.5rem;padding:.5rem 1.25rem;border-radius:.375rem;background:var(--accent);color:#fff;text-decoration:none}a:focus-visible{outline:2px solid var(--ink);outline-offset:2px}';
+
+		return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">'
+			. '<title>' . $status . ' ' . $title . '</title><style>' . $rStyle . '</style></head><body><main>'
+			. '<p class="code">' . $status . '</p><h1>' . $title . '</h1><p>' . $meaning . '</p>'
+			. ($home !== '' ? '<a href="' . htmlspecialchars($home, ENT_QUOTES) . '">Back to the panel</a>' : '')
+			. '</main></body></html>';
+	}
+
+	/**
+	 * Resolve a panel address's 403, 404, 405 or 429 into an outcome: the error
+	 * page for a browser asking for a page (wantsHtml()), else $plain, the body
+	 * the caller always sent.
+	 *
+	 * @param int                      $status The HTTP status.
+	 * @param string                   $plain  The body for anything that is not a browser page request.
+	 * @param string                   $home   Where the page's "Back" leads ('' for none).
+	 * @param array<string,mixed>|null $server The request's server variables ($_SERVER by default).
+	 */
+	public static function respondPage(int $status, string $plain = '', string $home = './', ?array $server = null): ErrorResponseException {
+		$body = self::wantsHtml($server) ? self::renderPage($status, $home) : $plain;
+		return new ErrorResponseException('', $status, $body, $status === 404, true);
+	}
+
+	/**
 	 * Resolve a generateError() call into an outcome, preserving the exact
 	 * branching of the legacy procedural function.
 	 *

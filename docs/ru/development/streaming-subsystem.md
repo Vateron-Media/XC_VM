@@ -1,11 +1,11 @@
-# Подсистема потоковой передачи
+# <a id="streaming-subsystem"></a>Подсистема потоковой передачи
 
 Подсистема потоковой передачи обрабатывает трансляцию в прямом эфире, VOD и со сдвигом по времени.
 Это быстрый путь (~10-100 тыс. запросов в минуту, <50 мс p99), и он использует отдельный облегченный bootstrap, чтобы избежать загрузки всего стека администратора.
 
 ---
 
-## Поток запросов
+## <a id="request-flow"></a>Поток запросов
 
 ```text
 client request
@@ -39,7 +39,7 @@ nginx переписывает все потоковые URL-адреса в т�
 
 ---
 
-## Расположение каталога
+## <a id="directory-layout"></a>Расположение каталога
 
 ```
 src/Streaming/
@@ -87,7 +87,7 @@ src/Public/stream/
 
 ---
 
-## Конвейер начальной загрузки
+## <a id="bootstrap-pipeline"></a>Конвейер начальной загрузки
 
 ### 1. StreamingRequestBootstrap::init()
 
@@ -103,7 +103,7 @@ src/Public/stream/
 6. Аварийно закрытый шлюз: возвращает 404, если настройки отсутствуют (кроме `/status`).
 7. Вызовите `StreamingBootstrap::bootstrap()`.
 
-### 2. Потоковый загрузчик::bootstrap()
+### <a id="2-streamingbootstrapbootstrap"></a>2. Потоковый загрузчик::bootstrap()
 
 Файл: `src/Streaming/StreamingBootstrap.php`
 
@@ -121,7 +121,7 @@ public static function bootstrap($rFilename, $rSettings)
 
 Возвращает экземпляр базы данных `$db` (используемый устаревшими точками входа).
 
-### 3. LegacyInitializer::Инициализация потока()
+### <a id="3-legacyinitializerinitstreaming"></a>3. LegacyInitializer::Инициализация потока()
 
 Файл: `src/Core/Init/LegacyInitializer.php`
 
@@ -138,7 +138,7 @@ public static function bootstrap($rFilename, $rSettings)
 
 ---
 
-## Аутентификация по токену
+## <a id="token-authentication"></a>Аутентификация по токену
 
 Файл: `src/Streaming/Auth/StreamAuthMiddleware.php`
 
@@ -165,7 +165,7 @@ StreamAuthMiddleware::decryptToken($rToken, $rSettings, $rServers, $rIP): array
 2. Проверьте срок действия: `$rTokenData['expires'] < StreamAuthMiddleware::mainNow($rServers)`, то есть на `time()` меньше, чем на этом сервере на `time_offset`. Время токена (`expires`, `activity_start`) - это часы MAIN, где бы он ни был отчеканен `auth.php`, и каждая их проверка (`live.php`, `vod.php`, `timeshift.php`) читает их до конца `mainNow()`.
 3. Возвращает проанализированные данные токена или вызывает ошибку.
 
-### Формат токена
+### <a id="token-format"></a>Формат токена
 
 Токены потоковой связи создаются с помощью `Encryption::mintToken()` и считываются с помощью `Encryption::readToken()`; ничто другое не вызывает устаревший `encrypt()`/`decrypt()` для токена (`StreamTokenCallSitesTest` применяет его принудительно).
 
@@ -192,7 +192,7 @@ X-Content-Type-Options: nosniff
 Alt-Svc: h3-29, h3-T051, h3-Q050 (HTTP/3 hints)
 ```
 
-### Ссылки, подписанные HMAC
+### <a id="hmac-signed-links"></a>Ссылки, подписанные HMAC
 
 Запрос, который достигает значения `auth.php` с параметром `hmac`, проверяется с помощью `AuthService::validateHMAC()` вместо поиска в строке. Это допустимо только для ссылок на прямые трансляции, фильмы и сериалы; на любой другой тип будет дан ответ `INVALID_TYPE_TOKEN`. Подпись представляет собой HMAC-SHA256, под одним из включенных ключей HMAC, из
 
@@ -205,9 +205,9 @@ Alt-Svc: h3-29, h3-T051, h3-Q050 (HTTP/3 hints)
 
 ---
 
-## Потоковая доставка
+## <a id="stream-delivery"></a>Потоковая доставка
 
-### Жить (live.php)
+### <a id="live-livephp"></a>Жить (live.php)
 
 Основная конечная точка доставки (~650 строк):
 
@@ -226,11 +226,11 @@ Alt-Svc: h3-29, h3-T051, h3-Q050 (HTTP/3 hints)
 
 Перед тем, как перейти по прямой ссылке, `auth.php` может показывать уведомление об истечении срока действия (**Истекающее видео**, `show_expiring_video`) вместо трансляции: один раз в день на линию, которая не является пробной, за семь дней до истечения срока действия. Уведомление показывается только строкам, не являющимся рестримерными, и это уведомление, а не отказ: когда клип не настроен или не найден, или на сервере, который мог бы его показать, нет свободного прокси, строка получает свой поток вместо сообщения об ошибке.
 
-### ВИДЕО (vod.php)
+### <a id="vod-vodphp"></a>ВИДЕО (vod.php)
 
 Тот же процесс аутентификации, что и в live. Считывается из `VOD_PATH` вместо `STREAMS_PATH`. Диапазоны байтов (поиск) разрешаются с помощью `Streaming\Delivery\HttpRange` (одиночные диапазоны RFC 7233, включая диапазоны суффиксов). Видеофильм с прямым подключением передается с помощью cURL, запрашивая у источника точно запрошенный диапазон.
 
-### Временной сдвиг (timeshift.php)
+### <a id="timeshift-timeshiftphp"></a>Временной сдвиг (timeshift.php)
 
 Обслуживает архивированные сегменты (со сдвигом по времени) из пути к архиву. Запрос TS передает в потоковом режиме несколько файлов подряд; им сопоставляется диапазон байт (поиск) — файлы перед началом пропускаются, первый вводится с правильным смещением, и доставка прекращается в конце диапазона.
 
@@ -244,17 +244,17 @@ Alt-Svc: h3-29, h3-T051, h3-Q050 (HTTP/3 hints)
 
 nginx-rtmp вызывает `rtmp.php` в `on_play`, `on_publish` и `on_play_done`. То, что говорит сам nginx-rtmp — `addr`, `clientid`, `call` и `name`, считывается из строки запроса обратного вызова с помощью `StreamAuth::notifyArguments()`. На обратный вызов, который выдает одно из четырех двух разных значений, приходит ответ 404. Собственные аргументы потока (`username`, `password`, `token`) поступают из обработанного запроса, как и в других конечных точках, поэтому URL-адрес RTMP не должен содержать аргументов с именами `addr`, `clientid`, `call` или `name`.
 
-### Радио во втором веб-плеере
+### <a id="radio-in-the-second-web-player"></a>Радио во втором веб-плеере
 
 `GET /<code>/radio?stream=<id>` отвечает от `302` до `<domain>/<username>/<password>/<id>.m3u8` (`DomainResolver`, в той же форме, что и каналы прямого эфира) для станции в строке входа в систему с `radio_ids` и `404` в противном случае; он никогда не называет `stream_source`. Записи станции `radio?ajax=1` и страницы `initialStations` равны `id, name, logo, category_id, direct, url`, где `url` - это ответ на воспроизведение, поэтому страница и копия сценария `localStorage` не содержат ни источника, ни учетных данных строки. `player-radio.js` воспроизводит `url` с помощью hls.js если в записи не указано `direct`, то с помощью звукового элемента. В случае фатальной ошибки сети hls.js программа снова запрашивает ответ на воспроизведение (с интервалом в 2 секунды, максимум 3 секунды подряд, которые пересчитываются заново после буферизации фрагмента), пока радиостанция отображается как воспроизводимая; в противном случае она отображается как приостановленная.
 
 Таким образом, радиостанция воспроизводится через панель как канал прямого эфира: ее нужно запускать или настраивать по запросу, для линии требуется выход HLS, и HLS должен быть включен в настройках (в противном случае страница радио не будет доступна), а слушатель отображается в подключениях и рассчитывается до максимального значения для линии. Станция, помеченная как "Прямой источник", авторизуется панелью, а затем перенаправляется на свой источник, поэтому она не учитывается, и ее источник достигает слушателя. Это справедливо для каждого клиента прямой трансляции, включая прямые каналы: панель не имеет ретранслятора, который браузер мог бы воспроизвести для нее. Станция или канал, которые должны воспроизводиться через панель (учитывается, что их источник скрыт от зрителя), не должны быть помечены как "Прямой источник"; вместо этого установите их по запросу, и они будут запущены при появлении первого зрителя.
 
-### Зонд (probe.php)
+### <a id="probe-probephp"></a>Зонд (probe.php)
 
 `/probe/{data}` tells a restreamer whether a channel is up and with which codecs (`codecs`, `container`, `bitrate` as JSON) without opening a connection; `data` is the base64 of a stream link's path. It answers only for a restreamer line that is not expired, banned or disabled, and only for a stream in that line's bouquets; every other request gets a 404. A probe whose username and password match no line counts that username, and the password for it, toward the address's bruteforce limit (`bruteforce_username_attempts` different names, or different passwords for one name, within `bruteforce_frequency`), the same count a refused `/live/` request adds to. It is not counted when **Ignore Invalid Credentials** is on together with the cache.
 
-### Доставка демона — `xc_fanout`
+### <a id="daemon-delivery-xc_fanout"></a>Доставка демона — `xc_fanout`
 
 Оперативная доставка клиента (TS **и** HLS) равна **только для демонов**: PHP авторизует
 средство просмотра, а затем полностью покидает байтовый путь, так что средство просмотра больше не закрепляет
@@ -298,7 +298,7 @@ PHP-FPM-рабочий для всего потока.
 - **Сохраненный на диске HLS** только для временного сдвига / миниатюр / `.analyse` /
 дочерние элементы loopback / проверки запуска по требованию — не для доставки клиенту.
 
-#### Управление потоковой передачей и встроенный ремультиплексор
+#### <a id="stream-supervision-and-the-native-remuxer"></a>Управление потоковой передачей и встроенный ремультиплексор
 
 При включенном **Контроль разветвленного энкодера** (`fanout_supervise`, миграция 018, по умолчанию включено),
 в прямой трансляции не используется PHP watchdog. `StreamProcess::startMonitor()` создает свои команды и раздает
@@ -358,7 +358,7 @@ stderr переходит в. Соответствующий тип `streams_typ
 Runbook на стороне демона - включение, проверка, откат кодов завершения работы ремультиплексора — это
 `docs/en/09-encoder-supervision.md` в репозитории `XC_VM_Fanout`.
 
-#### Выключение разветвления
+#### <a id="switching-fanout-off"></a>Выключение разветвления
 
 `settings.fanout_enabled` (переключатель **Доставка по разветвлению**, расположенный рядом с другими настройками разветвления, по умолчанию
 включен; миграция `027`) - это главный переключатель, считываемый с помощью
@@ -396,7 +396,7 @@ unix-сокет viewer под `CONS_TMP_PATH/<id>/`, который `live.php` �
 При разветвлении **на** демон, который просто не работает, все равно не выходит в эфир до тех пор, пока
 keepalive перезапускает его (примерно через 2 секунды). Доставка никогда не прерывается по каждому запросу.
 
-#### Наложение отправленного сообщения
+#### <a id="send-message-overlay"></a>Наложение отправленного сообщения
 
 Действие администратора "Отправить сообщение" приводит к появлению текстового баннера на видео, которое просматривает **один** зритель.
 PHP отправляет его в сокет управления демоном
@@ -406,7 +406,7 @@ PHP отправляет его в сокет управления демоно�
 быть запущенным с помощью ffmpeg, который на самом деле имеет фильтр `drawtext`, так что
 `service` программа запуска выбирает сборку с поддержкой drawtext.
 
-### Сегментный шлюз
+### <a id="segment-gateway"></a>Сегментный шлюз
 
 Демон также может сам отвечать на HLS-запросы зрителя, без PHP-FPM: `/hls/<token>` (сегменты), `/key/<token>` (ключи) и обновления списка воспроизведения, известного зрителю, `/auth/<token>` (ADR 0005). `settings.gateway_mode` включает его для каждой панели:
 
@@ -419,9 +419,9 @@ PHP отправляет его в сокет управления демоно�
 
 ---
 
-## Управление подключениями
+## <a id="connection-management"></a>Управление подключениями
 
-### Средство отслеживания подключений
+### <a id="connectiontracker"></a>Средство отслеживания подключений
 
 Управляет текущим состоянием соединения. Серверная часть выбрана с помощью `$rSettings['redis_handler']`:
 
@@ -460,7 +460,7 @@ ConnectionTracker::getLineConnections($user_id)
 ConnectionTracker::getCapacity()
 ```
 
-### Ограничитель подключения
+### <a id="connectionlimiter"></a>Ограничитель подключения
 
 Файл: `src/Streaming/Protection/ConnectionLimiter.php`
 
@@ -482,7 +482,7 @@ ConnectionTracker::getCapacity()
 
 На ГЛАВНОМ экране проверки ожидают в `tmp/cluster_limits/` `cron:signals`, которые выполняются 200 раз в секунду (`ConnectionLimits::drain()`). Узел запрашивает при каждом запросе строку с ограничением, включая обновление списка воспроизведения, поэтому очередь ограничена: у зрителя есть один файл, который заменяется его следующим запросом; передачи выполняют файлы по очереди; проверка, которая ждала пять минут, отбрасывается без выполнения (строка снова оценивается по ее количеству). следующие запросы зрителей); и ничего не ставится в очередь, пока ни один проход не был запущен в течение минуты. Скидка на вход аннулируется, если его просмотр не открылся к моменту окончания срока его бронирования.
 
-### Устройство для выключения
+### <a id="shutdownhandler"></a>Устройство для выключения
 
 Файл: `src/Streaming/Lifecycle/ShutdownHandler.php`
 
@@ -494,9 +494,9 @@ ConnectionTracker::getCapacity()
 
 ---
 
-## балансировка нагрузки
+## <a id="load-balancing"></a>балансировка нагрузки
 
-### Выбор сервера (StreamAuth::checkAccess)
+### <a id="server-selection-streamauthcheckaccess"></a>Выбор сервера (StreamAuth::checkAccess)
 
 Файл: `src/Streaming/Auth/StreamAuth.php`
 
@@ -515,7 +515,7 @@ public static function checkAccess($rUserInfo, $rUserIP, $rCountryCode, $rUserIS
 4. Применить маршрутизацию через интернет-провайдера (если `enable_isp == 1`): та же логика, что и у GeoIP.
 5. Верните сервер с наименьшей пропускной способностью из группы с наивысшим приоритетом.
 
-### Выбор прокси-сервера (ProxySelector::Доступный прокси)
+### <a id="proxy-selection-proxyselectoravailableproxy"></a>Выбор прокси-сервера (ProxySelector::Доступный прокси)
 
 Файл: `src/Streaming/Balancer/ProxySelector.php`
 
@@ -527,11 +527,11 @@ public static function availableProxy($rProxies, $rCountryCode, $rUserISP = ''):
 
 ---
 
-## Ограничение скорости и защита от наводнений
+## <a id="rate-limiting-and-flood-protection"></a>Ограничение скорости и защита от наводнений
 
 Три слоя:
 
-### 1. nginx (уровень подключения)
+### <a id="1-nginx-connection-level"></a>1. nginx (уровень подключения)
 
 ```nginx
 limit_req_zone $binary_remote_addr zone=one:30m rate=20r/s;
@@ -542,7 +542,7 @@ limit_req zone=one burst=8;
 
 An access code's sign-in and image resizer (`/CODE/login`, `/CODE/resize`, which carry no `.php`) are limited in a zone of the panel's own, `panel` (`limit_req_zone $binary_remote_addr zone=panel:10m rate=20r/s;`), with the code type's burst (500 for admin, reseller and player codes) and `nodelay`; a refused request answers 503. Being a separate zone, a list of thumbnails never holds back the same address's streams or client API requests. The other pages of a code are not limited by it; its `.php` location keeps its own rule in zone `one`. `AuthRepository::updateCodes()` writes the files from `codes/template`; it names zone `one` when the installed `nginx.conf` does not declare `panel`, adds the location to a template kept from an older release, and post-update runs it whenever at least one code is enabled.
 
-### 2. StreamingRequestBootstrap (IP-блокировка)
+### <a id="2-streamingrequestbootstrap-ip-block"></a>2. StreamingRequestBootstrap (IP-блокировка)
 
 ```php
 if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
@@ -555,17 +555,17 @@ if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
 
 Количество отклоненных запросов в строке не превышает `flood_seconds` по сравнению с предыдущим; при увеличении интервала оно начинается снова. Это ограничение для коротких циклов. Разные имена пользователей или MAC-адреса и разные пароли для одного имени пользователя, которые использовались в течение длительного времени, - это то, что `checkBruteforce()` учитывается в `bruteforce_frequency`.
 
-### 3. Ограничитель подключений (для каждого пользователя)
+### <a id="3-connectionlimiter-per-user"></a>3. Ограничитель подключений (для каждого пользователя)
 
 Применяется после проверки токена. Ограничивает одновременные потоки для каждого пользователя на основе `max_connections`, закрывая сначала самые старые соединения (более старые соединения самого запрашивающего устройства перед другими). Средства просмотра, обслуживаемые демонами, отключаются с помощью демона — см. [Daemon delivery](#daemon-delivery-xc_fanout).
 
-### 4. Серверы, работающие только через прокси
+### <a id="4-proxy-only-servers"></a>4. Серверы, работающие только через прокси
 
 Сервер с параметром `enable_proxy` принимает только запросы, поступающие через один из его прокси-серверов. `auth.php` проверяет TCP—пиринг nginx saw — `XC_PEER_ADDR`, значение которого равно `$realip_remote_addr` в расположении потока `nginx.conf`, а не заголовок запроса, которым управляет клиент.
 
 ---
 
-## Шифрование HLS
+## <a id="hls-encryption"></a>Шифрование HLS
 
 Клиентский протокол HLS обслуживается демоном `xc_fanout` (см. [Daemon delivery](#daemon-delivery-xc_fanout)), поэтому происходит шифрование **сторона демона**:
 
@@ -578,19 +578,19 @@ if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
 
 ---
 
-## Шаблоны аргументов потока
+## <a id="stream-argument-templates"></a>Шаблоны аргументов потока
 
 Исходными параметрами потоковой формы (пользовательский агент, HTTP-прокси, Cookie, заголовки, аудиокодек принудительного ввода, пропуск FFProbe) являются `fetch` строк из `streams_arguments`. Таблица также содержит `transcode` строки (скорость передачи данных, масштабирование и прочее), которые не отображаются в форме потока: профиль транскодирования сам создает эти параметры в `ProfileService`. `argument_cmd` является ли шаблон `StreamUtils::getArguments()` частью командной строки ffmpeg, для каждой строки в потоке есть опция для:
 
 - Текстовый шаблон содержит значение `%s`, заключенное в пустые кавычки (`-acodec %s`), двойные кавычки (`-user_agent "%s"`) или одинарные кавычки (`-headers '%s'`). `getArguments()` заключает значение для этого места в кавычки, поэтому оболочка передает его в ffmpeg в качестве одного из аргументов. Два ключа переписываются перед тем, как они будут заключены в кавычки: `cookie` на `fixCookie()` (значение вводится без последнего `;`, которое равно `;`, после него ставятся пробелы, а затем добавляются `path=/;` и `domain=;`, если значение не указано) и `proxy` на `proxyURL()` (помещает `http://` перед значением без схемы); все остальные значения заключаются в кавычки как сохраненные. Шаблон не должен ожидать получения значения, которое уже экранировано.
-- ffmpeg's `-cookies` takes Set-Cookie text and sends a cookie only when its path and domain fit the request; ffmpeg 4.0 sends nothing for a cookie without a path, hence the appended `path=/;`. A `path` or `domain` typed after a space (`; path=/`) is deliberately not recognised: the two are appended behind it and the later, empty `domain=` wins. That is required, because ffmpeg compares the cookie domain with `host:port`, so a real domain never matches a source addressed with a port. The node's `probe` action (`InternalApiController::probeStream`) completes the cookie with `fixCookie()` too, so the probe button of the stream form and a stream start hand ffprobe and ffmpeg the same text. The LLOD fetcher, the proxy command and the fan-out daemon's puller send the stored cookie as a `Cookie` header as typed.
+- ffmpeg `-cookies` принимает текст Set-Cookie и отправляет файл cookie только в том случае, если его путь и домен соответствуют запросу; ffmpeg 4.0 ничего не отправляет для файла cookie без пути, поэтому добавляется `path=/;`. `path` или `domain`, введенные после пробела (`; path=/`), намеренно не распознаются: они добавляются после них, и выигрывает более поздний, пустой вариант `domain=`. Это необходимо, потому что ffmpeg сравнивает домен cookie с `host:port`, поэтому реальный домен никогда не совпадает с источником, адресованным с помощью порта. Действие узла `probe` (`InternalApiController::probeStream`) также завершает создание файла cookie с помощью `fixCookie()`, поэтому кнопка проверки формы потока и начало потока передают ffprobe и ffmpeg один и тот же текст. Средство извлечения LLOD, команда прокси-сервера и средство извлечения демона разветвления отправляют сохраненный файл cookie в виде заголовка `Cookie`, как он был введен.
 - В числовых параметрах используется значение `%d` (`-b:v %dk`).
 - `StreamUtils::parseTranscode()` объединяет предложения `-filter_complex "…"` параметров перекодирования в одно. Предложение завершается двойной кавычкой, а кавычка, заключенная в обратную косую черту (`\"`), является частью предложения.
 - Профиль, который деинтерлейсирует и масштабирует без логотипа, сохраняет цепочку в качестве команды своего параметра масштабирования, а ffmpeg получает ее как один из параметров `-vf "yadif,scale=…"`. Только профиль с логотипом сохраняет запись с логотипом: в этом случае логотип является вторым входным сигналом, а фильтры выполняются в `-filter_complex`.
 
 ---
 
-## Представление
+## <a id="performance"></a>Представление
 
 Ключевые проектные решения, касающиеся пропускной способности и задержки:
 
@@ -606,7 +606,7 @@ if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
 
 ---
 
-## Пути к файловой системе
+## <a id="file-system-paths"></a>Пути к файловой системе
 
 ```text
 STREAMS_PATH        = /home/xc_vm/content/streams/
@@ -622,13 +622,13 @@ SIGNALS_PATH        = /home/xc_vm/signals/
 
 ---
 
-## Диагностика и оснастка
+## <a id="diagnostics-tooling"></a>Диагностика и оснастка
 
 Автономный инструмент проверки целостности потока (`tools/stream-check/stream_check.py`) теперь доступен на отдельной странице - см. [Диагностика и инструменты для потоковой передачи](streaming-diagnostics.md).
 
 ---
 
-## Обоснование проекта (ADR)
+## <a id="design-rationale-adrs"></a>Обоснование проекта (ADR)
 
 Почему live delivery отошла от tmpfs и от байтового пути PHP — решения, стоящие за текущим
 `xc_fanout` архитектура — записывается в отчетах об архитектурных решениях (repo-внутренние примечания,
@@ -640,7 +640,7 @@ SIGNALS_PATH        = /home/xc_vm/signals/
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

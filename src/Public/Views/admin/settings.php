@@ -2452,6 +2452,15 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 										<div class="form-check form-switch"><input name="fallback_parser" id="fallback_parser" type="checkbox" <?= $rSettings["fallback_parser"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
 									</div>
 							</div>
+							<div class="form-group row mb-4">
+									<label class="col-md-4 col-form-label" for="tmdb_episode_by_title">
+										<?= $language::get('tmdb_episode_by_title') ?>
+										<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('tmdb_episode_by_title_tooltip') ?>"></i>
+									</label>
+									<div class="col-md-2">
+										<div class="form-check form-switch"><input name="tmdb_episode_by_title" id="tmdb_episode_by_title" type="checkbox" <?= ($rSettings["tmdb_episode_by_title"] ?? 0) == 1 ? ' checked' : '' ?> class="form-check-input"></div>
+									</div>
+							</div>
 
 							<p class="text-body-secondary"><?= $language::get('genre_mapping_help') ?></p>
 							<?php $rGenreBouquetList = BouquetService::getAll(); ?>

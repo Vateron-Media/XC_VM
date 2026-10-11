@@ -8,9 +8,10 @@ use XcVm\Domain\Backup\RecoveryBundle;
 /**
  * backup:open-bundle <bundle> <directory> — open a recovery bundle
  * (Domain\Backup\RecoveryBundle) into a new directory: config.ini,
- * modules.php and, when it holds one, the cluster key
- * export (for `cluster:import-keys`, with the same passphrase). The passphrase
- * is read from standard input, so it is in no process list or shell history:
+ * modules.php, the custom translations (lang/) and, when it holds one, the
+ * cluster key export (for `cluster:import-keys`, with the same passphrase).
+ * The passphrase is read from standard input, so it is in no process list or
+ * shell history:
  *
  *   console.php backup:open-bundle recovery_2026-10-07.bundle /root/restore < passphrase.txt
  *
@@ -47,7 +48,11 @@ class BackupOpenBundleCommand implements CommandInterface {
 			return 1;
 		}
 		foreach ($rOpened['files'] as $rName => $rContent) {
-			$rFile = $rDir . '/' . basename($rName);
+			// A custom translation goes back under lang/, as it lies under config/; of any name, only its last part is used.
+			$rFile = $rDir . '/' . (str_starts_with((string) $rName, 'lang/') ? 'lang/' : '') . basename((string) $rName);
+			if (!is_dir(dirname($rFile))) {
+				mkdir(dirname($rFile), 0700);
+			}
 			file_put_contents($rFile, $rContent);
 			chmod($rFile, 0600);
 			echo "  {$rFile}\n";

@@ -1700,6 +1700,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `parse_type` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'ptn',
   `fallback_parser` tinyint(1) DEFAULT '0',
   `alternative_titles` tinyint(1) DEFAULT '0',
+  `tmdb_episode_by_title` tinyint(1) DEFAULT '0',
   `search_items` int(3) DEFAULT '20',
   `enable_search` tinyint(4) DEFAULT '1',
   `modal_edit` tinyint(1) DEFAULT '1',

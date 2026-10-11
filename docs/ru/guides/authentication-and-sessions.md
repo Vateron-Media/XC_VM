@@ -1,14 +1,14 @@
-# Аутентификация и сеансы
+# <a id="authentication-and-sessions"></a>Аутентификация и сеансы
 
 XC_VM поддерживает три контекста аутентификации - администратора, реселлера и игрока - каждый с изолированными сеансовыми ключами, отдельными потоками входа в систему и независимой логикой проверки. В этом документе описан полный жизненный цикл аутентификации от входа в систему до проверки сеанса и обеспечения безопасности.
 
 ---
 
-## Обзор процесса входа в систему
+## <a id="login-flow-overview"></a>Обзор процесса входа в систему
 
 Все три контекста следуют схожему шаблону высокого уровня, с зависящими от контекста различиями в проверке и хранении сеанса.
 
-### Взаимодействие администратора и реселлера
+### <a id="admin-reseller-flow"></a>Взаимодействие администратора и реселлера
 
 ```text
 POST request with credentials
@@ -24,7 +24,7 @@ POST request with credentials
   -> Login log
 ```
 
-### Поток игроков
+### <a id="player-flow"></a>Поток игроков
 
 ```text
 POST request with credentials
@@ -39,7 +39,7 @@ POST request with credentials
 
 ---
 
-## Аутентификатор
+## <a id="authenticator"></a>Аутентификатор
 
 Файл: `src/Core/Auth/Authenticator.php`
 
@@ -83,7 +83,7 @@ $_SESSION['rcode']    = AuthRepository::getCurrentCode(); // Current access code
 $_SESSION['rverify']  = md5($rUserInfo['username'] . '||' . $rCrypt); // Verification hash
 ```
 
-### Константы статуса входа в систему
+### <a id="login-status-constants"></a>Константы статуса входа в систему
 
 Определено в `src/bootstrap.php` через `XC_Bootstrap::defineStatusConstants()`:
 
@@ -100,7 +100,7 @@ $_SESSION['rverify']  = md5($rUserInfo['username'] . '||' . $rCrypt); // Verific
 | `STATUS_2FA_INVALID` |51|Неверный код второго фактора|
 | `STATUS_2FA_LOCKED` |52|Слишком много неправильных кодов для учетной записи (10 за 15 минут)|
 
-### Хэширование паролей
+### <a id="password-hashing"></a>Хэширование паролей
 
 ```php
 Authenticator::hashPassword(string $password, ?string $salt = null, int $rounds = 20000): string
@@ -116,7 +116,7 @@ Authenticator::checkPassword(string $password, string $storedHash): bool
 
 ---
 
-## Двухфакторный вход в систему
+## <a id="two-factor-sign-in"></a>Двухфакторный вход в систему
 
 Администраторы и торговые посредники могут добавить к своему паролю второй фактор: 6-значный код из приложения для проверки подлинности (TOTP, RFC 6238: HMAC-SHA1, 30-секундные шаги) или один из десяти одноразовых кодов восстановления. `src/Core/Auth/Totp.php` вычисляет коды; `src/Core/Auth/TwoFactor.php` сохраняет секреты и выполняет шаг входа в систему.
 
@@ -130,13 +130,13 @@ Authenticator::checkPassword(string $password, string $storedHash): bool
 
 Секреты заключаются в `users_2fa` (`user_id`, `secret`, `recovery`, `last_step`, `created`; миграции `075_add_two_factor.sql`), за исключением `users` строк, которые страницы и API-интерфейсы читают целиком. Удаление пользователя приводит к удалению его строки.
 
-## Аутентификация игрока
+## <a id="player-authentication"></a>Аутентификация игрока
 
 Файл: `src/Public/Controllers/Player/PlayerLoginController.php`
 
 Процедура входа игрока в систему принципиально отличается от процедуры администратора/реселлера. Она аутентифицирует "линии" конечного пользователя (подписки на IPTV), а не операторов панели.
 
-### Процесс входа в систему
+### <a id="login-process"></a>Процесс входа в систему
 
 `PlayerLoginController::processLogin()` выполняет эти проверки в порядке:
 
@@ -159,7 +159,7 @@ Authenticator::checkPassword(string $password, string $storedHash): bool
 
 Второй веб-плеер (`src/Public/Controllers/PlayerV2/PlayerLoginController.php`) также выполняет вход с учетной записью на другом сервере Xtream (форма сервера или адрес плейлиста). Когда этот сервер отказывает, запрос завершается на этом, для записи в простой форме, как для скрипта страницы: на странице входа в систему отображается ответ этого сервера, адрес один раз засчитывается как `checkFlood()`, а имя пользователя и пароль не используются в качестве строки этой панели.
 
-### Коды ошибок проигрывателя
+### <a id="player-error-codes"></a>Коды ошибок проигрывателя
 
 |Постоянный|Ценность|Значение|
 | --- | --- | --- |
@@ -172,7 +172,7 @@ Authenticator::checkPassword(string $password, string $storedHash): bool
 | `CLIENT_DISABLED` |6|Линия отключена (включено = 0)|
 | `CLIENT_DISALLOWED` |7|Не удалось выполнить проверку IP/страны/UA/провайдера|
 
-### Ключи к сеансу игрока
+### <a id="player-session-keys"></a>Ключи к сеансу игрока
 
 ```php
 $_SESSION['phash']   = $rUserInfo['id'];
@@ -183,11 +183,11 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 ---
 
-## Проверка сеанса при загрузке страницы
+## <a id="session-validation-on-page-load"></a>Проверка сеанса при загрузке страницы
 
 После первоначального входа в систему при каждой загрузке страницы, прошедшей проверку подлинности, выполняется повторная проверка сеанса. Это происходит в файлах начальной загрузки, а не в `SessionManager`.
 
-### Проверка сеанса администратора
+### <a id="admin-session-validation"></a>Проверка сеанса администратора
 
 Точка входа: `AdminScopeBootstrap::hydrateAdminContext()` (`src/Infrastructure/Bootstrap/AdminScopeBootstrap.php`). Он запускается по пути администратора фронт-контроллера (через `boot()`) и вызывается непосредственно сценариями просмотра `$noBootstrapPages` (`login`, `setup`, `database`, `logout`, `player`, `post`) — заменяя прежний `admin/functions.php` include.
 
@@ -204,7 +204,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 Поскольку значение учетной записи `status` является частью проверки, отключение администратора завершает сеанс, открытый этой учетной записью, при следующем запросе; нет необходимости ждать истечения времени ожидания бездействия.
 
-### Проверка сеанса работы с реселлером
+### <a id="reseller-session-validation"></a>Проверка сеанса работы с реселлером
 
 Файл: `src/Infrastructure/Bootstrap/ResellerScopeBootstrap.php`
 
@@ -218,23 +218,23 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 Соответствие IP-подсети и поведение при выходе из системы по IP-адресу такое же, как у администратора.
 
-### Жизненный цикл сеанса администратора
+### <a id="admin-session-lifecycle"></a>Жизненный цикл сеанса администратора
 
 Запуск сеанса и 60-минутный тайм-аут бездействия выполняются в `AdminScopeBootstrap::bootSession()` (путь к интерфейсу контроллера), а для устаревших сценариев просмотра — в `SessionManager::start('admin')` + `requireAuth()`, которые заменили прежний параметр `admin/session.php`. Если заданы значения `$_SESSION['hash']` и `$_SESSION['last_activity']`, а с момента `last_activity` прошло более 60 минут, ключи сеанса (`hash`, `ip`, `code`, `verify`, `last_activity`) не заданы. При каждом действительном запросе обновляется `$_SESSION['last_activity']`, и сеанс закрывается для записи. Конечная точка опроса AJAX-сессии (`{"result": true/false}`) обслуживается `Public\Controllers\Admin\SessionController` (маршрут `session`).
 
-### Проверка сеанса игрока
+### <a id="player-session-validation"></a>Проверка сеанса игрока
 
 Контекст проигрывателя не выполняет проверку IP-адреса, соответствия подсети или тайм-аута активности на уровне сеанса. Сохраняются только `phash` и `pverify`, и проверка выполняется на прикладном уровне для повторной проверки этих значений по базе данных.
 
 ---
 
-## Менеджер сеанса
+## <a id="sessionmanager"></a>Менеджер сеанса
 
 Файл: `src/Core/Auth/SessionManager.php`
 
 Унифицированный сеансовый API, который абстрагирует различные имена сеансовых ключей в разных контекстах. Он заменяет устаревший admin `session.php` / `functions.php` includes (теперь удален); области реселлеров и игроков загружаются с помощью своих собственных классов `*ScopeBootstrap`.
 
-### Контекстная ключевая карта
+### <a id="context-key-map"></a>Контекстная ключевая карта
 
 |Логический ключ|Ключ администратора `$_SESSION`|Ключ реселлера `$_SESSION`|Ключ игрока `$_SESSION`|
 | --- | --- | --- | --- |
@@ -246,7 +246,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 Контекст игрока намеренно опускает сопоставления `activity`, `ip` и `code`.
 
-### Методы
+### <a id="methods"></a>Методы
 
 **`start(string $context, int $timeout = 60): void`**
 
@@ -292,7 +292,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 Возвращает текущую строку контекста (`'admin'`, `'reseller'`, `'player'`) или `null`, если она не задана.
 
-### Поведение по истечении времени ожидания
+### <a id="timeout-behavior"></a>Поведение по истечении времени ожидания
 
 `SessionManager::DEFAULT_TIMEOUT` равно 60 минутам. Метод `checkTimeout()` (вызываемый автоматически `start()`) сравнивает время, прошедшее с момента `last_activity`. Если время ожидания превышено, все ключи сеанса, зависящие от контекста, сбрасываются, что приводит к выходу пользователя из системы.
 
@@ -300,7 +300,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 ---
 
-## Охранник с применением грубой силы
+## <a id="bruteforceguard"></a>Охранник с применением грубой силы
 
 Файл: `src/Core/Auth/BruteforceGuard.php`
 
@@ -340,7 +340,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 Отфильтровывает просроченные попытки из массива отслеживания. Если значение `$list` равно `true`, массив обрабатывается как индексированный (для `checkAuthFlood`); в противном случае как ассоциативный с ключом по термину (для `checkBruteforce`).
 
-### Блокирующий механизм
+### <a id="blocking-mechanism"></a>Блокирующий механизм
 
 Когда IP-адрес заблокирован:
 
@@ -350,9 +350,9 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 ---
 
-## Безопасность сеанса
+## <a id="session-security"></a>Безопасность сеанса
 
-### Настройка файлов cookie
+### <a id="cookie-configuration"></a>Настройка файлов cookie
 
 Параметры сессионного файла cookie устанавливаются в одном месте, `SessionStage::startSession()` (`src/Core/Bootstrap/Stage/SessionStage.php`): контекст начальной загрузки администратора запускает его как этап загрузки, а контекст начальной загрузки администратора, реселлера и игрока вызывает его для сеанса, который они запускают перед загрузкой платформы. Опрос сеанса администратора (`Public\Controllers\Admin\SessionController`, маршрут `session`) и `SessionManager::start()` также вызывают его; последний запускает первое сохранение формы, потому что nginx запускает `Public/Views/admin/post.php` сам. Каждое начало сеанса обоих веб-плееров (вход в систему, выход из системы, внешние учетные записи) также проходит через это.
 
@@ -383,7 +383,7 @@ session_start();
 
 The players' actions that change something run only on a `POST`, which a browser does not send with the player's cookie from another site: `logout` (both players; a `GET` leads to the home page), `refresh` (second player; `GET` is not routed) and the bouquet order of `profile` (first player; a `GET` only shows the page). The players' own links and scripts send `POST`.
 
-### Проверка хэша
+### <a id="verify-hash"></a>Проверка хэша
 
 Проверяющий хэш (`$_SESSION['verify']` / `$_SESSION['rverify']` / `$_SESSION['pverify']`) вычисляется следующим образом:
 
@@ -395,7 +395,7 @@ md5($username . '||' . $hashedPassword)
 
 Для логинов администратора и торгового посредника пароль повторно хэшируется во время входа в систему, поэтому используется `$rCrypt` (новый хэш). Для логинов игроков используется существующий сохраненный хэш `$rUserInfo['password']`.
 
-### Обработка изменений IP-адреса
+### <a id="ip-change-handling"></a>Обработка изменений IP-адреса
 
 Два параметра управляют поведением при изменении IP-адреса:
 
@@ -408,7 +408,7 @@ md5($username . '||' . $hashedPassword)
 
 ---
 
-## Регистрация входа в систему
+## <a id="login-logging"></a>Регистрация входа в систему
 
 Неудачные входы в систему (`INVALID_LOGIN`) всегда регистрируются, поскольку они учитываются в соответствии с лимитом потока входов. Если параметр `save_login_logs` включен, все остальные результаты также записываются. Все это заносится в таблицу `login_logs`:
 
@@ -428,7 +428,7 @@ VALUES($type, $codeId, $userId, $status, $ip, $timestamp);
 
 Логины игроков не записываются в `login_logs`.
 
-### Ограничение потока данных для входа в систему
+### <a id="login-flood-limit"></a>Ограничение потока данных для входа в систему
 
 Страницы входа администратора и реселлера запрашивают `Authenticator::loginFloodExceeded($ip, $rSettings['login_flood'])` перед обработкой входа. Если адрес содержит `login_flood` или более строк `INVALID_LOGIN` и `INVALID_2FA`, датированных в течение последних 24 часов, он добавляется в список заблокированных (`LOGIN FLOOD ATTACK`), и запрос завершается. При значении `login_flood` из 0 ограничение снимается. **Быстрые инструменты → Очистить поток данных для входа в систему** подсчитанные строки удаляются.
 
@@ -436,7 +436,7 @@ VALUES($type, $codeId, $userId, $status, $ip, $timestamp);
 
 ---
 
-## Авторизация (после входа в систему)
+## <a id="authorization-post-login"></a>Авторизация (после входа в систему)
 
 После аутентификации два дополнительных уровня авторизации определяют, к чему пользователь может получить доступ:
 
@@ -461,7 +461,7 @@ VALUES($type, $codeId, $userId, $status, $ip, $timestamp);
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

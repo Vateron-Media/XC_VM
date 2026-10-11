@@ -217,7 +217,11 @@ if ($rChannelInfo !== null) {
 					}
 				}
 
-				$rFP = fopen($rItem['filename'], 'rb');
+				$rFP = @fopen($rItem['filename'], 'rb');
+				if ($rFP === false) {
+					// Removed by the retention pass since it was listed: feof(false) is a TypeError.
+					break;
+				}
 				fseek($rFP, $rSeekTo);
 
 				while (!feof($rFP)) {

@@ -16,6 +16,7 @@ use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
@@ -425,7 +426,7 @@ class TableController extends BaseAdminController {
 		}
 		$rWhere = $rWhereV = [];
 		$rWhere[] = "(`is_mag` + `is_e2`) = 0";
-		$rWhere[] = "(`lines`.`is_activecode` = 0 OR `lines`.`is_activecode` IS NULL)";
+		$rWhere[] = ActiveCodeService::LISTED_LINES;
 		if ((string) (RequestManager::get("search")["value"] ?? '') !== '') {
 			foreach (range(1, 6) as $rInt) {
 				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";

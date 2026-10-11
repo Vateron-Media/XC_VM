@@ -22,6 +22,17 @@ class StreamUtils {
 	 * @param string $rCookie Raw cookie string.
 	 * @return string Cookie string with `path=/` and `domain=` appended if missing.
 	 */
+
+	/**
+	 * A stream's first source: `stream_source` is a JSON list, and one that is
+	 * empty or does not parse has none ('').
+	 */
+	public static function firstSource(mixed $rStreamSource): string {
+		$rSources = is_string($rStreamSource) ? json_decode($rStreamSource, true) : null;
+		$rFirst = is_array($rSources) ? reset($rSources) : false;
+		return is_string($rFirst) ? $rFirst : '';
+	}
+
 	public static function fixCookie(string $rCookie) {
 		$rPath = false;
 		$rDomain = false;

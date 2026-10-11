@@ -1,4 +1,4 @@
-# Флаги функций разработки
+# <a id="development-feature-flags"></a>Флаги функций разработки
 
 XC_VM использует константы и флаги, управляемые настройками, для управления поведением среды.
 
@@ -6,7 +6,7 @@ XC_VM использует константы и флаги, управляем�
 
 ---
 
-## Активный флаг времени выполнения
+## <a id="active-runtime-flag"></a>Активный флаг времени выполнения
 
 ### `PHP_ERRORS`
 
@@ -48,7 +48,7 @@ define('DEV_MODE', false); // master development-mode flag
 
 ---
 
-## Флаги, зависящие от настроек (`$rSettings`)
+## <a id="settings-driven-flags-rsettings"></a>Флаги, зависящие от настроек (`$rSettings`)
 
 Загружается из кэша настроек и используется в точках принятия решений во время выполнения.
 
@@ -67,7 +67,7 @@ define('DEV_MODE', false); // master development-mode flag
 
 ---
 
-## Статические константы приложения
+## <a id="static-app-constants"></a>Статические константы приложения
 
 Из карты `appConfig()` в `src/Core/Config/ConstantsInitializer.php` (каждая запись является
 `define()`заменено на `ConstantsInitializer::init()`):
@@ -90,7 +90,7 @@ define('DEV_MODE', false); // master development-mode flag
 
 ---
 
-## Добавление новых флагов
+## <a id="adding-new-flags"></a>Добавление новых флагов
 
 Используйте статические константы в карте `appConfig()` (`ConstantsInitializer.php`) для фиксированных констант инфраструктуры/среды выполнения (отредактированных в
 код, вступающий в силу при следующем запросе). Используйте настройки (`$rSettings`) для значений, которые оператор переключает
@@ -103,7 +103,7 @@ define('DEV_MODE', false); // master development-mode flag
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

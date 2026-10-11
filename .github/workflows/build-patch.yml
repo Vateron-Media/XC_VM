@@ -1,0 +1,233 @@
+name: Build Patch
+
+# A patch build is a release with the fixes made since: X.Y.Z-pN. It is built
+# from a branch and published on the channel of the release it patches, with no
+# release of its own: no version bump to commit, no changelog to write, no
+# translation pass. The panel's updater takes it as it takes a release, on MAIN
+# and on load balancers (docs/en/builds/patch_builds.md).
+#
+# Version: <base>-p<N>. <base> is the newest X.Y.Z tag the ref contains (or the
+# one given), N the next number after its existing patch builds. PHP's
+# version_compare() orders X.Y.Z < X.Y.Z-p1 < X.Y.Z-p2 < the next version's
+# nightlies and release, so a panel moves from the release to its newest patch
+# and on to the next release when there is one.
+#
+# The version is stamped into the build, as for a nightly: the ref keeps the
+# release's version in its source. A ref whose source is already past the base
+# (the next release is prepared) is refused: that is the next release, not a
+# patch of this one.
+#
+# Published with the workflow's own token, so the release workflows, which
+# build on `released` / `prereleased`, do not run a second time.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag or commit to build'
+        type: string
+        default: main
+      base:
+        description: 'Release to patch (X.Y.Z). Empty: the newest release the ref contains'
+        type: string
+        default: ''
+      dry_run:
+        description: 'Test and build only: publish nothing, keep the archives as a run artifact'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-patch
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.plan.outputs.sha }}
+      base: ${{ steps.plan.outputs.base }}
+      version: ${{ steps.plan.outputs.version }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+      latest: ${{ steps.plan.outputs.latest }}
+    steps:
+      - name: Checkout the ref
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Choose the base release and the patch number
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_INPUT: ${{ inputs.base }}
+        run: |
+          set -euo pipefail
+          SHA=$(git rev-parse HEAD)
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+
+          BASE="$BASE_INPUT"
+          if [ -z "$BASE" ]; then
+            BASE=$(git tag --merged "$SHA" --list --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || true)
+          fi
+          if ! printf '%s' "$BASE" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::No release to patch: '${BASE}' is not an X.Y.Z tag"
+            exit 1
+          fi
+          if ! git rev-parse -q --verify "refs/tags/${BASE}" >/dev/null; then
+            echo "::error::Tag ${BASE} does not exist"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "refs/tags/${BASE}" "$SHA"; then
+            echo "::error::${SHA} does not contain release ${BASE}: a patch is the release with fixes on top"
+            exit 1
+          fi
+          if [ "$(git rev-list --count "refs/tags/${BASE}..${SHA}")" = "0" ]; then
+            echo "::error::Nothing to ship: the ref is release ${BASE} itself"
+            exit 1
+          fi
+
+          CODE_VER=$(sed -nE "s/.*define\('XC_VM_VERSION', '([^']+)'\).*/\1/p" src/Core/Config/ConstantsInitializer.php | head -n1)
+          if [ "$CODE_VER" != "$BASE" ]; then
+            echo "::error::The source is version ${CODE_VER}, not ${BASE}. A ref prepared for the next release is released, not shipped as a patch of ${BASE}; build from a branch that is still ${BASE}."
+            exit 1
+          fi
+
+          LAST_N=$(git tag --list "${BASE}-p*" | sed -nE "s/^${BASE//./\\.}-p([0-9]+)\$/\1/p" | sort -n | tail -n1)
+          if [ -n "$LAST_N" ] && [ "$(git rev-parse "refs/tags/${BASE}-p${LAST_N}^{commit}")" = "$SHA" ]; then
+            echo "::error::${BASE}-p${LAST_N} is already this commit"
+            exit 1
+          fi
+          VERSION="${BASE}-p$(( ${LAST_N:-0} + 1 ))"
+
+          # On the channel of the release it patches: a pre-release's patch is a pre-release.
+          PRERELEASE=$(gh release view "$BASE" -R "$GITHUB_REPOSITORY" --json isPrerelease --jq '.isPrerelease')
+          # "Latest" only for a patch of the newest stable release: a patch of an
+          # older one is published later and must not take its place.
+          LATEST=false
+          if [ "$PRERELEASE" = "false" ]; then
+            NEWEST=$(gh release list -R "$GITHUB_REPOSITORY" --exclude-pre-releases --exclude-drafts --limit 100 --json tagName --jq '.[].tagName' \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1 || true)
+            [ "$NEWEST" = "$BASE" ] && LATEST=true
+          fi
+
+          echo "Patch build ${VERSION} of ${BASE} from ${SHA} (prerelease=${PRERELEASE}, latest=${LATEST})"
+          {
+            echo "base=${BASE}"
+            echo "version=${VERSION}"
+            echo "prerelease=${PRERELEASE}"
+            echo "latest=${LATEST}"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Test, build and publish
+    needs: plan
+    runs-on: ubuntu-latest
+    # The tests run on the database engine production runs (tests/Support/TestDb.php).
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: xcvm-test
+        ports:
+          - 3306:3306
+        options: >-
+          --tmpfs /var/lib/mysql
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      XCVM_TEST_DB_DSN: mysql:host=127.0.0.1;port=3306
+      XCVM_TEST_DB_USER: root
+      XCVM_TEST_DB_PASS: xcvm-test
+      VERSION: ${{ needs.plan.outputs.version }}
+      BASE: ${{ needs.plan.outputs.base }}
+      SHA: ${{ needs.plan.outputs.sha }}
+    steps:
+      - name: Checkout the planned commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          extensions: pdo_mysql
+
+      - name: Run unit tests
+        run: php tests/phpunit.phar -c tests/phpunit.xml.dist
+
+      - name: Stamp the patch version
+        run: |
+          set -euo pipefail
+          FILE=src/Core/Config/ConstantsInitializer.php
+          sed -i -E "s/define\('XC_VM_VERSION', '[^']+'\)/define('XC_VM_VERSION', '${VERSION}')/" "$FILE"
+          grep -q "define('XC_VM_VERSION', '${VERSION}')" "$FILE" || { echo "::error::Version stamp failed"; exit 1; }
+
+      - name: Build LB and MAIN archives
+        run: |
+          make new
+          make lb LAST_TAG="${BASE}"
+          make main LAST_TAG="${BASE}"
+
+      - name: Write changelog and release notes
+        run: |
+          set -euo pipefail
+          # Everything since the release: a panel may come to this patch from
+          # the release or from any patch before it.
+          git log --no-merges --format='%s' "refs/tags/${BASE}..${SHA}" \
+            | jq -R . | jq -s --arg v "$VERSION" '{version: $v, changes: .}' > dist/changelog.json
+          {
+            echo "Patch build of **${BASE}**: the release with the fixes made since. Update as usual; no new release is needed."
+            echo
+            echo "Source: https://github.com/${GITHUB_REPOSITORY}/commit/${SHA}"
+            echo
+            echo "## Changes since ${BASE}"
+            git log --no-merges --format='- %s (%h)' "refs/tags/${BASE}..${SHA}"
+          } > "${RUNNER_TEMP}/notes.md"
+          cat "${RUNNER_TEMP}/notes.md"
+
+      - name: Keep the archives (dry run)
+        if: ${{ inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.plan.outputs.version }}
+          path: dist/*
+          retention-days: 7
+
+      - name: Publish the patch build
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.plan.outputs.prerelease }}
+          LATEST: ${{ needs.plan.outputs.latest }}
+        run: |
+          set -euo pipefail
+          FLAGS=(--latest="${LATEST}")
+          if [ "$PRERELEASE" = "true" ]; then
+            FLAGS=(--prerelease)
+          fi
+          gh release create "$VERSION" dist/* \
+            -R "$GITHUB_REPOSITORY" \
+            --target "$SHA" \
+            --title "$VERSION" \
+            --notes-file "${RUNNER_TEMP}/notes.md" \
+            "${FLAGS[@]}"
+
+  notify:
+    needs: [plan, build]
+    if: ${{ !inputs.dry_run }}
+    uses: ./.github/workflows/release-notifier.yml
+    with:
+      tag_name: ${{ needs.plan.outputs.version }}
+      release_name: ${{ needs.plan.outputs.version }}
+      is_prerelease: ${{ needs.plan.outputs.prerelease == 'true' }}
+    secrets: inherit

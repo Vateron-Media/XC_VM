@@ -197,7 +197,7 @@ class UpdateCommand implements CommandInterface {
 				}
 				$rTarget = isset($rArgs[1]) ? trim((string) $rArgs[1]) : '';
 
-				if (!preg_match('/^\d+\.\d+\.\d+$/', $rTarget)) {
+				if (!GitHubReleases::isReleaseVersion($rTarget)) {
 					echo "ERROR: invalid target version.\n";
 					UpdateLogger::error('Rollback aborted: invalid target version "' . $rTarget . '"');
 					return 1;
@@ -451,8 +451,9 @@ class UpdateCommand implements CommandInterface {
 	}
 
 	/**
-	 * A release version (x.y.z, or a nightly x.y.z-dev.N when MAIN runs the dev
-	 * channel) as an update names it, or null for none or anything else.
+	 * A release version (x.y.z, a patch build x.y.z-pN, or a nightly
+	 * x.y.z-dev.N when MAIN runs the dev channel) as an update names it, or
+	 * null for none or anything else.
 	 */
 
 	/**
@@ -501,7 +502,7 @@ class UpdateCommand implements CommandInterface {
 
 	public static function pinned(mixed $rVersion): ?string {
 		$rVersion = is_string($rVersion) ? trim($rVersion) : '';
-		return preg_match('/^\d+\.\d+\.\d+$/', $rVersion) || GitHubReleases::isDevVersion($rVersion) ? $rVersion : null;
+		return GitHubReleases::isReleaseVersion($rVersion) || GitHubReleases::isDevVersion($rVersion) ? $rVersion : null;
 	}
 
 	/**

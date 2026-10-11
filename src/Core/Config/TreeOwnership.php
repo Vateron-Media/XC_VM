@@ -72,8 +72,6 @@ final class TreeOwnership {
 		'bin/redis/',
 		'bin/xc_agent/',
 		'bin/xc_fanout/',
-		// Translator writes the missing keys of a language.
-		'Core/Localization/lang/',
 	];
 
 	/**

@@ -4,8 +4,8 @@ namespace XcVm\Core\Http;
 
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Error\ErrorResponder;
 use XcVm\Core\Module\ModuleInterface;
-use XcVm\Core\Util\AdminHelpers;
 
 /**
  * HTTP Router
@@ -456,18 +456,12 @@ class Router {
 	}
 
 	/**
-	 * Send an "access denied" response.
-	 *
-	 * Prefers redirecting an authenticated-but-unauthorized user to the
-	 * dashboard; falls back to a bare 403 if the helper is unavailable.
+	 * Send an "access denied" response: 403, with the error page for a browser
+	 * asking for a page and the short body for anything else (the panel's Ajax,
+	 * a script). It used to send a signed-in user to the dashboard without a
+	 * word, as if the page had worked.
 	 */
 	protected function denyAccess(): void {
-		if (class_exists(AdminHelpers::class)) {
-			AdminHelpers::goHome(); // redirects and exits
-		}
-
-		http_response_code(403);
-		echo 'Access denied';
-		exit();
+		ErrorResponder::emit(ErrorResponder::respondPage(403, 'Access denied', 'dashboard'));
 	}
 }

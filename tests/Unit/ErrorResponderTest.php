@@ -135,4 +135,56 @@ final class ErrorResponderTest extends TestCase {
 
 		$this->assertSame('', $output);
 	}
+
+	/**
+	 * Only a browser asking for a page gets an error page: a player, an API
+	 * client and the panel's own Ajax key off the status code.
+	 */
+	public function testOnlyABrowserPageRequestWantsHtml(): void {
+		$this->assertTrue(ErrorResponder::wantsHtml(['HTTP_ACCEPT' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8']));
+		$this->assertFalse(ErrorResponder::wantsHtml(['HTTP_ACCEPT' => 'text/html', 'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest']), 'the panel\'s Ajax');
+		$this->assertFalse(ErrorResponder::wantsHtml(['HTTP_ACCEPT' => 'application/json, text/javascript, */*; q=0.01']));
+		$this->assertFalse(ErrorResponder::wantsHtml(['HTTP_ACCEPT' => '*/*']), 'curl, VLC, most players');
+		$this->assertFalse(ErrorResponder::wantsHtml([]), 'no Accept header at all');
+	}
+
+	public function testAPanelAddressAnswersABrowserWithItsErrorPage(): void {
+		$rBrowser = ['HTTP_ACCEPT' => 'text/html'];
+		foreach ([403 => 'Access denied', 404 => 'Page not found', 405 => 'Method not allowed', 429 => 'Too many requests'] as $rStatus => $rTitle) {
+			$rOutcome = ErrorResponder::respondPage($rStatus, 'plain', 'dashboard', $rBrowser);
+			$this->assertSame($rStatus, $rOutcome->httpCode);
+			$this->assertTrue($rOutcome->shouldExit);
+			$this->assertStringStartsWith('<!DOCTYPE html>', $rOutcome->body);
+			$this->assertStringContainsString('<title>' . $rStatus . ' ' . $rTitle . '</title>', $rOutcome->body);
+			$this->assertStringContainsString('href="dashboard"', $rOutcome->body);
+			// One file, nothing to fetch: it shows whatever state the panel is in.
+			$this->assertStringNotContainsString('http', $rOutcome->body);
+			$this->assertStringNotContainsString('<script', $rOutcome->body);
+		}
+		$this->assertStringNotContainsString('<a ', ErrorResponder::respondPage(429, '', '', $rBrowser)->body, 'no way back to offer');
+		$this->assertStringContainsString('href="&quot;&gt;x"', ErrorResponder::renderPage(404, '">x'), 'the way back is escaped');
+		$this->assertStringContainsString('404 Page not found', ErrorResponder::renderPage(500), 'a status with no page reads as 404');
+	}
+
+	public function testAnythingElseKeepsTheBodyItAlwaysHad(): void {
+		foreach ([['HTTP_ACCEPT' => '*/*'], ['HTTP_ACCEPT' => 'text/html', 'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest'], []] as $rServer) {
+			$rOutcome = ErrorResponder::respondPage(403, 'Access denied', 'dashboard', $rServer);
+			$this->assertSame([403, 'Access denied', true], [$rOutcome->httpCode, $rOutcome->body, $rOutcome->shouldExit]);
+			$this->assertSame('', ErrorResponder::respondPage(429, '', '', $rServer)->body, 'a rate-limited player gets the bare status');
+		}
+	}
+
+	public function testEmitSendsThePageAndStops(): void {
+		ErrorResponder::$throwInsteadOfExit = true;
+		ob_start();
+		try {
+			ErrorResponder::emit(ErrorResponder::respondPage(403, 'Access denied', 'dashboard', ['HTTP_ACCEPT' => '*/*']));
+			$this->fail('emit() should have stopped');
+		} catch (ErrorResponseException $rOutcome) {
+			$this->assertSame(403, $rOutcome->httpCode);
+		} finally {
+			$rSent = (string) ob_get_clean();
+		}
+		$this->assertSame('Access denied', $rSent);
+	}
 }
