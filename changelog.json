@@ -1,6 +1,7 @@
 {
 	"version": "2.6.6",
 	"changes": [
+		"Security (GHSA-q9p6-374v-3jrj): a custom FFmpeg command or argument was placed on the stream's command line as typed, so shell syntax in it ran as the panel user. Each argument is now split and quoted on its own, and the custom FFmpeg command, custom map and raw transcode attributes can be set only by a full administrator — a restricted admin no longer sees those fields and their value is dropped on save.",
 		"YouTube restreaming is more reliable: a live source is resolved through yt-dlp's mweb client first (its segments keep playing, where android_vr dropped every ~30s with a 403), and a JavaScript runtime (deno) is installed automatically on every server when missing. Documented under Restreaming YouTube.",
 		"Streams: a new Maximum Resolution field on the Advanced tab caps the quality taken from a yt-dlp source (e.g. 720), taking the platform's own smaller variant with no transcoding. Empty keeps the best, as before.",
 		"Streams: a Scan Source button on the Map tab probes the source and lists its tracks, so a custom stream map can be filled by clicking instead of by hand.",
