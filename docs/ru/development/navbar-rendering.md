@@ -1,8 +1,8 @@
-# Отображение навигационной панели на панели модуля
+# <a id="navbar-rendering-in-module-panel"></a>Отображение навигационной панели на панели модуля
 
 Техническая документация по созданию и рендерингу навигационной панели в админ-панели.
 
-## Цель
+## <a id="purpose"></a>Цель
 
 Навигационная панель создается декларативно из дерева `NavbarItem`, а не из жестко запрограммированных HTML-меню.
 
@@ -11,13 +11,13 @@
 1. Основные узлы из `CoreNavbarProvider::register()`.
 2. Узлы модуля из `ModuleInterface::registerNavbar()`.
 
-## Жизненный цикл
+## <a id="lifecycle"></a>Жизненный цикл
 
 1. `ModuleLoader::bootAll()` вызывает `CoreNavbarProvider::register()`.
 2. Затем для каждого загруженного модуля вызывается `registerNavbar()`.
 3. В `Public/Views/admin/header.php` дерево отображается из `NavbarRegistry`.
 
-## Рендеринг в заголовке
+## <a id="rendering-in-header"></a>Рендеринг в заголовке
 
 Рендеринг выполняется вспомогательными функциями:
 
@@ -27,7 +27,7 @@
 
 Узлы верхнего уровня берутся из `NavbarRegistry::getTopLevel()`, дочерние узлы берутся из `NavbarRegistry::getChildren($key)`.
 
-## Правила видимости
+## <a id="visibility-rules"></a>Правила видимости
 
 Проверки выполняются в `_xc_nav_visible()`:
 
@@ -37,13 +37,13 @@
 4. Группа с `url='#'` отображается только в том случае, если виден хотя бы один дочерний элемент.
 5. `divider` всегда передается и отображается как разделитель.
 
-## Особенности рендеринга
+## <a id="rendering-specifics"></a>Особенности рендеринга
 
 1. `divider` отображается как разделитель без ссылки.
 2. `submenuClass('megamenu')` включает отображение длинных списков в два столбца.
 3. `noMobileSubmenu` отключает расширение дочернего подменю на мобильном устройстве.
 
-## Как модуль добавляет элемент прейскуранта
+## <a id="how-a-module-adds-a-menu-item"></a>Как модуль добавляет элемент прейскуранта
 
 Модуль добавляет элементы только через `registerNavbar()`:
 
@@ -65,7 +65,7 @@ public function registerNavbar(NavbarRegistry $registry): void {
 }
 ```
 
-## API построителя навигационных элементов
+## <a id="navbaritem-builder-api"></a>API построителя навигационных элементов
 
 `NavbarItem` — это объект с плавным значением (`src/Core/Module/NavbarItem.php`) - параметры цепочки отключены `new NavbarItem($key)`:
 
@@ -84,7 +84,7 @@ public function registerNavbar(NavbarRegistry $registry): void {
 | `->settingDisabled($settingKey)` |скройте узел, если этот флажок настройки панели соответствует действительности|
 | `->makeDivider()` |визуализируйте этот узел как разделитель (без ссылки)|
 
-### Узел группы и разделитель
+### <a id="group-node-and-divider"></a>Узел группы и разделитель
 
 ```php
 public function registerNavbar(NavbarRegistry $registry): void {
@@ -105,7 +105,7 @@ public function registerNavbar(NavbarRegistry $registry): void {
 
 > `settingDisabled('some_setting')` скрывает узел всякий раз, когда эта настройка верна (задает функцию за переключателем). Видимость также равна **область просмотра**: проверка `permissions` OR выполняется для текущего пользователя через `Authorization::check('adv', …)`, поэтому администратор и реселлер могут видеть разные подмножества одного и того же дерева.
 
-## Практические правила для модулей
+## <a id="practical-rules-for-modules"></a>Практические правила для модулей
 
 1. Используйте уникальные значения `key` в формате `section.group.item`.
 2. Установите значение `parent` для существующего основного узла дерева или вашего собственного, уже добавленного узла.
@@ -114,7 +114,7 @@ public function registerNavbar(NavbarRegistry $registry): void {
 5. Используйте `label('', 'Literal Text')` для фиксированного буквального текста.
 6. Если в модуле нет пунктов меню, оставьте `registerNavbar()` пустым.
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Роль|
 | --- | --- |

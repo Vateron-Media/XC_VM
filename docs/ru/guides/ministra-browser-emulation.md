@@ -1,10 +1,10 @@
-# Министерство: Эмуляция STB-интерфейса браузера
+# <a id="ministra-browser-stb-emulation"></a>Министерство: Эмуляция STB-интерфейса браузера
 
 Краткое руководство по запуску Ministra в обычном браузере (без реальной телевизионной приставки MAG) и диагностике ошибки `your device is not active`.
 
 ---
 
-## Когда использовать
+## <a id="when-to-use"></a>Когда использовать
 
 - Вам нужно проверить загрузку `index.html` и вызовы `portal.php` с помощью пути к токену.
 - Вам нужно быстро отладить handshake/get_profile в браузере.
@@ -12,7 +12,7 @@
 
 ---
 
-## Поток сообщений на портале (рукопожатие → профиль)
+## <a id="portal-flow-handshake-profile"></a>Поток сообщений на портале (рукопожатие → профиль)
 
 Модуль (или эмулятор) управляет порталом в фиксированной последовательности; понимание этого позволяет
 контрольный список шагов 4-5 по бетону:
@@ -41,7 +41,7 @@ a **знак**. `prehash` - это вычисляемый клиентом хэ�
 
 ---
 
-## Поддерживаемые URL-адреса
+## <a id="supported-urls"></a>Поддерживаемые URL-адреса
 
 Обычно используются два варианта (в зависимости от конфигурации nginx).:
 
@@ -58,7 +58,7 @@ a **знак**. `prehash` - это вычисляемый клиентом хэ�
 
 ---
 
-## Черный экран в Эмуляторе STB
+## <a id="black-screen-in-stb-emulator"></a>Черный экран в Эмуляторе STB
 
 Если эмулятор настроен с использованием URL-адреса, подобного:
 
@@ -78,7 +78,7 @@ http://HOST/ACCESS_CODE/portal.php?type=stb&action=handshake&mac=...&token=&preh
 
 ---
 
-## Необходимые параметры ПОЛУЧЕНИЯ
+## <a id="required-get-parameters"></a>Необходимые параметры ПОЛУЧЕНИЯ
 
 Если включена проверка устройств, явно передавайте идентификаторы:
 
@@ -95,7 +95,7 @@ http://HOST/ACCESS_CODE/portal.php?type=stb&action=handshake&mac=...&token=&preh
 
 ---
 
-## Полезные параметры ПОЛУЧЕНИЯ
+## <a id="useful-get-parameters"></a>Полезные параметры ПОЛУЧЕНИЯ
 
 |Параметр|Когда Это Необходимо|
 | --- | --- |
@@ -108,7 +108,7 @@ http://HOST/ACCESS_CODE/portal.php?type=stb&action=handshake&mac=...&token=&preh
 
 ---
 
-## Пример URL-адреса
+## <a id="example-url"></a>Пример URL-адреса
 
 ```text
 http://192.168.110.251/HgBjUjSI/?mac=00:1A:79:11:22:33&sn=062014N000001&stb_type=MAG250&device_id=ABC123&device_id2=DEF456&hw_version=1.7-BD-00&debug_key=1
@@ -128,7 +128,7 @@ http://192.168.110.251/HgBjUjSI/
 
 ---
 
-## Что означает `your device is not active`
+## <a id="what-your-device-is-not-active-means"></a>Что означает `your device is not active`
 
 The profile `status` field reports the outcome: **`status = 0`** — device authorized/active (normal); **`status = 1`** — device failed authentication/verification, which surfaces as *your device is not active*. (Only `0`/`1` are used for this gate.)
 
@@ -144,7 +144,7 @@ The profile `status` field reports the outcome: **`status = 0`** — device auth
 
 ---
 
-## Краткий контрольный список
+## <a id="quick-checklist"></a>Краткий контрольный список
 
 1. Откройте портал с правильным префиксом (`/ACCESS_CODE/` или `/c/`).
 2. В эмуляторе STB не используйте URL с `action=handshake` в качестве URL портала.
@@ -156,14 +156,14 @@ The profile `status` field reports the outcome: **`status = 0`** — device auth
 
 ---
 
-## Рекомендации по внедрению
+## <a id="implementation-references"></a>Рекомендации по внедрению
 
 - Client parameters and API calls: `src/Ministra/xpcom.common.js`
 - Инициализация параметра Debug/get: `src/Ministra/index.html`
 - Server-side device checks and profile: `src/Ministra/portal.php`
 - Handshake/get_profile orchestration: `src/Ministra/PortalHandler.php`
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Роль|
 | --- | --- |

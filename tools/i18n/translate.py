@@ -42,11 +42,13 @@ Usage
 from __future__ import annotations
 
 import argparse
+import difflib
 import fcntl
 import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -285,29 +287,120 @@ def _ts_line(line, tr, glossary, memo):
     return _ts_span(line, tr, glossary, memo)
 
 
-def _ts_document(md, tr, glossary):
-    memo: dict[str, str] = {}
-    out, in_code, fence = [], False, "```"
+def _md_lines(md):
+    """Yield ``(line, in_code)`` per line; fence lines count as code."""
+    in_code, fence = False, "```"
     for line in md.split("\n"):
         stripped = line.lstrip()
-        if not in_code and (stripped.startswith("```") or stripped.startswith("~~~")):
-            in_code, fence = True, stripped[:3]
-            out.append(line)
-            continue
         if in_code:
-            out.append(line)
+            yield line, True
             if stripped.startswith(fence):
                 in_code = False
-            continue
-        out.append(_ts_line(line, tr, glossary, memo))
-    return "\n".join(out)
+        elif stripped.startswith(("```", "~~~")):
+            in_code, fence = True, stripped[:3]
+            yield line, True
+        else:
+            yield line, False
+
+
+def _ts_document(md, tr, glossary, reuse=None):
+    """``reuse`` maps a line index to its translation from the last run."""
+    reuse = reuse or {}
+    memo: dict[str, str] = {}
+    return "\n".join(
+        line if code else reuse[i] if i in reuse else _ts_line(line, tr, glossary, memo)
+        for i, (line, code) in enumerate(_md_lines(md))
+    )
+
+
+# ── Line reuse and heading anchors (docs) ────────────────────────────────────
+# A web engine words the same line a little differently on every call, so a file
+# re-translated whole after a one-line edit drifts everywhere. Lines unchanged
+# since the last committed translation keep it; only new lines are translated.
+
+
+def _git(repo_root: Path, *args: str) -> str | None:
+    r = subprocess.run(["git", *args], cwd=repo_root, capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else None
+
+
+def previous_lines(repo_root: Path, src_rel: str, dst_rel: str, text: str) -> dict[int, str]:
+    """Line index in ``text`` -> its translation in the last commit of ``dst_rel``.
+
+    Only for line-for-line translations (the `translators` provider): the
+    committed pair must have equal line counts with identical code and blank
+    lines, else nothing is reused. Lines still left in English are not reused.
+    """
+    commit = (_git(repo_root, "log", "-1", "--format=%H", "--", dst_rel) or "").strip()
+    old_en = commit and _git(repo_root, "show", f"{commit}:{src_rel}")
+    old_tr = commit and _git(repo_root, "show", f"{commit}:{dst_rel}")
+    if not old_en or not old_tr:
+        return {}
+    a, b = old_en.split("\n"), old_tr.split("\n")
+    if len(a) != len(b) or any(
+        line != tr for (line, code), tr in zip(_md_lines(old_en), b) if code or not line.strip()
+    ):
+        return {}
+    reuse = {}
+    ops = difflib.SequenceMatcher(None, a, text.split("\n"), autojunk=False).get_opcodes()
+    for tag, i1, i2, j1, _ in ops:
+        if tag == "equal":
+            for k in range(i2 - i1):
+                if b[i1 + k] != a[i1 + k]:
+                    reuse[j1 + k] = b[i1 + k]
+    return reuse
+
+
+# A pinned anchor from an earlier run (or a `{ #id }` the engine carried over).
+_PINNED = re.compile(r'<a id="[^"]*"></a>|\s*\{\s*#[^}]*\}\s*$')
+
+
+def _heading_indexes(md: str) -> list[int]:
+    return [i for i, (line, code) in enumerate(_md_lines(md)) if not code and _HEADING.match(line)]
+
+
+def _heading_ids(headings: list[str]) -> list[str]:
+    """The anchor ids MkDocs gives these heading lines, in order."""
+    import markdown  # lazy: installed with mkdocs in the docs venv
+
+    md = markdown.Markdown(extensions=["toc", "attr_list"])
+    md.convert("\n\n".join(headings))
+    ids: list[str] = []
+
+    def walk(tokens):
+        for t in tokens:
+            ids.append(t["id"])
+            walk(t["children"])
+
+    walk(md.toc_tokens)
+    return ids
+
+
+def pin_anchors(src: str, out: str) -> str | None:
+    """Put each English heading anchor into its translated heading as an empty
+    ``<a id>``, so links to ``page#section`` keep working; unlike ``{ #id }`` it
+    stays invisible on GitHub and in editors too. ``None`` if the headings do
+    not line up."""
+    src_lines, out_lines = src.split("\n"), out.split("\n")
+    src_idx, out_idx = _heading_indexes(src), _heading_indexes(out)
+    heads = []
+    for i in out_idx:
+        prefix, text = _HEADING.match(out_lines[i]).groups()
+        heads.append((prefix, _PINNED.sub("", text)))
+    ids = _heading_ids([src_lines[i] for i in src_idx])
+    own = _heading_ids([p + t for p, t in heads])
+    if not len(ids) == len(src_idx) == len(out_idx) == len(own):
+        return None
+    for i, (prefix, text), hid, oid in zip(out_idx, heads, ids, own):
+        out_lines[i] = prefix + text if hid == oid else f'{prefix}<a id="{hid}"></a>{text}'
+    return "\n".join(out_lines)
 
 
 # (engine, lang) pairs an engine refused as an unsupported language this run.
 _TS_UNSUPPORTED: set[tuple[str, str]] = set()
 
 
-def provider_translators(text: str, lang: str, glossary: list[str]) -> str:
+def provider_translators(text: str, lang: str, glossary: list[str], reuse=None) -> str:
     """Free, key-less translation via the `translators` web engines.
 
     Engine order is set by DOCS_TRANSLATE_TS_ENGINES (first that answers wins).
@@ -346,7 +439,7 @@ def provider_translators(text: str, lang: str, glossary: list[str]) -> str:
                 errors.append(f"{engine}: {last_err}")
         raise RuntimeError("all translators engines failed: " + "; ".join(errors))
 
-    return _ts_document(text, tr, glossary)
+    return _ts_document(text, tr, glossary, reuse)
 
 
 PROVIDERS = {
@@ -532,7 +625,7 @@ def main() -> int:
     )
     ap.add_argument(
         "--glossary",
-        default=str(repo_root / "tools" / "docs" / "glossary.txt"),
+        default=str(repo_root / "tools" / "i18n" / "glossary.txt"),
         help="do-not-translate term list",
     )
     args = ap.parse_args()
@@ -576,8 +669,21 @@ def main() -> int:
             # visibly shows which file it is on instead of going silent. flush keeps
             # it live even when stdout is a pipe (make -u also helps).
             print(f"→ translating {rel} …", flush=True)
+            kwargs = {}
+            if translate is provider_translators:
+                try:
+                    kwargs["reuse"] = previous_lines(
+                        repo_root,
+                        str(path.resolve().relative_to(repo_root)),
+                        str((dst / rel).resolve().relative_to(repo_root)),
+                        text,
+                    )
+                except ValueError:  # --src/--dst outside the repo: no history
+                    pass
+                if kwargs.get("reuse"):
+                    print(f"  reusing {len(kwargs['reuse'])} lines from the last translation")
             try:
-                out = translate(text, args.lang, glossary)
+                out = translate(text, args.lang, glossary, **kwargs)
             except Exception as exc:  # noqa: BLE001
                 # Graceful degradation: a flaky/rate-limited web engine must never
                 # break the docs build — fall back to the English source for this
@@ -592,6 +698,12 @@ def main() -> int:
                 cache_file.write_text(out, encoding="utf-8")
                 translated += 1
                 print(f"  translated {rel}")
+
+        pinned = pin_anchors(text, out)
+        if pinned is None:
+            print(f"  WARN {rel}: headings differ from English; anchors not pinned", file=sys.stderr)
+        else:
+            out = pinned
 
         out_path = dst / rel
         out_path.parent.mkdir(parents=True, exist_ok=True)
