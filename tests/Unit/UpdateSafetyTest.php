@@ -135,6 +135,15 @@ final class UpdateSafetyTest extends TestCase {
 		}
 	}
 
+	public function testFileCleanupOnlyDeletesPathsThatStayInsideTheTree(): void {
+		foreach (['Core/X.php', 'bin/install/update_binaries.sh', 'a/b/c.txt', './Core/X.php'] as $rSafe) {
+			$this->assertTrue(MigrationRunner::isSafeDeletePath($rSafe), $rSafe);
+		}
+		foreach (['/etc/passwd', '../../etc/passwd', 'Core/../../secret', '..', 'a/../../b', 'a\\..\\b', "a/\0b", ''] as $rUnsafe) {
+			$this->assertFalse(MigrationRunner::isSafeDeletePath($rUnsafe), $rUnsafe);
+		}
+	}
+
 	public function testARollbackReversesTheSchemaOnlyForATargetUpTo253(): void {
 		// 2.6.0 on: its runner applies up/ again, which the updater leaves in place.
 		$this->assertNull(UpdateCommand::rollbackMigrations($this->archive(['migrations/database/up/001_a.sql', 'migrations/deleted_files.txt'])));
