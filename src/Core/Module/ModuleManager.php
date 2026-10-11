@@ -39,6 +39,14 @@ class ModuleManager {
 	 */
 	public const STEPS_DONE = 'module:migrate: steps done';
 
+	/**
+	 * The platform pinned this panel's install_id to another machine (the config
+	 * directory was copied, or the server was replaced): it refuses registration
+	 * and paid modules until the binding is reset on xcvm.tech.
+	 */
+	private const PANEL_MOVED_MESSAGE = 'This panel is registered on xcvm.tech from another machine. '
+		. 'If the server was replaced, ask xcvm.tech support to reset the panel\'s hardware binding.';
+
 	private string $modulesPath;
 
 	private string $overridesPath;
@@ -2032,7 +2040,10 @@ class ModuleManager {
 		if ($apiKey !== null) {
 			$reg = \XC_VM::panel_register($apiKey);
 			if (!is_array($reg) || empty($reg['ok'])) {
-				$regReason = $reg['message'] ?? ($reg['reason'] ?? 'unknown');
+				$regReason = $reg['message'] ?? ($reg['reason'] ?? ($reg['error'] ?? 'unknown'));
+				if ($regReason === 'panel_moved') {
+					throw new \RuntimeException(self::PANEL_MOVED_MESSAGE);
+				}
 				throw new \RuntimeException("Panel registration with platform failed for module '{$slug}': {$regReason}");
 			}
 		}
@@ -2043,6 +2054,9 @@ class ModuleManager {
 			$reason = $result['error'] ?? ($result['reason'] ?? 'unknown');
 			if ($reason === 'not_entitled') {
 				throw new \RuntimeException('This module is paid: buy it on xcvm.tech and set the Modules API key (Settings → API).');
+			}
+			if ($reason === 'panel_moved') {
+				throw new \RuntimeException(self::PANEL_MOVED_MESSAGE);
 			}
 			throw new \RuntimeException("Platform download failed for module '{$slug}': {$reason}");
 		}
