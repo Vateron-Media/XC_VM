@@ -141,6 +141,7 @@ use XcVm\Public\Controllers\Admin\TicketsController;
 use XcVm\Public\Controllers\Admin\TicketViewController;
 use XcVm\Public\Controllers\Admin\TmdbController;
 use XcVm\Public\Controllers\Admin\TranslationsController;
+use XcVm\Public\Controllers\Admin\ReportIssueController;
 use XcVm\Public\Controllers\Admin\UseragentController;
 use XcVm\Public\Controllers\Admin\UseragentsController;
 use XcVm\Public\Controllers\Admin\UserController;
@@ -217,6 +218,7 @@ $router->get('settings', [SettingsController::class, 'index']);
 $router->get('modules', [ModulesController::class, 'index']);
 $router->any('magscan_settings', [MagscanSettingsController::class, 'index']);
 $router->get('translations', [TranslationsController::class, 'index']);
+$router->get('report_issue', [ReportIssueController::class, 'index']);
 
 // ─── Lines ─────────────────────────────────────────
 

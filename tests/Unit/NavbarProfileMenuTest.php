@@ -134,6 +134,9 @@ final class NavbarProfileMenuTest extends TestCase {
         $this->assertSame(['settings'], $byKey['profile.modules']->permissions);
         $this->assertSame(['settings'], $byKey['profile.alerts']->permissions);
         $this->assertSame(['settings'], $byKey['profile.translations']->permissions);
+        // Report an Issue is open to every administrator, like edit/logout.
+        $this->assertSame([], $byKey['profile.report_issue']->permissions);
+        $this->assertSame('report_issue', $byKey['profile.report_issue']->url);
         $this->assertSame(['database'], $byKey['profile.backups']->permissions);
         $this->assertSame(['database'], $byKey['profile.cache']->permissions);
     }
@@ -150,6 +153,7 @@ final class NavbarProfileMenuTest extends TestCase {
             'profile.settings',
             'profile.alerts',
             'profile.translations',
+            'profile.report_issue',
             'profile.backups',
             'profile.cache',
             'profile.modules',
@@ -165,7 +169,7 @@ final class NavbarProfileMenuTest extends TestCase {
         $visible = $this->filterVisible(NavbarRegistry::getChildren('profile'), []);
         $rendered = $this->keys(NavbarRegistry::collapseDividers($visible));
 
-        $this->assertSame(['profile.edit', 'profile.logout_divider', 'profile.logout'], $rendered);
+        $this->assertSame(['profile.edit', 'profile.report_issue', 'profile.logout_divider', 'profile.logout'], $rendered);
     }
 
     // ── Module integration contract (Plex 1.0.2 + Watch 1.0.5) ────
@@ -203,6 +207,7 @@ final class NavbarProfileMenuTest extends TestCase {
             'profile.settings',
             'profile.alerts',
             'profile.translations',
+            'profile.report_issue',
             'profile.backups',
             'profile.cache',
             'profile.modules',
@@ -228,6 +233,7 @@ final class NavbarProfileMenuTest extends TestCase {
             'profile.settings',
             'profile.alerts',
             'profile.translations',
+            'profile.report_issue',
             'profile.backups',
             'profile.cache',
             'profile.modules',
