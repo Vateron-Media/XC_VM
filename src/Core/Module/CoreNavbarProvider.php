@@ -618,6 +618,11 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 			->parent('profile')->url('translations')
 			->label('translations')->permissions(['settings'])->order(27));
 
+		// No permission: reporting an issue is open to every administrator, like the profile itself.
+		NavbarRegistry::add((new NavbarItem('profile.report_issue'))
+			->parent('profile')->url('report_issue')
+			->label('report_issue')->order(28));
+
 		NavbarRegistry::add((new NavbarItem('profile.backups'))
 			->parent('profile')->url('backups')
 			->label('backup_settings')->permissions(['database'])->order(30));
