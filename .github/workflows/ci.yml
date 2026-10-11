@@ -11,6 +11,10 @@ name: CI
 # pull_request trigger. The concurrency group cancels superseded in-flight runs
 # on rapid re-pushes / new commits to the same ref.
 #
+# Pull requests always run the full gate: main's branch protection requires five
+# of these checks, and a workflow skipped by `paths-ignore` never reports them,
+# so a docs-only PR waited on them forever. Only pushes to main filter paths.
+#
 # `paths-ignore` (blocklist, NOT an allowlist) skips CI only when EVERY changed
 # file is documentation. Any commit that also touches code still runs the full
 # gate — so this can never silently disable checks for a real source change. Do
@@ -23,7 +27,7 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore: &non-code
+    paths-ignore:
       - 'docs/**'
       - '**/*.md'
       - 'LICENSE'
@@ -42,7 +46,6 @@ on:
       - '.github/workflows/release-notifier.yml'
       - '.github/workflows/security-scan.yml'
   pull_request:
-    paths-ignore: *non-code
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
