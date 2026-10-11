@@ -7,6 +7,7 @@ Use it for a fix that should not wait for the next release. Nothing is prepared 
 ## What a panel sees
 
 - The panel's updater takes a patch build as it takes a release: **Update** on MAIN, then on each load balancer. Nothing is new in the panel.
+- A patch is a **small update**: its update archive carries only the files changed since the release, and the updater overlays them onto the tree and restarts the service — not a re-download of the whole panel. The panel shows the update in the top bar and on the Settings page, with a one-click **Update Server** button, the same as for a release.
 - It is offered on the channel of the release it patches. A patch of a stable release reaches the `Stable` and `Beta` channels; a patch of a pre-release reaches `Beta` only.
 - Versions order as `2.6.5` < `2.6.5-p1` < `2.6.5-p2` < `2.6.6`. A panel on the release goes to its newest patch at once, and on to the next release when there is one. A panel on an older release goes straight to the newest version.
 - The panel shows the patch as its version (`2.6.5-p1`). A module that asks for core `2.6.5` keeps loading: a patch counts as its release.
@@ -22,7 +23,7 @@ Use it for a fix that should not wait for the next release. Nothing is prepared 
     gh workflow run build-patch.yml -f ref=main
     ```
 
-3. The workflow picks the release (`base`: the newest `X.Y.Z` tag the ref contains), numbers the patch, runs the unit tests, stamps the version into the build, builds the same four files a release has (`XC_VM.zip`, `xc_vm.tar.gz`, `loadbalancer.tar.gz`, `hashes.md5`) plus `changelog.json`, and publishes them.
+3. The workflow picks the release (`base`: the newest `X.Y.Z` tag the ref contains), numbers the patch, runs the unit tests, stamps the version into the build, and publishes `XC_VM.zip`, `xc_vm.tar.gz`, `loadbalancer.tar.gz`, `hashes.md5` and `changelog.json`. The two update archives (`xc_vm.tar.gz`, `loadbalancer.tar.gz`) are reduced to a **delta** — only the files changed since the release, plus the stamped version file, and the deleted-files list when the patch removes a file. `XC_VM.zip` stays the full installer, because a fresh install lays down the whole tree.
 
 | Input | Meaning |
 |-------|---------|
@@ -40,7 +41,7 @@ Try a `dry_run` first when in doubt.
 
 ## What a patch may carry
 
-A patch build is a full build of its ref: everything merged since the release goes out, database migrations included. Keep `main` releasable, or patch from a release branch.
+A patch build is built from the full tree of its ref: everything merged since the release goes out, database migrations included. The update archive is then a delta of those changes (the updater overlays it), so a file that did not change since the release is left as the panel has it. Keep `main` releasable, or patch from a release branch.
 
 A patch build is not a release in these ways:
 
