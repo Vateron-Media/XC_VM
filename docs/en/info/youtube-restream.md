@@ -88,12 +88,17 @@ Instead of a proxy provider you can run your own HTTP proxy (for example Squid o
 check that YouTube gives links to that server's IP at all. Many hosting ranges are
 flagged, so a fresh VPS can be blocked from the start.
 
-Run `yt-dlp` directly on the proxy server, with a broadcast that is live right now:
+Run `yt-dlp` directly on the proxy server, with a broadcast that is live right now.
+Install [deno](https://deno.com) too, as the panel does: without a JavaScript runtime
+`yt-dlp` cannot open some broadcasts at all, whatever the IP.
 
 ```bash
 curl -L -o /usr/local/bin/yt-dlp \
   https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
 chmod +x /usr/local/bin/yt-dlp
+curl -L -o /tmp/deno.zip \
+  https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip
+python3 -m zipfile -e /tmp/deno.zip /usr/local/bin && chmod +x /usr/local/bin/deno
 yt-dlp -g 'https://www.youtube.com/watch?v=VIDEO_ID'
 ```
 
@@ -102,7 +107,7 @@ yt-dlp -g 'https://www.youtube.com/watch?v=VIDEO_ID'
 | A `https://manifest.googlevideo.com/...` link | YouTube accepts this server's IP. A proxy on it will work. |
 | `Sign in to confirm you're not a bot` | YouTube has flagged this IP. A proxy on it will not work. Try another provider or a residential IP. |
 | `This live event has ended` | The broadcast is over. Test with one that is live now. |
-| `This video is not available` | The video itself is the problem: it is geo-blocked in the server's country, private, removed or members-only. Check it in a browser, or test with another broadcast. |
+| `This video is not available` or `No video formats found!` | Usually no JavaScript runtime: check that `deno --version` works. With deno installed, the video itself is the problem: it is geo-blocked in the server's country, private, removed or members-only. |
 
 Keep the link in single quotes. Without them, the `&` in a link such as
 `watch?v=...&pp=...` cuts the command and runs it in the background.
@@ -158,11 +163,13 @@ able to reach the proxy. To check a stream before going live, use the command in
 
 - **YouTube live broadcasts:** supported. The panel picks a single stream that carries
   both video and audio (up to 1080p).
-- **JavaScript runtime (recommended):** with [deno](https://deno.com) installed on the
-  server (`/usr/local/bin/deno` or anywhere on `PATH`), `yt-dlp` asks YouTube as its
-  mobile web client, whose streams keep playing. Without deno the panel falls back to a
-  client that needs no runtime, but YouTube cuts its segments off after about 30 seconds,
-  so the stream restarts every half minute.
+- **JavaScript runtime (required):** with [deno](https://deno.com) on the server,
+  `yt-dlp` asks YouTube as its mobile web client, whose streams keep playing. The panel
+  installs deno to `/usr/local/bin/deno` on every server when it is missing, together
+  with the daily `yt-dlp` check (`console.php ytdlp` as root runs it at once). Without
+  deno the panel falls back to a client that needs no runtime: some broadcasts do not
+  open through it at all, and YouTube cuts the segments of the rest off after about
+  30 seconds, so the stream restarts every half minute.
 - **Regular (non-live) YouTube videos:** not supported for now. YouTube refuses their
   download links to the panel's `yt-dlp` without a JavaScript runtime, even through a
   proxy.
@@ -196,7 +203,8 @@ A working setup prints one `https://manifest.googlevideo.com/...` link.
 | `Sign in to confirm you're not a bot` | No proxy on the stream, or the proxy's IP is blocked or flagged as hosting. | Set **HTTP Proxy** on the stream; use a residential/home IP; give the stream an IP no other stream uses. |
 | `Requested format is not available` | The panel version predates YouTube restream support. | Update the panel. |
 | The link is found, but the stream does not start or segments fail (`403 Forbidden`, `Failed to open segment`) | The video is downloaded from a different IP than the link was fetched from. This usually happens because the proxy is SOCKS, or because a proxy server with both IPv4 and IPv6 connects over one for the link and the other for the video. | Use an HTTP proxy. On your own proxy server, make outgoing connections use only one of IPv4 or IPv6. |
-| The stream restarts every 30–50 seconds; the log shows `403 Forbidden` / `Failed to open segment` | No JavaScript runtime on the server, so the panel fell back to the `android_vr` client, whose segments YouTube cuts off after about 30 seconds. | Install [deno](https://deno.com) on the server. |
+| The stream does not start; the check above prints nothing for `mweb`, and `This video is not available` for `default,android_vr` | No JavaScript runtime on the server. Without it `mweb` gets no formats, and some broadcasts are not available to the `android_vr` fallback at all. | Run `console.php ytdlp` as root, which installs deno, or install [deno](https://deno.com) to `/usr/local/bin/deno`. |
+| The stream restarts every 30–50 seconds; the log shows `403 Forbidden` / `Failed to open segment` | No JavaScript runtime on the server, so the panel fell back to the `android_vr` client, whose segments YouTube cuts off after about 30 seconds. | Same as above: install deno. |
 | Works for a while, then stops for several streams at once | Several YouTube streams share one proxy IP and it got rate-limited. | One proxy IP per stream. |
 | `Unable to connect to proxy` / timeouts | The proxy is unreachable from this server or the login is wrong. | Test it with `curl -x 'http://user:password@host:port' https://api.ipify.org` on the server; it should print the proxy's IP. |
 
