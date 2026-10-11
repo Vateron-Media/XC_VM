@@ -102,6 +102,53 @@ final class ModuleLoaderTest extends TestCase {
 		$this->assertFalse($loader->isLoaded('hashmod_ab123'));
 	}
 
+	// ── disabling through config/modules.php ──────────────────────────────
+
+	/**
+	 * Renaming a module's directory (e.g. to `*.disabled`) does not turn it off;
+	 * an entry in config/modules.php under the manifest name does, in the legacy
+	 * `enabled` form and the `state` form, whatever the directory is called.
+	 */
+	// skip-on-panel: CONFIG_PATH is a process-global constant, and the panel's PHP
+	// segfaults on the isolated test PHPUnit feeds its child on stdin.
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	public function testModulesPhpDisablesAModuleARenamedDirectoryDoesNot(): void {
+		$config = sys_get_temp_dir() . '/xc_vm_modules_config_' . bin2hex(random_bytes(6)) . '/';
+		mkdir($config, 0775, true);
+		define('CONFIG_PATH', $config);
+
+		$root = $this->createModulesRoot();
+		$dir = $root . '/offmod_ab123.disabled';
+		mkdir($dir, 0775, true);
+		file_put_contents($dir . '/module.json', json_encode([
+			'name'          => 'offmod',
+			'version'       => '1.0.0',
+			'requires_core' => '>=2.0',
+			'environment'   => 'main',
+			'dependencies'  => [],
+		]));
+		file_put_contents($dir . '/OffmodModule.php',
+			"<?php\nnamespace XcVm\\Module\\Offmod;\n"
+			. "use XcVm\\Core\\Module\\BaseModule;\n"
+			. "class OffmodModule extends BaseModule {\n"
+			. "\tpublic function getName(): string { return 'offmod'; }\n"
+			. "\tpublic function getVersion(): string { return '1.0.0'; }\n"
+			. "}\n"
+		);
+
+		$loads = function (array $overrides) use ($config, $root): bool {
+			file_put_contents($config . 'modules.php', "<?php\nreturn " . var_export($overrides, true) . ";\n");
+			$loader = new ModuleLoader();
+			$loader->loadAll($root);
+			return $loader->isLoaded('offmod');
+		};
+
+		$this->assertTrue($loads([]), 'a renamed directory alone still loads the module');
+		$this->assertFalse($loads(['offmod' => ['enabled' => false]]));
+		$this->assertFalse($loads(['offmod' => ['state' => 'disabled']]));
+	}
+
 	public function testLoadAllSkipsBrokenModuleInsteadOfBrickingThePanel(): void {
 		$root = $this->createModulesRoot();
 		// 'broken-mod' has a manifest but no class file → load() fails. A single
