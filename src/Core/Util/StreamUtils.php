@@ -128,6 +128,58 @@ class StreamUtils {
 	}
 
 	/**
+	 * Re-quote an operator-written argument string (custom ffmpeg command) for
+	 * the shell that runs the line: split it the way a shell would — quotes and
+	 * backslashes group, nothing expands — then quote every argument on its own.
+	 * `;`, `|`, `$(...)` and the like reach ffmpeg as text instead of running
+	 * (GHSA-q9p6-374v-3jrj). A whole `{TOKEN}` stays bare for the command
+	 * template to fill.
+	 *
+	 * @param string $rArgs e.g. `-i {STREAM_SOURCE} -vf "scale=1280:720"`.
+	 * @return string
+	 */
+	public static function shellArguments(string $rArgs): string {
+		$rTokens = [];
+		$rToken = null;
+		$rQuote = '';
+		$rLength = strlen($rArgs);
+		for ($i = 0; $i < $rLength; $i++) {
+			$c = $rArgs[$i];
+			if ($rQuote === "'") {
+				if ($c === "'") {
+					$rQuote = '';
+				} else {
+					$rToken .= $c;
+				}
+			} elseif ($rQuote === '"') {
+				if ($c === '"') {
+					$rQuote = '';
+				} elseif ($c === '\\' && $i + 1 < $rLength && strpos('"\\$`', $rArgs[$i + 1]) !== false) {
+					$rToken .= $rArgs[++$i];
+				} else {
+					$rToken .= $c;
+				}
+			} elseif ($c === "'" || $c === '"') {
+				$rQuote = $c;
+				$rToken = (string) $rToken;
+			} elseif ($c === '\\' && $i + 1 < $rLength) {
+				$rToken .= $rArgs[++$i];
+			} elseif (ctype_space($c)) {
+				if ($rToken !== null) {
+					$rTokens[] = $rToken;
+					$rToken = null;
+				}
+			} else {
+				$rToken .= $c;
+			}
+		}
+		if ($rToken !== null) {
+			$rTokens[] = $rToken;
+		}
+		return implode(' ', array_map(fn($rArg) => preg_match('/^\{[A-Z0-9_]+\}$/', $rArg) ? $rArg : escapeshellarg($rArg), $rTokens));
+	}
+
+	/**
 	 * Normalize transcode arguments for ffmpeg.
 	 *
 	 * Merges multiple `-filter_complex` clauses into one, drops control keys

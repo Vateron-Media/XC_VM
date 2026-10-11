@@ -69,10 +69,32 @@ class Authorization {
 			return false;
 		}
 
-		if (0 < count($rPermissions['advanced']) && $rUserInfo['member_group_id'] != 1) {
-			return in_array($rID, ($rPermissions['advanced'] ?: []));
-		}
+		return self::isFullAdmin() || in_array($rID, ($rPermissions['advanced'] ?: []));
+	}
 
-		return true;
+	/**
+	 * An admin with no advanced-permission list, or of the Administrators group:
+	 * every `adv` check passes.
+	 */
+	public static function isFullAdmin(): bool {
+		global $rUserInfo;
+		global $rPermissions;
+		return !empty($rPermissions['is_admin']) && (empty($rPermissions['advanced']) || ($rUserInfo['member_group_id'] ?? null) == 1);
+	}
+
+	/**
+	 * custom_ffmpeg, custom_map and a stream's own transcode attributes hand
+	 * ffmpeg arguments of the writer's choosing, and an output among them writes
+	 * any file xc_vm can (GHSA-q9p6-374v-3jrj). Only a full admin sets them:
+	 * anyone else's value is dropped, and an edit keeps the stored one.
+	 *
+	 * @param array $rData Submitted stream form data.
+	 * @return array
+	 */
+	public static function dropFfmpegArguments(array $rData): array {
+		if (!self::isFullAdmin()) {
+			unset($rData['custom_ffmpeg'], $rData['custom_map'], $rData['transcode_attributes']);
+		}
+		return $rData;
 	}
 }
