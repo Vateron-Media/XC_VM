@@ -4,6 +4,7 @@ use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Http\RequestManager;
@@ -12,6 +13,7 @@ use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Localization\Translator;
 use XcVm\Cli\Commands\MigrateCommand;
+use XcVm\Domain\Server\SettingsService;
 use XcVm\Infrastructure\Bootstrap\AdminScopeBootstrap;
 
 
@@ -96,6 +98,13 @@ if (!RequestManager::has('update')):
                     $_SESSION['verify'] = md5($rArray['username'] . '||' . $rArray['password']);
                     $db->query('UPDATE `servers` SET `server_ip` = ? WHERE `is_main` = 1 AND `server_type` = 0 LIMIT 1;', $_SERVER['SERVER_ADDR']);
                     $db->query('UPDATE `settings` SET `live_streaming_pass` = ? WHERE `id` = 1', AdminHelpers::generateString(25));
+                    // The panel's language, timezone, name and message of the day, from the same form.
+                    $rBasics = SettingsService::firstRunValues(RequestManager::getAll());
+                    if ($rBasics !== []) {
+                        $rPrepare = QueryHelper::prepareArray($rBasics);
+                        $db->query('UPDATE `settings` SET ' . $rPrepare['update'] . ' WHERE `id` = 1;', ...$rPrepare['data']);
+                        SettingsManager::clearCache();
+                    }
 
                     if ($_SESSION['code'] == 'setup') {
                         header('Location: ./codes');
@@ -217,6 +226,42 @@ if (!RequestManager::has('update')):
                             <label class="col-md-4 col-form-label" for="email"><?= $language::get('email_address') ?></label>
                             <div class="col-md-8">
                                 <input type="text" class="form-control" id="email" name="email" value="">
+                            </div>
+                        </div>
+                        <hr class="my-4">
+                        <?php // The panel's basics, prefilled with what is stored: sent unchanged, nothing changes. ?>
+                        <div class="row mb-3">
+                            <label class="col-md-4 col-form-label" for="server_name"><?= $language::get('server_name') ?></label>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="server_name" name="server_name" maxlength="255"
+                                    value="<?= htmlspecialchars((string) ($rSettings['server_name'] ?? ''), ENT_QUOTES) ?>">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-md-4 col-form-label" for="language"><?= $language::get('interface_language') ?></label>
+                            <div class="col-md-8">
+                                <select class="form-select" id="language" name="language">
+                                    <?php foreach (Translator::available() as $rLangCode): ?>
+                                        <option value="<?= htmlspecialchars($rLangCode, ENT_QUOTES) ?>" <?= ($rSettings['language'] ?? 'en') === $rLangCode ? 'selected' : '' ?>><?= htmlspecialchars($rLangCode) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-md-4 col-form-label" for="default_timezone"><?= $language::get('server_timezone') ?></label>
+                            <div class="col-md-8">
+                                <select class="form-select" id="default_timezone" name="default_timezone">
+                                    <?php foreach (AdminHelpers::TimeZoneList() as $rZone): ?>
+                                        <option value="<?= htmlspecialchars($rZone['zone'], ENT_QUOTES) ?>" <?= ($rSettings['default_timezone'] ?? '') === $rZone['zone'] ? 'selected' : '' ?>><?= htmlspecialchars($rZone['zone'] . ' ' . $rZone['diff_from_GMT']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-md-4 col-form-label" for="message_of_day"><?= $language::get('message_of_the_day') ?></label>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="message_of_day" name="message_of_day" maxlength="2000"
+                                    value="<?= htmlspecialchars((string) ($rSettings['message_of_day'] ?? ''), ENT_QUOTES) ?>">
                             </div>
                         </div>
                         <div class="text-end">
