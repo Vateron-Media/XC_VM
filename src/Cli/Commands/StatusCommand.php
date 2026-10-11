@@ -6,6 +6,7 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Core\Cluster\LbDatabaseAccessException;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\MigrationRunner;
@@ -259,6 +260,13 @@ class StatusCommand implements CommandInterface {
 			ProcessRunner::run(['sudo', 'chmod', '0600', MAIN_HOME . 'config/config.ini']);
 		}
 		shell_exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system 2> /dev/null");
+		// MAIN: what root runs or loads from the tree is root's again, after the
+		// install or the update that handed the whole tree to xc_vm.
+		if (NodeRole::isMain()) {
+			foreach (TreeOwnership::rootOwn(MAIN_HOME) as $rArgv) {
+				ProcessRunner::run(array_merge(['sudo'], $rArgv));
+			}
+		}
 	}
 
 	private function fixNginxConfig(bool $rReload): bool {

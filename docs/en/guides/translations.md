@@ -2,6 +2,8 @@
 
 XC_VM uses a file-based translation system. Each language is a single `.ini` file in the `src/Core/Localization/lang/` directory. Adding a new language requires no code changes — just create a file and it will appear in the admin panel automatically.
 
+On an installed panel, use the [translation manager](#translation-manager) instead: it keeps your translation outside the code, where an update does not replace it. The steps below are for a language that ships with XC_VM.
+
 ## Quick Start
 
 1. Generate a machine-translated starting point from `en.ini`:
@@ -54,10 +56,49 @@ another_key = "Another translated text"
 
 | Step | What happens |
 |------|-------------|
-| Panel boot | `Translator::init()` scans `src/Core/Localization/lang/` for `*.ini` files |
-| Language list | `Translator::available()` returns all found language codes |
+| Panel boot | `Translator::init()` scans `src/Core/Localization/lang/` (bundled) and `config/lang/` (custom) for `*.ini` files |
+| Language list | `Translator::available()` returns all found language codes, of both directories |
+| Loading a language | The bundled file is read first, the custom file over it; a key neither has falls back to `en.ini` |
 | User selection | Language is stored in a `lang` cookie (per browser) and in the `settings.language` DB column (global default) |
-| Missing key | If a translation key is used in code but missing from your `.ini` file, the system **automatically appends** it with the English value from `en.ini` (or the key name if `en.ini` lacks it too) |
+| Missing key | If a translation key is used in code but missing from the language, the English value from `en.ini` is shown (or the key name if `en.ini` lacks it too). No language file is written at runtime: the [translation manager](#translation-manager) lists what a language lacks (**Missing only**) |
+
+## Translation manager
+
+**Translations**, in the profile menu next to **General Settings**, manages panel languages without a code change. It needs the `settings` permission, like the Settings page.
+
+| Action | What it does |
+| --- | --- |
+| **Download** | Any language as an `.ini` file in `en.ini` order. A key the language does not translate carries the English text. `en.ini` is the template to translate |
+| **Upload** | An `.ini` file for a new or an existing language code (`tr`, `fil`, `pt-BR`). The code you type names the language; the name of the uploaded file is not used |
+| **Edit** | A key / English / translation table with a search and a **Missing only** filter. **Save Changes** stores the changed rows |
+| **Translated** | How many of the keys of `en.ini` the language translates |
+
+### Where custom translations live
+
+Uploads and edits are stored in `/home/xc_vm/config/lang/<code>.ini`. The bundled files in `Core/Localization/lang/` are never changed:
+
+- `config/` is kept by an update, so custom translations **survive updates**. The bundled files are replaced by every update.
+- A custom file holds only what differs from the bundled file of its language. It is read **over** the bundled file: it can override a bundled translation, add a key the bundled file lacks, or be a language the panel does not ship.
+- A value that is empty, or still identical to the English text, is not a translation. It counts as missing, as it does for `make lang-translate`. Clearing a row in the editor, or typing the English text again, removes the custom translation of that key.
+- The [recovery bundle](../administration/operations.md#recovery-bundle) holds `config/lang/`. A database backup does not.
+
+### What is checked and sanitised
+
+Views print a translation as HTML, so an uploaded or edited value is checked before it is stored:
+
+| Check | Rule |
+| --- | --- |
+| Language code | Two or three lowercase letters, optionally `-` and a region of two to four letters. It is the only source of the file name |
+| File | At most 1 MB, and readable as an `.ini` file. A refused file names the first line that cannot be read |
+| Keys | Only keys that exist in `en.ini` are kept |
+| HTML | `<b>`, `<i>`, `<strong>`, `<em>`, `<code>` and `<br>` are kept, without attributes. Any other tag, and any tag with an attribute, is stored as text (`&lt;a href=…&gt;`) |
+| Other characters | `&` and `"` are stored as entities; an entity already there (`&amp;`, `&nbsp;`) stays. A backslash is stored as `&#92;` and an apostrophe `'` as the typographic `’` |
+| Placeholders | `{name}` and `%s` are kept as they are |
+| Lines | A value is one line: a line break becomes a space |
+
+- The bundled files are the panel's own text and are not sanitised. A value uploaded unchanged from a downloaded bundled language stays the bundled value.
+- A link or an icon (`<a href=…>`, `<i class=…>`) cannot be part of a custom translation. The few English texts that carry one keep it only while their bundled translation is used.
+- A file placed in `config/lang/` by hand is read as it is. Use the upload to have it checked.
 
 ## Available Languages
 
@@ -87,7 +128,7 @@ This runs `tools/i18n/translate.py --ini`, which rebuilds each language file in 
 | --- | --- |
 | Key translated already | Kept as is |
 | Key missing from the file | Machine-translated from `en.ini` |
-| Value still identical to the English text (e.g. auto-appended at runtime) | Machine-translated |
+| Value still identical to the English text | Machine-translated |
 | Key no longer in `en.ini` | **Removed** (listed in the output) |
 
 - Placeholders (`{bin}`, `%s`), HTML tags, entities (`&mdash;`) and escaped quotes are never sent to the translation engine, so they come back unchanged.
@@ -97,8 +138,8 @@ This runs `tools/i18n/translate.py --ini`, which rebuilds each language file in 
 
 ## Tips
 
-- **Always use `en.ini` as the source of truth** — it contains all keys. Other files may have missing keys that get auto-filled at runtime.
-- **Auto-creation of missing keys**: if your file is missing a key, `Translator` appends it with the English value. `make lang-translate` then translates these entries.
+- **Always use `en.ini` as the source of truth** — it contains all keys. Other files may have missing keys; at runtime those show the English text.
+- **Missing keys**: a language that is missing a key shows the English text. Older versions appended such a key to the language file at runtime; nothing is written now. `make lang-translate` translates the keys a bundled file lacks.
 - **Validate your file** — make sure `parse_ini_file()` can read it:
 
 ```bash
@@ -120,5 +161,7 @@ Please ensure all keys from `en.ini` are present and translated.
 | File | Role |
 | --- | --- |
 | `src/Core/Localization/Translator.php` | Translation lookup |
-| `src/Core/Localization/lang/` | Language files |
+| `src/Core/Localization/TranslationStore.php` | Translation manager: upload, edit, download, sanitising |
+| `src/Core/Localization/lang/` | Bundled language files |
+| `config/lang/` | Custom language files (kept by an update) |
 | `tools/i18n/translate.py` | Language-file sync (`--ini`) and docs translation |

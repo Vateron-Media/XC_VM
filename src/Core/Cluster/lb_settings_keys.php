@@ -201,6 +201,7 @@ return [
 		'stream_logs_save',
 		'stream_max_analyze',
 		'thread_count',
+		'tmdb_episode_by_title',
 		'tmdb_language',
 		'update_channel',
 		'update_channel_bin',

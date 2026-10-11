@@ -136,7 +136,7 @@ The **Backups** page copies each backup [cron:backups](backup-strategy.md) makes
 
 ### Recovery bundle
 
-A database backup does not hold what a new MAIN needs besides: `config/config.ini` (the database credentials), the modules' configuration and, when the cluster API is set up, the cluster's keys (see [Cluster keys](backup-strategy.md#cluster-keys-main-replacement)). Set a **Passphrase** of 20 characters or more under **Recovery Bundle**, and `cron:backups` writes one bundle a day, `backups/recovery_<date>.bundle`, encrypted with it (Argon2id and XSalsa20-Poly1305), keeps the last 7 and copies it to the targets.
+A database backup does not hold what a new MAIN needs besides: `config/config.ini` (the database credentials), the modules' configuration, the [custom translations](../guides/translations.md#translation-manager) (`config/lang/`) and, when the cluster API is set up, the cluster's keys (see [Cluster keys](backup-strategy.md#cluster-keys-main-replacement)). Set a **Passphrase** of 20 characters or more under **Recovery Bundle**, and `cron:backups` writes one bundle a day, `backups/recovery_<date>.bundle`, encrypted with it (Argon2id and XSalsa20-Poly1305), keeps the last 7 and copies it to the targets.
 
 The passphrase is kept in `config/backup_bundle.pass`, outside the database, so no backup holds it. **Keep a copy of it off this machine**: without it the bundles cannot be opened. To open one on the new MAIN:
 
@@ -144,7 +144,7 @@ The passphrase is kept in `config/backup_bundle.pass`, outside the database, so 
 sudo /home/xc_vm/console.php backup:open-bundle recovery_2026-10-07_04-00-00.bundle /root/restore < passphrase.txt
 ```
 
-The passphrase is read from standard input, so it is in no process list or shell history. The directory must not exist; it is created with the bundle's files. A cluster key export in it is imported with `cluster:import-keys` and the same passphrase.
+The passphrase is read from standard input, so it is in no process list or shell history. The directory must not exist; it is created with the bundle's files, the custom translations in its `lang/` subdirectory: copy it to `/home/xc_vm/config/` as it is. A cluster key export in it is imported with `cluster:import-keys` and the same passphrase.
 
 ### Restore test
 

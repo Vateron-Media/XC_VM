@@ -3,11 +3,13 @@
 namespace XcVm\Domain\Backup;
 
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
+use XcVm\Core\Localization\Translator;
 
 /**
  * The recovery bundle: what a database dump leaves out and a new MAIN needs —
- * config.ini (the database credentials), the modules' configuration and,
- * when the cluster API is set up, the cluster's key export — encrypted with a
+ * config.ini (the database credentials), the modules' configuration, the
+ * custom translations (config/lang/) and, when the cluster API is set up, the
+ * cluster's key export — encrypted with a
  * passphrase (Argon2id, then XSalsa20-Poly1305). cron:backups makes one a day
  * when a passphrase is set and copies it to the backup targets beside the
  * dumps; `console.php backup:open-bundle` opens one.
@@ -58,8 +60,10 @@ final class RecoveryBundle {
 	}
 
 	/**
-	 * The bundle's files: the configuration files, and the cluster key export
-	 * when the cluster API is set up (it can be refused: the bundle goes without it).
+	 * The bundle's files: the configuration files, the custom translations
+	 * (as `lang/<code>.ini`, where they lie under config/), and the cluster key
+	 * export when the cluster API is set up (it can be refused: the bundle goes
+	 * without it).
 	 *
 	 * @return array<string, string> name => content
 	 */
@@ -69,6 +73,11 @@ final class RecoveryBundle {
 			if (is_readable(CONFIG_PATH . $rName)) {
 				$rFiles[$rName] = (string) file_get_contents(CONFIG_PATH . $rName);
 			}
+		}
+		// What an administrator uploaded or edited under Settings > Translations: no dump holds it.
+		$rLang = Translator::customDir();
+		foreach ($rLang === '' ? [] : (glob($rLang . '*.ini') ?: []) as $rFile) {
+			$rFiles['lang/' . basename($rFile)] = (string) file_get_contents($rFile);
 		}
 		try {
 			if (class_exists(ClusterCryptoFactory::class) && ClusterCryptoFactory::available()) {

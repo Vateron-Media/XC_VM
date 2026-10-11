@@ -4,6 +4,7 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
+use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Updates\UpdateChannels;
 
 /**
@@ -198,7 +199,8 @@ class XcvmCoreCommand implements CommandInterface {
 			return false;
 		}
 		@chmod($rStage, 0555);
-		@chown($rStage, 'xc_vm');
+		// PHP loads it for root's commands too: root's on MAIN (TreeOwnership::ROOT_OWNED).
+		@chown($rStage, TreeOwnership::owner('bin/php/lib/xcvm_core.so'));
 		@chgrp($rStage, 'xc_vm');
 
 		$rBackup = $rSo . '.bak';

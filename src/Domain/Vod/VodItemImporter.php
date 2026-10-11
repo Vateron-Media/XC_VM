@@ -9,6 +9,7 @@ use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Events\Vod\VodImportResultEvent;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\AtomicFile;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Process\Multithread;
 use XcVm\Core\Http\CurlClient;
@@ -38,6 +39,22 @@ class VodItemImporter {
 
 	/** How long to trust the series_*.data cache before re-reading from the DB. */
 	private const SERIES_CACHE_TTL_SECONDS = 360;
+
+	/**
+	 * How long a season_*.cache (a TMDb season's episodes, seasonEpisodes())
+	 * is trusted. The watch module's scan clears every *.cache there as it
+	 * starts; a Movies/Series import has this limit only.
+	 */
+	private const SEASON_CACHE_TTL_SECONDS = 3600;
+
+	/** The least similarity (%) an episode title needs to name a file's episode (matchEpisodeByTitle()). */
+	private const EPISODE_TITLE_MIN_SCORE = 65;
+
+	/** By how many points the best episode title must lead the next one: "Part 1" and "Part 2" differ by less. */
+	private const EPISODE_TITLE_MIN_LEAD = 10;
+
+	/** What the importer reads of a TMDb episode, and so all a season_*.cache keeps of it. */
+	private const EPISODE_FIELDS = ['episode_number' => 0, 'name' => 0, 'id' => 0, 'air_date' => 0, 'overview' => 0, 'vote_average' => 0, 'still_path' => 0];
 
 	/**
 	 * Add an item to a bouquet (via the DB when importing, otherwise as a file for checkBouquets()).
@@ -614,6 +631,112 @@ class VodItemImporter {
 	}
 
 	/**
+	 * The episode title a release name carries, for a name with a season and
+	 * no episode number ("Show - S02 - The Long Night"): the parser's reading
+	 * (guessit's `episode_title`, which leaves the quality and release tags
+	 * out), else what follows that season in the name. Null when the name has
+	 * neither.
+	 *
+	 * @param array<string, mixed> $rRelease parserelease()'s answer for $rName.
+	 * @param string $rName
+	 * @param int $rSeason The season parsed from $rName.
+	 */
+	public static function releaseEpisodeTitle(array $rRelease, $rName, $rSeason): ?string {
+		if (is_string($rRelease['episode_title'] ?? null) && $rRelease['episode_title'] !== '') {
+			return $rRelease['episode_title'];
+		}
+		// ponytail: what follows the season is taken whole, release tags
+		// included ("… 1080p WEB-DL"): only guessit's reading leaves them out,
+		// so such a name scores too low under PTN and stays No match. Cut it
+		// at the parser's resolution/codec fields if PTN names need it.
+		if (preg_match('/(?<![a-z0-9])(?:s|season[\s._-]*)0*' . intval($rSeason) . '(?!\d)[\s._-]+(.+)$/iu', (string) $rName, $rAfter)) {
+			return $rAfter[1];
+		}
+		return null;
+	}
+
+	/**
+	 * The episode a file is named after, found by its title among a TMDb
+	 * season's. Both sides are compared as parseTitle() leaves them, by
+	 * similar_text(). The best title is taken only when it scores at least
+	 * EPISODE_TITLE_MIN_SCORE and leads the next one by EPISODE_TITLE_MIN_LEAD:
+	 * a title the season has twice ties with itself, and "… (Part 1)" is too
+	 * close to "… (Part 2)", so neither is ever matched. Nor is a file that
+	 * names a second episode as well ("A and B"). An untitled episode is
+	 * skipped. No match is null: a wrongly linked episode is worse than a
+	 * file reported as not matched.
+	 *
+	 * @param string $rFileTitle The file's episode title (releaseEpisodeTitle()).
+	 * @param array<int, string|null> $rTitles Episode number => TMDb title.
+	 * @param float|null $rScore Set to the accepted title's similarity (%).
+	 * @return int|null The episode number.
+	 */
+	public static function matchEpisodeByTitle($rFileTitle, array $rTitles, &$rScore = null) {
+		$rFileTitle = self::parseTitle((string) $rFileTitle);
+		$rNames = $rScores = [];
+		foreach ($rTitles as $rNumber => $rName) {
+			$rName = self::parseTitle((string) $rName);
+			if ($rFileTitle !== '' && $rName !== '') {
+				similar_text($rFileTitle, $rName, $rPercent);
+				$rNames[$rNumber] = $rName;
+				$rScores[$rNumber] = $rPercent;
+			}
+		}
+		arsort($rScores);
+		$rBest = array_key_first($rScores);
+		$rRanked = array_values($rScores);
+		if ($rBest === null || $rRanked[0] < self::EPISODE_TITLE_MIN_SCORE || $rRanked[0] - ($rRanked[1] ?? 0) < self::EPISODE_TITLE_MIN_LEAD) {
+			return null;
+		}
+		// Two episodes in one file: another title stands in the name as well,
+		// whole, and is no part of the matched one ("Home" in "Coming Home").
+		foreach ($rNames as $rNumber => $rName) {
+			if ($rNumber !== $rBest && str_contains(' ' . $rFileTitle . ' ', ' ' . $rName . ' ') && !str_contains(' ' . $rNames[$rBest] . ' ', ' ' . $rName . ' ')) {
+				return null;
+			}
+		}
+		$rScore = $rRanked[0];
+		return (int) $rBest;
+	}
+
+	/**
+	 * A TMDb season's episodes (EPISODE_FIELDS of each), fetched once per
+	 * show, season and language and kept as a season_*.cache under
+	 * WATCH_TMP_PATH for SEASON_CACHE_TTL_SECONDS: every file of a season is
+	 * imported by a process of its own. A season TMDb gave no episodes of (or
+	 * a failed call) is not kept.
+	 *
+	 * @param object $rTMDB TMDB client (getSeason).
+	 * @param int $rShowID TMDb show id.
+	 * @param int $rSeason
+	 * @param string|null $rLanguage The import's language; the TMDb language setting when empty, as the client is built.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function seasonEpisodes($rTMDB, $rShowID, $rSeason, $rLanguage) {
+		$rLanguage = (string) ($rLanguage ?: (SettingsManager::getAll()['tmdb_language'] ?? ''));
+		$rPath = WATCH_TMP_PATH . 'season_' . intval($rShowID) . '_' . intval($rSeason) . '_' . preg_replace('/[^A-Za-z0-9-]/', '', $rLanguage) . '.cache';
+		if (is_file($rPath) && time() - filemtime($rPath) < self::SEASON_CACHE_TTL_SECONDS) {
+			$rEpisodes = json_decode((string) file_get_contents($rPath), true);
+			if (is_array($rEpisodes)) {
+				return $rEpisodes;
+			}
+		}
+		// ponytail: no lock around the fetch, so the files of a season that
+		// start together (thread_count) each ask TMDb once, as every file did
+		// before; hold the show's lock_<id> here if that ever matters.
+		$rEpisodes = [];
+		foreach ((json_decode($rTMDB->getSeason($rShowID, intval($rSeason))->getJSON(), true)['episodes'] ?? []) as $rEpisode) {
+			if (isset($rEpisode['episode_number'])) {
+				$rEpisodes[] = array_intersect_key($rEpisode, self::EPISODE_FIELDS);
+			}
+		}
+		if ($rEpisodes) {
+			AtomicFile::write($rPath, (string) json_encode($rEpisodes, JSON_UNESCAPED_UNICODE));
+		}
+		return $rEpisodes;
+	}
+
+	/**
 	 * Build $rImportArray for a movie once a TMDB match was found: checks whether
 	 * an already-imported copy should be upgraded (may stop processing via
 	 * applyUpgrade(), which throws VodItemImportHalt), then fills in
@@ -827,8 +950,12 @@ class VodItemImporter {
 				} else {
 					$rImportArray['stream_display_name'] = $rShowData['name'] . ' - S' . sprintf('%02d', intval($rReleaseSeason)) . 'E' . sprintf('%02d', $rReleaseEpisode);
 				}
-				$rEpisodes = json_decode($rTMDB->getSeason($rShowData['id'], intval($rReleaseSeason))->getJSON(), true);
-				foreach (($rEpisodes['episodes'] ?? []) as $rEpisode) {
+				// With the match by episode title on, the season is read through
+				// its cache: the match fetched it, and so did the season's other files.
+				$rEpisodes = !empty($rSettings['tmdb_episode_by_title'])
+					? self::seasonEpisodes($rTMDB, $rShowData['id'], $rReleaseSeason, $rLanguage)
+					: (json_decode($rTMDB->getSeason($rShowData['id'], intval($rReleaseSeason))->getJSON(), true)['episodes'] ?? []);
+				foreach ($rEpisodes as $rEpisode) {
 					if (intval($rEpisode['episode_number']) == $rReleaseEpisode) {
 						$rImage = '';
 						if (strlen($rEpisode['still_path'] ?? '') > 0) {
@@ -1207,6 +1334,30 @@ class VodItemImporter {
 								break 2;
 							}
 						} else {
+							// No episode number in the name. With its season known, the
+							// episode may be found by its title among that TMDb season's
+							// (Settings → VOD Import, off by default); never among the
+							// specials (season 0). The season is the name's own: one the
+							// name does not give is not guessed.
+							if (!empty($rSettings['tmdb_episode_by_title']) && !$rThreadData['disable_tmdb'] && isset($rRelease) && $rTitle && is_int($rReleaseSeason) && $rReleaseSeason > 0 && $rReleaseEpisode === null) {
+								$rEpisodeTitle = self::releaseEpisodeTitle($rRelease, $rFilename, $rReleaseSeason);
+								$rShow = $rEpisodeTitle !== null ? self::findBestTmdbMatch($rTMDB, $rThreadData, $rSettings, $rTitle, $rAltTitle, $rYear) : null;
+								if ($rShow) {
+									$rEpisodeTitles = array_column(self::seasonEpisodes($rTMDB, $rShow->get('id'), $rReleaseSeason, $rLanguage), 'name', 'episode_number');
+									$rReleaseEpisode = self::matchEpisodeByTitle($rEpisodeTitle, $rEpisodeTitles, $rScore);
+									if ($rReleaseEpisode !== null) {
+										// The import's output is discarded and its result has no field
+										// for this, so the episode itself says how it was numbered (Notes).
+										$rImportArray['notes'] = sprintf('Episode number matched by TMDb title: "%s" (%d%%)', $rEpisodeTitles[$rReleaseEpisode], $rScore);
+										echo 'Matched by title: ' . $rFile . ' => S' . sprintf('%02d', $rReleaseSeason) . 'E' . sprintf('%02d', $rReleaseEpisode) . ' "' . $rEpisodeTitles[$rReleaseEpisode] . '" (' . intval($rScore) . '%)' . "\n";
+										// A number found by title adds an episode, it never replaces the
+										// file of one already imported: that takes a number the name gives.
+										$rThreadData['auto_upgrade'] = false;
+										$rMatch = $rShow;
+										break 2;
+									}
+								}
+							}
 							self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_MATCH);
 							return;
 						}
