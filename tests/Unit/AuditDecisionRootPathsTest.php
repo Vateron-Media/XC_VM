@@ -389,10 +389,11 @@ final class AuditDecisionRootPathsTest extends TestCase {
 	/**
 	 * What root runs is taken back from xc_vm on MAIN: the entries that exist
 	 * (the base among them, as the owner of a directory replaces what is in
-	 * it), the class directories with all that is under them, and back to
-	 * xc_vm what it writes inside one of those.
+	 * it) and the class directories with all that is under them, the bundled
+	 * languages too: custom ones are in config/lang/. Nothing is given back,
+	 * as xc_vm writes nothing inside a directory taken whole.
 	 */
-	public function testRootOwnNamesWhatExistsAndGivesBackWhatXcVmWritesInside(): void {
+	public function testRootOwnNamesWhatExistsAndTakesNothingXcVmWrites(): void {
 		$rBase = sys_get_temp_dir() . '/xcvm-rootown-' . bin2hex(random_bytes(4));
 		foreach (['vendor', 'Core/Localization/lang', 'bin/php/bin', 'bin/nginx/conf', 'config', 'tmp'] as $rDir) {
 			mkdir($rBase . '/' . $rDir, 0755, true);
@@ -403,14 +404,17 @@ final class AuditDecisionRootPathsTest extends TestCase {
 			$this->assertSame([
 				['chown', '-h', 'root:xc_vm', $rBase, $rBase . '/console.php', $rBase . '/bin', $rBase . '/bin/php', $rBase . '/bin/nginx', $rBase . '/bin/yt-dlp'],
 				['chown', '-hR', 'root:xc_vm', $rBase . '/vendor', $rBase . '/Core', $rBase . '/bin/php/bin'],
-				['chown', '-hR', 'xc_vm:xc_vm', $rBase . '/Core/Localization/lang'],
 			], TreeOwnership::rootOwn($rBase . '/'));
 		} finally {
 			exec('rm -rf ' . escapeshellarg($rBase));
 		}
-		// Nothing of what xc_vm writes while the panel runs is taken as a whole.
+		// Nothing of what xc_vm writes while the panel runs is taken: not as an
+		// entry of its own, and not as part of a directory taken whole.
 		foreach (TreeOwnership::WRITABLE as $rEntry) {
 			$this->assertArrayNotHasKey(rtrim($rEntry, '/'), TreeOwnership::ROOT_OWNED, $rEntry);
+			foreach (array_keys(array_filter(TreeOwnership::ROOT_OWNED)) as $rTree) {
+				$this->assertStringStartsNotWith($rTree . '/', $rEntry, $rEntry . ' is inside ' . $rTree . ', which root takes whole');
+			}
 		}
 	}
 
@@ -421,7 +425,7 @@ final class AuditDecisionRootPathsTest extends TestCase {
 			$this->assertSame('root', TreeOwnership::owner('bin/yt-dlp'));
 			$this->assertSame('root', TreeOwnership::owner('bin/php/lib/php/extensions/xcvm_core.so'));
 			$this->assertSame('root', TreeOwnership::owner('Core/Config/TreeOwnership.php'));
-			$this->assertSame('xc_vm', TreeOwnership::owner('Core/Localization/lang/pt.ini'), 'xc_vm writes the languages');
+			$this->assertSame('root', TreeOwnership::owner('Core/Localization/lang/pt.ini'), 'a bundled language is code: custom ones are in config/lang/');
 			$this->assertSame('xc_vm', TreeOwnership::owner('bin/xc_fanout/xc_fanout'));
 			$this->assertSame('xc_vm', TreeOwnership::owner('config/modules.php'));
 

@@ -179,16 +179,16 @@ final class TreeOwnership {
 	/**
 	 * The commands, as argv lists, that make what root runs root's (ROOT_OWNED)
 	 * in the tree at $rBase, for root to run after the tree was handed to
-	 * xc_vm: the entries alone, the directories with what is under them, then
-	 * back to xc_vm what it writes inside one of those (an entry of WRITABLE,
-	 * as the languages under Core/). Only what exists is named; links are
-	 * changed themselves, never followed.
+	 * xc_vm: the entries alone, then the directories with what is under them
+	 * (xc_vm writes nothing inside one of those: no entry of WRITABLE is
+	 * there). Only what exists is named; links are changed themselves, never
+	 * followed.
 	 *
 	 * @return list<non-empty-list<string>>
 	 */
 	public static function rootOwn(string $rBase): array {
 		$rBase = rtrim($rBase, '/') . '/';
-		$rAlone = $rTrees = $rBack = [];
+		$rAlone = $rTrees = [];
 		foreach (self::ROOT_OWNED as $rPath => $rTree) {
 			$rFull = rtrim($rBase . $rPath, '/');
 			if (!file_exists($rFull) && !is_link($rFull)) {
@@ -196,11 +196,6 @@ final class TreeOwnership {
 			}
 			if ($rTree) {
 				$rTrees[] = $rFull;
-				foreach (self::WRITABLE as $rEntry) {
-					if (str_starts_with($rEntry, $rPath . '/') && file_exists($rBase . $rEntry)) {
-						$rBack[] = rtrim($rBase . $rEntry, '/');
-					}
-				}
 			} else {
 				$rAlone[] = $rFull;
 			}
@@ -212,9 +207,6 @@ final class TreeOwnership {
 		}
 		if ($rTrees !== []) {
 			$rCommands[] = array_merge(['chown', '-hR', $rOwner], $rTrees);
-		}
-		if ($rBack !== []) {
-			$rCommands[] = array_merge(['chown', '-hR', self::USER . ':' . self::USER], $rBack);
 		}
 		return $rCommands;
 	}
@@ -230,7 +222,7 @@ final class TreeOwnership {
 			return self::USER;
 		}
 		foreach (self::ROOT_OWNED as $rEntry => $rTree) {
-			if ($rPath === $rEntry || ($rTree && str_starts_with($rPath, $rEntry . '/') && self::writable($rPath) === null)) {
+			if ($rPath === $rEntry || ($rTree && str_starts_with($rPath, $rEntry . '/'))) {
 				return 'root';
 			}
 		}
