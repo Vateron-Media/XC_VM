@@ -167,9 +167,9 @@ class ArchiveCommand implements CommandInterface {
 			// guarantees that ffmpeg has finished writing N.
 			if (!$rSegExists || !$rNextExists) {
 				$rWaitCount++;
-				// Check the playlist every ~3 s (300 iterations × 10 ms) to detect
+				// Check the playlist every ~3 s (60 iterations × 50 ms) to detect
 				// segment counter gaps caused by stream restarts or ffmpeg jumps.
-				if ($rWaitCount % 300 === 0) {
+				if ($rWaitCount % 60 === 0) {
 					$rFreshContent = @file_get_contents($rPlaylist);
 					preg_match_all('/_(\d+)\.ts/', ($rFreshContent ?: ''), $rFreshMatches);
 					$rFreshSeg = !empty($rFreshMatches[1]) ? (int) end($rFreshMatches[1]) : -1;
@@ -197,7 +197,9 @@ class ArchiveCommand implements CommandInterface {
 						}
 					}
 				}
-				usleep(10000);
+				// 50 ms: a segment is seconds long, and 10 ms was some 200 stat
+				// calls a second for every archived channel.
+				usleep(50000);
 				continue;
 			}
 
@@ -208,7 +210,14 @@ class ArchiveCommand implements CommandInterface {
 
 			// Stream the completed segment into the current archive minute file.
 			// A minute boundary check inside the inner loop triggers file rotation.
-			$rSegFP = fopen($rSegFile, 'r');
+			$rSegFP = @fopen($rSegFile, 'r');
+			if ($rSegFP === false) {
+				// Pruned between the check above and here: feof(false) is a
+				// TypeError that ends the archive. The next segment.
+				$this->logStatus('Segment #' . $rSegNum . ' is gone before it could be read. Skipping.');
+				$rSegNum++;
+				continue;
+			}
 			while (!feof($rSegFP)) {
 				// Rotate to a new archive minute file when the wall-clock minute changes.
 				if (gmdate('Y-m-d:H-i') != $rFileTime) {

@@ -187,6 +187,36 @@ class SettingsService {
 	 * @param array $rData Submitted settings.
 	 * @return array Result status payload.
 	 */
+
+	/**
+	 * What the first-run page sets beside the admin account, from what it
+	 * posted: the panel's language and timezone when they are ones it has, its
+	 * name when one was typed, and the message of the day as sent. A field
+	 * that was not sent, or that does not validate, is left out: the stored
+	 * value stays.
+	 *
+	 * @param array<string, mixed> $rPosted
+	 * @return array<string, string> `settings` column => value
+	 */
+	public static function firstRunValues(array $rPosted): array {
+		$rValues = [];
+		$rText = static fn(string $rKey): ?string => is_string($rPosted[$rKey] ?? null) ? trim($rPosted[$rKey]) : null;
+
+		if (in_array($rText('language'), Translator::available(), true)) {
+			$rValues['language'] = (string) $rText('language');
+		}
+		if (in_array($rText('default_timezone'), \DateTimeZone::listIdentifiers(), true)) {
+			$rValues['default_timezone'] = (string) $rText('default_timezone');
+		}
+		if ((string) $rText('server_name') !== '') {
+			$rValues['server_name'] = mb_substr((string) $rText('server_name'), 0, 255);
+		}
+		if ($rText('message_of_day') !== null) {
+			$rValues['message_of_day'] = mb_substr((string) $rText('message_of_day'), 0, 2000);
+		}
+		return $rValues;
+	}
+
 	public static function edit(array $rData) {
 		$db = self::db();
 		// The stream arguments' defaults: a change reaches the streams that use

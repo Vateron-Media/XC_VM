@@ -13,6 +13,9 @@ class UpdateCommandPinnedTest extends TestCase {
 	public function testAcceptsReleaseAndNightlyTags(): void {
 		$this->assertSame('1.2.3', UpdateCommand::pinned(' 1.2.3 '));
 		$this->assertSame('1.2.3-dev.7', UpdateCommand::pinned('1.2.3-dev.7'));
+		$this->assertSame('1.2.3-p2', UpdateCommand::pinned('1.2.3-p2'), 'a patch build of a release');
+		$this->assertNull(UpdateCommand::pinned('1.2.3-p2; rm -rf /'));
+		$this->assertNull(UpdateCommand::pinned('1.2.3-beta.1'));
 	}
 
 	/** cron:servers: a load balancer stays listed until it is on MAIN's release, and is told when it is back. */

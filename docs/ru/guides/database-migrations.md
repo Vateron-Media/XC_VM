@@ -1,4 +1,4 @@
-# Обновления / миграции баз данных
+# <a id="database-updates-migrations"></a>Обновления / миграции баз данных
 
 XC_VM использует файловую систему обновления базы данных для управления изменениями схемы между версиями. Обновления базы данных запускаются автоматически во время обновления панели управления и проверки состояния системы и могут быть применены вручную с помощью `db:migrate`.
 
@@ -6,7 +6,7 @@ XC_VM использует файловую систему обновления 
 
 ---
 
-## как это работает
+## <a id="how-it-works"></a>как это работает
 
 - SQL-файлы для обновлений базы данных хранятся в `/home/xc_vm/migrations/database/up/` (`src/migrations/database/up/` в репозитории исходных текстов).
 
@@ -30,7 +30,7 @@ XC_VM использует файловую систему обновления 
 
 Основная логика находится в `MigrationRunner` (`src/Core/Database/MigrationRunner.php`).
 
-### Процесс выполнения обновления базы данных
+### <a id="db-update-execution-flow"></a>Процесс выполнения обновления базы данных
 
 ```text
 [ MigrationRunner::run() — DB update execution ]
@@ -50,11 +50,11 @@ XC_VM использует файловую систему обновления 
 
 ---
 
-## Создание нового шага обновления базы данных
+## <a id="creating-a-new-db-update-step"></a>Создание нового шага обновления базы данных
 
 Когда вам нужно изменить схему базы данных (добавить столбцы, создать таблицы, вставить данные и т.д.), создайте новый SQL-файл для этапа обновления базы данных.
 
-### Шаг 1. Выберите имя файла
+### <a id="step-1-choose-a-file-name"></a>Шаг 1. Выберите имя файла
 
 Используйте следующий порядковый номер и описательное название:
 
@@ -77,7 +77,7 @@ NNN_short_description.sql
 008_insert_default_codec_settings.sql
 ```
 
-### Шаг 2. Напишите SQL-код
+### <a id="step-2-write-the-sql"></a>Шаг 2. Напишите SQL-код
 
 Поместите в файл необработанные инструкции SQL. Несколько инструкций разделяются символом `;`.
 
@@ -115,7 +115,7 @@ WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key
 
 > Idempotency matters because a failed step is **not** recorded — it prints `[FAIL] <name> (not recorded — will retry on next run)` and re-runs on the **next** `db:migrate`. A non-idempotent step that half-applied before failing will be retried from the top, so every statement must be safe to run again (use `IF NOT EXISTS`, `INSERT ... ON DUPLICATE KEY UPDATE`, etc.).
 
-### Шаг 3. Поместите файл
+### <a id="step-3-place-the-file"></a>Шаг 3. Поместите файл
 
 Скопируйте SQL-файл для шага обновления базы данных в:
 
@@ -125,7 +125,7 @@ WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key
 
 > 💡 В хранилище исходных текстов это значение равно `src/migrations/database/up/`. Обратный файл для отката версии, если он есть на этом шаге, находится под тем же именем в `src/migrations/database/down/`.
 
-### Шаг 4. Подтвердите обновление базы данных
+### <a id="step-4-validate-db-update"></a>Шаг 4. Подтвердите обновление базы данных
 
 Запустите `db:migrate`, чтобы применить ожидающие обновления БД шаги:
 
@@ -154,7 +154,7 @@ A step may fail on purpose to wait for the operator: `068_unique_panel_account_n
 
 ---
 
-## Применение Миграций вручную
+## <a id="applying-migrations-manually"></a>Применение Миграций вручную
 
 Применить все ожидающие `.sql` файлы из `/home/xc_vm/migrations/database/up/` без полного обновления системы:
 
@@ -162,7 +162,7 @@ A step may fail on purpose to wait for the operator: `068_unique_panel_account_n
 su - xc_vm -c '/home/xc_vm/console.php db:migrate'
 ```
 
-### Перенос данных из другой системы
+### <a id="data-migration-from-another-system"></a>Перенос данных из другой системы
 
 Перенести данные из промежуточной базы данных `xc_vm_migrate`:
 
@@ -174,7 +174,7 @@ su - xc_vm -c '/home/xc_vm/console.php db:migrate'
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Роль|
 | --- | --- |

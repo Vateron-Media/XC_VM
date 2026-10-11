@@ -715,6 +715,8 @@ class ModuleLoader {
 	 *
 	 * A nightly (`2.6.1-dev.N`) is built from main as the upcoming `2.6.1`, so it
 	 * counts as `2.6.1`; otherwise version_compare() would put it below `2.6.1`.
+	 * A patch build (`2.6.1-p2`) is `2.6.1` with fixes, and counts as it: a
+	 * module that asks for `=2.6.1` or `<=2.6.1` keeps loading.
 	 *
 	 * @param string      $requiresCore The manifest's `requires_core`.
 	 * @param string|null $coreVersion  Core version to check against (default: XC_VM_VERSION).
@@ -746,13 +748,13 @@ class ModuleLoader {
 		return $rAll;
 	}
 
-	/** The core version to compare, nightly suffix stripped. */
+	/** The core version to compare, without a nightly's or a patch build's suffix. */
 	private static function comparableCoreVersion(?string $coreVersion): string {
 		if ($coreVersion === null) {
 			class_exists(\XcVm\Core\Config\ConstantsInitializer::class); // defines XC_VM_VERSION
 			$coreVersion = defined('XC_VM_VERSION') ? (string) XC_VM_VERSION : '0';
 		}
-		return (string) preg_replace('/-dev\.\d+$/', '', $coreVersion);
+		return (string) preg_replace('/-(dev\.|p)\d+$/', '', $coreVersion);
 	}
 
 	/** Whether one `requires_core` condition holds; null when it can't be read. */

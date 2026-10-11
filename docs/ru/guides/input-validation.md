@@ -1,4 +1,4 @@
-# Проверка и санитарная обработка входных данных
+# <a id="input-validation-and-sanitization"></a>Проверка и санитарная обработка входных данных
 
 XC_VM использует двухуровневую защиту для входящих данных запроса. Во-первых, передача **глобальная санитарная обработка** удаляет опасный контент из всех суперглобальных файлов PHP во время начальной загрузки, перед запуском любого кода приложения. Во-вторых, уровень **проверка на уровне действий** проверяет наличие обязательных полей перед выполнением бизнес-логики.
 
@@ -6,7 +6,7 @@ XC_VM использует двухуровневую защиту для вхо
 
 ---
 
-## Глобальный поток санитарной обработки
+## <a id="global-sanitization-flow"></a>Глобальный поток санитарной обработки
 
 Очистка выполняется автоматически во время начальной загрузки. Когда вызывается `LegacyInitializer::initCore()` (в `src/Core/Init/LegacyInitializer.php`), перед любым кодом контроллера или службы выполняются следующие действия:
 
@@ -26,7 +26,7 @@ LegacyInitializer::initCore()
 
 Контекст потоковой передачи (`LegacyInitializer::initStreaming()`) выполняет ту же последовательность очистки с использованием класса `Request`, который предоставляет эквивалентные методы для пути начальной загрузки потоковой передачи.
 
-### Чистые глобальные значения(&$rData, $rIteration = 0)
+### <a id="cleanglobalsrdata-riteration-0"></a>Чистые глобальные значения(&$rData, $rIteration = 0)
 
 Рекурсивно обходит заданный суперглобальный массив и удаляет опасное содержимое. Применяется к `$_GET`, `$_POST`, `$_SESSION`, и `$_COOKIE`.
 
@@ -40,7 +40,7 @@ LegacyInitializer::initCore()
 
 Рекурсия ограничена 10 уровнями, чтобы предотвратить исчерпание стека из-за глубоко вложенных входных данных.
 
-### Синтаксический анализ выполняется рекурсивно(&$rData, $rInput, $rIteration = 0)
+### <a id="parseincomingrecursivelyrdata-rinput-riteration-0"></a>Синтаксический анализ выполняется рекурсивно(&$rData, $rInput, $rIteration = 0)
 
 Рекурсивно обрабатывает данные GET и POST, применяя очистку ключей и значений к каждому листу. Для массивов выполняется рекурсия на глубину до 20 уровней. Для скалярных значений применяется `parseCleanKey()` к ключу и `parseCleanValue()` к значению.
 
@@ -70,9 +70,9 @@ LegacyInitializer::initCore()
 
 ---
 
-## Проверка на уровне действий
+## <a id="action-level-validation"></a>Проверка на уровне действий
 
-### проверить()
+### <a id="validate"></a>проверить()
 
 ```php
 InputValidator::validate(string $rAction, array $rData): bool
@@ -102,7 +102,7 @@ if ($error !== null) {
 }
 ```
 
-### Подтверждающие идентификаторы($ids)
+### <a id="confirmidsids"></a>Подтверждающие идентификаторы($ids)
 
 ```php
 InputValidator::confirmIDs($ids)   // untyped params/return; yields a filtered array of positive int IDs
@@ -117,13 +117,13 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 
 ---
 
-## Ссылка на действие проверки
+## <a id="validation-action-reference"></a>Ссылка на действие проверки
 
 В методе `validate()` вместо названия действия используется оператор `switch`. Ниже действия сгруппированы по функциональным областям.
 
-### контент-менеджмент
+### <a id="content-management"></a>контент-менеджмент
 
-#### Потоки и каналы
+#### <a id="streams-and-channels"></a>Потоки и каналы
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
@@ -131,22 +131,22 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 | `processChannel` |флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']`|Те же правила, что и в processStream|
 | `processRadio` |флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']`|Те же правила, что и в processStream|
 
-#### Фильмы / VOD
+#### <a id="movies-vod"></a>Фильмы / VOD
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
 | `processMovie` |флаг `stream_display_name` ИЛИ `review` ИЛИ `$_FILES['m3u_file']`|Те же правила, что и в processStream|
 
-#### Сериалы и эпизоды
+#### <a id="series-and-episodes"></a>Сериалы и эпизоды
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
 | `processSeries` | `title` |Требуется указать название серии|
 | `processEpisode` |`series` (непустой) И `season_num` (числовой) И (`multi` флаг ИЛИ `episode` числовой)|Сложная многопутевая проверка|
 
-### Организация
+### <a id="organization"></a>Организация
 
-#### Букеты
+#### <a id="bouquets"></a>Букеты
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
@@ -154,14 +154,14 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 | `reorderBouquet` | `stream_order_array` |Необходимо декодировать в массив JSON|
 | `sortBouquets` | `bouquet_order_array` |Необходимо декодировать в массив JSON|
 
-#### Категории
+#### <a id="categories"></a>Категории
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
 | `processCategory` |`category_name`, `category_type`|Оба необходимых|
 | `orderCategories` | `categories` |Необходимо декодировать в массив JSON|
 
-#### Группы и коды
+#### <a id="groups-and-codes"></a>Группы и коды
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
@@ -170,13 +170,13 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 | `processCode` | `code` |Требуемый скаляр|
 | `processPackage` | `package_name` |Требуемый скаляр|
 
-### ЭПГ
+### <a id="epg"></a>ЭПГ
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
 | `processEPG` |`epg_name`, `epg_file`|Оба необходимых|
 
-### Устройства и линии
+### <a id="devices-and-lines"></a>Устройства и линии
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
@@ -184,13 +184,13 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 | `processEnigma` | `mac` |Требуется MAC-адрес|
 | `setChannelOrder` | `stream_order_array` |Необходимо декодировать в массив JSON|
 
-### Профили
+### <a id="profiles"></a>Профили
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
 | `processProfile` | `profile_name` |Требуемый скаляр|
 
-### Поставщики услуг
+### <a id="providers"></a>Поставщики услуг
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
@@ -198,14 +198,14 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 | `processISP` | `isp` |Требуемый скаляр|
 | `processUA` | `user_agent` |Требуемый скаляр|
 
-### Безопасность
+### <a id="security"></a>Безопасность
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
 | `blockIP` | `ip` |Требуется IP-адрес|
 | `processRTMPIP` | `ip` |Требуется IP-адрес|
 
-### Управление сервером
+### <a id="server-management"></a>Управление сервером
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
@@ -216,14 +216,14 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 | `replaceDNS` |`old_dns`, `new_dns`|Оба необходимых|
 | `orderServers` | `server_order` |Необходимо декодировать в массив JSON|
 
-### Папки с записями и просмотром
+### <a id="recordings-and-watch-folders"></a>Папки с записями и просмотром
 
 |Действие|Обязательные для заполнения поля|Записи|
 | --- | --- | --- |
 | `scheduleRecording` |`title`, `source_id`|Оба необходимых|
 | `processWatchFolder` |`folder_type`, `selected_path`, `server_id`|Все три необходимых|
 
-### Массовые операции (полезная нагрузка в виде массива JSON)
+### <a id="mass-operations-json-array-payloads"></a>Массовые операции (полезная нагрузка в виде массива JSON)
 
 Для всех массовых операций в указанном поле требуется массив в кодировке JSON. Поле должно быть преобразовано в допустимый массив PHP.
 
@@ -251,7 +251,7 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 
 ---
 
-## Аварийное поведение по умолчанию
+## <a id="default-fallthrough-behavior"></a>Аварийное поведение по умолчанию
 
 Действия, явно не указанные в инструкции `switch`, попадают в `return true`, что означает, что они всегда проходят проверку. Это сделано намеренно - эти действия либо не содержат обязательных полей на уровне gate, либо выполняют свою собственную проверку на более глубоком уровне бизнес-логики.
 
@@ -276,7 +276,7 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 
 ---
 
-## Используемые шаблоны проверки
+## <a id="validation-patterns-used"></a>Используемые шаблоны проверки
 
 Метод `validate()` последовательно использует небольшой набор шаблонов:
 
@@ -291,7 +291,7 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 
 ---
 
-## Добавление проверки для нового действия
+## <a id="adding-validation-for-a-new-action"></a>Добавление проверки для нового действия
 
 Добавьте `case` к `switch` в `src/Core/Validation/InputValidator.php`:
 
@@ -310,7 +310,7 @@ case 'myNewAction':
 
 ---
 
-## Адреса, указанные Посетителем по URL-Адресу, Преобразуются в
+## <a id="addresses-a-visitor-supplied-url-resolves-to"></a>Адреса, указанные Посетителем по URL-Адресу, Преобразуются в
 
 Когда панель извлекает URL-адрес, полученный от посетителя (вход на внешний сервер веб-плеера, удаленный источник для изменения размера изображения), он извлекается только из общедоступных адресов. `XcVm\Core\Util\PublicAddress::isPublic($ip)` это единственная проверка адреса, к которому преобразуется такой URL-адрес:
 
@@ -324,7 +324,7 @@ PublicAddress::isPublic(string $rIP): bool
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

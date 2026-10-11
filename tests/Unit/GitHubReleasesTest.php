@@ -283,4 +283,70 @@ final class GitHubReleasesTest extends TestCase {
 		$this->assertFileDoesNotExist($prefix . '_XC_VM_dev');
 		$this->assertFileDoesNotExist($prefix . '_XC_VM_Dev');
 	}
+
+	/** A patch build is release X.Y.Z with the fixes made since, published by the build-patch workflow as X.Y.Z-pN. */
+	public function testAPatchBuildIsARelease() {
+		foreach (array('2.6.5-p1' => true, '2.6.5-p12' => true, '2.6.5' => false, '2.6.5-dev.3' => false, '2.6.5-p' => false, '2.6.5-p1a' => false, '2.6.5p1' => false) as $tag => $isPatch) {
+			$this->assertSame($isPatch, GitHubReleases::isPatchVersion($tag), $tag);
+		}
+		foreach (array('2.6.5' => true, '2.6.5-p1' => true, '2.6.5-dev.3' => false, '2.6.5-beta.1' => false, 'v2.6.5' => false, '' => false, "2.6.5-p1\n" => false) as $tag => $isRelease) {
+			$this->assertSame($isRelease, GitHubReleases::isReleaseVersion((string) $tag), var_export($tag, true));
+		}
+	}
+
+	private const PATCHED_RELEASES = array(
+		// The API lists by publication: a patch of 2.6.5 made after 2.6.6 comes first.
+		array('tag_name' => '2.6.5-p2', 'prerelease' => false),
+		array('tag_name' => '2.6.6', 'prerelease' => false),
+		array('tag_name' => '2.6.5-p1', 'prerelease' => false),
+		array('tag_name' => '2.6.5', 'prerelease' => false),
+		array('tag_name' => '2.6.4-p1', 'prerelease' => true),
+		array('tag_name' => '2.6.4', 'prerelease' => true),
+	);
+
+	/** The newest version is offered, whatever was published last. */
+	public function testAPatchOfAnOlderReleaseDoesNotHideTheNextRelease() {
+		$client = $this->clientWithReleases('stable', array('XC_VM' => self::PATCHED_RELEASES));
+
+		$this->assertSame(array('2.6.6', '2.6.5-p2', '2.6.5-p1', '2.6.5'), $client->getReleases(), 'by version, and a pre-release\'s patch is not on the stable channel');
+		$this->assertSame('2.6.6', $client->getLatestVersion('2.6.5'));
+		$this->assertSame('2.6.6', $client->getLatestVersion('2.6.5-p2'));
+		$this->assertNull($client->getLatestVersion('2.6.6'));
+	}
+
+	/** A panel on the release gets its patch builds, the newest at once. */
+	public function testAPanelOnTheReleaseIsOfferedItsNewestPatch() {
+		$releases = array_slice(self::PATCHED_RELEASES, 2);
+		array_unshift($releases, array('tag_name' => '2.6.5-p2', 'prerelease' => false));
+		$client = $this->clientWithReleases('stable', array('XC_VM' => $releases));
+
+		$this->assertSame('2.6.5-p2', $client->getLatestVersion('2.6.5'));
+		$this->assertSame('2.6.5-p2', $client->getLatestVersion('2.6.5-p1'));
+		$this->assertNull($client->getLatestVersion('2.6.5-p2'));
+		$this->assertSame('2.6.5-p2', $client->getLatestVersion('2.6.4'), 'an older panel goes straight to it');
+	}
+
+	/** On the beta channel a pre-release's patches are offered too. */
+	public function testAPatchFollowsItsReleasesChannel() {
+		$client = $this->clientWithReleases('beta', array('XC_VM' => array_slice(self::PATCHED_RELEASES, 4)));
+
+		$this->assertSame('2.6.4-p1', $client->getLatestVersion('2.6.4'));
+	}
+
+	/** A rollback may name a patch build, and the release under it. */
+	public function testPreviousVersionsListPatchBuilds() {
+		$client = $this->clientWithReleases('stable', array('XC_VM' => self::PATCHED_RELEASES));
+
+		$this->assertSame(array('2.6.5-p2', '2.6.5-p1', '2.6.5'), array_column($client->getPreviousVersions('2.6.6', 5), 'version'));
+		$this->assertSame(array('2.6.5-p1', '2.6.5'), array_column($client->getPreviousVersions('2.6.5-p2', 5), 'version'));
+	}
+
+	/** Its changelog is its own asset: the file in the tree at its tag is still the release's. */
+	public function testChangelogOfAPatchBuildIsReadFromReleaseAsset() {
+		$requested = array();
+		$client = $this->clientWithHttp('stable', fn() => '{"version":"2.6.5-p1","changes":["fix"]}', $requested);
+
+		$this->assertSame(array(array('version' => '2.6.5-p1', 'changes' => array('fix'))), $client->getChangelog('2.6.5-p1'));
+		$this->assertSame(array('https://github.com/Vateron-Media/XC_VM/releases/download/2.6.5-p1/changelog.json'), $requested);
+	}
 }

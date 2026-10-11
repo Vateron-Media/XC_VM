@@ -154,6 +154,7 @@ plugins:
             Build & Release: Сборка и релиз
             Build System (MAIN vs LB): Система сборки (MAIN и LB)
             Pre-release Checklist: Чеклист перед релизом
+            Patch Builds: Патч-сборки
 
 nav:
   - Home: en/README.md
@@ -222,3 +223,4 @@ nav:
       - Build & Release:
           - Build System (MAIN vs LB): en/builds/build_system.md
           - Pre-release Checklist: en/builds/updates_checklist.md
+          - Patch Builds: en/builds/patch_builds.md
