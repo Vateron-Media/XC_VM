@@ -204,6 +204,24 @@ class MigrationRunner {
 	}
 
 	/**
+	 * Whether a deleted_files.txt entry is a path that stays inside MAIN_HOME:
+	 * relative, with no `..` segment, backslash or NUL. The list is trusted
+	 * input, but runFileCleanup() must not unlink outside the tree even when a
+	 * list is poisoned or mis-generated.
+	 */
+	public static function isSafeDeletePath(string $rLine): bool {
+		if ($rLine === '' || $rLine[0] === '/' || strpbrk($rLine, "\\\0") !== false) {
+			return false;
+		}
+		foreach (explode('/', $rLine) as $rSegment) {
+			if ($rSegment === '..') {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
 	 * Delete files listed in migrations/deleted_files.txt during an update.
 	 */
 	public static function runFileCleanup(): void {
@@ -221,6 +239,13 @@ class MigrationRunner {
 
 		foreach ($rLines as $rLine) {
 			if ($rLine === '' || $rLine[0] === '#') {
+				continue;
+			}
+			// deleted_files.txt is prepended to MAIN_HOME and unlinked. An entry
+			// that escapes the tree (absolute, a `..` segment, a backslash or a
+			// NUL) must never delete outside it, however the list was produced.
+			if (!self::isSafeDeletePath($rLine)) {
+				echo "  [SKIP] " . $rLine . "\n";
 				continue;
 			}
 			$rFullPath = MAIN_HOME . $rLine;
