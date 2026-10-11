@@ -7,6 +7,7 @@ use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Domain\Cluster\PlacementAdvice;
 use XcVm\Domain\Cluster\RollingUpdate;
@@ -55,7 +56,7 @@ class ServerAjaxController extends BaseAjaxController {
 		// Optional base version (a specific server's version); defaults to
 		// the MAIN panel version. Previous releases are resolved relative to it.
 		$rBaseVersion = trim((string) RequestManager::get('version'));
-		if (!preg_match('/^\d+\.\d+\.\d+$/', $rBaseVersion)) {
+		if (!GitHubReleases::isReleaseVersion($rBaseVersion)) {
 			$rBaseVersion = XC_VM_VERSION;
 		}
 		$rVersions = [];
@@ -104,7 +105,7 @@ class ServerAjaxController extends BaseAjaxController {
 		if ($rSub == 'rollback') {
 			$rVersion = trim((string) RequestManager::get('version'));
 
-			if (!preg_match('/^\d+\.\d+\.\d+$/', $rVersion) || version_compare($rVersion, XC_VM_VERSION, '>=')) {
+			if (!GitHubReleases::isReleaseVersion($rVersion) || version_compare($rVersion, XC_VM_VERSION, '>=')) {
 				$this->fail(['error' => 'invalid_version']);
 			}
 
