@@ -204,9 +204,6 @@ class MigrationRunner {
 	}
 
 	/**
-	 * Delete files listed in migrations/deleted_files.txt during an update.
-	 */
-	/**
 	 * Whether a deleted_files.txt entry is a path that stays inside MAIN_HOME:
 	 * relative, with no `..` segment, backslash or NUL. The list is trusted
 	 * input, but runFileCleanup() must not unlink outside the tree even when a
@@ -224,6 +221,9 @@ class MigrationRunner {
 		return true;
 	}
 
+	/**
+	 * Delete files listed in migrations/deleted_files.txt during an update.
+	 */
 	public static function runFileCleanup(): void {
 		echo "File Cleanup\n------------------------------\n";
 
