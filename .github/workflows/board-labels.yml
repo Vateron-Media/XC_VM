@@ -13,6 +13,10 @@ name: Board labels
 # - The author replies to a "needs info" issue → "needs info" is removed.
 # - Opened → the form's Severity sets the board's Priority.
 # - Closed → every triage and status label is removed.
+# - A release (or pre-release) is published → every open issue in Review &
+#   Deploy (merged, not released) moves to Post-release verification, with a
+#   comment asking the reporter to confirm the fix. Run by hand with
+#   `release_tag` to replay a release.
 #
 # Labels go through GITHUB_TOKEN; the board through ADD_TO_PROJECT_PAT (the
 # default token cannot write org-level Projects v2), as in add-to-project.yml.
@@ -22,11 +26,19 @@ on:
     types: [opened, assigned, closed]
   issue_comment:
     types: [created]
+  release:
+    types: [published]
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Replay this release (moves its issues to Post-release verification and comments); empty = label sync only'
+        required: false
+        type: string
 
 permissions:
+  contents: read
   issues: write
 
 concurrency:
@@ -157,26 +169,53 @@ jobs:
               return;
             }
 
-            // Schedule / manual run: every issue of this repository on the board.
-            let cursor = null;
-            do {
-              const page = (await board.graphql(`
-                query($project:ID!, $cursor:String) {
-                  node(id:$project) { ... on ProjectV2 {
-                    items(first:100, after:$cursor) {
-                      pageInfo { hasNextPage endCursor }
-                      nodes {
-                        status: fieldValueByName(name:"Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } }
-                        content { ... on Issue { number state repository { nameWithOwner } labels(first:50) { nodes { name } } } }
+            // Every issue of this repository on the board, with its card and Status.
+            async function boardIssues() {
+              const issues = [];
+              let cursor = null;
+              do {
+                const page = (await board.graphql(`
+                  query($project:ID!, $cursor:String) {
+                    node(id:$project) { ... on ProjectV2 {
+                      items(first:100, after:$cursor) {
+                        pageInfo { hasNextPage endCursor }
+                        nodes {
+                          id
+                          status: fieldValueByName(name:"Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } }
+                          content { ... on Issue { number state repository { nameWithOwner } labels(first:50) { nodes { name } } } }
+                        }
                       }
-                    }
-                  } }
-                }`, { project: proj.id, cursor })).node.items;
-              for (const item of page.nodes) {
-                const c = item.content;
-                if (!c || c.number === undefined || c.repository.nameWithOwner !== `${owner}/${repo}`) continue;
-                const have = c.labels.nodes.map(l => l.name);
-                await applyLabels(c.number, have, wantedLabels(c.state, item.status?.name, have));
+                    } }
+                  }`, { project: proj.id, cursor })).node.items;
+                for (const item of page.nodes) {
+                  const c = item.content;
+                  if (!c || c.number === undefined || c.repository.nameWithOwner !== `${owner}/${repo}`) continue;
+                  issues.push({ itemId: item.id, status: item.status?.name, number: c.number, state: c.state, labels: c.labels.nodes.map(l => l.name) });
+                }
+                cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+              } while (cursor);
+              return issues;
+            }
+
+            const releaseTag = context.eventName === 'release'
+              ? context.payload.release.tag_name
+              : (context.payload.inputs?.release_tag || '').trim();
+            if (releaseTag) {
+              // ponytail: moves every open Review & Deploy card, so a fix merged between
+              // tagging and publishing moves too early; filter by the tag's commits if that bites.
+              const { data: release } = await github.rest.repos.getReleaseByTag({ owner, repo, tag: releaseTag });
+              for (const i of await boardIssues()) {
+                if (i.state !== 'OPEN' || i.status !== 'Review & Deploy') continue;
+                await setField(i.itemId, proj.status, 'Post-release verification');
+                await github.rest.issues.createComment({ owner, repo, issue_number: i.number,
+                  body: `The fix for this issue is in [${release.name || release.tag_name}](${release.html_url}). Please update and let us know whether the problem is gone.` });
+                await applyLabels(i.number, i.labels, wantedLabels('OPEN', 'Post-release verification', i.labels));
+                core.info(`#${i.number}: moved to Post-release verification`);
               }
-              cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
-            } while (cursor);
+              return;
+            }
+
+            // Schedule / manual run: sync every issue's labels with its card.
+            for (const i of await boardIssues()) {
+              await applyLabels(i.number, i.labels, wantedLabels(i.state, i.status, i.labels));
+            }
