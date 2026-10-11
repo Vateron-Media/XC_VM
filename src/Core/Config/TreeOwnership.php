@@ -2,16 +2,22 @@
 
 namespace XcVm\Core\Config;
 
+use XcVm\Core\Cluster\NodeRole;
+
 /**
  * Who writes what under the install base (MAIN_HOME), in one place.
  *
- * The whole tree is xc_vm's: BLANKET_CHOWNS names every statement that hands
- * it over. WRITABLE is what xc_vm has to write while the panel runs, and
+ * The whole tree is handed to xc_vm: BLANKET_CHOWNS names every statement
+ * that does. WRITABLE is what xc_vm has to write while the panel runs, and
  * ROOT_RUNS what root's crons, the service unit and the updater run or load
  * from the tree. `console.php root:paths` (RootPathsCommand) prints, for
- * each path root runs, whether xc_vm can replace it. Nothing here changes an
- * owner or a mode. In Core, which ships to load balancers: the check runs on
- * a node of either kind.
+ * each path root runs, whether xc_vm can replace it.
+ *
+ * On MAIN, what root runs is then taken back: ROOT_OWNED is root's, with
+ * xc_vm's group still reading it (rootOwn(), which `status` runs as root at
+ * every start, and so after every install and update). A load balancer's
+ * tree stays xc_vm's for now. In Core, which ships to load balancers: the
+ * check runs on a node of either kind.
  */
 final class TreeOwnership {
 	/** The user the panel's own processes run as. */
@@ -102,6 +108,49 @@ final class TreeOwnership {
 	];
 
 	/**
+	 * What is root's on MAIN, from the base, so that xc_vm cannot replace what
+	 * root runs or loads: true for everything under a directory, false for the
+	 * entry alone. The group stays xc_vm's, which reads all of it and writes
+	 * none (no file of the tree is group-writable).
+	 *
+	 * The directories on the way are root's too, the base among them: the owner
+	 * of a directory replaces what is in it, whoever owns the file. What xc_vm
+	 * has to write in them is its own directory there (config/, tmp/, the
+	 * working directories under bin/), which root's ownership of the parent
+	 * leaves alone.
+	 *
+	 * Not here, and still xc_vm's to replace (`root:paths` names them): the
+	 * modules and config/modules.php, which the panel installs and root's
+	 * console loads; the two scripts of bin/install/; the update archive in
+	 * tmp/; bin/xc_fanout/xc_fanout.
+	 */
+	public const ROOT_OWNED = [
+		'' => false,
+		'console.php' => false,
+		'bootstrap.php' => false,
+		'service' => false,
+		'update' => false,
+		'vendor' => true,
+		'Cli' => true,
+		'Core' => true,
+		'Domain' => true,
+		'Infrastructure' => true,
+		'Ministra' => true,
+		'Public' => true,
+		'Streaming' => true,
+		'bin' => false,
+		'bin/php' => false,
+		'bin/php/bin' => true,
+		'bin/php/sbin' => true,
+		'bin/php/lib' => true,
+		'bin/nginx' => false,
+		'bin/nginx/sbin' => true,
+		'bin/nginx_rtmp' => false,
+		'bin/nginx_rtmp/sbin' => true,
+		'bin/yt-dlp' => false,
+	];
+
+	/**
 	 * Every statement that gives the whole tree to xc_vm, by its file (from
 	 * the repository's root) and as it is written there. The installer, the
 	 * updater and update_binaries.sh are Python and shell, and the two SSH
@@ -125,6 +174,59 @@ final class TreeOwnership {
 	 */
 	public static function chownTree(string $rBase): array {
 		return ['sudo', 'chown', '-R', self::USER . ':' . self::USER, $rBase];
+	}
+
+	/**
+	 * The commands, as argv lists, that make what root runs root's (ROOT_OWNED)
+	 * in the tree at $rBase, for root to run after the tree was handed to
+	 * xc_vm: the entries alone, then the directories with what is under them
+	 * (xc_vm writes nothing inside one of those: no entry of WRITABLE is
+	 * there). Only what exists is named; links are changed themselves, never
+	 * followed.
+	 *
+	 * @return list<non-empty-list<string>>
+	 */
+	public static function rootOwn(string $rBase): array {
+		$rBase = rtrim($rBase, '/') . '/';
+		$rAlone = $rTrees = [];
+		foreach (self::ROOT_OWNED as $rPath => $rTree) {
+			$rFull = rtrim($rBase . $rPath, '/');
+			if (!file_exists($rFull) && !is_link($rFull)) {
+				continue;
+			}
+			if ($rTree) {
+				$rTrees[] = $rFull;
+			} else {
+				$rAlone[] = $rFull;
+			}
+		}
+		$rOwner = 'root:' . self::USER;
+		$rCommands = [];
+		if ($rAlone !== []) {
+			$rCommands[] = array_merge(['chown', '-h', $rOwner], $rAlone);
+		}
+		if ($rTrees !== []) {
+			$rCommands[] = array_merge(['chown', '-hR', $rOwner], $rTrees);
+		}
+		return $rCommands;
+	}
+
+	/**
+	 * Who a file an updater has just put in place belongs to: root for what is
+	 * root's on MAIN (rootOwn()), else xc_vm.
+	 *
+	 * @param string $rPath From the base, as ROOT_OWNED names it.
+	 */
+	public static function owner(string $rPath): string {
+		if (!NodeRole::isMain()) {
+			return self::USER;
+		}
+		foreach (self::ROOT_OWNED as $rEntry => $rTree) {
+			if ($rPath === $rEntry || ($rTree && str_starts_with($rPath, $rEntry . '/'))) {
+				return 'root';
+			}
+		}
+		return self::USER;
 	}
 
 	/** The entry of WRITABLE that $rPath (from the base) is, or is under; else null. */
