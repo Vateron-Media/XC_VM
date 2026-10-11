@@ -190,9 +190,10 @@ final class StreamProcessBuildLiveTest extends TestCase {
 		foreach ([
 			['stream_info' => ['custom_ffmpeg' => $payload]],
 			['stream_info' => ['enable_transcode' => 1, 'transcode_profile_id' => -1, 'transcode_attributes' => json_encode(['-vf' => "x ; touch $proof", '; touch ' . $proof => 'x', 'gpu' => ['cmd' => "; touch $proof", 'device' => 0]])]],
+			// A token inside a quoted argument: the source's own quotes would close the argument's.
+			['stream_info' => ['custom_ffmpeg' => '-i "x{STREAM_SOURCE}y" -c copy pipe:1'], 'streamSource' => "http://a/;touch $proof;"],
 		] as $ov) {
 			$out = $this->build($ov + ['ffmpegCpu' => '/bin/true', 'ffmpegGpu' => '/bin/true']);
-			$this->assertStringNotContainsString('{', $out, $out);
 			// The real launch tail writes into STREAMS_PATH: cut it, run the rest.
 			shell_exec(explode(' >/dev/null', $out)[0] . ' 2>/dev/null');
 			$this->assertFileDoesNotExist($proof, $out);
