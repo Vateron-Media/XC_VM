@@ -12,6 +12,7 @@ use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Diagnostics\DiagnosticsService;
+use XcVm\Core\Error\ErrorResponder;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Http\ApiClient;
@@ -423,6 +424,10 @@ if (1 < $rICount) { ?>
 	if (PageAuthorization::checkPostAction((string) RequestManager::get('action'), RequestManager::has('edit'))) {
 		// FIX CSRF: acoes que alteram dados so vem por POST (bloqueia ataques via <img src>, que sao GET)
 		if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+			// The address opened in a browser: the error page. A script keeps its JSON.
+			if (ErrorResponder::wantsHtml()) {
+				ErrorResponder::emit(ErrorResponder::respondPage(405, '', 'dashboard'));
+			}
 			http_response_code(405);
 			header('Content-Type: application/json');
 			echo json_encode(array('result' => false, 'status' => 0, 'error' => 'Method Not Allowed'));
