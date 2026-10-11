@@ -76,6 +76,7 @@ Watch Folder is an automated content import system. It monitors local directorie
 | `percentage_match` | Admin → Settings → VOD Import | Minimum title similarity a TMDB match needs |
 | `fallback_parser` | Admin → Settings → VOD Import | Run the other parser when the primary one finds no match |
 | `alternative_titles` | Admin → Settings → VOD Import | Search TMDB alternative titles |
+| `tmdb_episode_by_title` | Admin → Settings → VOD Import | Find an episode by its TMDB title when the file names no episode number (off by default, see [Episodes Named by Title](#episodes-named-by-title)) |
 | `max_genres` | Admin → Settings → VOD Import | Maximum genres to turn into categories and bouquets |
 | Genre mapping | Admin → Settings → VOD Import | Category and bouquets per TMDB genre (`watch_categories`, core-owned). Applies to every import, Movies/Series → Import included |
 | `thread_count` | Admin → Settings → VOD Import | Files imported at the same time, by scans and by Movies/Series → Import |
@@ -194,6 +195,12 @@ If you want episodes sorted into season folders, the file name must contain the 
 |-----------------|-------------|
 | `/path/to/Show Name/Season 01/Show Name S01E01 720p WEB-DL.mkv` | Title: *Show Name*, Season: 1, Episode: 1 |
 | `/path/to/Show.Name/Season.01/Show.Name.S01E01.720p.WEB-DL.mkv` | Title: *Show Name*, Season: 1, Episode: 1 |
+
+#### Episodes Named by Title
+
+A series file with no episode number in its name is logged as `NO_MATCH`. With **Match Episodes by Title** on (Admin → Settings → VOD Import, off by default), a file whose own name gives the show and the season, such as `Show Name - S02 - The Long Night.mkv`, is compared with the episode titles of that TMDB season and takes the number of the one it matches. The season is never guessed: a file with no season in its name (`Season 02/The Long Night.mkv`) stays `NO_MATCH`, and so do the specials (season 0). A name with release tags (`Show.Name.S02.The.Long.Night.1080p.WEB-DL.mkv`) needs the guessit parser, which leaves them out of the title.
+
+The match is strict, because a wrongly numbered episode is worse than a file left unmatched: the best title must be at least 65% similar and at least 10 points ahead of the next one. `The Finale (Part 1)` and `(Part 2)`, a title the season has twice, and a file that names two episodes are all refused. An episode numbered this way never replaces the file of one already imported, whatever **Auto-Upgrade** says, and it says so in its **Notes** (`Episode number matched by TMDb title: …`), which the search of the Episodes list finds; the watch log shows it as imported, like any other. The season's episode list is fetched once per show, season and language and reused by the other files of that season for an hour.
 
 ---
 
