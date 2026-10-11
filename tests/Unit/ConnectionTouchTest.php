@@ -283,7 +283,7 @@ final class ConnectionTouchTest extends TestCase {
 	public function testAStoreThatCannotBeReadFailsTheBatchForTheNodeToResend(): void {
 		$this->bus();
 		SettingsManager::set(['redis_handler' => 1]);
-		(new \ReflectionProperty(RedisManager::class, 'instance'))->setValue(null, new \Redis()); // not connected
+		(new \ReflectionProperty(RedisManager::class, 'instance'))->setValue(null, RedisServer::unreachable());
 		(new \ReflectionProperty(RedisManager::class, 'lastPingCheck'))->setValue(null, time());
 		foreach (['a node that does not reap' => null, 'a reaping node' => 'hls_reaper'] as $rCase => $rFeatures) {
 			NodeRegistry::update(5, ['features' => $rFeatures]);
