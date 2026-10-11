@@ -1,4 +1,4 @@
-# Служба диагностики
+# <a id="diagnostics-service"></a>Служба диагностики
 
 `DiagnosticsService` предоставляет помощников по оперативной диагностике:
 
@@ -9,7 +9,7 @@
 
 ---
 
-## Методы
+## <a id="methods"></a>Методы
 
 ### `getCertificateInfo(?string $certificate = null): ?array`
 
@@ -59,7 +59,7 @@
 
 ---
 
-## `panel_logs` Форма (используемые поля)
+## <a id="panel_logs-shape-used-fields"></a>`panel_logs` Форма (используемые поля)
 
 |Колонка|Тип|Значение|
 | --- | --- | --- |
@@ -83,7 +83,7 @@
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

@@ -83,19 +83,21 @@ Migrating from Xtream Codes / XUI.one? Follow the step-by-step migration guide:
 
 ## 🧱 Technology Stack
 
-| Component | Version       | Description                     |
-| --------- | ------------- | ------------------------------- |
-| PHP       | 8.1.33        | Backend runtime                 |
-| Nginx     | 1.24          | Web server & reverse proxy      |
-| FFmpeg    | 8.0, 7.1, 4.0 | Media transcoding & processing  |
-| MariaDB   | 11.4          | SQL database engine             |
-| KeyDB     | 6.3.4         | Cache & session storage (Redis) |
+| Component | Version       | Description                                   |
+| --------- | ------------- | --------------------------------------------- |
+| PHP       | 8.1.33        | Backend runtime                               |
+| Nginx     | 1.24          | Web server & reverse proxy                    |
+| FFmpeg    | 8.0, 7.1, 4.0 | Media transcoding & processing                |
+| MariaDB   | 11.4          | SQL database engine                           |
+| KeyDB     | 6.3.4         | Cache & session storage (Redis)               |
+| yt-dlp    | latest        | Resolves YouTube and other platform links     |
+| Deno      | latest        | JavaScript runtime yt-dlp needs for YouTube   |
 
 ---
 
 ## 🐧 Supported Operating Systems
 
-XC_VM supports multiple Linux distributions. Distribution-specific binaries are downloaded automatically during installation: PHP and Nginx from [XC_VM_Binaries](https://github.com/Vateron-Media/XC_VM_Binaries), FFmpeg from [XC_VM_FFMPEG](https://github.com/Vateron-Media/XC_VM_FFMPEG).
+XC_VM supports multiple Linux distributions. Distribution-specific binaries are downloaded automatically during installation: PHP and Nginx from [XC_VM_Binaries](https://github.com/Vateron-Media/XC_VM_Binaries), FFmpeg from [XC_VM_FFMPEG](https://github.com/Vateron-Media/XC_VM_FFMPEG). [yt-dlp](https://github.com/yt-dlp/yt-dlp) is updated daily from its upstream releases, and [Deno](https://deno.com) is installed from its upstream releases when missing.
 
 ### Ubuntu
 
