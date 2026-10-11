@@ -1,0 +1,182 @@
+name: Board labels
+
+# Keeps issue labels in step with the XC_VM board
+# (https://github.com/orgs/Vateron-Media/projects/5); the board's Status is the
+# source of truth, the labels only mirror it in the issue list.
+#
+# - Status column → label: Icebox ↔ "awaiting triage" (not while "needs info"
+#   waits on the reporter), Backlog / In Progress / Review & Deploy /
+#   Post-release verification ↔ the matching "status: ..." label, Done → none.
+#   A board move does not trigger Actions (projects_v2_item is an org webhook
+#   event only), so a schedule syncs every issue on the board.
+# - Assigned while in Icebox → the card moves to Backlog.
+# - The author replies to a "needs info" issue → "needs info" is removed.
+# - Opened → the form's Severity sets the board's Priority.
+# - Closed → every triage and status label is removed.
+#
+# Labels go through GITHUB_TOKEN; the board through ADD_TO_PROJECT_PAT (the
+# default token cannot write org-level Projects v2), as in add-to-project.yml.
+
+on:
+  issues:
+    types: [opened, assigned, closed]
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: board-labels-${{ github.event.issue.number || 'sync' }}
+
+jobs:
+  labels:
+    name: Sync labels with the board
+    runs-on: ubuntu-latest
+    # A comment only matters on an issue (not a PR) waiting for information.
+    if: >-
+      github.event_name != 'issue_comment' ||
+      (!github.event.issue.pull_request && contains(github.event.issue.labels.*.name, 'needs info'))
+    steps:
+      - uses: actions/github-script@v9
+        env:
+          PROJECT_OWNER: Vateron-Media
+          PROJECT_NUMBER: "5"
+          PAT: ${{ secrets.ADD_TO_PROJECT_PAT }}
+        with:
+          script: |
+            const TRIAGE = 'awaiting triage';
+            const NEEDS_INFO = 'needs info';
+            const STATUS_LABELS = {
+              'Backlog': 'status: backlog',
+              'In Progress': 'status: in progress',
+              'Review & Deploy': 'status: review & deploy',
+              'Post-release verification': 'status: post-release verification',
+            };
+            const MANAGED = [TRIAGE, ...Object.values(STATUS_LABELS)];
+            // First word of the form's Severity answer → board Priority.
+            const PRIORITY = {
+              Critical: 'P0 Critical', SEV1: 'P0 Critical',
+              High: 'P1 High', SEV2: 'P1 High',
+              Medium: 'P2 Medium', SEV3: 'P2 Medium',
+              Low: 'P3 Low', SEV4: 'P3 Low',
+            };
+
+            const { owner, repo } = context.repo;
+            const board = getOctokit(process.env.PAT);
+            const proj = (await board.graphql(`
+              query($owner:String!, $number:Int!) {
+                organization(login:$owner) {
+                  projectV2(number:$number) {
+                    id
+                    status: field(name:"Status") { ... on ProjectV2SingleSelectField { id options { id name } } }
+                    priority: field(name:"Priority") { ... on ProjectV2SingleSelectField { id options { id name } } }
+                  }
+                }
+              }`, { owner: process.env.PROJECT_OWNER, number: parseInt(process.env.PROJECT_NUMBER, 10) })).organization.projectV2;
+            const optionId = (field, name) => {
+              const option = field.options.find(o => o.name === name);
+              if (!option) throw new Error(`Board option "${name}" not found`);
+              return option.id;
+            };
+            const setField = (itemId, field, name) => board.graphql(`
+              mutation($project:ID!, $item:ID!, $field:ID!, $option:String!) {
+                updateProjectV2ItemFieldValue(input:{projectId:$project, itemId:$item, fieldId:$field, value:{singleSelectOptionId:$option}}) { clientMutationId }
+              }`, { project: proj.id, item: itemId, field: field.id, option: optionId(field, name) });
+
+            // Adds or removes managed labels so the issue carries exactly `want` of them.
+            async function applyLabels(number, have, want) {
+              for (const name of MANAGED.filter(l => have.includes(l) && !want.includes(l))) {
+                core.info(`#${number}: - ${name}`);
+                await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name }).catch(e => { if (e.status !== 404) throw e; });
+              }
+              const add = want.filter(l => !have.includes(l));
+              if (add.length) {
+                core.info(`#${number}: + ${add.join(', ')}`);
+                await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: add });
+              }
+            }
+
+            function wantedLabels(state, status, labels) {
+              if (state !== 'OPEN') return [];
+              if (!status || status === 'Icebox') return labels.includes(NEEDS_INFO) ? [] : [TRIAGE];
+              return STATUS_LABELS[status] ? [STATUS_LABELS[status]] : [];
+            }
+
+            // The issue's card on this board (added if missing; adding is idempotent).
+            async function boardItem(nodeId) {
+              const res = await board.graphql(`
+                mutation($project:ID!, $content:ID!) {
+                  addProjectV2ItemById(input:{projectId:$project, contentId:$content}) {
+                    item { id status: fieldValueByName(name:"Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } } }
+                  }
+                }`, { project: proj.id, content: nodeId });
+              return res.addProjectV2ItemById.item;
+            }
+
+            const issue = context.payload.issue;
+            const labelsOf = i => i.labels.map(l => l.name);
+
+            if (context.eventName === 'issues' && context.payload.action === 'closed') {
+              await applyLabels(issue.number, labelsOf(issue), []);
+              return;
+            }
+
+            if (context.eventName === 'issues' && context.payload.action === 'opened') {
+              const severity = (issue.body || '').match(/^### Severity\s+(\S+)/m);
+              const priority = severity && PRIORITY[severity[1]];
+              if (priority) {
+                const item = await boardItem(issue.node_id);
+                await setField(item.id, proj.priority, priority);
+                core.info(`#${issue.number}: Priority ${priority}`);
+              }
+              return;
+            }
+
+            if (context.eventName === 'issues' && context.payload.action === 'assigned') {
+              const item = await boardItem(issue.node_id);
+              const status = item.status?.name;
+              if (!status || status === 'Icebox') {
+                await setField(item.id, proj.status, 'Backlog');
+                core.info(`#${issue.number}: moved to Backlog`);
+              }
+              await applyLabels(issue.number, labelsOf(issue), wantedLabels(issue.state.toUpperCase(), status && status !== 'Icebox' ? status : 'Backlog', labelsOf(issue)));
+              return;
+            }
+
+            if (context.eventName === 'issue_comment') {
+              if (context.payload.comment.user.login !== issue.user.login) return;
+              const labels = labelsOf(issue).filter(l => l !== NEEDS_INFO);
+              await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: NEEDS_INFO }).catch(e => { if (e.status !== 404) throw e; });
+              core.info(`#${issue.number}: - ${NEEDS_INFO} (the author replied)`);
+              const item = await boardItem(issue.node_id);
+              await applyLabels(issue.number, labels, wantedLabels('OPEN', item.status?.name, labels));
+              return;
+            }
+
+            // Schedule / manual run: every issue of this repository on the board.
+            let cursor = null;
+            do {
+              const page = (await board.graphql(`
+                query($project:ID!, $cursor:String) {
+                  node(id:$project) { ... on ProjectV2 {
+                    items(first:100, after:$cursor) {
+                      pageInfo { hasNextPage endCursor }
+                      nodes {
+                        status: fieldValueByName(name:"Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } }
+                        content { ... on Issue { number state repository { nameWithOwner } labels(first:50) { nodes { name } } } }
+                      }
+                    }
+                  } }
+                }`, { project: proj.id, cursor })).node.items;
+              for (const item of page.nodes) {
+                const c = item.content;
+                if (!c || c.number === undefined || c.repository.nameWithOwner !== `${owner}/${repo}`) continue;
+                const have = c.labels.nodes.map(l => l.name);
+                await applyLabels(c.number, have, wantedLabels(c.state, item.status?.name, have));
+              }
+              cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+            } while (cursor);

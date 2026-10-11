@@ -68,7 +68,7 @@ jobs:
             while IFS= read -r f; do
               case "$f" in
                 docs/*|*.md|LICENSE|mkdocs.yml|.claude/*|.github/ISSUE_TEMPLATE/*|.github/CODEOWNERS|.github/dependabot.yml) ;;
-                .github/workflows/add-to-project.yml|.github/workflows/build-dev.yml|.github/workflows/build-release.yml|.github/workflows/build_pre-release.yml) ;;
+                .github/workflows/add-to-project.yml|.github/workflows/board-labels.yml|.github/workflows/build-dev.yml|.github/workflows/build-release.yml|.github/workflows/build_pre-release.yml) ;;
                 .github/workflows/contributors.yml|.github/workflows/move-to-review.yml|.github/workflows/pages.yml|.github/workflows/release-notifier.yml|.github/workflows/security-scan.yml) ;;
                 *) code=true; break ;;
               esac
