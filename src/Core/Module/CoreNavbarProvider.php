@@ -614,6 +614,10 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 			->parent('profile')->url('alerts')
 			->label('alerts')->permissions(['settings'])->order(25));
 
+		NavbarRegistry::add((new NavbarItem('profile.translations'))
+			->parent('profile')->url('translations')
+			->label('translations')->permissions(['settings'])->order(27));
+
 		NavbarRegistry::add((new NavbarItem('profile.backups'))
 			->parent('profile')->url('backups')
 			->label('backup_settings')->permissions(['database'])->order(30));

@@ -27,6 +27,7 @@ use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StatsAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamToolsAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\TranslationAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\UserAjaxController;
 use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Public\Controllers\Admin\AlertController;
@@ -139,6 +140,7 @@ use XcVm\Public\Controllers\Admin\TicketController;
 use XcVm\Public\Controllers\Admin\TicketsController;
 use XcVm\Public\Controllers\Admin\TicketViewController;
 use XcVm\Public\Controllers\Admin\TmdbController;
+use XcVm\Public\Controllers\Admin\TranslationsController;
 use XcVm\Public\Controllers\Admin\UseragentController;
 use XcVm\Public\Controllers\Admin\UseragentsController;
 use XcVm\Public\Controllers\Admin\UserController;
@@ -214,6 +216,7 @@ $router->get('server_install', [ServerInstallController::class, 'index']);
 $router->get('settings', [SettingsController::class, 'index']);
 $router->get('modules', [ModulesController::class, 'index']);
 $router->any('magscan_settings', [MagscanSettingsController::class, 'index']);
+$router->get('translations', [TranslationsController::class, 'index']);
 
 // ─── Lines ─────────────────────────────────────────
 
@@ -431,6 +434,11 @@ $router->api('alert_channel_save', [AlertAjaxController::class, 'saveChannel']);
 $router->api('alert_channel_delete', [AlertAjaxController::class, 'deleteChannel']);
 $router->api('alert_channel_test', [AlertAjaxController::class, 'testChannel']);
 $router->api('alert_rules_save', [AlertAjaxController::class, 'saveRules']);
+
+// Translations (Core\\Localization\\TranslationStore): the editor's keys and save, the upload.
+$router->api('translation_keys', [TranslationAjaxController::class, 'keys']);
+$router->api('translation_save', [TranslationAjaxController::class, 'save']);
+$router->api('translation_upload', [TranslationAjaxController::class, 'upload']);
 
 // Off-site backups (Domain\\Backup): targets, recovery bundle, restore test.
 $router->api('backup_target_save', [BackupTargetAjaxController::class, 'save']);

@@ -336,6 +336,7 @@ class PageAuthorization {
 
 			case 'settings':
 			case 'alerts':
+			case 'translations':
 				return Authorization::check('adv', 'settings');
 
 			case 'backups':
