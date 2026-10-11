@@ -216,8 +216,8 @@ class ServersCronJob implements CommandInterface {
 		// below would never go).
 		$rConnections = $rUsers = $rAllUsers = $rStreams = 0;
 		if (!$rAgentTelemetry && SettingsManager::get('redis_handler')) {
-			$rConnections = $rServers[SERVER_ID]['connections'];
-			$rUsers = $rServers[SERVER_ID]['users'];
+			$rConnections = $rServers[SERVER_ID]['connections'] ?? 0;
+			$rUsers = $rServers[SERVER_ID]['users'] ?? 0;
 			$rAllUsers = 0;
 			foreach (array_keys($rServers) as $rServerID) {
 				if ($rServers[$rServerID]['server_online']) {

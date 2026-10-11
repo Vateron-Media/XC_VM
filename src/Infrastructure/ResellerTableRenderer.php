@@ -6,6 +6,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
@@ -127,7 +128,7 @@ class ResellerTableRenderer {
 		}
 		$rWhere = $rWhereV = [];
 		$rWhere[] = '`lines`.`is_mag` = 0 AND `lines`.`is_e2` = 0';
-		$rWhere[] = '(`lines`.`is_activecode` = 0 OR `lines`.`is_activecode` IS NULL)';
+		$rWhere[] = ActiveCodeService::LISTED_LINES;
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
 		if ((string) RequestManager::get('search')['value'] !== '') {
 			foreach (range(1, 6) as $rInt) {

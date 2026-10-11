@@ -5,6 +5,7 @@ namespace XcVm\Domain\Vod;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\StreamUtils;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -166,8 +167,10 @@ class TmdbCron {
 
 		/* --- Если \TMDB ID неизвестен — ищем --- */
 		if ($rTMDBID == 0) {
-			$rFilename = pathinfo(json_decode($rStream['stream_source'], true)[0])['filename'];
-			foreach ([$rFilename, $rStream['stream_display_name']] as $rStreamTitle) {
+			// A stream with no source has no file name to search by, and an empty
+			// title is no search: its display name alone is tried.
+			$rFilename = pathinfo(StreamUtils::firstSource($rStream['stream_source']))['filename'];
+			foreach (array_filter([$rFilename, (string) $rStream['stream_display_name']], static fn(string $rTitle): bool => $rTitle !== '') as $rStreamTitle) {
 				$rRelease = VodItemImporter::parserelease($rStreamTitle, (string) SettingsManager::get('parse_type'));
 				$rTitle = VodItemImporter::releaseTitle($rRelease);
 
@@ -481,7 +484,7 @@ class TmdbCron {
 			return;
 		}
 
-		$rFilename = pathinfo(json_decode($rStream['stream_source'], true)[0])['filename'];
+		$rFilename = pathinfo(StreamUtils::firstSource($rStream['stream_source']))['filename'];
 		$rRelease = VodItemImporter::parserelease($rFilename, (string) SettingsManager::get('parse_type'));
 		$rReleaseSeason = $rRelease['season'] ?? null;
 
