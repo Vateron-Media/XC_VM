@@ -14,7 +14,7 @@ use XcVm\Public\Controllers\Admin\ReportIssueController;
 final class ReportIssueTest extends TestCase {
 	/** Category => [template file, the field ids the page prefills on it]. */
 	private const PREFILL = [
-		'bug_report.yml' => ['version', 'build_type', 'environment', 'description', 'extra_information'],
+		'bug_report.yml' => ['version', 'build_type', 'environment', 'description'],
 		'feature_request.yml' => ['description'],
 		'documentation.yml' => ['description'],
 		'other.yml' => ['version', 'issuedescription'],
@@ -120,15 +120,19 @@ final class ReportIssueTest extends TestCase {
 		$this->assertLessThanOrEqual(4200, strlen($rTail), 'the tail is capped');
 	}
 
-	public function testTheLogAttachesOnlyToTheBugFormAndIsGatedAndReviewed(): void {
+	public function testTheLogIsNeverPutInTheUrlOnlyCopiedAndIsGated(): void {
 		$rView = $this->view();
-		// Only the Bug category carries a logField, into extra_information.
-		$this->assertStringContainsString("logField: 'extra_information'", $rView);
-		$this->assertSame(1, substr_count($rView, 'logField:'), 'only one category attaches the log');
-		// The log section and its read is gated on the panel_logs permission.
+		// The log is a copy-and-paste helper; it must not be prefilled into the
+		// issue URL, where regex redaction alone would decide what reaches a
+		// public issue. The admin pastes it and reviews it in GitHub's editor.
+		$this->assertStringNotContainsString('logField', $rView, 'the log must not be attached to the issue URL');
+		$this->assertStringNotContainsString("params.set('extra_information'", $rView);
+		$this->assertStringContainsString('issue-log-copy', $rView, 'there is a copy control');
+		// Reading the log is gated on the panel_logs permission.
 		$this->assertStringContainsString('$rCanAttachLog', $rView);
-		$this->assertStringContainsString("Authorization::check('adv', 'panel_logs')", (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/ReportIssueController.php'));
-		// The admin is told to review it before submitting.
+		$rController = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/ReportIssueController.php');
+		$this->assertStringContainsString("Authorization::check('adv', 'panel_logs')", $rController);
+		// The admin is told the redaction is best-effort and to review it.
 		$this->assertStringContainsString('report_issue_log_note', $rView);
 	}
 }

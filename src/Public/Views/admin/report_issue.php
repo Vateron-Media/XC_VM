@@ -45,9 +45,9 @@ $rSecurityUrl = 'https://github.com/' . $rRepo . '/security/advisories/new';
             </div>
             <?php if ($rCanAttachLog && $rLog !== ''): ?>
             <div class="col-12" id="issue-log-wrap">
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="issue-log-include" checked>
-                    <label class="form-check-label" for="issue-log-include"><?= $language::get('report_issue_log_include'); ?></label>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <label class="form-label mb-0"><?= $language::get('report_issue_log_label'); ?></label>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="issue-log-copy"><?= $language::get('report_issue_log_copy'); ?></button>
                 </div>
                 <pre class="bg-body-tertiary border rounded p-3 mb-1 small" id="issue-log" style="max-height: 16rem; overflow: auto;"></pre>
                 <div class="form-text"><?= $language::get('report_issue_log_note'); ?></div>
@@ -79,11 +79,11 @@ LayoutRenderer::renderFooter('admin');
         var log = <?= json_encode($rLog); ?>;
 
         // Per category: the issue form file, the title prefix the form uses,
-        // the id of its description field, which env fields the form asks for
-        // (so a value is prefilled only where the form has that field), and the
-        // field the recent error log attaches to (Bug only).
+        // the id of its description field, and which env fields the form asks
+        // for (so a value is prefilled only where the form has that field). The
+        // error log is never put in the URL — the admin copies and pastes it.
         var CATEGORIES = {
-            bug: { template: 'bug_report.yml', prefix: '[BUG]: ', descField: 'description', fields: ['version', 'build_type', 'environment'], logField: 'extra_information' },
+            bug: { template: 'bug_report.yml', prefix: '[BUG]: ', descField: 'description', fields: ['version', 'build_type', 'environment'] },
             feature: { template: 'feature_request.yml', prefix: '[FEATURE]: ', descField: 'description', fields: [] },
             docs: { template: 'documentation.yml', prefix: '', descField: 'description', fields: [] },
             other: { template: 'other.yml', prefix: '[OTHER]: ', descField: 'issuedescription', fields: ['version'] }
@@ -95,9 +95,8 @@ LayoutRenderer::renderFooter('admin');
         var envPre = document.getElementById('issue-env');
         var envWrap = document.getElementById('issue-env-wrap');
         var openBtn = document.getElementById('issue-open');
-        var logWrap = document.getElementById('issue-log-wrap');
         var logPre = document.getElementById('issue-log');
-        var logChk = document.getElementById('issue-log-include');
+        var logCopy = document.getElementById('issue-log-copy');
         if (logPre) {
             logPre.textContent = log;
         }
@@ -113,10 +112,6 @@ LayoutRenderer::renderFooter('admin');
                 envWrap.style.display = '';
             } else {
                 envWrap.style.display = 'none';
-            }
-            // The log attaches only to the Bug form, which has a field for it.
-            if (logWrap) {
-                logWrap.style.display = cat.logField ? '' : 'none';
             }
         }
 
@@ -145,11 +140,30 @@ LayoutRenderer::renderFooter('admin');
             if (cat.fields.indexOf('environment') !== -1) {
                 params.set('environment', env.environment);
             }
-            // The recent error log, when the form has a field for it and the admin kept it ticked.
-            if (cat.logField && log && logChk && logChk.checked) {
-                params.set(cat.logField, log);
-            }
+            // The error log is never added here: the admin copies it and pastes it
+            // into the issue, so it is reviewed in GitHub's editor before it is sent.
             return 'https://github.com/' + repo + '/issues/new?' + params.toString();
+        }
+
+        // Copy the shown log to the clipboard; where the clipboard API is
+        // unavailable (plain http), select it so the admin can copy by hand.
+        if (logCopy && logPre) {
+            logCopy.addEventListener('click', function() {
+                var done = function() { logCopy.textContent = '✓'; setTimeout(function() { logCopy.textContent = <?= json_encode($language::get('report_issue_log_copy')); ?>; }, 1500); };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(logPre.textContent).then(done, function() { selectNode(logPre); });
+                } else {
+                    selectNode(logPre);
+                }
+            });
+        }
+
+        function selectNode(node) {
+            var range = document.createRange();
+            range.selectNodeContents(node);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
         }
 
         catSel.addEventListener('change', refreshEnv);
