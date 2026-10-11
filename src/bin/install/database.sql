@@ -1920,7 +1920,8 @@ INSERT INTO `streams_arguments` (`id`, `argument_cat`, `argument_name`, `argumen
 (18, 'transcode', 'DeInterlacing Filter', 'It check pixels of previous, current and next frames to re-create the missed field by some local adaptive method (edge-directed interpolation) and uses spatial check to prevent most artifacts. ', NULL, '', '-filter_complex \"yadif\"', 'radio', '0'),
 (19, 'fetch', 'Headers', 'Set Custom Headers', 'http', 'headers', '-headers \'%s\'', 'text', NULL),
 (20, 'fetch', 'Force Input Audio Codec', 'Force FFmpeg to interpret the input audio stream as a specific codec (e.g., aac, ac3). Useful for streams with corrupted PMT metadata.', NULL, 'force_input_acodec', '-acodec %s', 'text', NULL),
-(21, 'fetch', 'Skip FFProbe', 'Skip codec detection via ffprobe. Assumes h264 video and AAC audio. Use for streams with corrupted PMT where ffprobe misdetects codecs.', NULL, 'skip_ffprobe', '', 'radio', '0');
+(21, 'fetch', 'Skip FFProbe', 'Skip codec detection via ffprobe. Assumes h264 video and AAC audio. Use for streams with corrupted PMT where ffprobe misdetects codecs.', NULL, 'skip_ffprobe', '', 'radio', '0'),
+(22, 'resolve', 'Maximum Resolution', 'For a source resolved through yt-dlp (YouTube, Twitch and the like): the tallest video to ask the platform for, in pixels (e.g. 720). Empty: the best it offers.', 'http', 'max_height', '', 'text', NULL);
 
 -- --------------------------------------------------------
 

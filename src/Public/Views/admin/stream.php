@@ -223,6 +223,9 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                         </div>
                         <div class="col-md-6"><label class="form-label" for="force_input_acodec">Force Input Audio Codec</label><input type="text" class="form-control" id="force_input_acodec" name="force_input_acodec" placeholder="<?= $language::get('eg_aac_ac3'); ?>" value="<?= isset($rStreamOptions[20]) ? htmlspecialchars((string) $rStreamOptions[20]['value'], ENT_QUOTES) : ''; ?>"></div>
                     </div>
+                    <div class="mb-6"><label class="form-label" for="max_height"><?= $language::get('max_resolution'); ?></label><input type="number" min="0" step="1" class="form-control" id="max_height" name="max_height" placeholder="720" value="<?= isset($rStreamOptions[22]) ? htmlspecialchars((string) $rStreamOptions[22]['value'], ENT_QUOTES) : ''; ?>">
+                        <div class="form-text"><?= $language::get('max_resolution_info'); ?></div>
+                    </div>
                     <div class="mb-6">
                         <label class="form-label" for="transcode_profile_id">Transcoding Profile</label>
                         <select name="transcode_profile_id" id="transcode_profile_id" class="form-select">

@@ -190,4 +190,29 @@ final class AuditDecisionStoredEditTest extends TestCase {
 			$this->assertSame(self::TEXT, $this->rDb->get_raw_row()[$rField] ?? null, $rTable . '.' . $rField . ' as stored');
 		}
 	}
+
+	/**
+	 * A stream's "Maximum Resolution" (#345, option 22): an edit that does not
+	 * send it keeps it, one that sends it stores the number alone, and one
+	 * that sends it empty takes it away.
+	 */
+	public function testAnEditKeepsOrStoresAStreamsMaximumResolution(): void {
+		foreach (self::records()['stream'][4] as $rQuery) {
+			$this->rDb->exec($rQuery);
+		}
+		$this->rDb->exec("INSERT INTO `streams_options` (`stream_id`, `argument_id`, `value`) VALUES (20, 22, '720')");
+
+		foreach ([[['notes' => 'changed'], ['720']], [['max_height' => '480'], ['480']], [['max_height' => '1080 -f worst'], ['1080']], [['max_height' => ''], []]] as [$rEdit, $rExpected]) {
+			RequestManager::set(['api_key' => self::KEY, 'action' => 'edit_stream', 'id' => '20'] + $rEdit);
+			ob_start();
+			try {
+				(new AdminApiController())->index();
+			} finally {
+				$rBody = (string) ob_get_clean();
+			}
+			$this->assertSame('STATUS_SUCCESS', json_decode($rBody, true)['status'] ?? $rBody);
+			$this->rDb->query('SELECT `value` FROM `streams_options` WHERE `stream_id` = 20 AND `argument_id` = 22');
+			$this->assertSame($rExpected, array_column($this->rDb->get_rows() ?: [], 'value'), json_encode($rEdit));
+		}
+	}
 }
