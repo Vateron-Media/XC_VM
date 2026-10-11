@@ -295,7 +295,7 @@ $rStatusMessages = [
                     <?php endif; ?>
 
                     <div class="tab-pane fade" id="tab-review" role="tabpanel">
-                        <div class="alert alert-danger d-flex align-items-center" role="alert" style="display:none;" id="no-credits">
+                        <div class="alert alert-danger" role="alert" style="display:none;" id="no-credits">
                             <i class="icon-base ti tabler-ban me-2"></i> You do not have enough credits to complete this transaction!
                         </div>
                         <div class="table-responsive mb-4">
