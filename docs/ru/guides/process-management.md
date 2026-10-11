@@ -1,13 +1,13 @@
-# Модели управления процессами
+# <a id="process-management-patterns"></a>Модели управления процессами
 
 `ProcessManager` централизует проверку процессов Linux, завершение работы, проверку PID-файлов и блокировку cron.
 Он заменяет разрозненные специальные проверки `posix_kill`, `ps` и `/proc`.
 
 ---
 
-## Основные операции
+## <a id="core-operations"></a>Основные операции
 
-### Проверьте, запущен ли процесс
+### <a id="check-if-process-is-running"></a>Проверьте, запущен ли процесс
 
 ```php
 ProcessManager::isRunning(int $pid, ?string $exe = null): bool
@@ -16,7 +16,7 @@ ProcessManager::isRunning(int $pid, ?string $exe = null): bool
 - без `$exe`: проверяет наличие `/proc/{pid}`
 - с помощью `$exe`: проверяет имя исполняемого файла с помощью `/proc/{pid}/exe`
 
-### Проверьте именованный процесс
+### <a id="check-named-process"></a>Проверьте именованный процесс
 
 ```php
 ProcessManager::isNamedProcessRunning(
@@ -29,7 +29,7 @@ ProcessManager::isNamedProcessRunning(
 
 Соответствует шаблону командной строки `NAME[ID]` (для работников, основанных на названии процесса).
 
-### Проверка потокового процесса
+### <a id="check-stream-process"></a>Проверка потокового процесса
 
 ```php
 ProcessManager::isStreamRunning(int $pid, int $streamId): bool
@@ -46,7 +46,7 @@ ProcessManager::isStreamRunning(int $pid, int $streamId): bool
 
 ---
 
-## Больше проверок и помощников
+## <a id="more-checks-helpers"></a>Больше проверок и помощников
 
 ```php
 ProcessManager::isStreamAlive($pid, $streamID): bool     // loose: stream ID appears in the ffmpeg/php cmdline (case-insensitive) — no output check
@@ -67,7 +67,7 @@ ProcessManager::isAnyProcessRunning(array $terms): bool
 
 ---
 
-## Процессор и память для каждого потока
+## <a id="per-stream-cpu-and-memory"></a>Процессор и память для каждого потока
 
 ```php
 ProcessManager::resourceSample($pid): ?array          // ['ticks' => CPU ticks so far, 'rss' => bytes, 'at' => microtime, 'start' => ticks after boot]
@@ -98,7 +98,7 @@ JSON-файл потока `progress_info` (`cpu`, `mem`, `producer`). Знач�
 
 ---
 
-## Завершение процесса
+## <a id="process-termination"></a>Завершение процесса
 
 ```php
 ProcessManager::kill(int $pid, int $signal = SIGKILL): bool
@@ -106,7 +106,7 @@ ProcessManager::kill(int $pid, int $signal = SIGKILL): bool
 
 Используйте `SIGTERM` для плавного завершения работы, когда это возможно.
 
-### Что `cron:streams` убивает само по себе
+### <a id="what-cronstreams-kills-on-its-own"></a>Что `cron:streams` убивает само по себе
 
 В конце прохода `cron:streams` уничтожает два вида процессов, которые не учитываются ни в одном потоке этого сервера:
 
@@ -115,7 +115,7 @@ ProcessManager::kill(int $pid, int $signal = SIGKILL): bool
 
 ---
 
-## Блокировка Cron
+## <a id="cron-locking"></a>Блокировка Cron
 
 ```php
 ProcessManager::acquireCronLock(string $pidFile, int $rLimit = 0): bool
@@ -139,7 +139,7 @@ ProcessManager::exitIfCronLockHeld(string $pidFile, int $rLimit = 0)
 
 ---
 
-## `/proc` Проверить кэш
+## <a id="proc-check-cache"></a>`/proc` Проверить кэш
 
 `isRunning()` использует короткий TTL-кэш для `/proc` проверок (1 секунда), чтобы уменьшить количество повторяющихся операций ввода-вывода в узких циклах.
 
@@ -150,7 +150,7 @@ ProcessManager::exitIfCronLockHeld(string $pidFile, int $rLimit = 0)
 
 ---
 
-## Соглашение об именовании
+## <a id="naming-convention"></a>Соглашение об именовании
 
 Общий формат названия процесса:
 
@@ -164,7 +164,7 @@ ProcessManager::exitIfCronLockHeld(string $pidFile, int $rLimit = 0)
 
 ---
 
-## Запуск подпроцессов: `Thread` и `Multithread`
+## <a id="launching-subprocesses-thread-and-multithread"></a>Запуск подпроцессов: `Thread` и `Multithread`
 
 `ProcessManager` проверяет и уничтожает **существующий** процессов. Для **запуск** новых процессов из PHP:
 
@@ -176,7 +176,7 @@ ProcessManager::exitIfCronLockHeld(string $pidFile, int $rLimit = 0)
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

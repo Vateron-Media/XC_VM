@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Api;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Error\ErrorResponder;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Util\NetworkUtils;
@@ -83,6 +84,11 @@ class PlaylistApiController extends BaseApiController {
 				generateError('GENERATE_PLAYLIST_FAILED');
 			}
 		} else {
+			// The address opened in a browser: a page that says why. A player
+			// keeps the bare status (and debug mode its own page).
+			if (ErrorResponder::wantsHtml() && !SettingsManager::get('debug_show_errors')) {
+				ErrorResponder::emit(ErrorResponder::respondPage(429, '', ''));
+			}
 			generateError('DOWNLOAD_LIMIT_REACHED', false);
 			http_response_code(429);
 			exit();

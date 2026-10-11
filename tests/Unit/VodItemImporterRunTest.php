@@ -19,7 +19,7 @@ final class VodItemImporterRunTest extends TestCase {
         'movie_symlink' => 'tinyint', 'remove_subtitles' => 'tinyint', 'transcode_profile_id' => 'int',
         'direct_source' => 'tinyint', 'direct_proxy' => 'tinyint', 'order' => 'int', 'stream_display_name' => 'mediumtext',
         'movie_properties' => 'mediumtext', 'movie_subtitles' => 'mediumtext', 'series_no' => 'int', 'added' => 'int',
-        'tmdb_language' => 'varchar',
+        'tmdb_language' => 'varchar', 'notes' => 'mediumtext',
     );
 
     private TestDb $db;
@@ -62,6 +62,8 @@ final class VodItemImporterRunTest extends TestCase {
         $GLOBALS['db'] = $this->globalDbBefore;
         @unlink(WATCH_TMP_PATH . 'lock_1399');
         @unlink(WATCH_TMP_PATH . 'series_1399');
+        array_map('unlink', glob(WATCH_TMP_PATH . 'season_1399_*.cache') ?: array());
+        \XcVm\Core\Process\ProcessRunner::useCapturer(null);
     }
 
     /** The payload SeriesService::import() builds for one M3U entry. */
@@ -240,6 +242,112 @@ final class VodItemImporterRunTest extends TestCase {
         $this->expectOutputString("Please run as XC_VM!\n");
 
         $this->assertSame(1, (new \XcVm\Cli\Commands\VodImportBatchCommand())->execute(array('/etc/passwd')));
+    }
+
+    /**
+     * A name with its season and no episode number ("Les Psys S01 Le Divan"),
+     * as guessit reads it, and a TMDb client that counts what it is asked.
+     *
+     * @param array<int, string> $rTitles Episode number => title of the TMDb season.
+     * @param array<string, int> $rAsked  Calls per method.
+     */
+    private function titledEpisode(array $rTitles, ?array &$rAsked, int $rSeason = 1): array {
+        \XcVm\Core\Process\ProcessRunner::useCapturer(static fn(): array => array(0, json_encode(array('title' => 'Les Psys', 'season' => $rSeason, 'episode_title' => 'Le Divan'))));
+        $rAsked = array('searchTVShow' => 0, 'getSeason' => 0);
+        $rEpisodes = array();
+        foreach ($rTitles as $rNumber => $rTitle) {
+            $rEpisodes[] = array('episode_number' => $rNumber, 'name' => $rTitle, 'id' => 200 + $rNumber, 'air_date' => '2026-01-08', 'overview' => '', 'vote_average' => 7.1, 'still_path' => null);
+        }
+        $rTmdb = new FakeTmdbClient(array(
+            'searchTVShow' => function () use (&$rAsked) {
+                $rAsked['searchTVShow']++;
+                return array(new TVShow(array('id' => 1399, 'name' => 'Les Psys', 'first_air_date' => '2026-01-01')));
+            },
+            'getTVShow' => fn() => new TVShow(array('id' => 1399, 'name' => 'Les Psys', 'seasons' => array(array('poster_path' => '/s1.jpg')), 'genres' => array(), 'credits' => array('cast' => array(), 'crew' => array()), 'episode_run_time' => array(45))),
+            'getSeason' => function () use (&$rAsked, $rEpisodes) {
+                $rAsked['getSeason']++;
+                return new Season(array('episodes' => $rEpisodes));
+            },
+        ));
+        return array(array('title' => 'Les Psys S0' . $rSeason . ' Le Divan') + $this->threadData(), $rTmdb);
+    }
+
+    /** Off, as installed: a file with no episode number is No match, and TMDb is not asked. */
+    public function testAnEpisodeWithNoNumberIsNoMatchWhileTheTitleMatchIsOff(): void {
+        list($rData, $rTmdb) = $this->titledEpisode(array(1 => 'Pilote', 2 => 'Le Divan'), $rAsked);
+        $this->expectOutputString("Scanning: Les Psys S01 Le Divan\n");
+
+        VodItemImporter::run($rData, 60, $rTmdb);
+
+        $this->assertCount(1, $this->results);
+        $this->assertSame(VodImportResultEvent::STATUS_NO_MATCH, $this->results[0]->status);
+        $this->assertSame(array('searchTVShow' => 0, 'getSeason' => 0), $rAsked);
+        $this->db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
+        $this->assertSame(0, (int) $this->db->get_col());
+    }
+
+    /** On: the episode is the one of that title, said so in its notes, and the season is fetched once. */
+    public function testAnEpisodeWithNoNumberIsFoundByItsTitle(): void {
+        SettingsManager::set(array('tmdb_episode_by_title' => 1) + SettingsManager::getAll());
+        list($rData, $rTmdb) = $this->titledEpisode(array(1 => 'Pilote', 2 => 'Le Divan', 3 => 'Le Transfert'), $rAsked);
+        $this->expectOutputRegex('~Matched by title: http://provider\.example/series/u/p/377778\.mkv => S01E02 "Le Divan" \(100%\)\n.*Success!~s');
+
+        VodItemImporter::run($rData, 60, $rTmdb);
+
+        $this->assertCount(1, $this->results);
+        $this->assertSame(VodImportResultEvent::STATUS_IMPORTED, $this->results[0]->status);
+        $this->db->query('SELECT `stream_display_name`, `series_no`, `notes` FROM `streams` WHERE `id` = ?;', $this->results[0]->streamId);
+        $rRow = $this->db->get_row();
+        $this->assertSame(array('Les Psys - S01E02 - Le Divan', 5, 'Episode number matched by TMDb title: "Le Divan" (100%)'), array($rRow['stream_display_name'], (int) $rRow['series_no'], $rRow['notes']));
+        $this->db->query('SELECT `season_num`, `series_id`, `episode_num` FROM `streams_episodes` WHERE `stream_id` = ?;', $this->results[0]->streamId);
+        $this->assertSame(array(1, 5, 2), array_map('intval', array_values($this->db->get_row())));
+        $this->assertSame(array('searchTVShow' => 1, 'getSeason' => 1), $rAsked, "the episode's title and still come from the season the match fetched");
+    }
+
+    /** A number found by title never replaces the file of an episode already imported, auto-upgrade or not. */
+    public function testAnEpisodeFoundByItsTitleNeverUpgradesTheOneAlreadyImported(): void {
+        SettingsManager::set(array('tmdb_episode_by_title' => 1) + SettingsManager::getAll());
+        list($rData, $rTmdb) = $this->titledEpisode(array(1 => 'Pilote', 2 => 'Le Divan'), $rAsked);
+        file_put_contents(WATCH_TMP_PATH . 'series_1399.cache', json_encode(array('1_2' => array('id' => 77, 'source' => 's:1:/vod/old.mkv'))));
+        $this->expectOutputRegex('/Upgrade disabled/');
+
+        try {
+            VodItemImporter::run(array('auto_upgrade' => true, 'duplicate_tmdb' => false) + $rData, 60, $rTmdb);
+        } finally {
+            @unlink(WATCH_TMP_PATH . 'series_1399.cache');
+        }
+
+        $this->assertSame(array(), $this->results);
+        $this->db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
+        $this->assertSame(0, (int) $this->db->get_col());
+    }
+
+    /**
+     * On, and still No match: a title too close to another one, and the
+     * specials (season 0), which are never matched nor looked up.
+     *
+     * @dataProvider refusedTitles
+     */
+    public function testATitleMatchThatIsNotClearStaysNoMatch(array $rTitles, int $rSeason, array $rExpectedCalls): void {
+        SettingsManager::set(array('tmdb_episode_by_title' => 1) + SettingsManager::getAll());
+        list($rData, $rTmdb) = $this->titledEpisode($rTitles, $rAsked, $rSeason);
+        $this->expectOutputRegex('/^Scanning: /');
+
+        VodItemImporter::run($rData, 60, $rTmdb);
+
+        $this->assertCount(1, $this->results);
+        $this->assertSame(VodImportResultEvent::STATUS_NO_MATCH, $this->results[0]->status);
+        $this->assertSame($rExpectedCalls, $rAsked);
+        $this->db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
+        $this->assertSame(0, (int) $this->db->get_col());
+    }
+
+    public static function refusedTitles(): array {
+        return array(
+            'two parts of one title' => array(array(1 => 'Le Divan (1)', 2 => 'Le Divan (2)'), 1, array('searchTVShow' => 1, 'getSeason' => 1)),
+            'no title near it' => array(array(1 => 'Pilote', 2 => 'Le Transfert'), 1, array('searchTVShow' => 1, 'getSeason' => 1)),
+            'a special' => array(array(1 => 'Le Divan'), 0, array('searchTVShow' => 0, 'getSeason' => 0)),
+        );
     }
 
     public function testReportsNoMatchAndInsertsNothingWhenTmdbFindsNothing(): void {

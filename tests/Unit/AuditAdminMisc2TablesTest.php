@@ -57,7 +57,7 @@ PHP;
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		foreach (['users', 'users_groups', 'lines', 'lines_live', 'lines_activity', 'streams', 'mag_devices', 'enigma2_devices', 'providers', 'providers_streams'] as $rTable) {
+		foreach (['users', 'users_groups', 'lines', 'lines_live', 'lines_activity', 'activation_codes', 'streams', 'mag_devices', 'enigma2_devices', 'providers', 'providers_streams'] as $rTable) {
 			$this->rDb->exec(InstallSchema::table($rTable));
 		}
 		// A reseller with a line, a MAG device and an Enigma2 device, and a provider with one stream.

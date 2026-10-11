@@ -1,4 +1,4 @@
-# Стратегия кэширования и повторного использования
+# <a id="caching-and-redis-strategy"></a>Стратегия кэширования и повторного использования
 
 XC_VM использует двухуровневую стратегию кэширования:
 
@@ -10,7 +10,7 @@ XC_VM использует двухуровневую стратегию кэш�
 
 ---
 
-## Интерфейс кэширования
+## <a id="cache-interface"></a>Интерфейс кэширования
 
 Файл: `src/Core/Cache/CacheInterface.php`
 
@@ -27,7 +27,7 @@ flush()
 
 ---
 
-## Файловый кэш
+## <a id="filecache"></a>Файловый кэш
 
 Файл: `src/Core/Cache/FileCache.php`
 
@@ -55,7 +55,7 @@ FileCache::getCache($key, $maxAge = null)
 
 ---
 
-## Заново спрятать
+## <a id="rediscache"></a>Заново спрятать
 
 Файл: `src/Core/Cache/RedisCache.php`
 
@@ -73,7 +73,7 @@ $redis->getConnection();                 // raw phpredis for sorted sets, pipeli
 
 ---
 
-## Управление подключениями Redis
+## <a id="redis-connection-management"></a>Управление подключениями Redis
 
 Файл: `src/Infrastructure/Redis/RedisManager.php`
 
@@ -98,7 +98,7 @@ RedisManager::closeInstance()            // disconnect
 | `read_timeout` |жестко запрограммированный| `2.0s` |
 | `tcp_keepalive` |жестко запрограммированный| `60s` |
 
-### Сохраняющиеся при отключении в режиме ожидания (долгоживущие демоны)
+### <a id="surviving-idle-disconnects-long-lived-daemons"></a>Сохраняющиеся при отключении в режиме ожидания (долгоживущие демоны)
 
 Кратковременные запросы (PHP-FPM stream/admin) открывают новое соединение для каждого процесса
 и на них не влияют тайм-ауты простоя. Демоны-долгожители — цикл `watchdog`,
@@ -128,11 +128,11 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 
 ---
 
-## Заполнение кэша
+## <a id="cache-population"></a>Заполнение кэша
 
 Файлы кэша генерируются двумя заданиями cron:
 
-### Облегченный кэш (CacheCronJob)
+### <a id="lightweight-cache-cachecronjob"></a>Облегченный кэш (CacheCronJob)
 
 Запускает каждый цикл cron. Восстанавливает быстро меняющиеся данные (~1 секунда):
 
@@ -143,7 +143,7 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 - Блокирующие списки: `blocked_isp`, `blocked_ua`, `blocked_ips`, `blocked_servers`
 - `allowed_ips`, `output_formats`, `hmac_keys`, `rtmp_ips`
 
-### Большой объем кэша (CacheEngineCronJob)
+### <a id="heavy-cache-cacheenginecronjob"></a>Большой объем кэша (CacheEngineCronJob)
 
 Перестраивает потоковые, линейные и последовательные данные. Регулируется до одного раза в 5 минут с помощью маркера `heavy_cache_built`:
 
@@ -157,11 +157,11 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 
 Режим полной перестройки: восстанавливает все записи. Регулируется параметром `cache_thread_count`.
 
-### Готовность кэша
+### <a id="cache-readiness"></a>Готовность кэша
 
 После каждой полной сборки кэша записывается файл `cache_complete`. Путь потоковой передачи проверяет наличие этого файла и завершает работу с ошибкой, если он отсутствует.
 
-### Безопасность холодного кэширования
+### <a id="cold-cache-safety"></a>Безопасность холодного кэширования
 
 Потоковый загрузчик (`LegacyInitializer::initStreaming()`) считывает `servers`,
 блок-листы и `proxy_servers` из файлового кэша. Перед первой сборкой
@@ -175,9 +175,9 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 
 ---
 
-## Соглашения о ключах кэширования
+## <a id="cache-key-conventions"></a>Соглашения о ключах кэширования
 
-### Системные ключи (CACHE_TMP_PATH)
+### <a id="system-keys-cache_tmp_path"></a>Системные ключи (CACHE_TMP_PATH)
 
 |Ключ|Содержание|
 | --- | --- |
@@ -192,13 +192,13 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 | `permissions_{group_id}` |набор групповых разрешений|
 | `cache_complete` |`time()` временная метка последней полной сборки|
 
-### Ключи потока (STREAMS_TMP_PATH)
+### <a id="stream-keys-streams_tmp_path"></a>Ключи потока (STREAMS_TMP_PATH)
 
 |Ключ|Содержание|
 | --- | --- |
 | `stream_{id}` |информация о потоке + букеты + состояние каждого сервера|
 
-### Линейные ключи (LINES_TMP_PATH)
+### <a id="line-keys-lines_tmp_path"></a>Линейные ключи (LINES_TMP_PATH)
 
 |Ключ|Содержание|
 | --- | --- |
@@ -206,7 +206,7 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 | `line_c_{username_password}` |user_id (поиск учетных данных)|
 | `line_t_{access_token}` |user_id (поиск токена)|
 
-### Ключи серии (SERIES_TMP_PATH)
+### <a id="series-keys-series_tmp_path"></a>Ключи серии (SERIES_TMP_PATH)
 
 |Ключ|Содержание|
 | --- | --- |
@@ -216,7 +216,7 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 
 ---
 
-## Шаблоны аннулирования
+## <a id="invalidation-patterns"></a>Шаблоны аннулирования
 
 |Спусковой крючок|Затронутые ключи|Механизм|
 | --- | --- | --- |
@@ -232,7 +232,7 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 
 ---
 
-## Кэш списка воспроизведения (`content/playlists`)
+## <a id="playlist-cache-contentplaylists"></a>Кэш списка воспроизведения (`content/playlists`)
 
 *Кэширование плейлистов на* (`cache_playlists`, секунды, по умолчанию 0) позволяет сохранять каждый плейлист на время загрузки строки (`get.php`, `playlist`). `cron:tmp` удаляет сохраненный список, если его возраст превышает установленный (проверяется каждую минуту).
 
@@ -244,16 +244,16 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 
 ---
 
-## Потоковая передача против пути администратора
+## <a id="streaming-vs-admin-path"></a>Потоковая передача против пути администратора
 
-### Путь потоковой передачи (`www/stream/*`)
+### <a id="streaming-path-wwwstream"></a>Путь потоковой передачи (`www/stream/*`)
 
 - `cached: true` по умолчанию.
 - Считывает данные исключительно из файлового кэша (никаких запросов к базе данных).
 - Raw igbinary deserialization: `igbinary_unserialize(file_get_contents(...))`.
 - Если `cache_complete` отсутствует: завершите работу с ошибкой.
 
-### Путь администратора (`Public/Controllers/Admin/*`)
+### <a id="admin-path-publiccontrollersadmin"></a>Путь администратора (`Public/Controllers/Admin/*`)
 
 - `cached: false` по умолчанию.
 - Считывает данные из базы данных непосредственно через доменные службы.
@@ -270,7 +270,7 @@ FileCache::setCache('bouquets', $rOutput);
 
 ---
 
-## Расположение файла кэша
+## <a id="cache-file-layout"></a>Расположение файла кэша
 
 ```text
 /home/xc_vm/tmp/cache/
@@ -298,7 +298,7 @@ FileCache::setCache('bouquets', $rOutput);
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

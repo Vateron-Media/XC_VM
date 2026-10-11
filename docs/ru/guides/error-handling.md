@@ -1,4 +1,4 @@
-# Модель обработки ошибок
+# <a id="error-handling-model"></a>Модель обработки ошибок
 
 Обработка ошибок XC_VM состоит из трех уровней:
 
@@ -8,7 +8,7 @@
 
 ---
 
-## Обзор потока
+## <a id="flow-overview"></a>Обзор потока
 
 ```text
 Application code
@@ -34,7 +34,7 @@ Application code
 
 ---
 
-## Реестр кодов ошибок
+## <a id="error-code-registry"></a>Реестр кодов ошибок
 
 Все коды объявляются методом `ErrorResponder::codes()` в `src/Core/Error/ErrorResponder.php`, который возвращает массив code => English-описание.
 
@@ -45,7 +45,7 @@ Application code
 
 Используйте только централизованные определения кода. Не следует жестко кодировать текст ошибки в обработчиках конечных точек.
 
-### Полный список кодов
+### <a id="full-code-list"></a>Полный список кодов
 
 |Код|Описание|
 | --- | --- |
@@ -119,7 +119,7 @@ Application code
 
 ---
 
-## Обработчики ошибок
+## <a id="error-handlers"></a>Обработчики ошибок
 
 Определено в `src/Core/Error/ErrorHandler.php`. Это простые функции (не методы класса), загружаемые в начале начальной загрузки.
 
@@ -167,11 +167,11 @@ generate404(false);  // 404, continue execution
 
 ---
 
-## Подсистема регистратора
+## <a id="logger-subsystem"></a>Подсистема регистратора
 
 Определен в `src/Core/Logging/Logger.php`. Класс `final`, который регистрирует три глобальных обработчика PHP для отслеживания всех ошибок во время выполнения и записи их в файл.
 
-### Инициализация
+### <a id="initialization"></a>Инициализация
 
 ```php
 Logger::init(bool $showErrors, string $logFile): void
@@ -185,7 +185,7 @@ Logger::init(bool $showErrors, string $logFile): void
 
 Также настраивает `error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED)` и устанавливает `display_errors` / `display_startup_errors` на основе `$showErrors`.
 
-### Где вызывается функция Logger::init()
+### <a id="where-loggerinit-is-called"></a>Где вызывается функция Logger::init()
 
 Регистратор инициализируется в двух местах, в зависимости от пути запроса:
 
@@ -196,7 +196,7 @@ Logger::init(bool $showErrors, string $logFile): void
 
 В обоих случаях параметр `PHP_ERRORS` соответствует параметру `debug_show_errors` (по умолчанию используется значение `false`, когда настройки недоступны).
 
-### Отображение уровня ошибок
+### <a id="error-level-mapping"></a>Отображение уровня ошибок
 
 `Logger::handleError()` преобразует константы ошибок PHP в строки уровня журнала с помощью `mapErrorLevel()`:
 
@@ -217,7 +217,7 @@ Logger::init(bool $showErrors, string $logFile): void
 
 Ошибки, подавленные с помощью оператора `@`, игнорируются (обработчик проверяет `error_reporting() & $errno`).
 
-### Формат журнала
+### <a id="log-format"></a>Формат журнала
 
 Each log entry is written as a single line: `base64_encode(json_encode($data))` followed by a newline. This prevents line corruption from multi-line messages.
 
@@ -241,17 +241,17 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 | `log_message` |Текст сообщения об ошибке/исключении|
 | `file` |Абсолютный путь к исходному файлу|
 | `line` |Номер строки, в которой произошла ошибка|
-| `log_extra` | Stack trace (formatted string). Empty for fatal errors. For `pdo` entries (written by `FileLogger`), the failed SQL statement as written, with its `?` placeholders in place of the bound values (a statement run through `simple_query()` has no placeholders and is logged whole). The driver's message is in `log_message`. The text MySQL quotes after `value: ` ("Incorrect integer value: '...'") and after a syntax error's `near ` is replaced by `?`; any other message, and the message of a statement run through `simple_query()`, is logged as MySQL wrote it and can still quote a value. |
+| `log_extra` |Трассировка стека (форматированная строка). Пусто для неустранимых ошибок. Для записей `pdo` (записанных с помощью `FileLogger`) сбойная инструкция SQL в том виде, в каком она была написана, с заполнителями `?` вместо связанных значений (инструкция, выполненная с помощью `simple_query()`, не имеет заполнителей и регистрируется целиком). Сообщение водителя находится в `log_message`. Текст MySQL заключается в кавычки после `value: ` ("Неверное целочисленное значение: '...'") и после того, как синтаксическая ошибка `near ` заменена на `?`; любое другое сообщение, а также сообщение инструкции, выполненной через `simple_query()`, регистрируется как MySQL. это и все еще может указывать значение.|
 | `time` |Временная метка Unix|
 | `env` |Имя PHP SAPI (`cli`, `fpm-fcgi` и т.д.)|
 
-### Расположение файла журнала
+### <a id="log-file-location"></a>Расположение файла журнала
 
 Путь по умолчанию: `LOGS_TMP_PATH . 'error_log.log'`
 
 Если каталог журнала не существует, Logger создает его с правами доступа `0775`. При запуске от имени root (распространенного в контейнерах) файлу присваивается значение `xc_vm:xc_vm` с режимом `0664`.
 
-### Вывод на экран
+### <a id="screen-output"></a>Вывод на экран
 
 Когда `$showErrors` равно `true`, регистратор также отображает ошибки напрямую:
 
@@ -260,7 +260,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 ---
 
-## Конвейер ведения журнала: Передача файла в базу данных
+## <a id="logging-pipeline-file-to-database"></a>Конвейер ведения журнала: Передача файла в базу данных
 
 Программа ведения журнала записывает данные в файл `error_log.log` на диске. Отдельная подсистема считывает этот файл и сохраняет записи в таблице базы данных `panel_logs`:
 
@@ -272,7 +272,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
    - `submitPanelLogs()` -- отправляет логи на центральный сервер API для анализа
 5. Панель администратора отображает эти журналы в разделе **Управление > Журналы > Ошибки панели**
 
-### Фильтрация шума файлового регистратора
+### <a id="filelogger-noise-filtering"></a>Фильтрация шума файлового регистратора
 
 `FileLogger::log()` пропускает записи, которые соответствуют:
 
@@ -281,7 +281,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 ---
 
-## Другие лесорубы
+## <a id="other-loggers"></a>Другие лесорубы
 
 Каталог `src/Core/Logging/` содержит дополнительные специализированные регистраторы:
 
@@ -296,7 +296,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 ---
 
-## Типы исключений в кодовой базе
+## <a id="exception-types-in-the-codebase"></a>Типы исключений в кодовой базе
 
 Кодовая база определяет небольшое количество пользовательских классов исключений. Все неперехваченные исключения перехватываются параметром `Logger::handleException()`, который регистрирует всю цепочку исключений (включая `getPrevious()`).
 
@@ -312,16 +312,16 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 ---
 
-## Отладка против производства
+## <a id="debug-vs-production"></a>Отладка против производства
 
-### Производство (по умолчанию: `debug_show_errors = false`)
+### <a id="production-default-debug_show_errors-false"></a>Производство (по умолчанию: `debug_show_errors = false`)
 
 - `generateError()` возвращает общую страницу 404 (или явный HTTP-код), скрывая внутреннюю причину сбоя
 - Регистратор по-прежнему записывает все ошибки в `error_log.log` на диск
 - для `display_errors` и `display_startup_errors` заданы значения `'0'`
 - Ошибки видны только через панель администратора (страница ошибок панели) или файлы журналов
 
-### Отладка (`debug_show_errors = true`)
+### <a id="debug-debug_show_errors-true"></a>Отладка (`debug_show_errors = true`)
 
 - `generateError()` показывает стилизованную страницу с ключом ошибки и сопоставленным описанием
 - Регистратор дополнительно отображает ошибки на экране (вывод CLI с цветовой кодировкой или встроенный HTML).
@@ -331,7 +331,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 ---
 
-## Регистрация обработчика ошибок Bootstrap
+## <a id="bootstrap-error-handler-registration"></a>Регистрация обработчика ошибок Bootstrap
 
 Инфраструктура обработки ошибок загружается на ранней стадии загрузки:
 
@@ -347,7 +347,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 ---
 
-## Добавление нового кода ошибки
+## <a id="adding-a-new-error-code"></a>Добавление нового кода ошибки
 
 1. Добавьте новую запись в массив, возвращаемый `ErrorResponder::codes()` в `src/Core/Error/ErrorResponder.php`:
 
@@ -365,7 +365,7 @@ generateError('MY_NEW_ERROR');
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

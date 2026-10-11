@@ -1,6 +1,7 @@
 <?php
 
 use XcVm\Core\Audit\AdminAudit;
+use XcVm\Core\Error\ErrorResponder;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Infrastructure\Bootstrap\ScopeBootstrapFactory;
@@ -250,9 +251,7 @@ if (in_array($pageName, $noBootstrapPages, true)) {
 	if ($router->dispatch($pageName, $method)) {
 		exit;
 	}
-	http_response_code(404);
-	echo '404 Not Found';
-	exit;
+	ErrorResponder::emit(ErrorResponder::respondPage(404, '404 Not Found'));
 }
 
 // 7b. Bootstrap the request scope: session lifecycle → framework + user context.
@@ -320,7 +319,10 @@ if ($router->dispatch($pageName, $method)) {
 	exit;
 }
 
-// 11. 404
+// 11. 404: the error page for a browser asking for a page, else what it always was.
+if (ErrorResponder::wantsHtml()) {
+	ErrorResponder::emit(ErrorResponder::respondPage(404));
+}
 http_response_code(404);
 
 if (function_exists('generate404')) {

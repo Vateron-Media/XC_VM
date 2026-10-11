@@ -1,4 +1,4 @@
-# Разрешения и RBAC
+# <a id="permissions-and-rbac"></a>Разрешения и RBAC
 
 Система контроля доступа XC_VM сочетает в себе:
 
@@ -8,7 +8,7 @@
 
 ---
 
-## Модель
+## <a id="model"></a>Модель
 
 ```text
 user -> member_group_id -> group
@@ -37,7 +37,7 @@ user -> member_group_id -> group
 
 ---
 
-## Ключи разрешений
+## <a id="permission-keys"></a>Ключи разрешений
 
 Ключи разрешений объявляются в `XcVm\Core\Reference\PermissionReference` (`src/Core/Reference/PermissionReference.php`): `PermissionReference::keys()` возвращает полный список и `PermissionReference::advanced()` связывает каждый ключ с его локализованным названием/описанием для редактора групп. Каждый ключ представляет собой строковый идентификатор, используемый в `Authorization::check('adv', $key)`.
 
@@ -58,7 +58,7 @@ user -> member_group_id -> group
 
 ---
 
-## Классы авторизации
+## <a id="authorization-classes"></a>Классы авторизации
 
 ### `Authorization`
 
@@ -72,7 +72,7 @@ Authorization::check(string $rType, string|int|null $rID): bool
 
 **Предварительные условия:** Немедленно возвращает `false`, если `$rUserInfo`, `$rPermissions` или `$db` не инициализированы.
 
-#### Тип: `user`
+#### <a id="type-user"></a>Тип: `user`
 
 Проверяет, может ли текущий пользователь получить доступ к целевому пользователю-администратору. Создает список из идентификатора текущего пользователя и их дерева `all_reports`, затем запрашивает таблицу `users`, чтобы проверить, есть ли в этом списке имя целевого пользователя `owner_id` (или целевым пользователем является текущий пользователь).
 
@@ -80,7 +80,7 @@ Authorization::check(string $rType, string|int|null $rID): bool
 Authorization::check('user', $userId);
 ```
 
-#### Тип: `line`
+#### <a id="type-line"></a>Тип: `line`
 
 Проверяет, может ли текущий пользователь получить доступ к целевой строке. Тот же подход к дереву отчетов - запрашивает таблицу `lines`, чтобы убедиться, что целевая строка `member_id` находится в дереве отчетов текущего пользователя.
 
@@ -88,7 +88,7 @@ Authorization::check('user', $userId);
 Authorization::check('line', $lineId);
 ```
 
-#### Тип: `adv`
+#### <a id="type-adv"></a>Тип: `adv`
 
 Проверяет, есть ли у текущего пользователя-администратора определенный ключ расширенных прав доступа.
 
@@ -107,7 +107,7 @@ if (!($rType == 'adv' && $rPermissions['is_admin'])) {
 
 Это означает, что проверки `adv` предназначены исключительно для пользователей с правами администратора. Для разрешений реселлеров используется отдельная система (см. ниже).
 
-#### Обход прав суперадминистратора
+#### <a id="super-admin-bypass"></a>Обход прав суперадминистратора
 
 `member_group_id = 1` - это группа суперадминистраторов. Если массив расширенных разрешений непустой, но пользователь принадлежит к группе 1, проверка для каждого ключа пропускается и метод возвращает значение `true`:
 
@@ -120,7 +120,7 @@ return true;
 
 Это означает, что суперадминистраторы проходят все проверки `adv` независимо от того, какие ключи назначены их группе.
 
-#### Полноправный администратор
+#### <a id="full-administrator"></a>Полноправный администратор
 
 Полноправный администратор - это член группы 1 или группы администраторов, список прав доступа которых пуст: оба они проходят все проверки `adv`. Группа, в которой вообще нет списка (`allowed_pages` - это значение NULL или пустой текст), считывается как группа с пустым списком, как на панели, так и в таблицах, а также для ключа API администратора. Учетные записи администраторов и группы администраторов управляются только полноправным администратором. Все остальные не могут:
 
@@ -140,7 +140,7 @@ return true;
 
 Списки пользователей не предлагают никаких действий со строками для зарезервированной учетной записи, а список групп не содержит никаких действий для зарезервированной группы.
 
-#### Ключи API администратора
+#### <a id="admin-api-keys"></a>Ключи API администратора
 
 API-ключ администратора действует с разрешениями, указанными в списке групп его владельца, как это делает владелец на панели. Ключ группы 1 или группы администраторов с пустым списком разрешений сохраняет все. Для ключа группы с ограниченным доступом каждое действие запрашивает разрешение группы, которое панель запрашивает для выполнения той же операции (`AdminApiController::ACTION_PERMISSIONS`): чтение, таблицы и журналы, удаление, включение/выключение и запуск/остановка, а также создание, редактирование и установка. Если в action указано несколько разрешений, достаточно любого из них; `user_info` запрашивает ни одно из них. В случае отказа в выполнении действия отвечает `{"status":"STATUS_NO_PERMISSIONS"}`. Список содержит основные действия: действие или таблица, зарегистрированные модулем, отсутствуют в нем и проверяются собственным обработчиком модуля.
 
@@ -261,7 +261,7 @@ API с активным кодом (`/api/active_code`, `/active_code.php`) сл
 
 Запрос, который отправляет код активации без ключа (устройство, активирующее свой код, или `check`), не запрашивает разрешения.
 
-#### Токены API
+#### <a id="api-tokens"></a>Токены API
 
 Каждый администратор и реселлер могут создавать именованные токены на странице своего профиля (**Редактировать профиль → Токены API**), до 20, вместо единственного ключа API учетной записи (поле **Ключ API** в **Редактировать профиль** отображается только в том случае, если код доступа к API распространяется на группу учетной записи: *Admin API* код для администратора, API реселлера, код для реселлера, созданный на **Коды доступа**). Для создания токена такой код не требуется. Токен, содержащий ключ, например `api_key`, отправляется в API администратора, REST API реселлера, API кода активации и конечные точки таблицы. Он действует с групповыми разрешениями своей учетной записи, как это делает ключ, ограниченный его областью действия (`Core\Auth\ApiTokens::allows()`).:
 
@@ -275,7 +275,7 @@ API с активным кодом (`/api/active_code`, `/active_code.php`) сл
 
 Единый ключ учетной записи продолжает работать, пока включено значение **Настройки → API → Прием устаревших ключей API** (`api_legacy_keys`) по умолчанию. При отключении ни один API не использует устаревший ключ; токены остаются незатронутыми.
 
-#### Помощник реселлера
+#### <a id="reseller-helper"></a>Помощник реселлера
 
 ```php
 Authorization::hasResellerPermissions(string $type): bool
@@ -298,17 +298,17 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 
 Если `$page` опущено, имя страницы берется из запроса (`AdminHelpers::getPageName()`: константа `PAGE_NAME`, в противном случае базовое имя скрипта ввода, в нижнем регистре). Правило страницы просматривается по ее имени, обозначенному подчеркиванием, независимо от написания URL: `line/mass`, `line_mass` и `line_mass.php` все они соответствуют правилу для `line_mass`.
 
-#### Поведение, разрешенное по умолчанию
+#### <a id="default-allow-behavior"></a>Поведение, разрешенное по умолчанию
 
 Оба метода возвращают значение `true` для любой страницы, явно не указанной в их инструкциях switch. Это означает, что страницы без сопоставления доступны всем авторизованным пользователям соответствующего типа (администраторам или торговым посредникам). Доступ ограничен только к страницам с явно заданными параметрами. Новая страница администратора или реселлера, которой требуется разрешение, должна получить обращение в `PageAuthorization`.
 
 ---
 
-## Сопоставления разрешений на странице администратора
+## <a id="admin-page-permission-mappings"></a>Сопоставления разрешений на странице администратора
 
 Метод `checkPermissions()` сопоставляет страницы панели администратора с ключами доступа `adv`. Ниже приведено полное сопоставление, сгруппированное по категориям.
 
-### Шаблон создания или редактирования
+### <a id="create-vs-edit-pattern"></a>Шаблон создания или редактирования
 
 Многие страницы сущностей используют условную логику, основанную на параметрах запроса:
 
@@ -318,11 +318,11 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 
 Когда ни одно из условий не выполняется, поведение зависит от страницы: некоторые переходят к соответствующему разрешению на перечисление, другие переходят к переключателю по умолчанию (который возвращает `true`).
 
-### Таблицы за страницами массового редактирования
+### <a id="tables-behind-the-mass-edit-pages"></a>Таблицы за страницами массового редактирования
 
 A mass-edit page shows the list it edits, so that table is read with the list page's key or the mass-edit page's own: lines with `users` OR `mass_edit_lines`, users with `mng_regusers` OR `mass_edit_users`, MAG devices with `manage_mag` OR `mass_edit_mags`, Enigma devices with `manage_e2` OR `mass_edit_enigmas`. A mass-edit key reads its own list only: `mass_edit_users` does not read the lines table. The provider streams table is read with `streams`, `add_stream`, `edit_stream`, `add_movie` or `edit_movie`.
 
-### Потоки и контент
+### <a id="streams-and-content"></a>Потоки и контент
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -340,7 +340,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `created_channel` | `edit_cchannel` | When `id` is present |
 | `created_channel` | `create_channel` |Когда нет `id`|
 
-### Фильмы и VOD
+### <a id="movies-and-vod"></a>Фильмы и VOD
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -352,7 +352,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `record` | `add_movie` | |
 | `recordings` | `movies` | |
 
-### Сериалы и эпизоды
+### <a id="series-and-episodes"></a>Сериалы и эпизоды
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -365,7 +365,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `episode` | `add_episode` |Когда нет `id`|
 |`series_mass`, `episodes_mass`| `mass_sedits` | |
 
-### Радио
+### <a id="radio"></a>Радио
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -374,7 +374,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `radio` | `add_radio` |Когда нет `id`|
 | `radio_mass` | `mass_edit_radio` | |
 
-### Линии (Абонентские пользователи)
+### <a id="lines-subscriber-users"></a>Линии (Абонентские пользователи)
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -388,7 +388,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |`line_activity`, `theft_detection`, `line_ips`| `connection_logs` | |
 | `live_connections` | `live_connections` | |
 
-### Устройства MAG и Enigma
+### <a id="mag-and-enigma-devices"></a>Устройства MAG и Enigma
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -400,7 +400,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `enigmas` | `manage_e2` | |
 | `enigma_mass` | `mass_edit_enigmas` | |
 
-### Пользователи с правами администратора (Зарегистрированные пользователи)
+### <a id="admin-users-registered-users"></a>Пользователи с правами администратора (Зарегистрированные пользователи)
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -410,7 +410,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `user_mass` | `mass_edit_users` | |
 | `user_logs` | `reg_userlog` | |
 
-### Букеты и посылки
+### <a id="bouquets-and-packages"></a>Букеты и посылки
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -422,7 +422,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `package` | `edit_package` | When `id` is present |
 | `package` | `add_packages` |Когда нет `id`|
 
-### Группы
+### <a id="groups"></a>Группы
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -430,7 +430,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `group` | `edit_group` | When `id` is present |
 | `group` | `add_group` |Когда нет `id`; при отказе переходит на `mng_groups`|
 
-### ЭПГ
+### <a id="epg"></a>ЭПГ
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -438,7 +438,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `epg` | `epg_edit` | When `id` is present |
 | `epg` | `add_epg` |Когда нет `id`; при отказе переходит на `epg`|
 
-### Серверы
+### <a id="servers"></a>Серверы
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -447,7 +447,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |`server`, `proxy`| `add_server` |Когда нет `id`|
 | `server_install` | `add_server` | |
 
-### Безопасность и блокирование
+### <a id="security-and-blocking"></a>Безопасность и блокирование
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -456,14 +456,14 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |`useragents`, `useragent`| `block_uas` | |
 | `fingerprint` | `fingerprint` | |
 
-### Билеты
+### <a id="tickets"></a>Билеты
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `ticket` | `ticket` | |
 |`ticket_view`, `tickets`| `manage_tickets` | |
 
-### Инструменты и настройки
+### <a id="tools-and-settings"></a>Инструменты и настройки
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -480,7 +480,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `process_monitor` | `process_monitor` | |
 | `queue` |`streams` ИЛИ `episodes` ИЛИ `series`|Доступ, если у пользователя есть какой-либо из этих|
 
-### Профили и коды
+### <a id="profiles-and-codes"></a>Профили и коды
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -490,14 +490,14 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |`code`, `codes`| `add_code` | |
 |`hmac`, `hmacs`| `add_hmac` | |
 
-### RTMP - протокол
+### <a id="rtmp"></a>RTMP - протокол
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `rtmp_ip` | `add_rtmp` | |
 |`rtmp_ips`, `rtmp_monitor`| `rtmp` | |
 
-### Бревна
+### <a id="logs"></a>Бревна
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
@@ -508,13 +508,13 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `admin_actions` | `admin_audit` |Последовательность действий администратора; смотрите ниже|
 | `restream_logs` | `restream_logs` | |
 
-#### Отслеживание действий администратора
+#### <a id="admin-action-trail"></a>Отслеживание действий администратора
 
 **Журналы → Система → Действия администратора** перечислены изменения, внесенные администраторами: каждое сохранение формы администратора (`post.php`), каждое действие Ajax в панели администратора, за исключением тех, которые выполняются только для чтения (`AdminAudit::PANEL_READS`: статистика, поиск, поисковые запросы), и каждое действие API администратора и API кода активации, за исключением чтения (`ApiTokens::isRead()`), отклоненных действий включенный в комплект. Каждая запись (`admin_audit`, миграция `077_add_admin_audit.sql`) содержит дату, учетную запись, ее адрес, источник (`panel` или `api`), действие и его результат: **ОК** или **Неудачный**, если ответом является JSON-файл панели (`result`, или статус `STATUS_*`), в противном случае - пустым (экспорт, загрузка). В его деталях хранятся только поля, в которых указано, над чем было выполнено действие (каждый идентификатор: `id`, `ids`, `edit`, `pid` и любое поле, оканчивающееся на `_id`; имена в `AdminAudit::DETAIL_KEYS`; подчиненное действие), не более 20, и никогда пароль, ключ, код или другое значение, отправленное вместе с запросом; при сохранении настроек добавляются названия измененных настроек, а не их значения.
 
 Страница выполняет поиск по учетной записи, действию, адресу и подробным данным и экспортирует их в формате CSV или JSON. Данные сохраняются в резервных копиях, и ничто на панели не удаляет их.
 
-### Действия
+### <a id="actions"></a>Действия
 
 Приведенные ниже действия проверяют свой собственный ключ, на какой бы странице ни находилась кнопка:
 
@@ -533,7 +533,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 
 ---
 
-## Сопоставления разрешений на странице реселлера
+## <a id="reseller-page-permission-mappings"></a>Сопоставления разрешений на странице реселлера
 
 Метод `checkResellerPermissions()` сопоставляет страницы панели реселлера с логическими флагами в `$rPermissions`. В отличие от разрешений администратора, которые используют массив `advanced` через `Authorization::check('adv', ...)`, разрешения реселлера - это простые логические поля, которые проверяются напрямую.
 
@@ -560,7 +560,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 
 ---
 
-## Добавление нового разрешения
+## <a id="adding-a-new-permission"></a>Добавление нового разрешения
 
 1. Добавьте ключ к константе `KEYS` в `src/Core/Reference/PermissionReference.php`:
 
@@ -607,7 +607,7 @@ case 'my_entity':
 
 ---
 
-## Связанные файлы
+## <a id="related-files"></a>Связанные файлы
 
 |Файл|Цель|
 | --- | --- |

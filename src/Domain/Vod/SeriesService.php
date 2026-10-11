@@ -8,6 +8,7 @@ use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\StreamUtils;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\CategoryService;
@@ -533,8 +534,11 @@ class SeriesService {
 				$db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?;', $rRow['stream_id']);
 
 				if (0 < $db->num_rows()) {
-					list($rSource) = json_decode($db->get_row()['stream_source'], true);
-					$rReturn[] = $rSource;
+					// An episode with no source is no entry of the playlist.
+					$rSource = StreamUtils::firstSource($db->get_row()['stream_source']);
+					if ($rSource !== '') {
+						$rReturn[] = $rSource;
+					}
 				}
 			}
 		}
