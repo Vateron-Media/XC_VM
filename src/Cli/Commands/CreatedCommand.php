@@ -110,6 +110,33 @@ class CreatedCommand implements CommandInterface {
 				echo 'Item not probeable, building as copy: ' . $rSrc . "\n";
 			}
 		}
+		// Every item must share one encode target; the dominant target can shift
+		// when the playlist is edited (e.g. adding items of a different codec).
+		// Builds are incremental (only $rSourcesLeft is (re)encoded), so if the
+		// target changed since the last build the already-built .ts were encoded
+		// to a different target — rebuild every item, or the concat mixes codecs/
+		// resolutions mid-stream. A set profile transcodes every item to it, so it
+		// is keyed by profile id; no profile is keyed by the dominant fingerprint.
+		$rTargetSig = $rHasProfile
+			? 'p:' . intval($rStreamInfo['transcode_profile_id'])
+			: 't:' . json_encode($rNormalizeTo);
+		$rSigFile = CREATED_PATH . intval($rStreamID) . '_.target';
+		$rPrevSig = is_file($rSigFile) ? trim((string) file_get_contents($rSigFile)) : '';
+		// Rebuild every item when the target differs from the recorded one — OR when
+		// items were already built but no signature exists (a channel built before
+		// this guard, or whose sidecar was lost): their .ts were encoded to an
+		// unknown target, so the only safe assumption is that they may not match.
+		// $rTargetSig is never '' (it carries a p:/t: prefix), so a missing sig with
+		// items already built always triggers the rebuild; a first-ever build has an
+		// empty cchannel_rsources and is left to build incrementally.
+		if ($rPrevSig !== $rTargetSig && $rServerInfo['cchannel_rsources'] !== []) {
+			echo 'Canonical target changed; rebuilding all ' . $rTotal . " item(s).\n";
+			$rServerInfo['cchannel_rsources'] = [];
+			StreamStateWriter::updateRow(intval($rServerInfo['server_stream_id']), ['cchannel_rsources' => json_encode([])], $db);
+			$rSourcesLeft = $rStreamInfo['stream_source'];
+			$rDone = 0;
+		}
+		file_put_contents($rSigFile, $rTargetSig);
 		foreach ($rSourcesLeft as $rSource) {
 			$rMD5 = md5($rSource);
 			$rProgressFile = CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.progress';
@@ -243,7 +270,12 @@ class CreatedCommand implements CommandInterface {
 			}
 		}
 
-		file_put_contents(CREATED_PATH . $rStreamID . '_.info', json_encode($rReturn, JSON_UNESCAPED_UNICODE));
+		$rInfoJson = json_encode($rReturn, JSON_UNESCAPED_UNICODE);
+		file_put_contents(CREATED_PATH . $rStreamID . '_.info', $rInfoJson);
+		// Persist the fresh timeline to cc_info now: regenerate() reads cc_info
+		// first (the portable copy MAIN's daily cron uses), so without this an
+		// incremental rebuild's EPG would reflect the previous build's timeline.
+		StreamStateWriter::updateRow(intval($rServerInfo['server_stream_id']), ['cc_info' => $rInfoJson], $db);
 		CreatedChannelEpg::regenerate((int) $rStreamID);
 
 		echo 'Completed!' . "\n";

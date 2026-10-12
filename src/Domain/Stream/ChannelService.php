@@ -153,7 +153,10 @@ class ChannelService {
 				$rArray['order'] = StreamRepository::getNextOrder();
 			}
 
-			$rArray['epg_id'] = CreatedChannelEpg::reservedSourceId();
+			// NULL (not 0) when the reserved source is missing: 0 would never match a
+			// real AUTO_INCREMENT id, but NULL reads as "no EPG source" everywhere.
+			$rReservedEpg = CreatedChannelEpg::reservedSourceId();
+			$rArray['epg_id'] = $rReservedEpg > 0 ? $rReservedEpg : null;
 
 			$rPrepare = QueryHelper::prepareArray($rArray);
 			$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';

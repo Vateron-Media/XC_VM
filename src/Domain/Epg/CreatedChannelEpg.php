@@ -60,9 +60,14 @@ class CreatedChannelEpg {
 					'description' => (string) ($rItemMeta[$rI]['desc'] ?? ''),
 				];
 			}
+			// A pathologically short loop would otherwise project millions of
+			// transient programmes across the window before the caller caps them.
+			if (count($rOut) >= self::MAX_PROGRAMMES) {
+				break;
+			}
 			$rCycle++;
 		}
-		return $rOut;
+		return array_slice($rOut, 0, self::MAX_PROGRAMMES);
 	}
 
 	/** Days of guide written ahead of now. */

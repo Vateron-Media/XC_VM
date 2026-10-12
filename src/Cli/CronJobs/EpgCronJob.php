@@ -173,13 +173,15 @@ class EpgCronJob implements CommandInterface {
 		// (which takes well over 10s), leaving most channels without EPG.
 		$runStart = time();
 
-		$this->buildXmltv();
-
 		$this->printLog("[EPG] Regenerating created-channel programmes...");
 		$db->query('SELECT `id` FROM `streams` WHERE `type` = 3;');
 		foreach ($db->get_rows() as $rCreated) {
 			CreatedChannelEpg::regenerate((int) $rCreated['id']);
 		}
+
+		// After the created-channel regen so the external xmltv.php guide carries
+		// their programmes in the same run (not one cron cycle late).
+		$this->buildXmltv();
 
 		$this->buildStreamCaches();
 
