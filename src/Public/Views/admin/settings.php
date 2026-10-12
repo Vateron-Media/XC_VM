@@ -15,7 +15,6 @@ use XcVm\Domain\Alert\AlertChannels;
 use XcVm\Domain\Alert\ExpiryReminders;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\CategoryService;
-use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 use XcVm\Streaming\Fanout\FanoutConfig;
 use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Domain\Server\ServerRepository;
@@ -2026,17 +2025,6 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 								</div>
 							</div>
 
-							<?php
-							$rFfmpegGpuBuilds = FfmpegBinaries::gpuCapable();
-							$rCpuOpts = array_keys(FfmpegBinaries::available()) ?: ["8.1", "7.1", "4.0"];
-							if (!empty($rSettings["ffmpeg_cpu"]) && !in_array($rSettings["ffmpeg_cpu"], $rCpuOpts, true)) {
-								$rCpuOpts[] = $rSettings["ffmpeg_cpu"];
-							}
-							$rGpuOpts = array_keys($rFfmpegGpuBuilds);
-							if (!empty($rSettings["ffmpeg_gpu"]) && !in_array($rSettings["ffmpeg_gpu"], $rGpuOpts, true)) {
-								$rGpuOpts[] = $rSettings["ffmpeg_gpu"];
-							}
-							?>
 							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="ffmpeg_cpu">
 									<?= $language::get('ffmpeg_version_cpu') ?>
@@ -2046,8 +2034,8 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 								<div class="col-md-2">
 									<select name="ffmpeg_cpu" id="ffmpeg_cpu" class="form-control" data-toggle="select2">
 										<?php foreach ($rCpuOpts as $rValue): ?>
-											<option value="<?= $rValue ?>" <?= $rSettings["ffmpeg_cpu"] == $rValue ? ' selected' : '' ?>>
-												v<?= $rValue ?><?= isset($rFfmpegGpuBuilds[$rValue]) ? ' (GPU)' : '' ?>
+											<option value="<?= htmlspecialchars($rValue) ?>" <?= $rSettings["ffmpeg_cpu"] == $rValue ? ' selected' : '' ?>>
+												<?= htmlspecialchars($rFfmpegLabels[$rValue]) ?><?= isset($rFfmpegGpuBuilds[$rValue]) ? ' (GPU)' : '' ?>
 											</option>
 										<?php endforeach; ?>
 									</select>
@@ -2062,8 +2050,8 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 									<select name="ffmpeg_gpu" id="ffmpeg_gpu" class="form-control" data-toggle="select2">
 										<option value="" <?= empty($rSettings["ffmpeg_gpu"]) ? ' selected' : '' ?>>Same as CPU</option>
 										<?php foreach ($rGpuOpts as $rValue): ?>
-											<option value="<?= $rValue ?>" <?= ($rSettings["ffmpeg_gpu"] ?? '') === $rValue ? ' selected' : '' ?>>
-												v<?= $rValue ?>
+											<option value="<?= htmlspecialchars($rValue) ?>" <?= ($rSettings["ffmpeg_gpu"] ?? '') === $rValue ? ' selected' : '' ?>>
+												<?= htmlspecialchars($rFfmpegLabels[$rValue]) ?>
 											</option>
 										<?php endforeach; ?>
 									</select>
@@ -3072,7 +3060,6 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 								</thead>
 
 								<tbody>
-									<?php $rFfmpegBuilds = FfmpegBinaries::available(); ?>
 									<?php if (empty($rFfmpegBuilds)): ?>
 										<tr>
 											<td colspan="4" class="text-center" style="font-size: 0.85rem;">N/A</td>
@@ -3081,7 +3068,7 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 										<?php foreach ($rFfmpegBuilds as $rVer => $rInfo): ?>
 											<tr>
 												<td class="text-center" style="font-size: 0.85rem;">
-													<button type="button" class="btn btn-info btn-sm" style="font-size: 0.85rem;">v<?= htmlspecialchars($rVer) ?></button>
+													<button type="button" class="btn btn-info btn-sm" style="font-size: 0.85rem;"><?= htmlspecialchars($rFfmpegLabels[$rVer]) ?></button>
 												</td>
 												<td class="text-center" style="font-size: 0.8rem;"><?= htmlspecialchars($rInfo['banner']) ?></td>
 												<td class="text-center">
