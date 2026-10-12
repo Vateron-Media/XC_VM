@@ -1197,7 +1197,39 @@ class StreamProcess {
 		$rCmd[] = '-hls_segment_filename ' . escapeshellarg(STREAMS_PATH . $rStreamID . '_%d.ts');
 		$rCmd[] = escapeshellarg(STREAMS_PATH . $rStreamID . '_.m3u8');
 
-		return implode(' ', $rCmd);
+		$rLine = implode(' ', $rCmd);
+		// standalone: launched by the PHP monitor (fanout off), not the daemon —
+		// so it carries buildLive's non-supervised tail (redirect, background,
+		// record the pid). With no -ingest above it writes only the on-disk HLS.
+		if (!empty($data['standalone'])) {
+			$rLine .= ' >/dev/null 2>>' . STREAMS_PATH . $rStreamID . '.errors & echo $! > ' . STREAMS_PATH . $rStreamID . '_.pid';
+		}
+		return $rLine;
+	}
+
+	/**
+	 * Wait briefly for a just-launched producer to write its pid file (the
+	 * encoder's background tail does). The pid, or 0 if none appeared.
+	 */
+	private static function awaitProducerPid(int $rStreamID): int {
+		for ($rTry = 0; $rTry < 10; $rTry++) {
+			usleep(50000); // 50ms
+			if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
+				$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
+				if ($rPID > 0) {
+					return $rPID;
+				}
+			}
+		}
+		return 0;
+	}
+
+	/** Whether a producer pid is a live process (the native remuxer may exit at once). */
+	private static function producerAlive(int $rPID): bool {
+		if ($rPID <= 0) {
+			return false;
+		}
+		return function_exists('posix_kill') ? @posix_kill($rPID, 0) : file_exists('/proc/' . $rPID);
 	}
 
 	/**
@@ -2794,21 +2826,41 @@ class StreamProcess {
 					return 0; // the driver broke the contract; the reason is in the stream's log
 				}
 
-				shell_exec($rFFMPEG);
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
+				// Native remuxer in place of ffmpeg when the admin chose it
+				// (fanout_source_backend native/auto) and this copy-only stream's
+				// source is one the remuxer reads. With no daemon (fanout off) it
+				// writes the on-disk HLS the legacy paths serve; with one reachable
+				// it tees to it too. `native` runs only the remuxer; `auto` lets
+				// ffmpeg take over below when it cannot stay up.
+				$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
+				$rNativeCmd = null;
+				if ($rDriver === null && $rBackend !== 'ffmpeg' && FanoutClient::supportsRemux()
+					&& self::remuxRefusal($rStream['stream_info'], $rArgsByKey) === null
+					&& self::isNativeSource($rStreamSource)) {
+					$rNativeCmd = self::buildNativeLive([
+						'streamID' => $rStreamID, 'source' => $rStreamSource,
+						'arguments' => $rArgsByKey, 'segmentSettings' => $rSegmentSettings,
+						'ingestSock' => $rIngestSock, 'settings' => $rSettings,
+						'binary' => FanoutClient::binaryPath(), 'standalone' => true,
+					]);
+					self::noteProducer($rStreamID, 'the native remuxer runs this stream');
+				}
 
-				// Wait briefly for PID file to be written, with retry
-				$rPID = 0;
-				$rPIDRetries = 0;
-				while ($rPIDRetries < 10) {
-					usleep(50000); // 50ms
-					if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-						$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-						if ($rPID > 0) {
-							break;
-						}
-					}
-					$rPIDRetries++;
+				$rLaunch = $rNativeCmd ?? $rFFMPEG;
+				shell_exec($rLaunch);
+				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rLaunch);
+
+				$rPID = self::awaitProducerPid(intval($rStreamID));
+
+				// auto: the native remuxer could not stay up (e.g. a source it only
+				// finds unreadable on connect, ExitUnsupported) -- ffmpeg takes over.
+				// Best effort without the daemon's supervisor, which does this itself.
+				if ($rNativeCmd !== null && $rBackend === 'auto' && !self::producerAlive($rPID)) {
+					self::noteProducer($rStreamID, 'the native remuxer did not stay up; ffmpeg takes over');
+					@unlink(STREAMS_PATH . $rStreamID . '_.pid');
+					shell_exec($rFFMPEG);
+					file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
+					$rPID = self::awaitProducerPid(intval($rStreamID));
 				}
 
 				if ($rStream['stream_info']['tv_archive_server_id'] == SERVER_ID) {
