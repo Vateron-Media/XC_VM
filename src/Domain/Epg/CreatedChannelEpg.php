@@ -19,4 +19,49 @@ class CreatedChannelEpg {
 
 		return (int) ($db->get_row()['id'] ?? 0);
 	}
+
+	/**
+	 * Project the created channel's playlist timeline forward from its wall-clock
+	 * anchor into EPG programmes, repeating the loop to fill the window. Pure.
+	 * A programme is emitted when its [start,end) overlaps [windowStart,windowEnd).
+	 *
+	 * @param array<int,array{seconds:int,start:int,finish:int}> $rInfo
+	 * @param array<int,array{title:string,desc:string}> $rItemMeta
+	 * @return list<array{start:int,end:int,title:string,description:string}>
+	 */
+	public static function programmes(array $rInfo, int $rStreamStarted, array $rItemMeta, int $rWindowStart, int $rWindowEnd): array {
+		if ($rStreamStarted <= 0 || $rInfo === []) {
+			return [];
+		}
+		$rTotal = (int) end($rInfo)['finish'];
+		if ($rTotal <= 0) {
+			return [];
+		}
+		$rCycle = max(0, (int) floor(($rWindowStart - $rStreamStarted) / $rTotal));
+		$rOut = [];
+		while (true) {
+			$rBase = $rStreamStarted + $rCycle * $rTotal;
+			if ($rBase >= $rWindowEnd) {
+				break;
+			}
+			foreach ($rInfo as $rI => $rItem) {
+				if ((int) $rItem['seconds'] <= 0) {
+					continue;
+				}
+				$rStart = $rBase + (int) $rItem['start'];
+				$rEnd = $rBase + (int) $rItem['finish'];
+				if ($rEnd <= $rWindowStart || $rStart >= $rWindowEnd) {
+					continue;
+				}
+				$rOut[] = [
+					'start' => $rStart,
+					'end' => $rEnd,
+					'title' => (string) ($rItemMeta[$rI]['title'] ?? ''),
+					'description' => (string) ($rItemMeta[$rI]['desc'] ?? ''),
+				];
+			}
+			$rCycle++;
+		}
+		return $rOut;
+	}
 }
