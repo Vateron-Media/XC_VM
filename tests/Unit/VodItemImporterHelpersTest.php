@@ -148,4 +148,18 @@ final class VodItemImporterHelpersTest extends TestCase {
         $this->assertSame(1, $rRelease['season']);
         $this->assertSame(1, $rRelease['episode']);
     }
+
+    // --- fallbackFolderName ----------------------------------------------
+
+    public function testFallbackFolderNameClimbsPastASeasonFolderToTheSeries(): void {
+        $this->assertSame('Judge Judy', VodItemImporter::fallbackFolderName('/media/tv/Judge Judy/Season 19/Judge Judy - S19E01-E02.mkv'));
+        $this->assertSame('The Wire', VodItemImporter::fallbackFolderName('/media/The Wire/S05/ep.mkv'));
+        $this->assertSame('Dix Pour Cent', VodItemImporter::fallbackFolderName('/srv/Dix Pour Cent/Saison 2/ep.mkv'));
+    }
+
+    public function testFallbackFolderNameKeepsAnOrdinaryFolder(): void {
+        // A movie (or any non-season folder) keeps its own folder.
+        $this->assertSame('Movies', VodItemImporter::fallbackFolderName('/media/Movies/Some Movie (2020).mkv'));
+        $this->assertSame('Season 19', VodItemImporter::fallbackFolderName('Season 19/ep.mkv'), 'no series folder above: keep what there is');
+    }
 }

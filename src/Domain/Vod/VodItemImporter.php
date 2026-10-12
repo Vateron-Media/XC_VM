@@ -106,6 +106,12 @@ class VodItemImporter {
 			}
 			if ($rCleanTitle !== '') {
 				$rResult['title'] = $rCleanTitle;
+				// This title came from the SxxExx regex, not the parser's own
+				// tokenisation, so the parser's "excess" belongs to that wrong
+				// parse (for "Judge Judy - S19E01…" PTN leaves "Judge" in excess).
+				// Dropping it stops releaseTitle() stripping a real title word
+				// ("Judge Judy" → "Judy").
+				unset($rResult['excess']);
 				$rResult['season'] = intval($rMatch[2]);
 				// A range the parser read from this very episode on (S01E02E03 as
 				// [2, 3]) is kept: written over, a double episode was named as one.
@@ -137,6 +143,26 @@ class VodItemImporter {
 		}
 		$rTitle = preg_replace('/\\b' . preg_quote((string) $rExcess, '/') . '\\b/u', ' ', (string) $rTitle);
 		return trim((string) preg_replace('/\\s+/u', ' ', (string) $rTitle));
+	}
+
+	/**
+	 * The folder name to try as a title fallback for a file. Normally the
+	 * file's own folder, but a series episode sits in a season folder
+	 * ("Show/Season 19/episode.mkv") that names no show — so when the folder is
+	 * a season folder, the series folder above it is used instead.
+	 *
+	 * @param string $rFile Absolute or relative path to the media file.
+	 */
+	public static function fallbackFolderName(string $rFile): string {
+		$rDir = pathinfo($rFile)['dirname'] ?? '';
+		$rFolder = basename($rDir);
+		if (preg_match('/^(?:season|saison|staffel|stagione|temporada|s)[\s._-]*\d{1,3}$/iu', $rFolder)) {
+			$rParent = basename(dirname($rDir));
+			if ($rParent !== '' && $rParent !== '.' && $rParent !== DIRECTORY_SEPARATOR && $rParent !== $rFolder) {
+				return $rParent;
+			}
+		}
+		return $rFolder;
 	}
 
 	/**
@@ -1265,7 +1291,7 @@ class VodItemImporter {
 				}
 				if (!$rPaths) {
 					if ($rThreadData['fallback_title']) {
-						$rPaths = [pathinfo($rFile)['filename'], basename(pathinfo($rFile)['dirname'])];
+						$rPaths = [pathinfo($rFile)['filename'], self::fallbackFolderName($rFile)];
 					} else {
 						$rPaths = [pathinfo($rFile)['filename']];
 					}
