@@ -522,7 +522,7 @@ class SeriesService {
 	}
 
 	/**
-	 * Generate playlist of episode sources for a series.
+	 * Generate the playlist of a series: one vod:<episode stream id> reference per episode.
 	 */
 	public static function generatePlaylist($rSeriesNo) {
 		$db = self::db();
@@ -531,15 +531,7 @@ class SeriesService {
 
 		if (0 < $db->num_rows()) {
 			foreach ($db->get_rows() as $rRow) {
-				$db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?;', $rRow['stream_id']);
-
-				if (0 < $db->num_rows()) {
-					// An episode with no source is no entry of the playlist.
-					$rSource = StreamUtils::firstSource($db->get_row()['stream_source']);
-					if ($rSource !== '') {
-						$rReturn[] = $rSource;
-					}
-				}
+				$rReturn[] = 'vod:' . (int) $rRow['stream_id'];
 			}
 		}
 
