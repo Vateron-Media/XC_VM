@@ -30,6 +30,9 @@ class EpgService {
 	 */
 	public static function process(array $rData) {
 		$db = self::db();
+		if (isset($rData['edit']) && intval($rData['edit']) === CreatedChannelEpg::reservedSourceId()) {
+			return ['status' => STATUS_FAILURE, 'data' => $rData];
+		}
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'epg_edit')) {
 				exit();

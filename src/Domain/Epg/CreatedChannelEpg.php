@@ -68,6 +68,9 @@ class CreatedChannelEpg {
 	/** Days of guide written ahead of now. */
 	private const DAYS_AHEAD = 2;
 
+	/** Hard cap on programmes written per channel (a very short loop would otherwise flood epg_data). */
+	public const MAX_PROGRAMMES = 2000;
+
 	/**
 	 * Rebuild the channel's `epg_data` rows from its timeline and loop anchor.
 	 * Returns the number of programmes written (0 when there is no timeline or anchor).
@@ -93,10 +96,9 @@ class CreatedChannelEpg {
 
 		$rRows = [];
 		if ($rStream && is_array($rInfo) && $rInfo && $rStarted > 0) {
-			$rEntries = json_decode((string) $rStream['stream_source'], true) ?: [];
 			$rMeta = [];
 			foreach (array_values($rInfo) as $rPos => $rItem) {
-				$rEntry = (string) ($rEntries[$rPos] ?? '');
+				$rEntry = (string) ($rItem['source'] ?? '');
 				$rMeta[$rPos] = ['title' => (string) ($rItem['filename'] ?? ''), 'desc' => ''];
 				if (preg_match('/^vod:(\d+)$/', $rEntry, $m)) {
 					$db->query('SELECT `stream_display_name`, `movie_properties` FROM `streams` WHERE `id` = ?;', (int) $m[1]);
@@ -111,6 +113,7 @@ class CreatedChannelEpg {
 			}
 			$rNow = time();
 			$rRows = self::programmes($rInfo, $rStarted, $rMeta, $rNow - 3600, $rNow + self::DAYS_AHEAD * 86400);
+			$rRows = array_slice($rRows, 0, self::MAX_PROGRAMMES);
 		}
 
 		$db->query('DELETE FROM `epg_data` WHERE `epg_id` = ? AND `channel_id` = ?;', $rSource, $rChannel);

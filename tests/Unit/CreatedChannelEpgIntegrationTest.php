@@ -30,7 +30,7 @@ final class CreatedChannelEpgIntegrationTest extends TestCase {
 		$this->rReserved = CreatedChannelEpg::reservedSourceId();
 		$this->rDb->query("INSERT INTO `streams` (`id`, `type`, `stream_display_name`, `movie_properties`) VALUES (11, 2, 'va', ?), (12, 2, 'vb', ?)", json_encode(['name' => 'Movie A', 'plot' => 'plot a']), json_encode(['name' => 'Movie B']));
 		$this->rDb->query("INSERT INTO `streams` (`id`, `type`, `stream_display_name`, `stream_source`, `epg_id`, `channel_id`) VALUES (50, 3, 'CC', ?, ?, 'created_50')", json_encode(['vod:11', 'vod:12']), $this->rReserved);
-		$rInfo = [['filename' => 'a.ts', 'seconds' => 100, 'start' => 0, 'finish' => 100], ['filename' => 'b.ts', 'seconds' => 150, 'start' => 100, 'finish' => 250]];
+		$rInfo = [['filename' => 'a.ts', 'source' => 'vod:11', 'seconds' => 100, 'start' => 0, 'finish' => 100], ['filename' => 'b.ts', 'source' => 'vod:12', 'seconds' => 150, 'start' => 100, 'finish' => 250]];
 		$this->rDb->query('INSERT INTO `streams_servers` (`stream_id`, `server_id`, `cc_info`, `stream_started`) VALUES (50, 1, ?, ?)', json_encode($rInfo), time() - 60);
 	}
 
@@ -78,5 +78,20 @@ final class CreatedChannelEpgIntegrationTest extends TestCase {
 		$this->assertArrayNotHasKey($this->rReserved, EpgService::getAll());
 		$this->rDb->query('SELECT COUNT(*) c FROM `streams` WHERE `epg_id` = ?', $this->rReserved);
 		$this->assertSame(1, (int) $this->rDb->get_row()['c']);
+	}
+
+	public function testTitlesFollowStoredSourceWhenEarlierSourceDropped(): void {
+		// stream_source = [vod:11, vod:12]; vod:11 was not encoded, so _.info holds only vod:12.
+		$rInfo = [['filename' => 'b.ts', 'source' => 'vod:12', 'seconds' => 100, 'start' => 0, 'finish' => 100]];
+		$this->rDb->query('UPDATE `streams_servers` SET `cc_info` = ?', json_encode($rInfo));
+		CreatedChannelEpg::regenerate(50);
+		$this->assertSame('Movie B', $this->rows()[0]['title']);
+	}
+
+	public function testProgrammeCountIsCapped(): void {
+		$rInfo = [['filename' => 'a.ts', 'source' => 'vod:11', 'seconds' => 10, 'start' => 0, 'finish' => 10]];
+		$this->rDb->query('UPDATE `streams_servers` SET `cc_info` = ?', json_encode($rInfo));
+		$this->assertSame(CreatedChannelEpg::MAX_PROGRAMMES, CreatedChannelEpg::regenerate(50));
+		$this->assertCount(CreatedChannelEpg::MAX_PROGRAMMES, $this->rows());
 	}
 }

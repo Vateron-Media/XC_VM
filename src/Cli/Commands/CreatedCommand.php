@@ -187,17 +187,20 @@ class CreatedCommand implements CommandInterface {
 		StreamStateWriter::updateRow(intval($rServerInfo['server_stream_id']), ['progress_info' => ''], $db);
 
 		$rOutputList = '';
+		$rListSources = [];
 		foreach ($rStreamInfo['stream_source'] as $rSource) {
 			[$rServerID, $rSourcePath] = $this->localSource($rSource, true);
 
 			if ($rServerID == SERVER_ID && intval($rStreamInfo['movie_symlink']) == 1) {
 				if ($rSourcePath && file_exists($rSourcePath)) {
 					$rOutputList .= self::concatLine($rSourcePath);
+					$rListSources[] = $rSource;
 				}
 			} else {
 				$rCreatedFile = CREATED_PATH . $rStreamID . '_' . md5($rSource) . '.ts';
 				if (file_exists($rCreatedFile)) {
 					$rOutputList .= self::concatLine($rCreatedFile);
+					$rListSources[] = $rSource;
 				}
 			}
 		}
@@ -211,6 +214,7 @@ class CreatedCommand implements CommandInterface {
 		$rInt = $rSeconds = 0;
 		$rList = explode("\n", file_get_contents(CREATED_PATH . $rStreamID . '_.list'));
 		$rReturn = [];
+		$rLine = -1;
 
 		foreach ($rList as $rItem) {
 			$parts = explode("'", $rItem);
@@ -219,12 +223,14 @@ class CreatedCommand implements CommandInterface {
 			}
 
 			$rFilename = $parts[1];
+			$rLine++;
 
 			if (file_exists($rFilename)) {
 				$rFileInfo = FFprobeRunner::probeStream($rFilename);
 				$rReturn[] = [
 					'position' => $rInt,
 					'filename' => basename($rFilename),
+					'source' => $rListSources[$rLine] ?? null,
 					'path' => $rFilename,
 					'stream_info' => $rFileInfo,
 					'seconds' => $rFileInfo['of_duration'],
