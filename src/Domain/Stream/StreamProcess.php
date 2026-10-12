@@ -2835,9 +2835,7 @@ class StreamProcess {
 				// ffmpeg take over below when it cannot stay up.
 				$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
 				$rNativeCmd = null;
-				if ($rDriver === null && !$rDelayActive && $rBackend !== 'ffmpeg' && FanoutClient::supportsRemux()
-					&& self::remuxRefusal($rStream['stream_info'], $rArgsByKey) === null
-					&& self::isNativeSource($rStreamSource)) {
+				if ($rDriver === null && !$rDelayActive && $rBackend !== 'ffmpeg' && FanoutClient::supportsRemux() && self::remuxRefusal($rStream['stream_info'], $rArgsByKey) === null && self::isNativeSource($rStreamSource)) {
 					$rNativeCmd = self::buildNativeLive([
 						'streamID' => $rStreamID, 'source' => $rStreamSource,
 						'arguments' => $rArgsByKey, 'segmentSettings' => $rSegmentSettings,
