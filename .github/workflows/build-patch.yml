@@ -261,17 +261,26 @@ jobs:
 
             grep -qxF "./Core/Config/ConstantsInitializer.php" "$list" \
               || { echo "::error::$kind delta is missing the stamped version file — the version would advance without its code; aborting"; exit 1; }
-            # Ship the `./` root directory entry (0755) alongside the changed
-            # files. The deployed updater extracts the archive into a
-            # tempfile.mkdtemp() dir — which is mode 0700 — then does
-            # `cp -a <tmp>/. <install root>`, and that copies the temp dir's
-            # OWN mode onto the install root. A full archive carries a 0755
-            # `./` entry that resets the temp dir to 0755; without it the
-            # install root becomes 0700, locking the xc_vm user out of
-            # root:xc_vm-owned /home/xc_vm on MAIN (nginx/php-fpm cannot start).
-            # --no-recursion so `.` adds only the dir entry, not the whole tree.
+            # Ship every directory the delta touches as an explicit entry, at
+            # its built-tree mode, ahead of the changed files. Why: the
+            # deployed updater extracts the archive into a tempfile.mkdtemp()
+            # dir (mode 0700) and then runs `cp -a <tmp>/. <install root>`,
+            # which copies each staging directory's OWN mode onto the live
+            # tree. A full archive carries every directory entry; a file-list
+            # delta carries none, so tar would create `.`, `Core/`, `Public/`…
+            # in the staging dir at the updater host's umask — `.` is 0700 from
+            # mkdtemp, and the rest 0750/0700 under a tight root umask — and
+            # stamp that onto the install root. `status` then chowns the code
+            # trees to root:xc_vm (TreeOwnership::rootOwn), so a 0700 directory
+            # locks the xc_vm group out and nginx/the autoloader cannot start.
+            # Shipping the dir entries makes the modes deterministic and equal
+            # to a full update. --no-recursion: each named dir/file alone, not
+            # its subtree.
             chmod 0755 "$p"
-            tar -C "$p" --owner=0 --group=0 --no-recursion -czf "$outA" . -T "$list"
+            local dirs="$PWD/.delta/$kind.dirs"
+            awk -F/ '{ d = "."; for (i = 2; i < NF; i++) { d = d "/" $i; print d } }' "$list" | sort -u > "$dirs"
+            { echo .; cat "$dirs" "$list"; } > "$list.full"
+            tar -C "$p" --owner=0 --group=0 --no-recursion -czf "$outA" -T "$list.full"
             echo "$kind delta: $(wc -l < "$list") files ($(du -h "$outA" | cut -f1))"
             sed "s#^#  $kind: #" "$list"
           }
