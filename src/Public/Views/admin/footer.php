@@ -499,6 +499,220 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                 }
             });
         };
+        // Shared multi-select drag-and-drop order list for the channel / bouquet order pages
+        // (markup in Views/admin/order_listbox.php: an <ol class="js-order-list"> of
+        // <li data-id> rows per type). Click selects a row, Ctrl/Cmd+click toggles, Shift+click
+        // selects a range. Dragging a selected row drags the whole selection; the toolbar moves
+        // the selection up / down by the step box, to the top / bottom, or sorts A-Z. Call once
+        // per page; xcOrderListbox.ids(type) returns a type's ids in their current order.
+        window.xcOrderListbox = function() {
+            if (window.xcOrderListbox.bound) {
+                return;
+            }
+            window.xcOrderListbox.bound = true;
+            var toast = window.xcToast || function() {};
+            var anchor = {};
+            var dragging = null;
+
+            function list(t) {
+                return document.getElementById('order-list-' + t);
+            }
+
+            function rows(ol) {
+                return [].slice.call(ol.children);
+            }
+
+            function selectedOf(ol) {
+                return rows(ol).filter(function(li) {
+                    return li.classList.contains('active');
+                });
+            }
+
+            function toFragment(items) {
+                var frag = document.createDocumentFragment();
+                items.forEach(function(li) {
+                    frag.appendChild(li);
+                });
+                return frag;
+            }
+
+            // Renumber the rows and refresh the "n selected" counter.
+            function refresh(ol) {
+                rows(ol).forEach(function(li, i) {
+                    var num = li.querySelector('.js-order-pos');
+                    if (num) {
+                        num.textContent = i + 1;
+                    }
+                });
+                var count = document.getElementById('order-count-' + ol.getAttribute('data-type'));
+                if (count) {
+                    var n = selectedOf(ol).length;
+                    count.textContent = n ? n + ' selected' : '';
+                }
+            }
+
+            function reveal(ol, items) {
+                if (!items.length) {
+                    return;
+                }
+                var first = items[0].getBoundingClientRect();
+                var box = ol.getBoundingClientRect();
+                if (first.top < box.top || first.bottom > box.bottom) {
+                    ol.scrollTop += first.top - box.top - box.height / 3;
+                }
+            }
+
+            function stepOf(t) {
+                var input = document.getElementById('order-step-' + t);
+                var n = input ? parseInt(input.value, 10) : 1;
+                return n > 0 ? n : 1;
+            }
+
+            function select(ol, li, e) {
+                var t = ol.getAttribute('data-type');
+                var all = rows(ol);
+                if (e.shiftKey && anchor[t] && anchor[t].parentNode === ol) {
+                    var a = all.indexOf(anchor[t]);
+                    var b = all.indexOf(li);
+                    all.forEach(function(row, i) {
+                        row.classList.toggle('active', i >= Math.min(a, b) && i <= Math.max(a, b));
+                    });
+                    return;
+                }
+                if (e.ctrlKey || e.metaKey) {
+                    li.classList.toggle('active');
+                } else {
+                    all.forEach(function(row) {
+                        row.classList.toggle('active', row === li);
+                    });
+                }
+                anchor[t] = li;
+            }
+
+            function reorder(t, action) {
+                var ol = list(t);
+                if (!ol) {
+                    return;
+                }
+                if (action === 'atoz') {
+                    var name = function(li) {
+                        var el = li.querySelector('.js-order-name');
+                        return (el || li).textContent.trim();
+                    };
+                    ol.appendChild(toFragment(rows(ol).sort(function(a, b) {
+                        return name(a).localeCompare(name(b), undefined, {
+                            sensitivity: 'base',
+                            numeric: true
+                        });
+                    })));
+                    refresh(ol);
+                    return;
+                }
+                var picked = selectedOf(ol);
+                if (!picked.length) {
+                    toast('Select one or more items first.', 'info');
+                    return;
+                }
+                // Positions count only the unselected rows, so the selection moves past
+                // `step` other rows and lands as one contiguous block.
+                var rest = rows(ol).filter(function(li) {
+                    return !li.classList.contains('active');
+                });
+                var at;
+                if (action === 'up' || action === 'down') {
+                    var edge = action === 'up' ? picked[0] : picked[picked.length - 1];
+                    var before = rest.filter(function(li) {
+                        return li.compareDocumentPosition(edge) & Node.DOCUMENT_POSITION_FOLLOWING;
+                    }).length;
+                    at = action === 'up' ? Math.max(0, before - stepOf(t)) : before + stepOf(t);
+                } else {
+                    at = action === 'top' ? 0 : rest.length;
+                }
+                ol.insertBefore(toFragment(picked), rest[at] || null);
+                refresh(ol);
+                reveal(ol, picked);
+            }
+
+            [].forEach.call(document.querySelectorAll('.js-order-list'), function(ol) {
+                refresh(ol);
+                ol.addEventListener('click', function(e) {
+                    var li = e.target.closest('li');
+                    if (li && li.parentNode === ol) {
+                        select(ol, li, e);
+                        refresh(ol);
+                    }
+                });
+                ol.addEventListener('dragstart', function(e) {
+                    var li = e.target.closest('li');
+                    if (!li || li.parentNode !== ol) {
+                        return;
+                    }
+                    if (!li.classList.contains('active')) {
+                        select(ol, li, {});
+                    }
+                    dragging = selectedOf(ol);
+                    dragging.forEach(function(row) {
+                        row.classList.add('opacity-50');
+                    });
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', '');
+                });
+                ol.addEventListener('dragend', function() {
+                    (dragging || []).forEach(function(row) {
+                        row.classList.remove('opacity-50');
+                    });
+                    dragging = null;
+                    refresh(ol);
+                });
+                ol.addEventListener('dragover', function(e) {
+                    if (!dragging || dragging[0].parentNode !== ol) {
+                        return;
+                    }
+                    e.preventDefault();
+                    // Only the row under the pointer is measured (one layout read per event, not
+                    // one per row): the block goes before it or after it, by which half is hovered.
+                    var ref;
+                    var li = e.target.closest('li');
+                    if (li && li.parentNode === ol) {
+                        if (li.classList.contains('opacity-50')) {
+                            return;
+                        }
+                        var box = li.getBoundingClientRect();
+                        ref = e.clientY < box.top + box.height / 2 ? li : li.nextElementSibling;
+                    } else if (e.target === ol) {
+                        var last = ol.lastElementChild;
+                        if (!last || e.clientY < last.getBoundingClientRect().bottom) {
+                            return;
+                        }
+                        ref = null;
+                    } else {
+                        return;
+                    }
+                    while (ref && ref.classList.contains('opacity-50')) {
+                        ref = ref.nextElementSibling;
+                    }
+                    // Already there (contiguous and right before ref): no DOM write.
+                    var placed = dragging[dragging.length - 1].nextElementSibling === ref && dragging.every(function(row, i) {
+                        return i === 0 || dragging[i - 1].nextElementSibling === row;
+                    });
+                    if (!placed) {
+                        ol.insertBefore(toFragment(dragging), ref);
+                    }
+                });
+            });
+            document.addEventListener('click', function(e) {
+                var btn = e.target.closest('[data-order-action]');
+                if (btn) {
+                    reorder(btn.getAttribute('data-type'), btn.getAttribute('data-order-action'));
+                }
+            });
+        };
+        window.xcOrderListbox.ids = function(t) {
+            var ol = document.getElementById('order-list-' + t);
+            return ol ? [].map.call(ol.children, function(li) {
+                return li.getAttribute('data-id');
+            }) : [];
+        };
     })();
 
     // An edit form inside an iframe modal posts this after a successful save;
