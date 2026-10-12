@@ -229,4 +229,18 @@ final class ClusterModeActionTest extends TestCase {
 		}
 		$this->assertSame([7], ClusterAdmin::autoModeDown($rOn), 'none of them');
 	}
+
+	/** The mandatory flows cannot be switched off, in any mode (node 7 is mode 1 here). */
+	public function testMandatoryFlowsCannotBeSwitchedOff(): void {
+		foreach (['telemetry', 'commands', 'logs', 'config', 'connections', 'dataplane'] as $rFlow) {
+			$this->assertSame('cluster_flow_mandatory', $this->act($rFlow . '_off'), $rFlow);
+		}
+	}
+
+	/** streams and content are not locked; they are held on only by the connections/dataplane dependency. */
+	public function testStreamsAndContentAreNotLockedButDependedOn(): void {
+		$this->assertSame(0, ClusterAdmin::MANDATORY_FLOWS & (NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONTENT));
+		$this->assertSame('cluster_flow_needs', $this->act('streams_off'), 'connections still needs streams');
+		$this->assertSame('cluster_flow_needs', $this->act('content_off'), 'the data plane still needs content');
+	}
 }

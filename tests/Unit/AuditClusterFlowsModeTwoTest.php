@@ -96,27 +96,31 @@ final class AuditClusterFlowsModeTwoTest extends TestCase {
 	}
 
 	public function testNoFlowIsSwitchedOffWhileTheNodeIsInModeTwo(): void {
+		// A mandatory flow is refused outright; a non-mandatory one (streams,
+		// content) with the mode-2 message — either way nothing switches off.
 		foreach (array_keys(ClusterAdmin::FLOW_BITS) as $rName) {
-			$this->assertSame('cluster_flow_mode_two', $this->act($rName . '_off'), $rName);
+			$rMandatory = (ClusterAdmin::MANDATORY_FLOWS & ClusterAdmin::FLOW_BITS[$rName]) === ClusterAdmin::FLOW_BITS[$rName];
+			$this->assertSame($rMandatory ? 'cluster_flow_mandatory' : 'cluster_flow_mode_two', $this->act($rName . '_off'), $rName);
 		}
 		$this->assertSame(ClusterAdmin::MODE2_FLOWS, $this->flows());
 		$this->assertSame(0, (int) $this->rDb->pdo->query("SELECT COUNT(*) FROM `cluster_audit` WHERE `event` = 'node.flows'")->fetchColumn(), 'a refused switch leaves no entry');
 
-		// Quarantined, it is still in mode 2.
+		// Quarantined, it is still in mode 2 (config is mandatory in any case).
 		$this->rDb->exec("UPDATE `cluster_nodes` SET `state` = 'quarantined'");
-		$this->assertSame('cluster_flow_mode_two', $this->act('config_off'));
+		$this->assertSame('cluster_flow_mandatory', $this->act('config_off'));
 		$this->assertSame(ClusterAdmin::MODE2_FLOWS, $this->flows());
 	}
 
-	public function testAFlowIsStillSwitchedOnInModeTwoAndOffBelowIt(): void {
+	public function testAFlowIsStillSwitchedOnInModeTwoAndAMandatoryOneStaysOnBelowIt(): void {
 		// A node that reached mode 2 short of a flow gets it back from the page.
 		$this->rDb->query('UPDATE `cluster_nodes` SET `flows` = ?', ClusterAdmin::MODE2_FLOWS & ~NodeRegistry::FLOW_LOGS);
 		$this->assertSame('cluster_logs_on_done', $this->act('logs_on'));
 		$this->assertSame(ClusterAdmin::MODE2_FLOWS, $this->flows());
 
+		// Below mode 2, logs is mandatory and cannot be switched back off.
 		$this->rDb->exec('UPDATE `cluster_nodes` SET `mode` = 1');
-		$this->assertSame('cluster_logs_off_done', $this->act('logs_off'));
-		$this->assertSame(ClusterAdmin::MODE2_FLOWS & ~NodeRegistry::FLOW_LOGS, $this->flows());
+		$this->assertSame('cluster_flow_mandatory', $this->act('logs_off'));
+		$this->assertSame(ClusterAdmin::MODE2_FLOWS, $this->flows());
 	}
 
 	public function testAWriteRefusedInModeTwoLeavesTheNodesStoreSeeded(): void {

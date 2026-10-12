@@ -3206,12 +3206,16 @@ final class ClusterApiTest extends TestCase {
 	public function testOnTheBusAnAdminsFlowSwitchIsSeenAtTheNextRequest(): void {
 		$this->bus();
 		$rKeys = $this->active();
-		$rFlows = NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONNECTIONS;
+		// Connections stays off throughout (it is mandatory, so the admin can
+		// only turn it on): the switch the bus must pick up is a non-mandatory
+		// one (content).
+		$rFlows = NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_STREAMS;
 		NodeRegistry::update(self::SID, ['mode' => 1, 'flows' => $rFlows]);
 		$this->assertSame($rFlows, $this->served('heartbeat', [], 1, $rKeys)['flows']);
 		$this->assertSame($rFlows, $this->served('heartbeat', [], 1, $rKeys)['flows']); // held on the bus
-		$this->assertSame('success', ClusterAdmin::act($this->rCrypto, ['cluster_action' => 'connections_off', 'server_id' => self::SID], $this->servers(), 1, $this->rSettings, 1)['type']);
-		$this->assertSame($rFlows & ~NodeRegistry::FLOW_CONNECTIONS, $this->served('heartbeat', [], 1, $rKeys)['flows']);
+		$this->assertSame('success', ClusterAdmin::act($this->rCrypto, ['cluster_action' => 'content_on', 'server_id' => self::SID], $this->servers(), 1, $this->rSettings, 1)['type']);
+		$this->assertSame($rFlows | NodeRegistry::FLOW_CONTENT, $this->served('heartbeat', [], 1, $rKeys)['flows']);
+		// Connections is off, so a connection admit is refused.
 		[$rRes, , $rReq] = $this->call('conn_admit', ['uuid' => 'viewer-1'], 1, $rKeys);
 		$this->denial($rRes, 409, 'FLOW_OFF', $rReq);
 	}
