@@ -50,6 +50,7 @@ jobs:
     outputs:
       sha: ${{ steps.plan.outputs.sha }}
       base: ${{ steps.plan.outputs.base }}
+      delta_base: ${{ steps.plan.outputs.delta_base }}
       version: ${{ steps.plan.outputs.version }}
       prerelease: ${{ steps.plan.outputs.prerelease }}
       latest: ${{ steps.plan.outputs.latest }}
@@ -115,9 +116,19 @@ jobs:
             [ "$NEWEST" = "$BASE" ] && LATEST=true
           fi
 
-          echo "Patch build ${VERSION} of ${BASE} from ${SHA} (prerelease=${PRERELEASE}, latest=${LATEST})"
+          # The delta ships every change since the PREVIOUS non-patch release, not
+          # since BASE: the updater jumps a panel straight to the newest version
+          # and overlays that one archive, so a panel on the release before BASE
+          # (the common case — BASE was just cut) must get BASE's changes too, or
+          # it ends up stamped BASE-pN while missing everything BASE added (e.g. a
+          # new migration). With no earlier release, the delta is since BASE.
+          DELTA_BASE=$(git tag --merged "$SHA" --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -vxF "$BASE" | sort -V | tail -n1 || true)
+          [ -z "$DELTA_BASE" ] && DELTA_BASE="$BASE"
+
+          echo "Patch build ${VERSION} of ${BASE} from ${SHA}, delta since ${DELTA_BASE} (prerelease=${PRERELEASE}, latest=${LATEST})"
           {
             echo "base=${BASE}"
+            echo "delta_base=${DELTA_BASE}"
             echo "version=${VERSION}"
             echo "prerelease=${PRERELEASE}"
             echo "latest=${LATEST}"
@@ -147,6 +158,7 @@ jobs:
       XCVM_TEST_DB_PASS: xcvm-test
       VERSION: ${{ needs.plan.outputs.version }}
       BASE: ${{ needs.plan.outputs.base }}
+      DELTA_BASE: ${{ needs.plan.outputs.delta_base }}
       SHA: ${{ needs.plan.outputs.sha }}
     steps:
       - name: Checkout the planned commit
@@ -195,10 +207,11 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf .delta && mkdir -p .delta/base
-          # The base release's own archives to diff against. BASE is always an
+          # The previous release's own archives to diff against (DELTA_BASE — the
+          # release a panel updates FROM, not the one being patched). It is an
           # X.Y.Z release (never a -pN), so these are always full trees. A
           # failure here aborts the build rather than shipping a wrong delta.
-          gh release download "$BASE" -R "$GITHUB_REPOSITORY" -p xc_vm.tar.gz -p loadbalancer.tar.gz -D .delta/base
+          gh release download "$DELTA_BASE" -R "$GITHUB_REPOSITORY" -p xc_vm.tar.gz -p loadbalancer.tar.gz -D .delta/base
 
           # Files removed from the codebase since the base release, so a patch
           # that deletes (or renames away) a file — a vulnerable script, say —
@@ -212,7 +225,7 @@ jobs:
           # --no-renames makes a rename list its old path as a deletion. Scoped
           # to tracked src/: the live cleanup rm's whatever this lists, so it
           # must never carry a runtime config/content/bin path.
-          mapfile -t DELETED < <(git diff --name-status --no-renames "refs/tags/${BASE}..${SHA}" -- src/ | awk '$1 == "D" { sub(/^src\//, "", $2); print $2 }')
+          mapfile -t DELETED < <(git diff --name-status --no-renames "refs/tags/${DELTA_BASE}..${SHA}" -- src/ | awk '$1 == "D" { sub(/^src\//, "", $2); print $2 }')
 
           # <patch archive> <base archive> <out archive> <kind> <append-deletions>:
           # <out> gets the files new or changed vs the base tree — by content,
@@ -248,7 +261,26 @@ jobs:
 
             grep -qxF "./Core/Config/ConstantsInitializer.php" "$list" \
               || { echo "::error::$kind delta is missing the stamped version file — the version would advance without its code; aborting"; exit 1; }
-            tar -C "$p" --owner=0 --group=0 -czf "$outA" -T "$list"
+            # Ship every directory the delta touches as an explicit entry, at
+            # its built-tree mode, ahead of the changed files. Why: the
+            # deployed updater extracts the archive into a tempfile.mkdtemp()
+            # dir (mode 0700) and then runs `cp -a <tmp>/. <install root>`,
+            # which copies each staging directory's OWN mode onto the live
+            # tree. A full archive carries every directory entry; a file-list
+            # delta carries none, so tar would create `.`, `Core/`, `Public/`…
+            # in the staging dir at the updater host's umask — `.` is 0700 from
+            # mkdtemp, and the rest 0750/0700 under a tight root umask — and
+            # stamp that onto the install root. `status` then chowns the code
+            # trees to root:xc_vm (TreeOwnership::rootOwn), so a 0700 directory
+            # locks the xc_vm group out and nginx/the autoloader cannot start.
+            # Shipping the dir entries makes the modes deterministic and equal
+            # to a full update. --no-recursion: each named dir/file alone, not
+            # its subtree.
+            chmod 0755 "$p"
+            local dirs="$PWD/.delta/$kind.dirs"
+            awk -F/ '{ d = "."; for (i = 2; i < NF; i++) { d = d "/" $i; print d } }' "$list" | sort -u > "$dirs"
+            { echo .; cat "$dirs" "$list"; } > "$list.full"
+            tar -C "$p" --owner=0 --group=0 --no-recursion -czf "$outA" -T "$list.full"
             echo "$kind delta: $(wc -l < "$list") files ($(du -h "$outA" | cut -f1))"
             sed "s#^#  $kind: #" "$list"
           }
@@ -266,17 +298,18 @@ jobs:
       - name: Write changelog and release notes
         run: |
           set -euo pipefail
-          # Everything since the release: a panel may come to this patch from
-          # the release or from any patch before it.
-          git log --no-merges --format='%s' "refs/tags/${BASE}..${SHA}" \
+          # Everything the update delivers: the changes since DELTA_BASE, the
+          # release a panel updates from (which the delta covers). A panel
+          # already on BASE or a patch of it simply re-applies what it has.
+          git log --no-merges --format='%s' "refs/tags/${DELTA_BASE}..${SHA}" \
             | jq -R . | jq -s --arg v "$VERSION" '{version: $v, changes: .}' > dist/changelog.json
           {
-            echo "Patch build of **${BASE}**: the release with the fixes made since. Update as usual; no new release is needed."
+            echo "Patch build of **${BASE}**: the release with the fixes made since, as a small update. Update as usual; no new release is needed."
             echo
             echo "Source: https://github.com/${GITHUB_REPOSITORY}/commit/${SHA}"
             echo
-            echo "## Changes since ${BASE}"
-            git log --no-merges --format='- %s (%h)' "refs/tags/${BASE}..${SHA}"
+            echo "## Changes since ${DELTA_BASE}"
+            git log --no-merges --format='- %s (%h)' "refs/tags/${DELTA_BASE}..${SHA}"
           } > "${RUNNER_TEMP}/notes.md"
           cat "${RUNNER_TEMP}/notes.md"
 
