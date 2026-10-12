@@ -23,7 +23,7 @@ Use it for a fix that should not wait for the next release. Nothing is prepared 
     gh workflow run build-patch.yml -f ref=main
     ```
 
-3. The workflow picks the release (`base`: the newest `X.Y.Z` tag the ref contains), numbers the patch, runs the unit tests, stamps the version into the build, and publishes `XC_VM.zip`, `xc_vm.tar.gz`, `loadbalancer.tar.gz`, `hashes.md5` and `changelog.json`. The two update archives (`xc_vm.tar.gz`, `loadbalancer.tar.gz`) are reduced to a **delta** against `base` (the release it patches) — the files that changed since it, plus the stamped version file, the directory entries so the overlay keeps the tree's modes, and the deleted-files list when something was removed. `XC_VM.zip` stays the full installer, because a fresh install lays down the whole tree.
+3. The workflow picks the release (`base`: the newest `X.Y.Z` tag the ref contains), numbers the patch, runs the unit tests, stamps the version into the build, and publishes `XC_VM.zip`, `xc_vm.tar.gz`, `loadbalancer.tar.gz`, `hashes.md5` and `changelog.json`. Only `xc_vm.tar.gz` (the MAIN update archive) is reduced to a **delta** against `base` (the release it patches) — the files that changed since it, plus the stamped version file, the directory entries so the overlay keeps the tree's modes, and the deleted-files list when something was removed. `XC_VM.zip` stays the full MAIN installer, because a fresh install lays down the whole tree. `loadbalancer.tar.gz` also stays **full**: it is both the LB's update payload and its only installer — `server:install` pulls MAIN's own release (which after a patch is `X.Y.Z-pN`) to provision a fresh node, and there is no LB equivalent of `XC_VM.zip`, so a delta there would lay a partial tree onto a clean node.
 
 | Input | Meaning |
 |-------|---------|
@@ -41,7 +41,7 @@ Try a `dry_run` first when in doubt.
 
 ## What a patch may carry
 
-A patch build is built from the full tree of its ref: everything merged since `base` goes out, database migrations included. The update archive is then a delta of those changes against `base` (the updater overlays it), so a file that did not change since the release is left as the panel has it. Keep `main` releasable, or patch from a release branch.
+A patch build is built from the full tree of its ref: everything merged since `base` goes out, database migrations included. The MAIN update archive (`xc_vm.tar.gz`) is then a delta of those changes against `base` (the updater overlays it), so a file that did not change since the release is left as the panel has it; `loadbalancer.tar.gz` ships whole. Keep `main` releasable, or patch from a release branch.
 
 A patch build is not a release in these ways:
 
