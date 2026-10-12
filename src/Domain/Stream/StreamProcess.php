@@ -1207,30 +1207,6 @@ class StreamProcess {
 		return $rLine;
 	}
 
-	/**
-	 * Wait briefly for a just-launched producer to write its pid file (the
-	 * encoder's background tail does). The pid, or 0 if none appeared.
-	 */
-	private static function awaitProducerPid(int $rStreamID): int {
-		for ($rTry = 0; $rTry < 10; $rTry++) {
-			usleep(50000); // 50ms
-			if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-				$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-				if ($rPID > 0) {
-					return $rPID;
-				}
-			}
-		}
-		return 0;
-	}
-
-	/** Whether a producer pid is a live process (the native remuxer may exit at once). */
-	private static function producerAlive(int $rPID): bool {
-		if ($rPID <= 0) {
-			return false;
-		}
-		return function_exists('posix_kill') ? @posix_kill($rPID, 0) : file_exists('/proc/' . $rPID);
-	}
 
 	/**
 	 * One native source's URL and fetch options, keyed by their `xc_fanout remux`
@@ -2827,16 +2803,15 @@ class StreamProcess {
 				}
 
 				// Native remuxer in place of ffmpeg when the admin chose it
-				// (fanout_source_backend native/auto) and this copy-only stream's
-				// source is one the remuxer reads, and not a delayed stream (delay
-					// needs ffmpeg's DELAY_PATH buffering). With no daemon (fanout off) it
-				// writes the on-disk HLS the legacy paths serve; with one reachable
-				// it tees to it too. `native` runs only the remuxer; `auto` lets
-				// ffmpeg take over below when it cannot stay up.
+				// (fanout_source_backend native/auto) for a copy-only stream whose source
+				// the remuxer reads, and not a delayed one (delay needs ffmpeg's DELAY_PATH
+				// buffering). With no daemon (fanout off) it writes the on-disk HLS the
+				// legacy paths serve; with one reachable it tees to it too. In this
+				// unsupervised path native/auto both select it by the static gate; the
+				// daemon (fanout on) is what supplies auto's connect-time ffmpeg fallback.
 				$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
-				$rNativeCmd = null;
 				if ($rDriver === null && !$rDelayActive && $rBackend !== 'ffmpeg' && FanoutClient::supportsRemux() && self::remuxRefusal($rStream['stream_info'], $rArgsByKey) === null && self::isNativeSource($rStreamSource)) {
-					$rNativeCmd = self::buildNativeLive([
+					$rFFMPEG = self::buildNativeLive([
 						'streamID' => $rStreamID, 'source' => $rStreamSource,
 						'arguments' => $rArgsByKey, 'segmentSettings' => $rSegmentSettings,
 						'ingestSock' => $rIngestSock, 'settings' => $rSettings,
@@ -2845,24 +2820,21 @@ class StreamProcess {
 					self::noteProducer($rStreamID, 'the native remuxer runs this stream');
 				}
 
-				$rLaunch = $rNativeCmd ?? $rFFMPEG;
-				// $rLaunch is a producer command built from escapeshellarg'd parts (buildNativeLive/buildLive), as the ffmpeg launch it replaced was.
-				// nosemgrep: php.lang.security.exec-use.exec-use
-				shell_exec($rLaunch);
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rLaunch);
+				shell_exec($rFFMPEG);
+				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
 
-				$rPID = self::awaitProducerPid(intval($rStreamID));
-
-				// auto: the native remuxer could not stay up (e.g. a source it only
-				// finds unreadable on connect, ExitUnsupported) -- ffmpeg takes over.
-				// Best effort without the daemon's supervisor, which does this itself.
-				if ($rNativeCmd !== null && $rBackend === 'auto' && !self::producerAlive($rPID)) {
-					self::noteProducer($rStreamID, 'the native remuxer did not stay up; ffmpeg takes over');
-					@unlink(STREAMS_PATH . $rStreamID . '_.pid');
-					// nosemgrep: php.lang.security.exec-use.exec-use
-					shell_exec($rFFMPEG);
-					file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
-					$rPID = self::awaitProducerPid(intval($rStreamID));
+				// Wait briefly for PID file to be written, with retry
+				$rPID = 0;
+				$rPIDRetries = 0;
+				while ($rPIDRetries < 10) {
+					usleep(50000); // 50ms
+					if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
+						$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
+						if ($rPID > 0) {
+							break;
+						}
+					}
+					$rPIDRetries++;
 				}
 
 				if ($rStream['stream_info']['tv_archive_server_id'] == SERVER_ID) {
