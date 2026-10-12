@@ -54,7 +54,7 @@ class FfmpegPaths {
 		self::$resolved = true;
 	}
 
-	/** A build id: `<major>.<minor>` (ours) or `<major>.<minor>-<vendor>` (e.g. 4.0-xui). */
+	/** A build id: `<major>.<minor>` (ours) or `<major>.<minor>-<vendor>` (e.g. 6.1-my). */
 	private const BUILD_ID = '/^(\d+\.\d+)(?:-[a-z0-9]+)?\z/';
 
 	/** Whether $rId names a build folder, as settings may store it (no path, no trailing newline). */
@@ -64,10 +64,10 @@ class FfmpegPaths {
 
 	/**
 	 * Build a binary path for a build folder, or, when it is absent, that of a
-	 * folder of the same major: the same minor first (4.0-xui for 4.0), then the
+	 * folder of the same major: the same minor first (6.1-my for 6.1), then the
 	 * newest. Null when the id is malformed or the node has no build of that major.
 	 *
-	 * @param string $version Build id (e.g. '8.1', '4.0-xui')
+	 * @param string $version Build id (e.g. '8.1', '6.1-my')
 	 * @param string $name    'ffmpeg' or 'ffprobe'
 	 */
 	private static function binary(string $version, string $name): ?string {
@@ -102,14 +102,15 @@ class FfmpegPaths {
 	}
 
 	/**
-	 * Does $rBin take `-nofix_dts`? Only XUI's 4.0 does (its own switch): the
-	 * folder 4.0-xui, or 4.0 itself before it moved, with no BUILD_INFO. Any other
-	 * 4.0-<vendor> is someone's stock build, which would refuse the switch. Read
-	 * through links, so a link answers for the build behind it.
+	 * Does $rBin take `-nofix_dts`? It is XUI's switch (also restored in XC_VM's
+	 * 4.x), which stock ffmpeg refuses. The binary itself is asked, once per build
+	 * (FfmpegBinaries caches it until the binary changes); a binary outside
+	 * ffmpeg_bin/ is not asked and gets no switch.
 	 */
 	public static function fixDts(string $rBin): bool {
 		$rDir = realpath(dirname($rBin));
-		return $rDir !== false && preg_match('/^4\.0(?:-xui)?\z/', basename($rDir)) === 1 && !is_file($rDir . '/BUILD_INFO');
+		$rBase = realpath(BIN_PATH . 'ffmpeg_bin');
+		return $rDir !== false && $rBase !== false && dirname($rDir) === $rBase && (FfmpegBinaries::available()[basename($rDir)]['nofix_dts'] ?? false);
 	}
 
 	/** @return string Path to CPU-optimized ffmpeg binary */

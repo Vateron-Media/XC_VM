@@ -49,53 +49,26 @@ final class FfmpegBuildsCommandTest extends TestCase {
 		$this->assertSame(['7.1'], $this->entries());
 
 		// A label the node has no build of yet.
-		$this->assertNull((new FfmpegBuildsCommand($this->rBase))->place($this->archive(['ffmpeg' => $rOk, 'ffprobe' => $rOk, 'BUILD_INFO' => "FFmpeg   : 8.1\n"]), '8.1'));
+		$r81 = "#!/bin/sh\necho ffmpeg version 8.1-XCVM\n";
+		$this->assertNull((new FfmpegBuildsCommand($this->rBase))->place($this->archive(['ffmpeg' => $r81, 'ffprobe' => $r81, 'BUILD_INFO' => 'x']), '8.1'));
 		$this->assertSame(['7.1', '8.1'], $this->entries());
 	}
 
-	/** A build is filed only under the minor version it really is: never again a 4.4.5 as 4.0. */
+	/** A build is filed only under the minor version its ffmpeg reports, whatever BUILD_INFO says: never again a 4.4.5 as 4.0. */
 	public function testABuildOfAnotherVersionIsRefused(): void {
-		$rOk = "#!/bin/sh\necho ffmpeg\n";
-		$rWhy = (new FfmpegBuildsCommand($this->rBase))->place($this->archive(['ffmpeg' => $rOk, 'ffprobe' => $rOk, 'BUILD_INFO' => "FFmpeg   : 4.4.5\nLabel    : 4.0\n"]), '4.0');
-		$this->assertSame('its BUILD_INFO is not an FFmpeg 4.0 build', $rWhy);
+		$rPlace = fn(string $rVersion, string $rLabel, string $rInfo = 'x'): ?string => (new FfmpegBuildsCommand($this->rBase))->place($this->archive(['ffmpeg' => "#!/bin/sh\necho ffmpeg version {$rVersion} Copyright\n", 'ffprobe' => "#!/bin/sh\nexit 0\n", 'BUILD_INFO' => $rInfo]), $rLabel);
+		$this->assertSame('its ffmpeg is not FFmpeg 4.0', $rPlace('4.4.5-XCVM', '4.0', "FFmpeg : 4.0\nLabel : 4.0\n"));
+		$this->assertSame('its ffmpeg is not FFmpeg 4.4', $rPlace('4.3.7', '4.4', "FFmpeg : 4.4.5\n"), 'BUILD_INFO is not believed');
+		$this->assertSame('its ffmpeg is not FFmpeg 4.4', $rPlace('4.45', '4.4'));
 		$this->assertSame(['7.1'], $this->entries());
-		$this->assertNull((new FfmpegBuildsCommand($this->rBase))->place($this->archive(['ffmpeg' => $rOk, 'ffprobe' => $rOk, 'BUILD_INFO' => "FFmpeg   : 4.4.5\n"]), '4.4'));
-		$this->assertNull((new FfmpegBuildsCommand($this->rBase))->place($this->archive(['ffmpeg' => $rOk, 'ffprobe' => $rOk, 'BUILD_INFO' => "FFmpeg : 4.4-dev\n"]), '4.4'), 'a suffix after the version is fine');
-		$this->assertSame('its BUILD_INFO is not an FFmpeg 4.4 build', (new FfmpegBuildsCommand($this->rBase))->place($this->archive(['ffmpeg' => $rOk, 'ffprobe' => $rOk, 'BUILD_INFO' => "FFmpeg : 4.45\n"]), '4.4'));
-	}
-
-	/** XUI's 4.0 moves to 4.0-xui; a second run changes nothing. */
-	public function testXuisBuildGetsItsOwnName(): void {
-		$this->dir('4.0', false);
-		$this->layout();
-		$this->assertFileExists($this->rBase . '4.0-xui/ffmpeg');
-		$this->layout();
-		$this->assertSame(['4.0-xui', '7.1'], $this->entries(), 'no link, nothing left aside');
-	}
-
-	/** Every other folder stays as it is: our old 4.0 and 8.0, an admin's own build, backups, and XUI's when 4.0-xui is taken. */
-	public function testNoOtherFolderIsTouched(): void {
-		$this->dir('4.0', true);
-		$this->dir('8.0', false);
-		$this->dir('7.0', true);
-		$this->dir('4.3.backup.20260318', false);
-		$this->dir('4.4', true);
-		$this->dir('8.1', true);
-		$this->layout();
-		$this->assertSame(['4.0', '4.3.backup.20260318', '4.4', '7.0', '7.1', '8.0', '8.1'], $this->entries());
-		$this->assertFalse(is_link($this->rBase . '4.0'));
-
-		exec('rm -rf ' . escapeshellarg($this->rBase . '4.0'));
-		$this->dir('4.0', false);
-		$this->dir('4.0-xui', false);
-		$this->layout();
-		$this->assertFileExists($this->rBase . '4.0/ffmpeg', '4.0-xui taken: XUI\'s 4.0 stays');
+		$this->assertNull($rPlace('4.4.5-XCVM', '4.4'));
+		$this->assertNull($rPlace('n4.4-dev', '4.4'), 'a git tag and a suffix are fine');
 	}
 
 	/** A fresh leftover of a place() run is not swept: that run may still need it. */
 	public function testAFreshLeftoverIsKept(): void {
 		mkdir($this->rBase . '.7.1.old.0000');
-		$this->layout();
+		$this->sweep();
 		$this->assertDirectoryExists($this->rBase . '.7.1.old.0000');
 	}
 
@@ -107,8 +80,8 @@ final class FfmpegBuildsCommandTest extends TestCase {
 		}
 	}
 
-	private function layout(): string {
-		$rLayout = new ReflectionMethod(FfmpegBuildsCommand::class, 'layout');
+	private function sweep(): string {
+		$rLayout = new ReflectionMethod(FfmpegBuildsCommand::class, 'sweep');
 		$rLayout->setAccessible(true);
 		ob_start();
 		$rLayout->invoke(new FfmpegBuildsCommand($this->rBase));

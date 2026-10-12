@@ -15,7 +15,7 @@ the folder name is what the settings store.
 | Folder | What it is |
 |---|---|
 | `4.4`, `7.1`, `8.1` | The panel's own builds. The panel downloads and updates them every day. |
-| `4.0-xui` | XUI's build, on panels migrated from XUI. |
+| `4.0` | XUI's build on panels migrated from XUI, or an older XC_VM build. Never changed. |
 | **Your build** | Any other name of the form below. The panel never changes or deletes it. |
 
 The panel shows each build by the version its `ffmpeg` binary reports, not by its
@@ -33,7 +33,7 @@ Use `<major>.<minor>-<name>`, for example `6.1-my` or `7.1-nv`:
   setting stores.
 
 Do not use a name the panel uses itself: `4.4`, `7.1` and `8.1` are replaced on every
-update, and `4.0-xui` is where the panel puts XUI's build.
+update, and `4.0` may hold XUI's build.
 
 Folders with any other name, such as `my-ffmpeg` or `6.1.backup`, are not listed.
 
@@ -62,9 +62,6 @@ sudo -u xc_vm /home/xc_vm/bin/ffmpeg_bin/6.1-my/ffmpeg -hide_banner -version
 
 It must print the version. If it reports a missing library or `GLIBC_… not found`, the
 build does not suit this server; use a static build instead.
-
-!!! note "Do not add a BUILD_INFO file"
-    `BUILD_INFO` marks the panel's own builds. Leave it out of your folder.
 
 ---
 

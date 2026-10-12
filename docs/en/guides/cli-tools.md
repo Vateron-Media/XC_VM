@@ -197,11 +197,17 @@ its name:
 | Folder | What it is |
 |---|---|
 | `<major>.<minor>` (`4.4`, `7.1`, `8.1`) | An XC_VM build. The name is the build's real minor version. Patch updates (7.1.5 → 7.1.6) replace it in place, so settings never change. |
-| `<major>.<minor>-<vendor>` (`4.0-xui`) | Someone else's build. The `ffmpeg` command never writes or replaces it. Put a custom build in a folder named this way. |
+| `<major>.<minor>-<vendor>` (`6.1-my`) | Someone else's build. The `ffmpeg` command never writes or replaces it. Put a custom build in a folder named this way. |
 
-The exact version and who built it are in `BUILD_INFO` beside the binaries and in
-the version column of the settings page's build table. XUI's build, moved to
-`4.0-xui` on the first run, is the only one that takes `-nofix_dts`. A setting
+A `4.0` folder is XUI's build on a panel migrated from XUI (or an older XC_VM
+build); it is never changed either.
+
+The panel asks each binary what it is rather than trusting its folder or
+`BUILD_INFO`: the settings page shows the version the binary reports, `ffmpeg`
+installs a build only when its binary reports the label's version, and
+`-nofix_dts` (XUI's switch for the legacy DTS path, also in the XC_VM 4.4 build)
+goes only to a build whose `ffmpeg -h full` lists `-fix_dts`; stock ffmpeg would
+refuse it. The answers are cached until a binary changes. A setting
 naming a build the node lacks (an older `4.0` or `8.0`, say) takes the same minor
 version first, then the newest of its major, then the newest build there is, so no
 setting needs rewriting. Folders named `*.backup.*` are ignored and never deleted.

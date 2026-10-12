@@ -1,11 +1,13 @@
 <?php
 
+use XcVm\Streaming\Codec\FfmpegBinaries;
 use XcVm\Streaming\Codec\FfmpegPaths;
 use PHPUnit\Framework\TestCase;
 
 final class FfmpegPathsTest extends TestCase {
 	protected function setUp(): void {
 		$this->resetFfmpegPaths();
+		$this->resetFfmpegBinaries();
 	}
 
 	public function testResolveUsesExpectedBinariesForKnownVersion() {
@@ -24,7 +26,17 @@ final class FfmpegPathsTest extends TestCase {
 
 	protected function tearDown(): void {
 		exec('rm -rf ' . escapeshellarg(BIN_PATH . 'ffmpeg_bin'));
-		@unlink(dirname(FFMPEG_BIN_40) . '/BUILD_INFO');
+		$this->resetFfmpegBinaries();
+	}
+
+	/** FfmpegBinaries' scan is cached in memory and on disk: each test probes afresh. */
+	private function resetFfmpegBinaries(): void {
+		$rCache = new ReflectionProperty(FfmpegBinaries::class, 'cache');
+		$rCache->setAccessible(true);
+		$rCache->setValue(null, null);
+		$rFile = new ReflectionMethod(FfmpegBinaries::class, 'cacheFile');
+		$rFile->setAccessible(true);
+		@unlink($rFile->invoke(null));
 	}
 
 	/** A version the node lacks takes the newest build of its major (8.0 until 8.1 is fetched), never a backup folder; another major falls back to 4.0. */
@@ -87,25 +99,28 @@ final class FfmpegPathsTest extends TestCase {
 		$this->assertSame(BIN_PATH . 'ffmpeg_bin/4.0-xui/ffmpeg', FfmpegPaths::legacy());
 	}
 
-	/** -nofix_dts is XUI's switch: only a 4.0 folder without BUILD_INFO takes it, read through the 4.0 link. */
-	public function testOnlyXuisBuildTakesNofixDts() {
-		$this->build('4.0-xui');
-		$this->build('4.4', true);
+	/** -nofix_dts goes to a build whose ffmpeg has the -fix_dts option (XUI's, XC_VM's patched 4.x), asked of the binary, whatever the folder or BUILD_INFO say. */
+	public function testNofixDtsGoesToABuildWhoseBinaryHasTheOption() {
+		$this->fakeFfmpeg('4.0', true);
+		$this->fakeFfmpeg('4.4', true);
+		$this->fakeFfmpeg('7.1', false);
+		file_put_contents(BIN_PATH . 'ffmpeg_bin/7.1/BUILD_INFO', "Patches  : nofix_dts\n");
 		$rBin = BIN_PATH . 'ffmpeg_bin/';
-		$this->assertTrue(FfmpegPaths::fixDts($rBin . '4.0-xui/ffmpeg'));
-		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.4/ffmpeg'));
-		symlink('4.0-xui', $rBin . '4.0');
-		$this->assertTrue(FfmpegPaths::fixDts($rBin . '4.0/ffmpeg'), 'the alias of XUI\'s build');
-		unlink($rBin . '4.0');
-		symlink('4.4', $rBin . '4.0');
-		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.0/ffmpeg'), 'the alias of ours');
-		unlink($rBin . '4.0');
-		$this->build('4.0', true);
-		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.0/ffmpeg'), 'the old rebuilt 4.0 is stock ffmpeg');
-		$this->build('4.00');
-		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.00/ffmpeg'), 'only 4.0 itself or 4.0-xui');
-		$this->build('4.0-custom');
-		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.0-custom/ffmpeg'), 'an admin\'s own 4.0 is stock ffmpeg');
+		$this->assertTrue(FfmpegPaths::fixDts($rBin . '4.0/ffmpeg'));
+		$this->assertTrue(FfmpegPaths::fixDts($rBin . '4.4/ffmpeg'), 'not only a 4.0');
+		$this->assertFalse(FfmpegPaths::fixDts($rBin . '7.1/ffmpeg'), 'stock ffmpeg, whatever its BUILD_INFO says');
+		symlink('4.4', $rBin . 'alias');
+		$this->assertTrue(FfmpegPaths::fixDts($rBin . 'alias/ffmpeg'), 'a link answers for its build');
+		$this->assertFalse(FfmpegPaths::fixDts($rBin . 'missing/ffmpeg'));
+		$this->assertFalse(FfmpegPaths::fixDts('/usr/bin/ffmpeg'), 'outside ffmpeg_bin/: not asked');
+	}
+
+	/** A shell ffmpeg that prints its version and, if $rFix, the -fix_dts option in its full help. */
+	private function fakeFfmpeg(string $rDir, bool $rFix): void {
+		$this->build($rDir);
+		$rHelp = $rFix ? 'echo "-fix_dts            fix invalid dts"' : 'echo "-copyts             copy timestamps"';
+		file_put_contents(BIN_PATH . 'ffmpeg_bin/' . $rDir . '/ffmpeg', "#!/bin/sh\ncase \"$*\" in *full*) {$rHelp} ;; *) echo \"ffmpeg version {$rDir}\" ;; esac\n");
+		chmod(BIN_PATH . 'ffmpeg_bin/' . $rDir . '/ffmpeg', 0755);
 	}
 
 	private function build(string $rDir, bool $rOurs = false): void {

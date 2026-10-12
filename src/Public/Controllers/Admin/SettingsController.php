@@ -99,8 +99,8 @@ class SettingsController extends BaseAdminController {
 	 * A build labelled by what its binary says, not by its folder: the version as
 	 * `ffmpeg -version` prints it ("ffmpeg version 4.4.5-XCVM" reads "v4.4.5-XCVM",
 	 * a distro's "6.1.1-3ubuntu5" stays as is, no guessing which part is a
-	 * builder). A version with no suffix of its own takes the folder's (4.0-xui
-	 * reads "v4.0 (XUI)"); a banner with no version keeps the folder id. An id
+	 * builder). A version with no suffix of its own takes the folder's (6.1-my
+	 * reads "v6.1 (MY)"); a banner with no version keeps the folder id. An id
 	 * with no build of its own ($rBanner null) is "auto". Plain text: the view
 	 * escapes it.
 	 */

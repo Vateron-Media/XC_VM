@@ -4,6 +4,7 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Http\CurlClient;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\ReleaseAsset;
 use XcVm\Core\Updates\UpdateChannels;
@@ -23,10 +24,10 @@ use XcVm\Core\Updates\UpdateChannels;
  *
  * A folder name is a build id, and settings store it. `<major>.<minor>` is ours
  * and names the build's real minor version; `<major>.<minor>-<vendor>` is someone
- * else's and never touched. XUI's 4.0 (no BUILD_INFO beside it) moves to
- * `4.0-xui`: only it has the `-fix_dts` switch the legacy DTS path turns off
- * (FfmpegPaths::fixDts). A setting naming a build the node lacks (4.0, 8.0) is
- * resolved to the closest one there (FfmpegPaths), so none needs rewriting.
+ * else's (XUI's `4.0` included) and never touched. Whether a build takes
+ * `-nofix_dts` is asked of the binary (FfmpegPaths::fixDts). A setting naming a
+ * build the node lacks (4.0, 8.0) is resolved to the closest one there
+ * (FfmpegPaths), so none needs rewriting.
  *
  * Runs as xc_vm, which owns bin/ffmpeg_bin/; cron:root_signals runs it daily on
  * every node. A run that finished touches the index (finished()), so the cron
@@ -75,7 +76,7 @@ class FfmpegBuildsCommand implements CommandInterface {
 			echo "Please run as xc_vm (sudo -u xc_vm console.php ffmpeg).\n";
 			return 1;
 		}
-		$this->layout();
+		$this->sweep();
 		$rOs = @parse_ini_file('/etc/os-release') ?: [];
 		$rDistro = self::distro(strtolower((string) ($rOs['ID'] ?? '')), (string) ($rOs['VERSION_ID'] ?? ''));
 		if ($rDistro === null) {
@@ -194,16 +195,18 @@ class FfmpegBuildsCommand implements CommandInterface {
 			if (self::run(['tar', '-xzf', $rArchive, '-C', $rNew, '--no-same-owner', '--no-same-permissions', 'ffmpeg', 'ffprobe', self::BUILD_INFO]) !== 0) {
 				return 'the archive does not hold ffmpeg, ffprobe and BUILD_INFO';
 			}
-			// The build must be the version its label names: a 4.4.5 never again filed as 4.0.
-			if (!preg_match('/^FFmpeg\s*:\s*' . preg_quote($rLabel, '/') . '(?![0-9])/m', (string) @file_get_contents($rNew . self::BUILD_INFO))) {
-				return 'its BUILD_INFO is not an FFmpeg ' . $rLabel . ' build';
-			}
+
 			foreach (['ffmpeg', 'ffprobe'] as $rName) {
 				@chmod($rNew . $rName, 0755);
 				// Built for this distribution's glibc: it must start here.
 				if (self::run([$rNew . $rName, '-hide_banner', '-version']) !== 0) {
 					return $rName . ' does not run on this node';
 				}
+			}
+			// The binary must be the version its label names (asked, not read from BUILD_INFO): a 4.4.5 never again filed as 4.0.
+			[, $rBanner] = ProcessRunner::capture([$rNew . 'ffmpeg', '-hide_banner', '-version']);
+			if (!preg_match('/^ffmpeg version n?' . preg_quote($rLabel, '/') . '(?![0-9])/', $rBanner)) {
+				return 'its ffmpeg is not FFmpeg ' . $rLabel;
 			}
 			$rDir = $rBase . $rLabel;
 			if (is_dir($rDir) && !@rename($rDir, $rOld)) {
@@ -220,20 +223,6 @@ class FfmpegBuildsCommand implements CommandInterface {
 					self::run(['rm', '-rf', '--', $rLeft]);
 				}
 			}
-		}
-	}
-
-	/**
-	 * XUI's 4.0 (no BUILD_INFO beside it) moves to 4.0-xui, so it never shares a
-	 * folder with a 4.x build of ours; a setting still holding 4.0 finds it there
-	 * (FfmpegPaths takes the same minor first). No other folder is touched. Safe
-	 * to run any number of times.
-	 */
-	private function layout(): void {
-		$rBase = $this->base();
-		$this->sweep();
-		if (!is_link($rBase . '4.0') && is_file($rBase . '4.0/ffmpeg') && !is_file($rBase . '4.0/' . self::BUILD_INFO) && !file_exists($rBase . '4.0-xui') && @rename($rBase . '4.0', $rBase . '4.0-xui')) {
-			echo "[MOVE]  4.0: XUI's build is now 4.0-xui.\n";
 		}
 	}
 
