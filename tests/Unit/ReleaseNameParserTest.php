@@ -68,4 +68,18 @@ final class ReleaseNameParserTest extends TestCase {
 		$this->assertSame('Marshals', VodItemImporter::releaseTitle(['title' => 'Marshals', 'excess' => ['MULTI']]));
 		$this->assertNull(VodItemImporter::releaseTitle([]));
 	}
+
+	/**
+	 * A multi-word series title the SxxExx regex recovered must survive: the
+	 * parser leaves a title word ("Judge") in excess, and releaseTitle() would
+	 * otherwise strip it ("Judge Judy" → "Judy"), sinking the TMDb search.
+	 */
+	public function testSxxExxTitleKeepsAllItsWords(): void {
+		foreach (['guessit', 'ptn'] as $rType) {
+			$rRelease = VodItemImporter::parserelease('Judge Judy - S19E01-E02 - Parking Rage!', $rType);
+			$this->assertSame('Judge Judy', $rRelease['title'], $rType);
+			$this->assertArrayNotHasKey('excess', $rRelease, $rType . ': excess dropped when the regex set the title');
+			$this->assertSame('Judge Judy', VodItemImporter::releaseTitle($rRelease), $rType);
+		}
+	}
 }
