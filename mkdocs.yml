@@ -112,6 +112,7 @@ plugins:
             Watch Folder: Отслеживаемая папка
             Restreaming YouTube: Рестрим YouTube
             Custom FFmpeg Commands: Свои команды FFmpeg
+            Your Own FFmpeg Build: Своя сборка FFmpeg
             Developer Guide: Руководство разработчика
             Architecture: Архитектура
             Architecture Overview: Обзор архитектуры
@@ -181,6 +182,7 @@ nav:
           - Watch Folder: en/info/watch_folder.md
           - Restreaming YouTube: en/info/youtube-restream.md
           - Custom FFmpeg Commands: en/info/custom-ffmpeg-command.md
+          - Your Own FFmpeg Build: en/info/custom-ffmpeg-build.md
   - Developer Guide:
       - Architecture:
           - Architecture Overview: en/development/architecture.md
