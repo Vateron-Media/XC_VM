@@ -49,14 +49,72 @@ final class FfmpegPathsTest extends TestCase {
 		$this->assertSame(BIN_PATH . 'ffmpeg_bin/8.0/ffmpeg', FfmpegPaths::cpu(), 'the setting not migrated yet keeps its build');
 		$this->resetFfmpegPaths();
 		FfmpegPaths::resolve('9.0');
-		$this->assertSame(FFMPEG_BIN_40, FfmpegPaths::cpu());
+		$this->assertSame(BIN_PATH . 'ffmpeg_bin/8.1/ffmpeg', FfmpegPaths::cpu(), 'no build of its major: the newest build there is');
 	}
 
-	/** -nofix_dts is XUI's switch: only its 4.0 (no BUILD_INFO) takes it, not a rebuilt one. */
+	/** A vendor build has its own id; one the node lacks takes the same minor first, then the newest of its major; anything else is refused. */
+	public function testAVendorBuildIsItsOwnIdAndFallsBackWithinItsMinor() {
+		foreach (['4.0-xui', '4.4'] as $rDir) {
+			$this->build($rDir);
+		}
+		FfmpegPaths::resolve('4.0-xui');
+		$this->assertSame(BIN_PATH . 'ffmpeg_bin/4.0-xui/ffmpeg', FfmpegPaths::cpu());
+		$this->resetFfmpegPaths();
+		FfmpegPaths::resolve('4.0-abc');
+		$this->assertSame(BIN_PATH . 'ffmpeg_bin/4.0-xui/ffmpeg', FfmpegPaths::cpu(), 'the same minor before a newer one');
+
+		exec('rm -rf ' . escapeshellarg(BIN_PATH . 'ffmpeg_bin/4.0-xui'));
+		$this->resetFfmpegPaths();
+		FfmpegPaths::resolve('4.0-xui');
+		$this->assertSame(BIN_PATH . 'ffmpeg_bin/4.4/ffmpeg', FfmpegPaths::cpu(), 'a node without XUI\'s build takes ours');
+
+		$this->resetFfmpegPaths();
+		FfmpegPaths::resolve('4.4-x;rm');
+		$this->assertSame(BIN_PATH . 'ffmpeg_bin/4.4/ffmpeg', FfmpegPaths::cpu(), 'a malformed id is never a path: the newest build');
+		$this->assertTrue(FfmpegPaths::isBuildId('4.0-xui'));
+		$this->assertFalse(FfmpegPaths::isBuildId("8.1\n"), 'no trailing newline');
+		$this->assertFalse(FfmpegPaths::isBuildId('../8.1'));
+	}
+
+	/** The legacy ffmpeg (dts_legacy_ffmpeg) is XUI's 4.0 where the node has it, else the newest 4.x, else the configured build. */
+	public function testTheLegacyBuildIsXuisWhereThereIsOne() {
+		$this->build('7.1');
+		FfmpegPaths::resolve('7.1');
+		$this->assertSame(BIN_PATH . 'ffmpeg_bin/7.1/ffmpeg', FfmpegPaths::legacy(), 'no 4.x at all');
+		$this->build('4.4', true);
+		$this->assertSame(BIN_PATH . 'ffmpeg_bin/4.4/ffmpeg', FfmpegPaths::legacy());
+		$this->build('4.0-xui');
+		$this->assertSame(BIN_PATH . 'ffmpeg_bin/4.0-xui/ffmpeg', FfmpegPaths::legacy());
+	}
+
+	/** -nofix_dts is XUI's switch: only a 4.0 folder without BUILD_INFO takes it, read through the 4.0 link. */
 	public function testOnlyXuisBuildTakesNofixDts() {
-		$this->assertTrue(FfmpegPaths::fixDts());
-		file_put_contents(dirname(FFMPEG_BIN_40) . '/BUILD_INFO', "FFmpeg   : 4.4.5\n");
-		$this->assertFalse(FfmpegPaths::fixDts());
+		$this->build('4.0-xui');
+		$this->build('4.4', true);
+		$rBin = BIN_PATH . 'ffmpeg_bin/';
+		$this->assertTrue(FfmpegPaths::fixDts($rBin . '4.0-xui/ffmpeg'));
+		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.4/ffmpeg'));
+		symlink('4.0-xui', $rBin . '4.0');
+		$this->assertTrue(FfmpegPaths::fixDts($rBin . '4.0/ffmpeg'), 'the alias of XUI\'s build');
+		unlink($rBin . '4.0');
+		symlink('4.4', $rBin . '4.0');
+		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.0/ffmpeg'), 'the alias of ours');
+		unlink($rBin . '4.0');
+		$this->build('4.0', true);
+		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.0/ffmpeg'), 'the old rebuilt 4.0 is stock ffmpeg');
+		$this->build('4.00');
+		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.00/ffmpeg'), 'only 4.0 itself or 4.0-xui');
+		$this->build('4.0-custom');
+		$this->assertFalse(FfmpegPaths::fixDts($rBin . '4.0-custom/ffmpeg'), 'an admin\'s own 4.0 is stock ffmpeg');
+	}
+
+	private function build(string $rDir, bool $rOurs = false): void {
+		mkdir(BIN_PATH . 'ffmpeg_bin/' . $rDir, 0755, true);
+		touch(BIN_PATH . 'ffmpeg_bin/' . $rDir . '/ffmpeg');
+		touch(BIN_PATH . 'ffmpeg_bin/' . $rDir . '/ffprobe');
+		if ($rOurs) {
+			file_put_contents(BIN_PATH . 'ffmpeg_bin/' . $rDir . '/BUILD_INFO', "FFmpeg   : {$rDir}.5\n");
+		}
 	}
 
 	private function resetFfmpegPaths() {

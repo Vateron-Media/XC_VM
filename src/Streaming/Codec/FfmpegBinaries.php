@@ -89,7 +89,9 @@ class FfmpegBinaries {
 	}
 
 	/**
-	 * Version folders (name matches `<int>.<int>`) that ship an executable ffmpeg.
+	 * Build folders (`<int>.<int>`, or `<int>.<int>-<vendor>` such as 4.0-xui) that
+	 * ship an executable ffmpeg. A link is not a build of its own, so it is not
+	 * listed twice.
 	 *
 	 * @return array<string, string> version => absolute directory path (trailing slash)
 	 */
@@ -98,8 +100,8 @@ class FfmpegBinaries {
 		$rOut = [];
 		foreach (glob($rBase . '*', GLOB_ONLYDIR) ?: [] as $rDir) {
 			$rVersion = basename($rDir);
-			if (!preg_match('/^\d+\.\d+$/', $rVersion)) {
-				continue; // skip backups / non-version folders
+			if (is_link($rDir) || !FfmpegPaths::isBuildId($rVersion)) {
+				continue; // skip backups / non-version folders / aliases
 			}
 			$rBinary = $rDir . '/ffmpeg';
 			if (is_file($rBinary)) {

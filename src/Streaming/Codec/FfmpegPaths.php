@@ -45,8 +45,8 @@ class FfmpegPaths {
 			return;
 		}
 
-		self::$cpu   = self::binary($cpuVersion, 'ffmpeg') ?? FFMPEG_BIN_40;
-		self::$probe = self::binary($cpuVersion, 'ffprobe') ?? FFPROBE_BIN_40;
+		self::$cpu   = self::binary($cpuVersion, 'ffmpeg') ?? self::newest('ffmpeg') ?? FFMPEG_BIN_40;
+		self::$probe = self::binary($cpuVersion, 'ffprobe') ?? self::newest('ffprobe') ?? FFPROBE_BIN_40;
 
 		$rGpu = ($gpuVersion !== null && $gpuVersion !== '') ? self::binary($gpuVersion, 'ffmpeg') : null;
 		self::$gpu = $rGpu ?? self::$cpu;
@@ -54,34 +54,62 @@ class FfmpegPaths {
 		self::$resolved = true;
 	}
 
+	/** A build id: `<major>.<minor>` (ours) or `<major>.<minor>-<vendor>` (e.g. 4.0-xui). */
+	private const BUILD_ID = '/^(\d+\.\d+)(?:-[a-z0-9]+)?\z/';
+
+	/** Whether $rId names a build folder, as settings may store it (no path, no trailing newline). */
+	public static function isBuildId(string $rId): bool {
+		return (bool) preg_match(self::BUILD_ID, $rId);
+	}
+
 	/**
-	 * Build a binary path for a version folder, or that of the newest folder of
-	 * the same major when it is absent; null when the version string is
-	 * malformed or the node has no build of that major.
+	 * Build a binary path for a build folder, or, when it is absent, that of a
+	 * folder of the same major: the same minor first (4.0-xui for 4.0), then the
+	 * newest. Null when the id is malformed or the node has no build of that major.
 	 *
-	 * @param string $version Version folder name (e.g. '8.1')
+	 * @param string $version Build id (e.g. '8.1', '4.0-xui')
 	 * @param string $name    'ffmpeg' or 'ffprobe'
 	 */
 	private static function binary(string $version, string $name): ?string {
-		if (!preg_match('/^(\d+)\.\d+$/', $version, $rMatch)) {
+		if (!preg_match(self::BUILD_ID, $version, $rMatch)) {
 			return null;
 		}
 		$rPath = BIN_PATH . 'ffmpeg_bin/' . $version . '/' . $name;
 		if (is_file($rPath)) {
 			return $rPath;
 		}
-		$rSame = array_filter(glob(BIN_PATH . 'ffmpeg_bin/' . $rMatch[1] . '.*/' . $name) ?: [], static fn(string $rP): bool => (bool) preg_match('/^\d+\.\d+$/', basename(dirname($rP))));
-		usort($rSame, static fn(string $a, string $b): int => version_compare(basename(dirname($b)), basename(dirname($a))));
-		return $rSame[0] ?? null;
+		return self::newest($name, strtok($rMatch[1], '.') . '.*', $rMatch[1]);
 	}
 
 	/**
-	 * Does the 4.0 build take `-nofix_dts`? XUI's does (its own switch); one
-	 * FfmpegBuildsCommand installed (BUILD_INFO beside it) is stock ffmpeg, which
-	 * would refuse it.
+	 * $name from the newest build folder matching $rGlob, those of minor $rMinor
+	 * first; folders that are no build id (backups) are passed over. Null when
+	 * there is none.
 	 */
-	public static function fixDts(): bool {
-		return !is_file(dirname(FFMPEG_BIN_40) . '/BUILD_INFO');
+	private static function newest(string $name, string $rGlob = '*', string $rMinor = ''): ?string {
+		$rNum = static fn(string $rP): string => preg_match(self::BUILD_ID, basename(dirname($rP)), $rM) ? $rM[1] : '';
+		$rFound = array_filter(glob(BIN_PATH . 'ffmpeg_bin/' . $rGlob . '/' . $name) ?: [], static fn(string $rP): bool => $rNum($rP) !== '');
+		usort($rFound, static fn(string $a, string $b): int => (($rNum($b) === $rMinor) <=> ($rNum($a) === $rMinor)) ?: version_compare($rNum($b), $rNum($a)));
+		return $rFound[0] ?? null;
+	}
+
+	/**
+	 * The legacy ffmpeg (the `dts_legacy_ffmpeg` path for AC3/EAC3): XUI's 4.0
+	 * where the node has it, else the newest 4.x, else the configured build.
+	 */
+	public static function legacy(): string {
+		return self::binary('4.0', 'ffmpeg') ?? self::$cpu ?? FFMPEG_BIN_40;
+	}
+
+	/**
+	 * Does $rBin take `-nofix_dts`? Only XUI's 4.0 does (its own switch): the
+	 * folder 4.0-xui, or 4.0 itself before it moved, with no BUILD_INFO. Any other
+	 * 4.0-<vendor> is someone's stock build, which would refuse the switch. Read
+	 * through links, so a link answers for the build behind it.
+	 */
+	public static function fixDts(string $rBin): bool {
+		$rDir = realpath(dirname($rBin));
+		return $rDir !== false && preg_match('/^4\.0(?:-xui)?\z/', basename($rDir)) === 1 && !is_file($rDir . '/BUILD_INFO');
 	}
 
 	/** @return string Path to CPU-optimized ffmpeg binary */

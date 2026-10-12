@@ -21,11 +21,12 @@ use XcVm\Core\Updates\UpdateChannels;
  * records each label's release and archive md5, so an unchanged release is not
  * fetched again.
  *
- * The 4.0 label is XUI's build on a node that has it (no BUILD_INFO beside it):
- * it is kept, since only it has the `-fix_dts` switch the legacy DTS path turns
- * off, until the rebuilt 4.0's DTS handling is validated (plan Stage 7). A node
- * without a 4.0 takes the rebuilt one, to which no `-nofix_dts` is passed
- * (FfmpegPaths::fixDts).
+ * A folder name is a build id, and settings store it. `<major>.<minor>` is ours
+ * and names the build's real minor version; `<major>.<minor>-<vendor>` is someone
+ * else's and never touched. XUI's 4.0 (no BUILD_INFO beside it) moves to
+ * `4.0-xui`: only it has the `-fix_dts` switch the legacy DTS path turns off
+ * (FfmpegPaths::fixDts). A setting naming a build the node lacks (4.0, 8.0) is
+ * resolved to the closest one there (FfmpegPaths), so none needs rewriting.
  *
  * Runs as xc_vm, which owns bin/ffmpeg_bin/; cron:root_signals runs it daily on
  * every node. A run that finished touches the index (finished()), so the cron
@@ -40,8 +41,8 @@ use XcVm\Core\Updates\UpdateChannels;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class FfmpegBuildsCommand implements CommandInterface {
-	/** The builds fetched for each node: the versions the settings page offers. */
-	public const LABELS = ['4.0', '7.1', '8.1'];
+	/** The builds fetched for each node: the versions the settings page offers, each the minor version its build really is. */
+	public const LABELS = ['4.4', '7.1', '8.1'];
 
 	/** Under ffmpeg_bin/: each label's release and archive md5. */
 	public const INDEX = 'ffmpeg_version.json';
@@ -74,6 +75,7 @@ class FfmpegBuildsCommand implements CommandInterface {
 			echo "Please run as xc_vm (sudo -u xc_vm console.php ffmpeg).\n";
 			return 1;
 		}
+		$this->layout();
 		$rOs = @parse_ini_file('/etc/os-release') ?: [];
 		$rDistro = self::distro(strtolower((string) ($rOs['ID'] ?? '')), (string) ($rOs['VERSION_ID'] ?? ''));
 		if ($rDistro === null) {
@@ -129,10 +131,6 @@ class FfmpegBuildsCommand implements CommandInterface {
 	/** $rLabel at release $rVersion: true when it is in place (or kept on purpose), false when it should be and is not. */
 	private function label(GitHubReleases $rRepo, string $rVersion, string $rLabel, string $rDistro, bool $rForce): bool {
 		$rDir = $this->base() . $rLabel . '/';
-		if ($rLabel === '4.0' && is_file($rDir . 'ffmpeg') && !is_file($rDir . self::BUILD_INFO)) {
-			echo "[KEEP]  4.0: XUI's build stays until the rebuilt 4.0's DTS handling is validated.\n";
-			return true;
-		}
 		$rIndex = $this->index();
 		if (!$rForce && ($rIndex[$rLabel]['version'] ?? null) === $rVersion && is_file($rDir . 'ffmpeg') && is_file($rDir . self::BUILD_INFO)) {
 			echo "[SKIP]  {$rLabel}: up to date ({$rVersion}).\n";
@@ -196,6 +194,10 @@ class FfmpegBuildsCommand implements CommandInterface {
 			if (self::run(['tar', '-xzf', $rArchive, '-C', $rNew, '--no-same-owner', '--no-same-permissions', 'ffmpeg', 'ffprobe', self::BUILD_INFO]) !== 0) {
 				return 'the archive does not hold ffmpeg, ffprobe and BUILD_INFO';
 			}
+			// The build must be the version its label names: a 4.4.5 never again filed as 4.0.
+			if (!preg_match('/^FFmpeg\s*:\s*' . preg_quote($rLabel, '/') . '(?![0-9])/m', (string) @file_get_contents($rNew . self::BUILD_INFO))) {
+				return 'its BUILD_INFO is not an FFmpeg ' . $rLabel . ' build';
+			}
 			foreach (['ffmpeg', 'ffprobe'] as $rName) {
 				@chmod($rNew . $rName, 0755);
 				// Built for this distribution's glibc: it must start here.
@@ -217,6 +219,35 @@ class FfmpegBuildsCommand implements CommandInterface {
 				if (is_dir($rLeft)) {
 					self::run(['rm', '-rf', '--', $rLeft]);
 				}
+			}
+		}
+	}
+
+	/**
+	 * XUI's 4.0 (no BUILD_INFO beside it) moves to 4.0-xui, so it never shares a
+	 * folder with a 4.x build of ours; a setting still holding 4.0 finds it there
+	 * (FfmpegPaths takes the same minor first). No other folder is touched. Safe
+	 * to run any number of times.
+	 */
+	private function layout(): void {
+		$rBase = $this->base();
+		$this->sweep();
+		if (!is_link($rBase . '4.0') && is_file($rBase . '4.0/ffmpeg') && !is_file($rBase . '4.0/' . self::BUILD_INFO) && !file_exists($rBase . '4.0-xui') && @rename($rBase . '4.0', $rBase . '4.0-xui')) {
+			echo "[MOVE]  4.0: XUI's build is now 4.0-xui.\n";
+		}
+	}
+
+	/** What a killed place() left aside (.<label>.old.*, .new.*), once it is an hour old: never a run still going. */
+	private function sweep(): void {
+		foreach (glob($this->base() . '.*.{old,new}.*', GLOB_BRACE) ?: [] as $rLeft) {
+			$rStat = @lstat($rLeft);
+			if ($rStat === false || $rStat['ctime'] > time() - 3600) {
+				continue;
+			}
+			if (is_link($rLeft) || is_file($rLeft)) {
+				@unlink($rLeft);
+			} else {
+				self::run(['rm', '-rf', '--', $rLeft]);
 			}
 		}
 	}
