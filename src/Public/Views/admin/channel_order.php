@@ -3,12 +3,12 @@ use XcVm\Core\Util\LayoutRenderer;
 
 
 /**
- * Channel order (Bootstrap 5). Four tabs (streams / movies / series / radio); each is a
- * drag-to-reorder list of $rOrdered[$type]. On save the four lists are concatenated into
- * a single flat [id, …] array (the format ChannelService::setOrder expects), written to
- * the hidden "stream_order_array" field and POSTed to post.php?action=channel_order.
- * Reordering uses the shared native drag-and-drop helper (window.xcSortable); the legacy
- * dual-listbox is gone. Reached full-page in the new-UI shell.
+ * Channel order (Bootstrap 5). Four tabs (streams / movies / series / radio); each is the
+ * shared multi-select drag-and-drop list (order_listbox.php + window.xcOrderListbox)
+ * over $rOrdered[$type]. On save the four lists are concatenated into a single flat [id, …]
+ * array (the format ChannelService::setOrder expects), written to the hidden
+ * "stream_order_array" field and POSTed to post.php?action=channel_order. Reached
+ * full-page in the new-UI shell.
  */
 
 $rTypes = [
@@ -50,15 +50,8 @@ $rBlocked = (50000 < $rCount && empty($rOverride));
                 <?php $rFirst = true;
                 foreach ($rTypes as $rType => $rMeta): ?>
                     <div class="tab-pane fade <?= $rFirst ? 'show active' : ''; ?>" id="order-<?= $rType; ?>" role="tabpanel">
-                        <p class="text-body-secondary small"><i class="icon-base ti tabler-grip-vertical"></i> Drag to re-order, then click <b>Save Changes</b>.</p>
-                        <ol class="list-group xc-sortable mb-3" id="list-<?= $rType; ?>" style="list-style:none;padding-left:0;max-height:60vh;overflow-y:auto">
-                            <?php foreach (($rOrdered[$rType] ?? []) as $rItem): ?>
-                                <li class="list-group-item d-flex align-items-center" data-id="<?= (int) $rItem['id']; ?>" draggable="true">
-                                    <i class="icon-base ti tabler-grip-vertical text-body-secondary me-3" style="cursor:grab"></i>
-                                    <span class="flex-grow-1"><?= htmlspecialchars((string) ($rItem['stream_display_name'] ?? $rItem['title'] ?? ''), ENT_QUOTES); ?></span>
-                                </li>
-                            <?php endforeach; ?>
-                        </ol>
+                        <?php $rItems = $rOrdered[$rType] ?? [];
+                        require MAIN_HOME . 'Public/Views/admin/order_listbox.php'; ?>
                     </div>
                 <?php $rFirst = false;
                 endforeach; ?>
@@ -81,26 +74,18 @@ LayoutRenderer::renderFooter('admin');
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var toast = window.xcToast || function() {};
         var types = ['stream', 'movie', 'series', 'radio'];
-        types.forEach(function(t) {
-            var el = document.getElementById('list-' + t);
-            if (el && window.xcSortable) {
-                window.xcSortable(el);
-            }
-        });
         var form = document.getElementById('order-form');
         if (!form) {
             return;
         }
+        window.xcOrderListbox();
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             var order = [];
             types.forEach(function(t) {
-                var el = document.getElementById('list-' + t);
-                if (el) {
-                    [].forEach.call(el.querySelectorAll('li'), function(li) {
-                        order.push(parseInt(li.getAttribute('data-id'), 10));
-                    });
-                }
+                window.xcOrderListbox.ids(t).forEach(function(id) {
+                    order.push(parseInt(id, 10));
+                });
             });
             document.getElementById('stream_order_array').value = JSON.stringify(order);
             var btn = form.querySelector('button[type="submit"]');
