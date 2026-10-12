@@ -117,7 +117,8 @@ class ServerInstallCommand implements CommandInterface {
 			}
 		} elseif ($rType == 2) {
 			// Load-balancer nodes are a licensed capability — an unlicensed
-			// white-label panel stays usable locally but cannot add LB nodes.
+			// panel (no valid key, or attribution removed) stays usable locally
+			// but cannot add LB nodes.
 			// This is a first-line stopgap (removable PHP); the tamper-proof gate
 			// is XC_VM::db_grant() in the compiled core, which refuses the LB node
 			// DB access unless the panel is licensed.

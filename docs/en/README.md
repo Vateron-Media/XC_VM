@@ -18,7 +18,8 @@ XC_VM helps you deploy a full IPTV infrastructure:
 - EPG and VOD system  
 - Monitoring tools and API
 
-💡 *Completely free. No licenses. No server locks.*
+💡 *Free, AGPL-3.0. A single-server panel needs no key; load balancers and the fanout
+daemon need a free activation key — see [Licensing & Activation](info/licensing-and-activation.md).*
 
 ---
 

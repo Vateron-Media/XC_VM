@@ -1197,7 +1197,14 @@ class StreamProcess {
 		$rCmd[] = '-hls_segment_filename ' . escapeshellarg(STREAMS_PATH . $rStreamID . '_%d.ts');
 		$rCmd[] = escapeshellarg(STREAMS_PATH . $rStreamID . '_.m3u8');
 
-		return implode(' ', $rCmd);
+		$rLine = implode(' ', $rCmd);
+		// standalone: launched by the PHP monitor (fanout off), not the daemon —
+		// so it carries buildLive's non-supervised tail (redirect, background,
+		// record the pid). With no -ingest above it writes only the on-disk HLS.
+		if (!empty($data['standalone'])) {
+			$rLine .= ' >/dev/null 2>>' . STREAMS_PATH . $rStreamID . '.errors & echo $! > ' . STREAMS_PATH . $rStreamID . '_.pid';
+		}
+		return $rLine;
 	}
 
 	/**
@@ -2792,6 +2799,24 @@ class StreamProcess {
 						]);
 				if ($rFFMPEG === '') {
 					return 0; // the driver broke the contract; the reason is in the stream's log
+				}
+
+				// Native remuxer in place of ffmpeg when the admin chose it
+				// (fanout_source_backend native/auto) for a copy-only stream whose source
+				// the remuxer reads, and not a delayed one (delay needs ffmpeg's DELAY_PATH
+				// buffering). With no daemon (fanout off) it writes the on-disk HLS the
+				// legacy paths serve; with one reachable it tees to it too. In this
+				// unsupervised path native/auto both select it by the static gate; the
+				// daemon (fanout on) is what supplies auto's connect-time ffmpeg fallback.
+				$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
+				if ($rDriver === null && !$rDelayActive && $rBackend !== 'ffmpeg' && FanoutClient::supportsRemux() && self::remuxRefusal($rStream['stream_info'], $rArgsByKey) === null && self::isNativeSource($rStreamSource)) {
+					$rFFMPEG = self::buildNativeLive([
+						'streamID' => $rStreamID, 'source' => $rStreamSource,
+						'arguments' => $rArgsByKey, 'segmentSettings' => $rSegmentSettings,
+						'ingestSock' => $rIngestSock, 'settings' => $rSettings,
+						'binary' => FanoutClient::binaryPath(), 'standalone' => true,
+					]);
+					self::noteProducer($rStreamID, 'the native remuxer runs this stream');
 				}
 
 				shell_exec($rFFMPEG);

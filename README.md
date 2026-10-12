@@ -52,7 +52,8 @@ It enables:
 - 🎚️ Transcoding & EPG
 - 🔐 Hardened security fixes
 
-> ✅ 100% free. No license checks. No server locks.
+> ✅ Free, AGPL-3.0. A single-server panel needs no key; load balancers and the fanout
+> daemon need a free activation key — see [Activation key](#activation-key).
 
 ---
 
@@ -356,25 +357,54 @@ unlocks the panel on the next request. End-viewer streaming is **not** affected 
 Each build is also stamped with a unique build identifier (`XC_VM_BUILD_ID`) for provenance,
 so a leaked or rebranded copy can be traced back to the build it originated from.
 
-#### White-label activation (dual-licensing)
+#### Activation key
 
-Keeping the attribution notice means **AGPL-3.0 — free, and everything works**, including
-load-balancer nodes. If the attribution is **removed** (white-labelling), the panel
-requires a **free, machine-bound activation key** to provision load-balancer / cluster
-nodes; a single-server panel still runs locally without one. Keys are issued **free** and
-self-service (one per HWID, shown in **Settings → Info** and on the dashboard) and are
-**revocable** — this is accountability against rebranded resale, not monetization.
+A single-server panel works **without a key**: the admin, reseller and player panels and
+streaming all run. Two capabilities are licensed, and need **both** the attribution intact
+**and** a valid activation key — neither replaces the other:
+
+- **load-balancer / cluster nodes** — without a licence, new LB nodes cannot be added;
+- **the fanout delivery daemon** — without a licence, live delivery falls back to the
+  legacy path automatically (nothing is blocked, no data is touched).
+
+Keys are issued **free** and self-service, one per installation (HWID, shown in
+**Settings → Info** and on the dashboard), and are **revocable** — this is accountability
+against rebranded resale, not monetization.
+
+**If a key expires or is revoked**, the main server keeps working, and new LB nodes cannot
+be added until the key is renewed or replaced. Nodes already running are affected by how
+they connect:
+
+- nodes that still hold the main server's database credentials (legacy, cluster modes
+  0–1): the main server **revokes their database grant**;
+- API-only nodes (cluster mode 2) hold no database credentials: the main server stops
+  issuing leases, and each node keeps serving on the lease it already holds. It stops
+  when that lease runs out only if `lb_lease_fence` is on (off by default).
 
 #### What the panel sends (full transparency)
 
-A **community install (attribution intact) never contacts the licensing server.** A
-white-label install contacts `https://www.xcvm.tech` only to: (a) obtain its key
-(`install_id`), (b) run a weekly revocation check (`jti` + nonce), and (c) send **one daily
-check-in** (`install_id`, `jti`, `env_fp`, nonce) recording which IP a HWID runs from —
-evidence against a leaked copy. Every response is **Ed25519-signed** and verified. **No
-stream data, viewer data, credentials, database or file contents, and no remote command
-channel** are ever involved. Full detail:
-[Licensing & Activation](docs/en/info/licensing-and-activation.md).
+A panel **without a key makes no licensing requests** until you enter one (entering a key
+checks it immediately). A panel with a key contacts `https://www.xcvm.tech` only to:
+(a) obtain its key (`install_id`), (b) re-check it **once
+a day** and when you save or check it (`jti`, `install_id`, `env_fp`, nonce), and (c) send
+**one daily check-in** from the main server (the same fields) recording which IP a HWID
+runs from — evidence against a leaked copy. `env_fp` is a SHA-256 hash of the install ID,
+`/etc/machine-id` and the hostname. Every response is **Ed25519-signed** and verified.
+**No stream data, viewer data, credentials, database or file contents** are ever sent.
+There is no remote command channel, but a signed "revoked" verdict does trigger the LB
+response described above.
+
+If the licensing server is unreachable, a key keeps working: offline for up to 14 days
+after issue until the server has confirmed it once, and with no time limit after that.
+Full detail: [Licensing & Activation](docs/en/info/licensing-and-activation.md).
+
+#### The `xcvm_core` extension
+
+The panel source is AGPL-3.0. The bundled `xcvm_core` PHP extension is a **separate,
+closed-source binary** under its own proprietary licence. It holds the module-delivery
+crypto, the encrypted config / database / Redis credential layer, the cluster API keys
+and the licence logic above, so that keys and credentials never sit in readable PHP. It
+also refuses to load under a debugger (`TracerPid != 0`).
 
 > ⚖️ You are solely responsible for how it is used.
 > We take no responsibility for misuse or illegal deployments.
