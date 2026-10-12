@@ -15,6 +15,9 @@ time**:
 Neither condition replaces the other. A valid key does not allow you to remove
 the attribution, and keeping the attribution does not replace the activation key.
 
+A single-server panel works **without a key**: the admin, reseller and player
+panels and streaming all run. See [What the license provides](#what-the-license-provides).
+
 ## Attribution
 
 Attribution is a reference to the XC_VM project and Vateron Media, with links to
@@ -48,6 +51,12 @@ you find out right away.
 server and stores the result locally. The license server is not contacted on
 every request, so verification does not affect the panel's performance.
 
+**Daily check-in.** Separately, the main server sends one check-in a day. The
+license server records which IP address the installation runs from, as evidence
+against a leaked or cloned copy. Load balancers do not check in.
+
+A panel **without a key never contacts the license server**.
+
 **If the license server is unavailable.** Connectivity problems do not interrupt
 operation:
 
@@ -67,8 +76,13 @@ process needs:
 
 - the key identifier;
 - the installation identifier;
-- an anonymized technical fingerprint of the environment (a hash from which the
-  original data cannot be recovered).
+- a technical fingerprint of the environment: a SHA-256 hash of the installation
+  identifier, `/etc/machine-id` and the hostname. The original values cannot be
+  read back from it, but the same server always produces the same hash;
+- a random one-time value (nonce) that protects against replayed responses.
+
+The license server also sees the IP address the request comes from; the daily
+check-in stores it.
 
 Databases, user lists, channels, logs and other content are **not transmitted**.
 The server's response is digitally signed, so it cannot be forged or tampered
@@ -76,8 +90,14 @@ with.
 
 ## What the license provides
 
-The license is required for **multi-server operation**: connecting additional
-servers and load balancers (LBs) to the main server.
+The license is required for:
+
+- **multi-server operation**: connecting additional servers and load balancers
+  (LBs) to the main server;
+- **the fanout delivery daemon**: without a license, live streams fall back to the
+  legacy delivery path automatically. Nothing is blocked and no data is touched.
+
+Everything else in a single-server panel works without a license.
 
 ## If the license expires or is revoked
 

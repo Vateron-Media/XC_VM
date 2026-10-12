@@ -6,12 +6,13 @@ use XcVm\Core\Cluster\NodeLease;
 use XcVm\Streaming\Fanout\FanoutMode;
 
 /**
- * Reads the panel's licence verdict for the one capability it gates: the
- * xc_fanout live-delivery daemon.
+ * Reads the panel's licence verdict for the capabilities it gates: the
+ * xc_fanout live-delivery daemon and adding load-balancer nodes.
  *
- * The actual enforcement — HWID-bound activation key (tied to install_id),
- * the hidden method-selector bytes, the weekly re-validation request and the
- * 7-day offline grace — all live in the compiled xcvm_core extension. PHP only
+ * The actual enforcement — attribution AND an HWID-bound activation key (tied
+ * to install_id), the hidden method-selector bytes, the daily re-validation
+ * request and the 14-day initial offline grace — all live in the compiled
+ * xcvm_core extension. PHP only
  * asks it "may this install use fanout right now?" and never sees the key logic.
  *
  * Enforcement is SOFT: when the verdict is negative, {@see FanoutClient::available()}
@@ -51,8 +52,8 @@ class LicenseGate {
 	}
 
 	/**
-	 * Whether this install is licensed — a community install that keeps the
-	 * attribution, or a white-label install with a valid activation key. This is
+	 * Whether this install is licensed — the attribution is intact AND it holds a
+	 * valid activation key; neither substitutes for the other. This is
 	 * the gate for licence-restricted capabilities (fanout delivery, adding
 	 * load-balancer nodes). Fail-open where the extension or the method is absent
 	 * (dev / CI / installs without xcvm_core), so it never blocks a working panel.
