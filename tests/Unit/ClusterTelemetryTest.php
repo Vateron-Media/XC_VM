@@ -450,35 +450,40 @@ final class ClusterTelemetryTest extends TestCase {
 	public function testAdminTogglesTheFlow(): void {
 		$rServers = [1 => ['is_main' => 1, 'server_type' => 0], 5 => ['is_main' => 0, 'server_type' => 0, 'server_name' => 'LB-5']];
 		$rAct = fn(string $rAction) => \XcVm\Domain\Cluster\ClusterAdmin::act(new \XcVm\Tests\Support\FakeClusterCrypto(), ['cluster_action' => $rAction, 'server_id' => 5], $rServers, 1, [], 3);
+		// telemetry is mandatory: it switches on but never back off.
 		$this->assertSame('cluster_telemetry_on_done', $rAct('telemetry_on')['message']);
 		$this->assertSame(NodeRegistry::FLOW_TELEMETRY, (int) NodeRegistry::byServer(5)['flows']);
-		$this->assertSame('cluster_telemetry_off_done', $rAct('telemetry_off')['message']);
-		$this->assertSame(0, (int) NodeRegistry::byServer(5)['flows']);
-		$rAct('logs_on');
+		$this->assertSame('cluster_flow_mandatory', $rAct('telemetry_off')['message']);
+		$this->assertSame(NodeRegistry::FLOW_TELEMETRY, (int) NodeRegistry::byServer(5)['flows']);
+		// a non-mandatory flow (streams) toggles freely while nothing depends on it.
 		$this->assertSame('cluster_streams_on_done', $rAct('streams_on')['message']);
-		$this->assertSame(NodeRegistry::FLOW_LOGS | NodeRegistry::FLOW_STREAMS, (int) NodeRegistry::byServer(5)['flows']);
-		$rAct('logs_off');
-		$this->assertSame(NodeRegistry::FLOW_STREAMS, (int) NodeRegistry::byServer(5)['flows']);
+		$this->assertSame(NodeRegistry::FLOW_TELEMETRY | NodeRegistry::FLOW_STREAMS, (int) NodeRegistry::byServer(5)['flows']);
+		$this->assertSame('cluster_streams_off_done', $rAct('streams_off')['message']);
+		$this->assertSame(NodeRegistry::FLOW_TELEMETRY, (int) NodeRegistry::byServer(5)['flows']);
+		// build toward connections: it needs commands and streams.
+		$rAct('streams_on');
 		$this->assertSame('cluster_content_on_done', $rAct('content_on')['message']);
 		$this->assertSame('cluster_flow_needs', $rAct('connections_on')['message'], 'Connections needs Commands too');
 		$rAct('commands_on');
 		$this->assertSame('cluster_connections_on_done', $rAct('connections_on')['message']);
-		$this->assertSame('cluster_flow_needs', $rAct('commands_off')['message'], 'and cannot lose it while on');
-		$rAct('connections_off');
-		$rAct('commands_off');
-		$this->assertSame(NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONTENT, (int) NodeRegistry::byServer(5)['flows']);
+		// commands and connections are mandatory: neither switches off.
+		$this->assertSame('cluster_flow_mandatory', $rAct('commands_off')['message']);
+		$this->assertSame('cluster_flow_mandatory', $rAct('connections_off')['message']);
+		// streams is held on by the connections dependency, not by the lock.
+		$this->assertSame('cluster_flow_needs', $rAct('streams_off')['message'], 'Connections still needs Streams');
+		$this->assertSame(NodeRegistry::FLOW_TELEMETRY | NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONTENT | NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_CONNECTIONS, (int) NodeRegistry::byServer(5)['flows']);
 		// The data plane points the node's encoders at its agent's relay proxy:
 		// only for an agent that says it runs one.
 		NodeRegistry::update(5, ['features' => 'hls_reaper,streams']);
 		$this->assertSame('cluster_dataplane_needs_relay', $rAct('dataplane_on')['message'], 'an agent without the relay proxy');
-		$this->assertSame(NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONTENT, (int) NodeRegistry::byServer(5)['flows']);
 		$this->assertFalse(\XcVm\Domain\Cluster\ClusterAdmin::relayAdvertised(NodeRegistry::byServer(5)));
 		NodeRegistry::update(5, ['features' => 'hls_reaper,streams,relay']);
 		$this->assertTrue(\XcVm\Domain\Cluster\ClusterAdmin::relayAdvertised(NodeRegistry::byServer(5)));
 		$this->assertSame('cluster_dataplane_on_done', $rAct('dataplane_on')['message']);
+		// the data plane is mandatory too: it stays on even if the agent drops the relay feature.
 		NodeRegistry::update(5, ['features' => '']);
-		$this->assertSame('cluster_dataplane_off_done', $rAct('dataplane_off')['message'], 'off whatever the agent says');
-		$this->assertSame(NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONTENT, (int) NodeRegistry::byServer(5)['flows']);
+		$this->assertSame('cluster_flow_mandatory', $rAct('dataplane_off')['message']);
+		$this->assertSame(NodeRegistry::FLOW_TELEMETRY | NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONTENT | NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_CONNECTIONS | NodeRegistry::FLOW_DATAPLANE, (int) NodeRegistry::byServer(5)['flows']);
 		NodeRegistry::update(5, ['state' => 'revoked']);
 		$this->assertSame('cluster_not_enrolled', $rAct('telemetry_on')['message']);
 	}
