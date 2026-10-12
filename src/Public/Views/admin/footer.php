@@ -669,19 +669,35 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                         return;
                     }
                     e.preventDefault();
-                    // Drop the block before the first other row whose middle is below the pointer.
-                    var after = null;
-                    var others = rows(ol).filter(function(li) {
-                        return dragging.indexOf(li) === -1;
-                    });
-                    for (var i = 0; i < others.length; i++) {
-                        var box = others[i].getBoundingClientRect();
-                        if (e.clientY < box.top + box.height / 2) {
-                            after = others[i];
-                            break;
+                    // Only the row under the pointer is measured (one layout read per event, not
+                    // one per row): the block goes before it or after it, by which half is hovered.
+                    var ref;
+                    var li = e.target.closest('li');
+                    if (li && li.parentNode === ol) {
+                        if (li.classList.contains('opacity-50')) {
+                            return;
                         }
+                        var box = li.getBoundingClientRect();
+                        ref = e.clientY < box.top + box.height / 2 ? li : li.nextElementSibling;
+                    } else if (e.target === ol) {
+                        var last = ol.lastElementChild;
+                        if (!last || e.clientY < last.getBoundingClientRect().bottom) {
+                            return;
+                        }
+                        ref = null;
+                    } else {
+                        return;
                     }
-                    ol.insertBefore(toFragment(dragging), after);
+                    while (ref && ref.classList.contains('opacity-50')) {
+                        ref = ref.nextElementSibling;
+                    }
+                    // Already there (contiguous and right before ref): no DOM write.
+                    var placed = dragging[dragging.length - 1].nextElementSibling === ref && dragging.every(function(row, i) {
+                        return i === 0 || dragging[i - 1].nextElementSibling === row;
+                    });
+                    if (!placed) {
+                        ol.insertBefore(toFragment(dragging), ref);
+                    }
                 });
             });
             document.addEventListener('click', function(e) {
