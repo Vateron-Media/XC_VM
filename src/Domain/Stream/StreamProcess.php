@@ -485,6 +485,23 @@ class StreamProcess {
 	}
 
 	/**
+	 * Resolve a `vod:<streamId>` playlist entry to that VOD's encoded file on a server.
+	 *
+	 * @return string|null VOD_PATH.<id>.<container>, or null when the VOD has no
+	 *                     encoded (stream_status 0, analysed) copy on $rServerId.
+	 */
+	private static function resolveVodSource(string $rEntry, int $rServerId): ?string {
+		$db = self::db();
+		$rVodId = intval(substr($rEntry, 4));
+		$db->query('SELECT s.`target_container`, ss.`stream_status`, ss.`to_analyze` FROM `streams` s JOIN `streams_servers` ss ON ss.`stream_id` = s.`id` WHERE s.`id` = ? AND ss.`server_id` = ?', $rVodId, $rServerId);
+		$rRow = $db->num_rows() > 0 ? $db->get_row() : null;
+		if (!$rRow || intval($rRow['stream_status']) !== 0 || intval($rRow['to_analyze']) !== 0) {
+			return null;
+		}
+		return VOD_PATH . $rVodId . '.' . (($rRow['target_container'] ?? '') !== '' ? $rRow['target_container'] : 'mp4');
+	}
+
+	/**
 	 * Resolve a created-channel source string into [serverId, sourcePath].
 	 *
 	 * A plain string is a local path on this server. An `s:<serverId>:<path>`
