@@ -42,4 +42,10 @@ final class CreatedChannelItemPlanTest extends TestCase {
         $this->assertStringContainsString('-c:v mpeg2video -vf scale=720:576 -pix_fmt yuv420p -b:v 4000k -c:a mp2 -ac 2 -ar 48000 -b:a 128k', $a);
         $this->assertStringNotContainsString('copy', $a);
     }
+
+    public function testAbsurdTargetIsClamped(): void {
+        $a = StreamProcess::channelTranscodeArgs(['v' => 'h264,999999,999999,yuv420p', 'a' => 'aac,99,999999']);
+        $this->assertStringContainsString('scale=7680:4320', $a);
+        $this->assertStringContainsString('-ac 8 -ar 192000', $a);
+    }
 }

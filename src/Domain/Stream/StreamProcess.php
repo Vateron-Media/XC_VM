@@ -547,9 +547,9 @@ class StreamProcess {
 		$rVEnc = ['h264' => 'libx264', 'hevc' => 'libx265', 'mpeg2video' => 'mpeg2video', 'vp9' => 'libvpx-vp9', 'vp8' => 'libvpx'][$rVC] ?? 'libx264';
 		$rAEnc = ['aac' => 'aac', 'mp2' => 'mp2', 'ac3' => 'ac3'][$rAC] ?? 'aac';
 		$rPix = preg_match('/^[a-z0-9_]+$/', $rPix) ? $rPix : 'yuv420p';
-		$rArgs = '-c:v ' . $rVEnc . ' -vf scale=' . max(2, intval($rW)) . ':' . max(2, intval($rH)) . ' -pix_fmt ' . $rPix
+		$rArgs = '-c:v ' . $rVEnc . ' -vf scale=' . min(7680, max(2, intval($rW))) . ':' . min(4320, max(2, intval($rH))) . ' -pix_fmt ' . $rPix
 			. (in_array($rVEnc, ['libx264', 'libx265'], true) ? ' -preset veryfast -crf 23' : ' -b:v 4000k');
-		return $rArgs . ' -c:a ' . $rAEnc . ' -ac ' . max(1, intval($rCh)) . ' -ar ' . max(8000, intval($rRate)) . ' -b:a 128k';
+		return $rArgs . ' -c:a ' . $rAEnc . ' -ac ' . min(8, max(1, intval($rCh))) . ' -ar ' . min(192000, max(8000, intval($rRate))) . ' -b:a 128k';
 	}
 
 	/**
