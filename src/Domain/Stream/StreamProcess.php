@@ -2828,13 +2828,14 @@ class StreamProcess {
 
 				// Native remuxer in place of ffmpeg when the admin chose it
 				// (fanout_source_backend native/auto) and this copy-only stream's
-				// source is one the remuxer reads. With no daemon (fanout off) it
+				// source is one the remuxer reads, and not a delayed stream (delay
+					// needs ffmpeg's DELAY_PATH buffering). With no daemon (fanout off) it
 				// writes the on-disk HLS the legacy paths serve; with one reachable
 				// it tees to it too. `native` runs only the remuxer; `auto` lets
 				// ffmpeg take over below when it cannot stay up.
 				$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
 				$rNativeCmd = null;
-				if ($rDriver === null && $rBackend !== 'ffmpeg' && FanoutClient::supportsRemux()
+				if ($rDriver === null && !$rDelayActive && $rBackend !== 'ffmpeg' && FanoutClient::supportsRemux()
 					&& self::remuxRefusal($rStream['stream_info'], $rArgsByKey) === null
 					&& self::isNativeSource($rStreamSource)) {
 					$rNativeCmd = self::buildNativeLive([
