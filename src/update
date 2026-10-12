@@ -78,6 +78,12 @@ def doUpdate(rFilename):
     import tempfile
 
     rTmpDir = tempfile.mkdtemp(prefix="xc_vm_update_")
+    # mkdtemp makes the dir 0700; the copy below is `cp -a <tmp>/. <base>`,
+    # which stamps this dir's OWN mode onto the install root. A full archive
+    # carries a 0755 `./` entry that resets it, but a delta that lacks one
+    # would leave 0700 and lock the xc_vm user out of root:xc_vm-owned
+    # /home/xc_vm on MAIN. Force 0755 so the staging mode can never leak.
+    os.chmod(rTmpDir, 0o755)
     log_msg("INFO", "Temporary directory created: %s" % rTmpDir)
     rCopying = False
 
