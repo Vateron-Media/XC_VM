@@ -8,7 +8,6 @@ use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Util\StreamUtils;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\CategoryService;
