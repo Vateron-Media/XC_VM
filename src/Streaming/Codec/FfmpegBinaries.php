@@ -2,6 +2,8 @@
 
 namespace XcVm\Streaming\Codec;
 
+use XcVm\Core\Process\ProcessRunner;
+
 /**
  * FfmpegBinaries — discovery + capability probe for the bundled FFmpeg builds.
  *
@@ -10,11 +12,12 @@ namespace XcVm\Streaming\Codec;
  * executable `ffmpeg`, and records per build: the version banner, whether it can
  * encode on the GPU, and the list of hardware encoders it exposes.
  *
- * Probing shells out to each binary (`-hwaccels`, `-encoders`), which is slow, so
+ * Probing shells out to each binary (`-encoders`, `-h full`, `-version`), which is slow, so
  * the result is cached to a JSON file keyed by a fingerprint of the directory set
  * and their mtimes — a binary swap (e.g. by BinariesCommand) changes the mtime and
- * transparently invalidates the cache. This class is UI-only (settings page); the
- * streaming hot path resolves paths cheaply via {@see FfmpegPaths} without scanning.
+ * transparently invalidates the cache. The settings page reads it, and so does
+ * a stream start through {@see FfmpegPaths::fixDts()} (whether a build takes
+ * `-nofix_dts`); resolving a binary path never scans.
  *
  * @package XC_VM_Streaming_Codec
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -85,11 +88,14 @@ class FfmpegBinaries {
 			$rParts[] = $rVersion . ':' . (@filemtime($rDir . 'ffmpeg') ?: 0);
 		}
 		sort($rParts);
-		return md5(implode('|', $rParts));
+		// The schema too: a cache written before a field was probed is rescanned.
+		return hash('sha256', 'nofix_dts|' . implode('|', $rParts));
 	}
 
 	/**
-	 * Version folders (name matches `<int>.<int>`) that ship an executable ffmpeg.
+	 * Build folders (`<int>.<int>`, or `<int>.<int>-<vendor>` such as 6.1-my) that
+	 * ship an executable ffmpeg. A link is not a build of its own, so it is not
+	 * listed twice.
 	 *
 	 * @return array<string, string> version => absolute directory path (trailing slash)
 	 */
@@ -98,8 +104,8 @@ class FfmpegBinaries {
 		$rOut = [];
 		foreach (glob($rBase . '*', GLOB_ONLYDIR) ?: [] as $rDir) {
 			$rVersion = basename($rDir);
-			if (!preg_match('/^\d+\.\d+$/', $rVersion)) {
-				continue; // skip backups / non-version folders
+			if (is_link($rDir) || !FfmpegPaths::isBuildId($rVersion)) {
+				continue; // skip backups / non-version folders / aliases
 			}
 			$rBinary = $rDir . '/ffmpeg';
 			if (is_file($rBinary)) {
@@ -125,9 +131,17 @@ class FfmpegBinaries {
 				'gpu'      => count($rEncoders) > 0,
 				'encoders' => $rEncoders,
 				'banner'   => self::banner($rBinary),
+				'nofix_dts' => self::takesNofixDts($rBinary),
 			];
 		}
 		return $rOut;
+	}
+
+	/** Whether the build has XUI's `-fix_dts` option (so takes `-nofix_dts`): its full help lists it. */
+	private static function takesNofixDts(string $rBinary): bool {
+		// No shell; the option is listed in the first few KB of the help (~900 KB in all).
+		[, $rOut] = ProcessRunner::capture(['timeout', '5', $rBinary, '-hide_banner', '-h', 'full']);
+		return preg_match('/^-fix_dts\s/m', $rOut) === 1;
 	}
 
 	/** First line of `ffmpeg -version` (the human-readable build banner). */

@@ -1079,10 +1079,10 @@ class StreamProcess {
 				$rGenPTS = '-fflags +genpts -async 1';
 			} else {
 				if (is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']['audio']['codec_name']) && in_array($rFFProbeOutput['codecs']['audio']['codec_name'], ['ac3', 'eac3']) && $rSettings['dts_legacy_ffmpeg']) {
-					$rFFMPEG_CPU = FFMPEG_BIN_40;
+					$rFFMPEG_CPU = FfmpegPaths::legacy();
 				}
 
-				$rNoFix = ($rFFMPEG_CPU == FFMPEG_BIN_40 && FfmpegPaths::fixDts() ? '-nofix_dts' : '');
+				$rNoFix = FfmpegPaths::fixDts($rFFMPEG_CPU) ? '-nofix_dts' : '';
 				$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
 			}
 

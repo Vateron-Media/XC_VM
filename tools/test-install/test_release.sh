@@ -132,7 +132,7 @@ cmd_streamtest_gen() {
     # the wrapper before exec. pkill skips its own pid, so a standalone call is safe.
     docker exec "$CONTAINER" pkill -f 'test-stream-generator/stream_server.py' 2>/dev/null || true
     docker exec -d "$CONTAINER" bash -c '
-        for v in 8.0 7.1 4.0; do
+        for v in 8.1 7.1 4.4 4.0; do
             [ -x /home/xc_vm/bin/ffmpeg_bin/$v/ffmpeg ] && FF=/home/xc_vm/bin/ffmpeg_bin/$v/ffmpeg && break
         done
         exec python3 /opt/xcvm-tools/test-stream-generator/stream_server.py \

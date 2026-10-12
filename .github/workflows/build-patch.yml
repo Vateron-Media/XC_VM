@@ -180,26 +180,37 @@ jobs:
 
       # A patch is a small update, not a re-download of the whole panel. The
       # updater overlays the archive onto the live tree (src/update: `cp -a`,
-      # never a wipe) then runs post-update, so the update archives only need
-      # what differs from the base release. XC_VM.zip stays the full installer
-      # (a fresh install lays down the whole tree); only xc_vm.tar.gz and
-      # loadbalancer.tar.gz — what the updater downloads — become a delta.
+      # never a wipe) then runs post-update, so the MAIN update archive only
+      # needs what differs from the base release: xc_vm.tar.gz — what the MAIN
+      # updater downloads — becomes a delta. XC_VM.zip stays the full installer
+      # (a fresh MAIN install lays down the whole tree).
       #
-      # The delta is diffed on the BUILT TREES, base-release archive vs this
-      # build, NOT on `git diff`: that way a build-generated file (the composer
-      # autoloader, a generated config) is included too, and the version can
-      # never advance without every file that changed with it (no fail-open).
+      # loadbalancer.tar.gz stays FULL. It is both the LB updater's download
+      # AND the LB's only installer: ServerInstallCommand pulls MAIN's own
+      # release (XC_VM_VERSION, which after a patch is X.Y.Z-pN) to provision a
+      # fresh node, and there is no LB equivalent of XC_VM.zip. A delta would
+      # lay a partial tree onto a clean node, so an LB enrolled from a patched
+      # MAIN would be broken. A full archive also updates correctly (the
+      # overlay rewrites every file) and `make lb LAST_TAG=BASE` already emits
+      # its deleted_files.txt relative to BASE.
+      #
+      # The MAIN delta is diffed on the BUILT TREES, base-release archive vs
+      # this build, NOT on `git diff`: that way a build-generated file (the
+      # composer autoloader, a generated config) is included too, and the
+      # version can never advance without every file that changed with it (no
+      # fail-open).
       - name: Reduce the update archives to a delta
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           rm -rf .delta && mkdir -p .delta/base
-          # The patched release's own archives to diff against (BASE — the
+          # The patched release's own MAIN archive to diff against (BASE — the
           # release this patch is of). It is an X.Y.Z release (never a -pN), so
-          # these are always full trees. A failure here aborts the build rather
-          # than shipping a wrong delta.
-          gh release download "$BASE" -R "$GITHUB_REPOSITORY" -p xc_vm.tar.gz -p loadbalancer.tar.gz -D .delta/base
+          # it is always a full tree. A failure here aborts the build rather
+          # than shipping a wrong delta. Only xc_vm.tar.gz is deltaed, so the
+          # LB base archive is not needed.
+          gh release download "$BASE" -R "$GITHUB_REPOSITORY" -p xc_vm.tar.gz -D .delta/base
 
           # Files removed from the codebase since the base release, so a patch
           # that deletes (or renames away) a file — a vulnerable script, say —
@@ -273,8 +284,10 @@ jobs:
             sed "s#^#  $kind: #" "$list"
           }
 
-          make_delta dist/xc_vm.tar.gz        .delta/base/xc_vm.tar.gz        dist/xc_vm.tar.gz        main 1
-          make_delta dist/loadbalancer.tar.gz .delta/base/loadbalancer.tar.gz dist/loadbalancer.tar.gz lb   0
+          # Only the MAIN archive becomes a delta. loadbalancer.tar.gz is left
+          # as the full archive `make lb` produced — it is the LB's installer
+          # as well as its update payload (see the note above the diff step).
+          make_delta dist/xc_vm.tar.gz .delta/base/xc_vm.tar.gz dist/xc_vm.tar.gz main 1
 
           # Rebuild the hash file over the final assets (the updater refuses an
           # asset hashes.md5 does not list); the full installer is unchanged.
