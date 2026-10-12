@@ -11,6 +11,7 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Cluster\StreamAssign;
+use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Vod\SeriesService;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
@@ -152,11 +153,15 @@ class ChannelService {
 				$rArray['order'] = StreamRepository::getNextOrder();
 			}
 
+			$rArray['epg_id'] = CreatedChannelEpg::reservedSourceId();
+
 			$rPrepare = QueryHelper::prepareArray($rArray);
 			$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 			if ($db->query($rQuery, ...$rPrepare['data'])) {
 				$rInsertID = $db->last_insert_id();
+				// The id of a new channel is only known after the insert.
+				$db->query('UPDATE `streams` SET `channel_id` = ? WHERE `id` = ?;', 'created_' . $rInsertID, $rInsertID);
 				$rStreamExists = [];
 
 				if (isset($rData['edit'])) {
