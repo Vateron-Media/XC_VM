@@ -430,6 +430,12 @@ LayoutRenderer::renderFooter('admin');
 
         // ---- VOD selection ----
         var rSelection = [];
+        $('#review_sort option').each(function() {
+            var m = /^vod:(\d+)$/.exec(this.value);
+            if (m) {
+                rSelection.push(parseInt(m[1], 10));
+            }
+        });
 
         function reviewSelection() {
             $.post('./api?action=review_selection', {
@@ -439,14 +445,14 @@ LayoutRenderer::renderFooter('admin');
                     return;
                 }
                 var active = [];
-                $(rData.streams).each(function(i) {
-                    var src = $.parseJSON(rData.streams[i].stream_source)[0];
-                    active.push(src);
-                    var ext = src.split('.').pop().toLowerCase();
-                    if (VIDEO_EXT.indexOf(ext) !== -1 && $('#review_sort option').filter(function() {
-                            return this.value === src;
+                $(rData.streams).each(function(i, st) {
+                    var val = 'vod:' + parseInt(st.id, 10),
+                        src = $.parseJSON(st.stream_source)[0];
+                    active.push(val);
+                    if ($('#review_sort option').filter(function() {
+                            return this.value === val;
                         }).length === 0) {
-                        $('#review_sort').append(new Option(src, src));
+                        $('#review_sort').append(new Option(src, val));
                     }
                 });
                 $('#review_sort option').each(function() {
