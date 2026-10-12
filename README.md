@@ -371,21 +371,28 @@ Keys are issued **free** and self-service, one per installation (HWID, shown in
 **Settings → Info** and on the dashboard), and are **revocable** — this is accountability
 against rebranded resale, not monetization.
 
-**If a key expires or is revoked**, the main server keeps working, but it **revokes the
-database access of its load-balancer nodes**, and new nodes cannot be added until the key
-is renewed or replaced.
+**If a key expires or is revoked**, the main server keeps working, and new LB nodes cannot
+be added until the key is renewed or replaced. Nodes already running are affected by how
+they connect:
+
+- nodes that still hold the main server's database credentials (legacy, cluster modes
+  0–1): the main server **revokes their database grant**;
+- API-only nodes (cluster mode 2) hold no database credentials: the main server stops
+  issuing leases, and each node keeps serving on the lease it already holds. It stops
+  when that lease runs out only if `lb_lease_fence` is on (off by default).
 
 #### What the panel sends (full transparency)
 
-A panel **without a key never contacts the licensing server.** A panel with a key contacts
-`https://www.xcvm.tech` only to: (a) obtain its key (`install_id`), (b) re-check it **once
+A panel **without a key makes no licensing requests** until you enter one (entering a key
+checks it immediately). A panel with a key contacts `https://www.xcvm.tech` only to:
+(a) obtain its key (`install_id`), (b) re-check it **once
 a day** and when you save or check it (`jti`, `install_id`, `env_fp`, nonce), and (c) send
 **one daily check-in** from the main server (the same fields) recording which IP a HWID
 runs from — evidence against a leaked copy. `env_fp` is a SHA-256 hash of the install ID,
 `/etc/machine-id` and the hostname. Every response is **Ed25519-signed** and verified.
 **No stream data, viewer data, credentials, database or file contents** are ever sent.
 There is no remote command channel, but a signed "revoked" verdict does trigger the LB
-database revoke described above.
+response described above.
 
 If the licensing server is unreachable, a key keeps working: offline for up to 14 days
 after issue until the server has confirmed it once, and with no time limit after that.

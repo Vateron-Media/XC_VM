@@ -55,7 +55,8 @@ every request, so verification does not affect the panel's performance.
 license server records which IP address the installation runs from, as evidence
 against a leaked or cloned copy. Load balancers do not check in.
 
-A panel **without a key never contacts the license server**.
+A panel **without a key makes no requests to the license server** until you
+enter one; entering a key checks it immediately, as described above.
 
 **If the license server is unavailable.** Connectivity problems do not interrupt
 operation:
@@ -101,9 +102,14 @@ Everything else in a single-server panel works without a license.
 
 ## If the license expires or is revoked
 
-- The main server **disconnects additional servers (LBs) from the database**, and
-  new servers cannot be connected.
 - The main server itself keeps working.
+- New servers (LBs) cannot be connected.
+- LBs that still hold the main server's database credentials (legacy, cluster
+  modes 0–1) **lose their database access**.
+- API-only LBs (cluster mode 2) hold no database credentials. The main server
+  stops issuing them leases; each keeps serving on the lease it already holds,
+  and stops when that lease runs out only if `lb_lease_fence` is on (off by
+  default). See [Cluster API](../development/cluster-api.md).
 - Once the key is renewed or replaced, additional servers can be connected again.
 
 If the panel could not reach the license server even once within 14 days of the
