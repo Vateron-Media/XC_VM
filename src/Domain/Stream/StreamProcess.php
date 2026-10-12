@@ -485,12 +485,66 @@ class StreamProcess {
 	}
 
 	/**
+	 * Decide copy vs transcode per playlist item so the concat output is one
+	 * uniform HLS variant. Target = $rProfile when the admin set one, else the
+	 * most common fingerprint among items. ffmpeg will not flag a mismatch
+	 * (mpegts carries mid-stream changes), so this proactive comparison is what
+	 * keeps players from breaking on a codec/resolution switch.
+	 *
+	 * @param array<int, array{v:string,a:string}> $rItems
+	 * @param array{v:string,a:string}|null $rProfile
+	 * @return array<int, 'copy'|'transcode'>
+	 */
+	public static function channelItemPlan(array $rItems, ?array $rProfile = null): array {
+		$rTarget = $rProfile;
+		if ($rTarget === null) {
+			$rCounts = [];
+			foreach ($rItems as $rIt) {
+				$rKey = $rIt['v'] . '|' . $rIt['a'];
+				$rCounts[$rKey] = ($rCounts[$rKey] ?? 0) + 1;
+			}
+			$rBestN = -1;
+			foreach ($rItems as $rIt) { // iterate items (not $rCounts) so ties resolve to first-seen
+				$rKey = $rIt['v'] . '|' . $rIt['a'];
+				if ($rCounts[$rKey] > $rBestN) {
+					$rBestN = $rCounts[$rKey];
+					$rTarget = $rIt;
+				}
+			}
+		}
+		$rPlan = [];
+		foreach ($rItems as $rI => $rIt) {
+			$rPlan[$rI] = ($rTarget !== null && $rIt['v'] === $rTarget['v'] && $rIt['a'] === $rTarget['a']) ? 'copy' : 'transcode';
+		}
+		return $rPlan;
+	}
+
+	/**
+	 * A/V fingerprint of a FFprobeRunner::probeStream() result, for channelItemPlan().
+	 * A failed probe yields a fingerprint no other item shares (so it is transcoded).
+	 *
+	 * @param array|false|null $rProbe
+	 * @return array{v:string,a:string}
+	 */
+	public static function channelItemFingerprint($rProbe, string $rUnique = ''): array {
+		$rV = $rProbe['codecs']['video'] ?? null;
+		$rA = $rProbe['codecs']['audio'] ?? null;
+		if (!is_array($rV) || !is_array($rA)) {
+			return ['v' => '?' . $rUnique, 'a' => '?' . $rUnique];
+		}
+		return [
+			'v' => ($rV['codec_name'] ?? '') . ',' . ($rV['width'] ?? '') . ',' . ($rV['height'] ?? '') . ',' . ($rV['pix_fmt'] ?? ''),
+			'a' => ($rA['codec_name'] ?? '') . ',' . ($rA['channels'] ?? '') . ',' . ($rA['sample_rate'] ?? ''),
+		];
+	}
+
+	/**
 	 * Resolve a `vod:<streamId>` playlist entry to that VOD's encoded file on a server.
 	 *
 	 * @return string|null VOD_PATH.<id>.<container>, or null when the VOD has no
 	 *                     encoded (stream_status 0, analysed) copy on $rServerId.
 	 */
-	private static function resolveVodSource(string $rEntry, int $rServerId): ?string {
+	public static function resolveVodSource(string $rEntry, int $rServerId): ?string {
 		$db = self::db();
 		$rVodId = intval(substr($rEntry, 4));
 		$db->query('SELECT s.`target_container`, ss.`stream_status`, ss.`to_analyze` FROM `streams` s JOIN `streams_servers` ss ON ss.`stream_id` = s.`id` WHERE s.`id` = ? AND ss.`server_id` = ?', $rVodId, $rServerId);
@@ -516,6 +570,9 @@ class StreamProcess {
 	 * @return array{0:int,1:string} [serverId, sourcePath]
 	 */
 	private static function resolveChannelSource(string $rSource, mixed $rServers) {
+		if (strncmp($rSource, 'vod:', 4) === 0) {
+			return [SERVER_ID, (string) self::resolveVodSource($rSource, SERVER_ID)];
+		}
 		if (substr($rSource, 0, 2) == 's:') {
 			$rSplit = explode(':', $rSource, 3);
 			$rServerID = intval($rSplit[1]);
@@ -2137,7 +2194,7 @@ class StreamProcess {
 		return $rSet;
 	}
 
-	public static function createChannelItem($rStreamID, $rSource) {
+	public static function createChannelItem($rStreamID, $rSource, bool $rCopy = false) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
 		$rStream = [];
@@ -2161,6 +2218,9 @@ class StreamProcess {
 				} else {
 					$rStream['stream_info']['transcode_attributes'] = json_decode($rStream['stream_info']['profile_options'], true);
 					if (!is_array($rStream['stream_info']['transcode_attributes'])) {
+						$rStream['stream_info']['transcode_attributes'] = [];
+					}
+					if ($rCopy) { // channelItemPlan: item already matches, remux and reuse the encode
 						$rStream['stream_info']['transcode_attributes'] = [];
 					}
 

@@ -86,6 +86,21 @@ class CreatedCommand implements CommandInterface {
 		$rDone = $rTotal - count($rSourcesLeft);
 		echo 'Building channel ' . $rStreamID . ' (' . $rStreamInfo['stream_display_name'] . '): ' . count($rSourcesLeft) . ' of ' . $rTotal . ' source(s) left' . "\n";
 
+		// Fingerprint every item (one probe each) and decide copy vs transcode so the
+		// concat is a single uniform variant. A set transcode profile keeps the old
+		// behaviour: every item is transcoded with it (sentinel target never matches).
+		$rFingerprints = [];
+		foreach ($rStreamInfo['stream_source'] as $rI => $rSrc) {
+			[, $rPath] = $this->localSource($rSrc);
+			$rFingerprints[$rI] = StreamProcess::channelItemFingerprint($rPath ? FFprobeRunner::probeStream($rPath) : null, (string) $rI);
+		}
+		$rHasProfile = !empty($rStreamInfo['transcode_profile_id']) && !empty($rStreamInfo['profile_options']);
+		$rPlan = StreamProcess::channelItemPlan($rFingerprints, $rHasProfile ? ['v' => 'profile', 'a' => 'profile'] : null);
+		$rPlanBySource = [];
+		foreach ($rStreamInfo['stream_source'] as $rI => $rSrc) {
+			$rPlanBySource[$rSrc] = $rPlan[$rI];
+		}
+
 		foreach ($rSourcesLeft as $rSource) {
 			$rMD5 = md5($rSource);
 			$rProgressFile = CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.progress';
@@ -102,18 +117,21 @@ class CreatedCommand implements CommandInterface {
 
 			// Source duration (best effort, local sources only) — needed to turn
 			// ffmpeg's out_time into a percentage.
-			if (substr($rSource, 0, 2) == 's:') {
-				$rSplit = explode(':', $rSource, 3);
-				$rProbePath = (intval($rSplit[1]) == SERVER_ID ? $rSplit[2] : null);
-			} else {
-				$rProbePath = $rSource;
+			[, $rProbePath] = $this->localSource($rSource);
+			if (strncmp($rSource, 'vod:', 4) === 0 && !$rProbePath) {
+				// Not encoded on this server: nothing to add to the concat list.
+				echo "\t" . 'Skipped (VOD not encoded on this server)' . "\n";
+				$rDone++;
+				$rServerInfo['cchannel_rsources'][] = $rSource;
+				StreamStateWriter::updateRow(intval($rServerInfo['server_stream_id']), ['cchannel_rsources' => json_encode($rServerInfo['cchannel_rsources'])], $db);
+				continue;
 			}
 			$rDuration = 0;
 			if ($rProbePath && ($rProbe = FFprobeRunner::probeStream($rProbePath))) {
 				$rDuration = floatval($rProbe['of_duration'] ?? 0);
 			}
 
-			$rItemPID = FFmpegCommand::createChannelItem($rStreamID, $rSource);
+			$rItemPID = FFmpegCommand::createChannelItem($rStreamID, $rSource, ($rPlanBySource[$rSource] ?? 'transcode') === 'copy');
 			$db->close_mysql();
 			if ($rItemPID > 0) {
 				$rLastUpdate = 0;
@@ -160,17 +178,10 @@ class CreatedCommand implements CommandInterface {
 
 		$rOutputList = '';
 		foreach ($rStreamInfo['stream_source'] as $rSource) {
-			if (substr($rSource, 0, 2) == 's:') {
-				$rSplit = explode(':', $rSource, 3);
-				$rServerID = intval($rSplit[1]);
-				$rSourcePath = $rSplit[2];
-			} else {
-				$rServerID = SERVER_ID;
-				$rSourcePath = $rSource;
-			}
+			[$rServerID, $rSourcePath] = $this->localSource($rSource, true);
 
 			if ($rServerID == SERVER_ID && intval($rStreamInfo['movie_symlink']) == 1) {
-				if (file_exists($rSourcePath)) {
+				if ($rSourcePath && file_exists($rSourcePath)) {
 					$rOutputList .= self::concatLine($rSourcePath);
 				}
 			} else {
@@ -229,6 +240,25 @@ class CreatedCommand implements CommandInterface {
 	 * its own (StreamSource::local): its writes then go to its store and the
 	 * agent, and a write that falls back to MAIN's row reconnects by itself.
 	 */
+	/**
+	 * [serverId, path] of a playlist entry. A `vod:<id>` entry resolves to its encoded
+	 * file (null when not encoded here); `s:<server>:<path>` has a path only when local
+	 * unless $rAnyServer.
+	 *
+	 * @return array{0:int,1:?string}
+	 */
+	private function localSource(string $rSource, bool $rAnyServer = false): array {
+		if (strncmp($rSource, 'vod:', 4) === 0) {
+			return [SERVER_ID, StreamProcess::resolveVodSource($rSource, SERVER_ID)];
+		}
+		if (substr($rSource, 0, 2) == 's:') {
+			$rSplit = explode(':', $rSource, 3);
+			$rServerID = intval($rSplit[1]);
+			return [$rServerID, ($rAnyServer || $rServerID == SERVER_ID) ? $rSplit[2] : null];
+		}
+		return [SERVER_ID, $rSource];
+	}
+
 	private function reconnect(object $rDb): void {
 		if (!StreamSource::local()) {
 			$rDb->db_connect();

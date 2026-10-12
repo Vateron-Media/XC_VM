@@ -16,8 +16,8 @@ use XcVm\Domain\Stream\StreamProcess;
  */
 
 class FFmpegCommand {
-	public static function createChannelItem($rStreamID, $rSource) {
-		return StreamProcess::createChannelItem($rStreamID, $rSource);
+	public static function createChannelItem($rStreamID, $rSource, bool $rCopy = false) {
+		return StreamProcess::createChannelItem($rStreamID, $rSource, $rCopy);
 	}
 
 	public static function extractSubtitle($rStreamID, $rSourceURL, $rIndex) {
