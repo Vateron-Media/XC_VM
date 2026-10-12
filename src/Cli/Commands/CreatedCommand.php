@@ -4,6 +4,7 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSource;
 use XcVm\Domain\Stream\StreamStateWriter;
@@ -237,6 +238,7 @@ class CreatedCommand implements CommandInterface {
 		}
 
 		file_put_contents(CREATED_PATH . $rStreamID . '_.info', json_encode($rReturn, JSON_UNESCAPED_UNICODE));
+		CreatedChannelEpg::regenerate((int) $rStreamID);
 
 		echo 'Completed!' . "\n";
 		@unlink(CREATED_PATH . $rStreamID . '_.create');

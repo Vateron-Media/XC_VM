@@ -9,6 +9,7 @@ use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\StreamUtils;
+use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSorter;
@@ -357,6 +358,7 @@ class MonitorCommand implements CommandInterface {
 							}
 						}
 						$rData = StreamProcess::startStream($rStreamID, false, $rForceSource, false, $rOffset);
+						CreatedChannelEpg::regenerate((int) $rStreamID);
 					} else {
 						$rData = StreamProcess::startStream($rStreamID, $rTotalCalls < MONITOR_CALLS, $rForceSource);
 					}

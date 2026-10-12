@@ -221,7 +221,7 @@ class EpgService {
 	public static function getAll() {
 		$db = self::db();
 		$rReturn = [];
-		$db->query('SELECT * FROM `epg` ORDER BY `id` ASC;');
+		$db->query('SELECT * FROM `epg` WHERE `epg_name` <> ? ORDER BY `id` ASC;', CreatedChannelEpg::SOURCE_NAME);
 
 		if ($db->num_rows() > 0) {
 			foreach ($db->get_rows() as $rRow) {
@@ -242,7 +242,7 @@ class EpgService {
 		$db = self::db();
 		$rEPG = self::getById($rID);
 
-		if (!$rEPG) {
+		if (!$rEPG || $rID === CreatedChannelEpg::reservedSourceId()) {
 			return false;
 		}
 
