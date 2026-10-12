@@ -7,12 +7,12 @@ Use it for a fix that should not wait for the next release. Nothing is prepared 
 ## What a panel sees
 
 - The panel's updater takes a patch build as it takes a release: **Update** on MAIN, then on each load balancer. Nothing is new in the panel.
-- A patch is a **small update**: its update archive carries only the files changed since the **previous release** (the one a panel updates from, not the one being patched), and the updater overlays them onto the tree and restarts the service — not a re-download of the whole panel. Covering from the previous release is deliberate: the updater takes a panel straight to the newest version and overlays that one archive, so a panel still on the previous release must receive this release's changes too (a new migration, say), not just the patch's. The panel shows the update in the top bar and on the Settings page, with a one-click **Update Server** button, the same as for a release.
+- A patch is a **small update**: its update archive carries only the files changed since the release it patches, and the updater overlays them onto the tree and restarts the service — not a re-download of the whole panel. The panel shows the update in the top bar and on the Settings page, with a one-click **Update Server** button, the same as for a release. A panel more than one release behind should update to the latest release first (the updater offers the newest version, and a patch's delta assumes the release it patches is already in place).
 - It is offered on the channel of the release it patches. A patch of a stable release reaches the `Stable` and `Beta` channels; a patch of a pre-release reaches `Beta` only.
 - Versions order as `2.6.5` < `2.6.5-p1` < `2.6.5-p2` < `2.6.6`. A panel on the release goes to its newest patch at once, and on to the next release when there is one. A panel on an older release goes straight to the newest version.
 - The panel shows the patch as its version (`2.6.5-p1`). A module that asks for core `2.6.5` keeps loading: a patch counts as its release.
 - A rollback may name a patch build or the release under it.
-- The changelog the panel shows is every commit since the previous release, so it lists everything the update delivers whichever of them the panel comes from.
+- The changelog the panel shows is every commit since the release it patches, so it lists everything the update delivers.
 
 ## Making one
 
@@ -23,7 +23,7 @@ Use it for a fix that should not wait for the next release. Nothing is prepared 
     gh workflow run build-patch.yml -f ref=main
     ```
 
-3. The workflow picks the release (`base`: the newest `X.Y.Z` tag the ref contains), numbers the patch, runs the unit tests, stamps the version into the build, and publishes `XC_VM.zip`, `xc_vm.tar.gz`, `loadbalancer.tar.gz`, `hashes.md5` and `changelog.json`. The two update archives (`xc_vm.tar.gz`, `loadbalancer.tar.gz`) are reduced to a **delta** against the **previous** `X.Y.Z` release (the one before `base`, or `base` itself when there is no earlier one) — the files that changed since it, plus the stamped version file, and the deleted-files list when something was removed. `XC_VM.zip` stays the full installer, because a fresh install lays down the whole tree.
+3. The workflow picks the release (`base`: the newest `X.Y.Z` tag the ref contains), numbers the patch, runs the unit tests, stamps the version into the build, and publishes `XC_VM.zip`, `xc_vm.tar.gz`, `loadbalancer.tar.gz`, `hashes.md5` and `changelog.json`. The two update archives (`xc_vm.tar.gz`, `loadbalancer.tar.gz`) are reduced to a **delta** against `base` (the release it patches) — the files that changed since it, plus the stamped version file, the directory entries so the overlay keeps the tree's modes, and the deleted-files list when something was removed. `XC_VM.zip` stays the full installer, because a fresh install lays down the whole tree.
 
 | Input | Meaning |
 |-------|---------|
@@ -41,7 +41,7 @@ Try a `dry_run` first when in doubt.
 
 ## What a patch may carry
 
-A patch build is built from the full tree of its ref: everything merged since the previous release goes out, database migrations included. The update archive is then a delta of those changes against that previous release (the updater overlays it), so a file that did not change since then is left as the panel has it. Keep `main` releasable, or patch from a release branch.
+A patch build is built from the full tree of its ref: everything merged since `base` goes out, database migrations included. The update archive is then a delta of those changes against `base` (the updater overlays it), so a file that did not change since the release is left as the panel has it. Keep `main` releasable, or patch from a release branch.
 
 A patch build is not a release in these ways:
 
