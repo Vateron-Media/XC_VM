@@ -30,6 +30,18 @@ final class ClusterAdmin {
 	];
 
 	/**
+	 * Flows the admin may not switch off on an LB node: MAIN's control plane
+	 * (commands), its observability (telemetry, logs) and the data-sovereignty
+	 * flows (config, connections, dataplane). Once on they stay on, so a node
+	 * cannot be partially detached from MAIN's control. streams and content are
+	 * kept on with them anyway by the connections/dataplane dependencies in
+	 * NodeRegistry::validFlows(). An `_off` for one is refused in act(), in any
+	 * mode (mode 2 already refuses every flow), and the page shows them locked.
+	 */
+	public const MANDATORY_FLOWS = NodeRegistry::FLOW_TELEMETRY | NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_LOGS
+		| NodeRegistry::FLOW_CONFIG | NodeRegistry::FLOW_CONNECTIONS | NodeRegistry::FLOW_DATAPLANE;
+
+	/**
 	 * What an agent says in hello's `features` once it runs the loopback relay
 	 * proxy (XC_VM_Fanout, relayproxy.go). DATAPLANE is switched on only for
 	 * such an agent: the flow points the node's encoders at 127.0.0.1:31290,
@@ -405,6 +417,11 @@ final class ClusterAdmin {
 						return ['type' => 'info', 'message' => 'cluster_not_enrolled'];
 					}
 					[$rName, $rSwitch] = explode('_', $rAction);
+					if ($rSwitch === 'off' && (self::MANDATORY_FLOWS & self::FLOW_BITS[$rName]) === self::FLOW_BITS[$rName]) {
+						// telemetry/commands/logs/config/connections/dataplane stay on:
+						// a node is never partially detached from MAIN. See MANDATORY_FLOWS.
+						return ['type' => 'warning', 'message' => 'cluster_flow_mandatory'];
+					}
 					if ($rSwitch === 'off' && (int) $rNode['mode'] === 2) {
 						// Mode 2 runs on every flow (modeGate()): without one the node has
 						// only MAIN's database for that work, which it may not reach.

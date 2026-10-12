@@ -221,10 +221,14 @@ $rCutAny = false;
                             <div class="d-flex flex-wrap gap-1 justify-content-center" style="min-width:240px;max-width:360px">
                                 <?php foreach (ClusterAdmin::FLOW_BITS as $rFlowName => $rFlowBit): ?>
                                     <?php $rOn = ((int) $rNode['flows'] & $rFlowBit) === $rFlowBit; ?>
+                                    <?php $rMandatory = (ClusterAdmin::MANDATORY_FLOWS & $rFlowBit) === $rFlowBit; ?>
                                     <?php $rFlowLabel = $language::get('cluster_' . $rFlowName . '_flow'); ?>
                                     <?php $rFlowState = $language::get($rOn ? 'cluster_flow_on' : 'cluster_flow_off'); ?>
                                     <?php if (!$rOn && $rFlowName === 'dataplane' && empty($rNode['relay']) && $rLive): ?>
                                         <span class="btn btn-xs btn-label-secondary disabled" title="<?= htmlspecialchars($language::get('cluster_dataplane_needs_relay'), ENT_QUOTES); ?>"><?= $rFlowLabel; ?></span>
+                                    <?php elseif ($rLive && $rOn && $rMandatory): ?>
+                                        <?php // Mandatory flow: on and locked, so the node cannot be detached from MAIN. ?>
+                                        <span class="btn btn-xs btn-label-success disabled" aria-pressed="true" title="<?= htmlspecialchars($rFlowLabel . ': ' . $rFlowState . ' — ' . $language::get('cluster_flow_mandatory'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-lock me-1"></i><?= $rFlowLabel; ?></span>
                                     <?php elseif ($rLive): ?>
                                         <form method="POST" class="d-inline">
                                             <input type="hidden" name="server_id" value="<?= $rSid; ?>">
