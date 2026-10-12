@@ -21,6 +21,7 @@ use XcVm\Domain\Cluster\ClusterNginxConfig;
 use XcVm\Domain\Cluster\NodeRegistry;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Infrastructure\Database\DatabaseAware;
+use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Fanout\FanoutConfig;
 use XcVm\Streaming\Fanout\FanoutMode;
 
@@ -245,6 +246,13 @@ class SettingsService {
 		// MAIN's own cluster state, never the form's: a POST cannot rewind the
 		// transport policy's version or drop a port kept for the nodes.
 		$rArray = array_diff_key($rArray, array_flip(self::CLUSTER_STATE));
+		// An FFmpeg build id becomes a binary path on every node: one that is no
+		// build id keeps the stored value ('' is the GPU's "same as CPU").
+		foreach (['ffmpeg_cpu', 'ffmpeg_gpu'] as $rKey) {
+			if (isset($rArray[$rKey]) && $rArray[$rKey] !== '' && !FfmpegPaths::isBuildId((string) $rArray[$rKey])) {
+				unset($rArray[$rKey]);
+			}
+		}
 		// Servers on a release that reads the single `update_channel` follow the panel's.
 		$rArray = UpdateChannels::withLegacy($rArray);
 

@@ -166,7 +166,7 @@ never replaces a working one). Runs on every node (main **and** LB).
 | `xc_fanout` daemon and `xc_agent` | `fanout_binary` | `XC_VM_Fanout` release assets | `SHA256SUMS` (+ the agent's trial in `run.sh`) | ~hourly |
 | `xcvm_core` extension | `xcvm_core` | `XC_VM_Binaries` repo tree (`bin/xcvm_core/`) | `SHA256SUMS` + load-test | ~hourly |
 | `yt-dlp` | `ytdlp` | upstream `yt-dlp/yt-dlp` release | `SHA2-256SUMS` + `--version` | daily |
-| `ffmpeg`/`ffprobe` 4.0, 7.1, 8.1 | `ffmpeg` (as xc_vm) | `XC_VM_FFMPEG` release, this distribution's builds | `hashes.md5` + both binaries must start | daily |
+| `ffmpeg`/`ffprobe` 4.4, 7.1, 8.1 | `ffmpeg` (as xc_vm) | `XC_VM_FFMPEG` release, this distribution's builds | `hashes.md5` + both binaries must start | daily |
 
 Stamps live in `CRONS_TMP_PATH` (`fanout_binary_check`, `xcvm_core_check`,
 `ytdlp_check`, `ffmpeg_check`); the first pass (stamp absent) runs immediately, so a fresh
@@ -189,10 +189,28 @@ offers (the release archives carry no ffmpeg: the installer and an LB's install
 run it too), built in this distribution's container so its glibc matches the node's,
 and swaps each into `bin/ffmpeg_bin/<label>/` only once it starts here.
 `ffmpeg_bin/ffmpeg_version.json` records each label's release; a launch that did
-not finish (killed, GitHub unreachable) is tried again after an hour. XUI's 4.0 is
-kept where a node has it (only it takes `-nofix_dts`) until the rebuilt 4.0's DTS
-handling is validated. A setting naming a build the node lacks takes the newest
-of its major (8.0 until 8.1 is fetched).
+not finish (killed, GitHub unreachable) is tried again after an hour.
+
+Each folder in `bin/ffmpeg_bin/` is one build, and the FFmpeg version settings store
+its name:
+
+| Folder | What it is |
+|---|---|
+| `<major>.<minor>` (`4.4`, `7.1`, `8.1`) | An XC_VM build. The name is the build's real minor version. Patch updates (7.1.5 → 7.1.6) replace it in place, so settings never change. |
+| `<major>.<minor>-<vendor>` (`6.1-my`) | Someone else's build. The `ffmpeg` command never writes or replaces it. Put a custom build in a folder named this way. |
+
+A `4.0` folder is XUI's build on a panel migrated from XUI (or an older XC_VM
+build); it is never changed either.
+
+The panel asks each binary what it is rather than trusting its folder or
+`BUILD_INFO`: the settings page shows the version the binary reports, `ffmpeg`
+installs a build only when its binary reports the label's version, and
+`-nofix_dts` (XUI's switch for the legacy DTS path, also in the XC_VM 4.4 build)
+goes only to a build whose `ffmpeg -h full` lists `-fix_dts`; stock ffmpeg would
+refuse it. The answers are cached until a binary changes. A setting
+naming a build the node lacks (an older `4.0` or `8.0`, say) takes the same minor
+version first, then the newest of its major, then the newest build there is, so no
+setting needs rewriting. Folders named `*.backup.*` are ignored and never deleted.
 
 The heavy runtime bundle (nginx, nginx_rtmp and PHP) is instead refreshed by the
 `binaries` command, triggered by an `update_binaries` signal from MAIN. The bundle is

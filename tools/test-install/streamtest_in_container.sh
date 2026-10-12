@@ -55,7 +55,7 @@ as_xcvm() {  # run a command as the xc_vm service user when possible
 
 # ── locate bundled ffmpeg (only present after the panel is installed) ──
 FFMPEG=""
-for v in 8.0 7.1 4.0; do
+for v in 8.1 7.1 4.4 4.0; do
     if [[ -x "$XC/bin/ffmpeg_bin/$v/ffmpeg" ]]; then
         FFMPEG="$XC/bin/ffmpeg_bin/$v/ffmpeg"
         break
