@@ -303,6 +303,27 @@ class GitHubReleases {
 			return null;
 		}
 
+		// A patch build (X.Y.Z-pN) ships only the delta since its base release
+		// X.Y.Z, so it is safe to overlay only on a panel already on X.Y.Z (or
+		// a patch of it). A panel below the base must take the full base release
+		// first — overlaying the patch delta on an older tree would stamp it
+		// X.Y.Z-pN while everything X.Y.Z added (migrations included) is still
+		// missing. So never hand a below-base panel a patch: give it the newest
+		// full (non-patch) release it can take instead, which it reaches with a
+		// full archive (safe from any version). It picks up the patch on the
+		// next check, once it is on the base.
+		if (self::isPatchVersion($latest)) {
+			$base = (string) preg_replace('/-p\d+$/', '', $latest);
+			if (version_compare($current_version, $base, '<')) {
+				foreach ($releases as $release) {
+					if (!self::isPatchVersion($release) && version_compare($release, $current_version, '>')) {
+						return $release;
+					}
+				}
+				return null;
+			}
+		}
+
 		return $latest;
 	}
 

@@ -37,6 +37,44 @@ final class GitHubReleasesTest extends TestCase {
 		$this->assertSame('1.4.0', $mock->getLatestVersion('1.3.9'));
 	}
 
+	private function patchChannelMock(array $releases) {
+		$mock = $this->getMockBuilder(GitHubReleases::class)
+			->setConstructorArgs(array('Vateron-Media', 'XC_VM', 'beta'))
+			->onlyMethods(array('getReleases'))
+			->getMock();
+		$mock->method('getReleases')->willReturn($releases);
+		return $mock;
+	}
+
+	public function testBelowBasePanelIsRoutedToTheFullBaseReleaseNotThePatch() {
+		// A panel on 2.6.4 must not be handed 2.6.6-p3 (a delta since 2.6.6);
+		// it gets the full 2.6.6 release first.
+		$mock = $this->patchChannelMock(array('2.6.6-p3', '2.6.6-p2', '2.6.6-p1', '2.6.6', '2.6.5'));
+		$this->assertSame('2.6.6', $mock->getLatestVersion('2.6.4'));
+	}
+
+	public function testPanelOnBaseGetsThePatch() {
+		$mock = $this->patchChannelMock(array('2.6.6-p3', '2.6.6-p2', '2.6.6-p1', '2.6.6', '2.6.5'));
+		$this->assertSame('2.6.6-p3', $mock->getLatestVersion('2.6.6'));
+	}
+
+	public function testPanelOnAnEarlierPatchGetsTheNewerPatch() {
+		$mock = $this->patchChannelMock(array('2.6.6-p3', '2.6.6-p2', '2.6.6-p1', '2.6.6', '2.6.5'));
+		$this->assertSame('2.6.6-p3', $mock->getLatestVersion('2.6.6-p1'));
+	}
+
+	public function testBelowBasePanelFallsBackToNewestFullReleaseWhenBaseIsAbsent() {
+		// Base 2.6.6 yanked: a 2.6.4 panel still gets a full release (2.6.5), never the delta.
+		$mock = $this->patchChannelMock(array('2.6.6-p3', '2.6.5'));
+		$this->assertSame('2.6.5', $mock->getLatestVersion('2.6.4'));
+	}
+
+	public function testBelowBasePanelGetsNothingWhenOnlyAnUnsafePatchIsOffered() {
+		// Only the patch is on the channel and the panel is below its base: nothing safe to offer.
+		$mock = $this->patchChannelMock(array('2.6.6-p3'));
+		$this->assertNull($mock->getLatestVersion('2.6.4'));
+	}
+
 	public function testGetUpdateFileBuildsMainArchiveUrlAndHash() {
 		$mock = $this->getMockBuilder(GitHubReleases::class)
 			->setConstructorArgs(array('Vateron-Media', 'XC_VM', 'stable'))
@@ -323,7 +361,7 @@ final class GitHubReleasesTest extends TestCase {
 		$this->assertSame('2.6.5-p2', $client->getLatestVersion('2.6.5'));
 		$this->assertSame('2.6.5-p2', $client->getLatestVersion('2.6.5-p1'));
 		$this->assertNull($client->getLatestVersion('2.6.5-p2'));
-		$this->assertSame('2.6.5-p2', $client->getLatestVersion('2.6.4'), 'an older panel goes straight to it');
+		$this->assertSame('2.6.5', $client->getLatestVersion('2.6.4'), 'a panel below the base takes the full base release first, never a patch delta onto an older tree');
 	}
 
 	/** On the beta channel a pre-release's patches are offered too. */
