@@ -496,27 +496,60 @@ class StreamProcess {
 	 * @return array<int, 'copy'|'transcode'>
 	 */
 	public static function channelItemPlan(array $rItems, ?array $rProfile = null): array {
-		$rTarget = $rProfile;
-		if ($rTarget === null) {
-			$rCounts = [];
-			foreach ($rItems as $rIt) {
+		$rTarget = $rProfile ?? self::channelItemTarget($rItems);
+		$rPlan = [];
+		foreach ($rItems as $rI => $rIt) {
+			// No valid target (every item unprobeable): nothing to normalize toward.
+			$rPlan[$rI] = ($rTarget === null || ($rIt['v'] === $rTarget['v'] && $rIt['a'] === $rTarget['a'])) ? 'copy' : 'transcode';
+		}
+		return $rPlan;
+	}
+
+	/**
+	 * Most common fingerprint among items, ignoring unprobeable ones (video part
+	 * starts with `?`); ties resolve to first seen. Null when none is valid.
+	 *
+	 * @param array<int, array{v:string,a:string}> $rItems
+	 * @return array{v:string,a:string}|null
+	 */
+	public static function channelItemTarget(array $rItems): ?array {
+		$rCounts = [];
+		foreach ($rItems as $rIt) {
+			if (strncmp($rIt['v'], '?', 1) !== 0) {
 				$rKey = $rIt['v'] . '|' . $rIt['a'];
 				$rCounts[$rKey] = ($rCounts[$rKey] ?? 0) + 1;
 			}
-			$rBestN = -1;
-			foreach ($rItems as $rIt) { // iterate items (not $rCounts) so ties resolve to first-seen
-				$rKey = $rIt['v'] . '|' . $rIt['a'];
-				if ($rCounts[$rKey] > $rBestN) {
-					$rBestN = $rCounts[$rKey];
-					$rTarget = $rIt;
-				}
+		}
+		$rTarget = null;
+		$rBestN = 0;
+		foreach ($rItems as $rIt) { // iterate items (not $rCounts) so ties resolve to first-seen
+			if (strncmp($rIt['v'], '?', 1) === 0) {
+				continue;
+			}
+			$rN = $rCounts[$rIt['v'] . '|' . $rIt['a']];
+			if ($rN > $rBestN) {
+				$rBestN = $rN;
+				$rTarget = $rIt;
 			}
 		}
-		$rPlan = [];
-		foreach ($rItems as $rI => $rIt) {
-			$rPlan[$rI] = ($rTarget !== null && $rIt['v'] === $rTarget['v'] && $rIt['a'] === $rTarget['a']) ? 'copy' : 'transcode';
-		}
-		return $rPlan;
+		return $rTarget;
+	}
+
+	/**
+	 * Real encoder arguments that normalize an item to the canonical target
+	 * fingerprint (no-profile channels only). Never a stream copy.
+	 *
+	 * @param array{v:string,a:string} $rTarget
+	 */
+	public static function channelTranscodeArgs(array $rTarget): string {
+		[$rVC, $rW, $rH, $rPix] = array_pad(explode(',', $rTarget['v']), 4, '');
+		[$rAC, $rCh, $rRate] = array_pad(explode(',', $rTarget['a']), 3, '');
+		$rVEnc = ['h264' => 'libx264', 'hevc' => 'libx265', 'mpeg2video' => 'mpeg2video', 'vp9' => 'libvpx-vp9', 'vp8' => 'libvpx'][$rVC] ?? 'libx264';
+		$rAEnc = ['aac' => 'aac', 'mp2' => 'mp2', 'ac3' => 'ac3'][$rAC] ?? 'aac';
+		$rPix = preg_match('/^[a-z0-9_]+$/', $rPix) ? $rPix : 'yuv420p';
+		$rArgs = '-c:v ' . $rVEnc . ' -vf scale=' . max(2, intval($rW)) . ':' . max(2, intval($rH)) . ' -pix_fmt ' . $rPix
+			. (in_array($rVEnc, ['libx264', 'libx265'], true) ? ' -preset veryfast -crf 23' : ' -b:v 4000k');
+		return $rArgs . ' -c:a ' . $rAEnc . ' -ac ' . max(1, intval($rCh)) . ' -ar ' . max(8000, intval($rRate)) . ' -b:a 128k';
 	}
 
 	/**
@@ -2194,7 +2227,7 @@ class StreamProcess {
 		return $rSet;
 	}
 
-	public static function createChannelItem($rStreamID, $rSource, bool $rCopy = false) {
+	public static function createChannelItem($rStreamID, $rSource, bool $rCopy = false, ?array $rNormalize = null) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
 		$rStream = [];
@@ -2220,7 +2253,7 @@ class StreamProcess {
 					if (!is_array($rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes'] = [];
 					}
-					if ($rCopy) { // channelItemPlan: item already matches, remux and reuse the encode
+					if ($rCopy || $rNormalize !== null) { // channelItemPlan: remux, or (no profile) normalize below
 						$rStream['stream_info']['transcode_attributes'] = [];
 					}
 
@@ -2231,7 +2264,9 @@ class StreamProcess {
 
 					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -progress "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.progress" {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
 
-					self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
+					if ($rNormalize === null) {
+						self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
+					}
 					if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
 						$rCommand .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
 					}
@@ -2244,7 +2279,7 @@ class StreamProcess {
 						'{INPUT_CODEC}' => $rInputCodec,
 						'{LOGO}' => $rLogoOptions,
 						'{STREAM_SOURCE}' => escapeshellarg($rSourcePath),
-						'{TRANSCODE}' => implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])),
+						'{TRANSCODE}' => $rNormalize !== null ? self::channelTranscodeArgs($rNormalize) : implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])),
 					]);
 				}
 

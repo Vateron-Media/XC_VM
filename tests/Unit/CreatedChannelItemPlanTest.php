@@ -24,4 +24,22 @@ final class CreatedChannelItemPlanTest extends TestCase {
         $other = ['v' => 'h264,854,480,yuv420p', 'a' => 'aac,2,48000'];
         $this->assertSame(['copy','transcode'], $this->plan([self::H264, $other]));
     }
+
+    public function testUnprobeableItemIsNeverTheTarget(): void {
+        $bad = ['v' => '?1', 'a' => '?1'];
+        $this->assertSame(['transcode','copy','copy'], $this->plan([$bad, self::H264, self::H264]));
+    }
+    public function testAllUnprobeableIsAllCopy(): void {
+        $this->assertSame(['copy','copy'], $this->plan([['v' => '?0', 'a' => '?0'], ['v' => '?1', 'a' => '?1']]));
+    }
+    public function testH264TargetArgs(): void {
+        $a = StreamProcess::channelTranscodeArgs(self::H264);
+        $this->assertStringContainsString('-c:v libx264 -vf scale=1280:720 -pix_fmt yuv420p -preset veryfast -crf 23 -c:a aac -ac 2 -ar 48000 -b:a 128k', $a);
+        $this->assertStringNotContainsString('copy', $a);
+    }
+    public function testMpeg2TargetArgs(): void {
+        $a = StreamProcess::channelTranscodeArgs(self::MPEG2);
+        $this->assertStringContainsString('-c:v mpeg2video -vf scale=720:576 -pix_fmt yuv420p -b:v 4000k -c:a mp2 -ac 2 -ar 48000 -b:a 128k', $a);
+        $this->assertStringNotContainsString('copy', $a);
+    }
 }

@@ -89,18 +89,26 @@ class CreatedCommand implements CommandInterface {
 		// Fingerprint every item (one probe each) and decide copy vs transcode so the
 		// concat is a single uniform variant. A set transcode profile keeps the old
 		// behaviour: every item is transcoded with it (sentinel target never matches).
-		$rFingerprints = [];
+		// The probe runs on the node-local resolved path and is reused for the duration below.
+		$rFingerprints = $rProbes = [];
 		foreach ($rStreamInfo['stream_source'] as $rI => $rSrc) {
 			[, $rPath] = $this->localSource($rSrc);
-			$rFingerprints[$rI] = StreamProcess::channelItemFingerprint($rPath ? FFprobeRunner::probeStream($rPath) : null, (string) $rI);
+			$rProbes[$rSrc] = $rPath ? FFprobeRunner::probeStream($rPath) : null;
+			$rFingerprints[$rI] = StreamProcess::channelItemFingerprint($rProbes[$rSrc], (string) $rI);
 		}
 		$rHasProfile = !empty($rStreamInfo['transcode_profile_id']) && !empty($rStreamInfo['profile_options']);
 		$rPlan = StreamProcess::channelItemPlan($rFingerprints, $rHasProfile ? ['v' => 'profile', 'a' => 'profile'] : null);
+		// No profile: items off the dominant target are re-encoded TO it (channelTranscodeArgs).
+		$rNormalizeTo = $rHasProfile ? null : StreamProcess::channelItemTarget($rFingerprints);
 		$rPlanBySource = [];
 		foreach ($rStreamInfo['stream_source'] as $rI => $rSrc) {
 			$rPlanBySource[$rSrc] = $rPlan[$rI];
+			if (strncmp($rFingerprints[$rI]['v'], '?', 1) === 0) {
+				// Cannot inspect it, so cannot normalize it: build as copy.
+				$rPlanBySource[$rSrc] = 'copy';
+				echo 'Item not probeable, building as copy: ' . $rSrc . "\n";
+			}
 		}
-
 		foreach ($rSourcesLeft as $rSource) {
 			$rMD5 = md5($rSource);
 			$rProgressFile = CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.progress';
@@ -119,7 +127,8 @@ class CreatedCommand implements CommandInterface {
 			// ffmpeg's out_time into a percentage.
 			[, $rProbePath] = $this->localSource($rSource);
 			if (strncmp($rSource, 'vod:', 4) === 0 && !$rProbePath) {
-				// Not encoded on this server: nothing to add to the concat list.
+				// Not encoded on this server: nothing to add to the concat list. It is still
+				// recorded in cchannel_rsources, so a VOD encoded later needs a rebuild to appear.
 				echo "\t" . 'Skipped (VOD not encoded on this server)' . "\n";
 				$rDone++;
 				$rServerInfo['cchannel_rsources'][] = $rSource;
@@ -127,11 +136,11 @@ class CreatedCommand implements CommandInterface {
 				continue;
 			}
 			$rDuration = 0;
-			if ($rProbePath && ($rProbe = FFprobeRunner::probeStream($rProbePath))) {
+			if ($rProbePath && ($rProbe = $rProbes[$rSource] ?? false)) {
 				$rDuration = floatval($rProbe['of_duration'] ?? 0);
 			}
 
-			$rItemPID = FFmpegCommand::createChannelItem($rStreamID, $rSource, ($rPlanBySource[$rSource] ?? 'transcode') === 'copy');
+			$rItemPID = FFmpegCommand::createChannelItem($rStreamID, $rSource, ($rPlanBySource[$rSource] ?? 'transcode') === 'copy', (($rPlanBySource[$rSource] ?? 'transcode') === 'transcode' ? $rNormalizeTo : null));
 			$db->close_mysql();
 			if ($rItemPID > 0) {
 				$rLastUpdate = 0;
@@ -236,11 +245,6 @@ class CreatedCommand implements CommandInterface {
 	}
 
 	/**
-	 * MAIN's database again after an encode, unless this node's streams are
-	 * its own (StreamSource::local): its writes then go to its store and the
-	 * agent, and a write that falls back to MAIN's row reconnects by itself.
-	 */
-	/**
 	 * [serverId, path] of a playlist entry. A `vod:<id>` entry resolves to its encoded
 	 * file (null when not encoded here); `s:<server>:<path>` has a path only when local
 	 * unless $rAnyServer.
@@ -259,6 +263,11 @@ class CreatedCommand implements CommandInterface {
 		return [SERVER_ID, $rSource];
 	}
 
+	/**
+	 * MAIN's database again after an encode, unless this node's streams are
+	 * its own (StreamSource::local): its writes then go to its store and the
+	 * agent, and a write that falls back to MAIN's row reconnects by itself.
+	 */
 	private function reconnect(object $rDb): void {
 		if (!StreamSource::local()) {
 			$rDb->db_connect();
