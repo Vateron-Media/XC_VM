@@ -9,6 +9,7 @@ use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\StreamUtils;
+use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSorter;
@@ -357,6 +358,9 @@ class MonitorCommand implements CommandInterface {
 							}
 						}
 						$rData = StreamProcess::startStream($rStreamID, false, $rForceSource, false, $rOffset);
+						if ($rOffset == 0) {
+							CreatedChannelEpg::regenerate((int) $rStreamID);
+						}
 					} else {
 						$rData = StreamProcess::startStream($rStreamID, $rTotalCalls < MONITOR_CALLS, $rForceSource);
 					}
@@ -428,6 +432,9 @@ class MonitorCommand implements CommandInterface {
 						$rSegmentSeen = true;
 						$rChecks = 0;
 						StreamStateWriter::updateRow(intval($rStreamInfo['server_stream_id']), ['stream_status' => 0, 'stream_started' => time() - $rOffset], $db);
+						if ($rStreamInfo['type'] == 3) {
+							CreatedChannelEpg::regenerate((int) $rStreamID);
+						}
 					}
 					if (($rChecks == $rMaxChecks)) {
 						echo "Reached max failures\n";
@@ -465,6 +472,9 @@ class MonitorCommand implements CommandInterface {
 
 					if (!$rSegmentSeen && $rStreamInfo['stream_info'] && $rStreamInfo['on_demand']) {
 						StreamStateWriter::updateRow(intval($rStreamInfo['server_stream_id']), ['stream_info' => $rStreamInfo['stream_info'], 'compatible' => $rCompatible, 'audio_codec' => $rAudioCodec, 'video_codec' => $rVideoCodec, 'resolution' => $rResolution, 'bitrate' => intval($rBitrate), 'stream_status' => 0, 'stream_started' => time() - $rOffset], $db);
+						if ($rStreamInfo['type'] == 3) {
+							CreatedChannelEpg::regenerate((int) $rStreamID);
+						}
 					} else {
 						StreamStateWriter::updateRow(intval($rStreamInfo['server_stream_id']), ['stream_info' => $rStreamInfo['stream_info'], 'compatible' => $rCompatible, 'audio_codec' => $rAudioCodec, 'video_codec' => $rVideoCodec, 'resolution' => $rResolution, 'bitrate' => intval($rBitrate), 'stream_status' => 0], $db);
 					}

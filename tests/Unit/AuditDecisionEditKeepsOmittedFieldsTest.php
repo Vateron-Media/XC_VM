@@ -6,6 +6,7 @@ use XcVm\Core\Config\ConstantsInitializer;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Module\AdminApiRegistry;
+use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Public\Controllers\Api\AdminApiController;
 use XcVm\Public\Controllers\Api\AdminAPIWrapper;
@@ -49,6 +50,9 @@ final class AuditDecisionEditKeepsOmittedFieldsTest extends TestCase {
 		$this->rDb->exec(InstallSchema::migration('024_add_custom_data_to_lines'));
 		$this->rDb->exec('CREATE TABLE `category_template_items` (`id` int AUTO_INCREMENT PRIMARY KEY, `template_id` int, `category_id` int)');
 		$this->rDb->exec('CREATE TABLE `watch_refresh` (`id` int AUTO_INCREMENT PRIMARY KEY, `type` int, `stream_id` int, `status` int)');
+		// Created channels link to the reserved EPG source; ChannelService resolves it on save.
+		$this->rDb->exec('CREATE TABLE `epg` (`id` INT AUTO_INCREMENT PRIMARY KEY, `epg_name` VARCHAR(255), `epg_file` VARCHAR(300), `days_keep` INT)');
+		$this->rDb->query("INSERT INTO `epg` (`epg_name`, `epg_file`) VALUES ('Created Channels', '')");
 		$this->rDb->exec("INSERT INTO `users_groups` (`group_id`, `group_name`, `is_admin`, `is_reseller`, `allowed_pages`) VALUES (1, 'Administrators', 1, 0, '[]')");
 		$this->rDb->exec("INSERT INTO `users` (`id`, `username`, `member_group_id`, `status`, `timezone`, `api_key`) VALUES (1, 'admin', 1, 1, '', '" . self::KEY . "')");
 		$this->rDb->exec("INSERT INTO `bouquets` (`id`, `bouquet_name`, `bouquet_order`, `bouquet_channels`, `bouquet_movies`, `bouquet_radios`, `bouquet_series`) VALUES (1, 'One', 1, '[]', '[]', '[]', '[]'), (2, 'Two', 2, '[20,30]', '[50]', '[40]', '[70]'), (3, 'Three', 3, '[20]', '[50]', '[40]', '[70]')");
@@ -299,9 +303,12 @@ final class AuditDecisionEditKeepsOmittedFieldsTest extends TestCase {
 	}
 
 	public function testACreatedChannelEditKeepsItsFilesServersBouquetsAndSwitches(): void {
+		// epg_id/channel_id carry the values ChannelService derives on save, so the
+		// notes-only edit is idempotent for them (the reserved link is always set).
 		$this->rDb->query(
-			"INSERT INTO `streams` (`id`, `type`, `category_id`, `stream_display_name`, `stream_source`, `notes`, `movie_properties`, `transcode_profile_id`, `movie_symlink`, `series_no`, `allow_record`, `rtmp_output`) VALUES (30, 3, '[1]', 'Channel', ?, 'old', '{\"type\":1}', 0, 0, 0, 1, 1)",
-			json_encode(['s:1:/media/a.mp4'])
+			"INSERT INTO `streams` (`id`, `type`, `category_id`, `stream_display_name`, `stream_source`, `notes`, `movie_properties`, `transcode_profile_id`, `movie_symlink`, `series_no`, `allow_record`, `rtmp_output`, `epg_id`, `channel_id`) VALUES (30, 3, '[1]', 'Channel', ?, 'old', '{\"type\":1}', 0, 0, 0, 1, 1, ?, 'created_30')",
+			json_encode(['s:1:/media/a.mp4']),
+			CreatedChannelEpg::reservedSourceId()
 		);
 		$this->rDb->exec('INSERT INTO `streams_servers` (`stream_id`, `server_id`, `parent_id`, `on_demand`) VALUES (30, 1, NULL, 1)');
 		$rStored = $this->row('streams', 'id', 30);

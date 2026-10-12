@@ -4712,8 +4712,9 @@ class TableController extends BaseAdminController {
 			$rOrderRow = 0;
 		}
 		$rWhere = $rWhereV = [];
-		$rWhere[] = "`stream_source` LIKE ?";
-		$rWhereV[] = "%s:" . (int) (RequestManager::get("server_id") ?? 0) . ":%";
+		// Only VODs encoded (stream_status = 0) on the chosen server: the channel build skips the rest.
+		$rWhere[] = "EXISTS (SELECT 1 FROM `streams_servers` `ss` WHERE `ss`.`stream_id` = `streams`.`id` AND `ss`.`server_id` = ? AND `ss`.`stream_status` = 0)";
+		$rWhereV[] = (int) (RequestManager::get("server_id") ?? 0);
 		if (RequestManager::has("category_id") && (string) RequestManager::get("category_id") !== '') {
 			$rSplit = explode(":", RequestManager::get("category_id"));
 			if ((int) $rSplit[0] == 0) {

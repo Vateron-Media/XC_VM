@@ -6,6 +6,7 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Epg\EPG;
 
 /**
@@ -75,6 +76,9 @@ class EpgCronJob implements CommandInterface {
 		$this->printLog("[EPG] Found " . count($epgSources) . " EPG sources to process");
 
 		foreach ($epgSources as $rRow) {
+			if ($rRow['epg_name'] === CreatedChannelEpg::SOURCE_NAME || $rRow['epg_file'] === '') {
+				continue;
+			}
 			$this->printLog("[EPG] Processing source ID: {$rRow['id']} | File: {$rRow['epg_file']}");
 			$rEPG = new EPG($rRow['epg_file']);
 
@@ -104,6 +108,9 @@ class EpgCronJob implements CommandInterface {
 		}
 
 		foreach ($db->get_rows() as $rData) {
+			if ($rData['epg_name'] === CreatedChannelEpg::SOURCE_NAME || $rData['epg_file'] === '') {
+				continue;
+			}
 			$this->printLog("[EPG] === Processing EPG ID: {$rData['epg_id']} ===");
 
 			if ($rData['days_keep'] == 0) {
@@ -166,29 +173,17 @@ class EpgCronJob implements CommandInterface {
 		// (which takes well over 10s), leaving most channels without EPG.
 		$runStart = time();
 
+		$this->printLog("[EPG] Regenerating created-channel programmes...");
+		$db->query('SELECT `id` FROM `streams` WHERE `type` = 3;');
+		foreach ($db->get_rows() as $rCreated) {
+			CreatedChannelEpg::regenerate((int) $rCreated['id']);
+		}
+
+		// After the created-channel regen so the external xmltv.php guide carries
+		// their programmes in the same run (not one cron cycle late).
 		$this->buildXmltv();
 
-		$this->printLog("[CACHE] Building per-stream EPG cache...");
-		$db->query('SELECT `id`, `epg_id`, `channel_id` FROM `streams` WHERE `type` = 1 AND `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL;');
-		$streams = $db->get_rows();
-		$this->printLog("[CACHE] Caching EPG for " . count($streams) . " live streams");
-
-		foreach ($streams as $rRow) {
-			$rEPGData = [];
-			$seen = [];
-
-			$db->query('SELECT * FROM `epg_data` WHERE `epg_id` = ? AND `channel_id` = ? ORDER BY `start` ASC;', $rRow['epg_id'], $rRow['channel_id']);
-			foreach ($db->get_rows() as $prog) {
-				if (!in_array($prog['start'], $seen)) {
-					$seen[] = $prog['start'];
-					$rEPGData[] = $prog;
-				}
-			}
-
-			if (count($rEPGData) > 0) {
-				file_put_contents(EPG_PATH . 'stream_' . $rRow['id'], igbinary_serialize($rEPGData));
-			}
-		}
+		$this->buildStreamCaches();
 
 		$this->printLog("[CLEANUP] Removing orphan cache files...");
 		$deleted = 0;
@@ -214,6 +209,33 @@ class EpgCronJob implements CommandInterface {
 
 	/** Programme rows read per statement while a source set's programmes are written. */
 	private const XMLTV_PAGE = 5000;
+
+	/** Per-stream EPG cache (EPG_PATH/stream_<id>) for live and created streams. */
+	public function buildStreamCaches(): void {
+		global $db;
+
+		$this->printLog("[CACHE] Building per-stream EPG cache...");
+		$db->query('SELECT `id`, `epg_id`, `channel_id` FROM `streams` WHERE `type` IN (1, 3) AND `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL;');
+		$streams = $db->get_rows();
+		$this->printLog("[CACHE] Caching EPG for " . count($streams) . " streams");
+
+		foreach ($streams as $rRow) {
+			$rEPGData = [];
+			$seen = [];
+
+			$db->query('SELECT * FROM `epg_data` WHERE `epg_id` = ? AND `channel_id` = ? ORDER BY `start` ASC;', $rRow['epg_id'], $rRow['channel_id']);
+			foreach ($db->get_rows() as $prog) {
+				if (!in_array($prog['start'], $seen)) {
+					$seen[] = $prog['start'];
+					$rEPGData[] = $prog;
+				}
+			}
+
+			if (count($rEPGData) > 0) {
+				file_put_contents(EPG_PATH . 'stream_' . $rRow['id'], igbinary_serialize($rEPGData));
+			}
+		}
+	}
 
 	/**
 	 * Write the XMLTV files: epg_all.xml and one per bouquet set the lines use,

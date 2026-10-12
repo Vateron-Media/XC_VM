@@ -4,6 +4,7 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSource;
 use XcVm\Domain\Stream\StreamStateWriter;
@@ -86,6 +87,56 @@ class CreatedCommand implements CommandInterface {
 		$rDone = $rTotal - count($rSourcesLeft);
 		echo 'Building channel ' . $rStreamID . ' (' . $rStreamInfo['stream_display_name'] . '): ' . count($rSourcesLeft) . ' of ' . $rTotal . ' source(s) left' . "\n";
 
+		// Fingerprint every item (one probe each) and decide copy vs transcode so the
+		// concat is a single uniform variant. A set transcode profile keeps the old
+		// behaviour: every item is transcoded with it (sentinel target never matches).
+		// The probe runs on the node-local resolved path and is reused for the duration below.
+		$rFingerprints = $rProbes = [];
+		foreach ($rStreamInfo['stream_source'] as $rI => $rSrc) {
+			[, $rPath] = $this->localSource($rSrc);
+			$rProbes[$rSrc] = $rPath ? FFprobeRunner::probeStream($rPath) : null;
+			$rFingerprints[$rI] = StreamProcess::channelItemFingerprint($rProbes[$rSrc], (string) $rI);
+		}
+		$rHasProfile = !empty($rStreamInfo['transcode_profile_id']) && !empty($rStreamInfo['profile_options']);
+		$rPlan = StreamProcess::channelItemPlan($rFingerprints, $rHasProfile ? ['v' => 'profile', 'a' => 'profile'] : null);
+		// No profile: items off the dominant target are re-encoded TO it (channelTranscodeArgs).
+		$rNormalizeTo = $rHasProfile ? null : StreamProcess::channelItemTarget($rFingerprints);
+		$rPlanBySource = [];
+		foreach ($rStreamInfo['stream_source'] as $rI => $rSrc) {
+			$rPlanBySource[$rSrc] = $rPlan[$rI];
+			if (strncmp($rFingerprints[$rI]['v'], '?', 1) === 0) {
+				// Cannot inspect it, so cannot normalize it: build as copy.
+				$rPlanBySource[$rSrc] = 'copy';
+				echo 'Item not probeable, building as copy: ' . $rSrc . "\n";
+			}
+		}
+		// Every item must share one encode target; the dominant target can shift
+		// when the playlist is edited (e.g. adding items of a different codec).
+		// Builds are incremental (only $rSourcesLeft is (re)encoded), so if the
+		// target changed since the last build the already-built .ts were encoded
+		// to a different target — rebuild every item, or the concat mixes codecs/
+		// resolutions mid-stream. A set profile transcodes every item to it, so it
+		// is keyed by profile id; no profile is keyed by the dominant fingerprint.
+		$rTargetSig = $rHasProfile
+			? 'p:' . intval($rStreamInfo['transcode_profile_id'])
+			: 't:' . json_encode($rNormalizeTo);
+		$rSigFile = CREATED_PATH . intval($rStreamID) . '_.target';
+		$rPrevSig = is_file($rSigFile) ? trim((string) file_get_contents($rSigFile)) : '';
+		// Rebuild every item when the target differs from the recorded one — OR when
+		// items were already built but no signature exists (a channel built before
+		// this guard, or whose sidecar was lost): their .ts were encoded to an
+		// unknown target, so the only safe assumption is that they may not match.
+		// $rTargetSig is never '' (it carries a p:/t: prefix), so a missing sig with
+		// items already built always triggers the rebuild; a first-ever build has an
+		// empty cchannel_rsources and is left to build incrementally.
+		if ($rPrevSig !== $rTargetSig && $rServerInfo['cchannel_rsources'] !== []) {
+			echo 'Canonical target changed; rebuilding all ' . $rTotal . " item(s).\n";
+			$rServerInfo['cchannel_rsources'] = [];
+			StreamStateWriter::updateRow(intval($rServerInfo['server_stream_id']), ['cchannel_rsources' => json_encode([])], $db);
+			$rSourcesLeft = $rStreamInfo['stream_source'];
+			$rDone = 0;
+		}
+		file_put_contents($rSigFile, $rTargetSig);
 		foreach ($rSourcesLeft as $rSource) {
 			$rMD5 = md5($rSource);
 			$rProgressFile = CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.progress';
@@ -102,18 +153,22 @@ class CreatedCommand implements CommandInterface {
 
 			// Source duration (best effort, local sources only) — needed to turn
 			// ffmpeg's out_time into a percentage.
-			if (substr($rSource, 0, 2) == 's:') {
-				$rSplit = explode(':', $rSource, 3);
-				$rProbePath = (intval($rSplit[1]) == SERVER_ID ? $rSplit[2] : null);
-			} else {
-				$rProbePath = $rSource;
+			[, $rProbePath] = $this->localSource($rSource);
+			if (strncmp($rSource, 'vod:', 4) === 0 && !$rProbePath) {
+				// Not encoded on this server: nothing to add to the concat list. It is still
+				// recorded in cchannel_rsources, so a VOD encoded later needs a rebuild to appear.
+				echo "\t" . 'Skipped (VOD not encoded on this server)' . "\n";
+				$rDone++;
+				$rServerInfo['cchannel_rsources'][] = $rSource;
+				StreamStateWriter::updateRow(intval($rServerInfo['server_stream_id']), ['cchannel_rsources' => json_encode($rServerInfo['cchannel_rsources'])], $db);
+				continue;
 			}
 			$rDuration = 0;
-			if ($rProbePath && ($rProbe = FFprobeRunner::probeStream($rProbePath))) {
+			if ($rProbePath && ($rProbe = $rProbes[$rSource] ?? false)) {
 				$rDuration = floatval($rProbe['of_duration'] ?? 0);
 			}
 
-			$rItemPID = FFmpegCommand::createChannelItem($rStreamID, $rSource);
+			$rItemPID = FFmpegCommand::createChannelItem($rStreamID, $rSource, ($rPlanBySource[$rSource] ?? 'transcode') === 'copy', (($rPlanBySource[$rSource] ?? 'transcode') === 'transcode' ? $rNormalizeTo : null));
 			$db->close_mysql();
 			if ($rItemPID > 0) {
 				$rLastUpdate = 0;
@@ -159,24 +214,20 @@ class CreatedCommand implements CommandInterface {
 		StreamStateWriter::updateRow(intval($rServerInfo['server_stream_id']), ['progress_info' => ''], $db);
 
 		$rOutputList = '';
+		$rListSources = [];
 		foreach ($rStreamInfo['stream_source'] as $rSource) {
-			if (substr($rSource, 0, 2) == 's:') {
-				$rSplit = explode(':', $rSource, 3);
-				$rServerID = intval($rSplit[1]);
-				$rSourcePath = $rSplit[2];
-			} else {
-				$rServerID = SERVER_ID;
-				$rSourcePath = $rSource;
-			}
+			[$rServerID, $rSourcePath] = $this->localSource($rSource, true);
 
 			if ($rServerID == SERVER_ID && intval($rStreamInfo['movie_symlink']) == 1) {
-				if (file_exists($rSourcePath)) {
+				if ($rSourcePath && file_exists($rSourcePath)) {
 					$rOutputList .= self::concatLine($rSourcePath);
+					$rListSources[] = $rSource;
 				}
 			} else {
 				$rCreatedFile = CREATED_PATH . $rStreamID . '_' . md5($rSource) . '.ts';
 				if (file_exists($rCreatedFile)) {
 					$rOutputList .= self::concatLine($rCreatedFile);
+					$rListSources[] = $rSource;
 				}
 			}
 		}
@@ -190,6 +241,7 @@ class CreatedCommand implements CommandInterface {
 		$rInt = $rSeconds = 0;
 		$rList = explode("\n", file_get_contents(CREATED_PATH . $rStreamID . '_.list'));
 		$rReturn = [];
+		$rLine = -1;
 
 		foreach ($rList as $rItem) {
 			$parts = explode("'", $rItem);
@@ -198,12 +250,14 @@ class CreatedCommand implements CommandInterface {
 			}
 
 			$rFilename = $parts[1];
+			$rLine++;
 
 			if (file_exists($rFilename)) {
 				$rFileInfo = FFprobeRunner::probeStream($rFilename);
 				$rReturn[] = [
 					'position' => $rInt,
 					'filename' => basename($rFilename),
+					'source' => $rListSources[$rLine] ?? null,
 					'path' => $rFilename,
 					'stream_info' => $rFileInfo,
 					'seconds' => $rFileInfo['of_duration'],
@@ -216,12 +270,37 @@ class CreatedCommand implements CommandInterface {
 			}
 		}
 
-		file_put_contents(CREATED_PATH . $rStreamID . '_.info', json_encode($rReturn, JSON_UNESCAPED_UNICODE));
+		$rInfoJson = json_encode($rReturn, JSON_UNESCAPED_UNICODE);
+		file_put_contents(CREATED_PATH . $rStreamID . '_.info', $rInfoJson);
+		// Persist the fresh timeline to cc_info now: regenerate() reads cc_info
+		// first (the portable copy MAIN's daily cron uses), so without this an
+		// incremental rebuild's EPG would reflect the previous build's timeline.
+		StreamStateWriter::updateRow(intval($rServerInfo['server_stream_id']), ['cc_info' => $rInfoJson], $db);
+		CreatedChannelEpg::regenerate((int) $rStreamID);
 
 		echo 'Completed!' . "\n";
 		@unlink(CREATED_PATH . $rStreamID . '_.create');
 
 		return 0;
+	}
+
+	/**
+	 * [serverId, path] of a playlist entry. A `vod:<id>` entry resolves to its encoded
+	 * file (null when not encoded here); `s:<server>:<path>` has a path only when local
+	 * unless $rAnyServer.
+	 *
+	 * @return array{0:int,1:?string}
+	 */
+	private function localSource(string $rSource, bool $rAnyServer = false): array {
+		if (strncmp($rSource, 'vod:', 4) === 0) {
+			return [SERVER_ID, StreamProcess::resolveVodSource($rSource, SERVER_ID)];
+		}
+		if (substr($rSource, 0, 2) == 's:') {
+			$rSplit = explode(':', $rSource, 3);
+			$rServerID = intval($rSplit[1]);
+			return [$rServerID, ($rAnyServer || $rServerID == SERVER_ID) ? $rSplit[2] : null];
+		}
+		return [SERVER_ID, $rSource];
 	}
 
 	/**

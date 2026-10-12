@@ -30,6 +30,9 @@ class EpgService {
 	 */
 	public static function process(array $rData) {
 		$db = self::db();
+		if (isset($rData['edit']) && intval($rData['edit']) === CreatedChannelEpg::reservedSourceId()) {
+			return ['status' => STATUS_FAILURE, 'data' => $rData];
+		}
 		if (isset($rData['edit'])) {
 			if (!Authorization::check('adv', 'epg_edit')) {
 				exit();
@@ -44,6 +47,17 @@ class EpgService {
 			}
 			$rArray = QueryHelper::verifyPostTable('epg', $rData);
 			unset($rArray['id']);
+		}
+
+		// The reserved created-channel source is identified by its name, and MySQL
+		// matches it case- and trailing-space-insensitively (utf8_unicode_ci). Refuse
+		// any create OR rename whose resulting name collides with it — on either path
+		// — so it cannot be duplicated, shadowed or unlinked. (The reserved row itself
+		// is already blocked from editing above.) strcasecmp+trim mirror the SQL match;
+		// exotic unicode-fold collisions remain possible but need the add_epg/epg_edit
+		// permission and cannot be reached by an ordinary user.
+		if (strcasecmp(trim((string) ($rArray['epg_name'] ?? '')), CreatedChannelEpg::SOURCE_NAME) === 0) {
+			return ['status' => STATUS_FAILURE, 'data' => $rData];
 		}
 
 		$rPrepare = QueryHelper::prepareArray($rArray);
@@ -221,7 +235,10 @@ class EpgService {
 	public static function getAll() {
 		$db = self::db();
 		$rReturn = [];
-		$db->query('SELECT * FROM `epg` ORDER BY `id` ASC;');
+		// Hide the reserved created-channel source by id — the same identity the
+		// edit/delete gates use — so all three stay consistent (id 0 when the row
+		// is missing hides nothing, since no real source has id 0).
+		$db->query('SELECT * FROM `epg` WHERE `id` <> ? ORDER BY `id` ASC;', CreatedChannelEpg::reservedSourceId());
 
 		if ($db->num_rows() > 0) {
 			foreach ($db->get_rows() as $rRow) {
@@ -242,7 +259,7 @@ class EpgService {
 		$db = self::db();
 		$rEPG = self::getById($rID);
 
-		if (!$rEPG) {
+		if (!$rEPG || $rID === CreatedChannelEpg::reservedSourceId()) {
 			return false;
 		}
 

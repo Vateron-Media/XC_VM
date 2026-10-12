@@ -485,6 +485,110 @@ class StreamProcess {
 	}
 
 	/**
+	 * Decide copy vs transcode per playlist item so the concat output is one
+	 * uniform HLS variant. Target = $rProfile when the admin set one, else the
+	 * most common fingerprint among items. ffmpeg will not flag a mismatch
+	 * (mpegts carries mid-stream changes), so this proactive comparison is what
+	 * keeps players from breaking on a codec/resolution switch.
+	 *
+	 * @param array<int, array{v:string,a:string}> $rItems
+	 * @param array{v:string,a:string}|null $rProfile
+	 * @return array<int, 'copy'|'transcode'>
+	 */
+	public static function channelItemPlan(array $rItems, ?array $rProfile = null): array {
+		$rTarget = $rProfile ?? self::channelItemTarget($rItems);
+		$rPlan = [];
+		foreach ($rItems as $rI => $rIt) {
+			// No valid target (every item unprobeable): nothing to normalize toward.
+			$rPlan[$rI] = ($rTarget === null || ($rIt['v'] === $rTarget['v'] && $rIt['a'] === $rTarget['a'])) ? 'copy' : 'transcode';
+		}
+		return $rPlan;
+	}
+
+	/**
+	 * Most common fingerprint among items, ignoring unprobeable ones (video part
+	 * starts with `?`); ties resolve to first seen. Null when none is valid.
+	 *
+	 * @param array<int, array{v:string,a:string}> $rItems
+	 * @return array{v:string,a:string}|null
+	 */
+	public static function channelItemTarget(array $rItems): ?array {
+		$rCounts = [];
+		foreach ($rItems as $rIt) {
+			if (strncmp($rIt['v'], '?', 1) !== 0) {
+				$rKey = $rIt['v'] . '|' . $rIt['a'];
+				$rCounts[$rKey] = ($rCounts[$rKey] ?? 0) + 1;
+			}
+		}
+		$rTarget = null;
+		$rBestN = 0;
+		foreach ($rItems as $rIt) { // iterate items (not $rCounts) so ties resolve to first-seen
+			if (strncmp($rIt['v'], '?', 1) === 0) {
+				continue;
+			}
+			$rN = $rCounts[$rIt['v'] . '|' . $rIt['a']];
+			if ($rN > $rBestN) {
+				$rBestN = $rN;
+				$rTarget = $rIt;
+			}
+		}
+		return $rTarget;
+	}
+
+	/**
+	 * Real encoder arguments that normalize an item to the canonical target
+	 * fingerprint (no-profile channels only). Never a stream copy.
+	 *
+	 * @param array{v:string,a:string} $rTarget
+	 */
+	public static function channelTranscodeArgs(array $rTarget): string {
+		[$rVC, $rW, $rH, $rPix] = array_pad(explode(',', $rTarget['v']), 4, '');
+		[$rAC, $rCh, $rRate] = array_pad(explode(',', $rTarget['a']), 3, '');
+		$rVEnc = ['h264' => 'libx264', 'hevc' => 'libx265', 'mpeg2video' => 'mpeg2video', 'vp9' => 'libvpx-vp9', 'vp8' => 'libvpx'][$rVC] ?? 'libx264';
+		$rAEnc = ['aac' => 'aac', 'mp2' => 'mp2', 'ac3' => 'ac3'][$rAC] ?? 'aac';
+		$rPix = preg_match('/^[a-z0-9_]+$/', $rPix) ? $rPix : 'yuv420p';
+		$rArgs = '-c:v ' . $rVEnc . ' -vf scale=' . min(7680, max(2, intval($rW))) . ':' . min(4320, max(2, intval($rH))) . ' -pix_fmt ' . $rPix
+			. (in_array($rVEnc, ['libx264', 'libx265'], true) ? ' -preset veryfast -crf 23' : ' -b:v 4000k');
+		return $rArgs . ' -c:a ' . $rAEnc . ' -ac ' . min(8, max(1, intval($rCh))) . ' -ar ' . min(192000, max(8000, intval($rRate))) . ' -b:a 128k';
+	}
+
+	/**
+	 * A/V fingerprint of a FFprobeRunner::probeStream() result, for channelItemPlan().
+	 * A failed probe yields a fingerprint no other item shares (so it is transcoded).
+	 *
+	 * @param array|false|null $rProbe
+	 * @return array{v:string,a:string}
+	 */
+	public static function channelItemFingerprint($rProbe, string $rUnique = ''): array {
+		$rV = $rProbe['codecs']['video'] ?? null;
+		$rA = $rProbe['codecs']['audio'] ?? null;
+		if (!is_array($rV) || !is_array($rA)) {
+			return ['v' => '?' . $rUnique, 'a' => '?' . $rUnique];
+		}
+		return [
+			'v' => ($rV['codec_name'] ?? '') . ',' . ($rV['width'] ?? '') . ',' . ($rV['height'] ?? '') . ',' . ($rV['pix_fmt'] ?? ''),
+			'a' => ($rA['codec_name'] ?? '') . ',' . ($rA['channels'] ?? '') . ',' . ($rA['sample_rate'] ?? ''),
+		];
+	}
+
+	/**
+	 * Resolve a `vod:<streamId>` playlist entry to that VOD's encoded file on a server.
+	 *
+	 * @return string|null VOD_PATH.<id>.<container>, or null when the VOD has no
+	 *                     encoded (stream_status 0, analysed) copy on $rServerId.
+	 */
+	public static function resolveVodSource(string $rEntry, int $rServerId): ?string {
+		$db = self::db();
+		$rVodId = intval(substr($rEntry, 4));
+		$db->query('SELECT s.`target_container`, ss.`stream_status`, ss.`to_analyze` FROM `streams` s JOIN `streams_servers` ss ON ss.`stream_id` = s.`id` WHERE s.`id` = ? AND ss.`server_id` = ?', $rVodId, $rServerId);
+		$rRow = $db->num_rows() > 0 ? $db->get_row() : null;
+		if (!$rRow || intval($rRow['stream_status']) !== 0 || intval($rRow['to_analyze']) !== 0) {
+			return null;
+		}
+		return VOD_PATH . $rVodId . '.' . (($rRow['target_container'] ?? '') !== '' ? $rRow['target_container'] : 'mp4');
+	}
+
+	/**
 	 * Resolve a created-channel source string into [serverId, sourcePath].
 	 *
 	 * A plain string is a local path on this server. An `s:<serverId>:<path>`
@@ -499,6 +603,9 @@ class StreamProcess {
 	 * @return array{0:int,1:string} [serverId, sourcePath]
 	 */
 	private static function resolveChannelSource(string $rSource, mixed $rServers) {
+		if (strncmp($rSource, 'vod:', 4) === 0) {
+			return [SERVER_ID, (string) self::resolveVodSource($rSource, SERVER_ID)];
+		}
 		if (substr($rSource, 0, 2) == 's:') {
 			$rSplit = explode(':', $rSource, 3);
 			$rServerID = intval($rSplit[1]);
@@ -2120,7 +2227,7 @@ class StreamProcess {
 		return $rSet;
 	}
 
-	public static function createChannelItem($rStreamID, $rSource) {
+	public static function createChannelItem($rStreamID, $rSource, bool $rCopy = false, ?array $rNormalize = null) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
 		$rStream = [];
@@ -2146,6 +2253,9 @@ class StreamProcess {
 					if (!is_array($rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes'] = [];
 					}
+					if ($rCopy || $rNormalize !== null) { // channelItemPlan: remux, or (no profile) normalize below
+						$rStream['stream_info']['transcode_attributes'] = [];
+					}
 
 					$rLogoOptions = self::buildLogoFilterOptions($rStream['stream_info']['transcode_attributes'], $rLoopback);
 
@@ -2154,7 +2264,9 @@ class StreamProcess {
 
 					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -progress "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.progress" {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
 
-					self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
+					if ($rNormalize === null) {
+						self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
+					}
 					if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
 						$rCommand .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
 					}
@@ -2167,7 +2279,7 @@ class StreamProcess {
 						'{INPUT_CODEC}' => $rInputCodec,
 						'{LOGO}' => $rLogoOptions,
 						'{STREAM_SOURCE}' => escapeshellarg($rSourcePath),
-						'{TRANSCODE}' => implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])),
+						'{TRANSCODE}' => $rNormalize !== null ? self::channelTranscodeArgs($rNormalize) : implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])),
 					]);
 				}
 
