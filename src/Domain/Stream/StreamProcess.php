@@ -1207,7 +1207,6 @@ class StreamProcess {
 		return $rLine;
 	}
 
-
 	/**
 	 * One native source's URL and fetch options, keyed by their `xc_fanout remux`
 	 * flag: the fetch identity the daemon's own puller uses for this stream
