@@ -2,6 +2,8 @@
 
 namespace XcVm\Streaming\Codec;
 
+use XcVm\Core\Process\ProcessRunner;
+
 /**
  * FfmpegBinaries — discovery + capability probe for the bundled FFmpeg builds.
  *
@@ -87,7 +89,7 @@ class FfmpegBinaries {
 		}
 		sort($rParts);
 		// The schema too: a cache written before a field was probed is rescanned.
-		return md5('nofix_dts|' . implode('|', $rParts));
+		return hash('sha256', 'nofix_dts|' . implode('|', $rParts));
 	}
 
 	/**
@@ -137,7 +139,8 @@ class FfmpegBinaries {
 
 	/** Whether the build has XUI's `-fix_dts` option (so takes `-nofix_dts`): its full help lists it. */
 	private static function takesNofixDts(string $rBinary): bool {
-		$rOut = (string) @shell_exec('timeout 5 ' . escapeshellarg($rBinary) . ' -hide_banner -h full 2>/dev/null');
+		// No shell; the option is listed in the first few KB of the help (~900 KB in all).
+		[, $rOut] = ProcessRunner::capture(['timeout', '5', $rBinary, '-hide_banner', '-h', 'full']);
 		return preg_match('/^-fix_dts\s/m', $rOut) === 1;
 	}
 
