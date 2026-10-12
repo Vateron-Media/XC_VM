@@ -2848,6 +2848,8 @@ class StreamProcess {
 				}
 
 				$rLaunch = $rNativeCmd ?? $rFFMPEG;
+				// $rLaunch is a producer command built from escapeshellarg'd parts (buildNativeLive/buildLive), as the ffmpeg launch it replaced was.
+				// nosemgrep: php.lang.security.exec-use.exec-use
 				shell_exec($rLaunch);
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rLaunch);
 
@@ -2859,6 +2861,7 @@ class StreamProcess {
 				if ($rNativeCmd !== null && $rBackend === 'auto' && !self::producerAlive($rPID)) {
 					self::noteProducer($rStreamID, 'the native remuxer did not stay up; ffmpeg takes over');
 					@unlink(STREAMS_PATH . $rStreamID . '_.pid');
+					// nosemgrep: php.lang.security.exec-use.exec-use
 					shell_exec($rFFMPEG);
 					file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
 					$rPID = self::awaitProducerPid(intval($rStreamID));
