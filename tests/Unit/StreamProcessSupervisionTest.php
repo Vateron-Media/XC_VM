@@ -68,6 +68,15 @@ final class StreamProcessSupervisionTest extends TestCase {
 		$this->assertStringNotContainsString('echo', $c);
 	}
 
+	/** standalone (the PHP monitor runs it, fanout off): it carries buildLive's launch tail. */
+	public function testNativeCommandStandaloneCarriesTheLaunchTail(): void {
+		$c = $this->native(['standalone' => true]);
+		$this->assertStringContainsString('>/dev/null 2>>' . STREAMS_PATH . '42.errors', $c);
+		$this->assertStringContainsString('& echo $! > ' . STREAMS_PATH . '42_.pid', $c);
+		$this->assertStringContainsString("'" . STREAMS_PATH . "42_.m3u8' >/dev/null", $c, 'the playlist is still the last positional, before the tail');
+		$this->assertStringNotContainsString('echo', $this->native(), 'the supervised form still has no tail');
+	}
+
 	/** The same fetch identity the daemon's own puller uses for the stream. */
 	public function testNativeCommandCarriesFetchArguments(): void {
 		$c = $this->native(['arguments' => [

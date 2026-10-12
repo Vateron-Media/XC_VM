@@ -1559,7 +1559,7 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="fanout_source_backend">
 									<?= $language::get('fanout_source_backend') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: how a source becomes MPEG-TS, for daemon-pulled and (with supervision on) panel streams. auto = native remuxer where possible, ffmpeg for the rest; ffmpeg = always ffmpeg; native = native remuxer only, no fallback."></i>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: how a source becomes MPEG-TS -- for daemon-pulled streams and for panel streams whether the daemon supervises them or the PHP monitor runs them (fanout off). auto = native remuxer where possible, ffmpeg for the rest; ffmpeg = always ffmpeg; native = native remuxer only, no fallback."></i>
 								</label>
 								<div class="col-md-2">
 									<select name="fanout_source_backend" id="fanout_source_backend" class="form-control" data-toggle="select2">

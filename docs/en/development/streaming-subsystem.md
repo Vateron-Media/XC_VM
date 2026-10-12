@@ -324,6 +324,15 @@ database write; the daemon runs what it is handed.
   `streams.force_ffmpeg`, migration 088) keeps that one channel on ffmpeg whatever the backend.
   The panel only writes a remuxer command when the node's daemon advertises it (`features` in
   `GET /monitors/state`, `FanoutClient::supportsRemux()`) — an older binary would misparse it.
+- **Under the PHP monitor (fanout off)** — the same `fanout_source_backend` selection runs when
+  the stream is not daemon-supervised: `StreamProcess` launches `xc_fanout remux` **disk-only**
+  (no `-ingest`, so just the on-disk HLS the legacy paths serve) in place of ffmpeg for a
+  qualifying copy-only stream (never a delayed one — delay needs ffmpeg's DELAY_PATH), with the
+  standalone launch tail (background, pid, stderr) ffmpeg gets. Here `native` and `auto` both
+  select the remuxer by the **static gate** (`remuxRefusal` / `isNativeSource`): without a daemon
+  supervisor there is nothing to switch `fallback_cmd` on exit 3, so `auto`'s connect-time ffmpeg
+  fallback applies only with fanout on. A source only found unreadable on connect therefore
+  belongs on `ffmpeg` (or the daemon) rather than `auto` + fanout off.
 - **Source credentials** — with a daemon that advertises `remux_source_file`, the source URL and
   its fetch options (user agent, cookies, proxy, headers) go to `<id>_.source_<n>` (0600, one per
   source, `StreamProcess::writeNativeSource()`) and the command carries `-source_file` instead,

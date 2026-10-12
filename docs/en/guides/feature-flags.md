@@ -60,7 +60,7 @@ Loaded from settings cache and used in runtime decision points.
 | `save_login_logs` | `bool` | persist login attempts in `login_logs` |
 | `fanout_enabled` | `bool` | master switch for the xc_fanout daemon (default on); off stops it on every node and live delivery uses the pre-fanout paths (see streaming-subsystem, "Switching fanout off") |
 | `fanout_supervise` | `bool` | hand live streams to the xc_fanout supervisor instead of a PHP monitor (default on) |
-| `fanout_source_backend` | `auto` / `ffmpeg` / `native` | how sources become MPEG-TS; with supervision, whether copy-only streams run the native remuxer (`auto`: with ffmpeg fallback) |
+| `fanout_source_backend` | `auto` / `ffmpeg` / `native` | how sources become MPEG-TS: whether a copy-only stream runs the native remuxer (`xc_fanout remux`) rather than ffmpeg — whether the daemon supervises it or the PHP monitor runs it (fanout off); `auto` falls back to ffmpeg where native cannot serve the source |
 | `gateway_mode` | `off` / `shadow` / `segments` / `segments+playlist` | the segment gateway in xc_fanout answers HLS segments, keys and (with `segments+playlist`) playlist refreshes and MPEG-TS viewers (their first request and their reconnects) without PHP-FPM; `shadow` only judges a mirrored copy; `segments+playlist` on a new panel, an updated one keeps its value (see streaming-subsystem, "Segment gateway") |
 
 These values are loaded from `CACHE_TMP_PATH/settings` by request guards.
