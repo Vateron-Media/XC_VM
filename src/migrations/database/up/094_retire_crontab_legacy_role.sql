@@ -1,1 +1,1 @@
-UPDATE `crontab` SET `role` = 'all' WHERE `role` = 'legacy';
+UPDATE `crontab` SET `role` = 'main' WHERE `filename` = 'users';

@@ -158,8 +158,8 @@ final class ClusterSchemaTest extends TestCase {
 		$this->assertStringContainsString("SET `role` = 'all' WHERE `filename` = 'cleanup'", $this->src('migrations/database/up/042_crontab_cleanup_role_all.sql'));
 		$this->assertStringContainsString("(30, 'cluster', '* * * * *', 1, 'main')", $rSql, 'cron:cluster runs on MAIN');
 		$this->assertFileExists(MAIN_HOME . 'Cli/CronJobs/ClusterCronJob.php');
-		// the `legacy` role is retired: cron:users is a plain `all` job.
-		$this->assertMatchesRegularExpression("/\\(\\d+, 'users', '[^']*', 1, 'all'\\)/", $rSql);
-		$this->assertStringContainsString("SET `role` = 'all' WHERE `role` = 'legacy'", $this->src('migrations/database/up/094_retire_crontab_legacy_role.sql'));
+		// the `legacy` role is retired: cron:users is MAIN's (reaps its own lines_live/Redis).
+		$this->assertMatchesRegularExpression("/\\(\\d+, 'users', '[^']*', 1, 'main'\\)/", $rSql);
+		$this->assertStringContainsString("SET `role` = 'main' WHERE `filename` = 'users'", $this->src('migrations/database/up/094_retire_crontab_legacy_role.sql'));
 	}
 }

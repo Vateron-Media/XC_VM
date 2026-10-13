@@ -223,9 +223,9 @@ final class ReplicaSectionsTest extends TestCase {
 	}
 
 	public function testTheCrontabSectionHoldsTheRowsWhoseRoleFitsTheMode(): void {
-		$this->rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('streams', '* * * * *', 1, 'all'), ('tmdb', '0 * * * *', 1, 'main'), ('users', '* * * * *', 1, 'all'), ('watch', '*/5 * * * *', 0, 'all'), ('cache_engine', '*/5 * * * *', 1, 'all')");
-		$this->assertSame(['jobs' => [['filename' => 'streams', 'time' => '* * * * *'], ['filename' => 'users', 'time' => '* * * * *'], ['filename' => 'cache_engine', 'time' => '*/5 * * * *']]], ReplicaBuilder::crontabData(1), 'hybrid: every all row, never main or a disabled row');
-		$this->assertSame(['streams', 'users', 'cache_engine'], array_column(ReplicaBuilder::crontabData(2)['jobs'], 'filename'), 'api mode: the same all rows');
+		$this->rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('streams', '* * * * *', 1, 'all'), ('tmdb', '0 * * * *', 1, 'main'), ('users', '* * * * *', 1, 'main'), ('watch', '*/5 * * * *', 0, 'all'), ('cache_engine', '*/5 * * * *', 1, 'all')");
+		$this->assertSame(['jobs' => [['filename' => 'streams', 'time' => '* * * * *'], ['filename' => 'cache_engine', 'time' => '*/5 * * * *']]], ReplicaBuilder::crontabData(1), 'hybrid: every all row, never main (users included) or a disabled row');
+		$this->assertSame(['streams', 'cache_engine'], array_column(ReplicaBuilder::crontabData(2)['jobs'], 'filename'), 'api mode: the same all rows, no users');
 	}
 
 	public function testARowANodeWouldRefuseIsLeftOutOfTheCrontabSection(): void {
@@ -244,7 +244,7 @@ final class ReplicaSectionsTest extends TestCase {
 			foreach (['streams', 'servers', 'cache', 'certbot', 'cleanup', 'maxmind'] as $rJob) {
 				$this->assertContains($rJob, $rJobs, 'a node runs cron:' . $rJob);
 			}
-			$this->assertContains('users', $rJobs, 'cron:users is an all job');
+			$this->assertNotContains('users', $rJobs, 'cron:users is MAIN\'s: role main, never on a node');
 			foreach (['tmdb', 'tmdb_popular', 'update', 'cluster', 'stats', 'proxy', 'watch', 'plex'] as $rJob) {
 				$this->assertNotContains($rJob, $rJobs, 'cron:' . $rJob . ' is MAIN\'s');
 			}
@@ -323,7 +323,7 @@ final class ReplicaSectionsTest extends TestCase {
 		$this->server(6, ['limit_requests' => 7]);
 		$this->assertSame(7, ReplicaBuilder::section($this->rCrypto, ['server_id' => 6, 'mode' => 1], ReplicaSections::NODE, [], [])['data']['limit_requests']);
 		$this->assertSame(50, ReplicaBuilder::section($this->rCrypto, $rNode, ReplicaSections::NODE, [], [])['data']['limit_requests']);
-		$this->rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('users', '* * * * *', 1, 'all')");
+		$this->rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('users', '* * * * *', 1, 'main'), ('streams', '* * * * *', 1, 'all')");
 		$this->assertCount(1, ReplicaBuilder::section($this->rCrypto, $rNode, ReplicaSections::CRONTAB, [], [])['data']['jobs']);
 		$this->assertCount(1, ReplicaBuilder::section($this->rCrypto, ['server_id' => 5, 'mode' => 2], ReplicaSections::CRONTAB, [], [])['data']['jobs']);
 	}

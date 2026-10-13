@@ -503,7 +503,7 @@ INSERT INTO `crontab` (`id`, `filename`, `time`, `enabled`, `role`) VALUES
 (10, 'errors', '* * * * *', 1, 'all'),
 (11, 'tmdb', '0 * * * *', 1, 'main'),
 (12, 'tmp', '* * * * *', 1, 'all'),
-(13, 'users', '* * * * *', 1, 'all'),
+(13, 'users', '* * * * *', 1, 'main'),
 (14, 'vod', '* * * * *', 1, 'all'),
 (15, 'series', '* * * * *', 1, 'main'),
 (16, 'watch', '*/5 * * * *', 1, 'main'),
