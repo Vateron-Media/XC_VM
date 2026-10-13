@@ -202,7 +202,7 @@ final class SettingsAudit {
 			$rNow ??= time();
 			$rSum = self::days($rNow);
 			$rConnects = $rSum === null ? null : ConnectAudit::report($rNow);
-			if ($rSum === null || $rConnects === null ) {
+			if ($rSum === null || $rConnects === null) {
 				return false;
 			}
 			$rDoc = ['settings_misses' => (object) self::top($rSum)] + $rConnects + GatewayShadow::report();
