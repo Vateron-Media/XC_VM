@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Epg;
 
+use XcVm\Core\Cluster\ReplicaBoot;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -81,6 +82,13 @@ class CreatedChannelEpg {
 	 * Returns the number of programmes written (0 when there is no timeline or anchor).
 	 */
 	public static function regenerate(int $rStreamId): int {
+		// EPG lives on MAIN. A mode-2 (api) node has no MySQL and no epg tables,
+		// so a monitor/build there must not touch them — MAIN's daily EPG cron
+		// regenerates every type-3 channel (including this node's) from the
+		// cc_info/stream_started its store syncs back.
+		if (ReplicaBoot::apiMode()) {
+			return 0;
+		}
 		$db = self::db();
 		$rSource = self::reservedSourceId();
 		if ($rSource <= 0) {
