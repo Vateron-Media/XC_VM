@@ -320,6 +320,30 @@ final class AuditModuleUpdateSchemaTest extends TestCase {
 		$this->assertSame('1.1.0', $this->versionIn($this->rModules . '/aus-store_9f8e9'));
 	}
 
+	public function testAStoreModuleIsNamedToTheStoreByItsHashIdAndRecordedByItsName(): void {
+		// The store serves it under its hash_id; here it is "aus-hashed".
+		$rHash = str_repeat('5d6e', 8);
+		$this->module($this->rWork . '/served/' . $rHash, 'aus-hashed', '1.0.0', ['database.sql' => self::MASTER . ';'], [], $rHash);
+
+		$rResult = $this->storeInstall($rHash, '1.0.0');
+
+		$this->assertSame('', $rResult['error']);
+		$this->assertSame('1.0.0', $this->versionIn($this->rModules . '/aus-hashed_5d6e5'));
+		$rData = require $this->rOverrides;
+		$this->assertSame('platform', $rData['aus-hashed']['source'] ?? null);
+		$this->assertArrayNotHasKey($rHash, $rData);
+
+		// The update finds the installed copy by its hash_id and replaces it.
+		$this->module($this->rWork . '/served/' . $rHash, 'aus-hashed', '1.1.0', ['database.sql' => self::MASTER . ';'], [], $rHash);
+
+		$rResult = $this->storeInstall($rHash, '1.1.0');
+
+		$this->assertSame('', $rResult['error']);
+		$this->assertSame('1.1.0', $this->versionIn($this->rModules . '/aus-hashed_5d6e5'));
+		$this->assertSame('1.1.0', $this->recorded('aus-hashed')['installed_version']);
+		$this->assertSame([], $this->backups());
+	}
+
 	// ── An update that fails and is rolled back ──────────────────────
 
 	public function testARolledBackStoreUpdateResumesAfterTheDeltasThatLanded(): void {

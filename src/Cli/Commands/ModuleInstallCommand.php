@@ -77,7 +77,10 @@ class ModuleInstallCommand implements CommandInterface {
 				// Without a key only a free module installs: the store refuses a paid one.
 				$rApiKey = (string) (SettingsManager::get('platform_api_key') ?? '');
 				echo "Installing store module '{$rName}' v{$rVersion} from platform...\n";
-				$rManager->deployFromPlatformFilesOnly($rName, $rVersion, $rApiKey);
+				// The store knows the module by its store id (hash_id); a payload
+				// from an older MAIN carries only the name, then taken as the id.
+				$rStoreId = (string) ($rPayload['store_id'] ?? '') ?: $rName;
+				$rManager->deployFromPlatformFilesOnly($rStoreId, $rVersion, $rApiKey);
 			} elseif (isset($rPayload['archive'])) {
 				// Staged by cluster:root from MAIN's grant: only that copy, only its bytes.
 				$rStaged = (string) $rPayload['archive'];

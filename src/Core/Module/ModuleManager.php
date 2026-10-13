@@ -699,6 +699,10 @@ class ModuleManager {
 			if ($manifestError !== null) {
 				$dependencyWarnings[] = "Not loaded: it has a module.json that cannot be loaded ({$manifestError}).";
 			}
+			$quarantine = ModuleQuarantine::reason($this->modulesPath, basename(dirname($jsonFile)));
+			if ($quarantine !== null) {
+				$dependencyWarnings[] = "Not loaded: quarantined after a fatal error ({$quarantine}). Replacing its files lifts it.";
+			}
 			foreach ($dependencies as $dep) {
 				if (!isset($stateByName[$dep])) {
 					$dependencyWarnings[] = "Required dependency '{$dep}' is missing.";
@@ -842,7 +846,14 @@ class ModuleManager {
 		$name = $this->sanitizeModuleName($name);
 		$this->assertNoInstalledDependents($name, 'uninstall');
 
-		$module = $this->loadModuleInstance($name);
+		// A quarantined module's code cannot run (requiring it is the fatal that
+		// quarantined it), so its uninstall() hook is skipped; its schema still
+		// goes, from the plain SQL teardown file.
+		$quarantine = $this->quarantineReason($name);
+		$module     = $quarantine === null ? $this->loadModuleInstance($name) : null;
+		if ($quarantine !== null) {
+			error_log("ModuleManager: uninstalling quarantined module '{$name}' without its uninstall() hook ({$quarantine})");
+		}
 
 		// The module's own uninstall() hook runs first (it clears the data/rows
 		// it created), then the module's schema is torn down via its single
@@ -850,7 +861,7 @@ class ModuleManager {
 		// otherwise leave the module recorded as installed and Enabled with
 		// half-deleted data, so mark it Failed and let the admin see it.
 		try {
-			$module->uninstall();
+			$module?->uninstall();
 			$db = $this->getDb() ?? DatabaseFactory::get();
 			if ($db !== null) {
 				ModuleMigrator::uninstall($this->modulePathFor($name), $db);
@@ -1220,7 +1231,7 @@ class ModuleManager {
 		// platform — reuse the full store flow (self-contained rollback + LB fan-out).
 		if ($source === 'platform') {
 			$apiKey = (string) (SettingsManager::get('platform_api_key') ?? '');
-			$this->downloadFromPlatform(($update['slug'] !== '' ? $update['slug'] : $name), '', $apiKey);
+			$this->downloadFromPlatform($this->storeIdOf($name), '', $apiKey);
 			$this->recordAvailableVersion($name, null);
 			return $this->manifestVersion($name);
 		}
@@ -1679,6 +1690,10 @@ class ModuleManager {
 			'name'    => $name,
 			'version' => $version,
 		];
+		if ($rPayload['source'] === 'platform') {
+			// The LB pulls from the store, which knows the module by its store id.
+			$rPayload['store_id'] = $this->storeIdOf($name);
+		}
 		$rArchive = $this->archivePathFor($name, $version);
 		if ($rPayload['source'] === 'local' && is_file($rArchive)) {
 			$rPayload['size']   = (int) filesize($rArchive);
@@ -1711,34 +1726,40 @@ class ModuleManager {
 	 * Fires PackageInstalledEvent and hot-reloads the module into the
 	 * current ServiceContainer without requiring a PHP-FPM restart.
 	 *
-	 * @param string      $slug    Module slug as listed on the platform.
+	 * The store knows a module by its store id — the permanent hash_id of its
+	 * module.json (a store slug from an older catalogue is still accepted). The
+	 * panel keys everything else (config/modules.php, the directory, the .lic)
+	 * by the module's NAME from module.json, which may differ from either.
+	 *
+	 * @param string      $storeId hash_id (or legacy store slug) of the module.
 	 * @param string      $version Exact version string (e.g. "1.2.0"), or '' for the latest.
 	 * @param string|null $apiKey  Modules API key; null or '' for a free module.
 	 * @throws \RuntimeException If the C extension is missing, download fails, or install fails.
 	 */
-	public function downloadFromPlatform(string $slug, string $version = '', ?string $apiKey = null): void {
-		$slug = $this->sanitizeModuleName($slug);
-		// Resolve the module's ACTUAL directory (canonical `{name}_{hash5}`, or a
-		// legacy bare one) rather than assuming the bare form: otherwise the backup
-		// below finds nothing and the pulled copy lands beside the existing install
-		// instead of replacing it.
-		$targetDir = $this->modulePathFor($slug);
+	public function downloadFromPlatform(string $storeId, string $version = '', ?string $apiKey = null): void {
+		$storeId = $this->sanitizeModuleName($storeId);
+		// The copy installed here already (null on a first install). Resolve its
+		// ACTUAL directory (canonical `{name}_{hash5}`, or a legacy bare one):
+		// otherwise the backup below finds nothing and the pulled copy lands beside
+		// the existing install instead of replacing it.
+		$prevName  = $this->installedNameFor($storeId);
+		$targetDir = $this->modulePathFor($prevName ?? $storeId);
 
 		// Snapshot current state so a failed (re)install rolls back cleanly. We
 		// MOVE the existing module aside (outside modulesPath so the loader never
 		// scans it) — this both gives a clean dir for the new extract and a
 		// restore point. installed_version is captured for the version record.
-		$rEntry      = $this->readOverrides()[$slug] ?? [];
+		$rEntry      = $prevName !== null ? ($this->readOverrides()[$prevName] ?? []) : [];
 		$prevVersion = $rEntry['installed_version'] ?? null;
 		$rState      = ModuleState::fromRaw($rEntry['state'] ?? ($rEntry['enabled'] ?? null));
-		$backupDir   = $this->backupModuleDir($slug, $targetDir);
+		$backupDir   = $prevName !== null ? $this->backupModuleDir($prevName, $targetDir) : null;
 
 		try {
-			$result = $this->pullFilesFromPlatform($slug, $version, $apiKey);
+			$result = $this->pullFilesFromPlatform($storeId, $version, $apiKey);
 			// The extension extracts wherever it likes; fold that into the canonical
 			// `{name}_{hash5}` directory and track it as the rollback target below.
-			$this->placeModuleFiles($result['path']);
-			$modulePath      = $this->modulePathFor($slug);
+			$name            = $this->placeModuleFiles($result['path']);
+			$modulePath      = $this->modulePathFor($name);
 			$targetDir       = $modulePath;
 			$resolvedVersion = (string) ($result['version'] ?: $version);
 
@@ -1746,11 +1767,11 @@ class ModuleManager {
 			// platform encoded the module with --with-license, the loader rejects the
 			// encoded files at require-time unless a valid .lic is already present.
 			// No-op when the platform has licensing disabled.
-			$this->acquireModuleLicense($slug, $apiKey);
+			$this->acquireModuleLicense($storeId, $name, $apiKey);
 
 			// Record the version the PLATFORM served (authoritative for store
 			// installs); the module's module.json/getVersion() may lag behind.
-			$this->migrateReplaced($slug, 'install', $resolvedVersion);
+			$this->migrateReplaced($name, 'install', $resolvedVersion);
 
 			EventDispatcher::dispatch(new PackageInstalledEvent(
 				slug:        $result['module'],
@@ -1759,27 +1780,27 @@ class ModuleManager {
 				installedAt: time(),
 			));
 
-			$this->hotReload($slug, $modulePath);
+			$this->hotReload($name, $modulePath);
 
 			// Mark as store-installed and remember the version the Rollback
 			// button should target. The previous version is authoritative from
 			// the PLATFORM (it holds release history); it may be null when the
 			// platform has no prior approved version. (NB: $prevVersion below is
 			// the LOCAL pre-install version, used only for failure rollback.)
-			$this->recordPlatformSource($slug, $result['previous_version'] ?? null);
+			$this->recordPlatformSource($name, $result['previous_version'] ?? null);
 
 			// If the manifest targets load balancers, tell every LB to pull the
 			// same module from the platform with its own install_id (MAIN-only).
-			$this->distributeToLoadBalancers($slug, $this->readModuleManifest($slug), 'platform', $resolvedVersion);
+			$this->distributeToLoadBalancers($name, $this->readModuleManifest($name), 'platform', $resolvedVersion);
 
 			// Success — drop the rollback snapshot.
 			if ($backupDir !== null) {
 				$this->deleteDirectory($backupDir);
 			}
 		} catch (\Throwable $e) {
-			$restored = $this->restoreModuleBackup($slug, $targetDir, $backupDir, $prevVersion, $rState);
+			$restored = $this->restoreModuleBackup($prevName ?? $storeId, $targetDir, $backupDir, $prevVersion, $rState);
 			throw new \RuntimeException(
-				"Platform install of '{$slug}' failed"
+				"Platform install of '{$storeId}' failed"
 				. ($restored
 					? ' — rolled back to previous version' . ($prevVersion ? " {$prevVersion}" : '')
 					: '')
@@ -1791,6 +1812,34 @@ class ModuleManager {
 	}
 
 	/**
+	 * The store id of an installed module: the hash_id of its module.json, the
+	 * identity the store serves it under. Falls back to the name for a module
+	 * without one (installed from an older store, where the slug was the name).
+	 */
+	private function storeIdOf(string $name): string {
+		$hash = strtolower((string) ($this->readModuleManifest($name)['hash_id'] ?? ''));
+		return preg_match('/^[a-f0-9]{32}$/', $hash) ? $hash : $this->sanitizeModuleName($name);
+	}
+
+	/**
+	 * Name of the installed module the store id names, or null when it is not
+	 * installed here. A hash_id is matched against every module.json; a legacy
+	 * store slug is taken to be the module name, as older stores assumed.
+	 */
+	private function installedNameFor(string $storeId): ?string {
+		if (!preg_match('/^[a-f0-9]{32}$/', $storeId)) {
+			return is_dir($this->modulePathFor($storeId)) ? $storeId : null;
+		}
+		foreach (glob($this->modulesPath . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
+			$meta = json_decode((string) @file_get_contents($dir . '/module.json'), true);
+			if (is_array($meta) && strtolower((string) ($meta['hash_id'] ?? '')) === $storeId) {
+				return $this->sanitizeModuleName($this->manifestNameFromDir($dir));
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Roll a store-installed module back to its previously installed version.
 	 *
 	 * Uses the `previous_version` recorded at the last store install (still
@@ -1798,30 +1847,30 @@ class ModuleManager {
 	 * exact version, then clears `previous_version` (one-shot rollback). LBs are
 	 * re-synced to the rolled-back version via the normal distribution path.
 	 *
-	 * @param string      $slug   Module slug.
+	 * @param string      $name   Module name.
 	 * @param string|null $apiKey Platform API key.
 	 * @throws \RuntimeException If the module was not installed from the store or
 	 *                          has no recorded previous version.
 	 */
-	public function rollbackFromPlatform(string $slug, ?string $apiKey = null): void {
-		$slug      = $this->sanitizeModuleName($slug);
+	public function rollbackFromPlatform(string $name, ?string $apiKey = null): void {
+		$name      = $this->sanitizeModuleName($name);
 		$overrides = $this->readOverrides();
-		$entry     = $overrides[$slug] ?? [];
+		$entry     = $overrides[$name] ?? [];
 
 		if (($entry['source'] ?? '') !== 'platform') {
-			throw new \RuntimeException("Module '{$slug}' was not installed from the store; cannot roll back.");
+			throw new \RuntimeException("Module '{$name}' was not installed from the store; cannot roll back.");
 		}
 		$previous = $entry['previous_version'] ?? '';
 		if ($previous === '') {
-			throw new \RuntimeException("No previous version recorded for '{$slug}'.");
+			throw new \RuntimeException("No previous version recorded for '{$name}'.");
 		}
 
 		// Re-installs the previous version (explicit, not "latest").
-		$this->downloadFromPlatform($slug, $previous, $apiKey);
+		$this->downloadFromPlatform($this->storeIdOf($name), $previous, $apiKey);
 
 		// One-shot: drop the previous-version marker so the rollback button hides
 		// until the next successful update creates a new restore point.
-		$this->clearPreviousVersion($slug);
+		$this->clearPreviousVersion($name);
 	}
 
 	/** Mark a module as store-installed and (optionally) record the replaced version. */
@@ -1858,9 +1907,11 @@ class ModuleManager {
 	 * entitled, or the loader/extension lacks the needed functions, it silently
 	 * writes nothing — so unlicensed-encoded modules still install normally.
 	 *
+	 * @param string $storeId What the store knows the module by (see storeIdOf()).
+	 * @param string $slug    Installed module name — where the .lic is written.
 	 * @return bool True if a .lic was written.
 	 */
-	private function acquireModuleLicense(string $slug, ?string $apiKey): bool {
+	private function acquireModuleLicense(string $storeId, string $slug, ?string $apiKey): bool {
 		if (!class_exists('XC_VM') || !function_exists('ioncube_server_data')) {
 			return false;
 		}
@@ -1872,7 +1923,7 @@ class ModuleManager {
 		}
 
 		try {
-			$res = \XC_VM::module_license($slug, base64_encode($serverData), ($apiKey ?? '') !== '' ? $apiKey : null);
+			$res = \XC_VM::module_license($storeId, base64_encode($serverData), ($apiKey ?? '') !== '' ? $apiKey : null);
 		} catch (\Throwable $e) {
 			error_log("ModuleManager: license request failed for '{$slug}': " . $e->getMessage());
 			return false;
@@ -1912,8 +1963,9 @@ class ModuleManager {
 	 *
 	 * @return bool True if a fresh .lic was written.
 	 */
-	public function renewModuleLicense(string $slug, ?string $apiKey = null): bool {
-		return $this->acquireModuleLicense($this->sanitizeModuleName($slug), $apiKey);
+	public function renewModuleLicense(string $name, ?string $apiKey = null): bool {
+		$name = $this->sanitizeModuleName($name);
+		return $this->acquireModuleLicense($this->storeIdOf($name), $name, $apiKey);
 	}
 
 	/** Remove the recorded previous version for a module. */
@@ -1997,14 +2049,14 @@ class ModuleManager {
 	 * LB so it loads under environment=lb/any. Each LB registers and downloads
 	 * with its OWN install_id.
 	 *
-	 * @param string      $slug    Module slug on the platform.
+	 * @param string      $storeId hash_id (or legacy store slug) of the module.
 	 * @param string      $version Exact version string.
 	 * @param string|null $apiKey  Shared platform API key (from settings).
 	 */
-	public function deployFromPlatformFilesOnly(string $slug, string $version, ?string $apiKey = null): void {
-		$result = $this->pullFilesFromPlatform($slug, $version, $apiKey);
-		$this->placeModuleFiles($result['path']);
-		$modulePath = $this->modulePathFor($slug);
+	public function deployFromPlatformFilesOnly(string $storeId, string $version, ?string $apiKey = null): void {
+		$result     = $this->pullFilesFromPlatform($storeId, $version, $apiKey);
+		$name       = $this->placeModuleFiles($result['path']);
+		$modulePath = $this->modulePathFor($name);
 
 		EventDispatcher::dispatch(new PackageInstalledEvent(
 			slug:        $result['module'],
@@ -2013,9 +2065,9 @@ class ModuleManager {
 			installedAt: time(),
 		));
 
-		$this->recordInstalledVersion($slug, (string) ($result['version'] ?: $version));
-		$this->setState($slug, ModuleState::Enabled);
-		$this->hotReloadSafe($slug, $modulePath);
+		$this->recordInstalledVersion($name, (string) ($result['version'] ?: $version));
+		$this->setState($name, ModuleState::Enabled);
+		$this->hotReloadSafe($name, $modulePath);
 	}
 
 	/**
@@ -2251,6 +2303,10 @@ class ModuleManager {
 	 */
 	private function loadModuleInstance(string $name) {
 		$name = $this->sanitizeModuleName($name);
+		$quarantine = $this->quarantineReason($name);
+		if ($quarantine !== null) {
+			throw new ModuleException("Module '{$name}' is quarantined after a fatal error, so its code cannot run: {$quarantine}");
+		}
 		$loader = new ModuleLoader();
 		// Resolve the real directory ({name}_{hash5}, or a legacy bare {name}) — the
 		// module rarely lives at the bare path, so passing that would fail to find
@@ -2266,6 +2322,11 @@ class ModuleManager {
 		}
 
 		return $module;
+	}
+
+	/** Why the module's code must not be loaded (ModuleQuarantine), or null. */
+	private function quarantineReason(string $name): ?string {
+		return ModuleQuarantine::reason($this->modulesPath, basename($this->modulePathFor($name)));
 	}
 
 	/**
