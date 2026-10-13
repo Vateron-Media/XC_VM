@@ -2,6 +2,7 @@
 
 namespace XcVm\Core\Module;
 
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Updates\GitHubReleases;
 
 /**
@@ -34,6 +35,12 @@ class ModuleUpdateChecker {
 	/** Why the last latestAvailable() call could not check its source (null = checked fine). */
 	private ?string $lastError = null;
 
+	/** The store's latest version by store id (hash_id, and slug for an older store), read once per checker. */
+	private ?array $storeVersions = null;
+
+	/** Why the store's catalogue could not be read this check (null = read fine). */
+	private ?string $storeError = null;
+
 	/**
 	 * Error message from the most recent latestAvailable() call, or null when the
 	 * source was checked successfully. Lets callers distinguish "no update" from
@@ -59,7 +66,7 @@ class ModuleUpdateChecker {
 		return match ($source) {
 			'git'      => $this->fromGit($update, $installed),
 			'url'      => $this->fromUrl($update),
-			'platform' => $this->fromPlatform($update),
+			'platform' => $this->fromPlatform((string) ($module['hash_id'] ?? '') ?: (string) ($module['name'] ?? '')),
 			default    => ((string) ($module['version'] ?? '')) ?: null, // bundled
 		};
 	}
@@ -142,18 +149,51 @@ class ModuleUpdateChecker {
 		return ModuleLoader::coreRequirementError((string) ($data['requires_core'] ?? '')) === null ? $ver : null;
 	}
 
-	/** SaaS store latest version — best-effort; skipped if the extension has no such API. */
-	private function fromPlatform(array $update): ?string {
-		if (!class_exists('XC_VM') || !method_exists('XC_VM', 'module_latest')) {
-			return null; // store resolves "latest approved" at install time
+	/**
+	 * The store's latest version of a module, by its store id (hash_id, or a
+	 * legacy slug), as its catalogue lists it. xcvm_core has no single-module
+	 * lookup, so the whole catalogue is read once per check (every page) and
+	 * every platform module is answered from it. A module the store does not
+	 * list has nothing newer; a store that did not answer is an error for every
+	 * module of this check, so none loses the update flag it had.
+	 */
+	private function fromPlatform(string $storeId): ?string {
+		if ($this->storeVersions === null) {
+			$this->storeVersions = $this->readStoreVersions();
 		}
-		try {
-			$r = \XC_VM::module_latest((string) ($update['slug'] ?? ''));
-			return is_array($r) && !empty($r['version']) ? (string) $r['version'] : null;
-		} catch (\Throwable $e) {
-			$this->lastError = $e->getMessage();
+		if ($this->storeError !== null) {
+			$this->lastError = $this->storeError;
 			return null;
 		}
+		return $this->storeVersions[$storeId] ?? null;
+	}
+
+	/** @return array<string, string> store id => latest version, every catalogue page */
+	private function readStoreVersions(): array {
+		$rKey      = (string) (SettingsManager::get('platform_api_key') ?? '');
+		$rVersions = [];
+		for ($rPage = 1, $rLast = 1; $rPage <= $rLast; $rPage++) {
+			$rAnswer = $this->cataloguePage($rKey, $rPage);
+			if (empty($rAnswer['ok'])) {
+				$this->storeError = 'store catalogue: ' . (string) ($rAnswer['reason'] ?? 'no answer');
+				return [];
+			}
+			foreach ((array) ($rAnswer['extensions'] ?? []) as $rExt) {
+				$rVersion = (string) ($rExt['version'] ?? '');
+				foreach (['hash_id', 'slug'] as $rId) {
+					if ($rVersion !== '' && (string) ($rExt[$rId] ?? '') !== '') {
+						$rVersions[(string) $rExt[$rId]] = $rVersion;
+					}
+				}
+			}
+			$rLast = (int) ($rAnswer['last_page'] ?? 1);
+		}
+		return $rVersions;
+	}
+
+	/** One page of the store's catalogue (tests: canned). */
+	protected function cataloguePage(string $rKey, int $rPage): array {
+		return ModuleStore::catalogue($rKey, ['page' => $rPage, 'per_page' => 100]);
 	}
 
 	/** cURL GET (file_get_contents over https does not work under PHP-FPM here). */

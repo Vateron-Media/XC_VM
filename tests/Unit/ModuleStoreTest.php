@@ -13,7 +13,7 @@ use XcVm\Core\Module\ModuleStore;
 final class ModuleStoreTest extends TestCase {
 	private const CATALOGUE = [
 		['slug' => 'watch', 'name' => 'Watch Folder', 'version' => '1.2.0', 'price' => 0, 'environment' => 'main', 'xc_vm_compatibility' => '>=2.6.1'],
-		['slug' => 'plex-sync', 'name' => 'Plex', 'version' => '2.0.0', 'price' => 19.0, 'environment' => 'main', 'owned' => true],
+		['slug' => 'plex-sync', 'hash_id' => 'ab12ab12ab12ab12ab12ab12ab12ab12', 'name' => 'Plex', 'version' => '2.0.0', 'price' => 19.0, 'environment' => 'main', 'owned' => true],
 		['slug' => 'epg-pro', 'name' => 'EPG Pro', 'version' => '1.0.0', 'price' => 9.5, 'environment' => 'both', 'description' => 'Guide grabber'],
 	];
 
@@ -36,16 +36,23 @@ final class ModuleStoreTest extends TestCase {
 		$this->assertSame([0.0, 19.0, 9.5], array_column($rRows, 'price'));
 	}
 
-	public function testAnInstalledModuleIsMatchedByItsStoreSlug(): void {
+	public function testAnInstalledModuleIsMatchedByItsHashIdWhateverItIsNamed(): void {
 		$rInstalled = [
-			['name' => 'watch', 'installed_version' => '1.1.1', 'update' => ['slug' => '']],
-			['name' => 'plex', 'installed_version' => '2.0.0', 'update' => ['slug' => 'plex-sync']],
+			['name' => 'watch', 'installed_version' => '1.1.1', 'hash_id' => ''],
+			// Named "plex" here, "plex-sync" in the store: the hash_id ties them.
+			['name' => 'plex', 'installed_version' => '2.0.0', 'hash_id' => 'AB12AB12AB12AB12AB12AB12AB12AB12'],
+			// Same name as a store slug, but another module (another hash_id).
+			['name' => 'epg-pro', 'installed_version' => '0.9.0', 'hash_id' => 'cd34cd34cd34cd34cd34cd34cd34cd34'],
 		];
+		$rCatalogue = self::CATALOGUE;
+		$rCatalogue[2]['hash_id'] = 'ef56ef56ef56ef56ef56ef56ef56ef56';
 
-		$rRows = array_column(ModuleStore::rows(self::CATALOGUE, $rInstalled), null, 'slug');
+		$rRows = array_column(ModuleStore::rows($rCatalogue, $rInstalled), null, 'slug');
 
-		$this->assertSame(['1.1.1', '1.2.0', 'watch'], [$rRows['watch']['installed_version'], $rRows['watch']['update_to'], $rRows['watch']['module']]);
-		$this->assertSame(['2.0.0', '', 'plex'], [$rRows['plex-sync']['installed_version'], $rRows['plex-sync']['update_to'], $rRows['plex-sync']['module']]);
+		// An item without a hash_id (an older store) falls back to slug = name.
+		$this->assertSame(['1.1.1', '1.2.0', 'watch', 'watch'], [$rRows['watch']['installed_version'], $rRows['watch']['update_to'], $rRows['watch']['module'], $rRows['watch']['store_id']]);
+		$this->assertSame(['2.0.0', '', 'plex', 'ab12ab12ab12ab12ab12ab12ab12ab12'], [$rRows['plex-sync']['installed_version'], $rRows['plex-sync']['update_to'], $rRows['plex-sync']['module'], $rRows['plex-sync']['store_id']]);
+		$this->assertSame('', $rRows['epg-pro']['installed_version']);
 	}
 
 	public function testTheCatalogueIsListedWithoutAKeyAndTheOptionsReachTheStore(): void {

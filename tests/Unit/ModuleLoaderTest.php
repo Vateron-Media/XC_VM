@@ -45,7 +45,6 @@ final class ModuleLoaderTest extends TestCase {
 	public function testNormalizeUpdateBlockDefaultsToBundled(): void {
 		$u = ModuleLoader::normalizeUpdateBlock(['name' => 'watch'], 'watch');
 		$this->assertSame('bundled', $u['source']);
-		$this->assertSame('watch', $u['slug']);   // slug defaults to the module name
 		$this->assertSame('stable', $u['channel']);
 		$this->assertSame('', $u['repository']);
 	}
@@ -62,7 +61,7 @@ final class ModuleLoaderTest extends TestCase {
 		$this->assertSame('git', $u['source']);
 		$this->assertSame('https://github.com/Vateron-Media/xc_vm-module-watch', $u['repository']);
 		$this->assertSame('beta', $u['channel']);
-		$this->assertSame('watch', $u['slug']);
+		$this->assertArrayNotHasKey('slug', $u);   // a platform module is named by its hash_id
 	}
 
 	public function testNormalizeUpdateBlockUnknownSourceFallsBackToBundled(): void {
