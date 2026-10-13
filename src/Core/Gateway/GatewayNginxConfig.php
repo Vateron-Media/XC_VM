@@ -6,7 +6,7 @@ namespace XcVm\Core\Gateway;
  * The segment gateway's nginx include, `bin/nginx/conf/gateway.conf`
  * (Phase 12): both nginx.conf files include it in their server block, and
  * the root cron writes it from the node's mode (GatewayPolicy::mode) and
- * reloads nginx when it changes, as it does api_legacy.conf. Off, it holds a
+ * reloads nginx when it changes. Off, it holds a
  * comment and changes nothing; switching the mode off is the whole rollback.
  *
  * Its locations are exact matches for what the server-level rewrites make of

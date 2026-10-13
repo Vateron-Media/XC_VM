@@ -83,9 +83,6 @@ final class DataPlane {
 	/** @var array{0: int, 1: ?string}|null [when, key] of the last check */
 	private static ?array $rChecked = null;
 
-	/** @var (callable(): array<int, array<string, mixed>>)|null */
-	private static $rServers = null;
-
 	/**
 	 * Does this server pull through its agent? A node: its own DATAPLANE flow.
 	 * MAIN, which has no flows: its data-plane client is on (main.json,
@@ -261,50 +258,5 @@ final class DataPlane {
 	/** Is $rServerID this server? Its own files and streams are never pulled through the proxy. */
 	private static function isSelf(int $rServerID): bool {
 		return defined('SERVER_ID') && $rServerID === (int) SERVER_ID;
-	}
-
-	/**
-	 * May this node's legacy `/api` answer 404 (api_legacy.conf)? Only once
-	 * nothing reads its files with `getFile` any more: its own DATAPLANE flow
-	 * is on, and every server of the cluster — MAIN included, a proxy not,
-	 * as it reads no node's files — is a node
-	 * active in the signed node list with its DATAPLANE flow on, so each
-	 * reads through `/xfile`. MAIN counts once its data-plane client is on
-	 * (`cluster:main-dataplane on`): its entry in the node list is then
-	 * active with DATAPLANE, and it reads a node's files (a source probe, the
-	 * certbot log, what it runs) through its own agent.
-	 */
-	public static function legacyApiRetired(): bool {
-		if (!self::on()) {
-			return false;
-		}
-		try {
-			$rServers = self::$rServers !== null ? (self::$rServers)() : ServerRepository::getAll();
-		} catch (\Throwable) {
-			return false;
-		}
-		if (!is_array($rServers) || $rServers === []) {
-			return false;
-		}
-		foreach ($rServers as $rID => $rServer) {
-			// A proxy reads no node's files: it forwards viewers and talks to MAIN alone.
-			if ((int) ($rServer['server_type'] ?? 0) === 1) {
-				continue;
-			}
-			$rNode = DataPlaneTrust::node((int) $rID);
-			if ($rNode === null || $rNode['state'] !== 'active' || !$rNode['dataplane']) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * Tests: the servers legacyApiRetired() goes through; null restores the repository.
-	 *
-	 * @param (callable(): array<int, array<string, mixed>>)|null $rServers
-	 */
-	public static function useServers(?callable $rServers): void {
-		self::$rServers = $rServers;
 	}
 }

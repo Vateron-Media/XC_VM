@@ -2,7 +2,6 @@
 
 use PHPUnit\Framework\TestCase;
 use XcVm\Cli\CronJobs\RootSignalsCronJob;
-use XcVm\Core\Cluster\DataPlane;
 use XcVm\Core\Cluster\DataPlaneTrust;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
@@ -29,7 +28,6 @@ final class LbNginxApiLegacyTest extends TestCase {
 	protected function tearDown(): void {
 		NodeFlows::usePath(null);
 		NodeRole::useServers(null);
-		DataPlane::useServers(null);
 		DataPlaneTrust::useSources(null, null, null);
 		if ($this->rFlows !== null) {
 			@unlink($this->rFlows);

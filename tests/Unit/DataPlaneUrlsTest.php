@@ -169,49 +169,4 @@ final class DataPlaneUrlsTest extends TestCase {
 		DataPlane::useKeyFile($this->rDir . '/relay.key', [$this->rDir . '/tcp', $this->rDir . '/tcp6']);
 		$this->assertNull(DataPlane::loopback(), 'checked again');
 	}
-
-	/**
-	 * api_legacy.conf's 0 (the node's legacy `/api` answers 404) only once
-	 * nothing reads the node's files with `getFile`: its own flow on, and
-	 * every server of the cluster, MAIN included, an active node with its
-	 * DATAPLANE flow on. MAIN is no node, so today this is never.
-	 */
-	public function testTheLegacyApiRetiresOnlyWhenNothingReadsWithGetFile(): void {
-		$rNodes = [];
-		DataPlaneTrust::useSources(static function (int $rSid) use (&$rNodes): ?array {
-			return $rNodes[$rSid] ?? null;
-		}, null, null, null, false);
-		$rNode = static fn(int $rSid, bool $rOn = true, string $rState = 'active'): array => ['sid' => $rSid, 'gen' => 1, 'state' => $rState, 'ed_pub' => str_repeat('x', 32), 'dataplane' => $rOn];
-		try {
-			DataPlane::useServers(fn(): array => $this->rServers);
-			$rNodes = [SERVER_ID => $rNode((int) SERVER_ID), 21 => $rNode(21), 22 => $rNode(22)];
-			$this->assertFalse(DataPlane::legacyApiRetired(), 'MAIN (20) is no node: it still reads with getFile');
-
-			$rNodes[20] = $rNode(20);
-			$this->assertTrue(DataPlane::legacyApiRetired(), 'every server reads through /xfile');
-			DataPlane::useServers(fn(): array => $this->rServers + [23 => ['server_type' => 1]]);
-			$this->assertTrue(DataPlane::legacyApiRetired(), 'a proxy, no node, reads no node\'s files');
-			DataPlane::useServers(fn(): array => $this->rServers);
-
-			$rNodes[22] = $rNode(22, false);
-			$this->assertFalse(DataPlane::legacyApiRetired(), 'a server whose flow is off');
-			$rNodes[22] = $rNode(22, true, 'revoked');
-			$this->assertFalse(DataPlane::legacyApiRetired(), 'a server that is no active node');
-			$rNodes[22] = $rNode(22);
-
-			$this->flows(NodeFlows::STREAMS | NodeFlows::CONTENT);
-			$this->assertFalse(DataPlane::legacyApiRetired(), 'this node\'s own flow off');
-			$this->flows(NodeFlows::STREAMS | NodeFlows::CONTENT | NodeFlows::DATAPLANE);
-			$this->assertTrue(DataPlane::legacyApiRetired());
-
-			DataPlane::useServers(static fn(): array => []);
-			$this->assertFalse(DataPlane::legacyApiRetired(), 'no servers list: nothing is known');
-			DataPlane::useServers(static function (): array {
-				throw new RuntimeException('no database');
-			});
-			$this->assertFalse(DataPlane::legacyApiRetired(), 'a list that does not read');
-		} finally {
-			DataPlane::useServers(null);
-		}
-	}
 }

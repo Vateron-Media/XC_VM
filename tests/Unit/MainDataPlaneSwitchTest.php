@@ -3,16 +3,12 @@
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Process\ProcessRunner;
 use XcVm\Domain\Cluster\ClusterAdmin;
-use XcVm\Domain\Cluster\ClusterOverview;
-use XcVm\Domain\Cluster\NodeRegistry;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Tests\Support\FakeClusterCrypto;
 
 /**
  * MAIN's data plane from the Cluster Nodes page (ClusterAdmin::act runs the
- * CLI's `cluster:main-dataplane`), and the servers that still keep the load
- * balancers' legacy /api open (ClusterOverview::legacyApiOpenBy), as each
- * node judges it from its signed node list (DataPlane::legacyApiRetired).
+ * CLI's `cluster:main-dataplane`).
  */
 final class MainDataPlaneSwitchTest extends TestCase {
 	private TestDb $rDb;
@@ -54,18 +50,5 @@ final class MainDataPlaneSwitchTest extends TestCase {
 		$rOut = $this->act('main_dataplane_on', 1, "Refused: no xc_agent binary yet: run `console.php fanout_binary agent` as root\n");
 		$this->assertSame(['type' => 'warning', 'message' => 'cluster_main_dataplane_refused', 'vars' => ['{WHY}' => 'no xc_agent binary yet: run `console.php fanout_binary agent` as root']], $rOut);
 		$this->assertSame('exit 127', $this->act('main_dataplane_off', 127, '')['vars']['{WHY}'], 'a command that did not start');
-	}
-
-	public function testTheLegacyApiStaysOpenUntilEveryServerHasItsDataPlane(): void {
-		$rServers = [1 => ['server_name' => 'main'], 7 => ['server_name' => 'lb-a'], 8 => ['server_name' => 'lb-b'], 9 => ['server_name' => 'proxy', 'server_type' => 1]];
-		$rNode = static fn(int $rSid, array $rOver = []): array => $rOver + ['server_id' => $rSid, 'state' => 'active', 'mode' => 2, 'flows' => 255];
-		$rNodes = [$rNode(7), $rNode(8, ['flows' => 255 & ~NodeRegistry::FLOW_DATAPLANE])];
-		$this->assertSame([1, 8], ClusterOverview::legacyApiOpenBy($rServers, $rNodes, 1, false), 'MAIN off, a node without the flow; a proxy reads no node\'s files');
-		$this->assertSame([8], ClusterOverview::legacyApiOpenBy($rServers, $rNodes, 1, true));
-
-		$rNodes[1] = $rNode(8);
-		$this->assertSame([], ClusterOverview::legacyApiOpenBy($rServers, $rNodes, 1, true), 'closed, the proxy still there');
-		$this->assertSame([8], ClusterOverview::legacyApiOpenBy($rServers, [$rNode(7), $rNode(8, ['mode' => 0])], 1, true), 'mode 0 is not in the node list with its data plane');
-		$this->assertSame([8], ClusterOverview::legacyApiOpenBy($rServers, [$rNode(7), $rNode(8, ['state' => 'quarantined'])], 1, true), 'nor a quarantined node');
 	}
 }
