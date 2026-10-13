@@ -127,7 +127,7 @@ final class ModuleQuarantine {
 			$lines[] = substr($file->getPathname(), strlen($path)) . ':' . $file->getSize() . ':' . $file->getMTime();
 		}
 		sort($lines, SORT_STRING);
-		return md5(implode("\n", $lines));
+		return hash('sha256', implode("\n", $lines));
 	}
 
 	/** @return array<string, array{fingerprint: string, reason: string, at: int}> */
