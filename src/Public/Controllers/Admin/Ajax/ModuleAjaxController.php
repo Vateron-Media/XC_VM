@@ -119,6 +119,7 @@ class ModuleAjaxController extends BaseAjaxController {
 			$rState     = $rModule['state'];
 			$rRows[] = [
 				'name'          => (string) $rModule['name'],
+				'title'         => (string) $rModule['title'],
 				'description'   => (string) $rModule['description'],
 				'version'       => (string) $rModule['version'],
 				'requires_core' => (string) $rModule['requires_core'],

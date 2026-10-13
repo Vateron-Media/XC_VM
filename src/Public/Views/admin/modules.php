@@ -284,7 +284,7 @@ LayoutRenderer::renderFooter('admin');
             var lock = jobRunning() ? ' disabled' : '';
             var first = list[0];
             var attrs = function(a) {
-                return ' data-sub="' + esc(a.sub) + '" data-module="' + esc(row.name) + '"' + (a.confirm ? ' data-confirm="' + esc(a.label) + '"' : '');
+                return ' data-sub="' + esc(a.sub) + '" data-module="' + esc(row.name) + '" data-title="' + esc(row.title || row.name) + '"' + (a.confirm ? ' data-confirm="' + esc(a.label) + '"' : '');
             };
             var html = '<div class="btn-group">';
             html += '<button type="button" class="btn btn-sm ' + (first.cls || (first.danger ? 'btn-label-danger' : 'btn-label-secondary')) + ' js-mod"' + attrs(first) + (first.sub === 'enable' || first.sub === 'disable' ? '' : lock) + '>' + esc(first.label) + '</button>';
@@ -302,7 +302,7 @@ LayoutRenderer::renderFooter('admin');
         function paint() {
             var needle = filterBox.value.trim().toLowerCase();
             var shown = rows.filter(function(r) {
-                return !needle || (r.name + ' ' + r.description).toLowerCase().indexOf(needle) !== -1;
+                return !needle || ((r.title || '') + ' ' + r.name + ' ' + r.description).toLowerCase().indexOf(needle) !== -1;
             });
             if (!shown.length) {
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center text-body-secondary py-4">' + esc(T.none) + '</td></tr>';
@@ -311,7 +311,8 @@ LayoutRenderer::renderFooter('admin');
             tbody.innerHTML = shown.map(function(r) {
                 var version = r.installed || r.version || '-';
                 return '<tr>' +
-                    '<td><div class="fw-medium">' + esc(r.name) + '</div><div class="small text-body-secondary d-lg-none">' + esc(r.description) + '</div></td>' +
+                    // The title for people, the code name (config, CLI, dependencies) under it.
+                    '<td><div class="fw-medium">' + esc(r.title || r.name) + '</div>' + (r.title && r.title !== r.name ? '<div class="small text-body-secondary"><code>' + esc(r.name) + '</code></div>' : '') + '<div class="small text-body-secondary d-lg-none">' + esc(r.description) + '</div></td>' +
                     '<td class="d-none d-lg-table-cell">' + esc(r.description || '-') + '</td>' +
                     '<td class="d-none d-md-table-cell text-nowrap">' + esc(version) + (r.requires_core ? '<div class="small text-body-secondary">core ' + esc(r.requires_core) + '</div>' : '') + '</td>' +
                     '<td class="text-nowrap">' + statusBadge(r) + '</td>' +
@@ -418,7 +419,7 @@ LayoutRenderer::renderFooter('admin');
                 runAction(sub, name);
                 return;
             }
-            window.xcConfirm(fill(T.confirm, { action: btn.dataset.confirm.toLowerCase(), name: name })).then(function(ok) {
+            window.xcConfirm(fill(T.confirm, { action: btn.dataset.confirm.toLowerCase(), name: btn.dataset.title || name })).then(function(ok) {
                 if (ok) {
                     runAction(sub, name);
                 }

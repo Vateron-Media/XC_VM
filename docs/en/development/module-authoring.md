@@ -85,6 +85,7 @@ Rules:
 ```json
 {
     "name": "my-module",
+    "title": "My Module",
     "hash_id": "9f1c0b7e4d2a6538c1e0a4b7d6f39e21",
     "description": "Short description",
     "version": "1.0.0",
@@ -103,6 +104,7 @@ Rules:
 | Field | Type | Default | Description |
 | ------ | ----- | :---: | ------------ |
 | `name` | `string` | — | Canonical module name (kebab-case, no `_`). The directory is `{name}_{hash5}`, but code always keys off this manifest value, not the directory basename. |
+| `title` | `string` | `name` | What the admin panel shows people (the Modules page, warnings, job messages). Display only: `name` stays the identifier. The store writes its listing name here in every module it serves. |
 | `hash_id` | `string` | generated | **Permanent** module identity — random 32-hex, generated ONCE and never changed on a version bump or rename. Its first 5 chars form the `{name}_{hash5}` directory suffix. Do not hand-edit. |
 | `description` | `string` | `""` | Human-readable description |
 | `version` | `string` | — | Semver version (`1.0.0`) |

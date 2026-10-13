@@ -656,7 +656,7 @@ class ModuleManager {
 	 * Scans the modules directory for module.json files, merges with
 	 * config/modules.php overrides, and returns sorted results.
 	 *
-	 * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: ModuleState, path: string, installed_version: string, source: string, previous_version: string, dependency_warnings: string[]}> Module list.
+	 * @return array<int, array{name: string, title: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: ModuleState, path: string, installed_version: string, source: string, previous_version: string, dependency_warnings: string[]}> Module list.
 	 */
 	public function listModules(): array {
 		$overrides = $this->readOverrides();
@@ -667,6 +667,7 @@ class ModuleManager {
 		// Pre-resolve each module's state by name so the dependency diagnostics
 		// below can see the full set while building items.
 		$stateByName = [];
+		$titleByName = [];
 		foreach ($jsonFiles as $jsonFile) {
 			$meta    = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
 			// Key by the CANONICAL manifest name, not the `{name}_{hash5}` directory —
@@ -675,6 +676,7 @@ class ModuleManager {
 			$stateByName[$depName] = ModuleState::fromRaw(
 				$overrides[$depName]['state'] ?? ($overrides[$depName]['enabled'] ?? null)
 			);
+			$titleByName[$depName] = self::titleFrom(is_array($meta) ? $meta : [], $depName);
 		}
 
 		foreach ($jsonFiles as $jsonFile) {
@@ -704,16 +706,18 @@ class ModuleManager {
 				$dependencyWarnings[] = "Not loaded: quarantined after a fatal error ({$quarantine}). Replacing its files lifts it.";
 			}
 			foreach ($dependencies as $dep) {
+				$depTitle = $titleByName[$dep] ?? $dep;
 				if (!isset($stateByName[$dep])) {
-					$dependencyWarnings[] = "Required dependency '{$dep}' is missing.";
+					$dependencyWarnings[] = "Required dependency '{$depTitle}' is missing.";
 				} elseif (!$stateByName[$dep]->isLoadable()) {
-					$dependencyWarnings[] = "Required dependency '{$dep}' is not enabled ("
+					$dependencyWarnings[] = "Required dependency '{$depTitle}' is not enabled ("
 						. $stateByName[$dep]->value . ').';
 				}
 			}
 
 			$items[] = [
 				'name'                  => $name,
+				'title'                 => $titleByName[$name] ?? $name,
 				'hash_id'               => (string) ($meta['hash_id'] ?? ''),
 				'update'                => ModuleLoader::normalizeUpdateBlock($meta, $name),
 				'description'           => $meta['description'] ?? '',
@@ -737,10 +741,25 @@ class ModuleManager {
 		}
 
 		usort($items, function ($a, $b) {
-			return strcmp($a['name'], $b['name']);
+			return strcasecmp($a['title'], $b['title']);
 		});
 
 		return $items;
+	}
+
+	/**
+	 * What people call a module: its module.json `title` (the store writes the
+	 * listing's name there), else its `name` — the code identifier that stays
+	 * the key for config/modules.php, the class and dependencies.
+	 */
+	public function titleOf(string $name): string {
+		return self::titleFrom($this->readModuleManifest($name), $name);
+	}
+
+	/** @param array<string, mixed> $meta A module.json. */
+	private static function titleFrom(array $meta, string $name): string {
+		$title = is_string($meta['title'] ?? null) ? trim($meta['title']) : '';
+		return $title !== '' ? $title : $name;
 	}
 
 	/**
@@ -1734,9 +1753,10 @@ class ModuleManager {
 	 * @param string      $storeId hash_id (or legacy store slug) of the module.
 	 * @param string      $version Exact version string (e.g. "1.2.0"), or '' for the latest.
 	 * @param string|null $apiKey  Modules API key; null or '' for a free module.
+	 * @return string Name of the module installed (its module.json `name`).
 	 * @throws \RuntimeException If the C extension is missing, download fails, or install fails.
 	 */
-	public function downloadFromPlatform(string $storeId, string $version = '', ?string $apiKey = null): void {
+	public function downloadFromPlatform(string $storeId, string $version = '', ?string $apiKey = null): string {
 		$storeId = $this->sanitizeModuleName($storeId);
 		// The copy installed here already (null on a first install). Resolve its
 		// ACTUAL directory (canonical `{name}_{hash5}`, or a legacy bare one):
@@ -1797,6 +1817,7 @@ class ModuleManager {
 			if ($backupDir !== null) {
 				$this->deleteDirectory($backupDir);
 			}
+			return $name;
 		} catch (\Throwable $e) {
 			$restored = $this->restoreModuleBackup($prevName ?? $storeId, $targetDir, $backupDir, $prevVersion, $rState);
 			throw new \RuntimeException(
