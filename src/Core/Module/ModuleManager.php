@@ -656,7 +656,7 @@ class ModuleManager {
 	 * Scans the modules directory for module.json files, merges with
 	 * config/modules.php overrides, and returns sorted results.
 	 *
-	 * @return array<int, array{name: string, title: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: ModuleState, path: string, installed_version: string, source: string, previous_version: string, dependency_warnings: string[]}> Module list.
+	 * @return array<int, array{name: string, title: string, hash_id: string, update: array{source: string, repository: string, channel: string, url: string}, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: ModuleState, path: string, installed_version: string, available_version: string, source: string, previous_version: string, dependency_warnings: string[]}> Module list.
 	 */
 	public function listModules(): array {
 		$overrides = $this->readOverrides();
