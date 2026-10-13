@@ -46,34 +46,39 @@ class ModuleJobCommand implements CommandInterface {
 	 * @throws \RuntimeException
 	 */
 	public static function perform(ModuleManager $rManager, string $rAction, string $rTarget): string {
+		// Messages name the module by its title; $rTarget is its code name (or,
+		// for a store install, the store id).
 		switch ($rAction) {
 			case 'install':
 				$rManager->installModule($rTarget);
-				return 'Module installed: ' . $rTarget;
+				return 'Module installed: ' . $rManager->titleOf($rTarget);
 
 			case 'update':
 				$rNew = $rManager->updateModuleFromSource($rTarget);
+				$rTitle = $rManager->titleOf($rTarget);
 				return $rNew !== null
-					? 'Module updated: ' . $rTarget . ' -> ' . $rNew
-					: 'Nothing newer at the source for ' . $rTarget . ': already up to date.';
+					? 'Module updated: ' . $rTitle . ' -> ' . $rNew
+					: 'Nothing newer at the source for ' . $rTitle . ': already up to date.';
 
 			case 'delete':
+				$rTitle = $rManager->titleOf($rTarget);
 				$rManager->deleteModule($rTarget);
-				return 'Module deleted: ' . $rTarget;
+				return 'Module deleted: ' . $rTitle;
 
 			case 'rollback':
 				$rManager->rollbackFromPlatform($rTarget, self::platformKey());
-				return 'Module rolled back to its previous version: ' . $rTarget;
+				return 'Module rolled back to its previous version: ' . $rManager->titleOf($rTarget);
 
 			case 'renew_license':
+				$rTitle = $rManager->titleOf($rTarget);
 				return $rManager->renewModuleLicense($rTarget, self::platformKey())
-					? 'License renewed for: ' . $rTarget
-					: 'License not renewed for ' . $rTarget . ' (platform licensing off, not entitled, or no server data).';
+					? 'License renewed for: ' . $rTitle
+					: 'License not renewed for ' . $rTitle . ' (platform licensing off, not entitled, or no server data).';
 
 			case 'store_install':
-				$rManager->downloadFromPlatform($rTarget, '', self::platformKey());
+				$rName = $rManager->downloadFromPlatform($rTarget, '', self::platformKey());
 				ModuleStore::forget();
-				return 'Module installed from the store: ' . $rTarget;
+				return 'Module installed from the store: ' . $rManager->titleOf($rName);
 
 			case 'upload_install':
 				return self::uploadInstall($rManager, $rTarget);

@@ -7,12 +7,6 @@ parameters:
 			path: ../src/Public/Controllers/Admin/AdminLogoutController.php
 
 		-
-			message: '#^Offset ''available_version'' does not exist on array\{name\: string, description\: string, version\: string, requires_core\: string, environment\: string, priority\: int, dependencies\: array, optional_dependencies\: array, \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: ../src/Public/Controllers/Admin/Ajax/ModuleAjaxController.php
-
-		-
 			message: '#^Variable \$language in PHPDoc tag @var does not match any global variable\: \$db, \$rServers$#'
 			identifier: varTag.differentVariable
 			count: 1

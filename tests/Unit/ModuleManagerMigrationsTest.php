@@ -5,6 +5,7 @@ use XcVm\Core\Enum\ModuleState;
 use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Module\BaseModule;
 use PHPUnit\Framework\TestCase;
+use XcVm\Public\Controllers\Admin\Ajax\ModuleAjaxController;
 
 // Static tracker used by generated module migration callables.
 class MigrationCallTracker {
@@ -295,6 +296,25 @@ final class ModuleManagerMigrationsTest extends TestCase {
     // ── Helpers ───────────────────────────────────────────────────────────
 
     // ── listModules() dependency diagnostics ──────────────────────────────
+
+    public function testModulesAreShownByTitleAndKeyedByName(): void {
+        $this->createModuleWithDeps('dep-base', '1.0.0', []);
+        $this->createModuleWithDeps('dep-consumer', '1.0.0', ['dep-base']);
+        $file = $this->modulesPath . '/dep-base/module.json';
+        $manifest = json_decode((string) file_get_contents($file), true);
+        file_put_contents($file, json_encode(['title' => 'Base Module'] + $manifest));
+        $this->writeOverrides(['dep-base' => ['state' => 'disabled']]);
+
+        $byName = $this->modulesByName();
+
+        $this->assertSame('Base Module', $byName['dep-base']['title']);
+        $this->assertSame('dep-consumer', $byName['dep-consumer']['title']);   // no title → its name
+        $this->assertStringContainsString("'Base Module' is not enabled", $byName['dep-consumer']['dependency_warnings'][0]);
+        $this->assertSame('Base Module', $this->manager()->titleOf('dep-base'));
+
+        $rows = array_column(ModuleAjaxController::rows($this->manager()), null, 'name');
+        $this->assertSame('Base Module', $rows['dep-base']['title']);
+    }
 
     public function testListModulesFlagsDisabledRequiredDependency(): void {
         // dep-consumer requires dep-base, which is present but disabled.

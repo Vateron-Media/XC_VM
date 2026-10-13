@@ -680,6 +680,8 @@ class ModuleLoader {
 
 		return [
 			'name'                  => $manifest['name'] ?? $name,
+			// What people read; `name` is the code identifier (class, config, dependencies).
+			'title'                 => trim((string) ($manifest['title'] ?? '')),
 			'hash_id'               => (string) ($manifest['hash_id'] ?? ''),
 			'description'           => $manifest['description'] ?? '',
 			'version'               => $manifest['version'] ?? '',
