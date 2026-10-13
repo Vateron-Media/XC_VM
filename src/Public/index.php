@@ -11,7 +11,6 @@ use XcVm\Public\Controllers\Api\ActiveCodeApiController;
 use XcVm\Public\Controllers\Api\AdminApiController;
 use XcVm\Public\Controllers\Api\Enigma2ApiController;
 use XcVm\Public\Controllers\Api\EpgApiController;
-use XcVm\Public\Controllers\Api\InternalApiController;
 use XcVm\Public\Controllers\Api\MetricsController;
 use XcVm\Public\Controllers\Api\PlayerApiController;
 use XcVm\Public\Controllers\Api\PlaylistApiController;
@@ -176,7 +175,6 @@ if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
 		'xplugin'    => [XPluginApiController::class,  'web'],
 		'epg'        => [EpgApiController::class,      'web'],
 		'playlist'     => [PlaylistApiController::class,     'web'],
-		'internal'     => [InternalApiController::class,     'web'],
 		'active_code'  => [ActiveCodeApiController::class,   'web'],
 		'active_codes' => [ActiveCodeApiController::class,   'web'],
 		// MAIN only: nginx routes them there, and the load balancer build has no controller.
@@ -190,7 +188,7 @@ if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
 	}
 
 	[$rControllerClass, $rBootstrapKind] = $rApiEndpoints[$rApiName];
-	$rFilename = ($rApiName === 'internal') ? 'api' : (in_array($rApiName, ['active_code', 'active_codes'], true) ? 'active_code' : $rApiName);
+	$rFilename = (in_array($rApiName, ['active_code', 'active_codes'], true) ? 'active_code' : $rApiName);
 
 	if ($rBootstrapKind === 'stream') {
 		StreamingRequestBootstrap::init($rFilename);

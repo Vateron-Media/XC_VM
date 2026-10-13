@@ -202,11 +202,10 @@ final class SettingsAudit {
 			$rNow ??= time();
 			$rSum = self::days($rNow);
 			$rConnects = $rSum === null ? null : ConnectAudit::report($rNow);
-			$rLegacy = LegacyApiAudit::report($rNow);
-			if ($rSum === null || $rConnects === null || $rLegacy === null) {
+			if ($rSum === null || $rConnects === null ) {
 				return false;
 			}
-			$rDoc = ['settings_misses' => (object) self::top($rSum)] + $rConnects + $rLegacy + GatewayShadow::report();
+			$rDoc = ['settings_misses' => (object) self::top($rSum)] + $rConnects + GatewayShadow::report();
 			// A load balancer's build only: MAIN's would ask the servers whether it
 			// is MAIN, at a connect that has no database yet.
 			if (!NodeRole::mainBuild() && StreamRuntime::keeps()) {
