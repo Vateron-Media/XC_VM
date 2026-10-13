@@ -551,24 +551,6 @@ class RootSignalsCronJob implements CommandInterface {
 	}
 
 	/**
-	 * api_legacy.conf for this node, or null on MAIN. The legacy `/api` of a
-	 * load balancer is served until nothing reads the node's files with
-	 * `getFile` any more (DataPlane::legacyApiRetired): its own data plane
-	 * on, and every server of the cluster, MAIN included, reading through
-	 * `/xfile`. MAIN has no data-plane client yet, so this is 1 on every
-	 * node today. MAIN's own `/api` keeps no toggle (ADR 0004, Phase 8): its
-	 * nginx.conf neither includes the file nor guards `/api`, so the cron
-	 * does not write it there — retiring MAIN's `/api` is a cluster-wide
-	 * judgement, not a per-node flow.
-	 */
-	public static function apiLegacyConf(): ?string {
-		if (NodeRole::isMain()) {
-			return null;
-		}
-		return 'set $api_legacy ' . (DataPlane::legacyApiRetired() ? '0' : '1') . ';';
-	}
-
-	/**
 	 * viewer_api.conf for this node, or null on MAIN: the viewer APIs
 	 * (player_api, enigma2, xplugin, epg, playlist) answer 404 on every load
 	 * balancer, whatever its mode. Their controllers need Domain/User, which
@@ -862,12 +844,6 @@ class RootSignalsCronJob implements CommandInterface {
 			}
 		}
 		$rReload = false;
-		$rApiLegacyConf = self::apiLegacyConf();
-		if ($rApiLegacyConf !== null && $rApiLegacyConf !== (trim(@file_get_contents(BIN_PATH . 'nginx/conf/api_legacy.conf')) ?: '')) {
-			echo 'Updating the legacy /api toggle...' . "\n";
-			file_put_contents(BIN_PATH . 'nginx/conf/api_legacy.conf', $rApiLegacyConf);
-			$rReload = true;
-		}
 		$rViewerApiConf = self::viewerApiConf();
 		if ($rViewerApiConf !== null && $rViewerApiConf !== (trim(@file_get_contents(BIN_PATH . 'nginx/conf/viewer_api.conf')) ?: '')) {
 			echo 'Updating the viewer API toggle...' . "\n";
