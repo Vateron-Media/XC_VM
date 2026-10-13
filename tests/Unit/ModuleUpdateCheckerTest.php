@@ -49,14 +49,53 @@ final class ModuleUpdateCheckerTest extends TestCase {
         $this->assertNull($result); // regex fails before any network call
     }
 
-    public function testPlatformWithoutExtensionReturnsNull(): void {
-        // The xcvm_core extension is not loaded in the test runtime, so the
-        // platform branch short-circuits to null.
+    public function testPlatformWithoutExtensionCannotCheck(): void {
+        // The xcvm_core extension is not loaded in the test runtime: the store's
+        // catalogue cannot be read, which is an error, not "nothing newer".
         $result = $this->checker->latestAvailable([
-            'update'            => ['source' => 'platform', 'slug' => 'watch'],
+            'update'            => ['source' => 'platform'],
+            'hash_id'           => str_repeat('ab', 16),
             'installed_version' => '1.0.0',
         ]);
         $this->assertNull($result);
+        $this->assertStringContainsString('no_extension', (string) $this->checker->lastError());
+    }
+
+    /** A store module's latest version comes from the catalogue, by hash_id (or an older store's slug), read once for every module. */
+    public function testPlatformReadsTheCatalogueOnceByHashId(): void {
+        $checker = $this->storeChecker([
+            1 => ['ok' => true, 'last_page' => 2, 'extensions' => [['hash_id' => str_repeat('a1', 16), 'slug' => 'watchfolder-sdfis', 'version' => '1.2.0']]],
+            2 => ['ok' => true, 'last_page' => 2, 'extensions' => [['slug' => 'plex', 'version' => '2.1.0']]],
+        ]);
+        $this->assertSame('1.2.0', $checker->latestAvailable(['update' => ['source' => 'platform'], 'hash_id' => str_repeat('a1', 16), 'name' => 'watchfolder']));
+        $this->assertSame('2.1.0', $checker->latestAvailable(['update' => ['source' => 'platform'], 'name' => 'plex']), 'an older store: its slug');
+        $this->assertNull($checker->latestAvailable(['update' => ['source' => 'platform'], 'hash_id' => str_repeat('ff', 16)]), 'not listed: nothing newer');
+        $this->assertNull($checker->lastError());
+        $this->assertSame([1, 2], $checker->pages, 'every page, once');
+    }
+
+    /** A store that does not answer is an error for every module of the check, so none loses the flag it had. */
+    public function testAStoreThatDoesNotAnswerFailsEveryModule(): void {
+        $checker = $this->storeChecker([1 => ['ok' => false, 'reason' => 'timeout']]);
+        foreach ([str_repeat('a1', 16), str_repeat('b2', 16)] as $hash) {
+            $this->assertNull($checker->latestAvailable(['update' => ['source' => 'platform'], 'hash_id' => $hash]));
+            $this->assertSame('store catalogue: timeout', $checker->lastError());
+        }
+    }
+
+    /** A checker whose catalogue pages are canned; $pages records the pages read. */
+    private function storeChecker(array $answers): ModuleUpdateChecker {
+        return new class($answers) extends ModuleUpdateChecker {
+            public array $pages = array();
+
+            public function __construct(private array $answers) {
+            }
+
+            protected function cataloguePage(string $rKey, int $rPage): array {
+                $this->pages[] = $rPage;
+                return $this->answers[$rPage] ?? ['ok' => false, 'reason' => 'no page'];
+            }
+        };
     }
 
     /**
