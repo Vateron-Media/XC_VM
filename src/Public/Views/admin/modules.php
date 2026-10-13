@@ -506,7 +506,7 @@ LayoutRenderer::renderFooter('admin');
             } else {
                 var locked = m.installed_version && !m.update_to;
                 var label = m.update_to ? fill(T.update_to, { version: m.update_to }) : (locked ? fill(T.installed_v, { version: m.installed_version }) : T.install);
-                action = '<button type="button" class="btn btn-sm text-nowrap ' + (locked ? 'btn-label-secondary' : 'btn-primary') + ' js-store-install" data-slug="' + esc(m.slug) + '" data-locked="' + (locked ? '1' : '0') + '"' + (locked || jobRunning() ? ' disabled' : '') + '>' + esc(label) + '</button>';
+                action = '<button type="button" class="btn btn-sm text-nowrap ' + (locked ? 'btn-label-secondary' : 'btn-primary') + ' js-store-install" data-store-id="' + esc(m.store_id) + '" data-locked="' + (locked ? '1' : '0') + '"' + (locked || jobRunning() ? ' disabled' : '') + '>' + esc(label) + '</button>';
             }
             return '<tr>' +
                 '<td><div class="fw-medium">' + esc(m.name) + '</div><div class="small text-body-secondary"><code>' + esc(m.slug) + '</code><span class="d-md-none"> · v' + esc(m.version) + '</span></div></td>' +
@@ -595,7 +595,7 @@ LayoutRenderer::renderFooter('admin');
                 return;
             }
             btn.disabled = true;
-            runAction('store_install', btn.dataset.slug);
+            runAction('store_install', btn.dataset.storeId);
         });
 
         refresh();

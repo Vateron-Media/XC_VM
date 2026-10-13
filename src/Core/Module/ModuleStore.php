@@ -163,10 +163,17 @@ final class ModuleStore {
 	 * @return list<array<string, mixed>>
 	 */
 	public static function rows(array $rExtensions, array $rInstalled): array {
-		$rHere = [];
+		// A store module is recognised by its permanent hash_id, whatever it is
+		// named here or in the store; a catalogue item without one (an older store)
+		// by its slug, taken to be the module name as that store assumed.
+		$rByHash = [];
+		$rByName = [];
 		foreach ($rInstalled as $rModule) {
-			$rSlug = (string) ($rModule['update']['slug'] ?? '');
-			$rHere[$rSlug !== '' ? $rSlug : (string) $rModule['name']] = $rModule;
+			$rHash = strtolower((string) ($rModule['hash_id'] ?? ''));
+			if ($rHash !== '') {
+				$rByHash[$rHash] = $rModule;
+			}
+			$rByName[(string) $rModule['name']] = $rModule;
 		}
 
 		$rRows = [];
@@ -176,17 +183,21 @@ final class ModuleStore {
 			if ($rSlug === '') {
 				continue;
 			}
+			$rHash      = strtolower((string) ($rExt['hash_id'] ?? ''));
+			$rHere      = $rHash !== '' ? ($rByHash[$rHash] ?? null) : ($rByName[$rSlug] ?? null);
 			$rVersion   = (string) ($rExt['version'] ?? '');
-			$rInstalled = (string) ($rHere[$rSlug]['installed_version'] ?? '');
+			$rInstalled = (string) ($rHere['installed_version'] ?? '');
 			$rRows[] = [
 				'slug'              => $rSlug,
+				// What a store install asks the store for (ModuleManager::downloadFromPlatform).
+				'store_id'          => $rHash !== '' ? $rHash : $rSlug,
 				'name'              => (string) ($rExt['name'] ?? $rSlug),
 				'version'           => $rVersion,
 				'environment'       => (string) ($rExt['environment'] ?? ''),
 				'compatibility'     => (string) ($rExt['xc_vm_compatibility'] ?? ''),
 				'badge'             => $rPrice <= 0 ? 'free' : (($rExt['owned'] ?? false) === true ? 'purchased' : 'paid'),
 				'price'             => $rPrice,
-				'module'            => isset($rHere[$rSlug]) ? (string) $rHere[$rSlug]['name'] : '',
+				'module'            => $rHere !== null ? (string) $rHere['name'] : '',
 				'installed_version' => $rInstalled,
 				'update_to'         => $rInstalled !== '' && $rVersion !== '' && version_compare($rVersion, $rInstalled, '>') ? $rVersion : '',
 			];

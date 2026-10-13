@@ -59,7 +59,7 @@ class ModuleUpdateChecker {
 		return match ($source) {
 			'git'      => $this->fromGit($update, $installed),
 			'url'      => $this->fromUrl($update),
-			'platform' => $this->fromPlatform($update),
+			'platform' => $this->fromPlatform((string) ($module['hash_id'] ?? '') ?: (string) ($module['name'] ?? '')),
 			default    => ((string) ($module['version'] ?? '')) ?: null, // bundled
 		};
 	}
@@ -142,13 +142,13 @@ class ModuleUpdateChecker {
 		return ModuleLoader::coreRequirementError((string) ($data['requires_core'] ?? '')) === null ? $ver : null;
 	}
 
-	/** SaaS store latest version — best-effort; skipped if the extension has no such API. */
-	private function fromPlatform(array $update): ?string {
+	/** SaaS store latest version (by store id = hash_id) — best-effort; skipped if the extension has no such API. */
+	private function fromPlatform(string $storeId): ?string {
 		if (!class_exists('XC_VM') || !method_exists('XC_VM', 'module_latest')) {
 			return null; // store resolves "latest approved" at install time
 		}
 		try {
-			$r = \XC_VM::module_latest((string) ($update['slug'] ?? ''));
+			$r = \XC_VM::module_latest($storeId);
 			return is_array($r) && !empty($r['version']) ? (string) $r['version'] : null;
 		} catch (\Throwable $e) {
 			$this->lastError = $e->getMessage();

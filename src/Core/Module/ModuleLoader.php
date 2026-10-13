@@ -775,17 +775,20 @@ class ModuleLoader {
 	 *     "source": "bundled | platform | git | url",
 	 *     "repository": "https://…",   // git
 	 *     "channel": "stable | beta",
-	 *     "slug": "…",                  // platform (defaults to name)
 	 *     "url": "https://…"            // url
 	 *   }
+	 *
+	 * A `platform` module is named to the store by its top-level `hash_id` (the
+	 * store writes this block into every module.json it serves); a `slug` there
+	 * is no longer read — the store's slug can be renamed, the hash_id cannot.
 	 *
 	 * Absent or unknown source → `bundled` (files ship with the panel), so every
 	 * existing module keeps working unchanged. NO network is done here — this only
 	 * shapes the declared source for the later fetch/apply phases.
 	 *
 	 * @param array  $manifest Raw module.json.
-	 * @param string $name     Module name (fallback for slug).
-	 * @return array{source:string,repository:string,channel:string,slug:string,url:string}
+	 * @param string $name     Module name (unused; kept for callers).
+	 * @return array{source:string,repository:string,channel:string,url:string}
 	 */
 	public static function normalizeUpdateBlock(array $manifest, string $name): array {
 		$raw    = is_array($manifest['update'] ?? null) ? $manifest['update'] : [];
@@ -798,7 +801,6 @@ class ModuleLoader {
 			'source'     => $source,
 			'repository' => trim((string) ($raw['repository'] ?? '')),
 			'channel'    => strtolower(trim((string) ($raw['channel'] ?? 'stable'))) ?: 'stable',
-			'slug'       => trim((string) ($raw['slug'] ?? '')) ?: $name,
 			'url'        => trim((string) ($raw['url'] ?? '')),
 		];
 	}
