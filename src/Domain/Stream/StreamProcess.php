@@ -578,14 +578,16 @@ class StreamProcess {
 	 *                     encoded (stream_status 0, analysed) copy on $rServerId.
 	 */
 	public static function resolveVodSource(string $rEntry, int $rServerId): ?string {
-		$db = self::db();
 		$rVodId = intval(substr($rEntry, 4));
-		$db->query('SELECT s.`target_container`, ss.`stream_status`, ss.`to_analyze` FROM `streams` s JOIN `streams_servers` ss ON ss.`stream_id` = s.`id` WHERE s.`id` = ? AND ss.`server_id` = ?', $rVodId, $rServerId);
-		$rRow = $db->num_rows() > 0 ? $db->get_row() : null;
-		if (!$rRow || intval($rRow['stream_status']) !== 0 || intval($rRow['to_analyze']) !== 0) {
+		// Read through StreamSource so a mode-2 (api) node answers from its replica
+		// and runtime store, never MAIN's MySQL (which it refuses): serverRow gives
+		// this node's stream_status/to_analyze, plainRow gives the target container.
+		$rServer = StreamSource::serverRow($rVodId, $rServerId);
+		if ($rServer === null || intval($rServer['stream_status'] ?? 1) !== 0 || intval($rServer['to_analyze'] ?? 1) !== 0) {
 			return null;
 		}
-		return VOD_PATH . $rVodId . '.' . (($rRow['target_container'] ?? '') !== '' ? $rRow['target_container'] : 'mp4');
+		$rContainer = (string) (StreamSource::plainRow($rVodId)['target_container'] ?? '');
+		return VOD_PATH . $rVodId . '.' . ($rContainer !== '' ? $rContainer : 'mp4');
 	}
 
 	/**
@@ -2913,15 +2915,18 @@ class StreamProcess {
 					return 0; // the driver broke the contract; the reason is in the stream's log
 				}
 
-				// Native remuxer in place of ffmpeg when the admin chose it
-				// (fanout_source_backend native/auto) for a copy-only stream whose source
-				// the remuxer reads, and not a delayed one (delay needs ffmpeg's DELAY_PATH
+				// Native remuxer in place of ffmpeg when the admin explicitly chose it
+				// (fanout_source_backend = native) for a copy-only stream whose source the
+				// remuxer reads, and not a delayed one (delay needs ffmpeg's DELAY_PATH
 				// buffering). With no daemon (fanout off) it writes the on-disk HLS the
-				// legacy paths serve; with one reachable it tees to it too. In this
-				// unsupervised path native/auto both select it by the static gate; the
-				// daemon (fanout on) is what supplies auto's connect-time ffmpeg fallback.
+				// legacy paths serve; with one reachable it tees to it too. Only `native`
+				// here, never `auto`: this unsupervised launcher has no fallback, and it is
+				// the daemon (fanout on, supervised) that gives `auto` its connect-time
+				// ffmpeg fallback. Running `auto` natively here left a failed native start
+				// (a cold on-demand, fMP4 or encrypted source) with no HLS, so the stream
+				// never opened; `auto` therefore stays on ffmpeg off-fanout, as in 2.6.6.
 				$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
-				if ($rDriver === null && !$rDelayActive && $rBackend !== 'ffmpeg' && FanoutClient::supportsRemux() && self::remuxRefusal($rStream['stream_info'], $rArgsByKey) === null && self::isNativeSource($rStreamSource)) {
+				if ($rDriver === null && !$rDelayActive && $rBackend === 'native' && FanoutClient::supportsRemux() && self::remuxRefusal($rStream['stream_info'], $rArgsByKey) === null && self::isNativeSource($rStreamSource)) {
 					$rFFMPEG = self::buildNativeLive([
 						'streamID' => $rStreamID, 'source' => $rStreamSource,
 						'arguments' => $rArgsByKey, 'segmentSettings' => $rSegmentSettings,
