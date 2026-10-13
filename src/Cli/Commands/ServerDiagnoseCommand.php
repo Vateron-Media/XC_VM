@@ -28,7 +28,9 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  * auto-selected from where it runs (config.ini `server_id` → is_main):
  *
  *   • ON THE MAIN — `server:diagnose <server_id>`: remote-probe the target node
- *     (ICMP / TCP / HTTP /api) and read its panel-side heartbeat + signal queue.
+ *     (ICMP / TCP) and read its panel-side heartbeat, signal queue and cluster
+ *     state (the agent's health, signed round trip, token expiry, clock skew and
+ *     outbox lag as MAIN last heard them).
  *
  *   • ON THE LB/NODE — `server:diagnose` (id optional): LOCAL self-diagnosis —
  *     the causes usually live here. Checks the node's own view from the panel DB,
@@ -156,19 +158,14 @@ class ServerDiagnoseCommand implements CommandInterface {
 		$this->line('ICMP ping', $rIcmp ? 'reply' : 'no reply', $rIcmp);
 		$rTcp = $this->tcpOpen($rIP, $rPort);
 		$this->line("TCP :{$rPort}", $rTcp === true ? 'open' : (string) $rTcp, $rTcp === true);
-		list($rCode, $rCurlErr) = $this->httpApi((string) $rServer['api_url_ip']);
-		$rHttpOk = ($rCode >= 200 && $rCode < 500);
-		$this->line('HTTP /api', $rCode ? "HTTP {$rCode}" : ('curl: ' . ($rCurlErr ?: 'no response')), $rHttpOk);
 
 		$rBeatStale = !$rTelemetry && (($rNow - intval($rServer['last_check_ago'])) > (((int) $rServer['server_type'] === 1) ? 180 : 90));
 		if (!$rIcmp && $rTcp !== true) {
 			$rProblems[] = "Host unreachable (no ICMP, port {$rPort} closed): the node is powered off, network-partitioned, or fully firewalled from the main.";
 		} elseif ($rIcmp && $rTcp !== true) {
 			$rProblems[] = "Host pings but port {$rPort} is DROPPED: most likely the node's iptables blocked the main's IP (RootSignals flood/block — public IPs are dropped silently), or nginx/the xc_vm service is down. Run `server:diagnose` ON the node for the exact cause.";
-		} elseif (!$rHttpOk) {
-			$rProblems[] = "Port {$rPort} is open but /api did not answer (" . ($rCode ? "HTTP {$rCode}" : $rCurlErr) . "): nginx is up but PHP/the app is not responding — check php-fpm on the node.";
-		} elseif ($rHttpOk && $rBeatStale) {
-			$rProblems[] = "The node answers /api yet its heartbeat is stale: its watchdog daemon (the heartbeat writer) is not running — it exits when its DB connection to the main drops — or it cannot WRITE to the panel DB. Run `server:diagnose` ON the node.";
+		} elseif ($rBeatStale) {
+			$rProblems[] = "The port is open yet the node's heartbeat is stale: its watchdog daemon (the heartbeat writer) is not running — it exits when its DB connection to the main drops — or it cannot WRITE to the panel DB. Run `server:diagnose` ON the node.";
 		}
 
 		if ($rNode !== null) {
@@ -510,23 +507,6 @@ class ServerDiagnoseCommand implements CommandInterface {
 			return true;
 		}
 		return $rErrstr !== '' ? $rErrstr : 'closed/timeout';
-	}
-
-	/** @return array{0:int,1:string} [http_code, curl_error]; code 0 = no response. */
-	private function httpApi(string $rURL): array {
-		$ch = curl_init($rURL);
-		curl_setopt_array($ch, [
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_CONNECTTIMEOUT => 3,
-			CURLOPT_TIMEOUT        => 6,
-			CURLOPT_SSL_VERIFYPEER => false,
-			CURLOPT_SSL_VERIFYHOST => 0,
-		]);
-		curl_exec($ch);
-		$rCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		$rErr  = curl_error($ch);
-		curl_close($ch);
-		return [$rCode, $rErr];
 	}
 
 	private function svcActive(string $rName): bool {
