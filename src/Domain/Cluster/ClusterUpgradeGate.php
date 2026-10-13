@@ -18,7 +18,8 @@ final class ClusterUpgradeGate {
 
 	/** Null: the update may proceed. Else a reason naming the load balancers to fix. */
 	public static function blocksUpgradeTo(string $targetVersion, string $majorBoundary = self::MAJOR): ?string {
-		if (version_compare($targetVersion, $majorBoundary, '<')) {
+		// Base triple only: version_compare ranks 2.7.0-dev.1 below 2.7.0, which would let a pre-release of the major through.
+		if (version_compare((string) preg_replace('/[-+].*$/', '', $targetVersion), $majorBoundary, '<')) {
 			return null;
 		}
 		$rNodes = NodeRegistry::enrolled();

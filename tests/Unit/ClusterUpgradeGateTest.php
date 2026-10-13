@@ -37,4 +37,11 @@ final class ClusterUpgradeGateTest extends TestCase {
 	public function testNeverEnrolledBlocked(): void {
 		$this->assertStringContainsString('lb (#2)', (string) ClusterUpgradeGate::blocksUpgradeTo('2.7.0'));
 	}
+
+	public function testPreReleaseOfMajorBlocked(): void {
+		$this->node(1);
+		$this->assertNotNull(ClusterUpgradeGate::blocksUpgradeTo('2.7.0-dev.1'));
+		$this->assertNotNull(ClusterUpgradeGate::blocksUpgradeTo('2.7.0-beta1'));
+		$this->assertNull(ClusterUpgradeGate::blocksUpgradeTo('2.6.9-dev.3'));
+	}
 }
