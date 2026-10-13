@@ -24,9 +24,9 @@ if (!Authorization::check('adv', 'live_connections')):
 endif;
 
 // Deep-link filters. ?stream_id / ?user_id / ?server_id pre-select a channel, line or server.
-$rSelectedStream = RequestManager::has('stream_id') ? (int) RequestManager::get('stream_id') : 0;
-$rSelectedUser = RequestManager::has('user_id') ? (int) RequestManager::get('user_id') : 0;
-$rSelectedServer = RequestManager::has('server_id') ? (int) RequestManager::get('server_id') : 0;
+$rSelectedStream = (int) RequestManager::get('stream_id', RequestManager::get('stream', 0));
+$rSelectedUser = (int) RequestManager::get('user_id', RequestManager::get('line', 0));
+$rSelectedServer = (int) RequestManager::get('server_id', RequestManager::get('server', 0));
 ?>
 
 <div class="card">
@@ -38,11 +38,17 @@ $rSelectedServer = RequestManager::has('server_id') ? (int) RequestManager::get(
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label" for="filter-user"><?= $language::get('line'); ?></label>
-                <select id="filter-user" class="form-select"></select>
+                <select id="filter-user" class="form-select">
+                    <option value=""></option>
+                    <?php if ($rSelectedUser > 0): ?><option value="<?= $rSelectedUser; ?>" selected>#<?= $rSelectedUser; ?></option><?php endif; ?>
+                </select>
             </div>
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label" for="filter-stream"><?= $language::get('stream'); ?></label>
-                <select id="filter-stream" class="form-select"></select>
+                <select id="filter-stream" class="form-select">
+                    <option value=""></option>
+                    <?php if ($rSelectedStream > 0): ?><option value="<?= $rSelectedStream; ?>" selected>#<?= $rSelectedStream; ?></option><?php endif; ?>
+                </select>
             </div>
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label" for="filter-server"><?= $language::get('server'); ?></label>
@@ -311,12 +317,6 @@ LayoutRenderer::renderFooter('admin');
         }
         select2ajax('#filter-user', 'userlist', <?= json_encode($language::get('line')); ?>);
         select2ajax('#filter-stream', 'streamlist', <?= json_encode($language::get('stream')); ?>);
-        <?php if ($rSelectedUser): ?>
-        jQuery('#filter-user').append(new Option('#<?= $rSelectedUser; ?>', '<?= $rSelectedUser; ?>', true, true)).trigger('change');
-        <?php endif; ?>
-        <?php if ($rSelectedStream): ?>
-        jQuery('#filter-stream').append(new Option('#<?= $rSelectedStream; ?>', '<?= $rSelectedStream; ?>', true, true)).trigger('change');
-        <?php endif; ?>
         document.getElementById('filter-server').addEventListener('change', function() {
             table.ajax.reload();
         });

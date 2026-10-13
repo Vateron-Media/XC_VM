@@ -322,4 +322,17 @@ final class AuditLineUserAdminGroupTest extends TestCase {
 		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
 		$this->assertSame('Resellers of the south', $this->group(self::RESELLERS)['group_name']);
 	}
+
+	public function testAdministratorCanSetAndClearResellerBouquetLimits(): void {
+		$result = UserService::process($this->userForm(self::RESELLER, ['bouquet_limit_enabled' => '1', 'allowed_bouquets' => ['5', '6', '6', '-1']]));
+		$this->assertSame(STATUS_SUCCESS, $result['status']);
+		$this->rDb->query('SELECT `allowed_bouquets` FROM `users` WHERE `id` = ?', self::RESELLER);
+		$this->assertSame('[5,6]', $this->rDb->get_col());
+		UserService::process($this->userForm(self::RESELLER, ['notes' => 'preserve limit']));
+		$this->rDb->query('SELECT `allowed_bouquets` FROM `users` WHERE `id` = ?', self::RESELLER);
+		$this->assertSame('[5,6]', $this->rDb->get_col());
+		UserService::process($this->userForm(self::RESELLER, ['bouquet_limit_enabled' => '0']));
+		$this->rDb->query('SELECT `allowed_bouquets` FROM `users` WHERE `id` = ?', self::RESELLER);
+		$this->assertNull($this->rDb->get_col());
+	}
 }

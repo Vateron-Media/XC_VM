@@ -115,6 +115,21 @@ $rReserved  = GroupService::reservedGroups();
                         <input type="text" class="form-control" id="reseller_dns" name="reseller_dns" value="<?= $rIsEdit ? htmlspecialchars((string) $rUser['reseller_dns'], ENT_QUOTES) : ''; ?>">
                     </div>
 
+                    <div class="mb-6">
+                        <?php $allowedBouquets = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowed($rUser ?? []); ?>
+                        <label class="form-label" for="bouquet_limit_enabled">Reseller bouquet access</label>
+                        <select class="form-select mb-3" name="bouquet_limit_enabled" id="bouquet_limit_enabled">
+                            <option value="0" <?= $allowedBouquets === null ? 'selected' : ''; ?>>All package bouquets</option>
+                            <option value="1" <?= $allowedBouquets !== null ? 'selected' : ''; ?>>Only selected bouquets</option>
+                        </select>
+                        <select class="form-select" name="allowed_bouquets[]" id="allowed_bouquets" multiple size="8" aria-label="Allowed bouquets">
+                            <?php foreach (\XcVm\Domain\Bouquet\BouquetService::getAll() ?: [] as $bouquet): ?>
+                                <option value="<?= (int) $bouquet['id']; ?>" <?= in_array((int) $bouquet['id'], $allowedBouquets ?? [], true) ? 'selected' : ''; ?>>#<?= (int) $bouquet['id']; ?> — <?= htmlspecialchars((string) $bouquet['bouquet_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">Packages still define the default bouquets for Create Line and Generate Trial. This limit applies to new customers and the next save of existing customers. An empty restricted selection allows no bouquets.</div>
+                    </div>
+
                     <div>
                         <label class="form-label" for="notes"><?= $language::get('notes'); ?></label>
                         <textarea id="notes" name="notes" class="form-control" rows="3"><?= $rIsEdit ? htmlspecialchars((string) $rUser['notes'], ENT_QUOTES) : ''; ?></textarea>

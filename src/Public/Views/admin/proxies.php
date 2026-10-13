@@ -134,7 +134,7 @@ $rBar = static function (int $pct): string {
                         </td>
                         <td class="text-center" data-order="<?= $rClients; ?>">
                             <?php if ($rCanConns): ?>
-                                <a href="./live_connections?server=<?= (int) $rServer['id']; ?>" class="btn btn-xs btn-label-secondary"><?= number_format($rClients); ?></a>
+                                <a href="./live_connections?server_id=<?= (int) $rServer['id']; ?>" class="btn btn-xs btn-label-secondary"><?= number_format($rClients); ?></a>
                             <?php else: ?>
                                 <span class="badge bg-label-secondary"><?= number_format($rClients); ?></span>
                             <?php endif; ?>

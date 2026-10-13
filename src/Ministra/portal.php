@@ -1165,7 +1165,7 @@ function getItems(
 		$rWhereV[] = $rPicking["genre"];
 	}
 
-	$rChannels = StreamSorter::sortChannels($rChannels);
+	$rChannels = StreamSorter::sortChannels($rChannels, $rDevice['custom_data'] ?? null);
 
 	if (empty($rFav)) {
 	} else {

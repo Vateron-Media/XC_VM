@@ -239,4 +239,40 @@ final class DashboardStatusChecksTest extends TestCase {
 	private function node(string $name, string $state, string $health): array {
 		return ['server_id' => 5, 'server_name' => $name, 'state' => $state, 'health' => $health];
 	}
+
+	public function testProxyStatusCountsOnlyEnabledReadyProxies(): void {
+		$check = DashboardController::proxiesCheck([
+			['server_type' => 0, 'server_name' => 'Main', 'enabled' => 1, 'server_online' => 0],
+			['server_type' => 1, 'server_name' => 'Proxy 1', 'enabled' => 1, 'server_online' => 1],
+			['server_type' => 1, 'server_name' => 'Disabled proxy', 'enabled' => 0, 'server_online' => 0],
+			['server_type' => 1, 'server_name' => 'Installing proxy', 'enabled' => 1, 'server_online' => 0, 'status' => 3],
+			['server_type' => 1, 'server_name' => 'Updating proxy', 'enabled' => 1, 'server_online' => 0, 'status' => 5],
+		]);
+		$this->assertSame('ok', $check['state']);
+		$this->assertSame('proxies', $check['key']);
+		$this->assertSame(\XcVm\Core\Localization\Translator::get('dashboard_check_servers_ok', ['{online}' => '1', '{total}' => '1']), $check['detail']);
+	}
+
+	public function testProxyStatusNamesOfflineProxies(): void {
+		$check = DashboardController::proxiesCheck([
+			['server_type' => 1, 'server_name' => 'Proxy 1', 'enabled' => 1, 'server_online' => 1],
+			['server_type' => 1, 'server_name' => 'Proxy 2', 'enabled' => 1, 'server_online' => 0],
+		]);
+		$this->assertSame('fail', $check['state']);
+		$this->assertStringContainsString('Proxy 2', $check['detail']);
+		$this->assertStringNotContainsString('Proxy 1', $check['detail']);
+	}
+
+	public function testProxyStatusIsInactiveWithoutEnabledProxies(): void {
+		foreach ([[['server_type' => 1, 'enabled' => 0]], [['server_type' => 1, 'enabled' => 1, 'status' => 3]]] as $servers) {
+			$check = DashboardController::proxiesCheck($servers);
+			$this->assertSame('off', $check['state']);
+			$this->assertSame('', $check['help']);
+		}
+	}
+
+	public function testProxyStatusIsAbsentOnPanelsWithoutProxies(): void {
+		$this->assertNull(DashboardController::proxiesCheck([]));
+		$this->assertNull(DashboardController::proxiesCheck([['server_type' => 0, 'enabled' => 1, 'server_online' => 1]]));
+	}
 }

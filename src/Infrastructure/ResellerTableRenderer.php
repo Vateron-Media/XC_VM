@@ -1193,6 +1193,7 @@ class ResellerTableRenderer {
 			$rReports = [];
 			$rUserID = (0 < intval(RequestManager::get('user')) ? intval(RequestManager::get('user')) : null);
 			$rStreamID = (0 < intval(RequestManager::get('stream_id')) ? intval(RequestManager::get('stream_id')) : null);
+			$rLineID = (0 < intval(RequestManager::get('line')) ? intval(RequestManager::get('line')) : null);
 			if ($rUserID && in_array($rUserID, $rUserInfo['reports'])) {
 				$db->query('SELECT `id` FROM `lines` WHERE `member_id` = ?;', $rUserID);
 			} else {
@@ -1210,7 +1211,7 @@ class ResellerTableRenderer {
 				$rRow = igbinary_unserialize($rRow);
 				if (is_array($rRow)) {
 					// Counted out and left out: it was counted out only, and still listed.
-					if ($rStreamID && $rStreamID != $rRow['stream_id'] || !in_array($rRow['user_id'], $rReports)) {
+					if (($rStreamID && $rStreamID != $rRow['stream_id']) || ($rLineID && $rLineID != $rRow['user_id']) || !in_array($rRow['user_id'], $rReports)) {
 						$rKeyCount--;
 						continue;
 					}

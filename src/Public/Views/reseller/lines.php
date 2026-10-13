@@ -397,7 +397,7 @@ LayoutRenderer::renderFooter('reseller');
                     className: 'text-center',
                     render: function(d, t, row) {
                         var badge = '<span class="badge bg-label-' + (d > 0 ? 'info' : 'secondary') + '">' + (d || 0) + '</span>';
-                        return (d > 0 && canLive) ? '<a href="live_connections?line=' + encodeURIComponent(row.id) + '">' + badge + '</a>' : badge;
+                        return (d > 0 && canLive) ? '<a href="live_connections?user_id=' + encodeURIComponent(row.id) + '">' + badge + '</a>' : badge;
                     }
                 },
                 { data: 'max_connections', className: 'text-center', render: function(d) { return '<span class="badge bg-label-dark">' + (d == 0 ? '&infin;' : d) + '</span>'; } },

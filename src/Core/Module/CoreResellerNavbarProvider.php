@@ -99,16 +99,16 @@ class CoreResellerNavbarProvider implements ResellerNavbarProviderInterface {
 		// Active codes (reuses create_line, matching the current gate)
 		ResellerNavbarRegistry::add((new NavbarItem('active_codes'))
 			->url('#')->label('active_codes')
-			->icon('ti tabler-key')->permissions(['create_line'])->order(230));
+			->icon('ti tabler-key')->permissions(['create_line'])->settingDisabled('hide_active_codes')->order(230));
 		ResellerNavbarRegistry::add((new NavbarItem('active_codes.add'))
 			->parent('active_codes')->url('active_code')
-			->label('generate_codes')->order(10));
+			->label('generate_codes')->settingDisabled('hide_active_codes')->order(10));
 		ResellerNavbarRegistry::add((new NavbarItem('active_codes.manage'))
 			->parent('active_codes')->url('active_codes')
-			->label('manage_codes')->order(20));
+			->label('manage_codes')->settingDisabled('hide_active_codes')->order(20));
 		ResellerNavbarRegistry::add((new NavbarItem('active_codes.batch'))
 			->parent('active_codes')->url('active_codes_batch')
-			->label('batch_manager')->order(30));
+			->label('batch_manager')->settingDisabled('hide_active_codes')->order(30));
 
 		// Sub-resellers
 		ResellerNavbarRegistry::add((new NavbarItem('sub_resellers'))

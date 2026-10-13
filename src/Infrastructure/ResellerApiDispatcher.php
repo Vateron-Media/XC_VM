@@ -682,6 +682,17 @@ class ResellerApiDispatcher {
 				}
 			}
 
+			$rAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowed($rUserInfo ?? ($GLOBALS['rUserInfo'] ?? []));
+			$rOwner = (int) (RequestManager::get('member_id') ?: ($rUser['member_id'] ?? ($rUserInfo['id'] ?? ($GLOBALS['rUserInfo']['id'] ?? 0))));
+			if (Authorization::check('user', $rOwner)) {
+				$rOwnerAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::forOwner($db, $rOwner);
+				if ($rOwnerAllowed !== null) {
+					$rAllowed = $rAllowed === null ? $rOwnerAllowed : array_values(array_intersect($rAllowed, $rOwnerAllowed));
+				}
+			}
+			$rData['bouquets'] = json_encode(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::filter(
+				\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rData['bouquets']), $rAllowed
+			));
 			foreach (json_decode($rData['bouquets'], true) as $rBouquet) {
 				$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rBouquet);
 				if ($db->num_rows() == 1) {
@@ -708,6 +719,17 @@ class ResellerApiDispatcher {
 			$rData = UserCredits::amounts($db->get_row());
 			$rData['exp_date'] = date('Y-m-d H:i', strtotime('+' . intval($rData['trial_duration']) . ' ' . $rData['trial_duration_in']));
 
+			$rAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowed($rUserInfo ?? ($GLOBALS['rUserInfo'] ?? []));
+			$rOwner = (int) (RequestManager::get('member_id') ?: ($rUser['member_id'] ?? ($rUserInfo['id'] ?? ($GLOBALS['rUserInfo']['id'] ?? 0))));
+			if (Authorization::check('user', $rOwner)) {
+				$rOwnerAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::forOwner($db, $rOwner);
+				if ($rOwnerAllowed !== null) {
+					$rAllowed = $rAllowed === null ? $rOwnerAllowed : array_values(array_intersect($rAllowed, $rOwnerAllowed));
+				}
+			}
+			$rData['bouquets'] = json_encode(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::filter(
+				\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rData['bouquets']), $rAllowed
+			));
 			foreach (json_decode($rData['bouquets'], true) as $rBouquet) {
 				$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rBouquet);
 				if ($db->num_rows() == 1) {
@@ -950,7 +972,7 @@ class ResellerApiDispatcher {
 
 				if (count($rChannels) != 0) {
 					$rHours = (intval(RequestManager::get('hours')) ?: 3);
-					$rStartDate = (intval(strtotime(RequestManager::get('startdate'))) ?: time());
+					$rStartDate = (intval(strtotime((string) RequestManager::get('startdate'))) ?: time());
 					$rFinishDate = $rStartDate + $rHours * 3600;
 					$rPerUnit = floatval(100 / ($rHours * 60));
 					$rChannelsSort = $rChannels;

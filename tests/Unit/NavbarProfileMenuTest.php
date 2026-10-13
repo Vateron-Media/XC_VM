@@ -244,4 +244,14 @@ final class NavbarProfileMenuTest extends TestCase {
         $dividers = array_filter($rendered, static fn($k) => str_contains($k, 'divider'));
         $this->assertCount(1, $dividers);
     }
+
+    public function testActiveCodesMenuAndActionsFollowTheHideSetting(): void {
+        CoreNavbarProvider::register();
+        $items = array_merge(NavbarRegistry::getTopLevel(), NavbarRegistry::getChildren('active_codes'));
+        $codes = array_filter($items, static fn(NavbarItem $item): bool => $item->key === 'active_codes' || str_starts_with($item->key, 'active_codes.'));
+        $this->assertGreaterThan(1, count($codes));
+        foreach ($codes as $item) {
+            $this->assertSame('hide_active_codes', $item->settingDisabled, $item->key);
+        }
+    }
 }

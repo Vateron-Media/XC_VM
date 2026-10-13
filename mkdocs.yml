@@ -167,6 +167,8 @@ nav:
           - Server Diagnostics: en/administration/server-diagnostics.md
           - Update Mechanism: en/administration/update-system.md
           - Reseller System: en/administration/reseller-system.md
+          - Reseller Bouquets: en/administration/reseller-bouquets.md
+          - User Proxy: en/administration/user-proxy.md
           - Backup Strategy: en/administration/backup-strategy.md
           - Operations: en/administration/operations.md
       - API Reference:

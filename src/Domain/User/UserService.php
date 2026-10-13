@@ -182,6 +182,17 @@ class UserService {
 				}
 			}
 
+			// Only the admin account editor owns this permission field.
+			if (array_key_exists('bouquet_limit_enabled', $rData)) {
+				$rArray['allowed_bouquets'] = $rData['bouquet_limit_enabled'] === '1'
+					? json_encode(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rData['allowed_bouquets'] ?? []))
+					: null;
+			} elseif (isset($rUser)) {
+				$rArray['allowed_bouquets'] = $rUser['allowed_bouquets'] ?? null;
+			} else {
+				$rArray['allowed_bouquets'] = null;
+			}
+
 			// The group is stored as the number it is checked as.
 			$rArray['member_group_id'] = intval($rArray['member_group_id']);
 

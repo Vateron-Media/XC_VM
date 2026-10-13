@@ -4,6 +4,7 @@ namespace XcVm\Infrastructure\Bootstrap;
 
 use XcVm\Core\Config\ConstantsInitializer;
 use XcVm\Core\Logging\Logger;
+use XcVm\Core\Module\ModuleLoader;
 
 /**
  * StreamingRequestBootstrap — bootstrap для streaming HTTP endpoint'ов
@@ -91,6 +92,10 @@ class StreamingRequestBootstrap {
 		// ── 6. Fail-closed gate (настройки недоступны) ───────────
 		if (isset($rSettings['exit']) && $rFilename !== 'status') {
 			generate404();
+		}
+
+		if ($rFilename === 'auth') {
+			(new ModuleLoader())->loadStreamRoutingProviders();
 		}
 
 		// ── 7. Передача в \XcVm\Streaming\StreamingBootstrap ────────────────────

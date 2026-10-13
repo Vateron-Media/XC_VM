@@ -494,7 +494,7 @@ LayoutRenderer::renderFooter('reseller');
                     searchable: false,
                     className: 'text-center',
                     render: function(d, t, row) {
-                        return '<a href="live_connections?stream=' + encodeURIComponent(row.id) + '&stream_id=' + encodeURIComponent(row.id) + '"' +
+                        return '<a href="live_connections?stream_id=' + encodeURIComponent(row.id) + '"' +
                             ' class="btn btn-sm btn-icon btn-label-primary" title="' + esc(langConnections) + '">' +
                             '<i class="icon-base ti tabler-plug-connected"></i></a>';
                     }

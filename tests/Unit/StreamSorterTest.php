@@ -23,4 +23,10 @@ final class StreamSorterTest extends TestCase {
 		// null title raised a TypeError that took down a whole player_api listing.
 		$this->assertSame('', StreamSorter::formatTitle(null));
 	}
+
+	public function testCustomerBouquetOrderSurvivesChannelAndSeriesSorting(): void {
+		$custom = json_encode(['bouquet_order' => true]);
+		$this->assertSame([30, 10, 20], StreamSorter::sortChannels([30, 10, 20], $custom));
+		$this->assertSame([9, 2, 7], StreamSorter::sortSeries([9, 2, 7], $custom));
+	}
 }

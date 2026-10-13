@@ -204,7 +204,7 @@ function getUserStreams(array $rUserInfo, array $rTypes = [], ?int $rCategoryID 
 				break;
 		}
 	}
-	$rChannels = StreamSorter::sortChannels($rChannels);
+	$rChannels = StreamSorter::sortChannels($rChannels, $rUserInfo['custom_data'] ?? null);
 
 	if (!empty($rFav)) {
 		$favoriteChannelIds = [];

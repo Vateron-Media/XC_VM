@@ -166,6 +166,7 @@ class DashboardController extends BaseAdminController {
 		$rCache = CacheRunState::state(CACHE_TMP_PATH);
 		$rChecks = [
 			self::serversCheck($servers),
+			self::proxiesCheck($servers),
 			self::clockCheck($servers),
 			self::schemaCheck((string) SettingsManager::get('status_uuid'), XC_VM_VERSION, $bin),
 			self::cronCheck(file_exists($signals) ? filemtime($signals) : null, $now, $bin),
@@ -178,6 +179,7 @@ class DashboardController extends BaseAdminController {
 			self::cacheCheck(!empty(SettingsManager::get('enable_cache')), file_exists(CACHE_TMP_PATH . 'cache_complete'), $rCache['failed'], $rCache['stalled'], (int) SettingsManager::get('last_cache'), $now),
 			self::dbAccessCheck(!empty(SettingsManager::get('cluster_db_allowlist')) || DbAllowlist::lockedDown()),
 		];
+		$rChecks = array_values(array_filter($rChecks));
 		// Failing and warning rows first: the card scrolls, and a red row below
 		// the fold would only be a number in the badge. The sort is stable.
 		$rRank = ['fail' => 0, 'warn' => 1, 'ok' => 2, 'off' => 3];
@@ -396,6 +398,26 @@ class DashboardController extends BaseAdminController {
 		$detail = Translator::get('dashboard_check_servers_ok', ['{online}' => (string) ($total - count($offline)), '{total}' => (string) $total]);
 
 		return self::check($offline !== [] ? 'fail' : 'ok', 'tabler-server-2', 'dashboard_check_servers', self::withDown($detail, $offline));
+	}
+
+	/** Proxy availability uses the same watchdog-derived state as Manage Proxies. */
+	public static function proxiesCheck(array $servers): ?array {
+		$registered = array_filter($servers, static fn(array $server): bool => (int) ($server['server_type'] ?? 0) === 1);
+		if ($registered === []) {
+			return null;
+		}
+		$proxies = array_filter($registered, static fn(array $server): bool => !empty($server['enabled'])
+			&& !in_array((int) ($server['status'] ?? 0), [3, 5], true)
+		);
+		if ($proxies === []) {
+			return self::check('off', 'tabler-shield-check', 'dashboard_check_proxies', Translator::get('dashboard_check_proxies_none'));
+		}
+		$offline = array_column(array_filter($proxies, static fn(array $server): bool => empty($server['server_online'])), 'server_name');
+		$detail = Translator::get('dashboard_check_servers_ok', [
+			'{online}' => (string) (count($proxies) - count($offline)),
+			'{total}' => (string) count($proxies),
+		]);
+		return self::check($offline === [] ? 'ok' : 'fail', 'tabler-shield-check', 'dashboard_check_proxies', self::withDown($detail, $offline));
 	}
 
 	/** Seconds a server's clock may be off MAIN's (servers.time_offset) before the row warns. */

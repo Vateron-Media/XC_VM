@@ -92,6 +92,16 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 					<div class="row">
 						<div class="col-12">
 
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="hide_active_codes">
+									<?= $language::get('hide_active_codes') ?>
+								</label>
+								<div class="col-md-8">
+									<div class="form-check form-switch"><input name="hide_active_codes" id="hide_active_codes" type="checkbox" <?= !empty($rSettings['hide_active_codes']) ? ' checked' : '' ?> class="form-check-input"></div>
+									<div class="form-text"><?= $language::get('hide_active_codes_help') ?></div>
+								</div>
+							</div>
+
 							<?php // Maintenance: the client APIs and resellers are refused; admins and viewers already watching are not. ?>
 							<h5 class="card-title mb-4"><?= $language::get('maintenance_mode') ?></h5>
 

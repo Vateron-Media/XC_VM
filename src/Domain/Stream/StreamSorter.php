@@ -44,7 +44,10 @@ class StreamSorter {
 	 * @param int[] $rChannels Channel ids.
 	 * @return int[] Reordered channel ids.
 	 */
-	public static function sortChannels(array $rChannels) {
+	public static function sortChannels(array $rChannels, mixed $customData = null) {
+		if (\XcVm\Domain\Bouquet\ResellerBouquetPolicy::hasCustomOrder($customData)) {
+			return $rChannels;
+		}
 		if (!(0 < count($rChannels) && file_exists(CACHE_TMP_PATH . 'channel_order') && SettingsManager::get('channel_number_type') != 'bouquet')) {
 			return $rChannels;
 		}
@@ -72,7 +75,10 @@ class StreamSorter {
 	 * @param int[] $rSeries Series ids.
 	 * @return int[] Reordered series ids (input unchanged if no cached order).
 	 */
-	public static function sortSeries(array $rSeries) {
+	public static function sortSeries(array $rSeries, mixed $customData = null) {
+		if (\XcVm\Domain\Bouquet\ResellerBouquetPolicy::hasCustomOrder($customData)) {
+			return $rSeries;
+		}
 		if (0 >= count($rSeries) || !file_exists(CACHE_TMP_PATH . 'series_order')) {
 			return $rSeries;
 		}

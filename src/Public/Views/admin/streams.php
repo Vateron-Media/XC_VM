@@ -15,6 +15,7 @@
  */
 
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Core\Util\LayoutRenderer;
@@ -48,6 +49,10 @@ $rStatusFilters = [
     12 => 'Title Sync',
     13 => 'Transcoding',
 ];
+
+// Render deep-link selections before any widgets or table requests initialise.
+$rSelectedStatus = (int) RequestManager::get('filter', 0);
+$rSelectedServer = (int) RequestManager::get('server_id', RequestManager::get('server', 0));
 ?>
 
 <div class="card">
@@ -84,9 +89,9 @@ $rStatusFilters = [
                 <label class="form-label" for="filter-server"><?= $language::get('server'); ?></label>
                 <select id="filter-server" class="form-select">
                     <option value=""><?= $language::get('all_servers'); ?></option>
-                    <option value="-1"><?= $language::get('no_servers'); ?></option>
+                    <option value="-1"<?= $rSelectedServer === -1 ? ' selected' : ''; ?>><?= $language::get('no_servers'); ?></option>
                     <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
-                        <option value="<?= (int) $rServer['id']; ?>"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                        <option value="<?= (int) $rServer['id']; ?>"<?= $rSelectedServer === (int) $rServer['id'] ? ' selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -95,7 +100,7 @@ $rStatusFilters = [
                 <select id="filter-status" class="form-select">
                     <option value=""><?= $language::get('no_filter'); ?></option>
                     <?php foreach ($rStatusFilters as $rK => $rV): ?>
-                        <option value="<?= $rK; ?>"><?= $rV; ?></option>
+                        <option value="<?= $rK; ?>"<?= $rSelectedStatus === $rK ? ' selected' : ''; ?>><?= $rV; ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -316,17 +321,6 @@ LayoutRenderer::renderFooter('admin');
             }
             return Promise.resolve(window.confirm(text));
         };
-
-        // Preselect the status filter from a ?filter= query param. The dashboard
-        // tiles link here as streams?filter=1 (Online) / filter=2 (Down); apply it
-        // before the table is built so the very first load is already filtered.
-        (function() {
-            var f = new URLSearchParams(window.location.search).get('filter');
-            var sel = document.getElementById('filter-status');
-            if (f && sel && sel.querySelector('option[value="' + f + '"]')) {
-                sel.value = f;
-            }
-        })();
 
         var table = jQuery('#streams-table').DataTable({
             serverSide: true,

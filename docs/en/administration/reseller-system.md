@@ -3,6 +3,8 @@
 The reseller system enables multi-level affiliate management with credit-based line provisioning.
 Resellers create and manage IPTV lines, MAG devices, and Enigma2 devices within their allocated credits and permissions.
 
+See [Reseller bouquet selection and customer order](reseller-bouquets.md) for package defaults, per-reseller limits, and per-customer ordering.
+
 ---
 
 ## Overview
@@ -372,3 +374,11 @@ GET  /tickets                 → ResellerTicketsController
 | `src/Infrastructure/Bootstrap/reseller_functions.php` | initialization |
 | `src/Core/Auth/Authorization.php` | ownership checks |
 | `src/Core/Auth/PageAuthorization.php` | page-level gating |
+
+## Hide Active Codes navigation
+
+In **General Settings → General**, turn on **Hide Active Codes** to hide the
+Active Codes menus for administrators and resellers. Turn it off to restore
+them. Existing codes remain valid; this is a navigation preference, not a
+revocation of codes or API permissions. Migration `095_add_hide_active_codes`
+adds the setting, which is off by default.

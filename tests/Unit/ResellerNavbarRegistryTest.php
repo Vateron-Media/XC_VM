@@ -160,4 +160,14 @@ final class ResellerNavbarRegistryTest extends TestCase {
         }
         return $byKey;
     }
+
+    public function testActiveCodesMenuAndActionsFollowTheHideSetting(): void {
+        CoreResellerNavbarProvider::register();
+        $items = array_merge(ResellerNavbarRegistry::getTopLevel(), ResellerNavbarRegistry::getChildren('active_codes'));
+        $codes = array_filter($items, static fn(NavbarItem $item): bool => $item->key === 'active_codes' || str_starts_with($item->key, 'active_codes.'));
+        $this->assertGreaterThan(1, count($codes));
+        foreach ($codes as $item) {
+            $this->assertSame('hide_active_codes', $item->settingDisabled, $item->key);
+        }
+    }
 }
