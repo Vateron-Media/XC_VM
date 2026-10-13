@@ -90,6 +90,7 @@ class ModuleLoader {
 		$this->modules = [];
 		$this->manifests = [];
 
+		ModuleQuarantine::watch($modulesDir);
 		$this->loadOverrides();
 
 		$jsonFiles = glob($modulesDir . '/*/module.json') ?: [];
@@ -128,6 +129,16 @@ class ModuleLoader {
 			$blockedBy = array_values(array_intersect($deps, $failed));
 			if ($blockedBy !== []) {
 				error_log("ModuleLoader: skipping module '{$name}' — dependency failed to load: " . implode(', ', $blockedBy));
+				$failed[] = $name;
+				continue;
+			}
+
+			$modulePath = $discovered[$name]['path'];
+			$quarantine = dirname($modulePath) === rtrim($modulesDir, '/')
+				? ModuleQuarantine::reason($modulesDir, basename($modulePath))
+				: null;
+			if ($quarantine !== null) {
+				error_log("ModuleLoader: skipping quarantined module '{$name}' — {$quarantine}");
 				$failed[] = $name;
 				continue;
 			}
@@ -270,38 +281,46 @@ class ModuleLoader {
 		ImportSourceRegistry::reset();
 		AdminApiRegistry::reset();
 
-		foreach ($this->modules as $module) {
-			if ($module instanceof ServiceProviderInterface) {
-				$module->boot($container);
-				$this->registerEventSubscribers($module, $container);
-			}
+		foreach ($this->modules as $name => $module) {
+			// A module that throws while booting is dropped for this process; the
+			// panel and the other modules carry on. What it registered before the
+			// throw stays registered.
+			try {
+				if ($module instanceof ServiceProviderInterface) {
+					$module->boot($container);
+					$this->registerEventSubscribers($module, $container);
+				}
 
-			if ($router instanceof \XcVm\Core\Http\Router) {
-				$module->registerRoutes($router);
-			}
+				if ($router instanceof \XcVm\Core\Http\Router) {
+					$module->registerRoutes($router);
+				}
 
-			if ($module instanceof NavbarProviderInterface) {
-				$module->registerNavbar($navbarRegistry);
-			}
+				if ($module instanceof NavbarProviderInterface) {
+					$module->registerNavbar($navbarRegistry);
+				}
 
-			if ($module instanceof ResellerNavbarProviderInterface) {
-				$module->registerResellerNavbar($resellerNavbarRegistry);
-			}
+				if ($module instanceof ResellerNavbarProviderInterface) {
+					$module->registerResellerNavbar($resellerNavbarRegistry);
+				}
 
-			if ($module instanceof TopbarProviderInterface) {
-				$module->registerTopbar($topbarRegistry);
-			}
+				if ($module instanceof TopbarProviderInterface) {
+					$module->registerTopbar($topbarRegistry);
+				}
 
-			if ($module instanceof TableProviderInterface) {
-				$module->registerTables($tableRegistry);
-			}
+				if ($module instanceof TableProviderInterface) {
+					$module->registerTables($tableRegistry);
+				}
 
-			if ($module instanceof PermissionProviderInterface) {
-				$module->registerPermissions($permissionRegistry);
-			}
+				if ($module instanceof PermissionProviderInterface) {
+					$module->registerPermissions($permissionRegistry);
+				}
 
-			if ($module instanceof QuickToolsProviderInterface) {
-				$module->registerQuickTools($quickToolsRegistry);
+				if ($module instanceof QuickToolsProviderInterface) {
+					$module->registerQuickTools($quickToolsRegistry);
+				}
+			} catch (\Throwable $e) {
+				error_log("ModuleLoader: module '{$name}' failed to boot — skipping (panel stays up): " . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+				unset($this->modules[$name], $this->manifests[$name]);
 			}
 		}
 	}
@@ -978,10 +997,10 @@ class ModuleLoader {
 		foreach ($subscribers as $event => $handler) {
 			if (is_array($handler) && isset($handler[0]) && is_callable($handler[0])) {
 				// [callable, int $priority] tuple — new PSR-14 style
-				EventDispatcher::listen($event, $handler[0], $handler[1] ?? 0);
+				EventDispatcher::listen($event, self::isolated($handler[0], $module), $handler[1] ?? 0);
 			} else {
 				// Legacy: string event name or class-string, plain callable
-				EventDispatcher::listen($event, $handler);
+				EventDispatcher::listen($event, self::isolated($handler, $module));
 			}
 		}
 
@@ -1003,11 +1022,26 @@ class ModuleLoader {
 
 				EventDispatcher::listen(
 					$listensTo->eventClass,
-					[$module, $method->getName()],
+					self::isolated([$module, $method->getName()], $module),
 					$listensTo->priority,
 				);
 			}
 		}
+	}
+
+	/**
+	 * A module's listener that logs what it throws instead of passing it on: a
+	 * broken module must not fail the core operation that dispatched the event.
+	 * Vetoes go through stopPropagation(), never a throw.
+	 */
+	private static function isolated(callable $listener, object $module): \Closure {
+		return static function (object $event) use ($listener, $module): void {
+			try {
+				$listener($event);
+			} catch (\Throwable $e) {
+				error_log('ModuleLoader: ' . $module::class . ' failed handling ' . $event::class . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+			}
+		};
 	}
 
 	/**

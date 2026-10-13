@@ -699,6 +699,10 @@ class ModuleManager {
 			if ($manifestError !== null) {
 				$dependencyWarnings[] = "Not loaded: it has a module.json that cannot be loaded ({$manifestError}).";
 			}
+			$quarantine = ModuleQuarantine::reason($this->modulesPath, basename(dirname($jsonFile)));
+			if ($quarantine !== null) {
+				$dependencyWarnings[] = "Not loaded: quarantined after a fatal error ({$quarantine}). Replacing its files lifts it.";
+			}
 			foreach ($dependencies as $dep) {
 				if (!isset($stateByName[$dep])) {
 					$dependencyWarnings[] = "Required dependency '{$dep}' is missing.";
@@ -842,7 +846,14 @@ class ModuleManager {
 		$name = $this->sanitizeModuleName($name);
 		$this->assertNoInstalledDependents($name, 'uninstall');
 
-		$module = $this->loadModuleInstance($name);
+		// A quarantined module's code cannot run (requiring it is the fatal that
+		// quarantined it), so its uninstall() hook is skipped; its schema still
+		// goes, from the plain SQL teardown file.
+		$quarantine = $this->quarantineReason($name);
+		$module     = $quarantine === null ? $this->loadModuleInstance($name) : null;
+		if ($quarantine !== null) {
+			error_log("ModuleManager: uninstalling quarantined module '{$name}' without its uninstall() hook ({$quarantine})");
+		}
 
 		// The module's own uninstall() hook runs first (it clears the data/rows
 		// it created), then the module's schema is torn down via its single
@@ -850,7 +861,7 @@ class ModuleManager {
 		// otherwise leave the module recorded as installed and Enabled with
 		// half-deleted data, so mark it Failed and let the admin see it.
 		try {
-			$module->uninstall();
+			$module?->uninstall();
 			$db = $this->getDb() ?? DatabaseFactory::get();
 			if ($db !== null) {
 				ModuleMigrator::uninstall($this->modulePathFor($name), $db);
@@ -2251,6 +2262,10 @@ class ModuleManager {
 	 */
 	private function loadModuleInstance(string $name) {
 		$name = $this->sanitizeModuleName($name);
+		$quarantine = $this->quarantineReason($name);
+		if ($quarantine !== null) {
+			throw new ModuleException("Module '{$name}' is quarantined after a fatal error, so its code cannot run: {$quarantine}");
+		}
 		$loader = new ModuleLoader();
 		// Resolve the real directory ({name}_{hash5}, or a legacy bare {name}) — the
 		// module rarely lives at the bare path, so passing that would fail to find
@@ -2266,6 +2281,11 @@ class ModuleManager {
 		}
 
 		return $module;
+	}
+
+	/** Why the module's code must not be loaded (ModuleQuarantine), or null. */
+	private function quarantineReason(string $name): ?string {
+		return ModuleQuarantine::reason($this->modulesPath, basename($this->modulePathFor($name)));
 	}
 
 	/**
