@@ -345,7 +345,6 @@ final class ReplicaBuilder {
 		}
 		$rKey = match ($rSection) {
 			ReplicaSections::NODE => $rSection . '.' . (int) $rNode['server_id'],
-			ReplicaSections::CRONTAB => $rSection . '.' . ((int) $rNode['mode'] >= 2 ? 'api' : 'legacy'),
 			default => $rSection,
 		};
 		$rNow = ClusterClock::nowMs();
