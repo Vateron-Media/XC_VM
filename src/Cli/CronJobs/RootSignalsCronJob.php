@@ -10,7 +10,6 @@ use XcVm\Cli\CronTrait;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\ArtefactStage;
 use XcVm\Core\Cluster\BlocklistChanges;
-use XcVm\Core\Cluster\DataPlane;
 use XcVm\Core\Cluster\LogSink;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeCredentials;
