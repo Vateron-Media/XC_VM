@@ -3,7 +3,6 @@
 namespace XcVm\Core\Cluster;
 
 use XcVm\Domain\Cluster\MainDataPlane;
-use XcVm\Domain\Server\ServerRepository;
 
 /**
  * The data plane without bearer credentials (ADR 0004, Phase 8; plan,
