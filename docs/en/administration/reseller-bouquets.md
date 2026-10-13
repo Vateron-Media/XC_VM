@@ -67,4 +67,11 @@ reseller's allowance and the target owner's allowance apply.
 Deploy the matching core changes and run the normal database migration process
 on MAIN (`php console.php db:migrate` from the application directory). Migration
 `094_add_reseller_bouquet_permissions.sql` adds the reseller permission field.
+Migration `096_add_customer_bouquet_order.sql` stores the customer-order flag
+separately from category-template data, so changing or clearing a template
+preserves the customer's bouquet order. Existing custom-order markers are
+migrated automatically. Concurrent customer bouquet edits and stale reseller
+permission forms are refused rather than silently overwriting newer changes;
+reload the form and apply the intended change again.
+
 This feature is part of the core, independently of the User Proxy module.

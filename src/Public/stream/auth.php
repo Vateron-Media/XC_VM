@@ -568,8 +568,12 @@ if ($rExtension) {
 										continue; // a variant with no server to serve it is left out of the master
 									}
 
-									if (!\XcVm\Streaming\Routing\PlaybackRouter::active() && $rServers[$rAdaptiveInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']) && !ProxySelector::availableProxy(array_keys(ConnectionTracker::getProxies($rAdaptiveInfo['redirect_id'])), $rCountryCode, $rUserInfo['con_isp_name'])) { continue; }
-									if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rAdaptiveInfo['redirect_id']), (int) ($rUserInfo['id'] ?? 0), (bool) (($rServers[$rAdaptiveInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''), null)) !== null) {
+									$rLegacyProxy = (bool) ($rServers[$rAdaptiveInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']));
+									$rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) $rAdaptiveInfo['redirect_id'], (int) ($rUserInfo['id'] ?? 0), $rLegacyProxy, (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''), null);
+									if ($rLegacyProxy && !\XcVm\Streaming\Routing\PlaybackRouter::active() && $rProxyID === null) {
+										continue;
+									}
+									if ($rProxyID !== null) {
 
 										$rAdaptiveInfo['originator_id'] = $rAdaptiveInfo['redirect_id'];
 										$rAdaptiveInfo['redirect_id'] = $rProxyID;

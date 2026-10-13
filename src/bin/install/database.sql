@@ -720,6 +720,7 @@ CREATE TABLE IF NOT EXISTS `lines` (
   `enabled` int(11) DEFAULT '1',
   `admin_notes` text COLLATE utf8_unicode_ci,
   `reseller_notes` text COLLATE utf8_unicode_ci,
+  `bouquet_order_custom` tinyint(1) NOT NULL DEFAULT '0',
   `bouquet` mediumtext COLLATE utf8_unicode_ci,
   `allowed_outputs` mediumtext COLLATE utf8_unicode_ci,
   `max_connections` int(11) DEFAULT '1',

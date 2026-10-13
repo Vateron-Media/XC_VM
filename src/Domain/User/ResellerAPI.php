@@ -254,6 +254,7 @@ class ResellerAPI {
 			$rUserArray['is_mag'] = 1;
 			$rUserArray['is_e2'] = 0;
 			$rExpDate = $rUserArray['exp_date'] ?? null;
+			$rOriginalLine = $rUserArray;
 			$rGenTrials = LineService::canGenerateTrials(self::$rUserInfo['id']);
 			$rCost = 0;
 
@@ -437,7 +438,7 @@ class ResellerAPI {
 
 					// The price leaves the balance as it is stored now, before anything
 					// is sold: a balance that no longer covers it sells nothing.
-					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db);
+					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
 
 					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
 						return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
@@ -446,7 +447,7 @@ class ResellerAPI {
 					// The line and its device row are stored together, or neither is.
 					$rOwn = !$db->isInTransaction() && $db->beginTransaction();
 
-					if (self::storeLine($rUserArray, $rExpDate)) {
+					if (self::storeLine($rUserArray, $rExpDate, $rOriginalLine)) {
 						$rInsertID = ($rUserArray['id'] ?? $db->last_insert_id());
 						$rArray['user_id'] = $rInsertID;
 						unset($rArray['user'], $rArray['paired']);
@@ -555,6 +556,7 @@ class ResellerAPI {
 			$rUserArray['is_mag'] = 0;
 			$rUserArray['is_e2'] = 1;
 			$rExpDate = $rUserArray['exp_date'] ?? null;
+			$rOriginalLine = $rUserArray;
 			$rGenTrials = LineService::canGenerateTrials(self::$rUserInfo['id']);
 			$rCost = 0;
 
@@ -725,7 +727,7 @@ class ResellerAPI {
 
 					// The price leaves the balance as it is stored now, before anything
 					// is sold: a balance that no longer covers it sells nothing.
-					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db);
+					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
 
 					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
 						return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
@@ -734,7 +736,7 @@ class ResellerAPI {
 					// The line and its device row are stored together, or neither is.
 					$rOwn = !$db->isInTransaction() && $db->beginTransaction();
 
-					if (self::storeLine($rUserArray, $rExpDate)) {
+					if (self::storeLine($rUserArray, $rExpDate, $rOriginalLine)) {
 						$rInsertID = ($rUserArray['id'] ?? $db->last_insert_id());
 						$rArray['user_id'] = $rInsertID;
 						unset($rArray['user'], $rArray['paired']);
@@ -1062,6 +1064,7 @@ class ResellerAPI {
 			$rArray['is_mag'] = 0;
 			$rArray['is_e2'] = 0;
 			$rExpDate = $rArray['exp_date'] ?? null;
+			$rOriginalLine = $rArray;
 			$rGenTrials = LineService::canGenerateTrials(self::$rUserInfo['id']);
 
 			if (!empty($rData['package'])) {
@@ -1311,13 +1314,13 @@ class ResellerAPI {
 				// nothing is charged. The price leaves the balance as it is stored
 				// now, before anything is sold: a balance that no longer covers it
 				// sells nothing.
-				$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rArray, $rData, self::$rUserInfo, self::$rPermissions, $db);
+				$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
 
 				if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost ?? 0)) {
 					return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
 				}
 
-				if (self::storeLine($rArray, $rExpDate)) {
+				if (self::storeLine($rArray, $rExpDate, $rOriginalLine)) {
 					$rInsertID = ($rArray['id'] ?? $db->last_insert_id());
 					MagService::syncLineDevices($rInsertID);
 					if (isset($rPackage)) {
@@ -1401,7 +1404,7 @@ class ResellerAPI {
 	 * @param mixed $rExpDate The expiry this request read from the line.
 	 * @return bool False when the line was not stored.
 	 */
-	private static function storeLine(array $rLine, mixed $rExpDate): bool {
+	private static function storeLine(array $rLine, mixed $rExpDate, array $original = []): bool {
 		$db = self::db();
 		$rPrepare = QueryHelper::prepareArray($rLine);
 
@@ -1409,12 +1412,13 @@ class ResellerAPI {
 			return $db->query('REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');', ...$rPrepare['data']);
 		}
 
-		if (!$db->query('UPDATE `lines` SET ' . $rPrepare['update'] . ' WHERE `id` = ? AND `exp_date` <=> ?;', ...array_merge($rPrepare['data'], [$rLine['id'], $rExpDate]))) {
+		// Compare the bouquet state that this request read, as well as the priced expiry.
+		// A competing selection or order must not be overwritten.
+		$where = '`id` = ? AND `exp_date` <=> ? AND `bouquet` <=> ? AND `bouquet_order_custom` <=> ?';
+		$expected = [$rLine['id'], $rExpDate, $original['bouquet'] ?? null, $original['bouquet_order_custom'] ?? 0];
+		if (!$db->query('UPDATE `lines` SET ' . $rPrepare['update'] . ' WHERE ' . $where . ';', ...array_merge($rPrepare['data'], $expected))) {
 			return false;
 		}
-
-		// No row changed: the line is stored as it is (there was nothing to
-		// write), or it no longer has the expiry this request read.
-		return $db->num_rows() == 1 || ($db->query('SELECT `id` FROM `lines` WHERE `id` = ? AND `exp_date` <=> ?;', $rLine['id'], $rExpDate) && $db->num_rows() == 1);
+		return $db->num_rows() == 1 || ($db->query('SELECT `id` FROM `lines` WHERE ' . $where . ';', ...$expected) && $db->num_rows() == 1);
 	}
 }

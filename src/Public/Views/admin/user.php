@@ -36,6 +36,7 @@ $rReserved  = GroupService::reservedGroups();
     <?php if ($rIsEdit): ?>
         <input type="hidden" name="edit" value="<?= (int) $rUser['id']; ?>">
         <input type="hidden" name="credits_shown" value="<?= htmlspecialchars((string) $rUser['credits'], ENT_QUOTES); ?>">
+        <input type="hidden" name="bouquet_limit_revision" value="<?= \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowanceRevision($rUser); ?>">
     <?php endif; ?>
 
     <div class="card mb-6">

@@ -47,19 +47,17 @@ final class ResellerBouquetPolicy {
 	}
 
 	/** Preserve package defaults unless the customer form explicitly sends a selection. */
-	public static function apply(array $line, array $data, array $actor, array $permissions, object $db): array {
+	public static function apply(array $line, array $data, array $actor, array $permissions, object $db, array $previous = []): array {
+		$line = self::preserveOrder($line, $previous);
 		$bouquets = self::filter(self::ids($line['bouquet'] ?? []), self::forOwner($db, (int) ($line['member_id'] ?? 0)));
 		$bouquets = self::filter($bouquets, self::allowed($actor));
 		if (!empty($permissions['allow_change_bouquets'])) {
-			if (($data['bouquets_present'] ?? '') === '1') {
+			if (in_array($data['bouquets_present'] ?? null, ['1', 1], true)) {
 				$bouquets = self::filter(self::ids($data['bouquets_selected'] ?? []), $bouquets);
 			}
 			if (array_key_exists('bouquet_order', $data)) {
 				$bouquets = self::order($bouquets, $data['bouquet_order']);
-				$custom = is_array($line['custom_data'] ?? null) ? $line['custom_data'] : json_decode((string) ($line['custom_data'] ?? ''), true);
-				$custom = is_array($custom) ? $custom : [];
-				$custom['bouquet_order'] = true;
-				$line['custom_data'] = json_encode($custom, JSON_THROW_ON_ERROR);
+				$line['bouquet_order_custom'] = 1;
 			}
 		}
 		$line['bouquet'] = json_encode($bouquets, JSON_THROW_ON_ERROR);
@@ -67,6 +65,12 @@ final class ResellerBouquetPolicy {
 	}
 
 	public static function constrainOwner(array $line, object $db): array {
+		if (!empty($line['id']) && self::hasCustomOrder($line)) {
+			if ($db->query('SELECT * FROM `lines` WHERE `id` = ?;', (int) $line['id']) === false) {
+				throw new \RuntimeException('Cannot load saved bouquet order.');
+			}
+			$line = self::preserveOrder($line, $db->get_row() ?: []);
+		}
 		$allowed = self::forOwner($db, (int) ($line['member_id'] ?? 0));
 		if ($allowed !== null) {
 			$line['bouquet'] = json_encode(self::filter(self::ids($line['bouquet'] ?? []), $allowed), JSON_THROW_ON_ERROR);
@@ -74,10 +78,30 @@ final class ResellerBouquetPolicy {
 		return $line;
 	}
 
+	/** Keep a customer's order while allowing selected bouquets to change. */
+	public static function preserveOrder(array $line, array $previous): array {
+		if (self::hasCustomOrder($previous)) {
+			$line['bouquet'] = json_encode(self::order(self::ids($line['bouquet'] ?? []), self::ids($previous['bouquet'] ?? [])), JSON_THROW_ON_ERROR);
+			$line['bouquet_order_custom'] = 1;
+		}
+		return $line;
+	}
+
+	/** A revision of the rendered allowance, independent of JSON formatting. */
+	public static function allowanceRevision(array $reseller): string {
+		return hash('sha256', json_encode(self::allowed($reseller), JSON_THROW_ON_ERROR));
+	}
+
 	public static function hasCustomOrder(mixed $custom): bool {
 		if (is_string($custom)) {
 			$custom = json_decode($custom, true);
 		}
-		return is_array($custom) && ($custom['bouquet_order'] ?? false) === true;
+		if (!is_array($custom)) {
+			return false;
+		}
+		if (!empty($custom['bouquet_order_custom']) || ($custom['bouquet_order'] ?? false) === true) {
+			return true;
+		}
+		return isset($custom['custom_data']) && self::hasCustomOrder($custom['custom_data']);
 	}
 }

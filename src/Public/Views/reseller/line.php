@@ -499,7 +499,7 @@ LayoutRenderer::renderFooter('reseller');
                             }
                             packageBouquets.forEach(function(bq) {
                                 var checked;
-                                if (userBouquet.length > 0 && userPackage === parseInt(pid)) {
+                                if (userPackage === parseInt(pid)) {
                                     checked = userBouquet.indexOf(parseInt(bq.id)) !== -1;
                                 } else {
                                     checked = true;

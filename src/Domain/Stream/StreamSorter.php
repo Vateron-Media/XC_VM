@@ -46,7 +46,7 @@ class StreamSorter {
 	 */
 	public static function sortChannels(array $rChannels, mixed $customData = null) {
 		if (\XcVm\Domain\Bouquet\ResellerBouquetPolicy::hasCustomOrder($customData)) {
-			return $rChannels;
+			return self::customerOrder($rChannels, $customData, 'streams');
 		}
 		if (!(0 < count($rChannels) && file_exists(CACHE_TMP_PATH . 'channel_order') && SettingsManager::get('channel_number_type') != 'bouquet')) {
 			return $rChannels;
@@ -77,7 +77,7 @@ class StreamSorter {
 	 */
 	public static function sortSeries(array $rSeries, mixed $customData = null) {
 		if (\XcVm\Domain\Bouquet\ResellerBouquetPolicy::hasCustomOrder($customData)) {
-			return $rSeries;
+			return self::customerOrder($rSeries, $customData, 'series');
 		}
 		if (0 >= count($rSeries) || !file_exists(CACHE_TMP_PATH . 'series_order')) {
 			return $rSeries;
@@ -98,6 +98,22 @@ class StreamSorter {
 		}
 
 		return $rSeries;
+	}
+
+	private static function customerOrder(array $ids, mixed $customer, string $group): array {
+		if (!is_array($customer) || !array_key_exists('bouquet', $customer) || $ids === []) {
+			return $ids;
+		}
+		return self::orderByBouquets($ids, \XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($customer['bouquet']), \XcVm\Domain\Bouquet\BouquetService::getAll() ?: [], $group);
+	}
+
+	/** Reorder only visible ids; shared streams keep their first bouquet occurrence. */
+	public static function orderByBouquets(array $ids, array $order, array $bouquets, string $group = 'streams'): array {
+		$preferred = [];
+		foreach ($order as $id) {
+			$preferred = array_merge($preferred, $bouquets[$id][$group] ?? []);
+		}
+		return \XcVm\Domain\Bouquet\ResellerBouquetPolicy::order($ids, $preferred);
 	}
 
 	/**

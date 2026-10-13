@@ -207,4 +207,16 @@ final class AuditDecisionAdminLineEditTest extends TestCase {
 		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
 		$this->assertSame(self::ADMIN, (int) $this->line((int) $rResult['data']['insert_id'])['member_id']);
 	}
+
+	public function testAdminFormKeepsCustomerOrderWhenClearingATemplate(): void {
+		$this->rDb->exec("INSERT INTO `bouquets` (`id`, `bouquet_name`, `bouquet_order`) VALUES (2, 'Two', 2), (3, 'Three', 3)");
+		$this->rDb->query('UPDATE `lines` SET `bouquet` = ?, `bouquet_order_custom` = 1 WHERE `id` = ?', '[3,2,1]', self::LINE);
+		$result = $this->form(['edit' => (string) self::LINE, 'bouquets_selected' => '[1,2,3]', 'category_template_id' => 'none']);
+		$this->assertSame(STATUS_SUCCESS, $result['status']);
+		$this->rDb->query('SELECT `bouquet`, `bouquet_order_custom`, `custom_data` FROM `lines` WHERE `id` = ?', self::LINE);
+		$row = $this->rDb->get_raw_row();
+		$this->assertSame('[3,2,1]', $row['bouquet']);
+		$this->assertSame(1, (int) $row['bouquet_order_custom']);
+		$this->assertNull($row['custom_data']);
+	}
 }

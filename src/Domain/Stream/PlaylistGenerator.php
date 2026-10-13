@@ -93,7 +93,7 @@ class PlaylistGenerator {
 		// minted from. A change to what generate() reads of the line or the request
 		// must join it, and so must HOST if ServerRepository::getPublicURL() (the
 		// image URLs, via ImageUtils::validateURL) ever reads the request's host.
-		$rCacheName = hash('sha256', serialize([$rUserInfo['id'], $rUserInfo['username'], $rUserInfo['password'], $rUserInfo['access_token'], $rUserInfo['bouquet'], $rUserInfo['is_restreamer'], $rUserInfo['is_stalker'], $rUserInfo['force_server_id'], $rUserInfo['custom_data'] ?? null, $rDeviceKey, $rOutputKey, $rTypeKey, $rProxy, $rDomainName, $rEncryptPlaylist, $rSettings['live_streaming_pass'], defined('OPENSSL_EXTRA') ? OPENSSL_EXTRA : null, !empty($rSettings['secure_stream_tokens'])]));
+		$rCacheName = hash('sha256', serialize([$rUserInfo['id'], $rUserInfo['username'], $rUserInfo['password'], $rUserInfo['access_token'], $rUserInfo['bouquet'], $rUserInfo['is_restreamer'], $rUserInfo['is_stalker'], $rUserInfo['force_server_id'], $rUserInfo['custom_data'] ?? null, $rUserInfo['bouquet_order_custom'] ?? 0, $rDeviceKey, $rOutputKey, $rTypeKey, $rProxy, $rDomainName, $rEncryptPlaylist, $rSettings['live_streaming_pass'], defined('OPENSSL_EXTRA') ? OPENSSL_EXTRA : null, !empty($rSettings['secure_stream_tokens'])]));
 
 		$db->query('SELECT t1.*,t2.* FROM `output_devices` t1 LEFT JOIN `output_formats` t2 ON t2.access_output_id = t1.default_output WHERE t1.device_key = ? LIMIT 1', $rDeviceKey);
 		if ($db->num_rows() <= 0) {
@@ -186,8 +186,8 @@ class PlaylistGenerator {
 			$rChannelIDs = $rUserInfo['channel_ids'];
 		}
 
-		if (in_array($rSettings['channel_number_type'], ['bouquet_new', 'manual'])) {
-			$rChannelIDs = StreamSorter::sortChannels($rChannelIDs, $rUserInfo['custom_data'] ?? null);
+		if (\XcVm\Domain\Bouquet\ResellerBouquetPolicy::hasCustomOrder($rUserInfo) || in_array($rSettings['channel_number_type'], ['bouquet_new', 'manual'])) {
+			$rChannelIDs = StreamSorter::sortChannels($rChannelIDs, $rUserInfo);
 		}
 
 		unset($rUserInfo['live_ids'], $rUserInfo['vod_ids'], $rUserInfo['radio_ids'], $rUserInfo['episode_ids'], $rUserInfo['channel_ids']);
