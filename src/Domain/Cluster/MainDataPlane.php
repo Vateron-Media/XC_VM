@@ -26,8 +26,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  * - **Its entry in the node list.** While MAIN's data plane is on, the signed
  *   node list (the `servers` section's `nodes`) carries MAIN too — its server
  *   id, generation, key, `active`, `dataplane` — so a parent's RelayGuard and
- *   an owner's FileTicketServer check MAIN's proofs as any node's. It also
- *   makes MAIN count as a data-plane server for DataPlane::legacyApiRetired().
+ *   an owner's FileTicketServer check MAIN's proofs as any node's.
  * - **Its tickets.** Minted here for MAIN as the child or fetcher
  *   (TicketService::relayTicket / fileTicket) into `replica/tickets.json`,
  *   which the agent re-reads: on demand, when DataPlane builds a URL

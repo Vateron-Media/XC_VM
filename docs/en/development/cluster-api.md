@@ -171,8 +171,8 @@ their loop when `NodeRole::refusesConnects()` is no longer what it was at their 
 keeps the connection it opened. The connect audit's window starts again when the node begins to
 refuse (`ConnectAudit::follow()`): what the Cluster Nodes page shows after the move is what mode 2
 turned away.
-A crontab row whose role is `legacy` (today `cron:users`) is not sent to a node in
-mode 2 at all.
+A crontab row whose role is `legacy` is not sent to a node in mode 2 at all; no row has it
+today (`cron:users` runs on MAIN, role `main`).
 
 ## The node replica
 
@@ -315,27 +315,27 @@ for a re-enrolment over SSH. Every decision is written to `cluster_audit`, which
 
 ## Retiring the legacy link
 
-The legacy link is a load balancer that is not enrolled (mode 0), its `/api` with
-`password=<live_streaming_pass>`, and its MySQL and Redis grants on MAIN. It is deprecated, and
-goes in steps (ADR 0004, *Proxies and the legacy `/api`, its calls counted, and the legacy
-link's retirement*):
+The legacy link was a load balancer that is not enrolled (mode 0), its `/api` with
+`password=<live_streaming_pass>`, and its MySQL and Redis grants on MAIN. It is retired
+(ADR 0004, *Proxies and the legacy `/api`, its calls counted, and the legacy link's
+retirement*), in steps:
 
-1. **Measure.** Every node in mode 1 or 2 counts the calls its `/api` answers, by action and
-   caller (`Core\Cluster\LegacyApiAudit`, `STORAGE_PATH/cluster/legacy_api/`), and reports the
-   last seven days in its heartbeat's `audit` as `legacy_api`. Cluster Nodes shows them per
-   node (*Legacy /api calls*).
+1. **Measure.** Nodes in mode 1 or 2 counted the calls their `/api` answered
+   (`Core\Cluster\LegacyApiAudit`); that audit is gone with the endpoint.
 2. **New installs start on the cluster API.** The installer runs `cluster:init --enable`
    and then `cluster:main-dataplane on`: a fresh panel enrols its load balancers at their
    install (in mode 2 when the extension packs a credential-free config and the Redis
-   connection handler is off), so it never runs the legacy link. Without an extension that
-   has the cluster API, the panel installs as before.
-3. **Announce.** The release notes of the release that does step 2 say the legacy link is
-   deprecated, and which major release removes it.
-4. **Remove (the plan's Phase 10)**, in that major release, whose update refuses a panel with a
-   load balancer below mode 2: the `/api` locations in the load balancers' nginx and
-   `InternalApiController::index` (its actions stay: `cluster:exec` runs them for `node.rpc`),
-   `StatusCommand::configureRedisLb`, the `users` cron (role `legacy`), and the database and
-   Redis paths a node in mode 2 never takes.
+   connection handler is off). Without an extension that has the cluster API, the panel
+   installs as before.
+3. **Announce.** The release notes of that release said the legacy link was deprecated.
+4. **Remove (the plan's Phase 10) — done in this release.** The update refuses a panel with a
+   load balancer below mode 2 (`ClusterUpgradeGate`), so none is left on the legacy link. Removed:
+   the `/api` locations in the load balancers' nginx and `api_legacy.conf`;
+   `InternalApiController::index` and `LegacyApiAudit` (the controller's actions stay:
+   `cluster:exec` runs them for `node.rpc`); `StatusCommand::configureRedisLb`; and the legacy
+   role of the `users` cron, which now runs on MAIN (role `main`). `server:diagnose` no longer
+   probes a node's `/api`: from MAIN it reads the node's cluster state (health, last heard,
+   token expiry, clock skew, outbox lag) and, on the node, asks its agent.
 
 ## Limits
 
@@ -369,13 +369,9 @@ link's retirement*):
     `cluster:main-dataplane rekey` replaces it and raises its generation.
   - A file ticket names the owner's box key as it was when minted: an owner re-enrolled
     since cannot open it until the next epoch's ticket (at most 3 h).
-  - The node's own legacy `/api` stays served with the flow on. `api_legacy.conf` (Phase
-    8's second increment) retires it only once nothing reads the node's files with the
-    legacy `getFile` URL any more: its own flow on, and every server of the cluster, MAIN
-    included, an active node with its data plane on. MAIN counts once
-    `cluster:main-dataplane on` is set. A proxy is never a node, so a cluster with a proxy
-    keeps every node's `/api`. The Cluster Nodes page names the servers that keep it open
-    (`ClusterOverview::legacyApiOpenBy`).
+  - The node's legacy `/api` and `api_legacy.conf` no longer exist (Phase 10), so nothing
+    reads a node's files with the legacy `getFile` URL. (`ClusterOverview::legacyApiOpenBy`,
+    which named the servers that kept it open, is still in the code and is due to go.)
   - The flow can be switched on only for a node whose agent runs the loopback relay proxy
     (it says `relay` at hello): update `xc_agent` first. The agent publishes the loopback
     key (`relay.key`) only while it holds `127.0.0.1:31290`, and the node's PHP checks
@@ -463,7 +459,7 @@ link's retirement*):
   for ten minutes, fleet-wide), and rotated in full after a leak with
   `cluster:rotate-stream-secret` (above).
 - A node's `whitelist_ips` is the admin's: a node no longer publishes its own addresses,
-  because that column grants the legacy `/api` allowlist.
+  because that column once granted the legacy `/api` allowlist.
 - A quarantine ends every command queued for the node that grants something (handed out
   or not, not yet acked): MAIN no longer knows who holds the node's keys, so what was
   decided before is decided again after *Trust again*, not replayed. The quarantine's audit
