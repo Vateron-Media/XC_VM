@@ -984,8 +984,7 @@ class RootSignalsCronJob implements CommandInterface {
 		// node on an older extension) would never converge on its own. xcvm_core is
 		// idempotent (version-compared, downloads only on a mismatch) and installs
 		// with a load-test + rollback, so it is safe to poll ~hourly; the first
-		// pass runs immediately. This is what delivers config_set_redis to LB nodes,
-		// without which StatusCommand::configureRedisLb cannot point Redis at main.
+		// pass runs immediately. This is what delivers config_set_redis to LB nodes.
 		$rCoreStamp = CRONS_TMP_PATH . 'xcvm_core_check';
 		if (!file_exists($rCoreStamp) || time() - intval(@file_get_contents($rCoreStamp) ?: 0) > 3600) {
 			file_put_contents($rCoreStamp, time());
