@@ -27,6 +27,10 @@ class TestBootCallTracker {
     }
 }
 
+final class TestIsolationEvent {
+    public bool $handled = false;
+}
+
 final class ModuleLoaderBootTest extends TestCase {
 
     private ServiceContainer $container;
@@ -151,6 +155,39 @@ final class ModuleLoaderBootTest extends TestCase {
 
         $this->assertTrue(TestBootCallTracker::has('boot:multi-one'));
         $this->assertTrue(TestBootCallTracker::has('boot:multi-two'));
+    }
+
+    // ── Isolation: a broken module never takes the others down ───────────
+
+    public function testModuleWhoseBootThrowsIsDroppedAndTheRestBoot(): void {
+        $root = $this->createRoot();
+        $this->createModule($root, 'iso-broken', boot: "throw new \\RuntimeException('boom');");
+        $this->createModule($root, 'iso-healthy', boot: "\\TestBootCallTracker::record('boot:iso-healthy');");
+
+        $loader = new ModuleLoader();
+        $loader->loadAll($root);
+        $loader->bootAll($this->container);
+
+        $this->assertTrue(TestBootCallTracker::has('boot:iso-healthy'));
+        $this->assertFalse($loader->isLoaded('iso-broken'));
+        $this->assertNull($loader->getManifest('iso-broken'));
+        $this->assertTrue($loader->isLoaded('iso-healthy'));
+    }
+
+    public function testModuleListenerThatThrowsDoesNotFailTheDispatch(): void {
+        $root = $this->createRoot();
+        $this->createModule($root, 'iso-listener', subscribers: "\\TestIsolationEvent::class => function () { throw new \\RuntimeException('listener boom'); }");
+
+        $loader = new ModuleLoader();
+        $loader->loadAll($root);
+        $loader->bootAll($this->container);
+        EventDispatcher::listen(TestIsolationEvent::class, function (TestIsolationEvent $e): void {
+            $e->handled = true;
+        }, -10);
+
+        $event = EventDispatcher::dispatch(new TestIsolationEvent());
+
+        $this->assertTrue($event->handled, 'listeners after the throwing module one still run');
     }
 
     // ── BaseModule subclass integration ───────────────────────────────────
