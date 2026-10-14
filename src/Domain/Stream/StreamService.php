@@ -99,7 +99,9 @@ class StreamService {
 			$rReview = true;
 
 			foreach ($rData['review'] as $rImportStream) {
-				if (!$rImportStream['channel_id'] && $rImportStream['tvg_id']) {
+				// A review row need not carry channel_id or tvg_id (a plain m3u row
+				// has neither), so read both defensively — empty() covers a missing key.
+				if (empty($rImportStream['channel_id']) && !empty($rImportStream['tvg_id'])) {
 					$rEPG = EpgService::findByName($rImportStream['tvg_id']);
 
 					if (isset($rEPG)) {
