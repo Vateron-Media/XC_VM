@@ -415,12 +415,12 @@ PHP;
 	}
 
 	/**
-	 * get_genres: the box reads the category list. Issue #393: commit 27f62c07 cast the
-	 * genre's 0/1 "censored" flag to a string "0"/"1"; the portal JS reads it with a truthy
-	 * check, so "0" switched the adult PIN on for every category. It must be a JSON integer.
-	 * (Fails on the pre-fix code, which emitted "censored":"1"/"0".)
+	 * get_genres: the box reads the category list. Native Stalker C firmware reads every
+	 * list field as a string (commit 27f62c07), so the genre's 0/1 "censored" flag is sent
+	 * as a JSON string "0"/"1" like the rest. The portal JS coerces it back to an int on
+	 * ingest (issue #393), so the string form does not switch the adult PIN on everywhere.
 	 */
-	public function testGetGenresKeepsTheCensoredFlagAnInteger(): void {
+	public function testGetGenresStringifiesTheCensoredFlag(): void {
 		$rToken = $this->handshake();
 		$this->portal('stb', 'get_profile', $rToken, self::BOX);
 		$this->primeDevice(['category_ids' => [2, 3]]);
@@ -437,19 +437,18 @@ PHP;
 		foreach ($rGenres as $rGenre) {
 			$rByName[$rGenre['title']] = $rGenre;
 		}
-		$this->assertSame(1, $rByName['Adult']['censored'] ?? null, 'the adult category must read as censored (int 1)');
-		$this->assertSame(0, $rByName['News']['censored'] ?? null, 'a normal category must not read as censored (int 0)');
+		$this->assertSame('1', $rByName['Adult']['censored'] ?? null, 'the adult category is censored, sent as string "1"');
+		$this->assertSame('0', $rByName['News']['censored'] ?? null, 'a normal category is "0", a string like every other field');
 	}
 
 	/**
-	 * get_ordered_list: the box reads a channel list. Issue #393 / commit 27f62c07: the portal
-	 * stringified every int, so the 0/1 boolean flags the JS reads with strict ===/truthy
-	 * checks became "0"/"1" and showed the adult lock, favourites star and timeshift/record
-	 * icons on every channel. Those flags must stay ints; the ids/numbers/statuses the native C
-	 * firmware reads as strings must stay strings. (Fails on the pre-fix getStreams().)
+	 * get_ordered_list: the box reads a channel list. Native Stalker C firmware reads every
+	 * list field as a string and gets an empty value for anything sent as a JSON number
+	 * (commit 27f62c07), so the whole item — the 0/1 boolean flags included — serializes as
+	 * strings. The portal JS normalizes the flags back to ints on ingest (issue #393).
 	 */
-	public function testGetOrderedListKeepsBooleanFlagsIntAndIdentityStrings(): void {
-		// An adult channel (is_adult via category 2) with archive + record on, so every flag is 1.
+	public function testGetOrderedListStringifiesEveryListField(): void {
+		// An adult channel (is_adult via category 2) with archive + record on, so the "1" flags are set.
 		$this->seedStream(55, '[2]', 1, 7);
 		$rToken = $this->handshake();
 		$this->portal('stb', 'get_profile', $rToken, self::BOX);
@@ -465,23 +464,18 @@ PHP;
 		$this->assertCount(1, $rData, $rBody);
 		$rCh = $rData[0];
 
-		// The 0/1 boolean flags the portal JS renders with strict ===/truthy checks: JSON integers.
+		// Every field native C firmware reads — flags and identity alike — is a JSON string.
 		foreach (['censored', 'lock', 'locked', 'fav', 'archive', 'pvr', 'hd', 'open',
 			'enable_tv_archive', 'allow_pvr', 'allow_local_pvr', 'allow_remote_pvr',
-			'use_load_balancing'] as $rFlag) {
-			$this->assertIsInt($rCh[$rFlag] ?? null, $rFlag . ' must stay an int for the portal JS (#393)');
+			'use_load_balancing', 'id', 'number', 'snumber', 'status', 'tv_genre_id'] as $rField) {
+			$this->assertIsString($rCh[$rField] ?? null, $rField . ' must be a string for native C firmware (commit 27f62c07)');
 		}
-		// The adult, archived, recordable channel: those flags are int 1; fav (not favourited) is int 0.
-		$this->assertSame(1, $rCh['censored']);
-		$this->assertSame(1, $rCh['lock']);
-		$this->assertSame(1, $rCh['archive']);
-		$this->assertSame(1, $rCh['pvr']);
-		$this->assertSame(0, $rCh['fav']);
-
-		// The identity fields native C firmware reads as strings must stay strings (commit 27f62c07).
-		foreach (['id', 'number', 'snumber', 'status', 'tv_genre_id'] as $rIdentity) {
-			$this->assertIsString($rCh[$rIdentity] ?? null, $rIdentity . ' must stay a string for native C firmware (commit 27f62c07)');
-		}
+		// The adult, archived, recordable channel: those flags are "1"; fav (not favourited) is "0".
+		$this->assertSame('1', $rCh['censored']);
+		$this->assertSame('1', $rCh['lock']);
+		$this->assertSame('1', $rCh['archive']);
+		$this->assertSame('1', $rCh['pvr']);
+		$this->assertSame('0', $rCh['fav']);
 		$this->assertSame('55', $rCh['id']);
 		$this->assertSame('2', $rCh['tv_genre_id']);
 	}
