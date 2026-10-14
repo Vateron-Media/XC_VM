@@ -433,7 +433,7 @@ class MagService {
 					$rUpdateDevice[$rKey] = $rDevice[$rKey];
 				}
 
-				$rUpdateDevice = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::constrainOwner($rUpdateDevice, $db);
+				$rUpdateDevice = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::constrainOwner($rUpdateDevice, $db, false);
 
 				if (isset($rUpdateDevice['id'])) {
 					$rPrepare = QueryHelper::prepareArray($rUpdateDevice);

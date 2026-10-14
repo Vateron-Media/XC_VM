@@ -65,8 +65,8 @@ final class ResellerBouquetPolicy {
 		return $line;
 	}
 
-	public static function constrainOwner(array $line, object $db): array {
-		if (!empty($line['id']) && self::hasCustomOrder($line)) {
+	public static function constrainOwner(array $line, object $db, bool $preserveSavedOrder = true): array {
+		if ($preserveSavedOrder && !empty($line['id']) && self::hasCustomOrder($line)) {
 			if ($db->query('SELECT * FROM `lines` WHERE `id` = ?;', (int) $line['id']) === false) {
 				throw new \RuntimeException('Cannot load saved bouquet order.');
 			}
@@ -86,6 +86,11 @@ final class ResellerBouquetPolicy {
 			$line['bouquet_order_custom'] = 1;
 		}
 		return $line;
+	}
+
+	/** Snapshot used to reject an order submitted from an outdated customer form. */
+	public static function orderRevision(array $line): string {
+		return hash('sha256', json_encode([self::ids($line['bouquet'] ?? []), self::hasCustomOrder($line)], JSON_THROW_ON_ERROR));
 	}
 
 	/** A revision of the rendered allowance, independent of JSON formatting. */

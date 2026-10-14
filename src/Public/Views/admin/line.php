@@ -65,7 +65,10 @@ if ($rIsEdit && !empty($rLine['custom_data'])) {
         <input type="hidden" name="edit" value="<?= (int) $rLine['id']; ?>">
     <?php endif; ?>
     <input type="hidden" name="bouquets_selected" id="bouquets_selected" value="">
-    <input type="hidden" name="bouquet_order" id="bouquet_order" value="">
+    <?php if ($rIsEdit): ?>
+    <input type="hidden" name="bouquet_order_revision" value="<?= \XcVm\Domain\Bouquet\ResellerBouquetPolicy::orderRevision($rLine); ?>">
+    <?php endif; ?>
+    <input type="hidden" name="bouquet_order" id="bouquet_order" value="" disabled>
 
     <div class="card mb-6">
         <div class="card-header px-0 pt-2">
@@ -477,14 +480,17 @@ LayoutRenderer::renderFooter('admin');
         bindList('ip_field', 'add_ip', 'remove_ip', 'allowed_ips', validIP);
         bindList('ua_field', 'add_ua', 'remove_ua', 'allowed_ua', null);
 
+        var bouquetOrderChanged = false;
         document.getElementById('line-bouquet-rows').addEventListener('click', function(e) {
             var button = e.target.closest('[data-bouquet-move]');
             if (!button) return;
             var row = button.closest('tr');
             if (button.dataset.bouquetMove === 'up' && row.previousElementSibling) {
                 row.parentNode.insertBefore(row, row.previousElementSibling);
+                bouquetOrderChanged = true;
             } else if (button.dataset.bouquetMove === 'down' && row.nextElementSibling) {
                 row.parentNode.insertBefore(row.nextElementSibling, row);
+                bouquetOrderChanged = true;
             }
         });
 
@@ -515,7 +521,9 @@ LayoutRenderer::renderFooter('admin');
         document.getElementById('line-form').addEventListener('submit', function(e) {
             e.preventDefault();
             document.getElementById('bouquets_selected').value = collect('line-bouquet-cb');
-            document.getElementById('bouquet_order').value = collect('line-bouquet-cb');
+            var orderField = document.getElementById('bouquet_order');
+            orderField.disabled = !bouquetOrderChanged;
+            if (bouquetOrderChanged) orderField.value = collect('line-bouquet-cb');
             ['allowed_ips', 'allowed_ua'].forEach(function(id) {
                 var sel = document.getElementById(id);
                 Array.prototype.forEach.call(sel.options, function(o) {
@@ -552,7 +560,7 @@ LayoutRenderer::renderFooter('admin');
                         return;
                     }
                     btn.disabled = false;
-                    xcToast((dt && statusText[dt.status]) || errText, 'error');
+                    xcToast((dt && dt.data && dt.data.bouquet_order_conflict) ? <?= json_encode($language::get('bouquet_order_conflict')); ?> : ((dt && statusText[dt.status]) || errText), 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;

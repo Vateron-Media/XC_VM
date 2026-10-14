@@ -138,18 +138,61 @@ final class AuditDecisionEditLineKeepsOmittedTest extends TestCase {
 
 	public function testAdminSavesAndCanReplaceACustomBouquetOrder(): void {
 		$this->assertSame('STATUS_SUCCESS', $this->edit([
-			'bouquets_selected' => '[2,3]', 'bouquet_order' => '[3,999,2]',
+			'bouquets_selected' => '[1,2,3]', 'bouquet_order' => '[3,999,1,2]',
 		]));
-		$this->assertSame('[3,2]', $this->line()['bouquet']);
+		$this->assertSame('[3,1,2]', $this->line()['bouquet']);
 		$this->assertSame(1, (int) $this->line()['bouquet_order_custom']);
 
 		$this->assertSame('STATUS_SUCCESS', $this->edit(['admin_notes' => 'keep order']));
-		$this->assertSame('[3,2]', $this->line()['bouquet']);
+		$this->assertSame('[3,1,2]', $this->line()['bouquet']);
 
 		$this->assertSame('STATUS_SUCCESS', $this->edit([
-			'bouquets_selected' => '[2,3]', 'bouquet_order' => '[2,3]',
+			'bouquets_selected' => '[1,2,3]', 'bouquet_order' => '[2,3,1]',
+		]));
+		$this->assertSame('[2,3,1]', $this->line()['bouquet']);
+	}
+
+	public function testUnrelatedFormSaveDoesNotActivateCustomOrder(): void {
+		$this->assertSame('STATUS_SUCCESS', $this->edit(['bouquets_selected' => '[2,3]', 'admin_notes' => 'changed']));
+		$this->assertSame(0, (int) $this->line()['bouquet_order_custom']);
+	}
+
+	public function testStaleOrderIsRejectedWithoutWritingOtherFields(): void {
+		$revision = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::orderRevision($this->line());
+		$this->assertSame('STATUS_SUCCESS', $this->edit(['bouquet_order' => '[3,2]']));
+		$stored = $this->line();
+		$this->assertSame('STATUS_INVALID_DATA', $this->edit([
+			'bouquet_order' => '[2,3]', 'bouquet_order_revision' => $revision, 'admin_notes' => 'stale',
+		]));
+		$this->assertEquals($stored, $this->line());
+		$this->assertSame('STATUS_SUCCESS', $this->edit([
+			'bouquet_order' => '[2,3]',
+			'bouquet_order_revision' => \XcVm\Domain\Bouquet\ResellerBouquetPolicy::orderRevision($stored),
 		]));
 		$this->assertSame('[2,3]', $this->line()['bouquet']);
+	}
+
+	public function testPairedDeviceReceivesReplacementCustomOrder(): void {
+		$this->rDb->exec("INSERT INTO `lines` (id, pair_id, member_id, username, password, bouquet, bouquet_order_custom, is_mag) VALUES (9, 8, 5, 'device', 'secret', '[3,1,2]', 1, 1)");
+		$this->assertSame('STATUS_SUCCESS', $this->edit([
+			'bouquets_selected' => '[1,2,3]', 'bouquet_order' => '[2,3,1]',
+		]));
+		$this->rDb->query('SELECT bouquet, bouquet_order_custom FROM `lines` WHERE id = 9');
+		$device = $this->rDb->get_raw_row();
+		$this->assertSame('[2,3,1]', $device['bouquet']);
+		$this->assertSame(1, (int) $device['bouquet_order_custom']);
+	}
+
+	public function testBulkBouquetReplacementOverwritesCustomOrder(): void {
+		$this->assertSame('STATUS_SUCCESS', $this->edit([
+			'bouquets_selected' => '[1,2,3]', 'bouquet_order' => '[3,1,2]',
+		]));
+		$result = LineService::massEdit([
+			'users_selected' => '[8]', 'c_bouquets' => 'on', 'bouquets_selected' => '[3,2]',
+		]);
+		$this->assertSame(STATUS_SUCCESS, $result['status']);
+		$this->assertSame('[2,3]', $this->line()['bouquet']);
+		$this->assertSame(0, (int) $this->line()['bouquet_order_custom']);
 	}
 
 	public function testALineWithoutAnExpiryKeepsNone(): void {
