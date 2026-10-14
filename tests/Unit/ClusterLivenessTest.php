@@ -487,7 +487,7 @@ final class ClusterLivenessTest extends TestCase {
 	public function testTheClusterNodesPageAlertsPerReason(): void {
 		$this->assertMatchesRegularExpression(
 			'#foreach \(ClusterHealth::read\(\)\[.reasons.\] as \$rReason\): \?>\s*<div[^>]*>.*?\$language::get\(\$rReason === ClusterHealth::GUARD_CTL_QUEUE \? .cluster_ctl_queue. : .cluster_fleet_silence.\).*?endforeach;#s',
-			(string) file_get_contents(MAIN_HOME . 'Public/Views/admin/cluster_nodes.php')
+			(string) file_get_contents(MAIN_HOME . 'Public/Views/admin/partials/cluster_section.php')
 		);
 	}
 }

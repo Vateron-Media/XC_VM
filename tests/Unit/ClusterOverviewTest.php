@@ -340,14 +340,15 @@ final class ClusterOverviewTest extends TestCase {
 
 	public function testThePagesCarryTheActionsAndEveryStringExists(): void {
 		$rRoot = MAIN_HOME;
-		$rView = (string) file_get_contents($rRoot . 'Public/Views/admin/cluster_nodes.php');
+		$rView = (string) file_get_contents($rRoot . 'Public/Views/admin/partials/cluster_section.php');
 		$rServers = (string) file_get_contents($rRoot . 'Public/Views/admin/servers.php');
 		$this->assertStringContainsString('value="rotate_all"', $rView);
 		$this->assertStringContainsString('id="node-<?= (int) $rNode[\'server_id\']; ?>"', $rView, 'the servers list links to a node\'s row');
 		foreach (['mode_up', 'mode_down', 'code', 'rotate_now'] as $rAction) {
 			$this->assertMatchesRegularExpression('#action="cluster_nodes">.*value="' . $rAction . '"#', $rServers, $rAction . ' posts to the Cluster Nodes page');
 		}
-		$this->assertStringContainsString('cluster_nodes#node-', $rServers, 'mode & flows link to the node');
+		$this->assertMatchesRegularExpression('/href="#node-/', $rServers, 'the servers list links to the on-page node anchor');
+		$this->assertStringNotContainsString('cluster_nodes#node-', $rServers, 'the row links use the on-page anchor, not the retired cluster_nodes route');
 		$this->assertStringContainsString('cluster:reenrol <?= (int) $rServer[\'id\']; ?>', $rServers, 're-enrol shows the SSH command');
 
 		$rEn = (string) file_get_contents($rRoot . 'Core/Localization/lang/en.ini');
