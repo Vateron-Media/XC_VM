@@ -4,7 +4,9 @@ namespace XcVm\Core\Http;
 
 use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Logging\FileLogger;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\StreamControlDispatcher;
 
 /**
  * ApiClient — internal API communication
@@ -28,6 +30,15 @@ class ApiClient {
 	 * @return string|bool Response body, or false on failure.
 	 */
 	public static function request(array $rData, int $rTimeout = 5) {
+		// Stream controls bypass the legacy HTTP relay, which may be unavailable.
+		if (in_array($rData['action'] ?? null, ['stream', 'vod'], true)) {
+			try {
+				return json_encode(StreamControlDispatcher::request($rData, $rTimeout));
+			} catch (\Throwable $error) {
+				FileLogger::log('stream_control', 'Dispatch failed: ' . get_class($error));
+				return json_encode(['result' => false, 'error' => 'STREAM_CONTROL_EXCEPTION']);
+			}
+		}
 		ini_set('default_socket_timeout', $rTimeout);
 		$rAPI = 'http://127.0.0.1:' . intval(ServerRepository::getAll()[SERVER_ID]['http_broadcast_port']) . '/admin/api';
 

@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Http\ApiClient;
 
 /**
  * Base class for the admin-ajax controllers.
@@ -24,6 +25,33 @@ use XcVm\Core\Auth\Authorization;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 abstract class BaseAjaxController {
+	/** Return the backend acknowledgement without hiding a refused stream control. */
+	protected function controlResponse(array $rRequest): never {
+		$rAnswer = json_decode((string) ApiClient::request($rRequest), true);
+		if (!is_array($rAnswer)) {
+			$this->fail(['error' => 'STREAM_CONTROL_FAILED']);
+		}
+		$this->json($rAnswer);
+	}
+
+	/** Combine bulk acknowledgements, retaining accepted work when another target fails. */
+	protected function controlResponses(array $rRequests): never {
+		$rResult = true;
+		$rAccepted = $rErrors = [];
+		foreach ($rRequests as $rRequest) {
+			$rAnswer = json_decode((string) ApiClient::request($rRequest), true);
+			if (!is_array($rAnswer)) {
+				$rAnswer = ['result' => false, 'error' => 'STREAM_CONTROL_FAILED'];
+			}
+			$rAccepted = array_merge($rAccepted, $rAnswer['accepted'] ?? []);
+			if (($rAnswer['result'] ?? false) !== true) {
+				$rResult = false;
+				$rErrors = array_merge($rErrors, $rAnswer['errors'] ?? [['code' => $rAnswer['error'] ?? 'STREAM_CONTROL_FAILED', 'server_id' => $rRequest['servers'][0] ?? null]]);
+			}
+		}
+		$this->json(['result' => $rResult, 'accepted' => $rAccepted, 'errors' => $rErrors]);
+	}
+
 	/**
 	 * JSON response that terminates the request, with the correct Content-Type
 	 * (like {@see BaseAdminController::json()}).

@@ -3,7 +3,6 @@
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
@@ -193,10 +192,12 @@ class MultiAjaxController extends BaseAjaxController {
 				}
 			}
 
+			$rControls = [];
 			foreach ($rStreamMap as $rServerID => $rStreamIDs) {
 				$rStreamSub = ($rSub == 'stop') ? 'stop' : 'start';
-				ApiClient::request(['action' => 'stream', 'sub' => $rStreamSub, 'stream_ids' => $rStreamIDs, 'servers' => [$rServerID]]);
+				$rControls[] = ['action' => 'stream', 'sub' => $rStreamSub, 'stream_ids' => $rStreamIDs, 'servers' => [$rServerID]];
 			}
+			$this->controlResponses($rControls);
 		} elseif ($rSub == 'purge') {
 			foreach ($rRequestIDs as $rServerID) {
 				$this->purgeServerConnections($rType, $rServerID);
@@ -290,10 +291,12 @@ class MultiAjaxController extends BaseAjaxController {
 					$rSub = 'start';
 				}
 
+				$rControls = [];
 				foreach ($rStreamMap as $rServerID => $rStreamIDs) {
 					$rAction = in_array($rType, ['stream', 'radio', 'cchannel']) ? 'stream' : 'vod';
-					ApiClient::request(['action' => $rAction, 'sub' => $rSub, 'stream_ids' => $rStreamIDs, 'servers' => [$rServerID]]);
+					$rControls[] = ['action' => $rAction, 'sub' => $rSub, 'stream_ids' => $rStreamIDs, 'servers' => [$rServerID]];
 				}
+				$this->controlResponses($rControls);
 			} elseif ($rSub == 'delete') {
 				$rDetached = [];
 				foreach ($rStreamMap as $rServerID => $rStreamIDs) {
@@ -331,6 +334,9 @@ class MultiAjaxController extends BaseAjaxController {
 			}
 		}
 
+		if (in_array($rSub, ['start', 'stop', 'restart'], true)) {
+			$this->fail(['error' => 'STREAM_NOT_ASSIGNED_TO_TARGET']);
+		}
 		$this->ok();
 	}
 
