@@ -239,7 +239,7 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 									<select name="language" id="language" class="form-control" data-toggle="select2">
 										<?php foreach (Translator::available() as $rLangCode): ?>
 											<option value="<?= htmlspecialchars($rLangCode) ?>" <?= ($rSettings["language"] ?? 'en') === $rLangCode ? ' selected' : '' ?>>
-												<?= htmlspecialchars($rLangCode) ?>
+												<?= htmlspecialchars(Translator::displayName($rLangCode)) ?>
 											</option>
 										<?php endforeach; ?>
 									</select>

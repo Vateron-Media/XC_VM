@@ -242,7 +242,7 @@ if (!RequestManager::has('update')):
                             <div class="col-md-8">
                                 <select class="form-select" id="language" name="language">
                                     <?php foreach (Translator::available() as $rLangCode): ?>
-                                        <option value="<?= htmlspecialchars($rLangCode, ENT_QUOTES) ?>" <?= ($rSettings['language'] ?? 'en') === $rLangCode ? 'selected' : '' ?>><?= htmlspecialchars($rLangCode) ?></option>
+                                        <option value="<?= htmlspecialchars($rLangCode, ENT_QUOTES) ?>" <?= ($rSettings['language'] ?? 'en') === $rLangCode ? 'selected' : '' ?>><?= htmlspecialchars(Translator::displayName($rLangCode)) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
