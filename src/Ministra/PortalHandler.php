@@ -24,10 +24,13 @@ class PortalHandler {
 	 * flag plus the alias "for adults": tv.js (check_for_play) only skips the
 	 * per-channel PIN when genre.alias === "for adults", so an adult category
 	 * shown under any other name makes the portal ask for the PIN a second
-	 * time, per channel — unusable on a remote without number keys. Give every
-	 * adult category that exact alias; a non-adult category keeps its normal
-	 * alias. The per-stream "lock" flag is left untouched, so adult channels
-	 * listed under a non-censored genre ("All") stay PIN-gated there.
+	 * time, per channel — unusable on a remote without number keys. Only the
+	 * live-TV genre list uses this: audioclub, VOD (vclub) and series (sclub)
+	 * copy genre.alias into the request as a filter (audioclub.js category
+	 * param; vclub/sclub get_genres_by_category_alias), so there the alias must
+	 * stay the category name or the listing returns nothing. The per-stream
+	 * "lock" flag is left untouched, so adult channels under a non-censored
+	 * genre ("All") stay PIN-gated there.
 	 *
 	 * @param array<string, mixed> $rCategory
 	 */
@@ -791,7 +794,7 @@ class PortalHandler {
 					$rOutput["js"][] = [
 						"id" => (string) $rCategory["id"],
 						"title" => $rCategory["category_name"],
-						"alias" => self::categoryAlias($rCategory, (string) $rCategory["category_name"]),
+						"alias" => $rCategory["category_name"],
 						"censored" => intval($rCategory["is_adult"]),
 					];
 				}
@@ -1133,7 +1136,7 @@ class PortalHandler {
 						$rOutput["js"][] = [
 							"id" => (string) $rCategory["id"],
 							"title" => $rCategory["category_name"],
-							"alias" => self::categoryAlias($rCategory, (string) $rCategory["category_name"]),
+							"alias" => $rCategory["category_name"],
 							"censored" => intval($rCategory["is_adult"]),
 						];
 					}
@@ -1360,7 +1363,7 @@ class PortalHandler {
 						$rOutput["js"][] = [
 							"id" => (string) $rCategory["id"],
 							"title" => $rCategory["category_name"],
-							"alias" => self::categoryAlias($rCategory, (string) $rCategory["category_name"]),
+							"alias" => $rCategory["category_name"],
 							"censored" => intval($rCategory["is_adult"]),
 						];
 					}

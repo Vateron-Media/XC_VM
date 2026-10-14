@@ -475,6 +475,18 @@ PHP;
 	}
 
 	/**
+	 * The "for adults" alias is ONLY for the live-TV genre list (tv.js reads it
+	 * to skip the per-channel PIN). audioclub, VOD (vclub) and series (sclub)
+	 * copy genre.alias into the request as a filter, so forcing "for adults"
+	 * there returns no content — their builders must keep the category name.
+	 */
+	public function testOnlyLiveGenresUseTheForAdultsAlias(): void {
+		$rPH = (string) file_get_contents(MAIN_HOME . 'Ministra/PortalHandler.php');
+		$this->assertSame(1, substr_count($rPH, 'self::categoryAlias('), 'categoryAlias is applied to the live get_genres builder only');
+		$this->assertStringContainsString('self::categoryAlias($rCategory, strtolower((string) $rCategory["category_name"]))', $rPH, 'and that one use is the live/itv builder');
+	}
+
+	/**
 	 * get_fav_ids returns the favourite ids as strings, matching the string channel id the
 	 * portal JS compares them against (canonical Stalker). Ints there would make the strict
 	 * indexOf fail and del/reorder splice the wrong favourite (#393).
