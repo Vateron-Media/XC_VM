@@ -1016,7 +1016,9 @@ class PortalHandler {
 							"modified" => "",
 							"number" => (string) $rNumber++,
 							"alias" => strtolower($rCategory["category_name"]),
-							"censored" => (string) intval($rCategory["is_adult"]),
+							// A 0/1 flag the portal JS reads with a truthy check — must stay an int,
+							// or a string "0" prompts the adult PIN on every category (issue #393).
+							"censored" => intval($rCategory["is_adult"]),
 						];
 					}
 				}
