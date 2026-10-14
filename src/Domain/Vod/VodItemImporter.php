@@ -878,19 +878,17 @@ class VodItemImporter {
 		$rSeries = null;
 		if ($rShowData['id']) {
 			$db = self::db();
-			while (file_exists(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']))) {
-				if ($rTimeout < time() - filemtime(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']))) {
-					// Another worker sharing lock_<showid> may remove it between the
-					// file_exists check and here, so tolerate an already-gone lock.
-					@unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
-				}
-				usleep(100000);
-			}
-			$rFileLock = fopen(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']), 'w');
+			// Serialize workers importing the same show on an advisory lock. flock
+			// alone is the mutex: the kernel releases it when the holder exits or is
+			// killed, so there is no stale lock to time out and clear — and no unlink
+			// of a file another worker is still holding (which would let two workers
+			// update one series at once). 'c' opens without truncating an in-use lock;
+			// the empty lock file is kept and reused, never removed. ($rTimeout is no
+			// longer consulted: a crashed holder's lock is freed by the kernel.)
+			$rFileLock = fopen(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']), 'c');
 			while (!flock($rFileLock, LOCK_EX)) {
 				usleep(100000);
 			}
-			fwrite($rFileLock, (string) time());
 			$rSeasonData = [];
 			foreach ($rShowData['seasons'] as $rSeason) {
 				$rSeason['cover'] = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rSeason['poster_path'];
@@ -959,7 +957,7 @@ class VodItemImporter {
 					}
 				} else {
 					flock($rFileLock, LOCK_UN);
-					@unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
+					fclose($rFileLock);
 					self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_CATEGORY);
 					throw new VodItemImportHalt();
 				}
@@ -970,7 +968,7 @@ class VodItemImporter {
 				}
 			}
 			flock($rFileLock, LOCK_UN);
-			@unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
+			fclose($rFileLock);
 			self::applyCommonStreamSettings($rImportArray, $rThreadData, false);
 			if ($rReleaseSeason !== null && $rReleaseEpisode !== null) {
 				if (is_array($rRelease['episode'] ?? null) && count($rRelease['episode']) == 2) {

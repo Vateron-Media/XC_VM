@@ -219,7 +219,13 @@ final class VodItemImporterSeriesBuildTest extends TestCase {
 
         $this->db->query('SELECT COUNT(*) AS `count` FROM `streams_series`;');
         $this->assertSame(0, (int) $this->db->get_col());
-        $this->assertFileDoesNotExist($this->lockFile);
+        // The advisory lock file is kept (never unlinked), but it must be released
+        // so a waiting worker can take it — assert it is free, not that it is gone.
+        $this->assertFileExists($this->lockFile);
+        $rProbe = fopen($this->lockFile, 'c');
+        $this->assertTrue(flock($rProbe, LOCK_EX | LOCK_NB), 'the series lock was not released after the halt');
+        flock($rProbe, LOCK_UN);
+        fclose($rProbe);
     }
 
     public function testAppliesCommonStreamSettingsWithEnableTranscodeLeftOff(): void {
