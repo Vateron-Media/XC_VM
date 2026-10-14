@@ -40,6 +40,16 @@ final class TranslatorTest extends TestCase {
 		$this->assertSame('Hello', Translator::get('greeting'));
 	}
 
+	public function testSharedExyuLanguageKeepsItsCodeAndDisplayName(): void {
+		file_put_contents($this->dir . '/exyu.ini', "greeting = \"Zdravo\"\n");
+		Translator::init($this->dir);
+		$this->assertTrue(Translator::setLanguage('exyu'));
+		$this->assertSame('exyu', Translator::current());
+		$this->assertSame('BA_SRB_CRO', Translator::displayName(Translator::current()));
+		$this->assertSame('Zdravo', Translator::get('greeting'));
+		$this->assertSame('de', Translator::displayName('de'));
+	}
+
 	public function testDetectsLanguageFromCookie(): void {
 		$_COOKIE['lang'] = 'ru';
 		Translator::init($this->dir);

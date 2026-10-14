@@ -33,7 +33,7 @@ final class TranslationStore {
 	/** A language code, and so a file name: `tr`, `fil`, `pt-BR`. */
 	public static function validCode(string $rCode): bool {
 		// D: without it `$` would also match before a trailing line feed.
-		return preg_match('/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/D', $rCode) === 1;
+		return $rCode === 'exyu' || preg_match('/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/D', $rCode) === 1;
 	}
 
 	/**

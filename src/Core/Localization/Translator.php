@@ -126,6 +126,11 @@ class Translator {
 		return self::$availableLanguages;
 	}
 
+	/** Display the shared Latin-script language without changing its stored code. */
+	public static function displayName(string $lang): string {
+		return $lang === 'exyu' ? 'BA_SRB_CRO' : $lang;
+	}
+
 	/**
 	 * @return string Bundled language files directory (part of the code)
 	 */
