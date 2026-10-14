@@ -1,0 +1,6 @@
+# Keep automated review focused on application changes within the diff-size cap.
+# Tests and documentation remain in the PR and are checked by CI and maintainers.
+version: '1'
+ignore:
+  - 'tests/**'
+  - 'docs/**'
