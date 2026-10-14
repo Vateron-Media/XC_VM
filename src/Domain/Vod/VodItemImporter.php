@@ -880,7 +880,9 @@ class VodItemImporter {
 			$db = self::db();
 			while (file_exists(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']))) {
 				if ($rTimeout < time() - filemtime(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']))) {
-					unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
+					// Another worker sharing lock_<showid> may remove it between the
+					// file_exists check and here, so tolerate an already-gone lock.
+					@unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
 				}
 				usleep(100000);
 			}
@@ -957,7 +959,7 @@ class VodItemImporter {
 					}
 				} else {
 					flock($rFileLock, LOCK_UN);
-					unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
+					@unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
 					self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_CATEGORY);
 					throw new VodItemImportHalt();
 				}
@@ -968,7 +970,7 @@ class VodItemImporter {
 				}
 			}
 			flock($rFileLock, LOCK_UN);
-			unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
+			@unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
 			self::applyCommonStreamSettings($rImportArray, $rThreadData, false);
 			if ($rReleaseSeason !== null && $rReleaseEpisode !== null) {
 				if (is_array($rRelease['episode'] ?? null) && count($rRelease['episode']) == 2) {
