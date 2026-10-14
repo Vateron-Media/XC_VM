@@ -137,14 +137,6 @@ class StatusCommand implements CommandInterface {
 			$this->configureRedis();
 			$this->ensureClusterNginx();
 			$this->ensureClusterPools();
-		} elseif (!$rApi) {
-			// LB nodes run no local Redis (bin/redis is stripped from the LB build)
-			// and never reach configureRedis, so the xcvm_core extension would keep
-			// its default Redis target of 127.0.0.1 and every connection refuses —
-			// live.php then fails with LINE_CREATE_FAIL under redis_handler. Point
-			// the extension at the MAIN server's Redis (same host as MySQL) using the
-			// shared password, without touching MAIN's own config.
-			$this->configureRedisLb($rServers);
 		}
 
 		if (!$rFirstRun && $rServers[SERVER_ID]['is_main']) {
@@ -403,68 +395,6 @@ class StatusCommand implements CommandInterface {
 				echo "WARNING: failed to sync the Redis password into config.enc\n";
 			}
 		}
-	}
-
-	/**
-	 * Point this LB node's xcvm_core Redis config at the MAIN server's Redis.
-	 *
-	 * The MAIN server owns the shared Redis (its configureRedis generates the
-	 * password and stores it in `settings`). An LB has no local Redis, so it must
-	 * connect to MAIN's — at the same host it already uses for MySQL. We only READ
-	 * the shared password here (never rotate it — that is MAIN's job) and write the
-	 * host/password into the local config.enc so `\XC_VM::redis_connect()` reaches
-	 * the right server instead of refusing on 127.0.0.1.
-	 *
-	 * @param array<int,array<string,mixed>> $rServers Servers keyed by id.
-	 */
-	private function configureRedisLb(array $rServers): void {
-		$db = self::db();
-		if (!method_exists('XC_VM', 'config_set_redis')) {
-			return;
-		}
-
-		$rHost = self::mainRedisHost($rServers);
-		if ($rHost === null) {
-			echo "WARNING: could not resolve the main server's IP for Redis\n";
-			return;
-		}
-
-		$db->query('SELECT `redis_password` FROM `settings`;');
-		$rPassword = $db->get_row()['redis_password'] ?? '';
-		if ($rPassword === '' || $rPassword === '#PASSWORD#') {
-			echo "WARNING: no shared Redis password available yet\n";
-			return;
-		}
-
-		if (!\XC_VM::config_set_redis($rHost, 6379, $rPassword)) {
-			echo "WARNING: failed to point config.enc Redis at the main server ({$rHost})\n";
-		} else {
-			echo "Redis pointed at main server {$rHost}:6379\n";
-		}
-	}
-
-	/**
-	 * The address a load balancer reaches MAIN's Redis on: MAIN's `private_ip`
-	 * when it has one, else its `server_ip` — the raw column, never a URL built
-	 * from it (`private_url_ip` is `http://<ip>:<port>/`). Null when MAIN's row
-	 * is missing or neither is an IP address or a plain host name.
-	 *
-	 * @param array<int, array<string, mixed>> $rServers `servers` rows
-	 */
-	public static function mainRedisHost(array $rServers): ?string {
-		foreach ($rServers as $rServer) {
-			if (empty($rServer['is_main'])) {
-				continue;
-			}
-			foreach (['private_ip', 'server_ip'] as $rKey) {
-				$rHost = trim((string) ($rServer[$rKey] ?? ''));
-				if ($rHost !== '' && (filter_var($rHost, FILTER_VALIDATE_IP) !== false || preg_match('/^(?=.{1,253}$)[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$/', $rHost) === 1)) {
-					return $rHost;
-				}
-			}
-			return null;
-		}
-		return null;
 	}
 
 	/**

@@ -1,6 +1,6 @@
 # ADR 0004 — Cluster API between MAIN and load balancers: the panel's contract
 
-- **Status:** Accepted. Phases 0-7 are implemented: the seams and gates, the crypto contract and schema, MAIN's API with the cluster bus and pools, enrolment (SSH for new and existing LBs, by code, and `token_rekey`), the *Servers → Cluster Nodes* page and `cron:cluster`, authoritative telemetry and the 1 s liveness loop, the signed command channel with root commands and artefacts, logs, stream state, content and the fanout's monitor feed as events, all ten connection increments (admission, the agent's HLS reaper, limits on MAIN, digest and seed, `conn.divergence` and the P2 lane), and the authoritative config replica with mode-2 boot and the connect audit. Of Phase 8 (the data plane without bearer credentials) four increments are in: the viewer-token secret replaced without an outage, the legacy `/api`'s own switch, the two helpers a node's PHP asks its agent for (the relay nonce window and the file digest), and its relay half as one change — relay and file tickets minted into the R2 stream record and refreshed on the delta path without moving a record's ETag or version, the parents' `RelayGuard`, `/xfile` with a signed digest per chunk, the agent's loopback proxy and the URL builders, behind each node's DATAPLANE flow, which mode 2 now requires. Its acceptance on a running fleet (48 h without an encoder restart at L = 5) is still to be measured, and `cluster:rotate-stream-secret` waits with Phase 9. Of Phase 9 (the licence lease, cutover and lockdown) six increments are in: an operator promotes and demotes a node's `mode` from the Cluster Nodes page, behind the flows, the connect audit and seven clean days; every token MAIN hands a node carries the lease it may serve on without MAIN; the node's agent verifies and keeps that lease and anchors MAIN's clock; past the lease's window a node refuses new viewers and, past the drain, the sessions still running — behind `lb_lease_fence`, off until an operator turns it on; the restrictive commands, the stream-secret and credential rotations, `rotate_sign_key` and the manual `cluster:lockdown`; and the extension's compiled lease verdict with the credential actions (`strip_db_credentials`, `install_config`, MAIN's revoke). A seventh pins MAIN's panel key in every node's `xcvm_core` (`core.pin`: at the SSH install, else `node.root pin_core`, with the node's install_id in `cluster_nodes.install_id`), gives the operator the credential strip (the Cluster Nodes page's *Drop DB credentials* and `cluster:strip-credentials`), and rotates the panel's DB password (`cluster:rotate-db-password` on MAIN, sealed to each node's box key, and `cluster:set-db-password` on a node). An eighth keeps a credential-free node so through reinstalls and grants, tells MAIN when an agent cannot bind its relay port, drops the fanout's viewers under a lease fence, and gives MAIN a data-plane client of its own (`cluster:main-dataplane`, off by default). `api_mode_allowed` is still false, so promotion is the only path to mode 2 and a new node still enrols below it, at mode 1: flipping that flag is the cutover decision, and it stays with the operator.
+- **Status:** Accepted. Phases 0-7 are implemented: the seams and gates, the crypto contract and schema, MAIN's API with the cluster bus and pools, enrolment (SSH for new and existing LBs, by code, and `token_rekey`), the *Servers → Cluster Nodes* page and `cron:cluster`, authoritative telemetry and the 1 s liveness loop, the signed command channel with root commands and artefacts, logs, stream state, content and the fanout's monitor feed as events, all ten connection increments (admission, the agent's HLS reaper, limits on MAIN, digest and seed, `conn.divergence` and the P2 lane), and the authoritative config replica with mode-2 boot and the connect audit. Of Phase 8 (the data plane without bearer credentials) four increments are in: the viewer-token secret replaced without an outage, the legacy `/api`'s own switch, the two helpers a node's PHP asks its agent for (the relay nonce window and the file digest), and its relay half as one change — relay and file tickets minted into the R2 stream record and refreshed on the delta path without moving a record's ETag or version, the parents' `RelayGuard`, `/xfile` with a signed digest per chunk, the agent's loopback proxy and the URL builders, behind each node's DATAPLANE flow, which mode 2 now requires. Its acceptance on a running fleet (48 h without an encoder restart at L = 5) is still to be measured, and `cluster:rotate-stream-secret` waits with Phase 9. Of Phase 9 (the licence lease, cutover and lockdown) six increments are in: an operator promotes and demotes a node's `mode` from the Cluster Nodes page, behind the flows, the connect audit and seven clean days; every token MAIN hands a node carries the lease it may serve on without MAIN; the node's agent verifies and keeps that lease and anchors MAIN's clock; past the lease's window a node refuses new viewers and, past the drain, the sessions still running — behind `lb_lease_fence`, off until an operator turns it on; the restrictive commands, the stream-secret and credential rotations, `rotate_sign_key` and the manual `cluster:lockdown`; and the extension's compiled lease verdict with the credential actions (`strip_db_credentials`, `install_config`, MAIN's revoke). A seventh pins MAIN's panel key in every node's `xcvm_core` (`core.pin`: at the SSH install, else `node.root pin_core`, with the node's install_id in `cluster_nodes.install_id`), gives the operator the credential strip (the Cluster Nodes page's *Drop DB credentials* and `cluster:strip-credentials`), and rotates the panel's DB password (`cluster:rotate-db-password` on MAIN, sealed to each node's box key, and `cluster:set-db-password` on a node). An eighth keeps a credential-free node so through reinstalls and grants, tells MAIN when an agent cannot bind its relay port, drops the fanout's viewers under a lease fence, and gives MAIN a data-plane client of its own (`cluster:main-dataplane`, off by default). `api_mode_allowed` is still false, so promotion is the only path to mode 2 and a new node still enrols below it, at mode 1: flipping that flag is the cutover decision, and it stays with the operator. **Phase 10 shipped** (the 2.7.0 line): the legacy MAIN-to-load-balancer `/api` is removed, and the sections below that describe it (the load balancers' `/api` and `api_legacy.conf`, `InternalApiController::index`, `LegacyApiAudit`, `configureRedisLb`, the `users` cron's `legacy` role, `DataPlane::legacyApiRetired()`) record what was built before that removal. MAIN's own `/api` stays.
 - **Date:** 2026-09-25
 - **Plan:** `docs/superpowers/specs/2026-09-21-main-lb-api-communication-design.md` (MAIN ↔ LB API communication, revision 3 plus corrections).
 - **Extension side:** `xcvm_core` ADR-002, "Cluster API: the extension's half of MAIN ↔ LB communication", cluster API version 1.
@@ -6647,7 +6647,9 @@ activity row).
 
 ### Proxies and the legacy `/api`, its calls counted, and the legacy link's retirement (2026-10-08)
 
-**Proxies no longer hold the legacy `/api` open.** `DataPlane::legacyApiRetired()` asked every
+> **Retired since.** Phase 10 (step 4 below) removed everything this section describes as present: the load balancers' `/api`, `LegacyApiAudit` and its *Legacy /api calls* column, `DataPlane::legacyApiRetired()` and the page's open-by list. It is kept as the record of how the link was measured and retired.
+
+**Proxies no longer held the legacy `/api` open.** `DataPlane::legacyApiRetired()` asked every
 row of `servers` to be an active node with its data plane on, proxies included, and a proxy is
 never a node: on a panel with one proxy, every node's `/api` stayed open. The rule exists because
 other servers read a node's files with `getFile`. A proxy reads none: its nginx forwards only the
@@ -6657,8 +6659,8 @@ one outbound call is MAIN's `/admin/proxy_api` (XC_VM_Proxy's `callback.php`). B
 `server_type` 1. A request that reaches a node's `/api` through a proxy's route is a caller like
 any other, and gets the 404 once the node's `/api` closes.
 
-**The calls are counted.** On a load balancer in mode 1 or 2, `InternalApiController::index`
-counts each call it answers, after the password and the caller's address passed, by action and
+**The calls were counted.** On a load balancer in mode 1 or 2, `InternalApiController::index`
+counted each call it answers, after the password and the caller's address passed, by action and
 caller (`Core\Cluster\LegacyApiAudit`): one file a UTC day under
 `STORAGE_PATH/cluster/legacy_api/`, at most 32 keys and the rest under `*`, eight days kept by
 `cron:cleanup`. The last seven days go into `audit.json` as `legacy_api` (`SettingsAudit::publish`),
@@ -6677,10 +6679,11 @@ from a browser (every reader is server-side: ffprobe, `file_get_contents`, cURL)
    runs).
 3. The release that does step 2 announces in its notes that the legacy link is deprecated, and
    which major release removes it.
-4. That major release removes the plan's Phase 10 list: the load balancers' `/api` locations
-   and `InternalApiController::index` (its actions stay, for `node.rpc`), `configureRedisLb`, the
-   `users` cron (role `legacy`), and the database and Redis paths below mode 2. Its update refuses
-   a panel with a load balancer below mode 2, so no node is left on a path that is gone.
+4. **DONE (Phase 10).** That major release removed the plan's Phase 10 list: the load balancers'
+   `/api` locations and `api_legacy.conf`, `InternalApiController::index` (its actions stay, for
+   `node.rpc`), `LegacyApiAudit`, `configureRedisLb`, the `users` cron's `legacy` role, and the
+   page's *legacy /api open by* box with `DataPlane::legacyApiRetired()`. Its update refuses a
+   panel with a load balancer below mode 2, so no node is left on a path that is gone.
 
 **Not built / limits.**
 - **A count, not a gate.** Nothing refuses or warns on a call; the operator reads the column.
@@ -6689,10 +6692,9 @@ from a browser (every reader is server-side: ffprobe, `file_get_contents`, cURL)
 - **Callers by address.** A caller behind NAT, or MAIN on a private address, shows as that
   address.
 
-**Tests.** `LegacyApiAuditTest` (counted by action and caller, nothing on MAIN or in mode 0,
-bounded keys, the seven-day window, MAIN's check of the report, the count after the password and
-address checks, no CORS header), `DataPlaneUrlsTest` and `MainDataPlaneSwitchTest` (a proxy keeps
-nothing open).
+**Tests.** None of this section's tests remain: `LegacyApiAuditTest` was deleted with the audit,
+and the `DataPlaneUrlsTest` and `MainDataPlaneSwitchTest` cases for a proxy with the `/api` open
+went with `legacyApiRetired()` and the open-by list.
 
 ### New panels start on the cluster API (2026-10-08)
 

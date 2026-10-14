@@ -110,7 +110,6 @@ final class LbArchiveGateTest extends TestCase {
 			'SCRIPT_FILENAME'           => 'Public/index.php',
 			'/stream/ gateway handler'  => 'Public/stream/live.php',
 			'/admin/ gateway handler'   => 'Public/admin/vod.php',
-			'XC_API internal (/api)'    => 'Public/Controllers/Api/InternalApiController.php',
 			'XC_API $1 (/api/<name>)'   => 'Public/Controllers/Api/PlayerApiController.php',
 			'XC_API shared base class'  => 'Public/Controllers/Api/BaseApiController.php',
 			'XC_API request bootstrap'  => 'Infrastructure/Bootstrap/StreamingRequestBootstrap.php',
@@ -126,7 +125,7 @@ final class LbArchiveGateTest extends TestCase {
 	public function testUnparseableNginxConfigFailsClosed(): void {
 		$rConf = (string) file_get_contents($this->rRoot . '/lb_configs/nginx.conf');
 		$rBroken = str_replace(
-			['SCRIPT_FILENAME /home/xc_vm/', 'location ~ ^/admin/(', 'fastcgi_param XC_API internal;'],
+			['SCRIPT_FILENAME /home/xc_vm/', 'location ~ ^/admin/(', 'fastcgi_param XC_API $1;'],
 			['SCRIPT_FILENAME /srv/xc_vm/', 'location ~ ^/panel/(', 'fastcgi_param XC_API bogus;'],
 			$rConf,
 			$rCount

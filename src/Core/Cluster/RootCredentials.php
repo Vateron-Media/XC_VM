@@ -15,7 +15,7 @@ use XcVm\Core\Cluster\Crypto\Seal;
  * keeps and the agent relays holds ciphertext only, and the node opens it
  * with the key its agent holds. A `signals` row — a legacy node that takes
  * no root command — carries no secret: that node reads MAIN's settings row
- * (`redis_password`), as StatusCommand::configureRedisLb() always has, which
+ * (`redis_password`), as it always has, which
  * it can only because it still holds MAIN's database. The DB password has no
  * such path, so `rotate_db` needs the sealed form.
  *
