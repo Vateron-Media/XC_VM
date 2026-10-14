@@ -377,8 +377,6 @@ GET  /tickets                 → ResellerTicketsController
 
 ## Hide Active Codes navigation
 
-In **General Settings → General**, turn on **Hide Active Codes** to hide the
-Active Codes menus for administrators and resellers. Turn it off to restore
-them. Existing codes remain valid; this is a navigation preference, not a
-revocation of codes or API permissions. Migration `095_add_hide_active_codes`
-adds the setting, which is off by default.
+Enable **General Settings → General → Hide Active Codes** to hide admin and
+reseller menus. Codes and API permissions remain valid. Disable it to restore
+the menus. Migration `095_add_hide_active_codes` adds this option (off by default).
