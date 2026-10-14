@@ -277,6 +277,27 @@ class PortalHandler {
 	 *
 	 * @param array  &$ctx Context array
 	 */
+	/**
+	 * Stringify every integer in a category/genre list response. Native Stalker C
+	 * firmware reads each list field as a string and gets an empty value for a JSON
+	 * number, so category ids and the 0/1 `censored` flag (including the synthetic
+	 * "All" row) must be strings. The portal JS coerces `censored` back to an int on
+	 * ingest (issue #393). These responses carry no numeric pagination counters, so
+	 * the whole payload is safe to walk.
+	 *
+	 * @param array $rOutput The response array about to be json_encode'd.
+	 * @return array The same array with every integer cast to a string.
+	 */
+	private static function stringifyInts(array $rOutput): array {
+		array_walk_recursive($rOutput, static function (&$rValue) {
+			if (is_int($rValue)) {
+				$rValue = (string) $rValue;
+			}
+		});
+
+		return $rOutput;
+	}
+
 	public static function handleAuthenticated(string $rReqType, string $rReqAction, array &$ctx) {
 		$ctx["device"]["mag_player"] = trim($ctx["device"]["mag_player"], "'\"");
 		$ctx["player"] = !empty($ctx["device"]["mag_player"])
@@ -780,7 +801,7 @@ class PortalHandler {
 					];
 				}
 			}
-			exit(json_encode($rOutput));
+			exit(json_encode(self::stringifyInts($rOutput)));
 		}
 	}
 
@@ -1023,7 +1044,7 @@ class PortalHandler {
 					}
 				}
 
-				exit(json_encode($rOutput, JSON_PARTIAL_OUTPUT_ON_ERROR));
+				exit(json_encode(self::stringifyInts($rOutput), JSON_PARTIAL_OUTPUT_ON_ERROR));
 		}
 	}
 
@@ -1119,7 +1140,7 @@ class PortalHandler {
 					}
 				}
 
-				exit(json_encode($rOutput));
+				exit(json_encode(self::stringifyInts($rOutput)));
 
 			case "get_genres_by_category_alias":
 				$rOutput = [];
@@ -1136,7 +1157,7 @@ class PortalHandler {
 					}
 				}
 
-				exit(json_encode($rOutput, JSON_PARTIAL_OUTPUT_ON_ERROR));
+				exit(json_encode(self::stringifyInts($rOutput), JSON_PARTIAL_OUTPUT_ON_ERROR));
 
 			case "get_years":
 				exit(json_encode($ctx["magData"]["get_years"]));
@@ -1346,7 +1367,7 @@ class PortalHandler {
 					}
 				}
 
-				exit(json_encode($rOutput));
+				exit(json_encode(self::stringifyInts($rOutput)));
 
 			case "get_genres_by_category_alias":
 				$rOutput = [];
@@ -1363,7 +1384,7 @@ class PortalHandler {
 					}
 				}
 
-				exit(json_encode($rOutput, JSON_PARTIAL_OUTPUT_ON_ERROR));
+				exit(json_encode(self::stringifyInts($rOutput), JSON_PARTIAL_OUTPUT_ON_ERROR));
 
 			case "get_years":
 				exit(json_encode($ctx["magData"]["get_years"]));

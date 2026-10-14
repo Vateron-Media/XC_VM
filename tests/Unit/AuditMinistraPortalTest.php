@@ -439,6 +439,10 @@ PHP;
 		}
 		$this->assertSame('1', $rByName['Adult']['censored'] ?? null, 'the adult category is censored, sent as string "1"');
 		$this->assertSame('0', $rByName['News']['censored'] ?? null, 'a normal category is "0", a string like every other field');
+		// The category id must be a string too, or native firmware reads it empty
+		// and the category cannot be selected.
+		$this->assertSame('2', $rByName['Adult']['id'] ?? null, 'the category id is a string for native C firmware');
+		$this->assertIsString($rByName['Adult']['number'] ?? null);
 	}
 
 	/**

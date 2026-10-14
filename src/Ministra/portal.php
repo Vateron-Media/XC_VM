@@ -442,7 +442,8 @@ if (!$rSettings["disable_ministra"]) {
 		$rMagData["get_years"] = ["js" => [["id" => "*", "title" => "*"]]];
 
 		foreach (range(1900, date("Y")) as $rYear) {
-			$rMagData["get_years"]["js"][] = ["id" => $rYear, "title" => $rYear];
+			// String id/title: native C firmware reads list fields as strings (issue #393).
+			$rMagData["get_years"]["js"][] = ["id" => (string) $rYear, "title" => (string) $rYear];
 		}
 		$rMagData["get_abc"] = [
 			"js" => [
