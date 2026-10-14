@@ -159,7 +159,8 @@ final class ClusterCredentialsActionTest extends TestCase {
 	}
 
 	public function testThePageHasTheButtonsTheConfirmationAndTheStrings(): void {
-		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/cluster_nodes.php');
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/partials/cluster_section.php')
+			. (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/partials/cluster_section_script.php');
 		$this->assertStringContainsString('value="strip_credentials"', $rView);
 		$this->assertStringContainsString('js-cluster-strip', $rView);
 		$this->assertStringContainsString("cluster_strip_credentials_confirm", $rView, 'the page asks first');
