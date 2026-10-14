@@ -58,17 +58,22 @@ class SeriesCronJob implements CommandInterface {
 
 		if ($db->num_rows() > 0) {
 			foreach ($db->get_rows() as $rRow) {
-				$rPlaylist = SeriesService::generatePlaylist(intval($rRow['series_no']));
-				if ($rPlaylist['success']) {
+				// generatePlaylist() returns a flat list of `vod:<id>` sources (or []),
+				// not a ['success' => .., 'sources' => ..] shape.
+				$rSources = SeriesService::generatePlaylist(intval($rRow['series_no']));
+				if ($rSources) {
 					$rSourceArray = json_decode($rRow['stream_source'], true);
+					if (!is_array($rSourceArray)) {
+						$rSourceArray = [];
+					}
 					$UpdateSeries = false;
-					foreach ($rPlaylist['sources'] as $rSource) {
+					foreach ($rSources as $rSource) {
 						if (!in_array($rSource, $rSourceArray)) {
 							$UpdateSeries = true;
 						}
 					}
 					if ($UpdateSeries) {
-						$db->query('UPDATE `streams` SET `stream_source` = ? WHERE `id` = ?;', json_encode($rPlaylist['sources'], JSON_UNESCAPED_UNICODE), $rRow['id']);
+						$db->query('UPDATE `streams` SET `stream_source` = ? WHERE `id` = ?;', json_encode($rSources, JSON_UNESCAPED_UNICODE), $rRow['id']);
 						// The created channel's sources: the nodes that run it build from them.
 						EventDispatcher::dispatch(new StreamsChangedEvent([intval($rRow['id'])]));
 						echo 'Updated: ' . $rRow['stream_display_name'] . "\n";
