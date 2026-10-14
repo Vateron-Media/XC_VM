@@ -26,7 +26,12 @@ namespace {
  $_SERVER['HTTP_X_REQUESTED_WITH']='XMLHttpRequest';
  $db=new class {
   public function query($sql,...$args) { $this->sql=$sql; }
-  public function get_rows() { return str_contains($this->sql,'SELECT `id` FROM `streams`') ? [['id'=>10]] : [['server_id'=>1,'stream_id'=>10],['server_id'=>2,'stream_id'=>10]]; }
+  public function get_rows() {
+   if (str_contains($this->sql,'SELECT `id` FROM `streams`')) { return [['id'=>10],['id'=>11]]; }
+   $rows=[['server_id'=>1,'stream_id'=>10],['server_id'=>2,'stream_id'=>10]];
+   if (str_contains($this->sql,'`on_demand` = 0') && !str_contains($this->sql,'t.live = 1')) { $rows[]=['server_id'=>2,'stream_id'=>20]; }
+   return $rows;
+  }
   public function num_rows() { return 2; }
  };
  require %BASE%; require %CONTROLLER%;
@@ -54,7 +59,11 @@ CHILD;
 			$this->assertSame(['result' => false], $rAnswer);
 			return;
 		}
-		$this->assertSame([['server_id' => 2, 'code' => 'REMOTE_CONTROL_FAILED']], $rAnswer['errors']);
+		if (($rRequest['ids'] ?? '') === '[10,11]') {
+			$this->assertContains(['stream_id' => 11, 'code' => 'STREAM_NOT_ASSIGNED_TO_TARGET'], $rAnswer['errors']);
+		} else {
+			$this->assertSame([['server_id' => 2, 'code' => 'REMOTE_CONTROL_FAILED']], $rAnswer['errors']);
+		}
 		$this->assertSame($rPartial ? [['server_id' => 1, 'stream_id' => 10]] : [], $rAnswer['accepted']);
 	}
 
@@ -64,6 +73,7 @@ CHILD;
 			'single VOD' => ['StreamAjaxController', 'movie', ['stream_id' => 10, 'server_id' => 2, 'sub' => 'start'], true, false],
 			'server streams' => ['ServerAjaxController', 'server', ['server_id' => 2, 'sub' => 'start'], true, false],
 			'bulk streams' => ['MultiAjaxController', 'multi', ['type' => 'stream', 'ids' => '[10]', 'sub' => 'start'], true, true],
+			'bulk includes unassigned' => ['MultiAjaxController', 'multi', ['type' => 'stream', 'ids' => '[10,11]', 'sub' => 'start'], true, true],
 			'bulk servers' => ['MultiAjaxController', 'multi', ['type' => 'server', 'ids' => '[1,2]', 'sub' => 'start'], true, true],
 			'permission gate' => ['StreamAjaxController', 'stream', ['stream_id' => 10, 'server_id' => 2, 'sub' => 'start'], false, false],
 		];

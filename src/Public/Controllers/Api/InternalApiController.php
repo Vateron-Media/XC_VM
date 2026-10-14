@@ -13,6 +13,7 @@ use XcVm\Core\Util\StreamUtils;
 use XcVm\Core\Util\SystemInfo;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Stream\StreamControlDispatcher;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Streaming\Codec\FFprobeRunner;
 use XcVm\Streaming\Fanout\FanoutClient;
@@ -38,6 +39,27 @@ class InternalApiController {
 	 */
 	public function runCommand(array $rRequest): void {
 		$this->dispatch((string) ($rRequest['action'] ?? ''), $rRequest, SettingsManager::getAll());
+	}
+
+	/** Remote acknowledgements describe each actual control, not unconditional success. */
+	private function controls(string $rAction, array $rRequest): never {
+		$rAccepted = $rErrors = [];
+		$rFunction = (string) ($rRequest['function'] ?? '');
+		foreach ((array) ($rRequest['stream_ids'] ?? []) as $rID) {
+			$rID = (int) $rID;
+			try {
+				$rOK = StreamControlDispatcher::local($rAction, $rFunction, $rID, !empty($rRequest['force']));
+			} catch (\Throwable) {
+				$rOK = false;
+			}
+			if ($rOK) {
+				$rAccepted[] = ['server_id' => (int) SERVER_ID, 'stream_id' => $rID];
+			} else {
+				$rErrors[] = ['server_id' => (int) SERVER_ID, 'stream_id' => $rID, 'code' => 'LOCAL_CONTROL_REFUSED'];
+			}
+		}
+		echo json_encode(['result' => $rAccepted !== [] && $rErrors === [], 'accepted' => $rAccepted, 'errors' => $rErrors]);
+		exit();
 	}
 
 	private function dispatch($rAction, $rRequest, $rSettings) {
@@ -92,38 +114,8 @@ class InternalApiController {
 				exit();
 
 			case 'vod':
-				if (!empty($rRequest['stream_ids']) && !empty($rRequest['function'])) {
-					$rStreamIDs = array_map('intval', $rRequest['stream_ids']);
-					$rFunction = $rRequest['function'];
+				$this->controls('vod', $rRequest);
 
-					switch ($rFunction) {
-						case 'start':
-							foreach ($rStreamIDs as $rStreamID) {
-								StreamProcess::stopMovie($rStreamID, true);
-
-								if (isset($rRequest['force']) && $rRequest['force']) {
-									StreamProcess::startMovie($rStreamID);
-								} else {
-									StreamProcess::queueMovie($rStreamID);
-								}
-							}
-
-							echo json_encode(['result' => true]);
-
-							exit();
-
-						case 'stop':
-							foreach ($rStreamIDs as $rStreamID) {
-								StreamProcess::stopMovie($rStreamID);
-							}
-
-							echo json_encode(['result' => true]);
-
-							exit();
-					}
-				}
-
-				// no break
 			case 'rtmp_stats':
 				echo json_encode(ServerRepository::getLocalRTMPStats());
 
@@ -149,40 +141,8 @@ class InternalApiController {
 				exit();
 
 			case 'stream':
-				if (!empty($rRequest['stream_ids']) && !empty($rRequest['function'])) {
-					$rStreamIDs = array_map('intval', $rRequest['stream_ids']);
-					$rFunction = $rRequest['function'];
+				$this->controls('stream', $rRequest);
 
-					switch ($rFunction) {
-						case 'start':
-							foreach ($rStreamIDs as $rStreamID) {
-								// Handed to the fanout supervisor synchronously, or a PHP
-								// monitor spawned — those are staggered so a bulk start does
-								// not fork hundreds of PHP processes in the same instant.
-								if (StreamProcess::startMonitor($rStreamID, 1) === StreamProcess::MONITOR_PHP) {
-									usleep(50000);
-								}
-							}
-
-							echo json_encode(['result' => true]);
-
-							exit();
-
-						case 'stop':
-							foreach ($rStreamIDs as $rStreamID) {
-								StreamProcess::stopStream($rStreamID, true);
-							}
-
-							echo json_encode(['result' => true]);
-
-							exit();
-
-						default:
-							break;
-					}
-				}
-
-				// no break
 			case 'stats':
 				echo json_encode(SystemInfo::getStats());
 

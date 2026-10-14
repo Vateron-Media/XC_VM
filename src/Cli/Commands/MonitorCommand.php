@@ -11,6 +11,7 @@ use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\StreamControlGuard;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Domain\Stream\StreamSource;
@@ -56,7 +57,7 @@ class MonitorCommand implements CommandInterface {
 	 *
 	 * Must run as the `xc_vm` user.
 	 *
-	 * @param array $rArgs [0 => stream id, 1 => optional truthy "restart" flag].
+	 * @param array $rArgs [0 => stream id, 1 => optional restart flag, 2 => optional control generation].
 	 * @return int Exit code: 0 = clean stop, 1 = wrong user.
 	 */
 	public function execute(array $rArgs): int {
@@ -71,6 +72,17 @@ class MonitorCommand implements CommandInterface {
 
 		$rStreamID = intval($rArgs[0]);
 		$rRestart = !empty($rArgs[1]);
+		$rControlLock = null;
+		if (isset($rArgs[2])) {
+			$rControlLock = StreamControlGuard::acquire($rStreamID);
+			if ($rControlLock === false) {
+				return 1;
+			}
+			if (StreamControlGuard::generation($rControlLock) !== (string) $rArgs[2]) {
+				StreamControlGuard::release($rControlLock);
+				return 0;
+			}
+		}
 
 		// A stream the fanout daemon supervises already has a monitor. This one
 		// can only have been started by a path that has not learned that (or in
@@ -78,6 +90,9 @@ class MonitorCommand implements CommandInterface {
 		// producer. Ask the daemon rather than assume: unreachable is not "no".
 		if (FanoutClient::isSupervised($rStreamID) === true) {
 			echo "Stream is supervised by the fanout daemon; monitor standing down.\n";
+			if (is_resource($rControlLock)) {
+				StreamControlGuard::release($rControlLock);
+			}
 			return 0;
 		}
 
@@ -90,6 +105,9 @@ class MonitorCommand implements CommandInterface {
 		// The stream and this node's row: MAIN's database, or its replica and its own store (StreamSource::local).
 		$rStreamInfo = StreamSource::nodeRow($rStreamID, $db);
 		if ($rStreamInfo === null) {
+			if (is_resource($rControlLock)) {
+				StreamControlGuard::release($rControlLock);
+			}
 			StreamProcess::stopStream($rStreamID);
 			return 0;
 		}
@@ -150,6 +168,16 @@ class MonitorCommand implements CommandInterface {
 			}
 		} else {
 			file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
+		}
+
+		if (is_resource($rControlLock)) {
+			// stopStream prefers the PID file over the database column. Publish it
+			// after restart cleanup, while stop still waits on the same lock.
+			$rRegistered = file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid()) !== false;
+			StreamControlGuard::release($rControlLock);
+			if (!$rRegistered) {
+				return 1;
+			}
 		}
 
 		if (SettingsManager::get('kill_rogue_ffmpeg')) {

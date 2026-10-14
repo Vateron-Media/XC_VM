@@ -157,7 +157,7 @@ class ServerAjaxController extends BaseAjaxController {
 			$rOnDemand = ($rSub == 'restart') ? ' AND `monitor_pid` > 0 AND `pid` > 0 AND `stream_status` = 0' : '';
 			$rSignalSub = ($rSub == 'stop') ? 'stop' : 'start';
 			$rStreamIDs = [];
-			$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0' . $rOnDemand . ';', RequestManager::get('server_id'));
+			$db->query('SELECT `stream_id` FROM `streams_servers` WHERE `server_id` = ? AND `on_demand` = 0 AND `stream_id` IN (SELECT s.id FROM streams s JOIN streams_types t ON t.type_id = s.type WHERE t.live = 1)' . $rOnDemand . ';', RequestManager::get('server_id'));
 
 			if (0 < $db->num_rows()) {
 				foreach ($db->get_rows() as $rRow) {

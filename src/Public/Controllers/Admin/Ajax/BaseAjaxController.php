@@ -35,9 +35,10 @@ abstract class BaseAjaxController {
 	}
 
 	/** Combine bulk acknowledgements, retaining accepted work when another target fails. */
-	protected function controlResponses(array $rRequests): never {
-		$rResult = true;
-		$rAccepted = $rErrors = [];
+	protected function controlResponses(array $rRequests, array $rInitialErrors = []): never {
+		$rResult = $rRequests !== [] && $rInitialErrors === [];
+		$rAccepted = [];
+		$rErrors = $rInitialErrors;
 		foreach ($rRequests as $rRequest) {
 			$rAnswer = json_decode((string) ApiClient::request($rRequest), true);
 			if (!is_array($rAnswer)) {

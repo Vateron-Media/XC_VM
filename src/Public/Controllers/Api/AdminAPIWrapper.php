@@ -1412,7 +1412,7 @@ class AdminAPIWrapper {
 
 	public static function startStream($rID, $rServerID = -1) {
 		if ($rServerID == -1) {
-			$rData = json_decode(ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => [$rID], 'servers' => array_keys(ServerRepository::getAll())]), true);
+			$rData = json_decode(ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => [$rID]]), true);
 		} else {
 			$rData = json_decode(NodeRpc::request($rServerID, ['action' => 'stream', 'stream_ids' => [$rID], 'function' => 'start']), true);
 		}
@@ -1424,7 +1424,7 @@ class AdminAPIWrapper {
 
 	public static function stopStream($rID, $rServerID = -1) {
 		if ($rServerID == -1) {
-			$rData = json_decode(ApiClient::request(['action' => 'stream', 'sub' => 'stop', 'stream_ids' => [$rID], 'servers' => array_keys(ServerRepository::getAll())]), true);
+			$rData = json_decode(ApiClient::request(['action' => 'stream', 'sub' => 'stop', 'stream_ids' => [$rID]]), true);
 		} else {
 			$rData = json_decode(NodeRpc::request($rServerID, ['action' => 'stream', 'stream_ids' => [$rID], 'function' => 'stop']), true);
 		}
@@ -1568,7 +1568,7 @@ class AdminAPIWrapper {
 
 	public static function startMovie($rID, $rServerID = -1) {
 		if ($rServerID == -1) {
-			$rData = json_decode(ApiClient::request(['action' => 'vod', 'sub' => 'start', 'stream_ids' => [$rID], 'servers' => array_keys(ServerRepository::getAll())]), true);
+			$rData = json_decode(ApiClient::request(['action' => 'vod', 'sub' => 'start', 'stream_ids' => [$rID]]), true);
 		} else {
 			$rData = json_decode(NodeRpc::request($rServerID, ['action' => 'vod', 'stream_ids' => [$rID], 'function' => 'start']), true);
 		}
@@ -1580,7 +1580,7 @@ class AdminAPIWrapper {
 
 	public static function stopMovie($rID, $rServerID = -1) {
 		if ($rServerID == -1) {
-			$rData = json_decode(ApiClient::request(['action' => 'vod', 'sub' => 'stop', 'stream_ids' => [$rID], 'servers' => array_keys(ServerRepository::getAll())]), true);
+			$rData = json_decode(ApiClient::request(['action' => 'vod', 'sub' => 'stop', 'stream_ids' => [$rID]]), true);
 		} else {
 			$rData = json_decode(NodeRpc::request($rServerID, ['action' => 'vod', 'stream_ids' => [$rID], 'function' => 'stop']), true);
 		}

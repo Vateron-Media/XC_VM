@@ -27,7 +27,7 @@ final class StreamControlDispatcher {
 			return self::failure('INVALID_STREAM_IDS');
 		}
 		$servers = ServerRepository::getAll();
-		$targets = !array_key_exists('servers', $request) || $request['servers'] === [] ? array_map('intval', array_keys($servers))
+		$targets = !array_key_exists('servers', $request) ? array_map('intval', array_keys($servers))
 			: self::positiveIds($request['servers']);
 		if ($targets === null || $targets === []) {
 			return self::failure('INVALID_SERVER_IDS');
@@ -63,13 +63,18 @@ final class StreamControlDispatcher {
 				$assigned[$streamId] = true;
 			}
 		}
-		// Never start unrelated servers just because a caller requested all nodes.
+		$errors = [];
 		foreach ($ids as $streamId) {
 			if (!isset($assigned[$streamId])) {
-				return self::failure('STREAM_NOT_ASSIGNED_TO_TARGET');
+				$errors[] = ['stream_id' => $streamId, 'code' => 'STREAM_NOT_ASSIGNED_TO_TARGET'];
+			} elseif (array_key_exists('servers', $request)) {
+				foreach ($targets as $serverId) {
+					if (!isset($byServer[$serverId][$streamId])) {
+						$errors[] = ['server_id' => $serverId, 'stream_id' => $streamId, 'code' => 'STREAM_NOT_ASSIGNED_TO_TARGET'];
+					}
+				}
 			}
 		}
-		$errors = [];
 		$accepted = [];
 		foreach ($byServer as $serverId => $streamIds) {
 			$streamIds = array_values($streamIds);
@@ -90,17 +95,17 @@ final class StreamControlDispatcher {
 						$errors[] = ['server_id' => $serverId, 'code' => 'SERVER_OFFLINE'];
 						continue;
 					}
-					$payload = ['action' => $action, 'function' => $function, 'stream_ids' => $streamIds];
-					if ($action === 'vod' && $function === 'start') {
-						$payload['force'] = !empty($request['force']);
-					}
-					// Keep the existing signed cluster transport and its licence checks.
-					$reply = NodeRpc::request($serverId, $payload, max(1, $timeout));
-					$answer = is_string($reply) ? json_decode($reply, true) : null;
-					if (!is_array($answer) || ($answer['result'] ?? false) !== true) {
-						$errors[] = ['server_id' => $serverId, 'code' => 'REMOTE_CONTROL_FAILED'];
-					} else {
-						foreach ($streamIds as $streamId) {
+					// One RPC per stream: a typed batch acknowledges only its last command.
+					foreach ($streamIds as $streamId) {
+						$payload = ['action' => $action, 'function' => $function, 'stream_ids' => [$streamId]];
+						if ($action === 'vod' && $function === 'start') {
+							$payload['force'] = !empty($request['force']);
+						}
+						$reply = NodeRpc::request($serverId, $payload, max(1, $timeout));
+						$answer = is_string($reply) ? json_decode($reply, true) : null;
+						if (!is_array($answer) || ($answer['result'] ?? false) !== true) {
+							$errors[] = ['server_id' => $serverId, 'stream_id' => $streamId, 'code' => 'REMOTE_CONTROL_FAILED'];
+						} else {
 							$accepted[] = ['server_id' => $serverId, 'stream_id' => $streamId];
 						}
 					}
@@ -114,34 +119,39 @@ final class StreamControlDispatcher {
 		return ['result' => $errors === [] && $accepted !== [], 'accepted' => $accepted, 'errors' => $errors];
 	}
 
-	private static function local(string $action, string $function, int $streamId, bool $force): bool {
-		if ($action === 'stream') {
-			if ($function === 'stop') {
-				StreamProcess::stopStream($streamId, true);
-				return true;
-			}
-			if (StreamSource::streamRow($streamId, true) === null) {
-				return false;
-			}
-			return in_array(
-				StreamProcess::startMonitor($streamId, 1),
-				[StreamProcess::MONITOR_PHP, StreamProcess::MONITOR_FANOUT],
-				true
-			);
-		}
-		if ($function === 'stop') {
-			StreamProcess::stopMovie($streamId);
-			return true;
-		}
-		if (StreamSource::streamRow($streamId, false) === null) {
+	/** One node-local control, also used by signed RPC and typed cluster commands. */
+	public static function local(string $action, string $function, int $streamId, bool $force = false): bool {
+		if ($streamId <= 0 || !in_array($action, ['stream', 'vod'], true) || !in_array($function, ['start', 'stop'], true)) {
 			return false;
 		}
-		StreamProcess::stopMovie($streamId, true);
-		if ($force) {
-			$pid = StreamProcess::startMovie($streamId);
-			return is_int($pid) && $pid > 0;
+		$lock = StreamControlGuard::acquire($streamId, $action === 'vod');
+		if ($lock === false) {
+			return false;
 		}
-		return StreamProcess::queueMovie($streamId) === true;
+		try {
+			if ($action === 'stream') {
+				$generation = StreamControlGuard::advance($lock);
+				if ($function === 'stop') {
+					StreamProcess::stopStream($streamId, true);
+					return true;
+				}
+				if (StreamSource::streamRow($streamId, true) === null) {
+					return false;
+				}
+				return in_array(StreamProcess::startMonitor($streamId, 1, $generation), [StreamProcess::MONITOR_PHP, StreamProcess::MONITOR_FANOUT], true);
+			}
+			if ($function === 'stop') {
+				StreamProcess::stopMovie($streamId);
+				return true;
+			}
+			if (StreamSource::streamRow($streamId, false) === null) {
+				return false;
+			}
+			// Queue acceptance must precede any destructive replacement work.
+			return $force ? StreamControlGuard::replaceMovie($streamId) : StreamProcess::queueMovie($streamId) === true;
+		} finally {
+			StreamControlGuard::release($lock);
+		}
 	}
 
 	private static function positiveIds($value): ?array {

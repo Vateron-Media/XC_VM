@@ -161,10 +161,11 @@ class StreamProcess {
 	 *
 	 * @param int $rStreamID Stream id.
 	 * @param int $rRestart  Truthy to restart what is running rather than take it as it is.
+	 * @param string|null $rGeneration A guarded control start, invalidated by a later stop.
 	 * @return string MONITOR_FANOUT or MONITOR_PHP — which one now watches it —
 	 *                or MONITOR_FENCED when nothing may start here.
 	 */
-	public static function startMonitor(int $rStreamID, int $rRestart = 0) {
+	public static function startMonitor(int $rStreamID, int $rRestart = 0, ?string $rGeneration = null) {
 		// A node fenced past its drain releases its producers (plan, section 9,
 		// FENCED; cron:streams) and starts none, whoever asks, until it lifts.
 		if (NodeLease::refusesEverything()) {
@@ -179,7 +180,7 @@ class StreamProcess {
 		// down, and a restart would do nothing. This ends its producer; a running
 		// encoder cannot be handed back to PHP without a restart.
 		FanoutClient::release(intval($rStreamID));
-		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php monitor ' . intval($rStreamID) . ' ' . intval($rRestart) . ' >/dev/null 2>/dev/null &');
+		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php monitor ' . intval($rStreamID) . ' ' . intval($rRestart) . ($rGeneration === null ? '' : ' ' . escapeshellarg($rGeneration)) . ' >/dev/null 2>/dev/null &');
 		return self::MONITOR_PHP;
 	}
 
@@ -2442,9 +2443,10 @@ class StreamProcess {
 	 * Start a movie (VOD) stream.
 	 *
 	 * @param int $rStreamID Stream id.
+	 * @param (callable(): void)|null $rBeforeLaunch Runs after command preparation, before launching.
 	 * @return int|false The encoder's pid, or false when it did not start.
 	 */
-	public static function startMovie(int $rStreamID): int|false {
+	public static function startMovie(int $rStreamID, ?callable $rBeforeLaunch = null): int|false {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
 		$rStream = [];
@@ -2528,6 +2530,9 @@ class StreamProcess {
 					]);
 				}
 
+				if ($rBeforeLaunch !== null) {
+					$rBeforeLaunch();
+				}
 				shell_exec($rFFMPEG);
 				file_put_contents(VOD_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
 				$rPID = intval(file_get_contents(VOD_PATH . $rStreamID . '_.pid'));

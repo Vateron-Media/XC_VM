@@ -181,9 +181,9 @@ class MultiAjaxController extends BaseAjaxController {
 			$rStreamMap = [];
 
 			if ($rSub == 'start') {
-				$db->query('SELECT `server_id`, `stream_id` FROM `streams_servers` WHERE `server_id` IN (' . $this->inList($rRequestIDs) . ') AND `on_demand` = 0;');
+				$db->query('SELECT `server_id`, `stream_id` FROM `streams_servers` WHERE `server_id` IN (' . $this->inList($rRequestIDs) . ') AND `on_demand` = 0 AND `stream_id` IN (SELECT s.id FROM streams s JOIN streams_types t ON t.type_id = s.type WHERE t.live = 1);');
 			} else {
-				$db->query('SELECT `server_id`, `stream_id` FROM `streams_servers` WHERE `server_id` IN (' . $this->inList($rRequestIDs) . ') AND `on_demand` = 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0;');
+				$db->query('SELECT `server_id`, `stream_id` FROM `streams_servers` WHERE `server_id` IN (' . $this->inList($rRequestIDs) . ') AND `on_demand` = 0 AND `stream_id` IN (SELECT s.id FROM streams s JOIN streams_types t ON t.type_id = s.type WHERE t.live = 1) AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0;');
 			}
 
 			if (0 < $db->num_rows()) {
@@ -285,7 +285,7 @@ class MultiAjaxController extends BaseAjaxController {
 			}
 		}
 
-		if (0 < count($rStreamMap) || $rSub == 'delete' && 0 < count($rUnallocated)) {
+		if (in_array($rSub, ['start', 'stop', 'restart'], true) || 0 < count($rStreamMap) || $rSub == 'delete' && 0 < count($rUnallocated)) {
 			if (in_array($rSub, ['start', 'stop', 'restart'])) {
 				if ($rSub == 'restart') {
 					$rSub = 'start';
@@ -296,7 +296,8 @@ class MultiAjaxController extends BaseAjaxController {
 					$rAction = in_array($rType, ['stream', 'radio', 'cchannel']) ? 'stream' : 'vod';
 					$rControls[] = ['action' => $rAction, 'sub' => $rSub, 'stream_ids' => $rStreamIDs, 'servers' => [$rServerID]];
 				}
-				$this->controlResponses($rControls);
+				$rErrors = array_map(static fn($rID): array => ['stream_id' => (int) $rID, 'code' => 'STREAM_NOT_ASSIGNED_TO_TARGET'], $rUnallocated);
+				$this->controlResponses($rControls, $rErrors);
 			} elseif ($rSub == 'delete') {
 				$rDetached = [];
 				foreach ($rStreamMap as $rServerID => $rStreamIDs) {

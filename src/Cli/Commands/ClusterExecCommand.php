@@ -15,7 +15,7 @@ use XcVm\Core\Cluster\RootPin;
 use XcVm\Core\Cluster\StreamRuntime;
 use XcVm\Core\Util\AtomicFile;
 use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\StreamControlDispatcher;
 use XcVm\Domain\Stream\StreamStateWriter;
 use XcVm\Public\Controllers\Api\InternalApiController;
 use XcVm\Streaming\Fanout\FanoutClient;
@@ -176,7 +176,7 @@ class ClusterExecCommand implements CommandInterface {
 		return $rCmd;
 	}
 
-	/** @var (callable(string, int): void)|null */
+	/** @var (callable(string, int): mixed)|null */
 	private static $rStopper = null;
 
 	/** Tests: run stops through this instead of StreamProcess; null restores it. */
@@ -198,30 +198,12 @@ class ClusterExecCommand implements CommandInterface {
 	}
 
 	/** A typed stop or start of one stream, as `node.rpc`'s stream and vod actions ran it. */
-	private static function stopStream(string $rType, int $rStreamID, bool $rForce = false): void {
+	private static function stopStream(string $rType, int $rStreamID, bool $rForce = false): bool {
 		if (self::$rStopper !== null) {
-			(self::$rStopper)($rType, $rStreamID);
-			return;
+			return (self::$rStopper)($rType, $rStreamID) !== false;
 		}
-		switch ($rType) {
-			case 'vod.stop':
-				StreamProcess::stopMovie($rStreamID);
-				break;
-			case 'stream.stop':
-				StreamProcess::stopStream($rStreamID, true);
-				break;
-			case 'stream.start':
-				StreamProcess::startMonitor($rStreamID, 1);
-				break;
-			case 'vod.start':
-				StreamProcess::stopMovie($rStreamID, true);
-				if ($rForce) {
-					StreamProcess::startMovie($rStreamID);
-				} else {
-					StreamProcess::queueMovie($rStreamID);
-				}
-				break;
-		}
+		[$rAction, $rFunction] = explode('.', $rType, 2);
+		return StreamControlDispatcher::local($rAction === 'vod' ? 'vod' : 'stream', $rFunction, $rStreamID, $rForce);
 	}
 
 	/**
@@ -333,7 +315,10 @@ class ClusterExecCommand implements CommandInterface {
 					self::fail("bad stream id");
 					return 2;
 				}
-				self::stopStream($rCmd['type'], $rStreamID, ($rArgs['force'] ?? false) === true);
+				if (!self::stopStream($rCmd['type'], $rStreamID, ($rArgs['force'] ?? false) === true)) {
+					echo json_encode(['result' => false]);
+					return 1;
+				}
 				echo json_encode(['result' => true]);
 				return 0;
 
