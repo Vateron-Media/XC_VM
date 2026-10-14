@@ -17,6 +17,7 @@ use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Module\SourceDriverInterface;
 use XcVm\Core\Module\SourceDriverRegistry;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Util\AtomicFile;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Util\StreamUtils;
@@ -153,6 +154,8 @@ class StreamProcess {
 
 	/** startMonitor(): nothing was started, the node is fenced past its drain (NodeLease). */
 	public const MONITOR_FENCED = 'fenced';
+	/** startMonitor(): the background process could not be launched. */
+	public const MONITOR_FAILED = 'failed';
 
 	/**
 	 * Start watching a live stream: hand it to the fanout daemon's supervisor
@@ -163,7 +166,7 @@ class StreamProcess {
 	 * @param int $rRestart  Truthy to restart what is running rather than take it as it is.
 	 * @param string|null $rGeneration A guarded control start, invalidated by a later stop.
 	 * @return string MONITOR_FANOUT or MONITOR_PHP — which one now watches it —
-	 *                or MONITOR_FENCED when nothing may start here.
+	 *                or MONITOR_FENCED when nothing may start here, MONITOR_FAILED on launch failure.
 	 */
 	public static function startMonitor(int $rStreamID, int $rRestart = 0, ?string $rGeneration = null) {
 		// A node fenced past its drain releases its producers (plan, section 9,
@@ -180,8 +183,11 @@ class StreamProcess {
 		// down, and a restart would do nothing. This ends its producer; a running
 		// encoder cannot be handed back to PHP without a restart.
 		FanoutClient::release(intval($rStreamID));
-		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php monitor ' . intval($rStreamID) . ' ' . intval($rRestart) . ($rGeneration === null ? '' : ' ' . escapeshellarg($rGeneration)) . ' >/dev/null 2>/dev/null &');
-		return self::MONITOR_PHP;
+		$rArgv = [PHP_BIN, MAIN_HOME . 'console.php', 'monitor', (string) $rStreamID, (string) $rRestart];
+		if ($rGeneration !== null) {
+			$rArgv[] = $rGeneration;
+		}
+		return ProcessRunner::start($rArgv) ? self::MONITOR_PHP : self::MONITOR_FAILED;
 	}
 
 	/**
