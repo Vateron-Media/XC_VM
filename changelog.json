@@ -1,24 +1,15 @@
 {
-	"version": "2.6.6",
+	"version": "2.6.7",
 	"changes": [
-		"Security (GHSA-q9p6-374v-3jrj): a custom FFmpeg command or argument was placed on the stream's command line as typed, so shell syntax in it ran as the panel user. Each argument is now split and quoted on its own, and the custom FFmpeg command, custom map and raw transcode attributes can be set only by a full administrator — a restricted admin no longer sees those fields and their value is dropped on save.",
-		"YouTube restreaming is more reliable: a live source is resolved through yt-dlp's mweb client first (its segments keep playing, where android_vr dropped every ~30s with a 403), and a JavaScript runtime (deno) is installed automatically on every server when missing. Documented under Restreaming YouTube.",
-		"Streams: a new Maximum Resolution field on the Advanced tab caps the quality taken from a yt-dlp source (e.g. 720), taking the platform's own smaller variant with no transcoding. Empty keeps the best, as before.",
-		"Streams: a Scan Source button on the Map tab probes the source and lists its tracks, so a custom stream map can be filled by clicking instead of by hand.",
-		"After a panel update the bundled yt-dlp is refreshed right away, instead of waiting for the daily check, so YouTube keeps working straight after an update.",
-		"Translations: a new Translation Manager (Settings > Translations) edits, uploads and downloads language files. Custom translations are kept outside the code (config/lang/), so an update never overwrites them.",
-		"TMDb: regional languages can be chosen for metadata (fr-CA, es-ES, es-MX, es-AR, es-CO, es-CL, zh-CN, zh-TW, en-GB), next to the existing pt-BR.",
-		"VOD import: an episode whose file names its season but no episode number can be matched by its title against TMDb (off by default; a new Watch Folder option). A title match never replaces an episode already imported.",
-		"First-run setup: the initial page now sets the panel language, timezone, server name and the login message, so a new install starts configured.",
-		"Panel: proper error pages for 403, 404, 405 and 429 on panel addresses, instead of a blank or broken response.",
-		"Lines: a line created by an activation code now appears in Manage Lines as soon as its code is redeemed; before, a redeemed code's line (including a trial) could be found only under Active Codes. Unredeemed stock codes stay hidden.",
-		"Manage Lines, MAG and Enigma2 now show the note under the username (admins see the admin and reseller notes, resellers their own); search still matches the full note text.",
-		"Updates: patch builds let fixes ship as X.Y.Z-pN without a full release; a panel and its load balancers take them through the normal updater.",
-		"Security: on the main server the panel's code, runtimes and scripts that root runs are now owned by root, so the panel user cannot replace what root executes. A load balancer's tree is unchanged.",
-		"Hardened the reading of remote sources in archiving, timeshift and VOD import against malformed or hostile input.",
-		"Fixed adaptive (multi-bitrate) playback: a master playlist with no usable variant is answered correctly, an idle on-demand stream keeps its information, and a viewer stays on one connection when switching variants.",
-		"Resellers: Generate Trial is shown to resellers allowed to make trials, and the no-credits alert is hidden for a reseller who can still pay.",
-		"A load balancer whose watch-folder file is auto-upgraded now restarts the import on that server, instead of leaving it half-moved.",
-		"Clearer module message: a panel that has moved explains it, instead of 'registration failed: unknown'."
+		"⚠️ BETA — this is the last beta before the next stable release. Do NOT install or update a live / production server with this build. Use a dedicated test server only.",
+		"Ministra / MAG portal: channel, category and genre field types now follow the Stalker contract exactly. The adult-lock PIN, favourites star and timeshift / record icons no longer show on every channel and category, categories can be selected again on native STB firmware, and removing or reordering a favourite no longer drops the wrong one.",
+		"Load balancers (BREAKING): the legacy /api link — an unenrolled node reaching MAIN's database and Redis with the stream password — has been removed; every node now uses the cluster API (mode 2). A load balancer still below mode 2 must be re-provisioned (ADR 0004).",
+		"Modules: a module is shown by its module.json title; store modules are found and updated from the store catalogue; a broken module no longer takes the panel down, and quarantined module files are fingerprinted with sha256.",
+		"Created channels: VOD and EPG support for created channels, with a dedicated 'Created Channels' EPG source; fixed the on-demand native-remux fallback and created-channel handling on cluster-API (mode 2) nodes.",
+		"cron:series refreshes a created series channel's sources again (the refresh was silently skipped before) and signals the change only after the database write succeeds.",
+		"VOD import: series import locks use an advisory file lock, so a slow import no longer has its lock cleared out from under it by a waiting worker.",
+		"CLI: the status constants the panel's services return are defined in every boot context, so a command-line path that reaches one no longer aborts with an undefined-constant error.",
+		"Import & Review: an m3u row without an EPG id no longer logs a warning on import.",
+		"Panel and load-balancer updates can ship as X.Y.Z-pN patch builds without a full release (consolidates 2.6.6-p1 … p6)."
 	]
 }
