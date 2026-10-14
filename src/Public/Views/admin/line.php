@@ -560,7 +560,11 @@ LayoutRenderer::renderFooter('admin');
                         return;
                     }
                     btn.disabled = false;
-                    xcToast((dt && dt.data && dt.data.bouquet_order_conflict) ? <?= json_encode($language::get('bouquet_order_conflict')); ?> : ((dt && statusText[dt.status]) || errText), 'error');
+                    if (dt && dt.data && dt.data.bouquet_order_conflict) {
+                        xcToast(<?= json_encode($language::get('bouquet_order_conflict')); ?>, 'error');
+                    } else {
+                        xcToast((dt && statusText[dt.status]) || errText, 'error');
+                    }
                 })
                 .catch(function() {
                     btn.disabled = false;
