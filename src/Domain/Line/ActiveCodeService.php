@@ -152,6 +152,15 @@ class ActiveCodeService {
 		$bouquetsJson = '[' . implode(',', array_map('intval', $selectedBouquets)) . ']';
 
 		$dnsBase = trim($data['dns_base'] ?? '') ?: null;
+		if (!$isAdmin && $dnsBase !== null) {
+			// A reseller's codes may use only one of the reseller's own domains;
+			// ignore a value forged in the form (it fed the code's portal host and
+			// the downloadable list unchecked), falling back to the server domain.
+			$rResellerDomains = array_filter(array_map('trim', explode(',', (string) ($user['reseller_dns'] ?? ''))));
+			if (!in_array($dnsBase, $rResellerDomains, true)) {
+				$dnsBase = null;
+			}
+		}
 		// The package's country lock is part of what a reseller sells; an
 		// administrator sets another or lifts it.
 		$forcedCountry = ($isAdmin && array_key_exists('forced_country', $data))
