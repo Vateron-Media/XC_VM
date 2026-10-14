@@ -41,7 +41,7 @@ $rCanEditUser = Authorization::check('adv', 'edit_user');
                     <?php
                     $rLogsUrl = $rRange == 0
                         ? 'line_activity?user_id=' . (int) $rRow['user_id']
-                        : 'line_activity?user_id=' . (int) $rRow['user_id'] . '&range=' . date($rSettings['date_format'], time() - $rRange) . ' - ' . date($rSettings['date_format'], time());
+                        : 'line_activity?user_id=' . (int) $rRow['user_id'] . '&range=' . rawurlencode(date('Y-m-d', time() - $rRange) . ' - ' . date('Y-m-d', time()));
                     ?>
                     <tr>
                         <td class="text-center">

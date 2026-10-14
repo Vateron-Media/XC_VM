@@ -308,7 +308,9 @@ LayoutRenderer::renderFooter('admin');
                     render: function(d, t, row) {
                         if (row.active_connections > 0 && d) {
                             var link = row.stream_id ? '<a href="stream_view?id=' + encodeURIComponent(row.stream_id) + '" class="text-body">' + esc(row.stream_display_name || '') + '</a>' : esc(row.stream_display_name || '');
-                            return link + '<br><small class="text-body-secondary">' + esc(lang.online) + ': ' + esc(fmtDur(Math.floor(Date.now() / 1000) - d)) + '</small>';
+                            var details = row.online_ip ? '<br><small class="text-body-secondary">IP: ' + esc(row.online_ip) + '</small>' : '';
+                            details += row.online_isp ? '<br><small class="text-body-secondary">ISP: ' + esc(row.online_isp) + '</small>' : '';
+                            return link + '<br><small class="text-body-secondary">' + esc(lang.online) + ': ' + esc(fmtDur(Math.floor(Date.now() / 1000) - (row.online_since || d))) + '</small>' + details;
                         }
                         return d ? esc(new Date(d * 1000).toLocaleString()) : lang.never;
                     }
