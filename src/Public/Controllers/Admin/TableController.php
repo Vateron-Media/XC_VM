@@ -3571,7 +3571,11 @@ class TableController extends BaseAdminController {
 		if (!Authorization::check("adv", "episodes") && !Authorization::check("adv", "mass_sedits")) {
 			exit;
 		}
-		$rOrder = ["`streams`.`id`", false, "`streams`.`stream_display_name`", "`server_name`", "`clients`", "`streams_servers`.`stream_started`", false, false, "`streams_servers`.`bitrate`"];
+		// The episodes table has the same 12-column layout as movies (the Bootstrap
+		// Responsive control + bulk-select lead the row), so its order map must too,
+		// or DataTables column 2 (id) sorts streams.stream_display_name and the
+		// default order [[2,'desc']] lands on the wrong column.
+		$rOrder = [false, false, "`streams`.`id`", false, "`streams`.`stream_display_name`", "`server_name`", "`clients`", "`streams_servers`.`stream_started`", false, false, false, "`streams_servers`.`bitrate`"];
 		if (RequestManager::has("order") && (string) (RequestManager::get("order")[0]["column"] ?? '') !== '') {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
 		} else {
