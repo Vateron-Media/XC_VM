@@ -659,9 +659,18 @@ class ConnectionTracker {
 		if ($rRedisKeys === []) {
 			return $rConnectionMap;
 		}
-		foreach ($rRedis->mGet(array_unique($rRedisKeys)) as $rRow) {
-			$rRow = igbinary_unserialize($rRow);
-			$rConnectionMap[$rRow['user_id']] = $rRow;
+		$rRows = $rRedis->mGet(array_unique($rRedisKeys));
+		if (!is_array($rRows)) {
+			return $rConnectionMap;
+		}
+		foreach ($rRows as $rRow) {
+			// A vanished key reads as false and a corrupt payload decodes to a
+			// non-array; skip both rather than offset-on-bool, as every sibling
+			// reader (records(), getLineConnectionRows) already does.
+			$rRow = is_string($rRow) ? igbinary_unserialize($rRow) : false;
+			if (is_array($rRow) && isset($rRow['user_id'])) {
+				$rConnectionMap[$rRow['user_id']] = $rRow;
+			}
 		}
 		return $rConnectionMap;
 	}
@@ -740,8 +749,13 @@ class ConnectionTracker {
 			}
 		}
 		if (!$rCount && $rRedisKeys !== []) {
-			foreach ($rRedis->mGet(array_unique($rRedisKeys)) as $rRow) {
-				$rRow = igbinary_unserialize($rRow);
+			$rRows = $rRedis->mGet(array_unique($rRedisKeys));
+			foreach (is_array($rRows) ? $rRows : [] as $rRow) {
+				// Skip vanished (false) keys and corrupt payloads, as records() does.
+				$rRow = is_string($rRow) ? igbinary_unserialize($rRow) : false;
+				if (!is_array($rRow) || !isset($rRow['stream_id'])) {
+					continue;
+				}
 				if ($rGroup) {
 					$rConnectionMap[$rRow['stream_id']][] = $rRow;
 				} else {
@@ -855,10 +869,16 @@ class ConnectionTracker {
 		}
 
 		if (0 < count($rKeys)) {
-			foreach ($rRedis->mGet(array_unique($rKeys)) as $rRow) {
-				$rRow = igbinary_unserialize($rRow);
+			$rRows = $rRedis->mGet(array_unique($rKeys));
+			foreach (is_array($rRows) ? $rRows : [] as $rRow) {
+				// A record gone since the zRange read is false; skip it rather than
+				// offset-on-bool (the identity() call below already allowed for it).
+				$rRow = is_string($rRow) ? igbinary_unserialize($rRow) : false;
+				if (!is_array($rRow)) {
+					continue;
+				}
 				if ((!$rServerID || $rServerID == $rRow['server_id']) && (!$rStreamID || $rStreamID == $rRow['stream_id']) && (!$rUserID || $rUserID == $rRow['user_id']) && (!$rHLSOnly || $rRow['container'] != 'hls')) {
-					$rUUID = StoredConnections::identity(is_array($rRow) ? $rRow : []); // a record gone since the zRange reads as false
+					$rUUID = StoredConnections::identity($rRow);
 					if ($rCountOnly) {
 						$rReturn[0]++;
 						$rUniqueUsers[] = $rUUID;

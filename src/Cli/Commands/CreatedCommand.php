@@ -232,9 +232,9 @@ class CreatedCommand implements CommandInterface {
 			}
 		}
 
-		$rOutputList = base64_encode($rOutputList);
-
-		shell_exec('echo ' . $rOutputList . ' | base64 --decode > "' . CREATED_PATH . intval($rStreamID) . '_.list"');
+		// Write the list directly: a 1000+ episode list exceeds the ~128KB argv
+		// limit when piped through the shell (E2BIG), so the channel never aired.
+		file_put_contents(CREATED_PATH . intval($rStreamID) . '_.list', $rOutputList);
 
 		StreamProcess::updateStream($rStreamID);
 
