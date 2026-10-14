@@ -300,17 +300,23 @@ class ArchiveCommand implements CommandInterface {
 	 * @param int $rDuration Maximum retention duration in days.
 	 */
 	private function deleteSegments(int $rStreamID, int $rDuration): void {
-		$rSegmentCount = intval(count(scandir(ARCHIVE_PATH . $rStreamID . '/')) - 2);
-		if ($rDuration * 24 * 60 < $rSegmentCount) {
-			$rDelta = $rSegmentCount - $rDuration * 24 * 60;
-			$this->logStatus('Segment limit exceeded, removing ' . $rDelta . ' old file(s).');
-			$rFiles = array_values(array_filter(explode("\n", shell_exec('ls -tr ' . ARCHIVE_PATH . intval($rStreamID) . " | sed -e 's/\\s\\+/\\n/g'"))));
-			for ($i = 0; $i < $rDelta; $i++) {
-				if (!empty($rFiles[$i])) {
-					unlink(ARCHIVE_PATH . $rStreamID . '/' . $rFiles[$i]);
-					$this->logStatus('Deleted old segment: ' . $rFiles[$i]);
-				}
-			}
+		$rDir = ARCHIVE_PATH . $rStreamID . '/';
+		// Count only the segment files, not their companion .offset index files,
+		// or retention keeps half the configured minutes (each minute = segment + .offset).
+		$rSegments = array_values(array_filter(scandir($rDir) ?: [], static function (string $rName) use ($rDir): bool {
+			return $rName !== '.' && $rName !== '..' && !str_ends_with($rName, '.offset') && is_file($rDir . $rName);
+		}));
+		$rLimit = $rDuration * 24 * 60;
+		if ($rLimit >= count($rSegments)) {
+			return;
+		}
+		usort($rSegments, static fn(string $rA, string $rB): int => filemtime($rDir . $rA) <=> filemtime($rDir . $rB));
+		$rDelta = count($rSegments) - $rLimit;
+		$this->logStatus('Segment limit exceeded, removing ' . $rDelta . ' old file(s).');
+		for ($i = 0; $i < $rDelta; $i++) {
+			@unlink($rDir . $rSegments[$i]);
+			@unlink($rDir . $rSegments[$i] . '.offset');
+			$this->logStatus('Deleted old segment: ' . $rSegments[$i]);
 		}
 	}
 

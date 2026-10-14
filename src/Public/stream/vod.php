@@ -227,6 +227,7 @@ if ($rChannelInfo) {
 		}
 
 		if (!file_exists($rRequest)) {
+			generateError('VOD_DOESNT_EXIST');
 		} else {
 			$rFP = @fopen($rRequest, 'rb');
 			$rSize = filesize($rRequest);
