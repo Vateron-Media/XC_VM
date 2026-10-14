@@ -2,17 +2,18 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Server\ServerRepository;
 
 /**
- * ServerListController — список серверов (admin/servers.php).
+ * ServerListController — the server list (admin/servers.php), now the single
+ * place that also shows and drives the cluster: each enrolled load balancer's
+ * node detail hangs off its row, and the cluster-wide cards (pending enrolments,
+ * the MAIN data plane, metrics and audit) sit below the table. The cluster data
+ * comes from ClusterNodesController::viewData(); its action POSTs still go to
+ * cluster_nodes, which performs them and redirects back here.
  *
- * GET /servers
- * Client-side DataTable — PHP рендерит <tbody>.
- * Данные: ServerRepository::getAll(true).
+ * GET /servers · permission: servers
  *
  * @renders Views/admin/servers.php
  *
@@ -29,36 +30,18 @@ class ServerListController extends BaseAdminController {
 		$this->setTitle('Servers');
 
 		$rServers = ServerRepository::getAll(true);
-		// Which of these servers is a cluster node, and how far it has moved: the
-		// Cluster Nodes page has it all, and an operator reading this list had to
-		// correlate by server id to know whether a node still holds MAIN's
-		// credentials. One badge per node, from the same rows that page shows.
-		// The row menu's cluster actions (re-enrol, enrolment code, mode, flows)
-		// post to the Cluster Nodes page, which performs and reports them.
-		$this->render('servers', ['rServers' => $rServers, 'rClusterNodes' => self::clusterNodes($rServers), 'rClusterEnabled' => !empty(SettingsManager::get('cluster_api_enabled'))]);
-	}
+		$rCluster = ClusterNodesController::viewData($rServers, SettingsManager::getAll());
 
-	/**
-	 * `server id => {state, health, mode}` for the enrolled nodes, or an empty
-	 * list when the API is off (or its tables are not there yet: the list is a
-	 * page an operator opens before `cluster:init`).
-	 *
-	 * @param array<int, array<string, mixed>> $rServers
-	 * @return array<int, array<string, mixed>>
-	 */
-	private static function clusterNodes(array $rServers): array {
-		if (empty(SettingsManager::get('cluster_api_enabled'))) {
-			return [];
+		// Nodes keyed by server id, for each row's badge and its expandable cluster panel.
+		$rNodesByServer = [];
+		foreach ($rCluster['clusterNodes'] as $rNode) {
+			$rNodesByServer[(int) ($rNode['server_id'] ?? 0)] = $rNode;
 		}
-		try {
-			$rOfflineAfter = ClusterSettings::int('cluster_offline_after_sec', SettingsManager::get('cluster_offline_after_sec'));
-			$rOut = [];
-			foreach (ClusterAdmin::nodes($rServers, $rOfflineAfter) as $rNode) {
-				$rOut[(int) $rNode['server_id']] = $rNode;
-			}
-			return $rOut;
-		} catch (\Throwable) {
-			return [];
-		}
+
+		$this->render('servers', [
+			'rServers' => $rServers,
+			'rClusterNodes' => $rNodesByServer,
+			'rClusterEnabled' => $rCluster['clusterEnabled'],
+		] + $rCluster);
 	}
 }

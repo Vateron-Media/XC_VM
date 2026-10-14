@@ -13,7 +13,6 @@
 
 use XcVm\Core\Cluster\ClusterHealth;
 use XcVm\Core\Gateway\GatewayShadow;
-use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterCutover;
 use XcVm\Domain\Cluster\ClusterOverview;
@@ -69,7 +68,7 @@ $rCutAny = false;
         <ul class="list-group list-group-flush">
             <?php foreach ($clusterPending as $rReq): ?>
                 <li class="list-group-item">
-                    <form method="POST" class="row g-2 align-items-center">
+                    <form method="POST" action="cluster_nodes" class="row g-2 align-items-center">
                         <input type="hidden" name="server_id" value="<?= (int) $rReq['server_id']; ?>">
                         <div class="col-md-4">
                             <span class="fw-medium"><?= htmlspecialchars($rReq['server_name'], ENT_QUOTES); ?></span>
@@ -100,7 +99,7 @@ $rCutAny = false;
                 <div class="dropdown">
                     <button type="button" class="btn btn-sm btn-label-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-tool me-1"></i>Bulk</button>
                     <div class="dropdown-menu dropdown-menu-end">
-                        <form method="POST">
+                        <form method="POST" action="cluster_nodes">
                             <button type="submit" name="cluster_action" value="rotate_all" class="dropdown-item" title="<?= htmlspecialchars($language::get('cluster_rotate_all_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-refresh me-2"></i><?= $language::get('cluster_rotate_all'); ?></button>
                         </form>
                     </div>
@@ -114,7 +113,7 @@ $rCutAny = false;
     <div class="collapse" id="cluster-enrol">
         <div class="card-body border-bottom pt-0">
             <p class="small text-body-secondary mb-2"><?= $language::get('cluster_code_help'); ?></p>
-            <form method="POST" class="row g-2">
+            <form method="POST" action="cluster_nodes" class="row g-2">
                 <div class="col-md-4">
                     <select name="server_id" class="form-select form-select-sm" required aria-label="<?= htmlspecialchars($language::get('server_name'), ENT_QUOTES); ?>">
                         <?php foreach ($clusterLbs as $rID => $rName): ?>
@@ -199,7 +198,7 @@ $rCutAny = false;
                             <?php if ($rLive): ?>
                                 <?php if ((int) $rNode['mode'] < 2): ?>
                                     <?php $rToTwo = (int) $rNode['mode'] === 1; // the move that ends the node's use of MAIN's database: asked first ?>
-                                    <form method="POST" class="d-inline<?= $rToTwo ? ' js-cluster-confirm' : ''; ?>"<?php if ($rToTwo): ?> data-confirm="<?= htmlspecialchars($language::get('cluster_mode_two_warning'), ENT_QUOTES); ?>"<?php endif; ?>>
+                                    <form method="POST" action="cluster_nodes" class="d-inline<?= $rToTwo ? ' js-cluster-confirm' : ''; ?>"<?php if ($rToTwo): ?> data-confirm="<?= htmlspecialchars($language::get('cluster_mode_two_warning'), ENT_QUOTES); ?>"<?php endif; ?>>
                                         <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                         <input type="hidden" name="mode" value="<?= (int) $rNode['mode']; ?>">
                                         <button type="submit" name="cluster_action" value="mode_up" class="btn btn-xs btn-icon btn-label-<?= $rToTwo ? 'warning' : 'secondary'; ?>" title="<?= htmlspecialchars($language::get('cluster_mode_up_tip'), ENT_QUOTES); ?>" aria-label="<?= htmlspecialchars($language::get('cluster_mode_up'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-arrow-up"></i></button>
@@ -207,7 +206,7 @@ $rCutAny = false;
                                 <?php endif; ?>
                                 <?php if ((int) $rNode['mode'] > 0): ?>
                                     <?php $rNoDb = $rNode['db_revoked_at'] !== null; // its credentials are gone: mode 1 would have no database ?>
-                                    <form method="POST" class="d-inline<?= $rNoDb ? ' js-cluster-confirm' : ''; ?>"<?php if ($rNoDb): ?> data-confirm="<?= htmlspecialchars($language::get('cluster_mode_down_revoked_confirm'), ENT_QUOTES); ?>"<?php endif; ?>>
+                                    <form method="POST" action="cluster_nodes" class="d-inline<?= $rNoDb ? ' js-cluster-confirm' : ''; ?>"<?php if ($rNoDb): ?> data-confirm="<?= htmlspecialchars($language::get('cluster_mode_down_revoked_confirm'), ENT_QUOTES); ?>"<?php endif; ?>>
                                         <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                         <input type="hidden" name="mode" value="<?= (int) $rNode['mode']; ?>">
                                         <button type="submit" name="cluster_action" value="mode_down" class="btn btn-xs btn-icon btn-label-secondary" title="<?= htmlspecialchars($language::get('cluster_mode_down_help'), ENT_QUOTES); ?>" aria-label="<?= htmlspecialchars($language::get('cluster_mode_down'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-arrow-down"></i></button>
@@ -229,7 +228,7 @@ $rCutAny = false;
                                         <?php // Mandatory flow: on and locked, so the node cannot be detached from MAIN. ?>
                                         <span class="btn btn-xs btn-label-success disabled" aria-pressed="true" title="<?= htmlspecialchars($rFlowLabel . ': ' . $rFlowState . ' — ' . $language::get('cluster_flow_mandatory'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-lock me-1"></i><?= $rFlowLabel; ?></span>
                                     <?php elseif ($rLive): ?>
-                                        <form method="POST" class="d-inline">
+                                        <form method="POST" action="cluster_nodes" class="d-inline">
                                             <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                             <button type="submit" name="cluster_action" value="<?= $rFlowName . ($rOn ? '_off' : '_on'); ?>" class="btn btn-xs <?= $rOn ? 'btn-label-success' : 'btn-outline-secondary'; ?>" aria-pressed="<?= $rOn ? 'true' : 'false'; ?>" title="<?= htmlspecialchars($rFlowLabel . ': ' . $rFlowState . ' — ' . $language::get('cluster_' . $rFlowName . '_help'), ENT_QUOTES); ?>"><?php if ($rOn): ?><i class="icon-base ti tabler-check me-1"></i><?php endif; ?><?= $rFlowLabel; ?></button>
                                         </form>
@@ -251,7 +250,7 @@ $rCutAny = false;
                             <?php if (!empty($rNode['core_pinned'])): ?>
                                 <span class="badge bg-label-success" title="<?= htmlspecialchars($language::get('cluster_core_pinned_help'), ENT_QUOTES); ?>">core</span>
                             <?php elseif (!empty($rNode['root_ready']) && $rNode['state'] === 'active'): ?>
-                                <form method="POST" class="d-inline">
+                                <form method="POST" action="cluster_nodes" class="d-inline">
                                     <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                     <button type="submit" name="cluster_action" value="pin_core" class="btn btn-xs btn-label-secondary" title="<?= htmlspecialchars($language::get('cluster_pin_core_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_pin_core'); ?></button>
                                 </form>
@@ -360,51 +359,51 @@ $rCutAny = false;
                                 <div class="dropdown">
                                     <button type="button" class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= htmlspecialchars($language::get('actions'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-dots-vertical"></i></button>
                                     <div class="dropdown-menu dropdown-menu-end">
-                                        <form method="POST">
+                                        <form method="POST" action="cluster_nodes">
                                             <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                             <button type="submit" name="cluster_action" value="rotate_now" class="dropdown-item" title="<?= htmlspecialchars($language::get('cluster_rotate_now_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-refresh me-2"></i><?= $language::get('cluster_rotate_now'); ?></button>
                                         </form>
-                                        <form method="POST">
+                                        <form method="POST" action="cluster_nodes">
                                             <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                             <button type="submit" name="cluster_action" value="resync" class="dropdown-item" title="<?= htmlspecialchars($language::get('cluster_resync_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-database-import me-2"></i><?= $language::get('cluster_resync'); ?></button>
                                         </form>
                                         <?php if ($rNode['state'] === 'active' && (int) $rNode['mode'] < 2 && !$rCutRunning && ((int) $rNode['flows'] & ClusterAdmin::MODE2_FLOWS) !== ClusterAdmin::MODE2_FLOWS): ?>
-                                            <form method="POST" class="js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get('cluster_cutover_confirm'), ENT_QUOTES); ?>">
+                                            <form method="POST" action="cluster_nodes" class="js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get('cluster_cutover_confirm'), ENT_QUOTES); ?>">
                                                 <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                                 <button type="submit" name="cluster_action" value="cutover_start" class="dropdown-item" title="<?= htmlspecialchars($language::get('cluster_cutover_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-route me-2"></i><?= $language::get('cluster_cutover'); ?></button>
                                             </form>
                                         <?php endif; ?>
                                         <?php if ($rCutRunning): ?>
-                                            <form method="POST">
+                                            <form method="POST" action="cluster_nodes">
                                                 <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                                 <button type="submit" name="cluster_action" value="cutover_cancel" class="dropdown-item text-danger"><i class="icon-base ti tabler-player-stop me-2"></i><?= $language::get('cluster_cutover_cancel'); ?></button>
                                             </form>
                                         <?php endif; ?>
                                         <div class="dropdown-divider"></div>
-                                        <form method="POST" class="js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get('cluster_fence_confirm'), ENT_QUOTES); ?>">
+                                        <form method="POST" action="cluster_nodes" class="js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get('cluster_fence_confirm'), ENT_QUOTES); ?>">
                                             <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                             <button type="submit" name="cluster_action" value="fence" class="dropdown-item" title="<?= htmlspecialchars($language::get('cluster_fence_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-fence me-2"></i><?= $language::get('cluster_fence'); ?></button>
                                             <button type="submit" name="cluster_action" value="unfence" class="dropdown-item" formnovalidate title="<?= htmlspecialchars($language::get('cluster_unfence_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-fence-off me-2"></i><?= $language::get('cluster_unfence'); ?></button>
                                         </form>
                                         <?php if ($rNode['state'] === 'quarantined'): ?>
-                                            <form method="POST">
+                                            <form method="POST" action="cluster_nodes">
                                                 <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                                 <button type="submit" name="cluster_action" value="trust" class="dropdown-item text-success" title="<?= htmlspecialchars($language::get('cluster_trust_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-shield-check me-2"></i><?= $language::get('cluster_trust'); ?></button>
                                             </form>
                                         <?php else: ?>
-                                            <form method="POST" class="js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get('cluster_quarantine_confirm'), ENT_QUOTES); ?>">
+                                            <form method="POST" action="cluster_nodes" class="js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get('cluster_quarantine_confirm'), ENT_QUOTES); ?>">
                                                 <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                                 <button type="submit" name="cluster_action" value="quarantine" class="dropdown-item text-warning" title="<?= htmlspecialchars($language::get('cluster_quarantine_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-shield-x me-2"></i><?= $language::get('cluster_quarantine'); ?></button>
                                             </form>
                                         <?php endif; ?>
                                         <?php if ($rNode['db_revoked_at'] === null && (int) $rNode['mode'] === 2 && $rNode['state'] === 'active'): ?>
-                                            <form method="POST" class="js-cluster-strip">
+                                            <form method="POST" action="cluster_nodes" class="js-cluster-strip">
                                                 <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                                 <button type="submit" name="cluster_action" value="strip_credentials" class="dropdown-item text-warning" title="<?= htmlspecialchars($language::get('cluster_strip_credentials_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-database-off me-2"></i><?= $language::get('cluster_strip_credentials'); ?></button>
                                             </form>
                                         <?php endif; ?>
                                         <div class="dropdown-divider"></div>
-                                        <form method="POST" class="js-cluster-revoke">
+                                        <form method="POST" action="cluster_nodes" class="js-cluster-revoke">
                                             <input type="hidden" name="server_id" value="<?= $rSid; ?>">
                                             <button type="submit" name="cluster_action" value="revoke" class="dropdown-item text-danger"><i class="icon-base ti tabler-trash me-2"></i><?= $language::get('cluster_revoke'); ?></button>
                                         </form>
@@ -431,7 +430,7 @@ $rCutAny = false;
             </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-label-<?= $clusterMainDataPlane ? 'success' : 'secondary'; ?>"><?= $language::get($clusterMainDataPlane ? 'cluster_main_dataplane_state_on' : 'cluster_main_dataplane_state_off'); ?></span>
-                <form method="POST" class="d-inline js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get($clusterMainDataPlane ? 'cluster_main_dataplane_confirm_off' : 'cluster_main_dataplane_confirm_on'), ENT_QUOTES); ?>">
+                <form method="POST" action="cluster_nodes" class="d-inline js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get($clusterMainDataPlane ? 'cluster_main_dataplane_confirm_off' : 'cluster_main_dataplane_confirm_on'), ENT_QUOTES); ?>">
                     <button type="submit" name="cluster_action" value="<?= $clusterMainDataPlane ? 'main_dataplane_off' : 'main_dataplane_on'; ?>" class="btn btn-sm btn-label-<?= $clusterMainDataPlane ? 'secondary' : 'primary'; ?>"><?= $language::get($clusterMainDataPlane ? 'cluster_main_dataplane_off' : 'cluster_main_dataplane_on'); ?></button>
                 </form>
             </div>
@@ -565,68 +564,3 @@ $rCutAny = false;
     </div>
 <?php endif; ?>
 
-<?php
-LayoutRenderer::renderFooter('admin');
-?>
-<script>
-    (function() {
-        // The confirmations, delegated: the row menus' forms are moved by DataTables' paging.
-        var rConfirms = {
-            strip: <?= json_encode($language::get('cluster_strip_credentials_confirm')); ?>,
-            revoke: <?= json_encode($language::get('cluster_revoke_confirm')); ?>
-        };
-        document.addEventListener('submit', function(e) {
-            var f = e.target;
-            var rText = null;
-            if (f.classList.contains('js-cluster-confirm')) {
-                if (e.submitter && e.submitter.value === 'unfence') {
-                    return;
-                }
-                rText = f.getAttribute('data-confirm');
-            } else if (f.classList.contains('js-cluster-strip')) {
-                rText = rConfirms.strip;
-            } else if (f.classList.contains('js-cluster-revoke')) {
-                rText = rConfirms.revoke;
-            }
-            if (rText !== null && !confirm(rText)) {
-                e.preventDefault();
-            }
-        });
-
-        var $ = window.jQuery;
-        if ($ && $.fn.DataTable) {
-            var rTooltips = function(rTable) {
-                if (window.bootstrap) {
-                    document.querySelectorAll(rTable + ' [data-bs-toggle="tooltip"]').forEach(function(el) {
-                        if (!el._tt) {
-                            el._tt = new bootstrap.Tooltip(el);
-                        }
-                    });
-                }
-            };
-            $('#cluster-nodes-table').DataTable({
-                order: [[1, 'asc']],
-                columnDefs: [{ orderable: false, targets: [3, 4, 10, 11, 12, 13, 14] }],
-                layout: { topStart: 'pageLength', topEnd: 'search' },
-                language: { emptyTable: <?= json_encode($language::get('cluster_no_nodes')); ?> },
-                drawCallback: function() {
-                    rTooltips('#cluster-nodes-table');
-                }
-            });
-            if ($('#cluster-audit-table').length) {
-                $('#cluster-audit-table').DataTable({
-                    order: [[0, 'desc']],
-                    pageLength: 10,
-                    layout: { topStart: 'pageLength', topEnd: 'search' },
-                    language: { emptyTable: <?= json_encode($language::get('cluster_audit_none')); ?> }
-                });
-            }
-        }
-        <?php if ($rCutAny): ?>
-        // A guided cutover is running: show its progress again shortly (a GET, never the last POST again).
-        setTimeout(function() {
-            window.location.href = window.location.pathname + window.location.search;
-        }, 15000);
-        <?php endif; ?>
-    })();
-</script>

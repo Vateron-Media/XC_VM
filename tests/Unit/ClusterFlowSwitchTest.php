@@ -23,7 +23,7 @@ final class ClusterFlowSwitchTest extends TestCase {
 	}
 
 	public function testTheNodesPageHasAToggleWithItsStringsForEverySwitchableFlow(): void {
-		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/cluster_nodes.php');
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/partials/cluster_section.php');
 		$rEn = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 
 		$this->assertStringContainsString('foreach (ClusterAdmin::FLOW_BITS as $rFlowName => $rFlowBit)', $rView, 'one toggle per flow');
@@ -60,12 +60,17 @@ final class ClusterFlowSwitchTest extends TestCase {
 		$this->assertStringContainsString("\$rClusterNodes[(int) \$rServer['id']] ?? null", $rView);
 		$this->assertStringContainsString('cluster_node_badge_help', $rView);
 
-		$rController = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/ServerListController.php');
-		$this->assertStringContainsString("'rClusterNodes' => self::clusterNodes(\$rServers)", $rController);
-		// The API off, or its tables not created yet, costs the list nothing.
-		$this->assertStringContainsString("if (empty(SettingsManager::get('cluster_api_enabled'))) {", $rController);
-		$this->assertStringContainsString('} catch (\Throwable) {', $rController);
-		$this->assertSame(2, substr_count($rController, 'return [];'), 'both the off switch and the failure answer with no nodes');
+		// The servers list gets its nodes keyed by server id from the folded-in
+		// cluster controller; Manage Servers is now the only cluster page.
+		$rList = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/ServerListController.php');
+		$this->assertStringContainsString('ClusterNodesController::viewData(', $rList);
+		$this->assertStringContainsString("'rClusterNodes' => \$rNodesByServer", $rList);
+		// The API off, or its tables not created yet, costs the list nothing:
+		// viewData() answers with the empty shape instead of throwing.
+		$rCluster = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/ClusterNodesController.php');
+		$this->assertStringContainsString("empty(\$rSettings['cluster_api_enabled'])", $rCluster);
+		$this->assertStringContainsString('} catch (\Throwable) {', $rCluster);
+		$this->assertSame(2, substr_count($rCluster, 'return $rEmpty;'), 'both the off switch and the failure answer with no nodes');
 
 		$rEn = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 		$this->assertStringContainsString('cluster_node_badge_help = ', $rEn);
