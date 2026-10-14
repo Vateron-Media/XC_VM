@@ -3,7 +3,6 @@
 namespace XcVm\Domain\Stream;
 
 use XcVm\Core\Cluster\NodeRpc;
-use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Infrastructure\Database\DatabaseFactory;
@@ -37,9 +36,10 @@ final class StreamControlDispatcher {
 				return self::failure('UNKNOWN_SERVER');
 			}
 		}
-		if ($function === 'start' && !LicenseGate::licensed()) {
-			return self::failure('LICENSE_DENIED');
-		}
+		// No licence gate here: enforcement is deliberately soft (LicenseGate), so a
+		// local MAIN start must fall back to the PHP monitor rather than be hard
+		// blocked; the signed cluster transport (ClusterRoute) still enforces the
+		// licence for remote typed starts.
 		$db = DatabaseFactory::get();
 		if ($db === null || !$db->query(
 			'SELECT `stream_id`, `server_id` FROM `streams_servers` WHERE `stream_id` IN ('
@@ -63,13 +63,16 @@ final class StreamControlDispatcher {
 				$assigned[$streamId] = true;
 			}
 		}
-		// Never start unrelated servers just because a caller requested all nodes.
+		// An id assigned to none of the requested targets is reported and skipped,
+		// not a reason to abort the whole batch (and never expanded to unrelated
+		// servers): the other ids still start or stop, and the client sees which
+		// id was not assigned in `errors`.
+		$errors = [];
 		foreach ($ids as $streamId) {
 			if (!isset($assigned[$streamId])) {
-				return self::failure('STREAM_NOT_ASSIGNED_TO_TARGET');
+				$errors[] = ['stream_id' => $streamId, 'code' => 'STREAM_NOT_ASSIGNED_TO_TARGET'];
 			}
 		}
-		$errors = [];
 		$accepted = [];
 		foreach ($byServer as $serverId => $streamIds) {
 			$streamIds = array_values($streamIds);
@@ -120,9 +123,10 @@ final class StreamControlDispatcher {
 				StreamProcess::stopStream($streamId, true);
 				return true;
 			}
-			if (StreamSource::streamRow($streamId, true) === null) {
-				return false;
-			}
+			// No streamRow existence/type pre-check: it filtered direct_source = 0
+			// and so wrongly refused direct-source live streams, which the former
+			// path (startMonitor directly) started. startMonitor resolves the row
+			// itself; an unknown id simply yields no running monitor.
 			return in_array(
 				StreamProcess::startMonitor($streamId, 1),
 				[StreamProcess::MONITOR_PHP, StreamProcess::MONITOR_FANOUT],
@@ -132,9 +136,6 @@ final class StreamControlDispatcher {
 		if ($function === 'stop') {
 			StreamProcess::stopMovie($streamId);
 			return true;
-		}
-		if (StreamSource::streamRow($streamId, false) === null) {
-			return false;
 		}
 		StreamProcess::stopMovie($streamId, true);
 		if ($force) {

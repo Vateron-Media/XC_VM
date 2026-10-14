@@ -7,12 +7,11 @@ use PHPUnit\Framework\TestCase;
 final class StreamControlDispatcherTest extends TestCase {
 	private const HARNESS = <<<'PHP'
 namespace XcVm\Core\Cluster { class NodeRpc { public static function request($id,$payload,$timeout) { $GLOBALS['remote'][]=[$id,$payload,$timeout]; return $GLOBALS['reply']; } } }
-namespace XcVm\Core\License { class LicenseGate { public static function licensed() { return $GLOBALS['licensed']; } } }
 namespace XcVm\Core\Logging { class FileLogger { public static function log(...$args) {} } }
 namespace XcVm\Domain\Server { class ServerRepository { public static function getAll() { return [1=>['server_online'=>true],2=>['server_online'=>true],3=>['server_online'=>false]]; } } }
 namespace XcVm\Infrastructure\Database { class DatabaseFactory { public static function get() { return new class { public function query(...$args) {return true;} public function get_rows() {return $GLOBALS['assignments'];} }; } } }
 namespace XcVm\Domain\Stream {
- class StreamSource { public static function streamRow(...$args) { return ['id'=>$args[0]]; } }
+ class StreamSource { public static function streamRow(...$args) { return empty($GLOBALS['streamrow_missing']) ? ['id'=>$args[0]] : null; } }
  class StreamProcess {
  const MONITOR_PHP='php', MONITOR_FANOUT='fanout';
  public static function startMonitor(...$args) { $GLOBALS['local'][]=['startMonitor',$args]; return $GLOBALS['monitor']; }
@@ -26,7 +25,7 @@ namespace {
  define('SERVER_ID',1);
  $input=json_decode(stream_get_contents(STDIN),true);
  $GLOBALS['assignments']=[['server_id'=>1,'stream_id'=>10],['server_id'=>2,'stream_id'=>10],['server_id'=>3,'stream_id'=>10]];
- $GLOBALS['licensed']=true; $GLOBALS['monitor']='php'; $GLOBALS['reply']='{"result":true}';
+ $GLOBALS['monitor']='php'; $GLOBALS['reply']='{"result":true}'; $GLOBALS['streamrow_missing']=false;
  $GLOBALS['pid']=123; $GLOBALS['queue']=true; $GLOBALS['local']=[]; $GLOBALS['remote']=[];
  foreach ($input['options'] as $key=>$value) { $GLOBALS[$key]=$value; }
  require %DISPATCHER%;
@@ -73,11 +72,15 @@ PHP;
 		$this->assertSame([['server_id' => 2, 'code' => 'REMOTE_CONTROL_FAILED']], $rResult['answer']['errors']);
 	}
 
-	public function testUnlicensedStartIsDeniedButStopRemainsPossible(): void {
-		$rResult = $this->dispatch([], ['licensed' => false]);
-		$this->assertSame('LICENSE_DENIED', $rResult['answer']['error']);
-		$this->assertSame([], $rResult['local']);
-		$rResult = $this->dispatch(['sub' => 'stop'], ['licensed' => false]);
+	public function testUnlicensedStartFallsBackToLocalMonitor(): void {
+		// Enforcement is soft (LicenseGate): a MAIN start must not be hard blocked
+		// by the licence — it falls back to the local monitor. The old hard
+		// LICENSE_DENIED gate made an unlicensed/expired MAIN unable to start
+		// anything; the signed cluster transport still enforces it for remote.
+		$rResult = $this->dispatch([]);
+		$this->assertTrue($rResult['answer']['result']);
+		$this->assertSame([['startMonitor', [10, 1]]], $rResult['local']);
+		$rResult = $this->dispatch(['sub' => 'stop']);
 		$this->assertTrue($rResult['answer']['result']);
 		$this->assertSame([['stopStream', [10, true]]], $rResult['local']);
 	}
@@ -115,5 +118,25 @@ PHP;
 		$rResult = $this->dispatch(['action' => 'vod']);
 		$this->assertTrue($rResult['answer']['result']);
 		$this->assertSame([['stopMovie', [10, true]], ['queueMovie', [10]]], $rResult['local']);
+	}
+
+	public function testPartialAssignmentAcceptsAssignedAndReportsUnassigned(): void {
+		// One unassigned id must not abort the whole batch: the assigned id still
+		// starts and the unassigned one is reported. The old all-or-nothing
+		// failure() also silently suppressed every id for the non-AJAX callers.
+		$rResult = $this->dispatch(['stream_ids' => [10, 11]]);
+		$this->assertFalse($rResult['answer']['result']);
+		$this->assertSame([['server_id' => 1, 'stream_id' => 10]], $rResult['answer']['accepted']);
+		$this->assertSame([['stream_id' => 11, 'code' => 'STREAM_NOT_ASSIGNED_TO_TARGET']], $rResult['answer']['errors']);
+		$this->assertSame([['startMonitor', [10, 1]]], $rResult['local']);
+	}
+
+	public function testDirectSourceStartIsNotRefusedByAStreamRowPreCheck(): void {
+		// A direct-source live stream is filtered out by StreamSource::streamRow
+		// (direct_source = 0). The dispatcher no longer pre-checks that row, so
+		// such a stream still starts via startMonitor, as the former path did.
+		$rResult = $this->dispatch([], ['streamrow_missing' => true]);
+		$this->assertTrue($rResult['answer']['result']);
+		$this->assertSame([['startMonitor', [10, 1]]], $rResult['local']);
 	}
 }
