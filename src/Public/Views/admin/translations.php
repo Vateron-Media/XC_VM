@@ -11,6 +11,7 @@
  * of keys in en.ini).
  */
 
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\LayoutRenderer;
 
 ?>
@@ -34,7 +35,7 @@ use XcVm\Core\Util\LayoutRenderer;
                 <?php foreach ($rLanguages as $rCode => $rLanguage): ?>
                     <?php $rCode = htmlspecialchars((string) $rCode, ENT_QUOTES); ?>
                     <tr>
-                        <td><strong><?= $rCode; ?></strong></td>
+                        <td><strong><?= htmlspecialchars(Translator::displayName($rCode), ENT_QUOTES); ?></strong></td>
                         <td style="min-width: 14rem;">
                             <div class="d-flex align-items-center gap-3">
                                 <div class="progress flex-grow-1" style="height: 6px;">
@@ -67,7 +68,7 @@ use XcVm\Core\Util\LayoutRenderer;
         <form id="translation-add-form" class="row g-3" autocomplete="off">
             <div class="col-md-4">
                 <label class="form-label" for="translation-add-code"><?= $language::get('translation_code'); ?></label>
-                <input type="text" class="form-control" id="translation-add-code" maxlength="8" pattern="[a-z]{2,3}(-[A-Za-z]{2,4})?" placeholder="tr" required>
+                <input type="text" class="form-control" id="translation-add-code" maxlength="8" pattern="exyu|[a-z]{2,3}(-[A-Za-z]{2,4})?" placeholder="tr" required>
                 <div class="form-text"><?= $language::get('translation_code_hint'); ?></div>
             </div>
             <div class="col-12">
@@ -86,7 +87,7 @@ use XcVm\Core\Util\LayoutRenderer;
         <form id="translation-upload-form" class="row g-3" autocomplete="off">
             <div class="col-md-4">
                 <label class="form-label" for="translation-code"><?= $language::get('translation_code'); ?></label>
-                <input type="text" class="form-control" id="translation-code" name="lang" maxlength="8" pattern="[a-z]{2,3}(-[A-Za-z]{2,4})?" placeholder="tr" required>
+                <input type="text" class="form-control" id="translation-code" name="lang" maxlength="8" pattern="exyu|[a-z]{2,3}(-[A-Za-z]{2,4})?" placeholder="tr" required>
                 <div class="form-text"><?= $language::get('translation_code_hint'); ?></div>
             </div>
             <div class="col-md-8">
@@ -226,7 +227,7 @@ LayoutRenderer::renderFooter('admin');
                 });
                 tbody.textContent = '';
                 tbody.appendChild(fragment);
-                document.getElementById('translation-editor-lang').textContent = code;
+                document.getElementById('translation-editor-lang').textContent = code === 'exyu' ? 'BA_SRB_CRO' : code;
                 editor.classList.remove('d-none');
                 filter();
                 showUnsaved();
