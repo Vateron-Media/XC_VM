@@ -23,6 +23,10 @@ use XcVm\Domain\Stream\CategoryTemplateService;
 
 $rIsEdit         = isset($rLine);
 $rLineBouquets   = ($rIsEdit && !empty($rLine['bouquet'])) ? (json_decode((string) $rLine['bouquet'], true) ?: []) : [];
+// Display assigned bouquets in this customer's saved order, then unassigned ones.
+$rOrderedBouquets = BouquetService::getAllSimple();
+$rBouquetPositions = array_flip(array_map('intval', $rLineBouquets));
+usort($rOrderedBouquets, static fn($a, $b) => ($rBouquetPositions[(int) $a['id']] ?? PHP_INT_MAX) <=> ($rBouquetPositions[(int) $b['id']] ?? PHP_INT_MAX));
 $rLineOutputs    = ($rIsEdit && !empty($rLine['allowed_outputs'])) ? (json_decode((string) $rLine['allowed_outputs'], true) ?: []) : [];
 $rLineIPs        = ($rIsEdit && !empty($rLine['allowed_ips'])) ? (json_decode((string) $rLine['allowed_ips'], true) ?: []) : [];
 $rLineUAs        = ($rIsEdit && !empty($rLine['allowed_ua'])) ? (json_decode((string) $rLine['allowed_ua'], true) ?: []) : [];
@@ -61,6 +65,7 @@ if ($rIsEdit && !empty($rLine['custom_data'])) {
         <input type="hidden" name="edit" value="<?= (int) $rLine['id']; ?>">
     <?php endif; ?>
     <input type="hidden" name="bouquets_selected" id="bouquets_selected" value="">
+    <input type="hidden" name="bouquet_order" id="bouquet_order" value="">
 
     <div class="card mb-6">
         <div class="card-header px-0 pt-2">
@@ -310,8 +315,8 @@ if ($rIsEdit && !empty($rLine['custom_data'])) {
                                     <th class="text-center"><?= $language::get('stations'); ?></th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
+                            <tbody id="line-bouquet-rows">
+                                <?php foreach ($rOrderedBouquets as $rBouquet): ?>
                                     <tr>
                                         <td>
                                             <div class="form-check">
@@ -319,7 +324,10 @@ if ($rIsEdit && !empty($rLine['custom_data'])) {
                                             </div>
                                         </td>
                                         <td class="text-center"><label class="form-check-label" for="line-bouquet-<?= (int) $rBouquet['id']; ?>"><?= (int) $rBouquet['id']; ?></label></td>
-                                        <td><label class="form-check-label" for="line-bouquet-<?= (int) $rBouquet['id']; ?>"><?= htmlspecialchars((string) $rBouquet['bouquet_name'], ENT_QUOTES); ?></label></td>
+                                        <td><label class="form-check-label" for="line-bouquet-<?= (int) $rBouquet['id']; ?>"><?= htmlspecialchars((string) $rBouquet['bouquet_name'], ENT_QUOTES); ?></label>
+                                            <button type="button" class="btn btn-sm btn-label-secondary ms-2" data-bouquet-move="up" aria-label="<?= $language::get('bouquet_order'); ?> ↑">↑</button>
+                                            <button type="button" class="btn btn-sm btn-label-secondary ms-2" data-bouquet-move="down" aria-label="<?= $language::get('bouquet_order'); ?> ↓">↓</button>
+                                        </td>
                                         <td class="text-center"><?= count(json_decode((string) $rBouquet['bouquet_channels'], true) ?: []); ?></td>
                                         <td class="text-center"><?= count(json_decode((string) $rBouquet['bouquet_movies'], true) ?: []); ?></td>
                                         <td class="text-center"><?= count(json_decode((string) $rBouquet['bouquet_series'], true) ?: []); ?></td>
@@ -469,6 +477,17 @@ LayoutRenderer::renderFooter('admin');
         bindList('ip_field', 'add_ip', 'remove_ip', 'allowed_ips', validIP);
         bindList('ua_field', 'add_ua', 'remove_ua', 'allowed_ua', null);
 
+        document.getElementById('line-bouquet-rows').addEventListener('click', function(e) {
+            var button = e.target.closest('[data-bouquet-move]');
+            if (!button) return;
+            var row = button.closest('tr');
+            if (button.dataset.bouquetMove === 'up' && row.previousElementSibling) {
+                row.parentNode.insertBefore(row, row.previousElementSibling);
+            } else if (button.dataset.bouquetMove === 'down' && row.nextElementSibling) {
+                row.parentNode.insertBefore(row.nextElementSibling, row);
+            }
+        });
+
         // Bouquet select-all / deselect-all.
         document.getElementById('bqt-all').addEventListener('click', function() {
             document.querySelectorAll('.line-bouquet-cb').forEach(function(c) {
@@ -496,6 +515,7 @@ LayoutRenderer::renderFooter('admin');
         document.getElementById('line-form').addEventListener('submit', function(e) {
             e.preventDefault();
             document.getElementById('bouquets_selected').value = collect('line-bouquet-cb');
+            document.getElementById('bouquet_order').value = collect('line-bouquet-cb');
             ['allowed_ips', 'allowed_ua'].forEach(function(id) {
                 var sel = document.getElementById(id);
                 Array.prototype.forEach.call(sel.options, function(o) {

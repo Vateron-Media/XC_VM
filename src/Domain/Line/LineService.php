@@ -293,6 +293,13 @@ class LineService {
 			$rArray = \XcVm\Domain\Stream\CategoryTemplateService::applyCustomData($rData, $rArray);
 			$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::preserveOrder($rArray, $rLine ?? []);
 			$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::constrainOwner($rArray, $db);
+			if (array_key_exists('bouquet_order', $rData)) {
+				$rArray['bouquet'] = json_encode(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::order(
+					\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rArray['bouquet']),
+					$rData['bouquet_order']
+				), JSON_THROW_ON_ERROR);
+				$rArray['bouquet_order_custom'] = 1;
+			}
 
 			$rEditID = (isset($rData['edit']) ? intval($rData['edit']) : null);
 

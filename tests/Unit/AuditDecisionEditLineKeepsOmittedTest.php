@@ -136,6 +136,22 @@ final class AuditDecisionEditLineKeepsOmittedTest extends TestCase {
 		$this->assertEquals(['bouquet' => '[2]'] + $rStored, $this->line());
 	}
 
+	public function testAdminSavesAndCanReplaceACustomBouquetOrder(): void {
+		$this->assertSame('STATUS_SUCCESS', $this->edit([
+			'bouquets_selected' => '[2,3]', 'bouquet_order' => '[3,999,2]',
+		]));
+		$this->assertSame('[3,2]', $this->line()['bouquet']);
+		$this->assertSame(1, (int) $this->line()['bouquet_order_custom']);
+
+		$this->assertSame('STATUS_SUCCESS', $this->edit(['admin_notes' => 'keep order']));
+		$this->assertSame('[3,2]', $this->line()['bouquet']);
+
+		$this->assertSame('STATUS_SUCCESS', $this->edit([
+			'bouquets_selected' => '[2,3]', 'bouquet_order' => '[2,3]',
+		]));
+		$this->assertSame('[2,3]', $this->line()['bouquet']);
+	}
+
 	public function testALineWithoutAnExpiryKeepsNone(): void {
 		$this->rDb->query('UPDATE `lines` SET `exp_date` = NULL WHERE `id` = ?', self::LINE);
 
