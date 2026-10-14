@@ -663,7 +663,7 @@
 			}
 
 			if (
-				this.data_items[this.cur_row].lock &&
+				this.data_items[this.cur_row].lock == 1 &&
 				!this.data_items[this.cur_row].unlocked &&
 				this.genre.alias != "for adults"
 			) {
@@ -1252,7 +1252,7 @@
 			if (item.open) {
 				_debug("item.lock", item.lock);
 
-				if (item.lock && self.genre.alias != "for adults") {
+				if (item.lock == 1 && self.genre.alias != "for adults") {
 					self.password_input.callback = function () {
 						stb.player.need_show_info = 0;
 						stb.player.prev_layer = self;
@@ -1628,6 +1628,11 @@
 		};
 
 		this.handling_block = function (data, row_items, block_name) {
+			// Normalize boolean icon flags from both numeric and string portal responses.
+			if (/^(now_playing|fav|lock|scrambled|archive|pvr|local_time_shift|quality_high|quality_medium|quality_low)$/.test(block_name)) {
+				data = data == 1 ? 1 : 0;
+				row_items[block_name + "_block"].innerHTML = "";
+			}
 			this.superclass.handling_block.call(this, data, row_items, block_name);
 
 			var block_obj = row_items[block_name + "_block"];
@@ -2403,7 +2408,7 @@
 						return function () {
 							_debug("cmd - genre: id title", genre.id, genre.title);
 
-							if (genre.censored) {
+							if (genre.censored == 1) {
 								module.tv.parent_password_promt.callback = function () {
 									main_menu.hide();
 									module.tv._show(genre);
