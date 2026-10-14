@@ -2353,8 +2353,19 @@ function getStreams(
 	// Ministra returns channel fields as the strings its DB yields. Native Stalker
 	// clients (C firmware such as GX STBs) read them as strings, so an int field
 	// comes back empty and the client drops every channel.
-	array_walk_recursive($rDatas, static function (&$rValue) {
-		if (is_int($rValue)) {
+	//
+	// But the 0/1 boolean flags must stay integers: the portal JS renders them with
+	// strict === / truthy checks (layer.list.js, tv.js), so a string "0" reads as
+	// "on" and shows the adult lock, favourites star and timeshift/record icons on
+	// every channel (issue #393). Keep those flags as ints; stringify the rest
+	// (ids, numbers, statuses, genre ids) for the C firmware.
+	$rFlagKeys = [
+		'censored', 'lock', 'locked', 'fav', 'archive', 'pvr', 'hd', 'open',
+		'enable_tv_archive', 'allow_pvr', 'allow_local_pvr', 'allow_remote_pvr',
+		'use_load_balancing',
+	];
+	array_walk_recursive($rDatas, static function (&$rValue, $rKey) use ($rFlagKeys) {
+		if (is_int($rValue) && !in_array($rKey, $rFlagKeys, true)) {
 			$rValue = (string) $rValue;
 		}
 	});
