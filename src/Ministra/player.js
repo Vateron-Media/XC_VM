@@ -4958,7 +4958,7 @@ player.prototype.save_fav_ids = function () {
 				function (result) {
 					_debug("get_all_fav_channels result", result);
 
-					stb.player.fav_channels = result.data || [];
+					stb.player.fav_channels = xc_coerce_flags(result.data || [], XC_CHANNEL_FLAGS);
 				},
 
 				this

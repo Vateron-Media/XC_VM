@@ -13,6 +13,35 @@ var XCVM_ENFORCE_STB_TYPE = false; // client gate: cut_off("stb_type_not_support
 var XCVM_ENFORCE_FIRMWARE = false; // client gate: cut_off("outdated_firmware")
 
 /**
+ * Native Stalker C firmware reads every portal list field as a string, so the
+ * server sends the channel/genre 0/1 flags as JSON strings ("0"/"1") like every
+ * other field. Normalize those flags back to integers as each list is ingested,
+ * so the portal's flag checks — strict ===, truthy if(x), loose == — keep working
+ * (issue #393). parseInt is a no-op on a value that is already an int.
+ */
+var XC_CHANNEL_FLAGS = [
+	"censored", "lock", "locked", "fav", "archive", "pvr", "hd", "open",
+	"enable_tv_archive", "allow_pvr", "allow_local_pvr", "allow_remote_pvr", "use_load_balancing",
+];
+
+function xc_coerce_flags(arr, fields) {
+	if (!arr || typeof arr.length !== "number") {
+		return arr;
+	}
+	for (var i = 0; i < arr.length; i++) {
+		var item = arr[i];
+		if (item && typeof item === "object") {
+			for (var f = 0; f < fields.length; f++) {
+				if (typeof item[fields[f]] !== "undefined") {
+					item[fields[f]] = parseInt(item[fields[f]], 10) || 0;
+				}
+			}
+		}
+	}
+	return arr;
+}
+
+/**
  * Common XPCOM STB constructor.
  * @constructor
  */
@@ -2589,7 +2618,7 @@ function common_xpcom() {
 
 				stb.loader.add_pos(this.load_step, "channels loaded");
 
-				this.player.channels = result.data || [];
+				this.player.channels = xc_coerce_flags(result.data || [], XC_CHANNEL_FLAGS);
 
 				if (module && module.tv && module.tv.data_items) {
 					module.tv.data_items = this.player.channels;
@@ -2663,7 +2692,7 @@ function common_xpcom() {
 
 				stb.loader.add_pos(this.load_step, "fav_channels loaded");
 
-				this.player.fav_channels = result.data || [];
+				this.player.fav_channels = xc_coerce_flags(result.data || [], XC_CHANNEL_FLAGS);
 
 				this.player.init_first_channel();
 			},

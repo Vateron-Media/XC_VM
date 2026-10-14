@@ -1866,6 +1866,7 @@
 			_debug("callback categories");
 
 			var categories = result;
+			xc_coerce_flags(categories, ["censored"]);
 
 			var map = [];
 

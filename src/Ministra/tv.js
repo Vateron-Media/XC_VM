@@ -1001,6 +1001,8 @@
 		this.fill_list = function (data) {
 			_debug("tv.fill_list");
 
+			xc_coerce_flags(data, XC_CHANNEL_FLAGS);
+
 			if (this.fav_manage_mode && !empty(this.cur_row_data)) {
 				var idx = 0;
 
@@ -2390,6 +2392,7 @@
 			_debug("callback genres");
 
 			var genres = result;
+			xc_coerce_flags(genres, ["censored"]);
 
 			module.tv.genres = genres;
 			module.tv.genre = genres[0];
