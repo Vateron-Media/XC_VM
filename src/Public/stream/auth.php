@@ -11,12 +11,10 @@ use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Cluster\ConnectionAdmission;
 use XcVm\Domain\Security\BlocklistService;
-use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Infrastructure\Signal\SignalQueue;
 use XcVm\Streaming\Auth\StreamAuthMiddleware;
-use XcVm\Streaming\Balancer\ProxySelector;
 use XcVm\Streaming\Delivery\OffAirHandler;
 use XcVm\Streaming\Delivery\StreamRedirector;
 
@@ -537,7 +535,6 @@ if ($rExtension) {
 				}
 
 				if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rChannelInfo['redirect_id']), (int) ($rUserInfo['id'] ?? 0), (bool) (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''))) !== null) {
-
 					$rChannelInfo['originator_id'] = $rChannelInfo['redirect_id'];
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}
@@ -574,7 +571,6 @@ if ($rExtension) {
 										continue;
 									}
 									if ($rProxyID !== null) {
-
 										$rAdaptiveInfo['originator_id'] = $rAdaptiveInfo['redirect_id'];
 										$rAdaptiveInfo['redirect_id'] = $rProxyID;
 									}
@@ -669,7 +665,6 @@ if ($rExtension) {
 
 			if ($rChannelInfo) {
 				if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rChannelInfo['redirect_id']), (int) ($rUserInfo['id'] ?? 0), (bool) (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''))) !== null) {
-
 					$rChannelInfo['originator_id'] = $rChannelInfo['redirect_id'];
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}
@@ -722,7 +717,6 @@ if ($rExtension) {
 			// which the timeshift path never sets, so catch-up always bypassed the
 			// proxy — and was refused by an archive server that requires one.)
 			if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rRedirectID), (int) ($rUserInfo['id'] ?? 0), (bool) ((($rServers[$rRedirectID]['enable_proxy'] ?? 0) && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''))) !== null) {
-
 				$rOriginatorID = $rRedirectID;
 				$rRedirectID = $rProxyID;
 			}
@@ -806,7 +800,6 @@ if ($rExtension) {
 			$rOriginatorID = null;
 
 			if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rStreamInfo['info']['vframes_server_id']), (int) ($rUserInfo['id'] ?? 0), (bool) (($rServers[$rStreamInfo['info']['vframes_server_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''), 'THUMBNAILS_NOT_ENABLED')) !== null) {
-
 				$rOriginatorID = $rStreamInfo['info']['vframes_server_id'];
 				$rStreamInfo['info']['vframes_server_id'] = $rProxyID;
 			}
@@ -822,7 +815,6 @@ if ($rExtension) {
 
 			if ($rChannelInfo) {
 				if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rChannelInfo['redirect_id']), (int) ($rUserInfo['id'] ?? 0), (bool) (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''))) !== null) {
-
 					$rChannelInfo['originator_id'] = $rChannelInfo['redirect_id'];
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}

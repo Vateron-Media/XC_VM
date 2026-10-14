@@ -14,7 +14,8 @@ final class ResellerBouquetPolicy {
 		if (!is_array($value)) {
 			return [];
 		}
-		return array_values(array_unique(array_map('intval', array_filter($value,
+		return array_values(array_unique(array_map('intval', array_filter(
+			$value,
 			static fn($id): bool => (is_int($id) || (is_string($id) && ctype_digit($id))) && (int) $id > 0
 		))));
 	}

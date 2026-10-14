@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace XcVm\Streaming\Routing;
@@ -36,7 +37,9 @@ final class PlaybackRouter {
 				return null;
 			}
 			$proxy = \XcVm\Streaming\Balancer\ProxySelector::availableProxy(
-				array_keys(\XcVm\Domain\Stream\ConnectionTracker::getProxies($origin)), $country, $isp
+				array_keys(\XcVm\Domain\Stream\ConnectionTracker::getProxies($origin)),
+				$country,
+				$isp
 			);
 			if (!$proxy && $failure !== null) {
 				generateError($failure);

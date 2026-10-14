@@ -84,7 +84,7 @@ class ResellerApiDispatcher {
 				self::handleGetPackage($rUserInfo);
 				break;
 			case 'get_package_trial':
-				self::handleGetPackageTrial();
+				self::handleGetPackageTrial($rUserInfo ?? []);
 				break;
 			case 'header_stats':
 				self::handleHeaderStats($rUserInfo);
@@ -671,6 +671,7 @@ class ResellerApiDispatcher {
 
 			$rData['exp_date'] = date('Y-m-d H:i', strtotime('+' . intval($rData['official_duration']) . ' ' . $rData['official_duration_in']));
 
+			$rUser = null;
 			if (RequestManager::has('user_id') && $rData['compatible']) {
 				$rUser = UserRepository::getLineById(RequestManager::get('user_id'));
 				if ($rUser) {
@@ -682,8 +683,8 @@ class ResellerApiDispatcher {
 				}
 			}
 
-			$rAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowed($rUserInfo ?? ($GLOBALS['rUserInfo'] ?? []));
-			$rOwner = (int) (RequestManager::get('member_id') ?: ($rUser['member_id'] ?? ($rUserInfo['id'] ?? ($GLOBALS['rUserInfo']['id'] ?? 0))));
+			$rAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowed($rUserInfo);
+			$rOwner = (int) (RequestManager::get('member_id') ?: ($rUser['member_id'] ?? ($rUserInfo['id'] ?? 0)));
 			if (Authorization::check('user', $rOwner)) {
 				$rOwnerAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::forOwner($db, $rOwner);
 				if ($rOwnerAllowed !== null) {
@@ -691,7 +692,8 @@ class ResellerApiDispatcher {
 				}
 			}
 			$rData['bouquets'] = json_encode(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::filter(
-				\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rData['bouquets']), $rAllowed
+				\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rData['bouquets']),
+				$rAllowed
 			));
 			foreach (json_decode($rData['bouquets'], true) as $rBouquet) {
 				$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rBouquet);
@@ -711,7 +713,7 @@ class ResellerApiDispatcher {
 	/**
 	 * Output trial package details (JSON) and exit.
 	 */
-	private static function handleGetPackageTrial(): void {
+	private static function handleGetPackageTrial(array $rUserInfo): void {
 		$db = self::db();
 		$rReturn = [];
 		$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
@@ -719,8 +721,8 @@ class ResellerApiDispatcher {
 			$rData = UserCredits::amounts($db->get_row());
 			$rData['exp_date'] = date('Y-m-d H:i', strtotime('+' . intval($rData['trial_duration']) . ' ' . $rData['trial_duration_in']));
 
-			$rAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowed($rUserInfo ?? ($GLOBALS['rUserInfo'] ?? []));
-			$rOwner = (int) (RequestManager::get('member_id') ?: ($rUser['member_id'] ?? ($rUserInfo['id'] ?? ($GLOBALS['rUserInfo']['id'] ?? 0))));
+			$rAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowed($rUserInfo);
+			$rOwner = (int) (RequestManager::get('member_id') ?: ($rUserInfo['id'] ?? 0));
 			if (Authorization::check('user', $rOwner)) {
 				$rOwnerAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::forOwner($db, $rOwner);
 				if ($rOwnerAllowed !== null) {
@@ -728,7 +730,8 @@ class ResellerApiDispatcher {
 				}
 			}
 			$rData['bouquets'] = json_encode(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::filter(
-				\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rData['bouquets']), $rAllowed
+				\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rData['bouquets']),
+				$rAllowed
 			));
 			foreach (json_decode($rData['bouquets'], true) as $rBouquet) {
 				$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rBouquet);

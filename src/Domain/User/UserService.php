@@ -183,7 +183,8 @@ class UserService {
 			}
 
 			if (isset($rUser, $rData['bouquet_limit_revision'])
-				&& (!is_string($rData['bouquet_limit_revision']) || !hash_equals(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowanceRevision($rUser), $rData['bouquet_limit_revision']))) {
+				&& (!is_string($rData['bouquet_limit_revision']) || !hash_equals(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowanceRevision($rUser), $rData['bouquet_limit_revision']))
+			) {
 				return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
 			}
 

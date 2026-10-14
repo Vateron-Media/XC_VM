@@ -140,7 +140,8 @@ class ModuleLoader {
 				continue;
 			}
 			if (dirname($modulePath) === rtrim($modulesDir, '/')
-				&& ModuleQuarantine::reason($modulesDir, basename($modulePath)) !== null) {
+				&& ModuleQuarantine::reason($modulesDir, basename($modulePath)) !== null
+			) {
 				continue;
 			}
 
@@ -156,7 +157,8 @@ class ModuleLoader {
 			$moduleRoot = realpath($modulePath);
 			$providerFile = realpath($modulePath . '/' . $routing['file']);
 			if ($moduleRoot === false || $providerFile === false
-				|| !str_starts_with($providerFile, $moduleRoot . DIRECTORY_SEPARATOR)) {
+				|| !str_starts_with($providerFile, $moduleRoot . DIRECTORY_SEPARATOR)
+			) {
 				error_log("ModuleLoader: skipping stream-routing provider for '{$name}' — provider file is unavailable or outside the module");
 				continue;
 			}
@@ -826,7 +828,8 @@ class ModuleLoader {
 			|| !preg_match('/^[A-Za-z0-9_\/-]+\.php$/', $routing['file'])
 			|| in_array('..', explode('/', $routing['file']), true)
 			|| !is_string($routing['class'] ?? null)
-			|| !preg_match('/^XcVm\\\\Module\\\\[A-Za-z_][A-Za-z0-9_\\\\]*$/', $routing['class'])) {
+			|| !preg_match('/^XcVm\\\\Module\\\\[A-Za-z_][A-Za-z0-9_\\\\]*$/', $routing['class'])
+		) {
 			throw new ModuleManifestException("ModuleLoader: invalid stream_routing contract for module {$name}");
 		}
 		return [

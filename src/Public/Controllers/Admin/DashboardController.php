@@ -407,8 +407,7 @@ class DashboardController extends BaseAdminController {
 			return null;
 		}
 		$proxies = array_filter($registered, static fn(array $server): bool => !empty($server['enabled'])
-			&& !in_array((int) ($server['status'] ?? 0), [3, 5], true)
-		);
+			&& !in_array((int) ($server['status'] ?? 0), [3, 5], true));
 		if ($proxies === []) {
 			return self::check('off', 'tabler-shield-check', 'dashboard_check_proxies', Translator::get('dashboard_check_proxies_none'));
 		}
