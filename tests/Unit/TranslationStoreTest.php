@@ -177,7 +177,7 @@ final class TranslationStoreTest extends TestCase {
 	}
 
 	public function testGoodCodes(): void {
-		foreach (['tr', 'fil', 'pt-BR', 'zh-Hans', 'sr-latn'] as $rCode) {
+		foreach (['tr', 'fil', 'pt-BR', 'zh-Hans', 'sr-latn', 'exyu'] as $rCode) {
 			$this->assertTrue(TranslationStore::validCode($rCode), $rCode);
 		}
 	}

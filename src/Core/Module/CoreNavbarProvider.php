@@ -81,9 +81,7 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 			->parent('servers')->url('servers')
 			->label('manage_servers')->permissions(['servers'])->order(20));
 
-		NavbarRegistry::add((new NavbarItem('servers.cluster'))
-			->parent('servers')->url('cluster_nodes')
-			->label('cluster_nodes')->permissions(['servers'])->order(25));
+		// Cluster Nodes is folded into Manage Servers (servers.manage); no separate entry.
 
 		NavbarRegistry::add((new NavbarItem('servers.proxies'))
 			->parent('servers')->url('proxies')

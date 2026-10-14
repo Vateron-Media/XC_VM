@@ -162,7 +162,7 @@ $rBar = static function (int $pct): string {
                                 $rHealth = (string) ($rNode['health'] ?? '');
                                 $rTone = $rHealth === 'ok' ? 'success' : ($rHealth === 'suspect' ? 'warning' : ($rNode['state'] === 'active' ? 'danger' : 'secondary'));
                                 ?>
-                                <a href="cluster_nodes" class="badge bg-label-<?= $rTone; ?> ms-1" title="<?= htmlspecialchars($language::get('cluster_node_badge_help'), ENT_QUOTES); ?>">
+                                <a href="#node-<?= (int) $rServer['id']; ?>" class="badge bg-label-<?= $rTone; ?> ms-1" title="<?= htmlspecialchars($language::get('cluster_node_badge_help'), ENT_QUOTES); ?>">
                                     <?= htmlspecialchars($language::get('cluster'), ENT_QUOTES); ?> ·
                                     <?= htmlspecialchars($rHealth !== '' ? $rHealth : (string) $rNode['state'], ENT_QUOTES); ?> ·
                                     <?= htmlspecialchars($language::get('cluster_mode'), ENT_QUOTES); ?> <?= (int) $rNode['mode']; ?>
@@ -226,7 +226,7 @@ $rBar = static function (int $pct): string {
                                             <div class="dropdown-divider"></div>
                                             <h6 class="dropdown-header"><?= $language::get('cluster_row_menu'); ?></h6>
                                             <?php if ($rLive): ?>
-                                                <a class="dropdown-item" href="cluster_nodes#node-<?= (int) $rServer['id']; ?>"><i class="icon-base ti tabler-adjustments me-2"></i><?= $language::get('cluster_flows_link'); ?></a>
+                                                <a class="dropdown-item" href="#node-<?= (int) $rServer['id']; ?>"><i class="icon-base ti tabler-adjustments me-2"></i><?= $language::get('cluster_flows_link'); ?></a>
                                                 <?php if ((int) $rNode['mode'] < 1): // the move to mode 2 asks first, on Cluster Nodes ?>
                                                     <form method="POST" action="cluster_nodes"><input type="hidden" name="server_id" value="<?= (int) $rServer['id']; ?>"><input type="hidden" name="mode" value="<?= (int) $rNode['mode']; ?>"><button type="submit" name="cluster_action" value="mode_up" class="dropdown-item" title="<?= htmlspecialchars($language::get('cluster_mode_up_tip'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-arrow-up me-2"></i><?= $language::get('cluster_mode_up'); ?> (<?= (int) $rNode['mode'] + 1; ?>)</button></form>
                                                 <?php endif; ?>
@@ -259,6 +259,26 @@ $rBar = static function (int $pct): string {
         </table>
     </div>
 </div>
+
+<?php // Cluster action results: shown even when the API is off or its tables are not
+// created yet (the action's outcome must never vanish), so rendered here rather
+// than inside the section partial, which is skipped when the cluster is unavailable. ?>
+<?php foreach ($clusterFlashes ?? [] as $rFlash): ?>
+    <div class="alert alert-<?= htmlspecialchars($rFlash['type'], ENT_QUOTES); ?> alert-dismissible" role="alert">
+        <?= htmlspecialchars($language::get($rFlash['message'], $rFlash['vars'] ?? []), ENT_QUOTES); ?>
+        <?php if (!empty($rFlash['code'])): ?>
+            <div class="mt-3">
+                <code class="d-block fs-5 text-break user-select-all js-cluster-code"><?= htmlspecialchars($rFlash['code'], ENT_QUOTES); ?></code>
+                <div class="mt-2 small"><?= $language::get('cluster_code_run_on_node'); ?></div>
+                <code class="d-block text-break user-select-all small">sudo -u xc_vm /home/xc_vm/bin/xc_agent/xc_agent enrol -state /home/xc_vm/config/cluster/agent.json <?= htmlspecialchars($rFlash['code'], ENT_QUOTES); ?></code>
+            </div>
+        <?php endif; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endforeach; ?>
+
+<?php // Cluster: the enrolled nodes, pending enrolments, MAIN data plane, metrics and audit — folded in from the former Cluster Nodes page. ?>
+<?php if (!empty($clusterEnabled)) { include __DIR__ . '/partials/cluster_section.php'; } ?>
 
 <?php // Placement advice (Domain\Cluster\PlacementAdvice): read only, fetched when asked. ?>
 <div class="card mt-4">
@@ -699,6 +719,7 @@ LayoutRenderer::renderFooter('admin');
         }
     })();
 </script>
+<?php if (!empty($clusterEnabled)) { include __DIR__ . '/partials/cluster_section_script.php'; } ?>
 </body>
 
 </html>

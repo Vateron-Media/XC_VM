@@ -32,7 +32,7 @@ final class ClusterRotateNowTest extends TestCase {
 		$this->assertMatchesRegularExpression("/case 'rotate_now':\s*\n(.*\n)*?\s*\[\\\$rRouted, \\\$rQueued\] = ClusterRoute::rotateNow/", $rAdmin);
 		$this->assertStringContainsString("ClusterAudit::log('node.token_rotate'", $rAdmin, 'every decision is audited');
 
-		$rView = $this->src('Public/Views/admin/cluster_nodes.php');
+		$rView = $this->src('Public/Views/admin/partials/cluster_section.php');
 		$this->assertStringContainsString('value="rotate_now"', $rView);
 		$this->assertStringNotContainsString('js-cluster-rotate', $rView, 'no confirmation: rotating costs a node nothing');
 	}

@@ -219,7 +219,7 @@ final class ClusterRestrictiveProducersTest extends TestCase {
 		foreach (['fence', 'unfence', 'quarantine', 'resync', 'trust'] as $rAction) {
 			$this->assertStringContainsString("case '" . $rAction . "':", $rAdmin);
 		}
-		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/cluster_nodes.php');
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/partials/cluster_section.php');
 		$rEn = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
 		foreach (['fence', 'unfence', 'quarantine', 'resync', 'trust'] as $rAction) {
 			$this->assertStringContainsString('value="' . $rAction . '"', $rView);
