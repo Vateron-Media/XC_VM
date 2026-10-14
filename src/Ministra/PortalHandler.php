@@ -773,7 +773,7 @@ class PortalHandler {
 					&& in_array($rCategory["id"], $ctx["device"]["category_ids"])
 				) {
 					$rOutput["js"][] = [
-						"id" => $rCategory["id"],
+						"id" => (string) $rCategory["id"],
 						"title" => $rCategory["category_name"],
 						"alias" => $rCategory["category_name"],
 						"censored" => intval($rCategory["is_adult"]),
@@ -879,7 +879,11 @@ class PortalHandler {
 				exit(json_encode(["js" => true]));
 
 			case "get_fav_ids":
-				exit(json_encode(["js" => $ctx["device"]["fav_channels"]["live"]]));
+				// String ids to match the string channel id the portal JS compares them
+				// against (canonical Stalker returns fav ids as strings) — issue #393.
+				// array_values: set_fav's array_filter can leave non-consecutive keys,
+				// which json_encode would emit as an object instead of a JS array.
+				exit(json_encode(["js" => array_values(array_map("strval", $ctx["device"]["fav_channels"]["live"]))]));
 
 			case "get_all_channels":
 				$rGenre =
@@ -1011,7 +1015,7 @@ class PortalHandler {
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
-							"id" => $rCategory["id"],
+							"id" => (string) $rCategory["id"],
 							"title" => $rCategory["category_name"],
 							"modified" => "",
 							"number" => (string) $rNumber++,
@@ -1111,7 +1115,7 @@ class PortalHandler {
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
-							"id" => $rCategory["id"],
+							"id" => (string) $rCategory["id"],
 							"title" => $rCategory["category_name"],
 							"alias" => $rCategory["category_name"],
 							"censored" => intval($rCategory["is_adult"]),
@@ -1130,7 +1134,7 @@ class PortalHandler {
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
-							"id" => $rCategory["id"],
+							"id" => (string) $rCategory["id"],
 							"title" => $rCategory["category_name"],
 						];
 					}
@@ -1338,7 +1342,7 @@ class PortalHandler {
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
-							"id" => $rCategory["id"],
+							"id" => (string) $rCategory["id"],
 							"title" => $rCategory["category_name"],
 							"alias" => $rCategory["category_name"],
 							"censored" => intval($rCategory["is_adult"]),
@@ -1357,7 +1361,7 @@ class PortalHandler {
 						&& in_array($rCategory["id"], $rCategoryIDs)
 					) {
 						$rOutput["js"][] = [
-							"id" => $rCategory["id"],
+							"id" => (string) $rCategory["id"],
 							"title" => $rCategory["category_name"],
 						];
 					}
@@ -1451,7 +1455,11 @@ class PortalHandler {
 				exit(json_encode(["js" => true]));
 
 			case "get_fav_ids":
-				exit(json_encode(["js" => $ctx["device"]["fav_channels"]["radio_streams"]]));
+				// String ids to match the string station id the portal JS compares them
+				// against (canonical Stalker returns fav ids as strings) — issue #393.
+				// array_values: set_fav's array_filter can leave non-consecutive keys,
+				// which json_encode would emit as an object instead of a JS array.
+				exit(json_encode(["js" => array_values(array_map("strval", $ctx["device"]["fav_channels"]["radio_streams"]))]));
 		}
 	}
 
