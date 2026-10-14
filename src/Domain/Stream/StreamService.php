@@ -919,7 +919,10 @@ class StreamService {
 	 * @return array Archive file list.
 	 */
 	public static function getArchiveFiles(int $rServerID, int $rStreamID) {
-		return json_decode(NodeRpc::request($rServerID, ['action' => 'get_archive_files', 'stream_id' => $rStreamID]), true)['data'];
+		// A node that does not answer in time yields a null decode; return no
+		// files rather than "array offset on null".
+		$rResult = json_decode(NodeRpc::request($rServerID, ['action' => 'get_archive_files', 'stream_id' => $rStreamID]), true);
+		return is_array($rResult) && isset($rResult['data']) ? $rResult['data'] : [];
 	}
 
 	/**
