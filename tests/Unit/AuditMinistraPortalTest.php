@@ -446,6 +446,35 @@ PHP;
 	}
 
 	/**
+	 * get_genres: an adult category carries the canonical Stalker alias "for
+	 * adults". tv.js (check_for_play) skips the per-channel PIN only when
+	 * genre.alias === "for adults"; under any other name the box asks for the
+	 * PIN a second time, per channel — unusable on a remote without number keys,
+	 * even though the adult category is already gated by its censored PIN. A
+	 * normal category keeps its own (lower-cased) name as the alias.
+	 */
+	public function testAdultGenreUsesTheCanonicalForAdultsAlias(): void {
+		$rToken = $this->handshake();
+		$this->portal('stb', 'get_profile', $rToken, self::BOX);
+		$this->primeDevice(['category_ids' => [2, 3]]);
+
+		$rCategories = [
+			['id' => 2, 'category_name' => 'XXX Adult', 'category_type' => 'live', 'is_adult' => 1],
+			['id' => 3, 'category_name' => 'News', 'category_type' => 'live', 'is_adult' => 0],
+		];
+		$rGenres = json_decode($this->portal('itv', 'get_genres', $rToken, [], self::MAC, $rCategories)['body'], true)['js'] ?? null;
+		$this->assertIsArray($rGenres);
+
+		$rByName = [];
+		foreach ($rGenres as $rGenre) {
+			$rByName[$rGenre['title']] = $rGenre;
+		}
+		// The alias comes from is_adult, not the name: "XXX Adult" → "for adults".
+		$this->assertSame('for adults', $rByName['XXX Adult']['alias'] ?? null, 'an adult category must use the canonical "for adults" alias, not its name');
+		$this->assertSame('news', $rByName['News']['alias'] ?? null, 'a normal category keeps its own (lower-cased) alias');
+	}
+
+	/**
 	 * get_fav_ids returns the favourite ids as strings, matching the string channel id the
 	 * portal JS compares them against (canonical Stalker). Ints there would make the strict
 	 * indexOf fail and del/reorder splice the wrong favourite (#393).
