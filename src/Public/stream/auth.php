@@ -11,12 +11,10 @@ use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Cluster\ConnectionAdmission;
 use XcVm\Domain\Security\BlocklistService;
-use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Infrastructure\Signal\SignalQueue;
 use XcVm\Streaming\Auth\StreamAuthMiddleware;
-use XcVm\Streaming\Balancer\ProxySelector;
 use XcVm\Streaming\Delivery\OffAirHandler;
 use XcVm\Streaming\Delivery\StreamRedirector;
 
@@ -536,14 +534,7 @@ if ($rExtension) {
 					generateError('NO_SERVERS_AVAILABLE');
 				}
 
-				if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-					$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
-					$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
-
-					if (!$rProxyID) {
-						generateError('NO_SERVERS_AVAILABLE');
-					}
-
+				if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rChannelInfo['redirect_id']), (int) ($rUserInfo['id'] ?? 0), (bool) (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''))) !== null) {
 					$rChannelInfo['originator_id'] = $rChannelInfo['redirect_id'];
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}
@@ -574,13 +565,12 @@ if ($rExtension) {
 										continue; // a variant with no server to serve it is left out of the master
 									}
 
-									if (($rServers[$rAdaptiveInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-										$rProxies = ConnectionTracker::getProxies($rAdaptiveInfo['redirect_id']);
-										$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
-										if (!$rProxyID) {
-											continue;
-										}
-
+									$rLegacyProxy = (bool) ($rServers[$rAdaptiveInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']));
+									$rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) $rAdaptiveInfo['redirect_id'], (int) ($rUserInfo['id'] ?? 0), $rLegacyProxy, (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''), null);
+									if ($rLegacyProxy && !\XcVm\Streaming\Routing\PlaybackRouter::active() && $rProxyID === null) {
+										continue;
+									}
+									if ($rProxyID !== null) {
 										$rAdaptiveInfo['originator_id'] = $rAdaptiveInfo['redirect_id'];
 										$rAdaptiveInfo['redirect_id'] = $rProxyID;
 									}
@@ -674,14 +664,7 @@ if ($rExtension) {
 			$rChannelInfo = StreamRedirector::redirectStream($rCached, $rSettings, $rServers, $rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserInfo['con_isp_name'], 'movie');
 
 			if ($rChannelInfo) {
-				if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-					$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
-					$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
-
-					if (!$rProxyID) {
-						generateError('NO_SERVERS_AVAILABLE');
-					}
-
+				if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rChannelInfo['redirect_id']), (int) ($rUserInfo['id'] ?? 0), (bool) (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''))) !== null) {
 					$rChannelInfo['originator_id'] = $rChannelInfo['redirect_id'];
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}
@@ -733,14 +716,7 @@ if ($rExtension) {
 			// The archive server's proxies, as for live. (This read $rChannelInfo,
 			// which the timeshift path never sets, so catch-up always bypassed the
 			// proxy — and was refused by an archive server that requires one.)
-			if ((($rServers[$rRedirectID]['enable_proxy'] ?? 0) && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-				$rProxies = ConnectionTracker::getProxies($rRedirectID);
-				$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
-
-				if (!$rProxyID) {
-					generateError('NO_SERVERS_AVAILABLE');
-				}
-
+			if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rRedirectID), (int) ($rUserInfo['id'] ?? 0), (bool) ((($rServers[$rRedirectID]['enable_proxy'] ?? 0) && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''))) !== null) {
 				$rOriginatorID = $rRedirectID;
 				$rRedirectID = $rProxyID;
 			}
@@ -823,14 +799,7 @@ if ($rExtension) {
 			$rTokenData = ['stream' => $rStreamID, 'expires' => time() + 5];
 			$rOriginatorID = null;
 
-			if (($rServers[$rStreamInfo['info']['vframes_server_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-				$rProxies = ConnectionTracker::getProxies($rStreamInfo['info']['vframes_server_id']);
-				$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
-
-				if (!$rProxyID) {
-					generateError('THUMBNAILS_NOT_ENABLED');
-				}
-
+			if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rStreamInfo['info']['vframes_server_id']), (int) ($rUserInfo['id'] ?? 0), (bool) (($rServers[$rStreamInfo['info']['vframes_server_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''), 'THUMBNAILS_NOT_ENABLED')) !== null) {
 				$rOriginatorID = $rStreamInfo['info']['vframes_server_id'];
 				$rStreamInfo['info']['vframes_server_id'] = $rProxyID;
 			}
@@ -845,14 +814,7 @@ if ($rExtension) {
 			$rChannelInfo = StreamRedirector::redirectStream($rCached, $rSettings, $rServers, $rStreamID, 'srt', $rUserInfo, $rCountryCode, $rUserInfo['con_isp_name'], 'movie');
 
 			if ($rChannelInfo) {
-				if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-					$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
-					$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
-
-					if (!$rProxyID) {
-						generateError('NO_SERVERS_AVAILABLE');
-					}
-
+				if (($rProxyID = \XcVm\Streaming\Routing\PlaybackRouter::select((int) ($rChannelInfo['redirect_id']), (int) ($rUserInfo['id'] ?? 0), (bool) (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))), (string) $rCountryCode, (string) ($rUserInfo['con_isp_name'] ?? ''))) !== null) {
 					$rChannelInfo['originator_id'] = $rChannelInfo['redirect_id'];
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}

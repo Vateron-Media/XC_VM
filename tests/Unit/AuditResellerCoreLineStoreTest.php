@@ -275,4 +275,21 @@ final class AuditResellerCoreLineStoreTest extends TestCase {
 		$this->rDb->query('SELECT `action` FROM `users_logs` ORDER BY `id`');
 		$this->assertSame(['new', 'extend', 'edit'], array_column($this->rDb->get_rows(), 'action'), 'sold, a month bought for it, its note changed');
 	}
+
+	#[DataProvider('kinds')]
+	public function testConcurrentBouquetEditIsNotOverwritten(string $kind): void {
+		$id = $this->sold($kind, time() + 86400);
+		$log = new QueryLogDb($this->rDb);
+		$other = TestDb::connect($this->rDb->schema());
+		$log->rBefore = static function (string $query) use ($log, $other): void {
+			if (preg_match('/^(REPLACE INTO|UPDATE) `lines`/', $query)) {
+				$log->rBefore = null;
+				$other->exec("UPDATE `lines` SET `bouquet` = '[7,8]', `bouquet_order_custom` = 1");
+			}
+		};
+		$this->use($log);
+		$this->assertSame(STATUS_FAILURE, $this->save($kind, ['edit' => $id, 'reseller_notes' => 'stale']));
+		$this->rDb->query('SELECT `bouquet`, `reseller_notes` FROM `lines`');
+		$this->assertSame(['bouquet' => '[7,8]', 'reseller_notes' => ''], $this->rDb->get_row());
+	}
 }

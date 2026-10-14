@@ -466,6 +466,15 @@ if (1 < $rICount) { ?>
 			case 'quick_tools':
 				set_time_limit(0);
 
+				foreach ([\XcVm\Domain\Stream\LiveStreamQuickTools::PROGRESS, \XcVm\Domain\Stream\LiveStreamQuickTools::CODECS] as $rTool) {
+					if (isset($rData[$rTool])) {
+						$rResult = \XcVm\Domain\Stream\LiveStreamQuickTools::restart($db, $rTool);
+						$rResult['status'] = $rResult['result'] ? STATUS_SUCCESS : STATUS_FAILURE;
+						echo json_encode($rResult);
+						exit();
+					}
+				}
+
 				if (isset($rData['cleanup_streams'])) {
 					$db->query('DELETE FROM `streams_servers` WHERE (`server_id` NOT IN (SELECT `id` FROM `servers`)) OR (`stream_id` NOT IN (SELECT `id` FROM `streams`));');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));

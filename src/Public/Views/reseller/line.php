@@ -28,6 +28,14 @@ use XcVm\Core\Util\LayoutRenderer;
 $rIsEdit  = isset($rLine);
 $rIsTrial = isset($rRequest['trial']);
 $rAllowChange = (bool) $rPermissions['allow_change_bouquets'];
+$rBouquetAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowed($rUserInfo);
+if ($rIsEdit) {
+    $ownerAllowed = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::forOwner(\XcVm\Infrastructure\Database\DatabaseFactory::get(), (int) $rLine['member_id']);
+    if ($ownerAllowed !== null) {
+        $rBouquetAllowed = $rBouquetAllowed === null ? $ownerAllowed : array_values(array_intersect($rBouquetAllowed, $ownerAllowed));
+    }
+}
+
 
 // Pre-computed review rows for the "No Changes" (empty package) branch on edit —
 // mirrors the legacy server-side render in footer.php: with allow_change_bouquets
@@ -44,9 +52,11 @@ if ($rIsEdit) {
     }
     if (!is_array($rBqList)) {
         $rBqList       = json_decode((string) ($rLine['bouquet'] ?? ''), true) ?: [];
-        $rCheckboxMode = false;
+        $rCheckboxMode = $rAllowChange;
     }
     $rLineBqs = json_decode((string) ($rLine['bouquet'] ?? ''), true) ?: [];
+    $rBqList = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::filter($rBqList, $rBouquetAllowed);
+    $rBqList = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::order($rBqList, $rLineBqs);
     foreach ($rBqList as $rBqID) {
         if ((string) $rBqID === '') {
             continue;
@@ -108,6 +118,10 @@ $rStatusMessages = [
             <input type="hidden" name="trial" value="1">
         <?php endif; ?>
         <input type="hidden" name="bouquets_selected" id="bouquets_selected" value="">
+        <?php if ($rAllowChange): ?>
+        <input type="hidden" name="bouquets_present" value="1">
+        <input type="hidden" name="bouquet_order" id="bouquet_order" value="[]">
+        <?php endif; ?>
 
         <div class="card mb-6">
             <div class="card-header px-0 pt-2">
@@ -117,6 +131,7 @@ $rStatusMessages = [
                         <?php if ($rPermissions['allow_restrictions']): ?>
                             <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-restrictions" role="tab"><i class="icon-base ti tabler-shield-lock me-1"></i>Restrictions</button></li>
                         <?php endif; ?>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-bouquets" role="tab"><i class="icon-base ti tabler-list me-1"></i>Bouquets</button></li>
                         <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-review" role="tab"><i class="icon-base ti tabler-book me-1"></i>Review Purchase</button></li>
                     </ul>
                 </div>
@@ -349,6 +364,12 @@ $rStatusMessages = [
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                    <div class="tab-pane fade" id="tab-bouquets" role="tabpanel">
+                        <div class="px-4 pt-3">
+                            <h6>Bouquets for this customer</h6>
+                            <p class="text-body-secondary small">Package bouquets are selected by default for new lines and trials, within this reseller's allowed selection. Use the checkboxes to change access and the arrow buttons to change this customer's order.</p>
+                        </div>
                         <div class="card-datatable table-responsive">
                             <table class="table" id="datatable-review">
                                 <thead>
@@ -373,6 +394,9 @@ $rStatusMessages = [
             <button type="submit" class="btn btn-primary purchase" id="submit_button">Purchase</button>
         </div>
     </form>
+<?php if ($rIsEdit): ?>
+<?= \XcVm\Core\Module\LineFormRegistry::render($rLine, 'reseller'); ?>
+<?php endif; ?>
 <?php endif; ?>
 
 <?php
@@ -420,6 +444,23 @@ LayoutRenderer::renderFooter('reseller');
             tr.appendChild(td0);
             var tdName = document.createElement('td');
             tdName.textContent = name;
+            if (allowChangeBouquets) {
+                ['up', 'down'].forEach(function(direction) {
+                    var button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'btn btn-sm btn-label-secondary ms-2';
+                    button.textContent = direction === 'up' ? '↑' : '↓';
+                    button.setAttribute('aria-label', 'Move ' + name + ' ' + direction);
+                    button.addEventListener('click', function() {
+                        if (direction === 'up' && tr.previousElementSibling) {
+                            reviewBody.insertBefore(tr, tr.previousElementSibling);
+                        } else if (direction === 'down' && tr.nextElementSibling) {
+                            reviewBody.insertBefore(tr.nextElementSibling, tr);
+                        }
+                    });
+                    tdName.appendChild(button);
+                });
+            }
             tr.appendChild(tdName);
             [ch, mo, se, ra].forEach(function(v) {
                 var td = document.createElement('td');
@@ -434,7 +475,7 @@ LayoutRenderer::renderFooter('reseller');
             reviewBody.innerHTML = '';
             var pid = pkgSelect ? pkgSelect.value : '';
             if (pid && pid.length > 0) {
-                fetch('./api?action=get_package' + pkgTrialSuffix + '&package_id=' + encodeURIComponent(pid) + pkgExtra, {
+                fetch('./api?action=get_package' + pkgTrialSuffix + '&package_id=' + encodeURIComponent(pid) + pkgExtra + '&member_id=' + encodeURIComponent((document.getElementById('member_id') || {}).value || ''), {
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     })
                     .then(function(r) { return r.json(); })
@@ -448,9 +489,17 @@ LayoutRenderer::renderFooter('reseller');
                             document.getElementById('credits-cost').style.display = enough ? '' : 'none';
                             document.getElementById('no-credits').style.display = enough ? 'none' : '';
                             form.querySelectorAll('.purchase').forEach(function(b) { b.disabled = !enough; });
-                            (data.bouquets || []).forEach(function(bq) {
+                            var packageBouquets = data.bouquets || [];
+                            if (userPackage === parseInt(pid)) {
+                                packageBouquets.sort(function(a, b) {
+                                    var ai = userBouquet.indexOf(Number(a.id));
+                                    var bi = userBouquet.indexOf(Number(b.id));
+                                    return (ai < 0 ? 1000000 : ai) - (bi < 0 ? 1000000 : bi);
+                                });
+                            }
+                            packageBouquets.forEach(function(bq) {
                                 var checked;
-                                if (userBouquet.length > 0 && userPackage === parseInt(pid)) {
+                                if (userPackage === parseInt(pid)) {
                                     checked = userBouquet.indexOf(parseInt(bq.id)) !== -1;
                                 } else {
                                     checked = true;
@@ -540,6 +589,10 @@ LayoutRenderer::renderFooter('reseller');
                 var sel = document.getElementById(id);
                 if (sel) { Array.prototype.forEach.call(sel.options, function(o) { o.selected = true; }); }
             });
+            var orderField = document.getElementById('bouquet_order');
+            if (orderField) {
+                orderField.value = JSON.stringify(Array.from(reviewBody.querySelectorAll('input[name="bouquets_selected[]"]:checked'), function(input) { return Number(input.value); }));
+            }
             var btn = document.getElementById('submit_button');
             btn.disabled = true;
             fetch('post.php?action=line', {

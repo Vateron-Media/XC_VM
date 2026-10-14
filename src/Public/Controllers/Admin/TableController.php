@@ -722,7 +722,9 @@ class TableController extends BaseAdminController {
 						}
 					}
 				}
+				$rOnlineInfo = \XcVm\Domain\Stream\OnlineConnectionInfo::forUsers($db, $rLineIDs, (bool) SettingsManager::getAll()['redis_handler']);
 				foreach ($rRows as $rRow) {
+					$rRow = array_merge($rRow, $rOnlineInfo[(int) $rRow['id']] ?? []);
 					if (isset($rLineInfo[$rRow["id"]])) {
 						$rRow = array_merge($rRow, $rLineInfo[$rRow["id"]]);
 					}
@@ -750,6 +752,9 @@ class TableController extends BaseAdminController {
 							"stream_id"           => $rRow["stream_id"] ? (int) $rRow["stream_id"] : null,
 							"stream_display_name" => $rRow["stream_display_name"] ?? null,
 							"last_active"         => $rRow["last_active"] ? (int) $rRow["last_active"] : null,
+							"online_ip" => $rRow['online_ip'] ?? '',
+							"online_isp" => $rRow['online_isp'] ?? '',
+							"online_since" => $rRow['online_since'] ?? 0,
 							"notes"               => array_values(array_filter([(string) ($rRow['admin_notes'] ?? ''), (string) ($rRow['reseller_notes'] ?? '')], static fn(string $rNote): bool => $rNote !== '')),
 						];
 					}
@@ -1961,18 +1966,18 @@ class TableController extends BaseAdminController {
 				$rWhereV[] = $rEndTime;
 			}
 		}
-		if ((string) (RequestManager::get("stream") ?? '') !== '') {
+		if ((string) (RequestManager::get("stream_id", RequestManager::get("stream")) ?? '') !== '') {
 			$rWhere[]  = "`lines_activity`.`stream_id` = ?";
-			$rWhereV[] = RequestManager::get("stream");
+			$rWhereV[] = RequestManager::get("stream_id", RequestManager::get("stream"));
 		}
-		if ((string) (RequestManager::get("user") ?? '') !== '') {
+		if ((string) (RequestManager::get("user_id", RequestManager::get("user")) ?? '') !== '') {
 			$rWhere[]  = "`lines_activity`.`user_id` = ?";
-			$rWhereV[] = RequestManager::get("user");
+			$rWhereV[] = RequestManager::get("user_id", RequestManager::get("user"));
 		}
-		if (0 < (int) (RequestManager::get("server") ?? 0)) {
+		if (0 < (int) (RequestManager::get("server_id", RequestManager::get("server")) ?? 0)) {
 			$rWhere[]  = "(`lines_activity`.`server_id` = ? OR `lines_activity`.`proxy_id` = ?)";
-			$rWhereV[] = (int) (RequestManager::get("server") ?? 0);
-			$rWhereV[] = (int) (RequestManager::get("server") ?? 0);
+			$rWhereV[] = (int) (RequestManager::get("server_id", RequestManager::get("server")) ?? 0);
+			$rWhereV[] = (int) (RequestManager::get("server_id", RequestManager::get("server")) ?? 0);
 		}
 		$rWhereString = $rWhere !== [] ? "WHERE " . implode(" AND ", $rWhere) : "";
 

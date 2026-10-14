@@ -129,19 +129,19 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 			->url('#')->label('active_codes')
 			->icon('ti tabler-key')
 			->permissions(['add_user', 'users', 'mass_edit_lines'])
-			->order(310));
+			->settingDisabled('hide_active_codes')->order(310));
 		NavbarRegistry::add((new NavbarItem('active_codes.add'))
 			->parent('active_codes')->url('active_code')
-			->label('generate_codes')->permissions(['add_user'])->order(10));
+			->label('generate_codes')->permissions(['add_user'])->settingDisabled('hide_active_codes')->order(10));
 		NavbarRegistry::add((new NavbarItem('active_codes.manage'))
 			->parent('active_codes')->url('active_codes')
-			->label('manage_active_codes')->permissions(['users'])->order(20));
+			->label('manage_active_codes')->permissions(['users'])->settingDisabled('hide_active_codes')->order(20));
 		NavbarRegistry::add((new NavbarItem('active_codes.batch'))
 			->parent('active_codes')->url('active_codes_batch')
-			->label('batch_manager')->permissions(['users'])->order(25));
+			->label('batch_manager')->permissions(['users'])->settingDisabled('hide_active_codes')->order(25));
 		NavbarRegistry::add((new NavbarItem('active_codes.mass'))
 			->parent('active_codes')->url('active_codes_mass')
-			->label('mass_edit_active_codes')->permissions(['mass_edit_lines'])->order(30));
+			->label('mass_edit_active_codes')->permissions(['mass_edit_lines'])->settingDisabled('hide_active_codes')->order(30));
 
 		// MAG Devices
 		NavbarRegistry::add((new NavbarItem('mag'))

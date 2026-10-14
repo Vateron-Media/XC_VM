@@ -11,6 +11,7 @@
  */
 
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Domain\Server\ServerRepository;
 
@@ -22,6 +23,10 @@ if (!Authorization::check('adv', 'connection_logs')):
     echo '</body></html>';
     return;
 endif;
+$rSelectedUser = (int) RequestManager::get('user_id', RequestManager::get('user', RequestManager::get('line', 0)));
+$rSelectedStream = (int) RequestManager::get('stream_id', RequestManager::get('stream', 0));
+$rSelectedServer = (int) RequestManager::get('server_id', RequestManager::get('server', 0));
+$rSelectedRange = (string) RequestManager::get('range', '');
 ?>
 
 <div class="card">
@@ -33,24 +38,24 @@ endif;
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label" for="filter-user"><?= $language::get('line'); ?></label>
-                <select id="filter-user" class="form-select"></select>
+                <select id="filter-user" class="form-select"><option value=""></option><?php if ($rSelectedUser > 0): ?><option value="<?= $rSelectedUser; ?>" selected>#<?= $rSelectedUser; ?></option><?php endif; ?></select>
             </div>
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label" for="filter-stream"><?= $language::get('stream'); ?></label>
-                <select id="filter-stream" class="form-select"></select>
+                <select id="filter-stream" class="form-select"><option value=""></option><?php if ($rSelectedStream > 0): ?><option value="<?= $rSelectedStream; ?>" selected>#<?= $rSelectedStream; ?></option><?php endif; ?></select>
             </div>
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label" for="filter-server"><?= $language::get('server'); ?></label>
                 <select id="filter-server" class="form-select">
                     <option value=""><?= $language::get('all_servers'); ?></option>
                     <?php foreach (ServerRepository::getAll() as $rServer): ?>
-                        <option value="<?= (int) $rServer['id']; ?>"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                        <option value="<?= (int) $rServer['id']; ?>"<?= $rSelectedServer === (int) $rServer['id'] ? ' selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label" for="filter-range"><?= $language::get('dates'); ?></label>
-                <input type="text" id="filter-range" class="form-control flatpickr-range" placeholder="<?= $language::get('all_dates'); ?>" autocomplete="off">
+                <input type="text" id="filter-range" value="<?= htmlspecialchars($rSelectedRange, ENT_QUOTES); ?>" class="form-control flatpickr-range" placeholder="<?= $language::get('all_dates'); ?>" autocomplete="off">
             </div>
         </div>
     </div>
@@ -143,9 +148,9 @@ LayoutRenderer::renderFooter('admin');
                 url: './table',
                 data: function(d) {
                     d.id = 'line_activity';
-                    d.user = jQuery('#filter-user').val() || '';
-                    d.stream = jQuery('#filter-stream').val() || '';
-                    d.server = document.getElementById('filter-server').value;
+                    d.user_id = jQuery('#filter-user').val() || '';
+                    d.stream_id = jQuery('#filter-stream').val() || '';
+                    d.server_id = document.getElementById('filter-server').value;
                     d.range = document.getElementById('filter-range').value;
                 }
             },
@@ -293,6 +298,7 @@ LayoutRenderer::renderFooter('admin');
             flatpickr('#filter-range', {
                 mode: 'range',
                 dateFormat: 'Y-m-d',
+                defaultDate: <?= json_encode(preg_match_all('/\d{4}-\d{2}-\d{2}/', $rSelectedRange, $rRangeDates) === 2 ? $rRangeDates[0] : []); ?>,
                 onChange: function(dates) {
                     if (dates.length === 2 || dates.length === 0) {
                         table.ajax.reload();

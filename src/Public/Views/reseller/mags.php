@@ -9,8 +9,7 @@
  *
  * Reseller differences vs admin (the reseller API/renderer simply does not expose
  * these): no bulk toolbar (reseller has no `multi` endpoint), no ban/unban (the
- * reseller cannot toggle admin_enabled) and no fingerprint; no last-connection
- * column (the reseller mags query does not fetch it). Edit navigates to `mag?id=…`
+ * reseller cannot toggle admin_enabled) and no fingerprint. Last Active includes current connection IP/ISP. Edit navigates to `mag?id=…`
  * (the reseller MAG editor has no iframe-modal shell). Row actions are wired ONLY
  * to endpoints ResellerApiDispatcher exposes: `action=mag&sub=enable|disable|
  * delete|convert|reset_isp|kill_line` and `action=send_event` (MAG event). Convert
@@ -106,6 +105,7 @@ $rReportUsers = (array) ($rPermissions['users'] ?? []);
                     <th class="text-center"><?= $language::get('online'); ?></th>
                     <th class="text-center"><?= $language::get('trial'); ?></th>
                     <th class="text-center"><?= $language::get('expiration'); ?></th>
+                    <th><?= $language::get('last_active'); ?></th>
                     <th class="text-center"><?= $language::get('actions'); ?></th>
                 </tr>
             </thead>
@@ -192,7 +192,7 @@ LayoutRenderer::renderFooter('reseller');
                 url: './table',
                 data: function(d) { d.id = 'mags'; d.reseller = jQuery('#filter-reseller').val() || ''; d.filter = document.getElementById('filter-status').value; }
             },
-            columnDefs: [{ orderable: false, targets: [0, 10] }],
+            columnDefs: [{ orderable: false, targets: [0, 10, 11] }],
             columns: [
                 { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
                 { data: 'mag_id', className: 'text-center', render: function(d) { return '<a href="mag?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>'; } },
@@ -210,6 +210,19 @@ LayoutRenderer::renderFooter('reseller');
                         if (!d) { return '<span class="fs-4">&infin;</span>'; }
                         var s = new Date(d * 1000).toLocaleDateString();
                         return d < (Date.now() / 1000) ? '<span class="text-danger">' + esc(s) + '</span>' : esc(s);
+                    }
+                },
+                {
+                    data: 'last_active',
+                    orderable: false,
+                    className: 'text-nowrap',
+                    render: function(d, t, row) {
+                        var html = d ? esc(new Date(d * 1000).toLocaleString()) : <?= json_encode($language::get('never')); ?>;
+                        if (row.active_connections > 0 && row.online_since) {
+                            if (row.online_ip) { html += '<small class="text-body-secondary d-block">IP: ' + esc(row.online_ip) + '</small>'; }
+                            if (row.online_isp) { html += '<small class="text-body-secondary d-block">ISP: ' + esc(row.online_isp) + '</small>'; }
+                        }
+                        return html;
                     }
                 },
                 {

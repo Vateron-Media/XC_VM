@@ -138,4 +138,76 @@ final class AuditResellerCoreBouquetChoiceTest extends TestCase {
 	public function testABouquetIdBesideSuchAValueIsTheChoice(): void {
 		$this->assertSame([3], $this->save('line', [true, '3']));
 	}
+
+	#[DataProvider('kinds')]
+	public function testPackageDefaultsAreLimitedByTheReseller(string $rKind): void {
+		$this->rDb->query('UPDATE `users` SET `allowed_bouquets` = ? WHERE `id` = 5', '[2]');
+		$this->assertSame([2], $this->save($rKind, ''));
+	}
+
+	#[DataProvider('kinds')]
+	public function testARestrictionWaitsUntilTheNextCustomerSave(string $rKind, string $rTable, string $rKey): void {
+		$this->assertSame(self::PACKAGE, $this->save($rKind, ''));
+		$this->rDb->query('UPDATE `users` SET `allowed_bouquets` = ? WHERE `id` = 5', '[2]');
+		$this->rDb->query('SELECT `bouquet` FROM `lines`');
+		$this->assertSame(self::PACKAGE, json_decode($this->rDb->get_col(), true));
+		$this->assertSame([2], $this->save($rKind, '', ['edit' => $this->id($rTable, $rKey)]));
+	}
+
+	public function testCustomerOrderCannotAddBouquetsOutsideThePackage(): void {
+		$this->assertSame([2, 3], $this->save('line', ['2', '3'], [
+			'package' => 1, 'bouquets_present' => '1', 'bouquet_order' => '[1,2,3]',
+		]));
+		$this->rDb->query('SELECT `bouquet_order_custom` FROM `lines`');
+		$this->assertSame(1, (int) $this->rDb->get_col());
+	}
+
+	public function testTheNewCustomerFormCanExplicitlyDeselectAllBouquets(): void {
+		$this->assertSame([], $this->save('line', [], ['package' => 1, 'bouquets_present' => '1', 'bouquet_order' => '[]']));
+	}
+
+	public function testAGroupWithoutBouquetPermissionKeepsPackageDefaults(): void {
+		ResellerAPI::$rPermissions['allow_change_bouquets'] = 0;
+		$this->assertSame(self::PACKAGE, $this->save('line', ['2'], ['package' => 1, 'bouquets_present' => '1', 'bouquet_order' => '[2,3]']));
+	}
+
+	public function testAnEmptyResellerPermissionAllowsNoBouquets(): void {
+		$this->rDb->query('UPDATE `users` SET `allowed_bouquets` = ? WHERE `id` = 5', '[]');
+		$this->assertSame([], $this->save('line', ''));
+	}
+
+	public function testTrialUsesThePackagesDefaultBouquetsWithinTheLimit(): void {
+		$this->rDb->query("UPDATE `users_groups` SET `total_allowed_gen_trials` = 1 WHERE `group_id` = 2");
+		$this->rDb->query("UPDATE `users_packages` SET `is_trial` = 1, `trial_duration` = 1, `trial_duration_in` = 'days', `trial_credits` = 0 WHERE `id` = 1");
+		$this->rDb->query('UPDATE `users` SET `allowed_bouquets` = ? WHERE `id` = 5', '[2]');
+		$this->assertSame([2], $this->save('line', '', ['package' => 1, 'trial' => '1']));
+	}
+
+	#[DataProvider('kinds')]
+	public function testEditsWithoutAnOrderPayloadPreserveTheSavedOrder(string $kind, string $table, string $key): void {
+		$this->assertSame([2, 3], $this->save($kind, [2, 3], ['package' => 1, 'bouquets_present' => 1, 'bouquet_order' => [2, 3]]));
+		$this->assertSame([2, 3], $this->save($kind, [2, 3], ['edit' => $this->id($table, $key)]));
+	}
+
+	public function testNumericSelectionFlagCanExplicitlyDeselectAllBouquets(): void {
+		$this->assertSame([], $this->save('line', [], ['package' => 1, 'bouquets_present' => 1]));
+	}
+
+	public function testAdminConstraintPreservesCustomerOrderAndTemplateIndependence(): void {
+		$this->assertSame([2, 3], $this->save('line', [2, 3], ['package' => 1, 'bouquet_order' => [2, 3]]));
+		$id = $this->id('lines', 'id');
+		$edited = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::constrainOwner(['id' => $id, 'member_id' => 5, 'bouquet' => '[3,2]', 'bouquet_order_custom' => 1, 'custom_data' => null], $this->rDb);
+		$this->assertSame('[2,3]', $edited['bouquet']);
+		$this->assertNull($edited['custom_data']);
+		$this->assertSame(1, $edited['bouquet_order_custom']);
+	}
+
+	public function testOrderMigrationPreservesEarlierCustomOrderMarkers(): void {
+		$this->save('line', [2, 3]);
+		$this->rDb->query('UPDATE `lines` SET `custom_data` = ?', '{"bouquet_order":true}');
+		$this->rDb->exec(InstallSchema::migration('096_add_customer_bouquet_order'));
+		$this->rDb->exec(InstallSchema::migration('096_add_customer_bouquet_order'));
+		$this->rDb->query('SELECT `bouquet_order_custom` FROM `lines`');
+		$this->assertSame(1, (int) $this->rDb->get_col());
+	}
 }

@@ -148,6 +148,7 @@ class ActiveCodeService {
 		if ($selectedBouquets === []) {
 			$selectedBouquets = $packageBouquets;
 		}
+		$selectedBouquets = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::filter($selectedBouquets, \XcVm\Domain\Bouquet\ResellerBouquetPolicy::forOwner($db, (int) $targetOwnerId));
 		$bouquetsJson = '[' . implode(',', array_map('intval', $selectedBouquets)) . ']';
 
 		$dnsBase = trim($data['dns_base'] ?? '') ?: null;

@@ -35,11 +35,13 @@ $xmAccents  = ['primary', 'success', 'info', 'warning', 'danger'];
 // The "/ total" secondary is "this server / whole fleet", so it only means
 // something with a server selected; in the fleet view it duplicates or reads 0.
 $xmPerServer = $xmServerId !== null;
+$xmConnectionLink = 'live_connections' . ($xmServerId > 0 ? '?server_id=' . $xmServerId : '');
+$xmStreamServerQuery = $xmServerId > 0 ? '&server_id=' . $xmServerId : '';
 $xmTiles = [
-    ['active-connections', 'ti tabler-plug-connected', 'primary', $language::get('dashboard_online_connections'), Authorization::check('adv', 'live_connections') ? 'live_connections' : null, $xmPerServer, ''],
-    ['online-users',       'ti tabler-users',          'success', $language::get('dashboard_active_lines'),        Authorization::check('adv', 'live_connections') ? 'live_connections' : null, $xmPerServer, ''],
-    ['active-streams',     'ti tabler-player-play',    'info',    $language::get('dashboard_live_streams'),        Authorization::check('adv', 'streams') ? 'streams?filter=1' : null, false, ''],
-    ['offline-streams',    'ti tabler-alert-triangle', 'danger',  $language::get('dashboard_down_streams'),        Authorization::check('adv', 'streams') ? 'streams?filter=2' : null, false, ''],
+    ['active-connections', 'ti tabler-plug-connected', 'primary', $language::get('dashboard_online_connections'), Authorization::check('adv', 'live_connections') ? $xmConnectionLink : null, $xmPerServer, ''],
+    ['online-users',       'ti tabler-users',          'success', $language::get('dashboard_active_lines'),        Authorization::check('adv', 'live_connections') ? $xmConnectionLink : null, $xmPerServer, ''],
+    ['active-streams',     'ti tabler-player-play',    'info',    $language::get('dashboard_live_streams'),        Authorization::check('adv', 'streams') ? 'streams?filter=1' . $xmStreamServerQuery : null, false, ''],
+    ['offline-streams',    'ti tabler-alert-triangle', 'danger',  $language::get('dashboard_down_streams'),        Authorization::check('adv', 'streams') ? 'streams?filter=2' . $xmStreamServerQuery : null, false, ''],
     ['output-flow',        'ti tabler-arrow-up-right', 'primary', $language::get('dashboard_network_output'),      null, false, 'Mbps'],
     ['input-flow',         'ti tabler-arrow-down-left', 'warning', $language::get('dashboard_network_input'),       null, false, 'Mbps'],
 ];

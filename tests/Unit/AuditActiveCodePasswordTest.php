@@ -27,7 +27,7 @@ final class AuditActiveCodePasswordTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		foreach (['users_packages', 'lines', 'lines_live', 'activation_codes'] as $rTable) {
+		foreach (['users', 'users_packages', 'lines', 'lines_live', 'activation_codes'] as $rTable) {
 			$this->rDb->exec(InstallSchema::table($rTable));
 		}
 		$this->rDb->exec(InstallSchema::migration('024_add_custom_data_to_lines'));

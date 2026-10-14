@@ -155,7 +155,7 @@ LayoutRenderer::renderFooter('reseller');
                             return badge;
                         }
                         // The badge opens the connection list; the hammer purges the whole stream at once.
-                        return '<span class="text-nowrap"><a href="live_connections?stream=' + encodeURIComponent(row.id) + '&stream_id=' + encodeURIComponent(row.id) + '">' + badge + '</a> '
+                        return '<span class="text-nowrap"><a href="live_connections?stream_id=' + encodeURIComponent(row.id) + '">' + badge + '</a> '
                             + '<button type="button" class="btn btn-sm btn-icon btn-label-danger js-act" title="' + esc(lang.kill) + '" data-id="' + esc(row.id) + '"><i class="icon-base ti tabler-hammer"></i></button></span>';
                     }
                 }

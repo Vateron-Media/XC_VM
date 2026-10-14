@@ -291,6 +291,8 @@ class LineService {
 			$rArray['allowed_outputs'] = '[' . implode(',', array_map('intval', $rOutputs)) . ']';
 
 			$rArray = \XcVm\Domain\Stream\CategoryTemplateService::applyCustomData($rData, $rArray);
+			$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::preserveOrder($rArray, $rLine ?? []);
+			$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::constrainOwner($rArray, $db);
 
 			$rEditID = (isset($rData['edit']) ? intval($rData['edit']) : null);
 

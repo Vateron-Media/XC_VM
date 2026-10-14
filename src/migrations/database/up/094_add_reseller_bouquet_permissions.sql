@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `allowed_bouquets` TEXT DEFAULT NULL;

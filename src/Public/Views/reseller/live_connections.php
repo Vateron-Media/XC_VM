@@ -32,8 +32,8 @@ endif;
 $rCanVod = !empty($rPermissions['can_view_vod']);
 
 // Deep-link filters. ?line=ID pre-selects a specific line; ?user=ID / ?stream=ID too.
-$rSelectedLine = RequestManager::has('line') ? (int) RequestManager::get('line') : 0;
-$rSelectedStream = RequestManager::has('stream') ? (int) RequestManager::get('stream') : 0;
+$rSelectedLine = (int) RequestManager::get('user_id', RequestManager::get('line', 0));
+$rSelectedStream = (int) RequestManager::get('stream_id', RequestManager::get('stream', 0));
 $rSelectedOwner = RequestManager::has('user') ? (string) RequestManager::get('user') : '';
 
 $rDirectReports = (array) ($rPermissions['direct_reports'] ?? []);
@@ -50,11 +50,17 @@ $rReportUsers = (array) ($rPermissions['users'] ?? []);
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-4">
                 <label class="form-label" for="filter-line"><?= $language::get('line'); ?></label>
-                <select id="filter-line" class="form-select"></select>
+                <select id="filter-line" class="form-select">
+                    <option value=""></option>
+                    <?php if ($rSelectedLine > 0): ?><option value="<?= $rSelectedLine; ?>" selected>#<?= $rSelectedLine; ?></option><?php endif; ?>
+                </select>
             </div>
             <div class="col-12 col-sm-6 col-lg-4">
                 <label class="form-label" for="filter-stream"><?= $language::get('stream'); ?></label>
-                <select id="filter-stream" class="form-select"></select>
+                <select id="filter-stream" class="form-select">
+                    <option value=""></option>
+                    <?php if ($rSelectedStream > 0): ?><option value="<?= $rSelectedStream; ?>" selected>#<?= $rSelectedStream; ?></option><?php endif; ?>
+                </select>
             </div>
             <div class="col-12 col-sm-6 col-lg-4">
                 <label class="form-label" for="filter-owner"><?= $language::get('owner'); ?></label>
@@ -332,13 +338,6 @@ LayoutRenderer::renderFooter('reseller');
         jQuery('#filter-owner').on('change', function() {
             table.ajax.reload();
         });
-
-        <?php if ($rSelectedLine): ?>
-        jQuery('#filter-line').append(new Option('#<?= $rSelectedLine; ?>', '<?= $rSelectedLine; ?>', true, true)).trigger('change');
-        <?php endif; ?>
-        <?php if ($rSelectedStream): ?>
-        jQuery('#filter-stream').append(new Option('#<?= $rSelectedStream; ?>', '<?= $rSelectedStream; ?>', true, true)).trigger('change');
-        <?php endif; ?>
 
         // Kill a connection (reseller api: action=line_activity&sub=kill&uuid=…).
         jQuery('#live-table tbody').on('click', '.js-kill', function() {

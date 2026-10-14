@@ -300,6 +300,7 @@ class EnigmaService {
 
 				if (0 >= $db->num_rows()) {
 					$rUserArray = CategoryTemplateService::applyCustomData($rData, $rUserArray);
+					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::constrainOwner($rUserArray, $db);
 					$rPrepare = QueryHelper::prepareArray($rUserArray);
 
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';

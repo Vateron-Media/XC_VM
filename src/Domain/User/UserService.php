@@ -182,6 +182,23 @@ class UserService {
 				}
 			}
 
+			if (isset($rUser, $rData['bouquet_limit_revision'])
+				&& (!is_string($rData['bouquet_limit_revision']) || !hash_equals(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowanceRevision($rUser), $rData['bouquet_limit_revision']))
+			) {
+				return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+			}
+
+			// Only the admin account editor owns this permission field.
+			if (array_key_exists('bouquet_limit_enabled', $rData)) {
+				$rArray['allowed_bouquets'] = in_array($rData['bouquet_limit_enabled'], ['1', 1], true)
+					? json_encode(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rData['allowed_bouquets'] ?? []))
+					: null;
+			} elseif (isset($rUser)) {
+				unset($rArray['allowed_bouquets']);
+			} else {
+				$rArray['allowed_bouquets'] = null;
+			}
+
 			// The group is stored as the number it is checked as.
 			$rArray['member_group_id'] = intval($rArray['member_group_id']);
 
@@ -248,12 +265,23 @@ class UserService {
 						$rPrepare = QueryHelper::prepareArray(array_diff_key($rArray, ['id' => 0, 'credits' => 0]));
 						$rQuery = 'UPDATE `users` SET ' . $rPrepare['update'] . ' WHERE `id` = ?;';
 						$rPrepare['data'][] = $rUser['id'];
+						if (array_key_exists('bouquet_limit_enabled', $rData)) {
+							$rQuery = rtrim($rQuery, ';') . ' AND `allowed_bouquets` <=> ?;';
+							$rPrepare['data'][] = $rUser['allowed_bouquets'] ?? null;
+						}
 					} else {
 						$rPrepare = QueryHelper::prepareArray($rArray);
 						$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 					}
 
 					if ($db->query($rQuery, ...$rPrepare['data'])) {
+						if (isset($rUser) && array_key_exists('bouquet_limit_enabled', $rData) && $db->num_rows() === 0) {
+							$db->query('SELECT `allowed_bouquets` FROM `users` WHERE `id` = ?;', $rUser['id']);
+							$current = $db->get_raw_row();
+							if (!$current || $current['allowed_bouquets'] !== ($rUser['allowed_bouquets'] ?? null)) {
+								return ['status' => STATUS_FAILURE, 'data' => $rData];
+							}
+						}
 						$rInsertID = (isset($rUser) ? $rUser['id'] : $db->last_insert_id());
 
 						// The second factor of an account that lost it, turned off by an admin.

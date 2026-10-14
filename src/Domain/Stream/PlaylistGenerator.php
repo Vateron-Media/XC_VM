@@ -93,14 +93,14 @@ class PlaylistGenerator {
 		// minted from. A change to what generate() reads of the line or the request
 		// must join it, and so must HOST if ServerRepository::getPublicURL() (the
 		// image URLs, via ImageUtils::validateURL) ever reads the request's host.
-		$rCacheName = hash('sha256', serialize([$rUserInfo['id'], $rUserInfo['username'], $rUserInfo['password'], $rUserInfo['access_token'], $rUserInfo['bouquet'], $rUserInfo['is_restreamer'], $rUserInfo['is_stalker'], $rUserInfo['force_server_id'], $rUserInfo['custom_data'] ?? null, $rDeviceKey, $rOutputKey, $rTypeKey, $rProxy, $rDomainName, $rEncryptPlaylist, $rSettings['live_streaming_pass'], defined('OPENSSL_EXTRA') ? OPENSSL_EXTRA : null, !empty($rSettings['secure_stream_tokens'])]));
+		$rCacheName = hash('sha256', serialize([$rUserInfo['id'], $rUserInfo['username'], $rUserInfo['password'], $rUserInfo['access_token'], $rUserInfo['bouquet'], $rUserInfo['is_restreamer'], $rUserInfo['is_stalker'], $rUserInfo['force_server_id'], $rUserInfo['custom_data'] ?? null, $rUserInfo['bouquet_order_custom'] ?? 0, $rDeviceKey, $rOutputKey, $rTypeKey, $rProxy, $rDomainName, $rEncryptPlaylist, $rSettings['live_streaming_pass'], defined('OPENSSL_EXTRA') ? OPENSSL_EXTRA : null, !empty($rSettings['secure_stream_tokens'])]));
 
 		$db->query('SELECT t1.*,t2.* FROM `output_devices` t1 LEFT JOIN `output_formats` t2 ON t2.access_output_id = t1.default_output WHERE t1.device_key = ? LIMIT 1', $rDeviceKey);
 		if ($db->num_rows() <= 0) {
 			return false;
 		}
 		$rDeviceInfo = $db->get_row();
-		if (strlen($rUserInfo['access_token']) == 32) {
+		if (strlen((string) ($rUserInfo['access_token'] ?? '')) == 32) {
 			$rFilename = str_replace('{USERNAME}', $rUserInfo['access_token'], $rDeviceInfo['device_filename']);
 		} else {
 			$rFilename = str_replace('{USERNAME}', $rUserInfo['username'], $rDeviceInfo['device_filename']);
@@ -186,8 +186,8 @@ class PlaylistGenerator {
 			$rChannelIDs = $rUserInfo['channel_ids'];
 		}
 
-		if (in_array($rSettings['channel_number_type'], ['bouquet_new', 'manual'])) {
-			$rChannelIDs = StreamSorter::sortChannels($rChannelIDs);
+		if (\XcVm\Domain\Bouquet\ResellerBouquetPolicy::hasCustomOrder($rUserInfo) || in_array($rSettings['channel_number_type'], ['bouquet_new', 'manual'])) {
+			$rChannelIDs = StreamSorter::sortChannels($rChannelIDs, $rUserInfo);
 		}
 
 		unset($rUserInfo['live_ids'], $rUserInfo['vod_ids'], $rUserInfo['radio_ids'], $rUserInfo['episode_ids'], $rUserInfo['channel_ids']);
@@ -197,7 +197,7 @@ class PlaylistGenerator {
 		header('Expires: 0');
 		header('Cache-Control: must-revalidate');
 		header('Pragma: public');
-		if (strlen($rUserInfo['access_token']) == 32) {
+		if (strlen((string) ($rUserInfo['access_token'] ?? '')) == 32) {
 			header('Content-Disposition: attachment; filename="' . str_replace('{USERNAME}', $rUserInfo['access_token'], $rDeviceInfo['device_filename']) . '"');
 		} else {
 			header('Content-Disposition: attachment; filename="' . str_replace('{USERNAME}', $rUserInfo['username'], $rDeviceInfo['device_filename']) . '"');
@@ -263,7 +263,7 @@ class PlaylistGenerator {
 						} else {
 							$rChannelInfo['stream_display_name'] = StreamSorter::formatTitle($rChannelInfo['stream_display_name'], $rChannelInfo['year']);
 						}
-						if (strlen($rUserInfo['access_token']) == 32) {
+						if (strlen((string) ($rUserInfo['access_token'] ?? '')) == 32) {
 							$rURL = $rDomainName . $rChannelInfo['type_output'] . '/' . $rUserInfo['access_token'] . '/';
 							if ($rChannelInfo['live'] == 0) {
 								$rURL .= $rChannelInfo['id'] . '.' . $rChannelInfo['target_container'];
@@ -397,7 +397,7 @@ class PlaylistGenerator {
 
 						$rIcon = '';
 						if ($rChannel['live'] == 0) {
-							if (strlen($rUserInfo['access_token']) == 32) {
+							if (strlen((string) ($rUserInfo['access_token'] ?? '')) == 32) {
 								$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
 							} elseif ($rEncryptPlaylist) {
 								$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '/' . $rChannel['target_container'];
@@ -411,7 +411,7 @@ class PlaylistGenerator {
 							}
 						} else {
 							if ($rOutputKey != 'rtmp' || !array_key_exists($rChannel['id'], $rRTMPRows)) {
-								if (strlen($rUserInfo['access_token']) == 32) {
+								if (strlen((string) ($rUserInfo['access_token'] ?? '')) == 32) {
 									if ($rSettings['cloudflare'] && $rOutputExt == 'ts') {
 										$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'];
 									} else {
@@ -439,7 +439,7 @@ class PlaylistGenerator {
 								} else {
 									$rServerID = ($rSettings['rtmp_random'] == 1 ? $rAvailableServers[array_rand($rAvailableServers, 1)] : $rAvailableServers[0]);
 								}
-								if (strlen($rUserInfo['access_token']) == 32) {
+								if (strlen((string) ($rUserInfo['access_token'] ?? '')) == 32) {
 									$rURL = $rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?token=' . $rUserInfo['access_token'];
 								} elseif ($rEncryptPlaylist) {
 									$rEncData = $rUserInfo['username'] . '/' . $rUserInfo['password'];

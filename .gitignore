@@ -45,6 +45,7 @@ __pycache__/
 *.pyc
 
 # --- Local agent and developer tooling --------------------------------------
+.github/skills/
 # sync-dev.sh incremental-deploy watermark (per-checkout, not shared)
 .dev-sync-state
 .playwright-mcp/

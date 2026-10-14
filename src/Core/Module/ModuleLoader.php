@@ -20,8 +20,10 @@ use XcVm\Core\Module\Contract\PermissionProviderInterface;
 use XcVm\Core\Module\Contract\QuickToolsProviderInterface;
 use XcVm\Core\Module\Contract\ResellerNavbarProviderInterface;
 use XcVm\Core\Module\Contract\ServiceProviderInterface;
+use XcVm\Core\Module\Contract\StreamRoutingProviderInterface;
 use XcVm\Core\Module\Contract\TableProviderInterface;
 use XcVm\Core\Module\Contract\TopbarProviderInterface;
+use XcVm\Streaming\Routing\PlaybackRouter;
 
 /**
  * ModuleLoader — automatic system module loader and dependency resolver.
@@ -70,6 +72,115 @@ class ModuleLoader {
 	private static array $autoloadedPaths = [];
 
 	/**
+	 * Load only declared stream-routing providers for the streaming hot path.
+	 *
+	 * Unlike loadAll(), this does not instantiate or boot every module.
+	 */
+	public function loadStreamRoutingProviders(?string $modulesDir = null): void {
+		PlaybackRouter::reset();
+		$modulesDir ??= defined('MAIN_HOME')
+			? MAIN_HOME . 'Modules'
+			: dirname(__DIR__, 2) . '/Modules';
+		$overridesPath = defined('CONFIG_PATH')
+			? CONFIG_PATH . 'modules.php'
+			: dirname(__DIR__, 2) . '/config/modules.php';
+
+		if (!is_file($overridesPath)) {
+			return;
+		}
+
+		try {
+			$overrides = require $overridesPath;
+		} catch (\Throwable $e) {
+			error_log('ModuleLoader: unable to read stream-routing module overrides: ' . $e->getMessage());
+			return;
+		}
+		if (!is_array($overrides)) {
+			error_log('ModuleLoader: stream-routing module overrides are not an array');
+			return;
+		}
+		$this->overrides = $overrides;
+
+		$jsonFiles = glob($modulesDir . '/*/module.json') ?: [];
+		$vendorDir = $this->resolveVendorDir($modulesDir);
+		if ($vendorDir !== null) {
+			foreach ($this->collectComposerModuleManifests($vendorDir) as $manifest) {
+				if (!in_array($manifest, $jsonFiles, true)) {
+					$jsonFiles[] = $manifest;
+				}
+			}
+		}
+		if ($jsonFiles === []) {
+			return;
+		}
+		sort($jsonFiles, SORT_STRING);
+
+		$discovered = $this->discoverModules($jsonFiles, $this->getCurrentEnvironment());
+		try {
+			$loadOrder = $this->resolveLoadOrder($discovered);
+		} catch (\Throwable $e) {
+			error_log('ModuleLoader: unable to resolve stream-routing providers: ' . $e->getMessage());
+			return;
+		}
+
+		foreach ($loadOrder as $name) {
+			$modulePath = $discovered[$name]['path'];
+			$manifest = $discovered[$name]['manifest'];
+			$routing = $manifest['stream_routing'] ?? null;
+			if ($routing === null) {
+				continue;
+			}
+
+			$override = $this->overrides[$name] ?? $this->overrides[basename($modulePath)] ?? [];
+			if (empty($override['installed_version'])) {
+				continue;
+			}
+			if ($routing['version'] !== PlaybackRouter::API_VERSION) {
+				error_log("ModuleLoader: skipping stream-routing provider for '{$name}' — unsupported API version {$routing['version']}");
+				continue;
+			}
+			if (dirname($modulePath) === rtrim($modulesDir, '/')
+				&& ModuleQuarantine::reason($modulesDir, basename($modulePath)) !== null
+			) {
+				continue;
+			}
+
+			$moduleClass = $this->resolveClassName($name);
+			$namespaceEnd = strrpos($moduleClass, '\\');
+			$moduleNamespace = $namespaceEnd === false ? '' : substr($moduleClass, 0, $namespaceEnd);
+			$providerClass = $routing['class'];
+			if ($moduleNamespace === '' || !str_starts_with($providerClass, $moduleNamespace . '\\')) {
+				error_log("ModuleLoader: skipping stream-routing provider for '{$name}' — class is outside the module namespace");
+				continue;
+			}
+
+			$moduleRoot = realpath($modulePath);
+			$providerFile = realpath($modulePath . '/' . $routing['file']);
+			if ($moduleRoot === false || $providerFile === false
+				|| !str_starts_with($providerFile, $moduleRoot . DIRECTORY_SEPARATOR)
+			) {
+				error_log("ModuleLoader: skipping stream-routing provider for '{$name}' — provider file is unavailable or outside the module");
+				continue;
+			}
+
+			$this->registerModuleAutoloader($modulePath, $moduleNamespace);
+			try {
+				require_once $providerFile;
+				if (!class_exists($providerClass, false)) {
+					throw new \RuntimeException("Provider class '{$providerClass}' was not declared");
+				}
+				$provider = new $providerClass();
+				if (!$provider instanceof StreamRoutingProviderInterface) {
+					throw new \RuntimeException("Provider class '{$providerClass}' does not implement StreamRoutingProviderInterface");
+				}
+				PlaybackRouter::register($provider);
+			} catch (\Throwable $e) {
+				error_log("ModuleLoader: stream-routing provider for '{$name}' failed to load: " . $e->getMessage());
+			}
+		}
+	}
+
+	/**
 	 * Loads all discovered modules from modules/ directory.
 	 *
 	 * Performs automatic discovery, dependency validation, load order resolution,
@@ -109,6 +220,7 @@ class ModuleLoader {
 		if ($jsonFiles === []) {
 			return $this;
 		}
+
 
 		sort($jsonFiles, SORT_STRING);
 
@@ -278,6 +390,7 @@ class ModuleLoader {
 
 		// Module stream-form tabs and import kinds (modules add them from boot()).
 		StreamFormRegistry::reset();
+		LineFormRegistry::reset();
 		ImportSourceRegistry::reset();
 		AdminApiRegistry::reset();
 
@@ -693,9 +806,36 @@ class ModuleLoader {
 			'has_settings'          => (bool) ($manifest['has_settings'] ?? false),
 			'priority'              => (int) ($manifest['priority'] ?? 0),
 			'update'                => self::normalizeUpdateBlock($manifest, $manifest['name'] ?? $name),
+			'stream_routing'        => self::normalizeStreamRouting($manifest['stream_routing'] ?? null, $name),
 			// SourceDriverRegistry: driver FQCNs and the first-output wait they need.
 			'source_drivers'        => array_values(array_filter((array) ($manifest['source_drivers'] ?? []), 'is_string')),
 			'start_timeout'         => max(0, (int) ($manifest['start_timeout'] ?? 0)),
+		];
+	}
+
+	/**
+	 * Normalize the optional provider contract used by streaming requests.
+	 *
+	 * @return array{version:int,file:string,class:string}|null
+	 */
+	private static function normalizeStreamRouting(mixed $routing, string $name): ?array {
+		if ($routing === null) {
+			return null;
+		}
+		if (!is_array($routing)
+			|| !is_int($routing['version'] ?? null)
+			|| !is_string($routing['file'] ?? null)
+			|| !preg_match('/^[A-Za-z0-9_\/-]+\.php$/', $routing['file'])
+			|| in_array('..', explode('/', $routing['file']), true)
+			|| !is_string($routing['class'] ?? null)
+			|| !preg_match('/^XcVm\\\\Module\\\\[A-Za-z_][A-Za-z0-9_\\\\]*$/', $routing['class'])
+		) {
+			throw new ModuleManifestException("ModuleLoader: invalid stream_routing contract for module {$name}");
+		}
+		return [
+			'version' => $routing['version'],
+			'file'    => $routing['file'],
+			'class'   => $routing['class'],
 		];
 	}
 

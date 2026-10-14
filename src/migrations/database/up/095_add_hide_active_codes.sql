@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD COLUMN IF NOT EXISTS `hide_active_codes` TINYINT(1) NOT NULL DEFAULT 0;

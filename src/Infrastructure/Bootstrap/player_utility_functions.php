@@ -204,7 +204,7 @@ function getUserStreams(array $rUserInfo, array $rTypes = [], ?int $rCategoryID 
 				break;
 		}
 	}
-	$rChannels = StreamSorter::sortChannels($rChannels);
+	$rChannels = StreamSorter::sortChannels($rChannels, $rUserInfo);
 
 	if (!empty($rFav)) {
 		$favoriteChannelIds = [];
@@ -261,7 +261,7 @@ function getUserStreams(array $rUserInfo, array $rTypes = [], ?int $rCategoryID 
 
 			case 'number':
 			default:
-				if (SettingsManager::getString('channel_number_type') != 'manual') {
+				if (SettingsManager::getString('channel_number_type') != 'manual' || \XcVm\Domain\Bouquet\ResellerBouquetPolicy::hasCustomOrder($rUserInfo)) {
 					$rOrder = 'FIELD(id,' . implode(',', $rChannels) . ')';
 				} else {
 					$rOrder = '`order` ASC';

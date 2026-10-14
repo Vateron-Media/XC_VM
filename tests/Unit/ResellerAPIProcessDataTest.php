@@ -58,4 +58,8 @@ final class ResellerAPIProcessDataTest extends TestCase {
 			ResellerAPI::$rPermissions = $rBefore;
 		}
 	}
+
+	public function testResellerCannotChangeItsOwnBouquetAllowance(): void {
+		$this->assertSame([], ResellerAPI::processData('user', ['allowed_bouquets' => [1, 2], 'bouquet_limit_enabled' => '0']));
+	}
 }

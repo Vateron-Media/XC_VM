@@ -1165,7 +1165,7 @@ function getItems(
 		$rWhereV[] = $rPicking["genre"];
 	}
 
-	$rChannels = StreamSorter::sortChannels($rChannels);
+	$rChannels = StreamSorter::sortChannels($rChannels, $rDevice);
 
 	if (empty($rFav)) {
 	} else {
@@ -1223,7 +1223,7 @@ function getItems(
 
 		case "number":
 		default:
-			if ($rSettings["channel_number_type"] != "manual") {
+			if ($rSettings["channel_number_type"] != "manual" || \XcVm\Domain\Bouquet\ResellerBouquetPolicy::hasCustomOrder($rDevice)) {
 				$rOrder = "FIELD(id," . implode(",", $rChannels) . ")";
 			} else {
 				$rOrder = "`order` ASC";

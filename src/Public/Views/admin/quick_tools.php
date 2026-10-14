@@ -14,6 +14,8 @@ $rTabs = [
     'streams' => ['tabler-player-play', 'streams', [
         ['restart_all_streams', 'restart_all_streams'],
         ['restart_online_streams', 'restart_online_streams'],
+        ['restart_abnormal_progress', 'restart_abnormal_progress'],
+        ['restart_missing_codecs', 'restart_missing_codecs'],
         ['start_offline_streams', 'start_offline_streams'],
         ['stop_online_streams', 'stop_online_streams'],
         ['stop_down_streams', 'stop_down_streams'],
@@ -190,7 +192,12 @@ LayoutRenderer::renderFooter('admin');
                         }
                         btn.disabled = false;
                         btn.innerHTML = original;
-                        toast(d && d.result !== false ? 'Task started.' : errText, d && d.result !== false ? 'success' : 'error');
+                        var message = d && d.result !== false ? 'Task started.' : errText;
+                        if (d && typeof d.matched === 'number' && typeof d.submitted === 'number') {
+                            message = <?= json_encode($language::get('live_restart_requests')); ?>.replace('{submitted}', d.submitted).replace('{matched}', d.matched);
+                            if (d.result === false) { message = errText + ' ' + message; }
+                        }
+                        toast(message, d && d.result !== false ? 'success' : 'error');
                     })
                     .catch(function() {
                         btn.disabled = false;

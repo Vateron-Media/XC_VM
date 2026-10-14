@@ -24,6 +24,8 @@ class ResellerLiveConnectionsController extends BaseResellerController {
 		$this->setTitle('Live Connections');
 
 		$rRequest = RequestManager::getAll();
+		$rRequest['line'] = $rRequest['user_id'] ?? $rRequest['line'] ?? null;
+		$rRequest['stream'] = $rRequest['stream_id'] ?? $rRequest['stream'] ?? null;
 		$data = [
 			'redisEnabled' => (bool) SettingsManager::get('redis_handler'),
 		];

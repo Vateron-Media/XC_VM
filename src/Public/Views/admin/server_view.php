@@ -71,8 +71,8 @@ $rDiskLabel   = (1099511627776 < ($rWatchdog['total_disk_space'] ?? 0))
         array('online_users', 'ti tabler-users', 'success', $language::get('users'), Authorization::check('adv', 'live_connections') ? 'live_connections?server_id=' . $rServerId : null),
     );
     if ($rIsMain) {
-        $rTiles[] = array('total_running_streams', 'ti tabler-player-play', 'info', $language::get('streams'), Authorization::check('adv', 'streams') ? 'streams?filter=1&server=' . $rServerId : null);
-        $rTiles[] = array('offline_streams', 'ti tabler-alert-triangle', 'danger', $language::get('down'), Authorization::check('adv', 'streams') ? 'streams?filter=2&server=' . $rServerId : null);
+        $rTiles[] = array('total_running_streams', 'ti tabler-player-play', 'info', $language::get('streams'), Authorization::check('adv', 'streams') ? 'streams?filter=1&server_id=' . $rServerId : null);
+        $rTiles[] = array('offline_streams', 'ti tabler-alert-triangle', 'danger', $language::get('down'), Authorization::check('adv', 'streams') ? 'streams?filter=2&server_id=' . $rServerId : null);
     }
     $rTileCol = $rIsMain ? 'col-sm-6 col-xl-3' : 'col-sm-6';
     foreach ($rTiles as list($rId, $rIcon, $rAccent, $rLabel, $rLink)):

@@ -84,4 +84,13 @@ final class CategoryTemplateApplyCustomDataTest extends TestCase {
 		$target = ['username' => 'bob', 'custom_data' => 'EXISTING'];
 		$this->assertSame($target, CategoryTemplateService::applyCustomData([], $target));
 	}
+
+	public function testChangingOrClearingTemplatesKeepsTheIndependentBouquetOrderFlag(): void {
+		$line = ['bouquet' => '[3,2]', 'bouquet_order_custom' => 1, 'custom_data' => '{"template_id":4}'];
+		foreach (['5', '0', 'none'] as $id) {
+			$result = CategoryTemplateService::applyCustomData(['category_template_id' => $id], $line);
+			$this->assertSame(1, $result['bouquet_order_custom']);
+			$this->assertSame('[3,2]', $result['bouquet']);
+		}
+	}
 }

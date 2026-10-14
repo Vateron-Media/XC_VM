@@ -338,6 +338,9 @@ if ($rIsEdit && !empty($rLine['custom_data'])) {
         <button type="submit" class="btn btn-primary" id="line-submit"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
     </div>
 </form>
+<?php if ($rIsEdit): ?>
+<?= \XcVm\Core\Module\LineFormRegistry::render($rLine, 'admin'); ?>
+<?php endif; ?>
 
 <?php
 LayoutRenderer::renderFooter('admin');

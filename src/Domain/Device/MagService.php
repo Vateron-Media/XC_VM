@@ -352,6 +352,7 @@ class MagService {
 
 				if (0 >= $db->num_rows()) {
 					$rUserArray = \XcVm\Domain\Stream\CategoryTemplateService::applyCustomData($rData, $rUserArray);
+					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::constrainOwner($rUserArray, $db);
 
 					$rPrepare = QueryHelper::prepareArray($rUserArray);
 
@@ -431,6 +432,8 @@ class MagService {
 				foreach (['id', 'is_mag', 'is_e2', 'is_restreamer', 'max_connections', 'created_at', 'username', 'password', 'admin_notes', 'reseller_notes'] as $rKey) {
 					$rUpdateDevice[$rKey] = $rDevice[$rKey];
 				}
+
+				$rUpdateDevice = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::constrainOwner($rUpdateDevice, $db);
 
 				if (isset($rUpdateDevice['id'])) {
 					$rPrepare = QueryHelper::prepareArray($rUpdateDevice);

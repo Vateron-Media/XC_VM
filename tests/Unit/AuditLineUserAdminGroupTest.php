@@ -322,4 +322,55 @@ final class AuditLineUserAdminGroupTest extends TestCase {
 		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
 		$this->assertSame('Resellers of the south', $this->group(self::RESELLERS)['group_name']);
 	}
+
+	public function testAdministratorCanSetAndClearResellerBouquetLimits(): void {
+		$result = UserService::process($this->userForm(self::RESELLER, ['bouquet_limit_enabled' => '1', 'allowed_bouquets' => ['5', '6', '6', '-1']]));
+		$this->assertSame(STATUS_SUCCESS, $result['status']);
+		$this->rDb->query('SELECT `allowed_bouquets` FROM `users` WHERE `id` = ?', self::RESELLER);
+		$this->assertSame('[5,6]', $this->rDb->get_col());
+		UserService::process($this->userForm(self::RESELLER, ['notes' => 'preserve limit']));
+		$this->rDb->query('SELECT `allowed_bouquets` FROM `users` WHERE `id` = ?', self::RESELLER);
+		$this->assertSame('[5,6]', $this->rDb->get_col());
+		UserService::process($this->userForm(self::RESELLER, ['bouquet_limit_enabled' => '0']));
+		$this->rDb->query('SELECT `allowed_bouquets` FROM `users` WHERE `id` = ?', self::RESELLER);
+		$this->assertNull($this->rDb->get_col());
+	}
+
+	public function testAStaleResellerFormCannotRestoreAnOldBouquetAllowance(): void {
+		$revision = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowanceRevision($this->user(self::RESELLER));
+		$this->rDb->query('UPDATE `users` SET `allowed_bouquets` = ? WHERE `id` = ?', '[8,9]', self::RESELLER);
+		$result = UserService::process($this->userForm(self::RESELLER, ['bouquet_limit_enabled' => '1', 'allowed_bouquets' => [5, 6], 'bouquet_limit_revision' => $revision]));
+		$this->assertSame(STATUS_INVALID_INPUT, $result['status']);
+		$this->rDb->query('SELECT `allowed_bouquets` FROM `users` WHERE `id` = ?', self::RESELLER);
+		$this->assertSame('[8,9]', $this->rDb->get_col());
+	}
+
+	#[DataProvider('concurrentAllowances')]
+	public function testAllowanceChangedDuringSaveRejectsTheStaleWrite(string $concurrent): void {
+		$form = $this->userForm(self::RESELLER, ['bouquet_limit_enabled' => '1', 'allowed_bouquets' => [5, 6]]);
+		$log = new \XcVm\Tests\Support\QueryLogDb($this->rDb);
+		$other = TestDb::connect($this->rDb->schema());
+		$log->rBefore = static function (string $query) use ($log, $other, $concurrent): void {
+			if (str_starts_with($query, 'UPDATE `users` SET')) {
+				$log->rBefore = null;
+				$statement = $other->prepare('UPDATE `users` SET `allowed_bouquets` = ? WHERE `id` = 5');
+				$statement->execute([$concurrent]);
+			}
+		};
+		DatabaseFactory::set($log);
+		$GLOBALS['db'] = $log;
+		try {
+			$result = UserService::process($form);
+			$this->assertSame(STATUS_FAILURE, $result['status']);
+			$this->rDb->query('SELECT `allowed_bouquets` FROM `users` WHERE `id` = ?', self::RESELLER);
+			$this->assertSame($concurrent, $this->rDb->get_col());
+		} finally {
+			DatabaseFactory::set($this->rDb);
+			$GLOBALS['db'] = $this->rDb;
+		}
+	}
+
+	public static function concurrentAllowances(): array {
+		return ['another allowance' => ['[8,9]'], 'same allowance but stale account snapshot' => ['[5,6]']];
+	}
 }

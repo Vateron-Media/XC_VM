@@ -89,6 +89,7 @@ final class AuditAdminAuthzPagesTest extends TestCase {
 		$rScript = $this->rDir . 'child.php';
 		file_put_contents($rScript, '<?php require ' . var_export(dirname(__DIR__) . '/bootstrap.php', true) . ';'
 			. ' $rUserInfo = ' . var_export(['id' => 9, 'member_group_id' => $rGroup], true) . ';'
+			. ' $rMobile = false; $rSettings = ["update_data" => "{}"]; \XcVm\Core\Config\SettingsManager::set($rSettings);'
 			. ' $rPermissions = ' . var_export(['is_admin' => 1, 'advanced' => $rAdvanced], true) . ';'
 			. ' $db = new TestDb(); \XcVm\Infrastructure\Database\DatabaseFactory::set($db);'
 			. ' $_SERVER["HTTP_X_REQUESTED_WITH"] = "XMLHttpRequest";'

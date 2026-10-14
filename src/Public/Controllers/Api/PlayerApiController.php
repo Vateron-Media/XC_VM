@@ -537,7 +537,7 @@ class PlayerApiController {
 		if (count($this->userInfo['series_ids']) > 0) {
 			if ($rCached) {
 				if ($rSettings['vod_sort_newest']) {
-					$this->userInfo['series_ids'] = StreamSorter::sortSeries($this->userInfo['series_ids']);
+					$this->userInfo['series_ids'] = StreamSorter::sortSeries($this->userInfo['series_ids'], $this->userInfo);
 				}
 
 				foreach ($this->userInfo['series_ids'] as $rSeriesID) {
@@ -792,7 +792,7 @@ class PlayerApiController {
 
 		// Sort the whole list, then take the page: slicing first paged the
 		// unsorted ids, so a page did not follow the channel order.
-		$this->userInfo['live_ids'] = StreamSorter::sortChannels($this->userInfo['live_ids']);
+		$this->userInfo['live_ids'] = StreamSorter::sortChannels($this->userInfo['live_ids'], $this->userInfo);
 
 		if (!empty($this->limit)) {
 			$this->userInfo['live_ids'] = array_slice($this->userInfo['live_ids'], $this->offset, $this->limit);
@@ -974,7 +974,7 @@ class PlayerApiController {
 
 		// Sort the whole list, then take the page: slicing first paged the
 		// unsorted ids, so a page did not follow the channel order.
-		$this->userInfo['vod_ids'] = StreamSorter::sortChannels($this->userInfo['vod_ids']);
+		$this->userInfo['vod_ids'] = StreamSorter::sortChannels($this->userInfo['vod_ids'], $this->userInfo);
 
 		if (!empty($this->limit)) {
 			$this->userInfo['vod_ids'] = array_slice($this->userInfo['vod_ids'], $this->offset, $this->limit);

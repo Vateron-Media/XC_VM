@@ -327,8 +327,8 @@ class ResellerTableRenderer {
 		$rOrderBy = '';
 		// Column index -> SQL order expression. Mirrors the keyed Bootstrap 5 column
 		// order emitted by the reseller mags view: leading Responsive-control column,
-		// then id, username, mac, stb type, owner, status, online, trial, expiration, actions.
-		$rOrder = [false, '`lines`.`id`', '`lines`.`username`', '`mag_devices`.`mac`', '`mag_devices`.`stb_type`', '`users`.`username`', '`lines`.`enabled`', '`active_connections`', '`lines`.`is_trial`', '`lines`.`exp_date`', false];
+		// then id, username, mac, stb type, owner, status, online, trial, expiration, last active, actions.
+		$rOrder = [false, '`lines`.`id`', '`lines`.`username`', '`mag_devices`.`mac`', '`mag_devices`.`stb_type`', '`users`.`username`', '`lines`.`enabled`', '`active_connections`', '`lines`.`is_trial`', '`lines`.`exp_date`', false, false];
 		if (RequestManager::has('order') && (string) RequestManager::get('order')[0]['column'] !== '') {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -381,7 +381,7 @@ class ResellerTableRenderer {
 		}
 		$rReturn['recordsFiltered'] = $rReturn['recordsTotal'];
 		if (0 < $rReturn['recordsTotal']) {
-			$rQuery = 'SELECT `lines`.`id`, `lines`.`username`, `lines`.`member_id`, `lines`.`is_isplock`, `mag_devices`.`mac`, `mag_devices`.`stb_type`, `mag_devices`.`mag_id`, `lines`.`exp_date`, `lines`.`admin_enabled`, `lines`.`enabled`, `lines`.`reseller_notes`, `lines`.`max_connections`,  `lines`.`is_trial`, `users`.`username` AS `owner_name`, (SELECT count(*) FROM `lines_live` WHERE `lines`.`id` = `lines_live`.`user_id` AND `hls_end` = 0) AS `active_connections` FROM `lines` LEFT JOIN `users` ON `users`.`id` = `lines`.`member_id` INNER JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
+			$rQuery = 'SELECT `lines`.`id`, `lines`.`last_activity_array`, `lines`.`username`, `lines`.`member_id`, `lines`.`is_isplock`, `mag_devices`.`mac`, `mag_devices`.`stb_type`, `mag_devices`.`mag_id`, `lines`.`exp_date`, `lines`.`admin_enabled`, `lines`.`enabled`, `lines`.`reseller_notes`, `lines`.`max_connections`,  `lines`.`is_trial`, `users`.`username` AS `owner_name`, (SELECT count(*) FROM `lines_live` WHERE `lines`.`id` = `lines_live`.`user_id` AND `hls_end` = 0) AS `active_connections` FROM `lines` LEFT JOIN `users` ON `users`.`id` = `lines`.`member_id` INNER JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
 			$db->query($rQuery, ...$rWhereV);
 			if (0 < $db->num_rows()) {
 				$rRows = $db->get_rows();
@@ -401,6 +401,7 @@ class ResellerTableRenderer {
 						unset($rConnectionMap);
 					}
 				}
+				$rOnlineInfo = \XcVm\Domain\Stream\OnlineConnectionInfo::forUsers($db, $rLineIDs, (bool) $rRedis);
 				foreach ($rRows as $rRow) {
 					if ($rRedis) {
 						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
@@ -422,6 +423,10 @@ class ResellerTableRenderer {
 							'enabled' => (bool) $rRow['enabled'],
 							'exp_date' => $rRow['exp_date'] ? (int) $rRow['exp_date'] : 0,
 							'active_connections' => (int) $rRow['active_connections'],
+							'online_ip' => $rOnlineInfo[(int) $rRow['id']]['online_ip'] ?? '',
+							'online_isp' => $rOnlineInfo[(int) $rRow['id']]['online_isp'] ?? '',
+							'online_since' => $rOnlineInfo[(int) $rRow['id']]['online_since'] ?? 0,
+							'last_active' => $rOnlineInfo[(int) $rRow['id']]['online_since'] ?? (int) ((json_decode((string) ($rRow['last_activity_array'] ?? ''), true) ?: [])['date_end'] ?? 0),
 							'is_trial' => (bool) $rRow['is_trial'],
 							'is_isplock' => (bool) $rRow['is_isplock'],
 							'notes' => (string) $rRow['reseller_notes'],
@@ -1193,6 +1198,7 @@ class ResellerTableRenderer {
 			$rReports = [];
 			$rUserID = (0 < intval(RequestManager::get('user')) ? intval(RequestManager::get('user')) : null);
 			$rStreamID = (0 < intval(RequestManager::get('stream_id')) ? intval(RequestManager::get('stream_id')) : null);
+			$rLineID = (0 < intval(RequestManager::get('line')) ? intval(RequestManager::get('line')) : null);
 			if ($rUserID && in_array($rUserID, $rUserInfo['reports'])) {
 				$db->query('SELECT `id` FROM `lines` WHERE `member_id` = ?;', $rUserID);
 			} else {
@@ -1210,7 +1216,7 @@ class ResellerTableRenderer {
 				$rRow = igbinary_unserialize($rRow);
 				if (is_array($rRow)) {
 					// Counted out and left out: it was counted out only, and still listed.
-					if ($rStreamID && $rStreamID != $rRow['stream_id'] || !in_array($rRow['user_id'], $rReports)) {
+					if (($rStreamID && $rStreamID != $rRow['stream_id']) || ($rLineID && $rLineID != $rRow['user_id']) || !in_array($rRow['user_id'], $rReports)) {
 						$rKeyCount--;
 						continue;
 					}

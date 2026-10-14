@@ -50,7 +50,7 @@ final class AuditFormRulesDeviceCredentialsTest extends TestCase {
 		}
 
 		$this->rDb = new TestDb();
-		foreach (['lines', 'lines_live', 'mag_devices', 'enigma2_devices', 'bouquets', 'signals'] as $rTable) {
+		foreach (['users', 'lines', 'lines_live', 'mag_devices', 'enigma2_devices', 'bouquets', 'signals'] as $rTable) {
 			$this->rDb->exec(InstallSchema::table($rTable));
 		}
 		$this->rDb->exec(InstallSchema::migration('024_add_custom_data_to_lines'));

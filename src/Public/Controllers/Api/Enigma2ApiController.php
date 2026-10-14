@@ -128,7 +128,7 @@ class Enigma2ApiController {
 			}
 		}
 
-		$this->userInfo['channel_ids'] = StreamSorter::sortChannels($this->userInfo['channel_ids']);
+		$this->userInfo['channel_ids'] = StreamSorter::sortChannels($this->userInfo['channel_ids'], $this->userInfo);
 
 		foreach ($rChannels as $rChannel) {
 			if ($rSettings['enable_cache']) {
