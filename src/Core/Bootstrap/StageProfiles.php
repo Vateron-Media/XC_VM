@@ -43,8 +43,14 @@ class StageProfiles {
 	 */
 	public static function for(BootContext $context, array $options): array {
 		// Common prefix, run for every context (HTTP-only stages self-skip on CLI).
+		// StatusConstantsStage defines the STATUS_* constants the Domain services
+		// return (StreamService, MovieService, …); they used to be Admin-only, so
+		// a CLI/Stream path that reached such a service fatally hit an undefined
+		// STATUS_SUCCESS. They are cheap integer defines and initStatus() is
+		// idempotent, so define them in every context.
 		$stages = [
 			new ConstantsStage(),
+			new StatusConstantsStage(),
 			new ConfigStage(),
 			new FloodProtectionStage(),
 			new HostVerificationStage(),
@@ -87,7 +93,6 @@ class StageProfiles {
 				$stages[] = new AdminApiStage();
 				$stages[] = new TranslatorStage();
 				$stages[] = new AdminShutdownStage();
-				$stages[] = new StatusConstantsStage();
 				$stages[] = new AdminGlobalsStage();
 				break;
 

@@ -7,6 +7,7 @@ use XcVm\Core\Bootstrap\BootState;
 use XcVm\Core\Bootstrap\StageProfiles;
 use XcVm\Core\Bootstrap\Stage\ConfigStage;
 use XcVm\Core\Bootstrap\Stage\ConstantsStage;
+use XcVm\Core\Bootstrap\Stage\StatusConstantsStage;
 use XcVm\Core\Bootstrap\Stage\ContainerPopulateStage;
 use XcVm\Core\Bootstrap\Stage\DatabaseStage;
 use XcVm\Core\Bootstrap\Stage\FloodProtectionStage;
@@ -50,7 +51,7 @@ final class ReplicaBootTest extends TestCase {
 
 	/** The CLI profile of a mode 0 or 1 node, as before ReplicaStage. */
 	private const LEGACY_CLI = [
-		ConstantsStage::class, ConfigStage::class, FloodProtectionStage::class, HostVerificationStage::class,
+		ConstantsStage::class, StatusConstantsStage::class, ConfigStage::class, FloodProtectionStage::class, HostVerificationStage::class,
 		DatabaseStage::class, LegacyCoreStage::class, ProcessTitleStage::class, ContainerPopulateStage::class, HealthCheckStage::class,
 	];
 
@@ -124,7 +125,7 @@ final class ReplicaBootTest extends TestCase {
 			$this->assertTrue(ReplicaBoot::wanted(), json_encode($rCase));
 			$this->assertSame(ReplicaBoot::WHEN_READY, BootKernel::resolve(BootContext::Cli)['replica'], json_encode($rCase));
 			$rProfile = $this->cliProfile();
-			$this->assertSame([ConstantsStage::class, ConfigStage::class, FloodProtectionStage::class, HostVerificationStage::class, ReplicaStage::class, ProcessTitleStage::class, ContainerPopulateStage::class, HealthCheckStage::class], $rProfile, json_encode($rCase));
+			$this->assertSame([ConstantsStage::class, StatusConstantsStage::class, ConfigStage::class, FloodProtectionStage::class, HostVerificationStage::class, ReplicaStage::class, ProcessTitleStage::class, ContainerPopulateStage::class, HealthCheckStage::class], $rProfile, json_encode($rCase));
 			$this->assertSame([ReplicaStage::class], $this->webApiStages(), json_encode($rCase));
 			$rStage = WebApiBootstrap::coreStages(true)[0];
 			$this->assertSame(ReplicaBoot::WHEN_READY, (new \ReflectionProperty(ReplicaStage::class, 'rWhen'))->getValue($rStage), 'the web API waits for an apply too');
