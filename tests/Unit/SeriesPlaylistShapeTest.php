@@ -21,6 +21,11 @@ final class SeriesPlaylistShapeTest extends TestCase {
 		DatabaseFactory::set($this->rDb);
 	}
 
+	protected function tearDown(): void {
+		// Don't leave this test's throwaway DB in the process-wide factory for the next test.
+		DatabaseFactory::reset();
+	}
+
 	public function testGeneratePlaylistReturnsFlatOrderedListOfThisSeriesOnly(): void {
 		// Inserted out of order; another series' episode must not leak in.
 		$this->rDb->query('INSERT INTO `streams_episodes` (`series_id`, `stream_id`, `season_num`, `episode_num`) VALUES (42, 11, 1, 2);');
