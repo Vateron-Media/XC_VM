@@ -57,7 +57,6 @@ class ClusterNodesController extends BaseAdminController {
 			'clusterFences' => ClusterOverview::fenceWindows($rNodes, $rSettings),
 			'clusterDigestN1' => ClusterOverview::digestN1($rNodes),
 			'clusterMainDataPlane' => $rMainDataPlane,
-			'clusterLegacyApiOpenBy' => ClusterOverview::legacyApiOpenBy($rServers, $rNodes, (int) SERVER_ID, $rMainDataPlane),
 			'clusterBinding' => $rEnabled && $rAvailable ? ClusterOverview::binding($rNodes, $rSettings) : null,
 			'clusterBanners' => ClusterOverview::banners(ClusterOverview::licensed($rEnabled && $rAvailable), $rServers[(int) SERVER_ID] ?? [], $rSettings, $rNodes, $rNow),
 			'clusterMetrics' => $rEnabled ? self::metrics($rSettings, $rNow) : null,

@@ -219,14 +219,13 @@ final class ReplicaSections {
 	];
 
 	/**
-	 * The crontab roles that fit a node in this mode: every node runs `all`,
-	 * a node that still has MAIN's database (mode 0 or 1) also runs `legacy`,
+	 * The crontab roles that fit a node in any mode: every node runs `all`,
 	 * and `main` never leaves MAIN.
 	 *
 	 * @return list<string>
 	 */
 	public static function cronRoles(int $rMode): array {
-		return $rMode >= 2 ? ['all'] : ['all', 'legacy'];
+		return ['all'];
 	}
 
 	/**

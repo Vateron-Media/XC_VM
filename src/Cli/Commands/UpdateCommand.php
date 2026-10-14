@@ -18,6 +18,7 @@ use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\ReleaseArchiveInspector;
 use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Core\Util\AtomicFile;
+use XcVm\Domain\Cluster\ClusterUpgradeGate;
 use XcVm\Domain\Server\ServerRepository;
 
 /**
@@ -112,6 +113,12 @@ class UpdateCommand implements CommandInterface {
 					echo "Already up to date.\n";
 					UpdateLogger::info('Already up to date, no action needed');
 					return 0;
+				}
+
+				if ($rIsMain && ($rReason = ClusterUpgradeGate::blocksUpgradeTo($rLatest)) !== null) {
+					echo "ERROR: {$rReason}\n";
+					UpdateLogger::error('Aborted: ' . $rReason);
+					return 1;
 				}
 
 				echo ($rPinned === null ? 'New version available: ' : 'MAIN\'s release: ') . $rLatest . "\n";

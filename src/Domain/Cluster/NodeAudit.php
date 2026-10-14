@@ -3,7 +3,6 @@
 namespace XcVm\Domain\Cluster;
 
 use XcVm\Core\Cluster\ConnectAudit;
-use XcVm\Core\Cluster\LegacyApiAudit;
 use XcVm\Core\Cluster\SettingsAudit;
 use XcVm\Core\Gateway\GatewayPolicy;
 use XcVm\Core\Gateway\GatewayShadow;
@@ -29,9 +28,6 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  *                  ConnectAudit::MAX_SITE_LEN bytes) or "*": an integer >= 1;
  *                  at most ConnectAudit::MAX_SITES sites and "*"
  * connects_since   optional, unix seconds >= 1: when the node's connect audit began
- * legacy_api       optional, "action caller" (LegacyApiAudit::key) or "*": an
- *                  integer >= 1; at most LegacyApiAudit::MAX_KEYS keys and "*";
- *                  the calls the node's legacy /api answered
  * gateway          optional, the segment gateway (GatewayShadow::report): its
  *                  mode, "<kind> <action> <reason>" counts and the shadow
  *                  comparison (counts, since, last_disagree, samples)
@@ -63,7 +59,7 @@ final class NodeAudit {
 	 * `streams_local` (does the node read its streams on itself:
 	 * SettingsAudit::publish) only as the boolean it is.
 	 *
-	 * @return array{settings_misses: array<string, int>, sql_connects?: int, redis_connects?: int, sites?: array<string, int>, connects_since?: int, streams_local?: bool, legacy_api?: array<string, int>, gateway?: array<string, mixed>}|null
+	 * @return array{settings_misses: array<string, int>, sql_connects?: int, redis_connects?: int, sites?: array<string, int>, connects_since?: int, streams_local?: bool, gateway?: array<string, mixed>}|null
 	 */
 	public static function normalise(mixed $rAudit): ?array {
 		if (!is_array($rAudit) || !is_array($rAudit['settings_misses'] ?? null) || strlen((string) json_encode($rAudit, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR)) > self::MAX_BYTES) {
@@ -78,7 +74,6 @@ final class NodeAudit {
 		}
 		return ['settings_misses' => SettingsAudit::top($rMisses)] + self::connects($rAudit)
 			+ (is_bool($rAudit['streams_local'] ?? null) ? ['streams_local' => $rAudit['streams_local']] : [])
-			+ (is_array($rAudit['legacy_api'] ?? null) ? ['legacy_api' => SettingsAudit::top(LegacyApiAudit::counts($rAudit['legacy_api']), LegacyApiAudit::MAX_KEYS)] : [])
 			+ self::gateway($rAudit);
 	}
 
@@ -146,9 +141,6 @@ final class NodeAudit {
 		}
 		if (isset($rAudit['streams_local'])) {
 			$rDoc['streams_local'] = (bool) $rAudit['streams_local'];
-		}
-		if (isset($rAudit['legacy_api'])) {
-			$rDoc['legacy_api'] = (object) $rAudit['legacy_api'];
 		}
 		if (isset($rAudit['gateway'])) {
 			$rDoc['gateway'] = ['mode' => $rAudit['gateway']['mode'], 'counts' => (object) $rAudit['gateway']['counts'], 'shadow' => $rAudit['gateway']['shadow']];

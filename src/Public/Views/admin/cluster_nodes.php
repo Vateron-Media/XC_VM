@@ -144,7 +144,6 @@ $rCutAny = false;
                     <th class="text-center"><?= $language::get('cluster_agent'); ?></th>
                     <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_settings_misses_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_settings_misses'); ?></th>
                     <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_main_connects_tip'), ENT_QUOTES); ?>"><?= $language::get('cluster_main_connects'); ?></th>
-                    <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_legacy_calls_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_legacy_calls'); ?></th>
                     <th class="text-center" title="<?= htmlspecialchars($language::get('cluster_gateway_help'), ENT_QUOTES); ?>"><?= $language::get('cluster_gateway'); ?></th>
                     <th class="text-center"><?= $language::get('actions'); ?></th>
                 </tr>
@@ -325,24 +324,6 @@ $rCutAny = false;
                                 </details>
                             <?php endif; ?>
                         </td>
-                        <td class="text-center" data-col="legacy-api">
-                            <?php // What still calls the node's legacy /api (LegacyApiAudit), before it may close. ?>
-                            <?php $rLegacyCalls = $rNode['legacy_api'] ?? null; ?>
-                            <?php if (!is_array($rLegacyCalls)): ?>
-                                <span class="text-body-secondary">—</span>
-                            <?php elseif ($rLegacyCalls === []): ?>
-                                <span class="badge bg-label-success">0</span>
-                            <?php else: ?>
-                                <details>
-                                    <summary class="text-nowrap"><span class="badge bg-label-warning"><?= (int) array_sum($rLegacyCalls); ?></span></summary>
-                                    <ul class="list-unstyled small font-monospace mb-0 text-start">
-                                        <?php foreach ($rLegacyCalls as $rKey => $rCount): ?>
-                                            <li><?= htmlspecialchars((string) $rKey, ENT_QUOTES); ?> × <?= (int) $rCount; ?></li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                </details>
-                            <?php endif; ?>
-                        </td>
                         <td class="text-center" data-col="gateway">
                             <?php // The segment gateway (GatewayShadow::report): its mode and, in shadow, how it compares with PHP. ?>
                             <?php $rGateway = $rNode['gateway'] ?? null; ?>
@@ -441,8 +422,7 @@ $rCutAny = false;
 </div>
 
 <?php if (!empty($clusterEnabled)): ?>
-    <?php // MAIN's own data plane, and what still keeps the load balancers' legacy /api open (ClusterOverview::legacyApiOpenBy). ?>
-    <?php $rOpenBy = $clusterLegacyApiOpenBy ?? []; ?>
+    <?php // MAIN's own data plane. ?>
     <div class="card mt-4">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div style="flex:1 1 0;min-width:16rem">
@@ -455,14 +435,6 @@ $rCutAny = false;
                     <button type="submit" name="cluster_action" value="<?= $clusterMainDataPlane ? 'main_dataplane_off' : 'main_dataplane_on'; ?>" class="btn btn-sm btn-label-<?= $clusterMainDataPlane ? 'secondary' : 'primary'; ?>"><?= $language::get($clusterMainDataPlane ? 'cluster_main_dataplane_off' : 'cluster_main_dataplane_on'); ?></button>
                 </form>
             </div>
-        </div>
-        <div class="card-body pt-0">
-            <small class="text-body-secondary"><?= $language::get('cluster_legacy_api'); ?>:</small>
-            <?php if ($rOpenBy === []): ?>
-                <span class="text-success"><?= htmlspecialchars($language::get('cluster_legacy_api_closed'), ENT_QUOTES); ?></span>
-            <?php else: ?>
-                <span class="text-warning"><?= htmlspecialchars($language::get('cluster_legacy_api_open', ['{SERVERS}' => implode(', ', array_map(static fn(int $rSid): string => ($clusterNames[$rSid] ?? '') ?: '#' . $rSid, $rOpenBy))]), ENT_QUOTES); ?></span>
-            <?php endif; ?>
         </div>
     </div>
 <?php endif; ?>
