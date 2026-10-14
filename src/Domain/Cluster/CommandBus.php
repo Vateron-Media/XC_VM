@@ -53,10 +53,10 @@ final class CommandBus {
 	public const ACTION_TYPES = ['node.rpc', 'node.root'];
 
 	/** Tries at a free `seq` before enqueue() gives up. */
-	public const ATTEMPTS = 4;
+	public const ATTEMPTS = 8;
 
 	/** Largest result stored from an ack. */
-	public const MAX_RESULT = 65536;
+	public const MAX_RESULT = 4194304;
 
 	/**
 	 * Is this node taking commands over the cluster API?
@@ -109,6 +109,11 @@ final class CommandBus {
 			$rArgs['artefact']['exp'] = $rNow + $rTtl;
 		}
 		$rError = null;
+		// One enqueue per node at a time: a best-effort MariaDB user lock so two
+		// concurrent enqueues to the same node serialise instead of colliding on
+		// UNIQUE(server_id, seq) (an InnoDB deadlock each time). Not granted in
+		// 2s, the enqueue proceeds unserialised on the retry loop below.
+		$rLocked = self::seqLock($rServerID);
 		for ($rAttempt = 1; $rAttempt <= self::ATTEMPTS; $rAttempt++) {
 			self::db()->query('SELECT MAX(`seq`) AS `seq` FROM `cluster_commands` WHERE `server_id` = ?;', $rServerID);
 			$rSeq = max((int) (self::db()->get_row()['seq'] ?? 0), (int) $rNode['cmd_seq']) + 1;
@@ -149,11 +154,43 @@ final class CommandBus {
 				$rError = $rE;
 			}
 			if ($rStored) {
+				if ($rLocked) {
+					self::seqUnlock($rServerID);
+				}
 				ClusterBus::wakeNode($rServerID);
 				return $rCmdID;
 			}
+			if ($rAttempt < self::ATTEMPTS) {
+				// A growing random pause (2-20ms × attempt) desynchronises
+				// concurrent enqueues racing the same seq.
+				usleep(random_int(2000, 20000) * $rAttempt);
+			}
+		}
+		if ($rLocked) {
+			self::seqUnlock($rServerID);
 		}
 		throw new \RuntimeException('Command ' . $rType . ' for server ' . $rServerID . ' not stored after ' . self::ATTEMPTS . ' tries', 0, $rError);
+	}
+
+	/**
+	 * One enqueue per node at a time. A best-effort MariaDB user lock, taken
+	 * before the attempt loop and released on success or on giving up; granted
+	 * within 2s or the enqueue runs unserialised on the retry loop. MAIN only.
+	 */
+	private static function seqLock(int $rServerID): bool {
+		try {
+			self::db()->query("SELECT GET_LOCK(CONCAT(DATABASE(), '.cmd_seq_', ?), 2);", $rServerID);
+			return (string) self::db()->get_col() === '1';
+		} catch (\Throwable) {
+			return false;
+		}
+	}
+
+	private static function seqUnlock(int $rServerID): void {
+		try {
+			self::db()->query("SELECT RELEASE_LOCK(CONCAT(DATABASE(), '.cmd_seq_', ?));", $rServerID);
+		} catch (\Throwable) {
+		}
 	}
 
 	/**
