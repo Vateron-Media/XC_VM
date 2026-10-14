@@ -347,7 +347,8 @@ final class ClusterOverviewTest extends TestCase {
 		foreach (['mode_up', 'mode_down', 'code', 'rotate_now'] as $rAction) {
 			$this->assertMatchesRegularExpression('#action="cluster_nodes">.*value="' . $rAction . '"#', $rServers, $rAction . ' posts to the Cluster Nodes page');
 		}
-		$this->assertStringContainsString('#node-', $rServers, 'mode & flows link to the node');
+		$this->assertMatchesRegularExpression('/href="#node-/', $rServers, 'the servers list links to the on-page node anchor');
+		$this->assertStringNotContainsString('cluster_nodes#node-', $rServers, 'the row links use the on-page anchor, not the retired cluster_nodes route');
 		$this->assertStringContainsString('cluster:reenrol <?= (int) $rServer[\'id\']; ?>', $rServers, 're-enrol shows the SSH command');
 
 		$rEn = (string) file_get_contents($rRoot . 'Core/Localization/lang/en.ini');

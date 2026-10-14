@@ -260,6 +260,23 @@ $rBar = static function (int $pct): string {
     </div>
 </div>
 
+<?php // Cluster action results: shown even when the API is off or its tables are not
+// created yet (the action's outcome must never vanish), so rendered here rather
+// than inside the section partial, which is skipped when the cluster is unavailable. ?>
+<?php foreach ($clusterFlashes ?? [] as $rFlash): ?>
+    <div class="alert alert-<?= htmlspecialchars($rFlash['type'], ENT_QUOTES); ?> alert-dismissible" role="alert">
+        <?= htmlspecialchars($language::get($rFlash['message'], $rFlash['vars'] ?? []), ENT_QUOTES); ?>
+        <?php if (!empty($rFlash['code'])): ?>
+            <div class="mt-3">
+                <code class="d-block fs-5 text-break user-select-all js-cluster-code"><?= htmlspecialchars($rFlash['code'], ENT_QUOTES); ?></code>
+                <div class="mt-2 small"><?= $language::get('cluster_code_run_on_node'); ?></div>
+                <code class="d-block text-break user-select-all small">sudo -u xc_vm /home/xc_vm/bin/xc_agent/xc_agent enrol -state /home/xc_vm/config/cluster/agent.json <?= htmlspecialchars($rFlash['code'], ENT_QUOTES); ?></code>
+            </div>
+        <?php endif; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endforeach; ?>
+
 <?php // Cluster: the enrolled nodes, pending enrolments, MAIN data plane, metrics and audit — folded in from the former Cluster Nodes page. ?>
 <?php if (!empty($clusterEnabled)) { include __DIR__ . '/partials/cluster_section.php'; } ?>
 

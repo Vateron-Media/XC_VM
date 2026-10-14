@@ -29,19 +29,8 @@ $rShort = static fn(?int $rTs): string => $rTs ? '<span class="text-nowrap" titl
 $rCutAny = false;
 ?>
 
-<?php if (!empty($clusterFlash)): ?>
-    <div class="alert alert-<?= htmlspecialchars($clusterFlash['type'], ENT_QUOTES); ?> alert-dismissible" role="alert">
-        <?= htmlspecialchars($language::get($clusterFlash['message'], $clusterFlash['vars'] ?? []), ENT_QUOTES); ?>
-        <?php if (!empty($clusterFlash['code'])): ?>
-            <div class="mt-3">
-                <code class="d-block fs-5 text-break user-select-all js-cluster-code"><?= htmlspecialchars($clusterFlash['code'], ENT_QUOTES); ?></code>
-                <div class="mt-2 small"><?= $language::get('cluster_code_run_on_node'); ?></div>
-                <code class="d-block text-break user-select-all small">sudo -u xc_vm /home/xc_vm/bin/xc_agent/xc_agent enrol -state /home/xc_vm/config/cluster/agent.json <?= htmlspecialchars($clusterFlash['code'], ENT_QUOTES); ?></code>
-            </div>
-        <?php endif; ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-<?php endif; ?>
+<?php // The cluster action flash is rendered by servers.php (so it shows even when
+// this section is hidden), not here. ?>
 
 <?php if (empty($clusterEnabled)): ?>
     <div class="alert alert-info" role="alert"><?= $language::get('cluster_api_off'); ?> <a href="settings#cluster"><?= $language::get('cluster'); ?></a></div>

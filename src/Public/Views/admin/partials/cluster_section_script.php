@@ -35,7 +35,7 @@
                     });
                 }
             };
-            $('#cluster-nodes-table').DataTable({
+            var rNodesTable = $('#cluster-nodes-table').DataTable({
                 order: [[1, 'asc']],
                 columnDefs: [{ orderable: false, targets: [3, 4, 10, 11, 12, 13, 14] }],
                 layout: { topStart: 'pageLength', topEnd: 'search' },
@@ -44,6 +44,54 @@
                     rTooltips('#cluster-nodes-table');
                 }
             });
+
+            // The servers list links to a node row (#node-<id>) that DataTables may
+            // have paged out of the DOM; move to its page first, then scroll to it.
+            var rGotoNode = function(rId) {
+                if (!/^node-[0-9]+$/.test(rId)) {
+                    return;
+                }
+                var rScroll = function() {
+                    var rEl = document.getElementById(rId);
+                    if (rEl) {
+                        rEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        rEl.classList.add('table-active');
+                    }
+                };
+                if (document.getElementById(rId)) {
+                    rScroll();
+                    return;
+                }
+                var rDataIdx = null;
+                rNodesTable.rows().every(function() {
+                    var n = this.node();
+                    if (n && n.id === rId) {
+                        rDataIdx = this.index();
+                        return false;
+                    }
+                });
+                if (rDataIdx === null) {
+                    return;
+                }
+                var rOrder = rNodesTable.rows({ order: 'applied', search: 'applied' }).indexes().toArray();
+                var rPos = rOrder.indexOf(rDataIdx);
+                if (rPos < 0) {
+                    return;
+                }
+                rNodesTable.page(Math.floor(rPos / rNodesTable.page.len())).draw(false);
+                setTimeout(rScroll, 0);
+            };
+            document.addEventListener('click', function(e) {
+                var a = e.target.closest('a[href^="#node-"]');
+                if (!a) {
+                    return;
+                }
+                e.preventDefault();
+                rGotoNode(a.getAttribute('href').slice(1));
+            });
+            if (/^#node-[0-9]+$/.test(window.location.hash)) {
+                setTimeout(function() { rGotoNode(window.location.hash.slice(1)); }, 0);
+            }
             if ($('#cluster-audit-table').length) {
                 $('#cluster-audit-table').DataTable({
                     order: [[0, 'desc']],

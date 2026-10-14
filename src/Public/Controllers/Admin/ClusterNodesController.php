@@ -46,12 +46,58 @@ class ClusterNodesController extends BaseAdminController {
 				], $rServers, (int) SERVER_ID, $rSettings, isset($GLOBALS['rUserInfo']['id']) ? (int) $GLOBALS['rUserInfo']['id'] : null);
 			}
 
-			if ($rFlash !== null) {
-				$_SESSION['cluster_flash'] = $rFlash;
-			}
+			self::pushFlash($rFlash);
 		}
 
 		$this->redirect('servers');
+	}
+
+	/**
+	 * Append a cluster action result to the session flash queue, so the
+	 * redirected Manage Servers request can show it. SessionManager::start()
+	 * closed the session for writing during bootstrap (touch()), so a plain
+	 * write here would be lost; reopen, then close. A queue (not a single key)
+	 * so two overlapping actions each surface once instead of clobbering.
+	 *
+	 * @param array<string, mixed> $rFlash
+	 */
+	private static function pushFlash(array $rFlash): void {
+		$rReopen = session_status() !== PHP_SESSION_ACTIVE;
+		if ($rReopen) {
+			session_start();
+		}
+		$rQueue = $_SESSION['cluster_flash'] ?? [];
+		if (!is_array($rQueue) || isset($rQueue['type'])) {
+			$rQueue = [];
+		}
+		$rQueue[] = $rFlash;
+		$_SESSION['cluster_flash'] = $rQueue;
+		if ($rReopen) {
+			session_write_close();
+		}
+	}
+
+	/**
+	 * Take the pending cluster action results and clear them, reopening the
+	 * session to persist the clear (bootstrap closed it) so a result shows once
+	 * and not again on the next load.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private static function consumeFlashes(): array {
+		$rReopen = session_status() !== PHP_SESSION_ACTIVE;
+		if ($rReopen) {
+			session_start();
+		}
+		$rRaw = $_SESSION['cluster_flash'] ?? null;
+		unset($_SESSION['cluster_flash']);
+		if ($rReopen) {
+			session_write_close();
+		}
+		if (empty($rRaw)) {
+			return [];
+		}
+		return is_array($rRaw) && !isset($rRaw['type']) ? array_values($rRaw) : [$rRaw];
 	}
 
 	/**
@@ -66,8 +112,7 @@ class ClusterNodesController extends BaseAdminController {
 	 * @return array<string, mixed>
 	 */
 	public static function viewData(array $rServers, array $rSettings): array {
-		$rFlash = $_SESSION['cluster_flash'] ?? null;
-		unset($_SESSION['cluster_flash']);
+		$rFlashes = self::consumeFlashes();
 
 		// The servers list is a page an operator opens even before cluster:init, so
 		// the cluster section must cost nothing when the API is off (or its tables
@@ -86,11 +131,18 @@ class ClusterNodesController extends BaseAdminController {
 			'clusterNames' => $rNames,
 			'clusterPending' => [],
 			'clusterLbs' => [],
-			'clusterFlash' => $rFlash,
+			'clusterFlashes' => $rFlashes,
 			'clusterPanelFp' => '',
 		];
 
 		if (empty($rSettings['cluster_api_enabled']) || !ClusterCryptoFactory::available()) {
+			return $rEmpty;
+		}
+
+		// The API flag can be on before cluster:init has created the cluster
+		// tables; show no section (not a misleading empty one with warnings) and
+		// do not log — this is the expected pre-init state (#400 review).
+		if (!ClusterAdmin::tablesReady()) {
 			return $rEmpty;
 		}
 
@@ -110,10 +162,14 @@ class ClusterNodesController extends BaseAdminController {
 				'clusterNames' => $rNames,
 				'clusterPending' => ClusterAdmin::pending($rServers),
 				'clusterLbs' => ClusterAdmin::loadBalancers($rServers),
-				'clusterFlash' => $rFlash,
+				'clusterFlashes' => $rFlashes,
 				'clusterPanelFp' => ClusterMeta::get('panel_fp') ?? '',
 			];
-		} catch (\Throwable) {
+		} catch (\Throwable $rErr) {
+			// The tables exist but the read or a calculation failed unexpectedly:
+			// keep the empty shape, but surface it rather than hiding the cluster
+			// section and badges silently (#400 review).
+			error_log('[cluster] Manage Servers section unavailable: ' . $rErr->getMessage());
 			return $rEmpty;
 		}
 	}

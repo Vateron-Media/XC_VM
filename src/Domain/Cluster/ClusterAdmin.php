@@ -149,6 +149,20 @@ final class ClusterAdmin {
 	}
 
 	/**
+	 * Whether the cluster schema exists yet. The `cluster_api_enabled` flag can
+	 * be on before cluster:init has created the tables; Manage Servers checks
+	 * this to show no section rather than iterate a failed query (#400 review).
+	 */
+	public static function tablesReady(): bool {
+		try {
+			self::db()->query("SHOW TABLES LIKE 'cluster_nodes';");
+			return !empty(self::db()->get_rows());
+		} catch (\Throwable) {
+			return false;
+		}
+	}
+
+	/**
 	 * @param array<int, array<string, mixed>> $rServers ServerRepository::getAll(true)
 	 * @return list<array<string, mixed>> One row per enrolled node, with `server_name`, `health`,
 	 *                                    `settings_misses`, `connects` and `streams_local` (NodeAudit; null when not reported),
