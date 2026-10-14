@@ -5,7 +5,6 @@ namespace XcVm\Public\Controllers\Admin\Ajax;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\UpdateChannels;
@@ -167,7 +166,7 @@ class ServerAjaxController extends BaseAjaxController {
 			}
 
 			if (0 < count($rStreamIDs)) {
-				ApiClient::request(['action' => 'stream', 'sub' => $rSignalSub, 'stream_ids' => array_values($rStreamIDs), 'servers' => [intval(RequestManager::get('server_id'))]]);
+				$this->controlResponse(['action' => 'stream', 'sub' => $rSignalSub, 'stream_ids' => array_values($rStreamIDs), 'servers' => [intval(RequestManager::get('server_id'))]]);
 			}
 
 			$this->ok();
