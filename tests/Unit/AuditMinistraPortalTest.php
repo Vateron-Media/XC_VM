@@ -29,7 +29,7 @@ final class AuditMinistraPortalTest extends TestCase {
 namespace XcVm\Infrastructure\Cache {
 	class CacheReader {
 		public static function get($rKey) {
-			return [];
+			return $GLOBALS['rSeedCache'][$rKey] ?? [];
 		}
 	}
 }
@@ -90,19 +90,35 @@ namespace {
 			$this->rResult = null;
 			return array_map(static fn($rValue) => $rValue ? (string) $rValue : $rValue, $rRow);
 		}
+
+		public function get_rows() {
+			if (!$this->rResult) {
+				return [];
+			}
+			$rRows = $this->rResult->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+			$this->rResult = null;
+			return array_map(static fn($rRow) => array_map(static fn($rValue) => $rValue ? (string) $rValue : $rValue, $rRow), $rRows);
+		}
 	}
 
 	$rIn = json_decode($argv[1], true);
 	define('MINISTRA_TMP_PATH', $rIn['dir'] . '/ministra/');
 	define('FLOOD_TMP_PATH', $rIn['dir'] . '/flood/');
 	define('EPG_PATH', $rIn['dir'] . '/epg/');
+	define('CACHE_TMP_PATH', $rIn['dir'] . '/cache/');
 	define('SERVER_ID', 1);
 
 	$db = new PortalDb(TestDb::connect($rIn['schema']));
-	$rSettings = ['live_streaming_pass' => $rIn['pass'], 'secure_stream_tokens' => 1, 'allowed_stb_types' => [], 'stalker_lock_images' => [], 'default_timezone' => 'UTC', 'mag_disable_ssl' => 0, 'mag_keep_extension' => 0, 'enable_debug_stalker' => 0];
+	$rSettings = ['live_streaming_pass' => $rIn['pass'], 'secure_stream_tokens' => 1, 'allowed_stb_types' => [], 'stalker_lock_images' => [], 'default_timezone' => 'UTC', 'mag_disable_ssl' => 0, 'mag_keep_extension' => 0, 'enable_debug_stalker' => 0, 'mag_security' => 1, 'mag_container' => 'ts', 'channel_number_type' => '', 'show_all_category_mag' => 0, 'mag_load_all_channels' => 0];
 	$rServers = [1 => ['site_url' => 'https://panel.test/', 'http_url' => 'http://panel.test/', 'server_protocol' => 'http']];
 	$rCached = false;
 	$rRequest = $rIn['request'];
+	// Channel/genre listing globals that getStreams()/getItems() read via `global`.
+	$GLOBALS['rSeedCache'] = ['bouquets' => $rIn['bouquets'] ?? [], 'categories' => $rIn['categories'] ?? []];
+	$rCategories = $rIn['categories'] ?? [];
+	$rPageItems = 14;
+	$rTimezone = 'UTC';
+	$rForceProtocol = null;
 	$rReqType = $rIn['type'];
 	$rReqAction = $rIn['action'];
 	$rMAC = $rIn['mac'];
@@ -159,7 +175,7 @@ PHP;
 		$rPortal = (string) file_get_contents(MAIN_HOME . 'Ministra/portal.php');
 		preg_match_all('/^use [^;]+;$/m', $rPortal, $rUses);
 		$rFunctions = '';
-		foreach (['getDevice', 'updateCache', 'getEPG'] as $rName) {
+		foreach (['getDevice', 'updateCache', 'getEPG', 'convertTypes', 'getItems', 'getStreams'] as $rName) {
 			$this->assertSame(1, preg_match('/^function ' . $rName . '\(.*?^}$/ms', $rPortal, $rMatch), $rName . '() is not in portal.php');
 			$rFunctions .= $rMatch[0] . "\n";
 		}
@@ -191,8 +207,8 @@ PHP;
 	 * @param array<string, mixed> $rRequest
 	 * @return array{body: string, authenticated: ?bool, guard: list<array{0: string, 1: list<mixed>}>, queries: int}
 	 */
-	private function portal(string $rType, string $rAction, ?string $rToken = null, array $rRequest = [], string $rMAC = self::MAC): array {
-		$rIn = ['dir' => $this->rDir, 'schema' => $this->rDb->schema(), 'pass' => self::PASS, 'ip' => self::IP, 'type' => $rType, 'action' => $rAction, 'mac' => $rMAC, 'token' => $rToken, 'request' => $rRequest];
+	private function portal(string $rType, string $rAction, ?string $rToken = null, array $rRequest = [], string $rMAC = self::MAC, array $rCategories = [], array $rBouquets = []): array {
+		$rIn = ['dir' => $this->rDir, 'schema' => $this->rDb->schema(), 'pass' => self::PASS, 'ip' => self::IP, 'type' => $rType, 'action' => $rAction, 'mac' => $rMAC, 'token' => $rToken, 'request' => $rRequest, 'categories' => $rCategories, 'bouquets' => $rBouquets];
 		$rProc = proc_open([PHP_BINARY, '-d', 'display_errors=stderr', $this->rDir . '/portal.php', json_encode($rIn)], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);
 		$rOut = stream_get_contents($rPipes[1]);
 		$rErr = stream_get_contents($rPipes[2]);
@@ -376,5 +392,116 @@ PHP;
 
 		// Nothing follows the last programme.
 		$this->assertSame('{"js":false}', $this->portal('tv_archive', 'get_next_part_url', $rToken, ['id' => $rRealID])['body']);
+	}
+
+	/** A live channel in the given JSON category, so getItems() returns it. */
+	private function seedStream(int $rID, string $rCategoryJson, int $rAllowRecord, int $rArchiveDays): void {
+		$this->rDb->exec(InstallSchema::table('streams'));
+		$this->rDb->exec(InstallSchema::table('streams_servers'));
+		$this->rDb->query(
+			'INSERT INTO `streams` (`id`, `type`, `category_id`, `stream_display_name`, `stream_icon`, `channel_id`, `tv_archive_duration`, `allow_record`) VALUES (?, 1, ?, ?, ?, ?, ?, ?)',
+			$rID, $rCategoryJson, 'Channel ' . $rID, '', 'epg' . $rID, $rArchiveDays, $rAllowRecord,
+		);
+	}
+
+	/** Adds fields to the verified device's cache entry (as the bouquet would) and keeps it fresh. */
+	private function primeDevice(array $rFields): void {
+		$rEntry = $this->cached();
+		foreach ($rFields as $rKey => $rValue) {
+			$rEntry[$rKey] = $rValue;
+		}
+		$rEntry['generated'] = time();
+		file_put_contents($this->rDir . '/ministra/ministra_7', igbinary_serialize($rEntry));
+	}
+
+	/**
+	 * get_genres: the box reads the category list. Issue #393: commit 27f62c07 cast the
+	 * genre's 0/1 "censored" flag to a string "0"/"1"; the portal JS reads it with a truthy
+	 * check, so "0" switched the adult PIN on for every category. It must be a JSON integer.
+	 * (Fails on the pre-fix code, which emitted "censored":"1"/"0".)
+	 */
+	public function testGetGenresKeepsTheCensoredFlagAnInteger(): void {
+		$rToken = $this->handshake();
+		$this->portal('stb', 'get_profile', $rToken, self::BOX);
+		$this->primeDevice(['category_ids' => [2, 3]]);
+
+		$rCategories = [
+			['id' => 2, 'category_name' => 'Adult', 'category_type' => 'live', 'is_adult' => 1],
+			['id' => 3, 'category_name' => 'News', 'category_type' => 'live', 'is_adult' => 0],
+		];
+		$rBody = $this->portal('itv', 'get_genres', $rToken, [], self::MAC, $rCategories)['body'];
+		$rGenres = json_decode($rBody, true)['js'] ?? null;
+		$this->assertIsArray($rGenres, $rBody);
+
+		$rByName = [];
+		foreach ($rGenres as $rGenre) {
+			$rByName[$rGenre['title']] = $rGenre;
+		}
+		$this->assertSame(1, $rByName['Adult']['censored'] ?? null, 'the adult category must read as censored (int 1)');
+		$this->assertSame(0, $rByName['News']['censored'] ?? null, 'a normal category must not read as censored (int 0)');
+		// The category id is a string (canonical Stalker), or native C firmware reads it
+		// empty and the category cannot be selected.
+		$this->assertSame('2', $rByName['Adult']['id'] ?? null, 'the category id is a string');
+		$this->assertIsString($rByName['Adult']['number'] ?? null);
+	}
+
+	/**
+	 * get_fav_ids returns the favourite ids as strings, matching the string channel id the
+	 * portal JS compares them against (canonical Stalker). Ints there would make the strict
+	 * indexOf fail and del/reorder splice the wrong favourite (#393).
+	 */
+	public function testGetFavIdsReturnsStringIds(): void {
+		$rToken = $this->handshake();
+		$this->portal('stb', 'get_profile', $rToken, self::BOX);
+		$this->primeDevice(['fav_channels' => ['live' => [10, 11], 'radio_streams' => [], 'movie' => [], 'series' => []]]);
+
+		$rIds = json_decode($this->portal('itv', 'get_fav_ids', $rToken)['body'], true)['js'] ?? null;
+
+		$this->assertSame(['10', '11'], $rIds, 'favourite ids are strings, matching the string channel id');
+	}
+
+	/**
+	 * get_ordered_list: the box reads a channel list. Issue #393 / commit 27f62c07: the portal
+	 * stringified every int, so the 0/1 boolean flags the JS reads with strict ===/truthy
+	 * checks became "0"/"1" and showed the adult lock, favourites star and timeshift/record
+	 * icons on every channel. Those flags must stay ints; the ids/numbers/statuses the native C
+	 * firmware reads as strings must stay strings. (Fails on the pre-fix getStreams().)
+	 */
+	public function testGetOrderedListKeepsBooleanFlagsIntAndIdentityStrings(): void {
+		// An adult channel (is_adult via category 2) with archive + record on, so every flag is 1.
+		$this->seedStream(55, '[2]', 1, 7);
+		$rToken = $this->handshake();
+		$this->portal('stb', 'get_profile', $rToken, self::BOX);
+		// getDevice() rebuilds live_ids from the device's bouquet via the bouquets cache,
+		// so the channel reaches the list through a bouquet, as on a real panel.
+		$this->primeDevice(['bouquet' => [1], 'fav_channels' => ['live' => []], 'username' => 'line', 'password' => 'secret']);
+
+		$rCategories = [['id' => 2, 'category_name' => 'Adult', 'category_type' => 'live', 'is_adult' => 1]];
+		$rBouquets = [1 => ['channels' => [55]]];
+		$rBody = $this->portal('itv', 'get_ordered_list', $rToken, [], self::MAC, $rCategories, $rBouquets)['body'];
+		$rData = json_decode($rBody, true)['js']['data'] ?? null;
+		$this->assertIsArray($rData, $rBody);
+		$this->assertCount(1, $rData, $rBody);
+		$rCh = $rData[0];
+
+		// The 0/1 boolean flags the portal JS renders with strict ===/truthy checks: JSON integers.
+		foreach (['censored', 'lock', 'locked', 'fav', 'archive', 'pvr', 'hd', 'open',
+			'enable_tv_archive', 'allow_pvr', 'allow_local_pvr', 'allow_remote_pvr',
+			'use_load_balancing'] as $rFlag) {
+			$this->assertIsInt($rCh[$rFlag] ?? null, $rFlag . ' must stay an int for the portal JS (#393)');
+		}
+		// The adult, archived, recordable channel: those flags are int 1; fav (not favourited) is int 0.
+		$this->assertSame(1, $rCh['censored']);
+		$this->assertSame(1, $rCh['lock']);
+		$this->assertSame(1, $rCh['archive']);
+		$this->assertSame(1, $rCh['pvr']);
+		$this->assertSame(0, $rCh['fav']);
+
+		// The identity fields native C firmware reads as strings must stay strings (commit 27f62c07).
+		foreach (['id', 'number', 'snumber', 'status', 'tv_genre_id'] as $rIdentity) {
+			$this->assertIsString($rCh[$rIdentity] ?? null, $rIdentity . ' must stay a string for native C firmware (commit 27f62c07)');
+		}
+		$this->assertSame('55', $rCh['id']);
+		$this->assertSame('2', $rCh['tv_genre_id']);
 	}
 }
