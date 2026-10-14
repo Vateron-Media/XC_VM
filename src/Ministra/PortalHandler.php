@@ -881,7 +881,9 @@ class PortalHandler {
 			case "get_fav_ids":
 				// String ids to match the string channel id the portal JS compares them
 				// against (canonical Stalker returns fav ids as strings) — issue #393.
-				exit(json_encode(["js" => array_map("strval", $ctx["device"]["fav_channels"]["live"])]));
+				// array_values: set_fav's array_filter can leave non-consecutive keys,
+				// which json_encode would emit as an object instead of a JS array.
+				exit(json_encode(["js" => array_values(array_map("strval", $ctx["device"]["fav_channels"]["live"]))]));
 
 			case "get_all_channels":
 				$rGenre =
@@ -1455,7 +1457,9 @@ class PortalHandler {
 			case "get_fav_ids":
 				// String ids to match the string station id the portal JS compares them
 				// against (canonical Stalker returns fav ids as strings) — issue #393.
-				exit(json_encode(["js" => array_map("strval", $ctx["device"]["fav_channels"]["radio_streams"])]));
+				// array_values: set_fav's array_filter can leave non-consecutive keys,
+				// which json_encode would emit as an object instead of a JS array.
+				exit(json_encode(["js" => array_values(array_map("strval", $ctx["device"]["fav_channels"]["radio_streams"]))]));
 		}
 	}
 

@@ -453,11 +453,16 @@ PHP;
 	public function testGetFavIdsReturnsStringIds(): void {
 		$rToken = $this->handshake();
 		$this->portal('stb', 'get_profile', $rToken, self::BOX);
-		$this->primeDevice(['fav_channels' => ['live' => [10, 11], 'radio_streams' => [], 'movie' => [], 'series' => []]]);
+		// Non-consecutive keys, as set_fav's array_filter leaves behind: the response
+		// must still be a reindexed JSON array of strings, not an object.
+		$this->primeDevice(['fav_channels' => ['live' => [0 => 10, 2 => 11], 'radio_streams' => [], 'movie' => [], 'series' => []]]);
 
-		$rIds = json_decode($this->portal('itv', 'get_fav_ids', $rToken)['body'], true)['js'] ?? null;
+		$rBody = $this->portal('itv', 'get_fav_ids', $rToken)['body'];
+		$rIds = json_decode($rBody, true)['js'] ?? null;
 
-		$this->assertSame(['10', '11'], $rIds, 'favourite ids are strings, matching the string channel id');
+		$this->assertSame(['10', '11'], $rIds, 'favourite ids are a reindexed array of strings (#393)');
+		// A JSON object would serialize with braces; the list form must not.
+		$this->assertStringStartsWith('{"js":[', $rBody, 'fav ids serialize as a JSON array, not an object');
 	}
 
 	/**
