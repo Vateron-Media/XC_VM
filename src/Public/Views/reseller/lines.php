@@ -39,6 +39,19 @@ $rSiteUrl = rtrim((string) (ServerRepository::getAll()[SERVER_ID]['site_url'] ??
 if (empty($rSiteUrl)) {
     $rSiteUrl = rtrim((string) DomainResolver::resolve(SERVER_ID), '/');
 }
+// A reseller's download/EPG links use the reseller's own domain (the first of its
+// reseller_dns list), not the server's, keeping the server base's scheme and port.
+// A reseller_dns that already carries a scheme is trusted as-is.
+$rResellerDomains = array_filter(array_map('trim', explode(',', (string) ($rUserInfo['reseller_dns'] ?? ''))));
+if ($rResellerDomains !== []) {
+    $rResellerHost = (string) reset($rResellerDomains);
+    if (preg_match('#^https?://#i', $rResellerHost)) {
+        $rSiteUrl = rtrim($rResellerHost, '/');
+    } else {
+        $rParts = parse_url($rSiteUrl);
+        $rSiteUrl = ($rParts['scheme'] ?? 'http') . '://' . $rResellerHost . (isset($rParts['port']) ? ':' . (int) $rParts['port'] : '');
+    }
+}
 
 // Deep-link owner filter (?owner=ID) — pre-selects the matching static option.
 $rSelectedOwner = RequestManager::has('owner') ? (string) RequestManager::get('owner') : '';

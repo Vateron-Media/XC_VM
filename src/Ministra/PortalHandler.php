@@ -20,6 +20,25 @@ use XcVm\Core\Util\TimeUtils;
 
 class PortalHandler {
 	/**
+	 * Canonical Stalker adult alias. The adult gate is the genre's "censored"
+	 * flag plus the alias "for adults": tv.js (check_for_play) only skips the
+	 * per-channel PIN when genre.alias === "for adults", so an adult category
+	 * shown under any other name makes the portal ask for the PIN a second
+	 * time, per channel — unusable on a remote without number keys. Only the
+	 * live-TV genre list uses this: audioclub, VOD (vclub) and series (sclub)
+	 * copy genre.alias into the request as a filter (audioclub.js category
+	 * param; vclub/sclub get_genres_by_category_alias), so there the alias must
+	 * stay the category name or the listing returns nothing. The per-stream
+	 * "lock" flag is left untouched, so adult channels under a non-censored
+	 * genre ("All") stay PIN-gated there.
+	 *
+	 * @param array<string, mixed> $rCategory
+	 */
+	public static function categoryAlias(array $rCategory, string $rNormal): string {
+		return intval($rCategory["is_adult"]) === 1 ? "for adults" : $rNormal;
+	}
+
+	/**
 	 * Phase 1: Pre-init stub responses (no DB needed).
 	 * Exits immediately if the action is handled, otherwise returns void.
 	 *
@@ -1019,7 +1038,7 @@ class PortalHandler {
 							"title" => $rCategory["category_name"],
 							"modified" => "",
 							"number" => (string) $rNumber++,
-							"alias" => strtolower($rCategory["category_name"]),
+							"alias" => self::categoryAlias($rCategory, strtolower((string) $rCategory["category_name"])),
 							// A 0/1 flag the portal JS reads with a truthy check — must stay an int,
 							// or a string "0" prompts the adult PIN on every category (issue #393).
 							"censored" => intval($rCategory["is_adult"]),
