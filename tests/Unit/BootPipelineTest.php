@@ -91,6 +91,7 @@ final class BootPipelineTest extends TestCase {
 	public function testMinimalProfile(): void {
 		$this->assertSame([
 			ConstantsStage::class,
+			StatusConstantsStage::class,
 			ConfigStage::class,
 			FloodProtectionStage::class,
 			HostVerificationStage::class,
@@ -101,6 +102,7 @@ final class BootPipelineTest extends TestCase {
 	public function testCliProfileDefaultsOmitRedisAndProcessTitle(): void {
 		$this->assertSame([
 			ConstantsStage::class,
+			StatusConstantsStage::class,
 			ConfigStage::class,
 			FloodProtectionStage::class,
 			HostVerificationStage::class,
@@ -121,6 +123,7 @@ final class BootPipelineTest extends TestCase {
 	public function testStreamProfileIsDatabaseOnly(): void {
 		$this->assertSame([
 			ConstantsStage::class,
+			StatusConstantsStage::class,
 			ConfigStage::class,
 			FloodProtectionStage::class,
 			HostVerificationStage::class,
@@ -133,6 +136,7 @@ final class BootPipelineTest extends TestCase {
 	public function testAdminProfileFullSequence(): void {
 		$this->assertSame([
 			ConstantsStage::class,
+			StatusConstantsStage::class,
 			ConfigStage::class,
 			FloodProtectionStage::class,
 			HostVerificationStage::class,
@@ -144,7 +148,6 @@ final class BootPipelineTest extends TestCase {
 			AdminApiStage::class,
 			TranslatorStage::class,
 			AdminShutdownStage::class,
-			StatusConstantsStage::class,
 			AdminGlobalsStage::class,
 			ContainerPopulateStage::class,
 			HealthCheckStage::class,
