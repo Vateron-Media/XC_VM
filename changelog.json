@@ -2,6 +2,7 @@
 	"version": "2.7.1",
 	"changes": [
 		"Manage Servers: fixed a DataTables console warning (\"Requested unknown parameter 14\") on the cluster-nodes table — a stale column target left over from the servers/cluster unification.",
-		"Manage Servers: the rolling-update progress card no longer stays on screen for good. A run that finished before the page was opened is no longer re-shown on every load; the card appears only while a rolling update is running or being watched to its result."
+		"Manage Servers: the rolling-update progress card no longer stays on screen for good. A run that finished before the page was opened is no longer re-shown on every load; the card appears only while a rolling update is running or being watched to its result.",
+		"Redis resilience: the reseller API's \"kill connection\" action and the signals daemon no longer fail hard (a 500, or a daemon crash) when Redis is briefly unreachable — they skip or fail gracefully, as the rest of the panel already does during a short Redis outage."
 	]
 }

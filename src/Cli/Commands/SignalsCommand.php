@@ -174,11 +174,11 @@ class SignalsCommand implements CommandInterface {
 						// Unremoved signals stay in the set for the next generation.
 						try {
 							$rSignals = [];
-							foreach (RedisManager::instance()->sMembers('SIGNALS#' . SERVER_ID) as $rKey) {
+							foreach (($rRedis = RedisManager::instance()) === null ? [] : $rRedis->sMembers('SIGNALS#' . SERVER_ID) as $rKey) {
 								$rSignals[] = $rKey;
 							}
 							if (count($rSignals) > 0) {
-								$rSignalData = RedisManager::instance()->mGet($rSignals);
+								$rSignalData = $rRedis->mGet($rSignals);
 								$rIDs = [];
 								foreach ($rSignalData as $rData) {
 									if (!is_string($rData)) {
@@ -197,7 +197,7 @@ class SignalsCommand implements CommandInterface {
 										shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rPID) . '" >/dev/null 2>/dev/null &');
 									}
 								}
-								RedisManager::instance()->multi()->del($rIDs)->sRem('SIGNALS#' . SERVER_ID, ...$rSignals)->exec();
+								$rRedis->multi()->del($rIDs)->sRem('SIGNALS#' . SERVER_ID, ...$rSignals)->exec();
 							}
 						} catch (\RedisException $e) {
 							echo 'Redis signals: ' . $e->getMessage() . "\n";

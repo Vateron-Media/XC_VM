@@ -298,7 +298,9 @@ class ResellerApiDispatcher {
 
 			if ($rSub == 'kill') {
 				if (SettingsManager::getBool('redis_handler')) {
-					$raw = RedisManager::instance()->get(RequestManager::get('uuid'));
+					// Redis may be momentarily unreachable (down, or in the connect backoff):
+					// fail the kill gracefully instead of calling a method on null.
+					$raw = ($rRedis = RedisManager::instance()) !== null ? $rRedis->get(RequestManager::get('uuid')) : false;
 					$rActivityInfo = ($raw !== false) ? igbinary_unserialize($raw) : null;
 					if ($rActivityInfo) {
 						if (Authorization::check('line', $rActivityInfo['user_id'])) {
