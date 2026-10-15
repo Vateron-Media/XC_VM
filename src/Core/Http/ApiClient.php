@@ -101,8 +101,10 @@ class ApiClient {
 		global $rServers;
 
 		foreach ($rServerIDs as $rServerID) {
-			if ($rServers[$rServerID]['server_online']) {
-				$rURLs[$rServerID] = ['url' => $rServers[$rServerID]['api_url'], 'postdata' => $rData];
+			$rServer = $rServers[$rServerID] ?? null;
+			// A node with no api_url (unknown or half-registered) cannot be reached: skip it.
+			if ($rServer && !empty($rServer['server_online']) && !empty($rServer['api_url'])) {
+				$rURLs[$rServerID] = ['url' => $rServer['api_url'], 'postdata' => $rData];
 			}
 		}
 		CurlClient::getMultiCURL($rURLs);
