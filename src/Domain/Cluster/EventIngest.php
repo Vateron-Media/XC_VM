@@ -57,6 +57,17 @@ final class EventIngest {
 	private const LOCK_WAIT = 10.0;
 
 	/**
+	 * How many times a batch's transaction is retried when it loses an InnoDB
+	 * deadlock (SQLSTATE 40001) to another node's batch over the rows they
+	 * share (e.g. lines_divergence). Without the retry the batch fails and the
+	 * node sends it again a poll later; the retry absorbs the transient loser
+	 * in-process, as CommandBus::enqueue does. A non-deadlock failure is not
+	 * retried (the batch fails as before). Re-applying is safe: the per-node
+	 * flock still holds, so the cursor has not moved and the batch is the same.
+	 */
+	private const INGEST_ATTEMPTS = 8;
+
+	/**
 	 * How long a P0 batch's fingerprint outlives the next one (ms): a copy
 	 * signed before the node moved on is refused past the request window
 	 * (90 s). The newest is kept however old: the node resends its batch until
@@ -169,41 +180,56 @@ final class EventIngest {
 			// a transaction a batch that failed half way would keep its first
 			// half, and the node would send all of it again.
 			$rTx = method_exists($rDb, 'beginTransaction');
-			self::$rAfterCommit = [];
-			if ($rTx && !$rDb->beginTransaction()) {
-				throw new \RuntimeException('cannot start the batch\'s transaction');
-			}
-			try {
-				$rApplied = 0;
-				$rDropped = 0;
-				foreach ($rEvents as $rEvent) {
-					if (self::apply($rNode, $rLane, $rEvent)) {
-						$rApplied++;
-					} else {
-						$rDropped++;
+			$rApplied = 0;
+			$rDropped = 0;
+			for ($rAttempt = 1;; $rAttempt++) {
+				self::$rAfterCommit = [];
+				if ($rTx && !$rDb->beginTransaction()) {
+					throw new \RuntimeException('cannot start the batch\'s transaction');
+				}
+				try {
+					$rApplied = 0;
+					$rDropped = 0;
+					foreach ($rEvents as $rEvent) {
+						if (self::apply($rNode, $rLane, $rEvent)) {
+							$rApplied++;
+						} else {
+							$rDropped++;
+						}
 					}
-				}
-				// The batch counts as applied only with its cursor. One that
-				// was not written (the connection dropped mid-batch, taking
-				// the transaction with it) fails the batch, and the node sends
-				// it again instead of moving on past events MAIN never kept.
-				// So does a commit that failed.
-				if (!$rDb->query('UPDATE `cluster_nodes` SET `' . $rColumn . '` = ? WHERE `server_id` = ? AND `' . $rColumn . '` < ?;', $rLast, $rServerID, $rLast)) {
-					throw new \RuntimeException('cannot advance the node\'s cursor');
-				}
-				if ($rTx && !$rDb->commit()) {
-					throw new \RuntimeException('cannot commit the batch');
-				}
-			} catch (\Throwable $rE) {
-				self::$rAfterCommit = []; // nothing of the batch was kept: nothing follows it
-				if ($rTx) {
-					try {
-						$rDb->rollback();
-					} catch (\Throwable) {
-						// MySQL already rolled it back (a deadlock): the batch's own failure stands.
+					// The batch counts as applied only with its cursor. One that
+					// was not written (the connection dropped mid-batch, taking
+					// the transaction with it) fails the batch, and the node sends
+					// it again instead of moving on past events MAIN never kept.
+					// So does a commit that failed.
+					if (!$rDb->query('UPDATE `cluster_nodes` SET `' . $rColumn . '` = ? WHERE `server_id` = ? AND `' . $rColumn . '` < ?;', $rLast, $rServerID, $rLast)) {
+						throw new \RuntimeException('cannot advance the node\'s cursor');
 					}
+					if ($rTx && !$rDb->commit()) {
+						throw new \RuntimeException('cannot commit the batch');
+					}
+					break;
+				} catch (\Throwable $rE) {
+					// A deadlock (SQLSTATE 40001) already rolled the whole
+					// transaction back; capture that before the rollback below.
+					$rDeadlock = method_exists($rDb, 'wasDeadlock') && $rDb->wasDeadlock();
+					self::$rAfterCommit = []; // nothing of the batch was kept: nothing follows it
+					if ($rTx) {
+						try {
+							$rDb->rollback();
+						} catch (\Throwable) {
+							// MySQL already rolled it back (a deadlock): the batch's own failure stands.
+						}
+					}
+					// Retry only a deadlock, and only so many times: another
+					// node's batch won the shared rows; let it commit, then redo
+					// this one whole rather than fail it for the node to resend.
+					if ($rDeadlock && $rAttempt < self::INGEST_ATTEMPTS) {
+						usleep(random_int(2000, 20000) * $rAttempt);
+						continue;
+					}
+					throw $rE;
 				}
-				throw $rE;
 			}
 			self::afterBatch();
 			return ['ok' => true, 'useq' => $rLast, 'applied' => $rApplied, 'dropped' => $rDropped];

@@ -28,6 +28,9 @@ class Database {
 	/** Last PDO error message (empty when the last query succeeded). */
 	protected $lastError = '';
 
+	/** SQLSTATE of the most recent failed query ('' when it succeeded); '40001' is a deadlock. */
+	protected string $lastErrorCode = '';
+
 	protected $dbuser;
 
 	protected $dbpassword;
@@ -285,6 +288,9 @@ class Database {
 			// of a failed write (e.g. LINE_CREATE_FAIL) even when FileLogger's
 			// noise filter drops the 'pdo' entry (duplicate entry / timeouts).
 			$this->lastError = $e->getMessage();
+			// SQLSTATE 40001 (serialization failure) is an InnoDB deadlock: the
+			// server rolled the whole transaction back, so the caller may retry.
+			$this->lastErrorCode = (string) $e->getCode();
 
 			// The statement with its placeholders: bound values stay out of the log.
 			// So does what the server quotes of them in its message ("Incorrect
@@ -303,6 +309,7 @@ class Database {
 		}
 
 		$this->lastError = '';
+		$this->lastErrorCode = '';
 		return true;
 	}
 
@@ -313,6 +320,15 @@ class Database {
 	 */
 	public function error(): string {
 		return $this->lastError;
+	}
+
+	/**
+	 * Whether the most recent failed query was an InnoDB deadlock (SQLSTATE
+	 * 40001, "Serialization failure"). The server rolls the whole transaction
+	 * back, so the caller may begin a fresh transaction and retry.
+	 */
+	public function wasDeadlock(): bool {
+		return $this->lastErrorCode === '40001';
 	}
 
 	/**
