@@ -106,7 +106,7 @@ public function registerTopbar(TopbarRegistry $registry): void
 
 |Аргумент|Значение|
 | --- | --- |
-| `$url` | Target page/URL. `null` for a JS-only action (pair with `$attr`). |
+| `$url` |Целевая страница/URL. `null` для действия только на JS (в паре с `$attr`).|
 | `$permission` |`adv` дополнительное разрешение для кнопки. `null` = отображается всегда.|
 | `$attr` | Raw extra attributes: `onClick="…"`, or a well-known `id="…"`. |
 | `$order` |Порядок сортировки **среди записей модуля страницы** (по возрастанию).|
