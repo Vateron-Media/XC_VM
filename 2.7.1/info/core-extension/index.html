@@ -1,0 +1,4548 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.7.1/info/core-extension/">
+      
+      
+        <link rel="prev" href="../licensing-and-activation/">
+      
+      
+        <link rel="next" href="../migration_guide/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../ru/info/core-extension/" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Core Extension (xcvm_core) - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#core-extension-xcvm_core-what-it-does-stores-sends-and-what-it-doesnt" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Core Extension (xcvm_core)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../ru/info/core-extension/" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSL Certificate Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Updating a Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/main-lb-cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAIN and Load Balancers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Update Mechanism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/panel-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reseller System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-bouquets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reseller Bouquets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/user-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interactive API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Customization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Translations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diagnostics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Info & FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Info & FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../licensing-and-activation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Licensing & Activation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Extension (xcvm_core)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Extension (xcvm_core)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-in-short-what-it-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. In short: what it is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-why-the-core-is-a-binary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Why the core is a binary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-what-happens-when-php-loads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. What happens when PHP loads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-what-the-core-keeps-on-your-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. What the core keeps on your disk
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-complete-list-of-the-cores-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The complete list of the core's actions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. The complete list of the core&#39;s actions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-installation-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Installation identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-panel-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2. Panel config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-database-and-redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3. Database and Redis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-modules-store-installation-module-licence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4. Modules: store, installation, module licence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-installation-licence-and-attribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5. Installation licence and attribution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56-multiserver-main-lb-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6. Multiserver: MAIN ↔ LB nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-network-every-request-and-what-it-carries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Network: every request and what it carries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Network: every request and what it carries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-how-every-request-is-built" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. How every request is built
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-the-complete-request-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. The complete request table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-what-is-never-in-a-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3. What is never in a request
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-licensing-how-it-works-and-what-happens-on-revocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Licensing: how it works and what happens on revocation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Licensing: how it works and what happens on revocation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-the-activation-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1. The activation key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-the-attribution-requirement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2. The attribution requirement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-the-server-check-and-behaviour-without-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3. The server check and behaviour without network
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-what-exactly-happens-on-revocation-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4. What exactly happens on revocation (enforcement)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#75-the-licence-on-an-lb-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5. The licence on an LB node
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-the-protective-mechanisms-that-usually-raise-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. The protective mechanisms that usually raise questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. The protective mechanisms that usually raise questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-anti-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1. Anti-debugging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-hidden-strings-in-the-binary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2. Hidden strings in the binary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-machine-binding-env_fp-and-hw_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3. Machine binding: env_fp and hw_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-the-xcvm_coreserver_url-directive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4. The xcvm_core.server_url directive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85-self-wiping-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5. Self-wiping keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-what-the-core-does-not-contain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. What the core does not contain
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-how-to-verify-all-of-this-yourself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. How to verify all of this yourself
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-honestly-about-the-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Honestly about the limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-frequently-asked-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Frequently asked questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watch Folder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../youtube-restream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Restreaming YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom-ffmpeg-command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom FFmpeg Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom-ffmpeg-build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Your Own FFmpeg Build
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autoloading (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Wiring & Registration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Authoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Extension Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/source-drivers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source Drivers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP Request Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin AJAX API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Subsystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/ts-delivery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MPEG-TS Delivery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/cluster-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster API (MAIN ↔ LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/cluster-seams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Seams
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception Hierarchy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching and Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Navbar Rendering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Workflow
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Workflow
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Tools & Console Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unit Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Refactoring (Rector)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & Access
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security & Access
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication and Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Permissions and RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP Detection & Geo Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Detection & STB Locking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ministra STB Emulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UCS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build & Release
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Build & Release
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build System (MAIN vs LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pre-release Checklist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/patch_builds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Patch Builds
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-in-short-what-it-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. In short: what it is
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-why-the-core-is-a-binary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Why the core is a binary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-what-happens-when-php-loads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. What happens when PHP loads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-what-the-core-keeps-on-your-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. What the core keeps on your disk
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-complete-list-of-the-cores-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The complete list of the core's actions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. The complete list of the core&#39;s actions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-installation-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Installation identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-panel-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2. Panel config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-database-and-redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3. Database and Redis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-modules-store-installation-module-licence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4. Modules: store, installation, module licence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-installation-licence-and-attribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5. Installation licence and attribution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56-multiserver-main-lb-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6. Multiserver: MAIN ↔ LB nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-network-every-request-and-what-it-carries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Network: every request and what it carries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Network: every request and what it carries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-how-every-request-is-built" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. How every request is built
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-the-complete-request-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. The complete request table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-what-is-never-in-a-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3. What is never in a request
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-licensing-how-it-works-and-what-happens-on-revocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Licensing: how it works and what happens on revocation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Licensing: how it works and what happens on revocation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-the-activation-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1. The activation key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-the-attribution-requirement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2. The attribution requirement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-the-server-check-and-behaviour-without-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3. The server check and behaviour without network
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-what-exactly-happens-on-revocation-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4. What exactly happens on revocation (enforcement)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#75-the-licence-on-an-lb-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5. The licence on an LB node
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-the-protective-mechanisms-that-usually-raise-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. The protective mechanisms that usually raise questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. The protective mechanisms that usually raise questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-anti-debugging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1. Anti-debugging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-hidden-strings-in-the-binary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2. Hidden strings in the binary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-machine-binding-env_fp-and-hw_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3. Machine binding: env_fp and hw_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-the-xcvm_coreserver_url-directive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4. The xcvm_core.server_url directive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85-self-wiping-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5. Self-wiping keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-what-the-core-does-not-contain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. What the core does not contain
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-how-to-verify-all-of-this-yourself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. How to verify all of this yourself
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-honestly-about-the-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Honestly about the limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-frequently-asked-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Frequently asked questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="core-extension-xcvm_core-what-it-does-stores-sends-and-what-it-doesnt">Core Extension (xcvm_core): What It Does, Stores, Sends — and What It Doesn't<a class="headerlink" href="#core-extension-xcvm_core-what-it-does-stores-sends-and-what-it-doesnt" title="Permanent link">&para;</a></h1>
+<p>This page is written for XC_VM users and administrators. The core (<code>xcvm_core.so</code>)
+ships as a compiled binary without source code, and that is a legitimate reason to
+ask questions. So this page describes <strong>its entire behaviour</strong>: what happens at
+load time, which files it creates, every action it can perform, every network
+request and exactly what each one carries, how licensing works and what precisely
+happens when a licence is revoked — plus what the core does <strong>not</strong> do, and how to
+<strong>verify every claim yourself</strong> with standard Linux tools, without the sources.</p>
+<p>The page is self-contained: it does not refer you anywhere else.</p>
+<hr />
+<h2 id="1-in-short-what-it-is">1. In short: what it is<a class="headerlink" href="#1-in-short-what-it-is" title="Permanent link">&para;</a></h2>
+<p><code>xcvm_core</code> is a native PHP extension (written in Rust) that loads into the PHP
+processes of the XC_VM panel and registers <strong>one</strong> class, <code>XC_VM</code>, with static
+methods. It adds no global functions and installs no hooks into PHP code
+execution.</p>
+<p>It solves exactly three problems:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Config, DB, Redis</strong></td>
+<td>Keeps the panel settings in an encrypted, machine-bound <code>config.enc</code> and hands PHP ready-made MySQL/Redis connections so that passwords never appear in PHP code</td>
+</tr>
+<tr>
+<td><strong>Modules</strong></td>
+<td>Downloads modules from the store, strips the transport encryption and leaves IonCube-encoded files on disk, which the stock ionCube Loader executes</td>
+</tr>
+<tr>
+<td><strong>Licence and cluster</strong></td>
+<td>Checks the installation's licence and lets the MAIN server hand LB nodes configs and tokens without passing passwords around</td>
+</tr>
+</tbody>
+</table>
+<p>It is <strong>not</strong>: a backdoor, a remote-control channel, a telemetry collector, a way
+to exfiltrate your data, or a mechanism for executing code sent from outside. The
+details for each of those claims follow.</p>
+<hr />
+<h2 id="2-why-the-core-is-a-binary">2. Why the core is a binary<a class="headerlink" href="#2-why-the-core-is-a-binary" title="Permanent link">&para;</a></h2>
+<p>The panel's PHP code is open and readable by anyone with access to the server. If
+database passwords, encryption keys or paid-module keys lived in it, they would go
+to the first person who opened the file. So exactly those things are moved into
+compiled code:</p>
+<ol>
+<li><strong>DB and Redis passwords</strong> never appear in PHP: the core reads them from
+   <code>config.enc</code> itself and opens the connection itself.</li>
+<li><strong>Module keys</strong> never appear in PHP: the core fetches them from the server
+   itself, decrypts the files at install time itself, and stores the key encrypted.</li>
+<li><strong>Licence checks</strong> cannot be commented out by editing PHP.</li>
+</ol>
+<p>That is the whole point of the binary being closed. Its behaviour is not secret —
+it is described here.</p>
+<hr />
+<h2 id="3-what-happens-when-php-loads">3. What happens when PHP loads<a class="headerlink" href="#3-what-happens-when-php-loads" title="Permanent link">&para;</a></h2>
+<p>At the start of every PHP process (php-fpm, CLI) the core initialises. This is the
+complete list of what happens then — and nothing else:</p>
+<ol>
+<li><strong>Debugger check.</strong> The file <code>/proc/self/status</code> is read. If the process is
+   being traced right now (<code>TracerPid</code> is non-zero — for example gdb is attached),
+   the core <strong>refuses to load</strong>. Nothing else happens: nothing is deleted, nothing
+   is sent anywhere, the server is not stopped — the <code>XC_VM</code> class is simply
+   unavailable in that process.</li>
+<li><strong>Registration of the ini directive</strong> <code>xcvm_core.server_url</code> (see section 8.4).</li>
+<li><strong>ionCube Loader presence check.</strong> If it is not loaded, an ordinary PHP warning
+   is emitted. It is only a message — the core keeps going.</li>
+<li><strong>Installation identifier.</strong> If the <code>install_id</code> file does not exist yet, a
+   random UUID is generated and written to the config directory with <code>0600</code>
+   permissions. If it exists, it is read.</li>
+<li><strong>Automatic config migration.</strong> If an old plaintext <code>config.ini</code> is in the config
+   directory and <code>config.enc</code> is not, the ini is read, encrypted into <code>config.enc</code>,
+   and <code>config.ini</code> is then <strong>deleted</strong> (so plaintext passwords do not stay on
+   disk). If <code>config.enc</code> already exists, nothing happens. If neither exists,
+   nothing happens.</li>
+</ol>
+<p><strong>The core performs no network requests at load time.</strong> Every request to the
+server happens only inside calls to the methods listed in section 5.</p>
+<p>The core creates no background threads, timers, daemons or cron jobs. Everything it
+does happens inside a method call the panel made, and ends with that call.</p>
+<hr />
+<h2 id="4-what-the-core-keeps-on-your-disk">4. What the core keeps on your disk<a class="headerlink" href="#4-what-the-core-keeps-on-your-disk" title="Permanent link">&para;</a></h2>
+<p>All per-installation secrets live in the <strong>config directory</strong> — by default
+<code>/home/xc_vm/config</code> (permissions <code>0700</code>). The path can be overridden with the
+<code>XCVM_CONFIG_DIR</code> environment variable — the <strong>only</strong> environment variable the
+core reads.</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>What it is</th>
+<th>Mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config.enc</code></td>
+<td>Panel settings (DB, Redis, server role), AES-256-GCM encrypted. The key is derived from <code>install_id</code> <strong>and</strong> <code>/etc/machine-id</code>, so a copy on another machine does not decrypt</td>
+<td><code>0600</code></td>
+</tr>
+<tr>
+<td><code>install_id</code></td>
+<td>The random UUID of your installation. Created once and never changes (survives core and PHP upgrades)</td>
+<td><code>0600</code></td>
+</tr>
+<tr>
+<td><code>panel.pk</code> / <code>panel.sk</code></td>
+<td>The panel's X25519 key pair. The public half is sent to the server at registration; <strong>the private half never leaves the machine</strong> and is stored sealed to this machine's key</td>
+<td>sk: <code>0600</code></td>
+</tr>
+<tr>
+<td><code>module_keys/&lt;module&gt;.key</code></td>
+<td>The transport-encryption key of each installed paid module, itself encrypted under the installation's master key</td>
+<td><code>0600</code></td>
+</tr>
+<tr>
+<td><code>activation_key</code></td>
+<td>The licence activation key (you paste it in the panel). Signed by the server, bound to your <code>install_id</code></td>
+<td><code>0600</code></td>
+</tr>
+<tr>
+<td><code>license_verdict</code></td>
+<td>The cache of the server's last signed answer about the licence state</td>
+<td><code>0600</code></td>
+</tr>
+<tr>
+<td><code>license_checkin</code></td>
+<td>A timestamp for when the next daily check-in may happen (see section 7)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>license_enforce_ts</code> / <code>license_revoked</code></td>
+<td>Timestamps of the last enforcement of a revoked licence, and the revocation mark itself (see section 7.4)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>cluster/</code></td>
+<td>Cluster files: MAIN's root keys (<code>root.enc</code>), MAIN's pinned keys on an LB (<code>core.pin</code>), node revocation state (<code>nodes.state</code>), protected clocks (<code>clock.sealed</code>, <code>timeanchor</code>), LB leases (<code>lease</code>). All encrypted under this machine's key</td>
+<td><code>0600</code></td>
+</tr>
+</tbody>
+</table>
+<p>Outside the config directory the core writes:</p>
+<ul>
+<li>to <code>/home/xc_vm/Modules/&lt;module&gt;/</code> — the files of installed modules (the path is
+  fixed);</li>
+<li>a temporary file in <code>/tmp</code> with <code>0600</code> permissions — the connection options for
+  <code>mysqldump</code>/<code>mysql</code> during a DB dump/restore; the file is <strong>removed right after
+  the operation</strong>.</li>
+</ul>
+<p>What the core does <strong>not</strong> write: anything outside those paths, hidden files, or
+changes to <code>php.ini</code>, cron, systemd or autostart.</p>
+<hr />
+<h2 id="5-the-complete-list-of-the-cores-actions">5. The complete list of the core's actions<a class="headerlink" href="#5-the-complete-list-of-the-cores-actions" title="Permanent link">&para;</a></h2>
+<p>Below are <strong>all</strong> methods of the <code>XC_VM</code> class. For each: what it does, what it
+touches on disk, in the DB and on the network. A "—" in the Network column means the
+method makes no network request. No method runs on its own — only when the panel
+calls it.</p>
+<h3 id="51-installation-identity">5.1. Installation identity<a class="headerlink" href="#51-installation-identity" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>What it does</th>
+<th>Disk</th>
+<th>Network</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>install_id()</code></td>
+<td>Returns the installation UUID (creates it on first call)</td>
+<td>reads/creates <code>install_id</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>env_fingerprint()</code></td>
+<td>Returns the hash <code>SHA-256(install_id + /etc/machine-id + hostname)</code>. It is a <strong>hash</strong>: the hostname or machine-id cannot be recovered from it</td>
+<td>reads <code>/etc/machine-id</code>, hostname</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-panel-config">5.2. Panel config<a class="headerlink" href="#52-panel-config" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>What it does</th>
+<th>Disk</th>
+<th>Network</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config_init(data)</code></td>
+<td>Writes <code>config.enc</code> at panel install time (DB, Redis, server role). Deletes the old plaintext <code>config.ini</code> afterwards</td>
+<td>writes <code>config.enc</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>config_set_redis(host, port, auth)</code></td>
+<td>Updates <strong>only</strong> the Redis section of <code>config.enc</code> (needed when the Redis password changes)</td>
+<td>writes <code>config.enc</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>config_server()</code></td>
+<td>Returns the <code>server</code> section (server id, whether it is an LB). Does <strong>not</strong> return passwords</td>
+<td>reads <code>config.enc</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>config_set_db(pass)</code></td>
+<td>On an LB node: replaces the DB password in its <code>config.enc</code> (the node's half of a password rotation)</td>
+<td>writes <code>config.enc</code></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Every write of <code>config.enc</code> is atomic: a temporary file is written, then renamed
+over the old one. A failure at any point leaves either the old file or the new one,
+never an empty or corrupted one.</p>
+<h3 id="53-database-and-redis">5.3. Database and Redis<a class="headerlink" href="#53-database-and-redis" title="Permanent link">&para;</a></h3>
+<p>All methods read the credentials from <code>config.enc</code> inside the core; <strong>they never
+reach PHP</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>What it does</th>
+<th>Disk</th>
+<th>Network</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>db_connect()</code></td>
+<td>Returns a ready PDO connection to your DB</td>
+<td>reads <code>config.enc</code></td>
+<td>your DB only</td>
+</tr>
+<tr>
+<td><code>redis_connect()</code></td>
+<td>Returns a ready Redis connection</td>
+<td>reads <code>config.enc</code></td>
+<td>your Redis only</td>
+</tr>
+<tr>
+<td><code>db_dump(file, ignore_tables)</code></td>
+<td>Dumps the DB via <code>mysqldump</code> (structure, then data) into the given file</td>
+<td>writes the given file; temporary <code>.cnf</code> in <code>/tmp</code>, removed afterwards</td>
+<td>your DB only</td>
+</tr>
+<tr>
+<td><code>db_restore(file, dbname)</code></td>
+<td><strong>Drops and recreates</strong> the target DB, then imports the file. A destructive operation, but it runs <strong>only on an explicit call</strong> from the panel (restore from backup)</td>
+<td>temporary <code>.cnf</code> in <code>/tmp</code>, removed afterwards</td>
+<td>your DB only</td>
+</tr>
+<tr>
+<td><code>db_grant(host)</code></td>
+<td>Grants the panel's DB user privileges when connecting from the given address (for an LB node)</td>
+<td>—</td>
+<td>your DB only</td>
+</tr>
+<tr>
+<td><code>db_revoke(host)</code></td>
+<td>Revokes privileges for the given address. <strong>Refuses</strong> to revoke addresses MAIN itself may connect through (<code>localhost</code>, loopback, the DB host from the config) — so MAIN is never cut off from its own database</td>
+<td>—</td>
+<td>your DB only</td>
+</tr>
+<tr>
+<td><code>db_set_password(new)</code></td>
+<td>On MAIN: changes the panel user's password in the DB, then in <code>config.enc</code>, then on the nodes' grants. If the config write fails, the DB password is rolled back</td>
+<td>writes <code>config.enc</code></td>
+<td>your DB only</td>
+</tr>
+</tbody>
+</table>
+<p>The address in <code>db_grant</code>/<code>db_revoke</code> is strictly validated (only characters legal
+in a MySQL host), and values are quoted via PDO — SQL injection through these
+methods is not possible.</p>
+<h3 id="54-modules-store-installation-module-licence">5.4. Modules: store, installation, module licence<a class="headerlink" href="#54-modules-store-installation-module-licence" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>What it does</th>
+<th>Disk</th>
+<th>Network</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>panel_register(api_key)</code></td>
+<td>Registers the panel with the server: creates (or reads) the panel key pair and sends <code>install_id</code>, the <strong>public</strong> key, <code>env_fp</code> and <code>hw_id</code></td>
+<td>creates <code>panel.pk</code>/<code>panel.sk</code></td>
+<td><code>panel/register</code></td>
+</tr>
+<tr>
+<td><code>plugins_check(plugin, install_id, api_key)</code></td>
+<td>Asks the server whether a module is available for installation</td>
+<td>—</td>
+<td><code>plugins/check</code></td>
+</tr>
+<tr>
+<td><code>plugins_token(plugin, install_id, api_key)</code></td>
+<td>Obtains a short-lived (5-minute) module access token from the server</td>
+<td>—</td>
+<td><code>plugins/token</code></td>
+</tr>
+<tr>
+<td><code>extensions_list(env, api_key, options)</code></td>
+<td>Returns the store catalogue (paged, with search and sorting)</td>
+<td>—</td>
+<td><code>extensions</code></td>
+</tr>
+<tr>
+<td><code>extensions_check_update(list, api_key)</code></td>
+<td>Asks whether updates exist for a list of installed modules</td>
+<td>—</td>
+<td><code>extensions/check-update</code></td>
+</tr>
+<tr>
+<td><code>module_install(slug, version, api_key)</code></td>
+<td>The full module installation cycle (see below)</td>
+<td>writes <code>Modules/&lt;slug&gt;/</code>, <code>module_keys/&lt;slug&gt;.key</code></td>
+<td><code>plugins/token</code>, <code>plugins/key</code>, <code>plugins/download</code></td>
+</tr>
+<tr>
+<td><code>module_license(slug, server_data, api_key)</code></td>
+<td>Requests an ionCube <code>.lic</code> licence file for a module, bound to your machine</td>
+<td>— (the panel writes the file)</td>
+<td><code>plugins/token</code>, <code>plugins/license</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>How a module is installed (<code>module_install</code>)</strong>, step by step:</p>
+<ol>
+<li>A module access token is requested from the server. The server checks whether
+   the owner of the API key is entitled to this module. For a <strong>free</strong> module
+   neither an API key nor panel registration is needed.</li>
+<li>(Paid modules only.) The module's transport-encryption key is requested from the
+   server. It arrives sealed to your panel's <strong>public</strong> key, so only your panel can
+   open it with its private key.</li>
+<li>The key is saved to <code>module_keys/&lt;slug&gt;.key</code> — encrypted under the installation's
+   master key.</li>
+<li>The module archive (<code>tar.gz</code>) is downloaded. The server's response arrives inside
+   a sealed envelope (see section 6.1), and the archive is <strong>extracted only if the
+   envelope opens</strong> — i.e. it is proven to come from the server and to answer this
+   very request. Any failure at this step = no installation, nothing is written to
+   disk.</li>
+<li>The archive is extracted into <code>/home/xc_vm/Modules/&lt;slug&gt;/</code>.</li>
+<li>(Paid modules only.) Every <code>*.xcvm</code> file is decrypted into <code>*.php</code> <strong>once,
+   directly on disk</strong>. Inside is IonCube-encoded PHP code.</li>
+</ol>
+<p>After that the core <strong>has nothing to do with the module</strong>: the files on disk are
+ordinary IonCube-encoded <code>.php</code> files, executed by the stock ionCube Loader through
+PHP's normal mechanism. The core decrypts nothing per request, intercepts no PHP
+compilation, and executes no code.</p>
+<p>What is in a module archive: <code>module.json</code> (the manifest, <strong>not</strong> encrypted — the
+panel reads it), and the module's files (<code>*.xcvm</code> for paid ones, <code>*.php</code> for free
+ones).</p>
+<p><strong>Module licence (<code>module_license</code>).</strong> An optional step for paid modules. The panel
+passes the core a machine fingerprint produced by ionCube itself
+(<code>ioncube_server_data()</code>); the core sends it to the server; the server mints a
+<code>.lic</code> file bound to this machine with a limited lifetime. The file goes next to the
+module; without a matching <code>.lic</code> the ionCube Loader does not decode the module's
+files. If module licensing is disabled on the server or there is no entitlement,
+the panel simply writes no <code>.lic</code>.</p>
+<h3 id="55-installation-licence-and-attribution">5.5. Installation licence and attribution<a class="headerlink" href="#55-installation-licence-and-attribution" title="Permanent link">&para;</a></h3>
+<p>Both methods work <strong>without a network call</strong> at the moment of the call (with one
+caveat about the daily check-in, detailed in section 7).</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>What it does</th>
+<th>Disk</th>
+<th>Network</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>license_valid()</code></td>
+<td>Answers whether this installation may use licensed features (for example fanout and cluster token minting). Details in section 7</td>
+<td>reads <code>activation_key</code>, <code>license_verdict</code>, the attribution files</td>
+<td>at most once a day — <code>activation/status</code> / <code>activation/checkin</code> (section 7.3)</td>
+</tr>
+<tr>
+<td><code>verify_branding()</code></td>
+<td>Answers whether the panel's attribution is in place (see section 7.2)</td>
+<td>reads 6 panel files</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="56-multiserver-main-lb-nodes">5.6. Multiserver: MAIN ↔ LB nodes<a class="headerlink" href="#56-multiserver-main-lb-nodes" title="Permanent link">&para;</a></h3>
+<p>These methods let the MAIN server hand LB/proxy nodes a config and tokens without
+passing the DB password through PHP or leaving it on the nodes in the clear.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Where it runs</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config_pack(target_install_id, params)</code></td>
+<td>MAIN</td>
+<td>Builds a transport blob with a config for a node: reads the DB password from its own <code>config.enc</code> <strong>inside the core</strong> and encrypts it under a key derived from the node's <code>install_id</code>. Can build a config <strong>without</strong> DB credentials (for nodes in API mode)</td>
+</tr>
+<tr>
+<td><code>install_config(blob)</code></td>
+<td>node, as root</td>
+<td>Verifies the blob (addressed to this node, at most an hour old, for an LB, for the right <code>server_id</code>) and writes it as its <code>config.enc</code>. <strong>Never overwrites</strong> a MAIN config. Writes nothing on refusal</td>
+</tr>
+<tr>
+<td><code>strip_db_credentials()</code></td>
+<td>node, as root</td>
+<td>Removes MAIN's DB user and password from the node's <code>config.enc</code> (switching the node to API mode). Refuses to run on MAIN</td>
+</tr>
+<tr>
+<td><code>cluster_info()</code></td>
+<td>any</td>
+<td>Cluster API version, panel public keys, licence and clock state. Never refuses</td>
+</tr>
+<tr>
+<td><code>cluster_init()</code></td>
+<td>MAIN</td>
+<td>Creates the cluster root keys once (<code>cluster/root.enc</code>). Calling it again changes nothing</td>
+</tr>
+<tr>
+<td><code>cluster_token_issue(params)</code></td>
+<td>MAIN</td>
+<td>Mints a token for an LB node. <strong>Requires a valid licence</strong></td>
+</tr>
+<tr>
+<td><code>cluster_session(record, node, hard)</code></td>
+<td>MAIN</td>
+<td>Returns the current epoch's session keys for verifying a node's requests</td>
+</tr>
+<tr>
+<td><code>cluster_node_gen(node, gen, min_epoch)</code></td>
+<td>MAIN</td>
+<td>Revokes a node (raises its "generation"); previously issued tokens stop working. Survives a DB restore from backup</td>
+</tr>
+<tr>
+<td><code>cluster_sign</code> / <code>cluster_verify</code> / <code>cluster_record_class</code></td>
+<td>MAIN / LB</td>
+<td>Signing and verifying cluster records (commands, denials, replicas). "Granting" records require a licence; "restricting" ones (stop, ban) are signed even without one — so an unlicensed MAIN can still stop its fleet</td>
+</tr>
+<tr>
+<td><code>cluster_lease_issue</code> / <code>cluster_lease_verify</code> / <code>cluster_lease_store</code> / <code>cluster_lease_state</code></td>
+<td>MAIN → LB</td>
+<td>A "lease" — MAIN-signed permission for an LB node to keep serving while MAIN is unreachable. On an LB, <code>license_valid()</code> follows the lease</td>
+</tr>
+<tr>
+<td><code>cluster_pack</code> / <code>cluster_pin</code> / <code>cluster_pinned</code></td>
+<td>MAIN → LB</td>
+<td>Delivering and pinning MAIN's public keys on an LB (trust on first use; a later key substitution is refused)</td>
+</tr>
+<tr>
+<td><code>cluster_seal_local</code> / <code>cluster_open_local</code></td>
+<td>any</td>
+<td>Seal/open data to <strong>this</strong> machine's key — for the PHP panel to keep its own secrets</td>
+</tr>
+<tr>
+<td><code>cluster_open_sealed(purpose, sealed)</code></td>
+<td>MAIN</td>
+<td>Open a message addressed to the panel key (only for the node enrolment and re-keying stages)</td>
+</tr>
+<tr>
+<td><code>cluster_export_keys(passphrase)</code> / <code>cluster_import_keys(bundle, passphrase)</code></td>
+<td>old → new MAIN</td>
+<td>A backup of the cluster root keys for moving MAIN to new hardware. Encrypted from your passphrase via Argon2id (1 GiB of memory, a few seconds) — hence available <strong>from the CLI only</strong></td>
+</tr>
+<tr>
+<td><code>cluster_kek()</code></td>
+<td>LB</td>
+<td>A machine-bound key for encrypting the node's key file</td>
+</tr>
+<tr>
+<td><code>cluster_last_error()</code></td>
+<td>any</td>
+<td>The reason code of the last cluster call's refusal</td>
+</tr>
+</tbody>
+</table>
+<p>What the core guarantees in the cluster regardless of what PHP does: private keys
+and token material never leave the core; node revocation survives a DB restore;
+turning the clock back (on MAIN or on an LB) extends nothing; a node switched to
+credential-free API mode does not get credentials back without an explicit
+administrator action.</p>
+<hr />
+<h2 id="6-network-every-request-and-what-it-carries">6. Network: every request and what it carries<a class="headerlink" href="#6-network-every-request-and-what-it-carries" title="Permanent link">&para;</a></h2>
+<p>The core talks to <strong>only one external address</strong> — the store and licence server
+<code>https://www.xcvm.tech</code> (every path under <code>/api/v1/</code>). It connects nowhere else,
+apart from <strong>your</strong> DB and <strong>your</strong> Redis at the addresses from your own config.</p>
+<h3 id="61-how-every-request-is-built">6.1. How every request is built<a class="headerlink" href="#61-how-every-request-is-built" title="Permanent link">&para;</a></h3>
+<p>Every request to the server is a <code>POST</code> whose body is <strong>sealed</strong> to the server's
+public key on top of TLS (the "XCVM-API-v1" envelope). Inside the envelope are a
+timestamp, a one-time request id, the API key (when needed) and the body itself.
+The server's response is sealed to a one-time key that only your panel knows, for
+this one request.</p>
+<p>Why: so that the request and response bodies cannot be read or substituted even
+where TLS terminates on an intermediate hop (a proxy, a load balancer, the
+nginx→php-fpm hop on the server side). This protection works <strong>in your favour</strong>:
+your API key does not travel in an HTTP header and is invisible on intermediate
+hops, and a downloaded module cannot be swapped in transit.</p>
+<p>Client parameters:</p>
+<ul>
+<li>HTTPS only; certificate-chain and hostname verification is on and <strong>cannot be
+  turned off anywhere</strong> — the library used simply has no such setting;</li>
+<li>redirects are refused (301/302 = error);</li>
+<li>timeouts: ordinary request 15 s, archive download 120 s, connection 10 s;</li>
+<li>an archive is at most 100 MB;</li>
+<li>there is no plaintext (unsealed) mode on either the client or the server.</li>
+</ul>
+<h3 id="62-the-complete-request-table">6.2. The complete request table<a class="headerlink" href="#62-the-complete-request-table" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>When</th>
+<th>What is sent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>panel/register</code></td>
+<td>registering the panel with the store</td>
+<td><code>install_id</code>; the panel's <strong>public</strong> key; <code>env_fp</code> (hash); <code>hw_id</code> (hash of <code>install_id + machine-id</code>); API key</td>
+</tr>
+<tr>
+<td><code>plugins/check</code></td>
+<td>before installing a module</td>
+<td><code>plugin_id</code>; <code>install_id</code>; API key (optional)</td>
+</tr>
+<tr>
+<td><code>plugins/token</code></td>
+<td>installing/licensing a module</td>
+<td><code>plugin_id</code>; <code>install_id</code>; API key (optional for free modules)</td>
+</tr>
+<tr>
+<td><code>plugins/key</code></td>
+<td>installing a paid module</td>
+<td>token; module name and version</td>
+</tr>
+<tr>
+<td><code>plugins/download</code></td>
+<td>installing a module</td>
+<td>slug, version, token</td>
+</tr>
+<tr>
+<td><code>plugins/license</code></td>
+<td>requesting a <code>.lic</code> for a module</td>
+<td>token; the ionCube machine fingerprint (<code>ioncube_server_data()</code>)</td>
+</tr>
+<tr>
+<td><code>extensions</code></td>
+<td>browsing the store catalogue</td>
+<td>filters: environment, page, search, sort; API key (optional)</td>
+</tr>
+<tr>
+<td><code>extensions/check-update</code></td>
+<td>checking for updates</td>
+<td>a list of <code>{slug, version}</code> of installed modules; API key (optional)</td>
+</tr>
+<tr>
+<td><code>activation/status</code></td>
+<td>refreshing the licence verdict cache (section 7.3)</td>
+<td><code>jti</code> (activation key id); <code>install_id</code>; <code>env_fp</code>; a one-time nonce</td>
+</tr>
+<tr>
+<td><code>activation/checkin</code></td>
+<td>the daily check-in on MAIN (section 7.3)</td>
+<td>the same</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63-what-is-never-in-a-request">6.3. What is never in a request<a class="headerlink" href="#63-what-is-never-in-a-request" title="Permanent link">&para;</a></h3>
+<ul>
+<li>❌ data about your users, subscribers, playlists, streams, EPG;</li>
+<li>❌ the contents of your DB or Redis;</li>
+<li>❌ passwords — DB, Redis or system;</li>
+<li>❌ private keys, <code>config.enc</code>, module keys;</li>
+<li>❌ the hostname or <code>/etc/machine-id</code> in the clear — only their hash;</li>
+<li>❌ usage statistics, logs, your clients' IP lists, load figures;</li>
+<li>❌ anything "in the background": every request in the table happens inside a
+  method call by the panel, and none at PHP load time or on a core timer.</li>
+</ul>
+<p>The only "regular" contact — the licence check, at most once a day — also happens
+<strong>inside</strong> a <code>license_valid()</code> call made by the panel, not on the core's own
+initiative; what it carries is in the table above.</p>
+<hr />
+<h2 id="7-licensing-how-it-works-and-what-happens-on-revocation">7. Licensing: how it works and what happens on revocation<a class="headerlink" href="#7-licensing-how-it-works-and-what-happens-on-revocation" title="Permanent link">&para;</a></h2>
+<p>Yes, the core checks the licence. This section describes exactly how, what happens
+without network access, and what happens on revocation. None of it is hidden.</p>
+<h3 id="71-the-activation-key">7.1. The activation key<a class="headerlink" href="#71-the-activation-key" title="Permanent link">&para;</a></h3>
+<p>The installation licence is a text key of the form <code>XCVM1.&lt;data&gt;.&lt;signature&gt;</code> that
+the administrator pastes into the panel; it is saved to the <code>activation_key</code> file.
+The key is <strong>signed by the server</strong> (Ed25519) and contains:</p>
+<ul>
+<li><code>hwid</code> — your <code>install_id</code>: the key works only on the installation it was issued
+  for;</li>
+<li><code>jti</code> — the key's identifier;</li>
+<li><code>iat</code> — the issue time;</li>
+<li><code>exp</code> — the expiry (may be absent = perpetual).</li>
+</ul>
+<p>Signature, binding and expiry are checked <strong>offline</strong>, with no network.</p>
+<h3 id="72-the-attribution-requirement">7.2. The attribution requirement<a class="headerlink" href="#72-the-attribution-requirement" title="Permanent link">&para;</a></h3>
+<p>The XC_VM panel is distributed under the AGPL-3.0 licence, and a condition of using
+the licensed features is keeping the authors' attribution. The core checks this: it
+reads six of the panel's own files (<code>Core/Util/AdminHelpers.php</code> and five
+footer/login templates of the admin, reseller and player panels) and makes sure the
+attribution strings are in place (<code>github.com/Vateron-Media/XC_VM</code>,
+<code>Vateron Media</code>, a link to AGPL-3.0) and that the footer-rendering call is not
+commented out.</p>
+<ul>
+<li>The check is <strong>purely file-based</strong>: no network, no cryptography.</li>
+<li>If the files are <strong>absent</strong> (a non-standard layout, development), the check
+  counts as <strong>passed</strong>: the core does not brick an installation over missing files.</li>
+<li>If the attribution has been cut out, <code>license_valid()</code> returns <code>false</code>, i.e. the
+  <strong>licensed</strong> features (fanout, cluster token minting) switch off. The panel
+  itself, your streams, DB and users keep working.</li>
+<li>The verdict is cached for 1 second so the files are not read on every request.</li>
+</ul>
+<h3 id="73-the-server-check-and-behaviour-without-network">7.3. The server check and behaviour without network<a class="headerlink" href="#73-the-server-check-and-behaviour-without-network" title="Permanent link">&para;</a></h3>
+<p>On MAIN, <code>license_valid()</code> = "attribution in place" <strong>and</strong> "activation key valid".
+Validity includes revocation, and this is how the core learns about it:</p>
+<ul>
+<li>The server's answer about the key's state is cached in the <code>license_verdict</code>
+  file. The cache is signed by the server and cannot be forged.</li>
+<li>When the cache is stale (or absent), the core — inside a <code>license_valid()</code> call —
+  makes an <code>activation/status</code> request; the answer is checked by signature, by the
+  one-time <code>nonce</code> and by <code>jti</code>, and only then stored in the cache.</li>
+<li>On MAIN, additionally, once a day (20 hours plus a random offset of up to 8 hours,
+  to avoid load spikes) an <code>activation/checkin</code> is made — the same data. LB nodes
+  do no check-in.</li>
+</ul>
+<p><strong>Behaviour without server access — the key point:</strong></p>
+<ul>
+<li>A key the server has confirmed at least once <strong>stays valid offline
+  indefinitely</strong>. An unreachable licence server <strong>never</strong> turns a paid
+  installation into an unpaid one.</li>
+<li>A key the server has never confirmed (for example, just pasted while there is no
+  network) works for <strong>14 days</strong> from its issue time.</li>
+<li>A licence is considered invalid in exactly two cases: the <code>exp</code> recorded in the
+  key itself has passed, <strong>or</strong> the server sent a <strong>signed</strong> "key revoked" answer.
+  A network error, a timeout or an unparseable answer is <strong>not</strong> a revocation.</li>
+</ul>
+<h3 id="74-what-exactly-happens-on-revocation-enforcement">7.4. What exactly happens on revocation (enforcement)<a class="headerlink" href="#74-what-exactly-happens-on-revocation-enforcement" title="Permanent link">&para;</a></h3>
+<p>This is worth knowing in advance. When the licence is <strong>confirmed</strong> invalid (the
+two cases above), and only on the <strong>MAIN</strong> server, the core does two things:</p>
+<ol>
+<li>Writes a <code>license_revoked</code> marker file with a timestamp into the config
+   directory.</li>
+<li>Revokes, in your DB, the panel user's access privileges <strong>for the LB/proxy
+   nodes' addresses</strong> (it takes the list of addresses from your <code>servers</code> table
+   where <code>is_main = 0</code> and runs <code>REVOKE ALL PRIVILEGES</code> for each). Each address
+   first passes a strict character check to rule out SQL injection via the table.</li>
+</ol>
+<p>This runs at most <strong>once an hour</strong>. What it does <strong>not</strong> do:</p>
+<ul>
+<li>❌ it does not delete or modify your data — not a single row, not a single table;</li>
+<li>❌ it does not touch MAIN's own access to its database;</li>
+<li>❌ it does not stop PHP, nginx or streams, and does not delete modules or files;</li>
+<li>❌ it sends nothing to the server;</li>
+<li>❌ LB nodes <strong>never</strong> enforce, whatever happens.</li>
+</ul>
+<p>The intent: a revoked licence takes away the installation's <strong>multiserver</strong>
+capabilities (nodes lose access to the central DB) but breaks neither the panel nor
+the data. Access can be re-granted with an ordinary <code>db_grant</code> once the licence is
+restored.</p>
+<h3 id="75-the-licence-on-an-lb-node">7.5. The licence on an LB node<a class="headerlink" href="#75-the-licence-on-an-lb-node" title="Permanent link">&para;</a></h3>
+<p>An LB node holds no activation key. For it, <code>license_valid()</code> = "attribution in
+place" <strong>and</strong> "a live lease from MAIN" — MAIN-signed permission with a limited
+lifetime, verified against MAIN's pinned key and judged on MAIN's time (turning
+the node's clock back gains nothing). The lease lets a node keep serving while MAIN
+is temporarily unreachable.</p>
+<hr />
+<h2 id="8-the-protective-mechanisms-that-usually-raise-questions">8. The protective mechanisms that usually raise questions<a class="headerlink" href="#8-the-protective-mechanisms-that-usually-raise-questions" title="Permanent link">&para;</a></h2>
+<h3 id="81-anti-debugging">8.1. Anti-debugging<a class="headerlink" href="#81-anti-debugging" title="Permanent link">&para;</a></h3>
+<p>Described in section 3, item 1. To repeat the key point: it is only a refusal to
+load under a debugger — with no side effects. Its purpose is to stop module keys
+being lifted from the memory of a running process.</p>
+<h3 id="82-hidden-strings-in-the-binary">8.2. Hidden strings in the binary<a class="headerlink" href="#82-hidden-strings-in-the-binary" title="Permanent link">&para;</a></h3>
+<p>The server address and two internal "peppers" (constants that take part in key
+derivation) are stored in the binary XOR-encoded, so <code>strings xcvm_core.so</code> does
+not show them. The purpose is to stop the core being trivially repointed at a fake
+server, and to stop key derivation resting on <code>install_id</code> alone. This <strong>hides
+constants, not behaviour</strong> — the behaviour is described here in full. Key-domain
+names such as <code>xcvm_cfg_v1</code> and <code>xcvm_module_v1</code> are visible in <code>strings</code>, and that
+is fine.</p>
+<h3 id="83-machine-binding-env_fp-and-hw_id">8.3. Machine binding: <code>env_fp</code> and <code>hw_id</code><a class="headerlink" href="#83-machine-binding-env_fp-and-hw_id" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>env_fp</code> = <code>SHA-256(install_id + /etc/machine-id + hostname)</code>. A "soft" binding:
+  the server notices cloning or migration from a change in the hash, but a changed
+  <code>env_fp</code> <strong>blocks nothing</strong>. If the machine-id or hostname is unavailable, it is
+  replaced with an empty string.</li>
+<li><code>hw_id</code> = <code>SHA-256(install_id + /etc/machine-id)</code>. The server pins it at first
+  registration. If the same <code>install_id</code> shows up from another machine, <strong>paid</strong>
+  modules stop being issued with the error <code>panel_moved</code> until the store
+  administrator resets the binding. This protects against copying one paid
+  installation onto many servers.</li>
+</ul>
+<p>Both values are hashes; your hostname or machine-id cannot be recovered from them.</p>
+<h3 id="84-the-xcvm_coreserver_url-directive">8.4. The <code>xcvm_core.server_url</code> directive<a class="headerlink" href="#84-the-xcvm_coreserver_url-directive" title="Permanent link">&para;</a></h3>
+<p>A different server address can be set in <code>php.ini</code>, but only in <strong>encrypted</strong> form
+— the value is issued by a tool of the platform owner. A plaintext URL in this
+directive is ignored and the built-in address is used. The decrypted address must be
+<code>https://</code>. The purpose is to stop the core being redirected, by changing one
+string, to a fake store serving fake modules.</p>
+<h3 id="85-self-wiping-keys">8.5. Self-wiping keys<a class="headerlink" href="#85-self-wiping-keys" title="Permanent link">&para;</a></h3>
+<p>Module keys, the master key, DB passwords and other key material are held in the
+core in buffers that are zeroed in memory when released — on every exit path,
+including errors.</p>
+<hr />
+<h2 id="9-what-the-core-does-not-contain">9. What the core does not contain<a class="headerlink" href="#9-what-the-core-does-not-contain" title="Permanent link">&para;</a></h2>
+<ul>
+<li>❌ <strong>A backdoor or remote control.</strong> There is no method that executes commands or
+  code sent by the server. The server can only answer with data to a request the
+  panel made: a catalogue, a token, a key, an archive, a licence verdict.</li>
+<li>❌ <strong>Execution of delivered code by the core.</strong> The only thing that arrives from
+  the server and is later executed is modules, and they are executed by the stock
+  ionCube Loader through PHP's normal mechanism, after you yourself triggered the
+  installation. The core installs no hooks into PHP compilation or execution.</li>
+<li>❌ <strong>Telemetry, spying, data exfiltration.</strong> The full contents of every request
+  are in section 6.2; there is nothing there beyond installation identifiers and
+  the parameters of the requested operation.</li>
+<li>❌ <strong>Background activity.</strong> No threads, timers, daemons or cron jobs. The core is
+  active only inside a method call.</li>
+<li>❌ <strong>Self-updating.</strong> The core does not download or replace its own binary.</li>
+<li>❌ <strong>Disabling TLS verification.</strong> Certificate verification is always on; the
+  library has no setting to turn it off.</li>
+<li>❌ <strong>Destructive actions without your call.</strong> The only destructive operation on
+  your data — <code>db_restore</code> (recreating the DB from a backup) — runs only on an
+  explicit call from the panel. Licence enforcement does not touch data.</li>
+<li>❌ <strong>Reading anything extra.</strong> Outside the config directory the core reads only
+  <code>/etc/machine-id</code>, <code>/proc/self/status</code>, the hostname, the six panel files for the
+  attribution check, and files you explicitly passed in (a dump to restore).</li>
+<li>❌ <strong>Memory-unsafe code.</strong> The core is written in Rust; unsafe code is used only
+  at the boundary with PHP.</li>
+</ul>
+<hr />
+<h2 id="10-how-to-verify-all-of-this-yourself">10. How to verify all of this yourself<a class="headerlink" href="#10-how-to-verify-all-of-this-yourself" title="Permanent link">&para;</a></h2>
+<p>None of the steps below needs the sources or our secrets.</p>
+<p><strong>The method list.</strong> Confirm that the class contains exactly what section 5
+describes, and no global functions:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>php<span class="w"> </span>--rc<span class="w"> </span>XC_VM<span class="w">          </span><span class="c1"># every method of the class</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>php<span class="w"> </span>--re<span class="w"> </span>xcvm_core<span class="w">      </span><span class="c1"># everything the extension registers: the class, ini directives</span>
+</code></pre></div></p>
+<p><strong>Network addresses and when they are contacted.</strong> Capture traffic and confirm the
+core goes to one address only, and only on explicit actions in the panel:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-n<span class="w"> </span>-i<span class="w"> </span>any<span class="w"> </span><span class="s1">'port 443 and not host &lt;your DB IP&gt;'</span>
+</code></pre></div>
+At PHP load, during the normal operation of streams and users, there are no
+requests. They appear on registration, module installation, catalogue browsing —
+and at most once a day for the licence check.</p>
+<p><strong>System calls.</strong> Confirm there is no network activity at PHP start and no access to
+unexpected files. Note: <code>strace</code> started from scratch traces the process from its
+first instruction, so under it the core <strong>will not load</strong> (that is the
+anti-debugging from section 3 — <code>class_exists("XC_VM")</code> returns <code>false</code>, which also
+confirms the check really exists). So use tools without <code>ptrace</code>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># a fresh process, via eBPF (linux-tools / perf package):</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>sudo<span class="w"> </span>perf<span class="w"> </span>trace<span class="w"> </span>-e<span class="w"> </span><span class="s1">'connect,openat'</span><span class="w"> </span>php<span class="w"> </span>-r<span class="w"> </span><span class="s1">'var_dump(class_exists("XC_VM"));'</span>
+</code></pre></div>
+You will see reads of <code>/proc/self/status</code>, <code>/etc/machine-id</code>, files in the config
+directory — and not a single <code>connect()</code>.</p>
+<p>To watch behaviour <strong>at run time</strong>, attach to an already running php-fpm worker —
+the debugger check runs only at load, and the worker has already passed it:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>strace<span class="w"> </span>-f<span class="w"> </span>-e<span class="w"> </span><span class="nv">trace</span><span class="o">=</span>network,openat<span class="w"> </span>-p<span class="w"> </span><span class="k">$(</span>pgrep<span class="w"> </span>-f<span class="w"> </span><span class="s1">'php-fpm: pool'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
+</code></pre></div>
+Perform actions in the panel and watch: connections go only to your DB/Redis and —
+on module installation or a licence check — to <code>www.xcvm.tech</code>.</p>
+<p><strong>What is in the config directory.</strong> Compare with the table in section 4:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sudo<span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/home/xc_vm/config/<span class="w"> </span>/home/xc_vm/config/cluster/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</code></pre></div></p>
+<p><strong>What is baked into the binary.</strong> No secrets or passwords in the clear:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>strings<span class="w"> </span>xcvm_core.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-iE<span class="w"> </span><span class="s1">'password|secret|xcvm\.tech'</span>
+</code></pre></div></p>
+<p><strong>What the core hands PHP.</strong> <code>config_server()</code> returns no passwords:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>php<span class="w"> </span>-r<span class="w"> </span><span class="s1">'var_dump(XC_VM::config_server());'</span>
+</code></pre></div></p>
+<p><strong>Behaviour without network.</strong> Cut the server's access to <code>www.xcvm.tech</code> — the
+panel, streams, DB and modules keep working; <code>license_valid()</code> for a confirmed key
+stays <code>true</code>.</p>
+<p><strong>Attribution.</strong> <code>php -r 'var_dump(XC_VM::verify_branding());'</code> — <code>true</code> on an
+untouched panel.</p>
+<hr />
+<h2 id="11-honestly-about-the-limits">11. Honestly about the limits<a class="headerlink" href="#11-honestly-about-the-limits" title="Permanent link">&para;</a></h2>
+<p>We do not claim the protection is absolute. Here is where it ends:</p>
+<ul>
+<li><strong>A PHP encoder is not absolute.</strong> Root on their own licensed machine can in
+  theory extract the passphrase from an encoded file, open their own <code>.lic</code> and
+  obtain the decoding key. Machine binding and the short <code>.lic</code> lifetime make this
+  more expensive and provide a kill-switch, but it is a fundamental limitation of
+  any IonCube-like solution.</li>
+<li><strong>A leak of <code>install_id</code></strong> by itself exposes neither <code>config.enc</code> (the
+  <code>machine-id</code> is also needed) nor the cluster transport blobs (an internal
+  "pepper" is also needed).</li>
+<li><strong>The sealed API has no forward secrecy</strong> against the server's long-lived
+  transport key: compromising it would expose previously recorded exchanges, and
+  recovery means shipping a new core with a new key. The address, message sizes and
+  timing are visible on the wire regardless — the envelope hides the body, not the
+  metadata.</li>
+<li><strong>The attribution check is file-based</strong> and is therefore bypassable by editing
+  files on one's own machine; it deters rather than makes impossible.</li>
+<li><strong>Enforcement works at the level of DB grants</strong>, and the MAIN administrator can
+  re-issue them. That is deliberate: the core must not be able to break your
+  installation, even on the platform owner's command.</li>
+</ul>
+<p>That is what transparency means: describing not only what is protected, but also
+where the protection ends.</p>
+<hr />
+<h2 id="12-frequently-asked-questions">12. Frequently asked questions<a class="headerlink" href="#12-frequently-asked-questions" title="Permanent link">&para;</a></h2>
+<p><strong>Can the core delete or corrupt my data?</strong>
+Only <code>db_restore</code> recreates the DB, and only when you yourself start a restore from
+backup. Nothing else — including licence revocation — touches data.</p>
+<p><strong>What if the licence server shuts down or becomes unreachable?</strong>
+A confirmed licence keeps working offline indefinitely; the panel, streams, DB and
+modules work. The only things that stop are downloading new modules and updates
+from the store and minting a new <code>.lic</code> for a module (existing <code>.lic</code> files work
+until their expiry).</p>
+<p><strong>Does the core see my users, streams, traffic?</strong>
+It opens a connection to your DB at the panel's request, as PHP code would — but
+sends that data nowhere. The contents of every external request are in section 6.2.</p>
+<p><strong>Can the platform owner "switch off" my panel?</strong>
+No. The most that happens on licence revocation is described in section 7.4: nodes
+lose access to the central DB, and the MAIN administrator can re-grant that access.
+MAIN, the data, streams and users are unaffected.</p>
+<p><strong>Why not just open the sources?</strong>
+Because the core is where the DB passwords and paid-module keys live; its reason for
+existing is that they cannot be read from PHP. Instead of sources we provide a
+complete description of the behaviour (this page) and ways to verify it from
+outside (section 10).</p>
+<p><strong>Can I run the core under a debugger or profiler?</strong>
+If the PHP process is <strong>started</strong> under a <code>ptrace</code> tool (gdb, <code>strace php ...</code>),
+the core does not load in that process — this is checked once at start. Attaching
+to an already running process is possible (<code>strace -p</code>, <code>gdb -p</code>): there is no
+repeat check, and that is deliberate — the aim of the protection is to stop module
+keys being read from memory via a debugger <em>while they are being obtained</em>, not to
+stop you observing your own server. Tools without <code>ptrace</code> (<code>perf</code>, eBPF, <code>tcpdump</code>)
+are not affected at all.</p>
+<hr />
+<p><strong>Summary.</strong> <code>xcvm_core</code> does exactly what the panel needs: it keeps the config and
+provides DB/Redis access without passwords in PHP, delivers and protects modules,
+checks the licence and serves the cluster. It contacts one server, only when the
+panel calls it, and sends only installation identifiers and operation parameters.
+It contains no backdoor, collects no telemetry, does not touch your data and cannot
+be switched off from outside. Every one of these statements on this page comes with
+a way to verify it yourself.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

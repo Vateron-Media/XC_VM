@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XC_VM Admin API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
+    <link rel="stylesheet" type="text/css" href="./theme-tokens.css">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/swagger-api/swagger-ui/master/dist/favicon-32x32.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Base chrome vars are aliased to the shared --xc-* tokens
+           (theme-tokens.css). They re-resolve automatically when
+           html[data-theme] flips, so no per-theme duplication here. */
+        :root {
+            --bg-primary: var(--xc-bg);
+            --bg-secondary: var(--xc-panel);
+            --bg-header: var(--xc-header);
+            --text-primary: var(--xc-text);
+            --text-secondary: var(--xc-text-2);
+            --text-header: #ffffff;
+            --border-color: var(--xc-border);
+            --accent-color: var(--xc-accent);
+            --accent-hover: var(--xc-accent-hover);
+            --code-bg: var(--xc-code-bg);
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --switch-bg: #ccc;
+            --switch-checked: var(--xc-accent);
+        }
+
+        [data-theme="dark"] {
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+            --switch-bg: #555;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        .header {
+            background: var(--bg-header);
+            color: var(--text-header);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .version-badges {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-version {
+            background: #27ae60;
+            color: white;
+        }
+
+        .badge-oas {
+            background: #f39c12;
+            color: white;
+        }
+
+        /* Theme Toggle Switch */
+        .theme-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-switch-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--switch-bg);
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--switch-checked);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .theme-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: var(--bg-header);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-tabs-container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .nav-tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            font-size: 1rem;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-tab:hover {
+            color: rgba(255,255,255,0.9);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .nav-tab.active {
+            color: white;
+            border-bottom-color: var(--accent-color);
+        }
+
+        .nav-tab-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Secondary row: Documentation / Swagger view toggle */
+        .nav-tabs-views {
+            background: rgba(0, 0, 0, 0.18);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-tabs-views .nav-tab {
+            padding: 0.6rem 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        #api-tabs:empty {
+            display: none;
+        }
+
+        /* Content Sections */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* General Documentation Styles */
+        .docs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid;
+            background: var(--bg-secondary);
+        }
+
+        .alert-info {
+            border-left-color: #3498db;
+        }
+
+        .alert-icon {
+            margin-right: 0.5rem;
+        }
+
+        .docs-title {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .docs-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-icon {
+            font-size: 1.5rem;
+        }
+
+        .section-content {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+        }
+
+        .code-inline {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            border: 1px solid var(--border-color);
+        }
+
+        .list-styled {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .list-styled li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .list-styled li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .highlight {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .link {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .link:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--accent-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Swagger UI Container */
+        .swagger-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Swagger UI Light Theme Customization */
+        #swagger-ui div .scheme-container {
+            background-color: rgba(52,73,94,0.09);
+        }
+
+        /* Swagger UI Light Theme Variables */
+        :root {
+            /* primary colors */
+            --swagger-color: #4c9325;
+            --link-color: #407ec9;
+            --accept-header-color: #619929;
+            /* methods colors */
+            --post-method-color: #619929;
+            --post-method-background-color: rgba(0, 0, 0, .0);
+            --get-method-color: #57A9D7;
+            --get-method-background-color: rgba(0, 0, 0, .0);
+            --head-method-color: #9B2393;
+            --head-method-background-color: rgba(0, 0, 0, .0);
+            --put-method-color: #0B4F79;
+            --put-method-background-color: rgba(0, 0, 0, .0);
+            --delete-method-color: #D12F1B;
+            --delete-method-background-color: rgba(0, 0, 0, .0);
+            --options-method-color: #000000;
+            --options-method-background-color: rgba(0, 0, 0, .0);
+            --patch-method-color: #0E0EFF;
+            --patch-method-background-color: rgba(0, 0, 0, .0);
+            /* background */
+            --all-bg-color: #ffffff;
+            --secondary-bg-color: #F2F2F2;
+            --header-bg-color: #619929;
+            --block-bg-color: #E9E9E9;
+            --selecter-bg-color: #F2F2F2;
+            /* text */
+            --primary-text-color: rgb(0, 0, 0);
+            --secondary-text-color: rgba(0, 0, 0, 0.4);
+            /* border */
+            --block-border-color: rgba(0, 0, 0, 0.08);
+            --block-border-radius: 12px;
+            --innner-block-border-radius: 8px;
+            /* icons */
+            --primary-icon-color: #000000;
+            --icons-opacity: none;
+            --secondary-icon-opacity: none;
+            --black-icons-filter: none;
+        }
+
+        /* Swagger UI Dark Theme Variables */
+        [data-theme="dark"] {
+            /* primary colors */
+            --swagger-color: #62a03f;
+            --link-color: #2e82e5;
+            --accept-header-color: #47b750;
+            /* methods colors */
+            --post-method-color: rgb(141, 199, 111);
+            --post-method-background-color: rgba(141, 199, 111, .08);
+            --get-method-color: rgb(74, 176, 244);
+            --get-method-background-color: rgba(74, 176, 244, .08);
+            --head-method-color: rgb(217, 115, 234);
+            --head-method-background-color: rgba(217, 115, 234, .08);
+            --put-method-color: rgb(189, 135, 86);
+            --put-method-background-color: rgba(189, 135, 86, .08);
+            --delete-method-color: rgb(237, 99, 113);
+            --delete-method-background-color: rgba(237, 99, 113, .08);
+            --options-method-color: rgb(210, 175, 60);
+            --options-method-background-color: rgba(210, 175, 60, .08);
+            --patch-method-color: rgb(113, 128, 147);
+            --patch-method-background-color: rgba(113, 128, 147, .08);
+            /* background */
+            --all-bg-color: #272C35;
+            --secondary-bg-color: #272C35;
+            --header-bg-color: #313845;
+            --block-bg-color: #20252C;
+            --selecter-bg-color: #313845;
+            /* text */
+            --primary-text-color: rgb(179, 187, 201);
+            --secondary-text-color: rgba(177, 203, 255, 0.3);
+            /* border */
+            --block-border-color: rgba(220, 220, 255, 0.1);
+            --block-border-radius: 6px;
+            --innner-block-border-radius: 2px;
+            /* icons */
+            --primary-icon-color: rgb(179, 187, 201);
+            --icons-opacity: .28;
+            --secondary-icon-opacity: .5;
+            --black-icons-filter: invert(1);
+        }
+
+        /* Apply Swagger Theme Variables to Swagger UI */
+        .swagger-ui {
+            background: var(--all-bg-color);
+        }
+
+        .swagger-ui .topbar {
+            display: none;
+        }
+
+        .swagger-ui .info {
+            background: var(--all-bg-color);
+        }
+
+        .swagger-ui .info .title,
+        .swagger-ui .info p,
+        .swagger-ui .info li,
+        .swagger-ui .opblock-tag,
+        .swagger-ui .opblock .opblock-summary-description,
+        .swagger-ui .opblock .opblock-summary-path,
+        .swagger-ui .parameter__name,
+        .swagger-ui .parameter__type,
+        .swagger-ui .response-col_status,
+        .swagger-ui table thead tr th,
+        .swagger-ui table tbody tr td,
+        .swagger-ui label,
+        .swagger-ui h4,
+        .swagger-ui h5 {
+            color: var(--primary-text-color) !important;
+        }
+
+        .swagger-ui .info .title small,
+        .swagger-ui .info .description p,
+        .swagger-ui .opblock-description-wrapper p,
+        .swagger-ui .parameter__type,
+        .swagger-ui .prop-format {
+            color: var(--secondary-text-color) !important;
+        }
+
+        .swagger-ui .scheme-container {
+            background: var(--secondary-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--block-border-radius);
+        }
+
+        .swagger-ui .opblock-tag-section {
+            background: var(--all-bg-color);
+        }
+
+        .swagger-ui .opblock {
+            background: var(--block-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--block-border-radius);
+            margin-bottom: 15px;
+        }
+
+        .swagger-ui .opblock .opblock-summary {
+            background: var(--block-bg-color);
+            border-radius: var(--block-border-radius);
+        }
+
+        .swagger-ui .opblock.opblock-get {
+            border-color: var(--get-method-color);
+            background: var(--get-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-get .opblock-summary-method {
+            background: var(--get-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-get .opblock-summary {
+            border-color: var(--get-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-post {
+            border-color: var(--post-method-color);
+            background: var(--post-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-post .opblock-summary-method {
+            background: var(--post-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-post .opblock-summary {
+            border-color: var(--post-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-put {
+            border-color: var(--put-method-color);
+            background: var(--put-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-put .opblock-summary-method {
+            background: var(--put-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-put .opblock-summary {
+            border-color: var(--put-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-delete {
+            border-color: var(--delete-method-color);
+            background: var(--delete-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-delete .opblock-summary-method {
+            background: var(--delete-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-delete .opblock-summary {
+            border-color: var(--delete-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-head {
+            border-color: var(--head-method-color);
+            background: var(--head-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-head .opblock-summary-method {
+            background: var(--head-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-head .opblock-summary {
+            border-color: var(--head-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-options {
+            border-color: var(--options-method-color);
+            background: var(--options-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-options .opblock-summary-method {
+            background: var(--options-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-options .opblock-summary {
+            border-color: var(--options-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-patch {
+            border-color: var(--patch-method-color);
+            background: var(--patch-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-patch .opblock-summary-method {
+            background: var(--patch-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-patch .opblock-summary {
+            border-color: var(--patch-method-color);
+        }
+
+        .swagger-ui .opblock-body,
+        .swagger-ui .opblock-description-wrapper,
+        .swagger-ui .opblock-section-header {
+            background: var(--block-bg-color);
+        }
+
+        .swagger-ui input[type=text],
+        .swagger-ui input[type=password],
+        .swagger-ui input[type=email],
+        .swagger-ui textarea,
+        .swagger-ui select {
+            background: var(--selecter-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--innner-block-border-radius);
+            color: var(--primary-text-color);
+        }
+
+        .swagger-ui .btn {
+            background: var(--secondary-bg-color);
+            color: var(--primary-text-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--innner-block-border-radius);
+        }
+
+        .swagger-ui .btn.execute {
+            background: var(--link-color);
+            color: #fff;
+            border-color: var(--link-color);
+        }
+
+        .swagger-ui table thead tr th,
+        .swagger-ui table thead tr td {
+            background: var(--secondary-bg-color);
+            border-color: var(--block-border-color);
+        }
+
+        .swagger-ui table tbody tr td {
+            background: var(--block-bg-color);
+            border-color: var(--block-border-color);
+        }
+
+        .swagger-ui .model-box,
+        .swagger-ui .model {
+            background: var(--block-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--block-border-radius);
+        }
+
+        .swagger-ui .model-title {
+            background: var(--secondary-bg-color);
+        }
+
+        .swagger-ui a {
+            color: var(--link-color);
+        }
+
+        .swagger-ui a:hover {
+            color: var(--swagger-color);
+        }
+
+        .swagger-ui .authorization__btn {
+            background: transparent;
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+
+        .swagger-ui .authorization__btn.unlocked {
+            border-color: var(--accept-header-color);
+            color: var(--accept-header-color);
+        }
+
+        .swagger-ui .dialog-ux .modal-ux {
+            background: var(--block-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--block-border-radius);
+        }
+
+        .swagger-ui .dialog-ux .modal-ux-header {
+            background: var(--secondary-bg-color);
+            border-bottom: 1px solid var(--block-border-color);
+        }
+
+        .swagger-ui .highlight-code {
+            background: var(--selecter-bg-color);
+        }
+
+        .swagger-ui .opblock-tag {
+            border-bottom: 1px solid var(--block-border-color);
+        }
+
+        .swagger-ui .prop-type {
+            color: var(--swagger-color);
+        }
+
+        .swagger-ui svg {
+            fill: var(--primary-icon-color);
+            opacity: var(--icons-opacity);
+        }
+
+        .swagger-ui .arrow svg {
+            opacity: var(--secondary-icon-opacity);
+        }
+
+        .swagger-ui img {
+            filter: var(--black-icons-filter);
+        }
+
+        /* Dark Theme Specific Overrides */
+        [data-theme="dark"] .swagger-ui .markdown code,
+        [data-theme="dark"] .swagger-ui .renderedMarkdown code {
+            background: rgb(12, 11, 11);
+            color: #62a03f;
+        }
+
+        [data-theme="dark"] .swagger-ui .opblock-description-wrapper,
+        [data-theme="dark"] .swagger-ui .opblock-external-docs-wrapper,
+        [data-theme="dark"] .swagger-ui .opblock-title_normal {
+            color: #7d8293;
+        }
+
+        [data-theme="dark"] .swagger-ui .info .title small,
+        [data-theme="dark"] .swagger-ui .info .description p,
+        [data-theme="dark"] .swagger-ui .opblock-description-wrapper p,
+        [data-theme="dark"] .swagger-ui .parameter__type,
+        [data-theme="dark"] .swagger-ui .prop-format {
+            color: #e8e8e8 !important;
+        }
+
+        [data-theme="dark"] .swagger-ui .opblock .opblock-section-header {
+            background: hsl(0deg 0% 7.23% / 80%);
+        }
+
+        [data-theme="dark"] .swagger-ui .example.microlight {
+            background: rgb(20, 20, 20);
+        }
+
+        [data-theme="dark"] .swagger-ui .opblock-body pre.microlight {
+            background: rgb(20, 20, 20);
+        }
+
+        [data-theme="dark"] .swagger-ui .responses-wrapper .response-col_description pre,
+        [data-theme="dark"] .swagger-ui .responses-wrapper pre.microlight,
+        [data-theme="dark"] .swagger-ui .model-example pre,
+        [data-theme="dark"] .swagger-ui .highlight-code pre {
+            background: rgb(20, 20, 20) !important;
+        }
+
+        /* Table Data */
+        [data-theme="dark"] .servers tr td {
+            background-color: transparent !important;
+        }
+
+        /* Computed url */
+        [data-theme="dark"] .servers div .computed-url {
+            color: #ecf0f1;
+        }
+
+        /* Servers title */
+        [data-theme="dark"] .schemes div .servers-title {
+            color: #ecf0f1;
+        }
+
+        /* Heading */
+        [data-theme="dark"] .servers div h4 {
+            color: #ecf0f1 !important;
+        }
+
+        /* Operations tag - for all */
+        [data-theme="dark"] [id^="operations-tag-"] {
+            color: #e1e9e9 !important;
+        }
+
+        /* Small Tag */
+        [data-theme="dark"] [id^="operations-tag-"] small {
+            color: #95a5a6;
+        }
+
+        /* Span Tag - Method-specific colors */
+        [data-theme="dark"] .opblock-get .opblock-summary-path span {
+            color: rgb(74, 176, 244); /* GET - blue */
+        }
+
+        [data-theme="dark"] .opblock-post .opblock-summary-path span {
+            color: rgb(141, 199, 111); /* POST - green */
+        }
+
+        [data-theme="dark"] .opblock-put .opblock-summary-path span {
+            color: rgb(189, 135, 86); /* PUT - orange */
+        }
+
+        [data-theme="dark"] .opblock-delete .opblock-summary-path span {
+            color: rgb(237, 99, 113); /* DELETE - red */
+        }
+
+        [data-theme="dark"] .opblock-head .opblock-summary-path span {
+            color: rgb(217, 115, 234); /* HEAD - purple */
+        }
+
+        [data-theme="dark"] .opblock-options .opblock-summary-path span {
+            color: rgb(210, 175, 60); /* OPTIONS - yellow */
+        }
+
+        [data-theme="dark"] .opblock-patch .opblock-summary-path span {
+            color: rgb(113, 128, 147); /* PATCH - gray */
+        }
+
+        /* Response col description - all operations */
+        [data-theme="dark"] [id$="_responses"] thead .response-col_description {
+            color: #bdc3c7;
+        }
+
+        /* Response col links - all operations */
+        [data-theme="dark"] [id$="_responses"] thead .response-col_links {
+            color: #bdc3c7;
+        }
+
+        /* List - all operations */
+        [data-theme="dark"] [id$="_responses"] tbody ul {
+            color: #bdc3c7;
+        }
+
+        /* Tablinks - all operations */
+        [data-theme="dark"] [id$="_responses"] .tab .tablinks {
+            color: #bdc3c7;
+        }
+
+        /* Model title text */
+        [data-theme="dark"] .swagger-ui .model-title__text {
+            color: #bdc3c7;
+        }
+
+        /* Prop enum */
+        [data-theme="dark"] .swagger-ui .inner-object td .prop-enum {
+            color: #bdc3c7;
+        }
+
+        /* Paragraph */
+        [data-theme="dark"] .swagger-ui .inner-object td p {
+            color: #bdc3c7;
+        }
+
+        /* Model toggle */
+        [data-theme="dark"] .swagger-ui .prop-enum span .model-toggle {
+            color: #bdc3c7;
+        }
+
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .nav-tabs-container {
+                overflow-x: auto;
+            }
+
+            .nav-tab {
+                padding: 1rem;
+                white-space: nowrap;
+            }
+
+            .docs-container, .swagger-container {
+                padding: 1rem;
+            }
+
+            .docs-title {
+                font-size: 2rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+
+        /* Quick Links Grid */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .quick-link-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .quick-link-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
+            border-color: var(--accent-color);
+        }
+
+        .quick-link-card h3 {
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .quick-link-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">
+                <h1 id="api-title">XC_VM Admin API</h1>
+                <div class="version-badges">
+                    <span class="badge badge-version">v1.5.13</span>
+                    <span class="badge badge-oas">OAS 3.0</span>
+                </div>
+            </div>
+            
+            <div class="theme-controls">
+                <div class="theme-switch-wrapper">
+                    <span class="theme-icon">☀️</span>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="theme-icon">🌙</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- API tabs (one per specification, generated from API_SPECS) -->
+        <div class="nav-tabs">
+            <div class="nav-tabs-container" id="api-tabs"></div>
+        </div>
+
+        <!-- View tabs (Documentation / Swagger) -->
+        <div class="nav-tabs nav-tabs-views">
+            <div class="nav-tabs-container">
+                <button class="nav-tab view-tab active" onclick="switchTab('docs')">
+                    <span class="nav-tab-icon">📚</span>
+                    Documentation
+                </button>
+                <button class="nav-tab view-tab" onclick="switchTab('swagger')">
+                    <span class="nav-tab-icon">🔧</span>
+                    Interactive (Swagger)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- General Documentation Section -->
+    <div id="docs-section" class="content-section active">
+        <div class="docs-container">
+            <div class="alert alert-info" style="border-left-color: #e67e22;">
+                <span class="alert-icon">⚠️</span>
+                <strong>CORS Notice &mdash; "Try it out":</strong> Direct browser calls to your server may fail with <code class="code-inline">Failed to fetch</code> due to CORS. This is expected &mdash; use the generated cURL command, Postman or Insomnia. It does not mean the API is broken.
+            </div>
+
+            <div id="api-docs-content"></div>
+
+            <div class="btn-group">
+                <button class="btn" onclick="switchTab('swagger')">Open interactive API &rarr;</button>
+                <a href="https://github.com/Vateron-Media/XC_VM" target="_blank" class="btn" style="background: #27ae60;">View on GitHub</a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Swagger API Section -->
+    <div id="swagger-section" class="content-section">
+        <div class="swagger-container">
+            <div id="swagger-ui"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        if (currentTheme === 'dark') {
+            themeToggle.checked = true;
+        }
+
+        themeToggle.addEventListener('change', function() {
+            const theme = this.checked ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        });
+
+        // Tab Switching
+        function switchTab(tabName, evt) {
+            // Update the view-tab buttons (Documentation / Swagger) only,
+            // leaving the API tab row untouched.
+            document.querySelectorAll('.view-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            const trigger = evt || window.event;
+            if (trigger && trigger.target && trigger.target.closest('.view-tab')) {
+                trigger.target.closest('.view-tab').classList.add('active');
+            } else {
+                // Programmatic call (deep link): match the view tab by onclick
+                const btn = Array.from(document.querySelectorAll('.view-tab'))
+                    .find(b => (b.getAttribute('onclick') || '').includes("'" + tabName + "'"));
+                if (btn) btn.classList.add('active');
+            }
+
+            // Update content sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(tabName + '-section').classList.add('active');
+
+            // Initialize Swagger UI if not already initialized
+            if (tabName === 'swagger' && !window.swaggerInitialized) {
+                initSwagger();
+            }
+        }
+
+        // -----------------------------------------------------------------
+        // API specification registry
+        // To add another API: drop its <name>.openapi.yaml next to this file
+        // and add one entry below. `key` is used for deep links (?spec=key).
+        // -----------------------------------------------------------------
+        const API_SPECS = [
+            { key: 'admin', name: 'Admin API', url: './admin-api.openapi.yaml' },
+            { key: 'system', name: 'System API', url: './system-api.openapi.yaml' },
+            { key: 'player', name: 'Player API', url: './player-api.openapi.yaml' },
+            { key: 'playlist', name: 'Playlist API', url: './playlist-api.openapi.yaml' },
+        ];
+
+        function getRequestedSpecKey() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('spec');
+        }
+
+        function resolveSpec(key) {
+            return API_SPECS.find(s => s.key === key) || API_SPECS[0];
+        }
+
+        // -----------------------------------------------------------------
+        // Per-API documentation (Documentation tab), based on the panel docs
+        // (system_api.md, xtreamcodes_api.md, playlist.md and the Admin API).
+        // -----------------------------------------------------------------
+        const API_DOCS = {
+            admin: `
+                <h2 class="docs-title">XC_VM Admin API</h2>
+                <p class="docs-subtitle">Administration API for the XC_VM IPTV panel &mdash; 104 endpoints</p>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
+                    <div class="section-content"><p>Programmatic administration of your IPTV platform:</p>
+                        <ul class="list-styled">
+                            <li>📺 Subscriptions &mdash; Lines, MAG, Enigma2 devices, users, resellers</li>
+                            <li>🎬 Content &mdash; streams, channels, movies, series, episodes, radio</li>
+                            <li>🖥️ Infrastructure &mdash; servers and load balancers</li>
+                            <li>📊 Monitoring &mdash; connections, activity and event logs</li>
+                            <li>⚙️ System &mdash; settings and administrative functions</li>
+                        </ul></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🔗</span>Base URL pattern</h3>
+                    <div class="section-content"><div class="code-block">{protocol}://{server}:{port}/&lt;Access-Code&gt;/?api_key=&lt;API-KEY&gt;&action=ACTION</div></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
+                    <div class="section-content">
+                        <ul class="list-styled">
+                            <li><strong>API key</strong> &mdash; required on every request (<code class="code-inline">?api_key=...</code>). Panel &rarr; Profile &rarr; API Settings &rarr; Generate API Key.</li>
+                            <li><strong>Access code</strong> &mdash; Management &rarr; Access Control &rarr; Access Codes, type <em>Admin API</em>.</li>
+                        </ul>
+                        <div class="code-block">curl "http://your-server.com/&lt;Access-Code&gt;/?api_key=&lt;API-KEY&gt;&action=user_info"</div>
+                    </div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🗂️</span>Endpoint groups</h3>
+                    <div class="section-content"><ul class="list-styled">
+                        <li>Authentication &middot; Logs &amp; Events</li>
+                        <li>Line API &middot; User API &middot; MAG API &middot; Enigma API</li>
+                        <li>Streams &middot; Channel &middot; Station &middot; Movie &middot; Series &middot; Episode</li>
+                        <li>Server API &middot; Settings &amp; System</li>
+                    </ul></div></div>`,
+
+            system: `
+                <h2 class="docs-title">XC_VM System API</h2>
+                <p class="docs-subtitle">Internal system control &mdash; /api.php (31 actions)</p>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
+                    <div class="section-content"><p>Stream and VOD control, system statistics, directory browsing, log viewing, process management and EPG/nginx reloading.</p>
+                        <p><strong>Controller:</strong> <code class="code-inline">src/Public/Controllers/Api/InternalApiController.php</code></p></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🔗</span>Base URI</h3>
+                    <div class="section-content"><div class="code-block">{protocol}://{host}:{port}/api.php?password=&lt;live_streaming_pass&gt;&action=&lt;action&gt;</div></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
+                    <div class="section-content"><ul class="list-styled">
+                        <li><strong>password</strong> &mdash; must match the <code class="code-inline">live_streaming_pass</code> configuration.</li>
+                        <li>The requesting IP must be in the allowed IPs list (<code class="code-inline">ServerRepository::getAllowedIPs()</code>).</li>
+                    </ul></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🗂️</span>Action groups</h3>
+                    <div class="section-content"><ul class="list-styled">
+                        <li><strong>Streams</strong> &mdash; view_log, streams_ramdisk, stream, force_stream, get_archive_files, probe, rtmp_stats, rtmp_kill</li>
+                        <li><strong>VOD</strong> &mdash; vod</li>
+                        <li><strong>Processes</strong> &mdash; fpm_status, kill_pid, pidsAreRunning, get_pids, kill_watch, kill_plex</li>
+                        <li><strong>System</strong> &mdash; stats, reload_epg, restore_images, reload_nginx, free_temp, free_streams, get_free_space, get_certificate_info, watch_force, plex_force</li>
+                        <li><strong>Files</strong> &mdash; getFile, scandir, scandir_recursive</li>
+                        <li><strong>Connections</strong> &mdash; closeConnection, redirect_connection, signal_send</li>
+                    </ul></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">⚠️</span>Error codes</h3>
+                    <div class="section-content"><ul class="list-styled">
+                        <li><code class="code-inline">INVALID_API_PASSWORD</code> &mdash; invalid API password</li>
+                        <li><code class="code-inline">API_IP_NOT_ALLOWED</code> &mdash; IP address not allowed</li>
+                    </ul><p>Default response for an unrecognized action: <code class="code-inline">{ "result": false }</code></p></div></div>`,
+
+            player: `
+                <h2 class="docs-title">XC_VM Player API</h2>
+                <p class="docs-subtitle">XtreamCodes-compatible player &mdash; Live TV, VOD, Series, EPG</p>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
+                    <div class="section-content"><p>Access to Live TV &amp; Radio, VOD (movies), Series and EPG for XtreamCodes-compatible applications.</p>
+                        <p><strong>Controllers:</strong> <code class="code-inline">PlayerApiController.php</code>, <code class="code-inline">EpgApiController.php</code> (xmltv.php)</p></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🔗</span>Base URL</h3>
+                    <div class="section-content"><div class="code-block">{protocol}://{host}:{port}/player_api?username=&lt;user&gt;&password=&lt;pass&gt;&action=&lt;action&gt;</div></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
+                    <div class="section-content"><p>Every request requires <strong>username</strong> and <strong>password</strong> query parameters. Call <code class="code-inline">/player_api</code> without an action to validate credentials and get server info.</p></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🗂️</span>Actions</h3>
+                    <div class="section-content"><ul class="list-styled">
+                        <li><strong>Live TV</strong> &mdash; get_live_categories, get_live_streams, get_short_epg, get_simple_data_table, /xmltv.php</li>
+                        <li><strong>VOD</strong> &mdash; get_vod_categories, get_vod_streams, get_vod_info</li>
+                        <li><strong>Series</strong> &mdash; get_series_categories, get_series, get_series_info</li>
+                    </ul></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">▶️</span>Media access</h3>
+                    <div class="section-content"><div class="code-block">/live/{username}/{password}/{stream_id}.ts
+/movie/{username}/{password}/{vod_id}.mp4
+/series/{username}/{password}/{episode_id}.mp4</div>
+                        <p>Output formats: <code class="code-inline">m3u8</code>, <code class="code-inline">ts</code>, <code class="code-inline">rtmp</code>. The first request redirects to <code class="code-inline">/auth/...</code> before content is served.</p></div></div>`,
+
+            playlist: `
+                <h2 class="docs-title">XC_VM Playlist API</h2>
+                <p class="docs-subtitle">Authentication and playlist generation &mdash; /playlist</p>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
+                    <div class="section-content"><p>Clients authenticate with a username/password pair or a token, after which a personalized playlist is generated.</p>
+                        <p><strong>Controller:</strong> <code class="code-inline">PlaylistApiController.php</code></p></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🔗</span>Base URL</h3>
+                    <div class="section-content"><div class="code-block">{protocol}://{host}:{port}/playlist</div></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
+                    <div class="section-content"><p>Provide <strong>either</strong> <code class="code-inline">username</code> + <code class="code-inline">password</code> <strong>or</strong> a <code class="code-inline">token</code>.</p></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🧩</span>Query parameters</h3>
+                    <div class="section-content"><ul class="list-styled">
+                        <li><code class="code-inline">username</code>, <code class="code-inline">password</code> &mdash; credentials (or use token)</li>
+                        <li><code class="code-inline">token</code> &mdash; auth token (alternative to username/password)</li>
+                        <li><code class="code-inline">type</code> &mdash; device type (default <code class="code-inline">m3u_plus</code>)</li>
+                        <li><code class="code-inline">key</code> &mdash; content: live &middot; movies &middot; radio_streams &middot; series</li>
+                        <li><code class="code-inline">output</code> &mdash; hls or m3u</li>
+                        <li><code class="code-inline">nocache</code> &mdash; disable caching</li>
+                    </ul>
+                    <div class="code-block">curl "http://your-domain:80/playlist/username/password/type&output=hls&key=live"</div></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">⚠️</span>Error codes</h3>
+                    <div class="section-content"><ul class="list-styled">
+                        <li>NO_CREDENTIALS &middot; INVALID_CREDENTIALS &middot; EXPIRED &middot; DISABLED &middot; BANNED</li>
+                        <li>BLOCKED_USER_AGENT &middot; EMPTY_USER_AGENT &middot; NOT_IN_ALLOWED_UAS &middot; DEVICE_NOT_ALLOWED</li>
+                        <li>NOT_IN_ALLOWED_IPS &middot; NOT_IN_ALLOWED_COUNTRY &middot; ISP_BLOCKED &middot; ASN_BLOCKED</li>
+                        <li>DOWNLOAD_LIMIT_REACHED &middot; GENERATE_PLAYLIST_FAILED</li>
+                    </ul></div></div>`,
+        };
+
+        function renderApiDocs(key) {
+            const el = document.getElementById('api-docs-content');
+            if (!el) return;
+            el.innerHTML = API_DOCS[resolveSpec(key).key] || '';
+        }
+
+        // Build the API tab row (one tab per specification)
+        function renderApiTabs() {
+            const bar = document.getElementById('api-tabs');
+            if (!bar) return;
+            bar.innerHTML = '';
+            API_SPECS.forEach(s => {
+                const btn = document.createElement('button');
+                btn.className = 'nav-tab api-tab';
+                btn.dataset.key = s.key;
+                btn.innerHTML = '<span class="nav-tab-icon">🧩</span>' + s.name;
+                btn.addEventListener('click', () => selectApi(s.key, true));
+                bar.appendChild(btn);
+            });
+        }
+
+        // Apply an API: update the title, highlight its tab, refresh the
+        // Documentation tab and (if already shown) reload the Swagger view.
+        function applyApi(key) {
+            const spec = resolveSpec(key);
+            const title = document.getElementById('api-title');
+            if (title) title.textContent = 'XC_VM ' + spec.name;
+            document.querySelectorAll('#api-tabs .api-tab').forEach(b => {
+                b.classList.toggle('active', b.dataset.key === spec.key);
+            });
+            renderApiDocs(spec.key);
+            if (window.swaggerInitialized) loadSpec(spec.key);
+            return spec;
+        }
+
+        // Select an API tab (optionally reflect the choice in the URL)
+        function selectApi(key, updateUrl) {
+            const spec = applyApi(key);
+            if (updateUrl) {
+                const params = new URLSearchParams(window.location.search);
+                params.set('spec', spec.key);
+                history.replaceState(null, '', '?' + params.toString() + window.location.hash);
+            }
+            return spec;
+        }
+
+        // Initialize the API tabs and select the requested (or first) API
+        renderApiTabs();
+        selectApi(resolveSpec(getRequestedSpecKey()).key, false);
+
+        // Initialize / re-initialize Swagger UI with a given spec key
+        let swaggerInitialized = false;
+        function loadSpec(key) {
+            const spec = resolveSpec(key);
+            window.ui = SwaggerUIBundle({
+                url: spec.url,
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                docExpansion: "list",
+                filter: true,
+                showExtensions: true,
+                showCommonExtensions: true,
+                tryItOutEnabled: true
+            });
+            window.swaggerInitialized = true;
+        }
+
+        function initSwagger() {
+            loadSpec(resolveSpec(getRequestedSpecKey()).key);
+        }
+
+        // Open the Swagger tab directly when linked with ?spec= or #swagger
+        if (window.location.hash === '#swagger' || getRequestedSpecKey()) {
+            switchTab('swagger');
+        }
+    </script>
+</body>
+</html>
