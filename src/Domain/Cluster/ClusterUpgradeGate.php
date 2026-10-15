@@ -34,6 +34,7 @@ final class ClusterUpgradeGate {
 			return null;
 		}
 		return "Update to {$targetVersion} refused: load balancer(s) below cluster mode 2: " . implode(', ', $rBelow)
-			. ". Move them to mode 2 or remove them first.";
+			. ". Migrate each to mode 2 first — Servers -> the node -> Guided cutover (to mode 2), or"
+			. " `console.php cluster:cutover <id> --to-mode-2` — or remove it, then update again.";
 	}
 }

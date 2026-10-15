@@ -362,6 +362,13 @@ $rCutAny = false;
                                                 <button type="submit" name="cluster_action" value="cutover_start" class="dropdown-item" title="<?= htmlspecialchars($language::get('cluster_cutover_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-route me-2"></i><?= $language::get('cluster_cutover'); ?></button>
                                             </form>
                                         <?php endif; ?>
+                                        <?php if ($rNode['state'] === 'active' && (int) $rNode['mode'] < 2 && !$rCutRunning): ?>
+                                            <form method="POST" action="cluster_nodes" class="js-cluster-confirm" data-confirm="<?= htmlspecialchars($language::get('cluster_cutover_mode2_confirm'), ENT_QUOTES); ?>">
+                                                <input type="hidden" name="server_id" value="<?= $rSid; ?>">
+                                                <input type="hidden" name="to_mode_2" value="1">
+                                                <button type="submit" name="cluster_action" value="cutover_start" class="dropdown-item" title="<?= htmlspecialchars($language::get('cluster_cutover_mode2_help'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-route-2 me-2"></i><?= $language::get('cluster_cutover_mode2'); ?></button>
+                                            </form>
+                                        <?php endif; ?>
                                         <?php if ($rCutRunning): ?>
                                             <form method="POST" action="cluster_nodes">
                                                 <input type="hidden" name="server_id" value="<?= $rSid; ?>">

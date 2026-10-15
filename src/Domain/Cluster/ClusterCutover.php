@@ -9,8 +9,10 @@ use XcVm\Core\Process\ProcessRunner;
  * (Cluster Nodes → Guided cutover, `console.php cluster:cutover <id>`): the
  * guide's Step 3 done for the operator, one flow at a time in its order,
  * through the page's own action (ClusterAdmin::act()) and its checks, each
- * flow watched for SOAK before the next. Never mode 2: that move stays the
- * operator's (Mode up).
+ * flow watched for SOAK before the next. It stops at mode 1 unless started
+ * with the opt-in to mode 2 (toModeTwo()): the "migrate to mode 2 before the
+ * upgrade" path, which then soaks once more and takes the gated Mode up to
+ * mode 2. Without the opt-in that last move stays the operator's.
  *
  * - Before a flow, the node must be active, heard (NodeHealth `ok`) and show
  *   no red badge (ClusterOverview::nodeBadges(): the P0 lane lagging, a clock
@@ -60,14 +62,18 @@ final class ClusterCutover {
 		return in_array($rState['status'] ?? '', ['starting', 'running'], true) && (int) ($rState['pid'] ?? 0) > 0 && @posix_kill((int) $rState['pid'], 0);
 	}
 
-	/** Start one in the background (the page), as $rUserID. False while one runs for the node or when it could not start. */
-	public static function start(int $rServerID, ?int $rUserID): bool {
+	/**
+	 * Start one in the background (the page), as $rUserID; $rToMode2 asks it to
+	 * continue past mode 1 to mode 2. False while one runs for the node or when
+	 * it could not start.
+	 */
+	public static function start(int $rServerID, ?int $rUserID, bool $rToMode2 = false): bool {
 		if (self::running($rServerID)) {
 			return false;
 		}
 		@unlink(self::cancelFile($rServerID));
-		self::save($rServerID, ['status' => 'starting', 'started' => time(), 'pid' => 0, 'steps' => [], 'note' => '']);
-		return ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'cluster:cutover', (string) $rServerID, (string) ($rUserID ?? 0)]);
+		self::save($rServerID, ['status' => 'starting', 'started' => time(), 'pid' => 0, 'steps' => [], 'note' => '', 'target_mode' => $rToMode2 ? 2 : 1]);
+		return ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'cluster:cutover', (string) $rServerID, (string) ($rUserID ?? 0), $rToMode2 ? '2' : '1']);
 	}
 
 	public static function cancel(int $rServerID): void {
@@ -107,9 +113,10 @@ final class ClusterCutover {
 	 * @param callable(array<string, mixed>): list<array{tone: string, key: string}> $rBadges ClusterOverview::nodeBadges().
 	 * @param callable(int): void $rSleep
 	 * @param callable(): int $rNow
+	 * @param bool $rToMode2 Continue past mode 1 to mode 2 (the opt-in upgrade-prep path).
 	 * @return array<string, mixed> The cutover's last state.
 	 */
-	public static function run(int $rServerID, callable $rNode, callable $rAct, callable $rSeed, callable $rBadges, callable $rSleep, callable $rNow): array {
+	public static function run(int $rServerID, callable $rNode, callable $rAct, callable $rSeed, callable $rBadges, callable $rSleep, callable $rNow, bool $rToMode2 = false): array {
 		$rState = ['status' => 'running', 'started' => $rNow(), 'pid' => getmypid(), 'steps' => [], 'note' => ''];
 		$rRow = $rNode();
 		if ($rRow === null || $rRow['state'] !== 'active') {
@@ -165,7 +172,44 @@ final class ClusterCutover {
 			$rUp = $rAct('mode_up', ['mode' => '0']);
 			$rNote = $rUp['type'] === 'success' ? 'Moved to mode 1.' : 'Not moved to mode 1: ' . $rUp['message'] . '.';
 		}
+		if ($rToMode2) {
+			$rNote = trim($rNote . ' ' . self::toModeTwo($rServerID, $rNode, $rAct, $rBadges, $rSleep, $rNow));
+		}
 		return self::finish($rServerID, $rState, 'done', $rNote, $rNow());
+	}
+
+	/**
+	 * The opt-in final step: mode 1 -> mode 2, after a soak and a health look.
+	 * Mode 2 is where the node gives up MAIN's credentials, so it is taken only
+	 * when the node sits healthy at mode 1 and the gate (ClusterAdmin::modeGate:
+	 * heard, every flow on, streams served locally) allows it. A refusal leaves
+	 * the node at mode 1 — a valid end — with a note; it never fails the cutover.
+	 *
+	 * @param callable(): ?array $rNode
+	 * @param callable(string, array<string, mixed>): array{type: string, message: string} $rAct
+	 * @param callable(array<string, mixed>): list<array{tone: string, key: string}> $rBadges
+	 * @param callable(int): void $rSleep
+	 * @param callable(): int $rNow
+	 */
+	private static function toModeTwo(int $rServerID, callable $rNode, callable $rAct, callable $rBadges, callable $rSleep, callable $rNow): string {
+		if ((int) ($rNode()['mode'] ?? 0) !== 1) {
+			return 'Mode 2 not attempted: the node did not reach mode 1.';
+		}
+		$rUntil = $rNow() + self::SOAK;
+		while ($rNow() < $rUntil) {
+			if (is_file(self::cancelFile($rServerID))) {
+				return 'Mode 2 cancelled.';
+			}
+			$rSleep(self::POLL);
+			if (($rWhy = self::look($rNode, $rBadges)) !== null) {
+				return 'Not moved to mode 2: ' . $rWhy . '.';
+			}
+		}
+		// The action takes the step to mode 2 only when the form confirms the
+		// node's current mode (ClusterAdmin: "the form that asks first"), so
+		// pass mode 1; the modeGate there still has the final say.
+		$rUp = $rAct('mode_up', ['mode' => '1']);
+		return $rUp['type'] === 'success' ? 'Moved to mode 2.' : 'Not moved to mode 2: ' . $rUp['message'] . '.';
 	}
 
 	/**

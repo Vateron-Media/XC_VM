@@ -390,7 +390,8 @@ final class ClusterAdmin {
 						: ['type' => 'info', 'message' => 'cluster_nothing_pending'];
 
 				case 'cutover_start':
-					// The guided cutover (ClusterCutover): every flow, watched, up to mode 1.
+					// The guided cutover (ClusterCutover): every flow, watched, up to
+					// mode 1 — or on to mode 2 when the operator opts in (to_mode_2).
 					$rNode = NodeRegistry::byServer($rServerID);
 					if ($rNode === null || $rNode['state'] !== 'active') {
 						return ['type' => 'info', 'message' => 'cluster_not_enrolled'];
@@ -398,11 +399,12 @@ final class ClusterAdmin {
 					if ((int) $rNode['mode'] === 2) {
 						return ['type' => 'info', 'message' => 'cluster_cutover_mode_two'];
 					}
-					if (!ClusterCutover::start($rServerID, $rUserID)) {
+					$rToMode2 = (string) ($rInput['to_mode_2'] ?? '') === '1';
+					if (!ClusterCutover::start($rServerID, $rUserID, $rToMode2)) {
 						return ['type' => 'warning', 'message' => 'cluster_cutover_busy'];
 					}
-					ClusterAudit::log('node.cutover', $rServerID, ['flows' => (int) $rNode['flows']], $rUserID === null ? 'admin' : 'admin:' . $rUserID);
-					return ['type' => 'success', 'message' => 'cluster_cutover_started'];
+					ClusterAudit::log('node.cutover', $rServerID, ['flows' => (int) $rNode['flows'], 'target_mode' => $rToMode2 ? 2 : 1], $rUserID === null ? 'admin' : 'admin:' . $rUserID);
+					return ['type' => 'success', 'message' => $rToMode2 ? 'cluster_cutover_started_mode2' : 'cluster_cutover_started'];
 
 				case 'cutover_cancel':
 					ClusterCutover::cancel($rServerID);

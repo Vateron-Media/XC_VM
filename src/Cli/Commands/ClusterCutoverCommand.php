@@ -15,10 +15,11 @@ use XcVm\Domain\Server\ServerRepository;
 /**
  * ClusterCutoverCommand — switch one load balancer's flows on in the
  * guide's order, each watched before the next, and stop at mode 1
- * (Domain\Cluster\ClusterCutover). Started by Cluster Nodes → Guided
+ * (Domain\Cluster\ClusterCutover) — or continue to mode 2 with --to-mode-2
+ * (the migrate-before-upgrade path). Started by Cluster Nodes → Guided
  * cutover; one per node at a time. MAIN only: the LB build strips it.
  *
- * Usage: `console.php cluster:cutover <server id> [admin user id]`
+ * Usage: `console.php cluster:cutover <server id> [admin user id] [--to-mode-2]`
  *
  * @package XC_VM_CLI_Commands
  */
@@ -31,14 +32,18 @@ class ClusterCutoverCommand implements CommandInterface {
 	}
 
 	public function getDescription(): string {
-		return "Switch a load balancer's cluster flows on one at a time, watched, up to mode 1";
+		return "Switch a load balancer's cluster flows on one at a time, watched, up to mode 1 (or mode 2 with --to-mode-2)";
 	}
 
 	public function execute(array $rArgs): int {
 		$rServerID = (int) ($rArgs[0] ?? 0);
 		$rUserID = (int) ($rArgs[1] ?? 0) ?: null;
+		// Opt-in: continue past mode 1 to mode 2 (the upgrade-prep path). Either
+		// the third positional '2' (how ClusterCutover::start passes it) or the
+		// --to-mode-2 flag for the operator running it by hand.
+		$rToMode2 = (string) ($rArgs[2] ?? '') === '2' || in_array('--to-mode-2', $rArgs, true);
 		if ($rServerID <= 0) {
-			echo "Usage: console.php cluster:cutover <server id> [admin user id]\n";
+			echo "Usage: console.php cluster:cutover <server id> [admin user id] [--to-mode-2]\n";
 			return 1;
 		}
 		$rLock = fopen(CACHE_TMP_PATH . 'cutover_' . $rServerID . '.lock', 'c');
@@ -70,7 +75,8 @@ class ClusterCutoverCommand implements CommandInterface {
 			static function (int $rSeconds): void {
 				sleep($rSeconds);
 			},
-			time(...)
+			time(...),
+			$rToMode2
 		);
 		foreach ($rState['steps'] as $rStep) {
 			echo $rStep['flow'] . ': ' . $rStep['state'] . ($rStep['note'] !== '' ? ' (' . $rStep['note'] . ')' : '') . "\n";
