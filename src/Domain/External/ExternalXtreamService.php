@@ -165,7 +165,7 @@ class ExternalXtreamService {
 		$scheme = $parts['scheme'] ?? 'http';
 		$host = $parts['host'];
 		$port = !empty($parts['port']) ? ':' . $parts['port'] : '';
-		$server = rtrim($scheme . '://' . $host . $port, '/');
+		$server = rtrim($scheme . '://' . PublicAddress::forUrl($host) . $port, '/');
 
 		$username = '';
 		$password = '';

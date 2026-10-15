@@ -269,16 +269,45 @@ class StatusCommand implements CommandInterface {
 			$rReload = true;
 		}
 
+		$rHasIpv6 = is_readable('/proc/net/if_inet6'); // the kernel has the IPv6 stack; [::] will bind
 		foreach (['http', 'https'] as $rType) {
-			$rPortConfig = file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/' . $rType . '.conf');
+			$rPath = MAIN_HOME . 'bin/nginx/conf/ports/' . $rType . '.conf';
+			$rPortConfig = (string) file_get_contents($rPath);
+			$rWanted = self::ipv6ListenFor($rPortConfig, $rHasIpv6);
 
-			if (stripos($rPortConfig, ' reuseport') !== false) {
-				file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/' . $rType . '.conf', str_replace(' reuseport', '', $rPortConfig));
+			if ($rWanted !== $rPortConfig) {
+				file_put_contents($rPath, $rWanted);
 				$rReload = true;
 			}
 		}
 
 		return $rReload;
+	}
+
+	/**
+	 * The ports/<type>.conf nginx should run: `reuseport` dropped (as before),
+	 * and a `listen [::]:<port> …;` line present exactly when the host has an
+	 * IPv6 stack — so a dual-stack host answers IPv6 clients, while a host with
+	 * IPv6 disabled at the kernel is not handed a `[::]` listen nginx cannot
+	 * bind (which would stop it starting). Pure and idempotent: fixNginxConfig
+	 * writes the result only when it differs. ipv6only=on keeps the v6 socket
+	 * from also claiming the v4 wildcard the `listen <port>;` line already holds.
+	 */
+	public static function ipv6ListenFor(string $rConf, bool $rHasIpv6): string {
+		$rLines = array_values(array_filter(
+			array_map('trim', preg_split('/\R/', str_replace(' reuseport', '', $rConf)) ?: []),
+			static fn(string $rLine): bool => $rLine !== '' && stripos($rLine, 'listen [::]:') !== 0
+		));
+		if ($rHasIpv6) {
+			foreach ($rLines as $rLine) {
+				if (preg_match('/^listen\s+(\d+)(.*);$/i', $rLine, $rMatch) === 1) {
+					$rLines[] = 'listen [::]:' . $rMatch[1] . $rMatch[2] . ' ipv6only=on;';
+					break;
+				}
+			}
+		}
+
+		return implode("\n", $rLines) . "\n";
 	}
 
 	private function configureFileLimits(): void {
