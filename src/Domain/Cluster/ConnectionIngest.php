@@ -358,6 +358,10 @@ final class ConnectionIngest {
 		foreach ($rDb->get_rows() ?: [] as $rRow) {
 			$rExpected[(int) $rRow['stream_id']] = DivergenceSink::expected((int) $rRow['bitrate']);
 		}
+		// Order the uuids so two concurrent node reports REPLACE lines_divergence
+		// in the same order and do not deadlock on its uuid index (hex uuids sort
+		// byte by byte with SORT_STRING).
+		ksort($rOwn, SORT_STRING);
 		$rParams = $rLive = [];
 		foreach ($rOwn as $rUUID => [$rStreamID, $rActivityID]) {
 			$rDivergence = DivergenceSink::of($rRates[$rUUID], $rExpected[$rStreamID] ?? 0);
