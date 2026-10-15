@@ -97,11 +97,27 @@ final class EventIngestFailedWriteTest extends TestCase {
 			/** Statements matching $rFail that still run before one fails. */
 			public int $rSkip = 0;
 
+			/** A statement matching this fails as an InnoDB deadlock (rolls the whole transaction back, SQLSTATE 40001) the first $rDeadlock times, then runs. */
+			public ?string $rDeadlockRe = null;
+
+			public int $rDeadlock = 0;
+
+			private bool $rWasDeadlock = false;
+
 			public function __construct(private TestDb $rInner, public ?string $rFail, public bool $rFailCommit, public bool $rFailBegin) {
 			}
 
 			public function query($query, ...$args): bool {
 				$this->rRan[] = (string) $query;
+				$this->rWasDeadlock = false;
+				if ($this->rDeadlock > 0 && $this->rDeadlockRe !== null && preg_match($this->rDeadlockRe, (string) $query)) {
+					$this->rDeadlock--;
+					$this->rWasDeadlock = true; // the deadlock's victim: the whole transaction
+					if ($this->rInner->pdo->inTransaction()) {
+						$this->rInner->pdo->rollBack();
+					}
+					return false;
+				}
 				if ($this->rFail !== null && preg_match($this->rFail, (string) $query) && $this->rSkip-- <= 0) {
 					if ($this->rRollsBack && $this->rInner->pdo->inTransaction()) {
 						$this->rInner->pdo->rollBack(); // the deadlock's victim: the whole transaction
@@ -151,6 +167,10 @@ final class EventIngestFailedWriteTest extends TestCase {
 			// back, as it does here: EventIngest must keep its own failure.
 			public function rollback() {
 				return $this->rInner->pdo->rollBack();
+			}
+
+			public function wasDeadlock(): bool {
+				return $this->rWasDeadlock;
 			}
 		};
 		DatabaseFactory::set($this->rFailing);
@@ -291,6 +311,43 @@ final class EventIngestFailedWriteTest extends TestCase {
 		$this->assertSame(['192.0.2.7', (int) $rAfter['lines_activity'][0]['activity_id']], [$rAfter['lines'][0]['last_ip'], (int) $rAfter['lines'][0]['last_activity']]);
 		$this->assertSame(3, (int) $rAfter['servers'][1]['ping']);
 		$this->assertSame(['cccc'], array_column($rAfter['lines_divergence'], 'uuid'));
+	}
+
+	/** How many of the batch's statements were a cursor advance for lane p1. */
+	private function cursorAttempts(object $rDb): int {
+		return count(array_filter($rDb->rRan, static fn(string $rQ): bool => str_starts_with($rQ, 'UPDATE `cluster_nodes` SET `useq_p1`')));
+	}
+
+	/**
+	 * A batch that loses an InnoDB deadlock (SQLSTATE 40001 — the whole
+	 * transaction rolled back) is not failed for the node to resend: it is
+	 * retried in-process and applies whole once the winner has committed.
+	 */
+	public function testABatchThatLosesADeadlockIsRetriedAndApplies(): void {
+		$rDb = $this->failingDb(null);
+		$rDb->rDeadlockRe = '/^UPDATE `cluster_nodes` SET `useq_p1`/';
+		$rDb->rDeadlock = 1; // the cursor advance loses a deadlock once, then the retry wins
+		$this->assertSame(['ok' => true, 'useq' => 4, 'applied' => 4, 'dropped' => 0], $this->ingest('p1', $this->p1()), 'the retry applied the batch whole');
+		$this->assertSame(0, $rDb->rDeadlock, 'the deadlock was hit once');
+		$this->assertSame(2, $this->cursorAttempts($rDb), 'the cursor was attempted twice: the deadlock, then the retry');
+		$rAfter = $this->state();
+		$this->assertSame(4, $rAfter['cursors']['useq_p1'], 'the cursor advanced on the retry');
+		$this->assertSame(['start'], array_column($rAfter['streams_logs'], 'action'), 'the batch applied once, not twice');
+		$this->assertSame(['cccc'], array_column($rAfter['lines_divergence'], 'uuid'));
+	}
+
+	/**
+	 * A non-deadlock write failure is not retried: the batch fails at once and
+	 * the node resends, as before (ADR 0004).
+	 */
+	public function testANonDeadlockFailureIsNotRetried(): void {
+		$rDb = $this->failingDb('/^UPDATE `cluster_nodes` SET `useq_p1`/'); // fails every time, not a deadlock
+		try {
+			$this->ingest('p1', $this->p1());
+			$this->fail('a failed cursor advance must throw');
+		} catch (\RuntimeException) {
+		}
+		$this->assertSame(1, $this->cursorAttempts($rDb), 'the cursor was attempted once: a non-deadlock failure is not retried');
 	}
 
 	/**
