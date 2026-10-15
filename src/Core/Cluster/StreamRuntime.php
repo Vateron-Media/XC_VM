@@ -370,6 +370,13 @@ final class StreamRuntime {
 		if (!self::quiet()) {
 			return false;
 		}
+		// Before reading every row: a cheap aggregate (no row bodies) estimates the
+		// read's memory and row count, so a huge-catalogue node refuses to seed here
+		// instead of OOMing inside mainRows(), which reads every row first (the
+		// former MAX_STREAMS check ran only after the load).
+		if (!self::seedFits($rDb, $rServerID)) {
+			return false;
+		}
 		$rRows = self::mainRows($rDb, $rServerID);
 		if ($rRows === null) {
 			return false;
@@ -583,6 +590,53 @@ final class StreamRuntime {
 			}
 			return false;
 		});
+	}
+
+	/**
+	 * Whether seeding the store is worth attempting without running the node out
+	 * of memory. A single aggregate over the node's streams_servers rows (no row
+	 * bodies, ~0.26s on a 110k-row node) gives the count and the bytes of the big
+	 * state columns; the read's memory is estimated as rows x 1.5 KB + bytes x 3
+	 * (calibrated on the real node: 110,694 rows / 345 MB of stream_info -> 964 MB)
+	 * and compared with 85% of what is left under memory_limit (no limit always
+	 * fits). Also refuses before reading more rows than MAX_STREAMS. When it cannot
+	 * measure, it lets mainRows() try, exactly as before.
+	 *
+	 * ponytail: measures each seed() pass; the module also caches a refusal for
+	 * 600s under the store lock to skip re-measuring — add that if the aggregate
+	 * proves costly.
+	 */
+	private static function seedFits(?object $rDb, int $rServerID): bool {
+		$rDb ??= DatabaseFactory::get();
+		if (!is_object($rDb) || !$rDb->query('SELECT COUNT(*) AS `n`, COALESCE(SUM(LENGTH(`stream_info`)) + SUM(LENGTH(`progress_info`)) + SUM(LENGTH(`cc_info`)) + SUM(LENGTH(`current_source`)), 0) AS `bytes` FROM `streams_servers` WHERE `server_id` = ?;', $rServerID)) {
+			return true; // cannot measure: fall back to mainRows(), unchanged
+		}
+		$rAgg = $rDb->get_row();
+		$rStreams = (int) ($rAgg['n'] ?? 0);
+		$rMax = self::$rLimits['streams'] ?? self::MAX_STREAMS;
+		$rLimit = self::memoryLimit();
+		$rNeed = $rStreams * 1536 + (int) ($rAgg['bytes'] ?? 0) * 3;
+		$rRoom = $rLimit < 0 ? PHP_INT_MAX : (int) (($rLimit - memory_get_usage(true)) * 0.85);
+		if ($rStreams <= $rMax && $rNeed <= $rRoom) {
+			return true;
+		}
+		error_log('XC_VM: stream state not seeded on this node: ' . $rStreams . ' streams with state, more than ' . $rMax);
+		return false;
+	}
+
+	/** The PHP memory_limit in bytes; -1 when there is no limit. */
+	private static function memoryLimit(): int {
+		$rRaw = trim((string) ini_get('memory_limit'));
+		if ($rRaw === '' || $rRaw === '-1') {
+			return -1;
+		}
+		$rVal = (int) $rRaw;
+		return match (strtolower(substr($rRaw, -1))) {
+			'g' => $rVal * 1024 * 1024 * 1024,
+			'm' => $rVal * 1024 * 1024,
+			'k' => $rVal * 1024,
+			default => $rVal,
+		};
 	}
 
 	/**
