@@ -34,4 +34,10 @@ final class PanelErrorGuardsTest extends TestCase {
 		$rSrc = $this->src('Core/Http/ApiClient.php');
 		$this->assertStringContainsString("!empty(\$rServer['api_url'])", $rSrc, 'api_url presence checked before use');
 	}
+
+	/** BackupService::getLocal — scandir() always yields '.' and '..', which have no pathinfo() 'extension'. */
+	public function testGetLocalGuardsMissingExtension(): void {
+		$rSrc = $this->src('Core/Backup/BackupService.php');
+		$this->assertStringContainsString("\$rInfo['extension'] ?? ''", $rSrc, 'extension defaults to empty, not an undefined key');
+	}
 }
