@@ -182,7 +182,7 @@ final class EventIngest {
 			$rTx = method_exists($rDb, 'beginTransaction');
 			$rApplied = 0;
 			$rDropped = 0;
-			for ($rAttempt = 1; ; $rAttempt++) {
+			for ($rAttempt = 1;; $rAttempt++) {
 				self::$rAfterCommit = [];
 				if ($rTx && !$rDb->beginTransaction()) {
 					throw new \RuntimeException('cannot start the batch\'s transaction');
