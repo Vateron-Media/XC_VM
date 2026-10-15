@@ -37,7 +37,7 @@
             };
             var rNodesTable = $('#cluster-nodes-table').DataTable({
                 order: [[1, 'asc']],
-                columnDefs: [{ orderable: false, targets: [3, 4, 10, 11, 12, 13, 14] }],
+                columnDefs: [{ orderable: false, targets: [3, 4, 10, 11, 12, 13] }],
                 layout: { topStart: 'pageLength', topEnd: 'search' },
                 language: { emptyTable: <?= json_encode($language::get('cluster_no_nodes')); ?> },
                 drawCallback: function() {
