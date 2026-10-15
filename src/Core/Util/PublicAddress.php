@@ -58,4 +58,16 @@ final class PublicAddress {
 		return filter_var($rIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false
 			|| (ip2long($rIP) & 0xffc00000) !== (ip2long('100.64.0.0') & 0xffc00000);
 	}
+
+	/**
+	 * A host for the authority part of a URL: an IPv6 literal is wrapped in
+	 * brackets (`http://[2001:db8::1]:80/`), as RFC 3986 requires; an IPv4
+	 * address, a hostname and an already-bracketed literal are returned
+	 * unchanged.
+	 *
+	 * @param string $rHost An IP (no brackets) or a hostname.
+	 */
+	public static function forUrl(string $rHost): string {
+		return filter_var($rHost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false ? '[' . $rHost . ']' : $rHost;
+	}
 }

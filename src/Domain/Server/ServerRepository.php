@@ -14,6 +14,7 @@ use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Server\ServerSavedEvent;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
+use XcVm\Core\Util\PublicAddress;
 use XcVm\Domain\Cluster\NodeRegistry;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseAware;
@@ -129,6 +130,9 @@ class ServerRepository {
 		} else {
 			$rURL = str_replace(['http://', '/', 'https://'], '', escapeshellcmd(explode(',', $rRow['domain_name'])[0]));
 		}
+		// A bare IPv6 server_ip must be bracketed in a URL authority, e.g.
+		// http://[2001:db8::1]:80/ (a hostname or IPv4 is left unchanged).
+		$rURL = PublicAddress::forUrl($rURL);
 
 		if ($rRow['enable_https'] == 1) {
 			$rProtocol = 'https';
@@ -145,11 +149,12 @@ class ServerRepository {
 		$rRow['rtmp_server'] = 'rtmp://' . $rURL . ':' . intval($rRow['rtmp_port']) . '/live/';
 		$rRow['domains'] = ['protocol' => $rProtocol, 'port' => $rPort, 'urls' => array_filter(array_map('escapeshellcmd', explode(',', $rRow['domain_name'] ?? '')))];
 		$rRow['rtmp_mport_url'] = 'http://127.0.0.1:31210/';
-		$rRow['api_url_ip'] = 'http://' . escapeshellcmd((string) $rRow['server_ip']) . ':' . intval($rRow['http_broadcast_port']) . '/api?password=' . urlencode((string) ($rSettings['live_streaming_pass'] ?? ''));
+		$rIpHost = PublicAddress::forUrl(escapeshellcmd((string) $rRow['server_ip']));
+		$rRow['api_url_ip'] = 'http://' . $rIpHost . ':' . intval($rRow['http_broadcast_port']) . '/api?password=' . urlencode((string) ($rSettings['live_streaming_pass'] ?? ''));
 		$rRow['api_url'] = $rRow['api_url_ip'];
-		$rRow['site_url_ip'] = $rProtocol . '://' . escapeshellcmd((string) $rRow['server_ip']) . ':' . $rPort . '/';
-		$rRow['private_url_ip'] = (!empty($rRow['private_ip']) ? 'http://' . escapeshellcmd($rRow['private_ip']) . ':' . intval($rRow['http_broadcast_port']) . '/' : null);
-		$rRow['public_url_ip'] = 'http://' . escapeshellcmd((string) $rRow['server_ip']) . ':' . intval($rRow['http_broadcast_port']) . '/';
+		$rRow['site_url_ip'] = $rProtocol . '://' . $rIpHost . ':' . $rPort . '/';
+		$rRow['private_url_ip'] = (!empty($rRow['private_ip']) ? 'http://' . PublicAddress::forUrl(escapeshellcmd((string) $rRow['private_ip'])) . ':' . intval($rRow['http_broadcast_port']) . '/' : null);
+		$rRow['public_url_ip'] = 'http://' . $rIpHost . ':' . intval($rRow['http_broadcast_port']) . '/';
 		$rRow['geoip_countries'] = (empty($rRow['geoip_countries']) ? [] : json_decode($rRow['geoip_countries'], true));
 		$rRow['isp_names'] = (empty($rRow['isp_names']) ? [] : json_decode($rRow['isp_names'], true));
 
@@ -610,7 +615,7 @@ class ServerRepository {
 			} else {
 				$rDomain = (empty($rServers[$rServerID]['domain_name']) ? $rServers[$rServerID]['server_ip'] : explode(',', $rServers[$rServerID]['domain_name'])[0]);
 			}
-			$rServerURL = $rProtocol . '://' . $rDomain . ':' . $rServers[$rServerID][$rProtocol . '_broadcast_port'] . '/';
+			$rServerURL = $rProtocol . '://' . PublicAddress::forUrl($rDomain) . ':' . $rServers[$rServerID][$rProtocol . '_broadcast_port'] . '/';
 			if ($rServers[$rServerID]['server_type'] == 1 && $rOriginatorID && $rServers[$rOriginatorID]['is_main'] == 0) {
 				$rServerURL .= ProxyRoute::segment((int) $rServerID, (int) $rOriginatorID, $rServers) . '/';
 			}
