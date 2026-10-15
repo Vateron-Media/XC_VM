@@ -275,11 +275,15 @@ class StreamToolsAjaxController extends BaseAjaxController {
 		} else {
 			$rStream = StreamRepository::getById(RequestManager::get('stream'));
 			$rStreamOptions = StreamRepository::getOptions(RequestManager::get('stream'));
-			$rFetch = ((string) $rStreamOptions[1]['value'] !== '') ? ['-user_agent', (string) $rStreamOptions[1]['value']] : [];
+			// A stream with no streams_options rows has none of these argument ids
+			// (getOptions keys by argument_id), so guard each read.
+			$rUserAgent = (string) ($rStreamOptions[1]['value'] ?? '');
+			$rFetch = $rUserAgent !== '' ? ['-user_agent', $rUserAgent] : [];
 			if (RequestManager::has('cookie')) {
-				array_push($rFetch, '-cookies', StreamUtils::fixCookie($rStreamOptions[17]['value']));
+				array_push($rFetch, '-cookies', StreamUtils::fixCookie((string) ($rStreamOptions[17]['value'] ?? '')));
 			}
-			$rSource = (string) json_decode($rStream['stream_source'], true)[intval(RequestManager::get('id'))];
+			$rSources = (array) json_decode((string) ($rStream['stream_source'] ?? ''), true);
+			$rSource = (string) ($rSources[intval(RequestManager::get('id'))] ?? '');
 			$rProxy = (string) ($rStreamOptions[2]['value'] ?? '');
 		}
 		$rURL = StreamUtils::parseStreamURL($rSource, $rProxy);
