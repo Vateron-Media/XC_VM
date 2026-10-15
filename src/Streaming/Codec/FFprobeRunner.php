@@ -49,6 +49,7 @@ class FFprobeRunner {
 			// the lowest — variant. Audio keeps the first stream; subtitles accumulate.
 			$rVideoStreams = 0;
 			$rBestHeight = -1;
+			$rHaveAudio = false;
 			foreach ($rCodecs['streams'] as $rCodec) {
 				if (!isset($rCodec['codec_type'])) {
 					continue;
@@ -61,8 +62,9 @@ class FFprobeRunner {
 						$rOutput['codecs']['video'] = $rCodec;
 					}
 				} elseif ($rCodec['codec_type'] == 'audio') {
-					if (empty($rOutput['codecs']['audio'])) {
+					if (!$rHaveAudio) {
 						$rOutput['codecs']['audio'] = $rCodec;
+						$rHaveAudio = true;
 					}
 				} elseif ($rCodec['codec_type'] == 'subtitle') {
 					if (!isset($rOutput['codecs']['subtitle'])) {
