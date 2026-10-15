@@ -542,10 +542,21 @@ LayoutRenderer::renderFooter('admin');
             ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
             var rollingTones = {starting: 'info', running: 'info', done: 'success', failed: 'danger', cancelled: 'secondary', waiting: 'secondary', updating: 'info', soaking: 'warning'};
             var rollingTimer = null;
+            var rollingActive = false; // true once a live run is seen in this page view
 
             function showRolling(d) {
                 var state = d && d.state;
                 if (!state || !state.status) {
+                    return;
+                }
+                var live = (d && d.running) || state.status === 'starting';
+                if (live) {
+                    rollingActive = true;
+                }
+                // A run that finished before this page was opened must not resurrect
+                // the card on every load (its state file lingers): only show it while a
+                // run is live or while we are watching one through to its result now.
+                if (!live && !rollingActive) {
                     return;
                 }
                 $('#rolling-update-card').removeClass('d-none');
