@@ -139,6 +139,8 @@ class LineService {
 				}
 				$rArray['bouquet'] = AdminHelpers::sortArrayByArray($rArray['bouquet'], array_keys(BouquetService::getOrder()));
 				$rArray['bouquet'] = '[' . implode(',', array_map('intval', $rArray['bouquet'])) . ']';
+				// A bulk replacement deliberately returns all selected lines to global order.
+				$rArray['bouquet_order_custom'] = 0;
 			}
 
 			if (isset($rData['reset_isp_lock'])) {
@@ -183,6 +185,11 @@ class LineService {
 					// escaping would be written back into every field not sent.
 					$db->query('SELECT * FROM `lines` WHERE `id` = ?;', intval($rData['edit']));
 					$rLine = $db->get_raw_row();
+					if (isset($rData['bouquet_order'], $rData['bouquet_order_revision'])
+						&& !hash_equals(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::orderRevision($rLine ?? []), (string) $rData['bouquet_order_revision'])
+					) {
+						return ['status' => STATUS_INVALID_DATA, 'data' => $rData + ['bouquet_order_conflict' => true]];
+					}
 					$rArray = AdminHelpers::overwriteData($rLine, $rData);
 				} else {
 					exit();
@@ -293,6 +300,13 @@ class LineService {
 			$rArray = \XcVm\Domain\Stream\CategoryTemplateService::applyCustomData($rData, $rArray);
 			$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::preserveOrder($rArray, $rLine ?? []);
 			$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::constrainOwner($rArray, $db);
+			if (array_key_exists('bouquet_order', $rData)) {
+				$rArray['bouquet'] = json_encode(\XcVm\Domain\Bouquet\ResellerBouquetPolicy::order(
+					\XcVm\Domain\Bouquet\ResellerBouquetPolicy::ids($rArray['bouquet']),
+					$rData['bouquet_order']
+				), JSON_THROW_ON_ERROR);
+				$rArray['bouquet_order_custom'] = 1;
+			}
 
 			$rEditID = (isset($rData['edit']) ? intval($rData['edit']) : null);
 
