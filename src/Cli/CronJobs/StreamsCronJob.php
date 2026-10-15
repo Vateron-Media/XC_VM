@@ -419,7 +419,9 @@ class StreamsCronJob implements CommandInterface {
 					// the output has no codec info, so these must always be set.
 					$rBitrate = $rCompatible = $rAudioCodec = $rVideoCodec = $rResolution = null;
 					if ($rFFProbeOutput) {
-						$rBitrate = $rFFProbeOutput['bitrate'] / 1024;
+						// null for an adaptive source (aggregate bitrate dropped by the
+						// probe): stays unknown so divergence is not judged against it.
+						$rBitrate = isset($rFFProbeOutput['bitrate']) ? $rFFProbeOutput['bitrate'] / 1024 : null;
 						$rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbeOutput, SettingsManager::getBool('player_allow_hevc')));
 						if (is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']) && is_array($rFFProbeOutput['codecs'])) {
 							$rAudioCodec = isset($rFFProbeOutput['codecs']['audio']['codec_name']) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : null;

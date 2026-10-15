@@ -60,7 +60,7 @@ define('DEV_MODE', false); // master development-mode flag
 | `save_login_logs` | `bool` |постоянные попытки входа в систему в `login_logs`|
 | `fanout_enabled` | `bool` |главный переключатель для демона xc_fanout (по умолчанию включен); off останавливает его на каждом узле, и оперативная доставка использует пути предварительного разветвления (см. подсистему потоковой передачи, "Отключение разветвления").|
 | `fanout_supervise` | `bool` |передавайте прямые трансляции супервизору xc_fanout вместо PHP-монитора (по умолчанию включен)|
-| `fanout_source_backend` |`auto` / `ffmpeg` / `native`|как исходные тексты преобразуются в формат MPEG-TS; под наблюдением, будут ли потоки, предназначенные только для копирования, работать в собственном ремуксоре (`auto`: с резервным ffmpeg)|
+| `fanout_source_backend` |`auto` / `ffmpeg` / `native`| how sources become MPEG-TS: whether a copy-only stream runs the native remuxer (`xc_fanout remux`) rather than ffmpeg — whether the daemon supervises it or the PHP monitor runs it (fanout off); `auto` falls back to ffmpeg where native cannot serve the source |
 | `gateway_mode` |`off` / `shadow` / `segments` / `segments+playlist`|сегментный шлюз в xc_fanout отвечает на сегменты HLS, ключи и (с `segments+playlist`) обновления плейлиста, а также просмотр MPEG-TS (их первый запрос и повторное подключение) без использования PHP-FPM; `shadow` оценивает только зеркальную копию; `segments+playlist` на новой панели обновленная версия сохраняет свое значение (см. раздел подсистема потоковой передачи, "Сегментный шлюз")|
 
 Эти значения загружаются из `CACHE_TMP_PATH/settings` защитниками запросов.
