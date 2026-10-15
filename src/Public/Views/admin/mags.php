@@ -338,10 +338,11 @@ LayoutRenderer::renderFooter('admin');
                                 '<a class="dropdown-item js-api" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '" data-sub="enable">' + esc(lang.enable) + '</a>';
                             items += '<a class="dropdown-item text-danger js-api" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '" data-sub="delete">' + esc(lang.del) + '</a>';
                         }
+                        var note = (row.notes && row.notes.length) ? '<i class="icon-base ti tabler-note text-primary" title="' + esc(row.notes.join('\n')) + '"></i>' : '';
                         if (!items) {
-                            return '';
+                            return note;
                         }
-                        return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
+                        return '<div class="d-inline-flex align-items-center gap-2">' + note + '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div></div>';
                     }
                 }
             ],

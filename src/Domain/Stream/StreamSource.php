@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Stream;
 
+use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Cluster\ReplicaStreamCache;
 use XcVm\Core\Cluster\StreamRecords;
@@ -99,11 +100,45 @@ final class StreamSource {
 		}
 		if ($rServerID === intval(SERVER_ID) && ReplicaStreamCache::owned()) {
 			$rEntry = ReplicaStreamCache::get($rStreamID);
-			return $rEntry !== null && StreamRuntime::ready() ? self::server($rStreamID, $rEntry) : ($rEntry['server'] ?? null);
+			if ($rEntry === null) {
+				return null; // a stream the replica does not own is no row here
+			}
+			if (StreamRuntime::ready()) {
+				return self::server($rStreamID, $rEntry);
+			}
+			// Store not seeded (e.g. the huge-catalogue node that refuses to seed,
+			// cluster_runtime_seed_memory_guard): read the row from MAIN so it still
+			// carries cc_info / pid / current_source (created-channel resume, source
+			// rotation), falling back to the replica's bare row when MAIN is out of reach.
+			return self::mainServerRow($rStreamID, $rServerID) ?? ($rEntry['server'] ?? null);
 		}
 		$rDb ??= DatabaseFactory::get();
 		$rDb->query('SELECT * FROM `streams_servers` WHERE stream_id = ? AND `server_id` = ?', $rStreamID, $rServerID);
 		return $rDb->num_rows() > 0 ? self::remembered(self::unescaped($rDb)) : null;
+	}
+
+	/**
+	 * This node's `streams_servers` row read from MAIN's database — the same
+	 * query serverRow()'s legacy branch runs. The fallback used when the replica
+	 * owns the stream but the local state store is not seeded, so the row still
+	 * carries cc_info / pid / current_source. Null in mode 2 (MAIN's database out
+	 * of reach), when the query fails or throws, or when MAIN has no such row.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	private static function mainServerRow(int $rStreamID, int $rServerID): ?array {
+		if (NodeRole::refusesConnects()) {
+			return null;
+		}
+		try {
+			$rDb = DatabaseFactory::get();
+			if (!is_object($rDb) || !$rDb->query('SELECT * FROM `streams_servers` WHERE stream_id = ? AND `server_id` = ?', $rStreamID, $rServerID)) {
+				return null;
+			}
+			return $rDb->num_rows() > 0 ? self::remembered(self::unescaped($rDb)) : null;
+		} catch (\Throwable) {
+			return null;
+		}
 	}
 
 	/**
