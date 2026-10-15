@@ -1,18 +1,7 @@
 {
-	"version": "2.7.0",
+	"version": "2.7.1",
 	"changes": [
-		"First stable release of the 2.7 line, succeeding the 2.6.x beta series and completing the migration of every load balancer to the cluster API (mode 2).",
-		"Load balancers (BREAKING): the legacy /api link — an unenrolled node reaching MAIN's database and Redis with the stream password — is gone; every node now uses the cluster API (mode 2). The upgrade gate now blocks a node still below mode 2 from updating to 2.7.0 so it cannot strand: re-provision or promote it to mode 2 first (ADR 0004).",
-		"Load balancer migration to mode 2: the guided cutover can now continue all the way to mode 2 in one action — Manage Servers → the node → Guided cutover (to mode 2), or `console.php cluster:cutover <id> --to-mode-2`. It turns every flow on, soaks, then takes the gated step to mode 2; and the upgrade gate's refusal now names this path, so a load balancer can be migrated to mode 2 before the 2.7.0 update instead of re-provisioned.",
-		"Cluster reliability: event batches and divergence writes that lose an InnoDB deadlock are now retried instead of dropped, the command bus has an RPC limit, enqueue backoff and a per-node sequence lock, seed memory is estimated before loading stream rows, and a node reads its stream row from MAIN while its own store is still unseeded — far fewer deadlocks and stalls on busy mode-2 clusters.",
-		"Per-customer bouquet ordering: admins can reorder a customer's bouquets with up/down buttons under Manage Lines → Edit → Bouquets. The order is saved per customer, kept through unrelated edits, mirrored to paired MAG devices, and reset to the global order by a bulk bouquet replacement; a stale form is rejected before it can overwrite a newer order.",
-		"Resellers: new per-reseller bouquet controls and permissions, and reseller-generated codes and download links now use the reseller's own domain instead of MAIN's.",
-		"Manage Servers: Cluster Nodes is folded into a single Manage Servers page — node mode, enrolment, cutover and per-flow controls all live there.",
-		"Live streams: new quick-action tools and MAG connection details in the admin stream view, and MAIN stream controls are dispatched directly rather than through the admin HTTP relay.",
-		"Adaptive (multi-bitrate HLS) sources: the stream info now reports the top rendition's resolution instead of the lowest variant, and the master playlist's aggregate bitrate no longer drives the per-viewer divergence check — so healthy viewers of an adaptive stream are no longer flagged orange/red for hours.",
-		"Ministra / MAG portal: the category-name alias is kept for audioclub, VOD and series, and adult categories use the canonical \"for adults\" alias so the PIN is no longer prompted twice.",
-		"IPv6: bare IPv6 addresses are bracketed in generated panel, stream and playlist URLs, and nginx listens on IPv6 on hosts whose kernel has an IPv6 stack.",
-		"Panel robustness: array reads that were logging warnings are guarded, a batch of verified bug fixes carried over from Parches is applied, and the episodes table sort map is aligned to its columns.",
-		"Interface: a note icon appears next to the actions button in Lines, MAG and Enigma rows that carry an admin note; a shared Bosnian / Serbian / Croatian (BA_SRB_CRO) locale is added and the German labels are refined."
+		"Manage Servers: fixed a DataTables console warning (\"Requested unknown parameter 14\") on the cluster-nodes table — a stale column target left over from the servers/cluster unification.",
+		"Manage Servers: the rolling-update progress card no longer stays on screen for good. A run that finished before the page was opened is no longer re-shown on every load; the card appears only while a rolling update is running or being watched to its result."
 	]
 }
