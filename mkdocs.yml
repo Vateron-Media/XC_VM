@@ -108,6 +108,7 @@ plugins:
             Diagnostics Service: Сервис диагностики
             Info & FAQ: Информация и FAQ
             Licensing & Activation: Лицензирование и активация
+            Core Extension (xcvm_core): Ядро (xcvm_core)
             Migration Guide: Руководство по миграции
             Watch Folder: Отслеживаемая папка
             Restreaming YouTube: Рестрим YouTube
@@ -181,6 +182,7 @@ nav:
       - Info & FAQ:
           - FAQ: en/info/faq.md
           - Licensing & Activation: en/info/licensing-and-activation.md
+          - Core Extension (xcvm_core): en/info/core-extension.md
           - Migration Guide: en/info/migration_guide.md
           - Watch Folder: en/info/watch_folder.md
           - Restreaming YouTube: en/info/youtube-restream.md
