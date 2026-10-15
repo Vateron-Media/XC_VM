@@ -48,7 +48,7 @@ if (!isset($rRequest['token'])) {
 	$rTokenData = json_decode((string) Encryption::readToken($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, empty($rSettings['secure_stream_tokens'])), true);
 
 	// A thumbnail link names when it expires: one that does not is another endpoint's.
-	if (is_array($rTokenData) && isset($rTokenData['expires']) && $rTokenData['expires'] >= time() - intval($rServers[SERVER_ID]['time_offset'])) {
+	if (is_array($rTokenData) && isset($rTokenData['expires']) && $rTokenData['expires'] >= time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0)) {
 	} else {
 		generateError('TOKEN_EXPIRED');
 	}

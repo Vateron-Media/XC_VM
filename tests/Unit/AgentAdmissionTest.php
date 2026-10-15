@@ -225,7 +225,7 @@ PHP);
 		$this->assertSame('EXPIRED', ConnectionTracker::refusedAdmission());
 
 		$rRtmp = (string) file_get_contents(MAIN_HOME . 'Public/stream/rtmp.php');
-		$this->assertStringContainsString("ConnectionTracker::rtmpToken(\$rAuth), intval(\$rServers[SERVER_ID]['time_offset']));", $rRtmp, 'recorded with what the check answered');
+		$this->assertStringContainsString("ConnectionTracker::rtmpToken(\$rAuth), intval(\$rServers[SERVER_ID]['time_offset'] ?? 0));", $rRtmp, 'recorded with what the check answered');
 		$this->assertStringContainsString("StreamAuth::admissionRefusal(\$rRefused)[0], \$rIP, 'admission: ' . \$rRefused);", $rRtmp);
 		$this->assertLessThan(strpos($rRtmp, "'LINE_CREATE_FAIL'"), strpos($rRtmp, 'ConnectionTracker::refusedAdmission()'), 'a refusal is told apart before a failed register');
 	}
@@ -385,7 +385,7 @@ PHP);
 			$this->assertSame($rCount, substr_count($rSource, 'StreamAuth::refuseAdmission('), $rFile);
 			$this->assertSame($rCount, substr_count($rSource, 'generateError("LINE_CREATE_FAIL")') + substr_count($rSource, "generateError('LINE_CREATE_FAIL')"), $rFile . ': every failed register is refused first');
 			if ($rFile !== 'live.php') {
-				$this->assertSame($rCount, substr_count($rSource, '$rTokenData, intval($rServers[SERVER_ID][\'time_offset\']));'), $rFile . ': openRecord gets the token and the offset');
+				$this->assertSame($rCount, substr_count($rSource, '$rTokenData, intval($rServers[SERVER_ID][\'time_offset\'] ?? 0));'), $rFile . ': openRecord gets the token and the offset');
 			}
 		}
 	}

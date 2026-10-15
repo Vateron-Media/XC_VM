@@ -546,7 +546,7 @@ class UsersCronJob implements CommandInterface {
 		// ahead or behind by its time_offset, and HLS goes stale in 30 s.
 		$rStartTime = time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0);
 		$rLiveKeys = [];
-		if ($rServers[SERVER_ID]['is_main']) {
+		if (($rServers[SERVER_ID]['is_main'] ?? 0)) {
 			// Nodes whose agent ends its own idle HLS viewers, and the orphan
 			// purge: a silent CONNECTIONS node's rows leave MAIN's store.
 			HlsReaping::begin($rStartTime, ClusterSettings::int('cluster_orphan_conn_ttl_sec', SettingsManager::get('cluster_orphan_conn_ttl_sec')));
@@ -565,7 +565,7 @@ class UsersCronJob implements CommandInterface {
 			HlsReaping::beginLocal($rStartTime);
 		}
 
-		if (!$rRedis || $rServers[SERVER_ID]['is_main']) {
+		if (!$rRedis || ($rServers[SERVER_ID]['is_main'] ?? 0)) {
 			$rAutoKick = SettingsManager::getInt('user_auto_kick_hours') * 3600;
 			$rLiveKeys = $rDelete = $rDeleteStream = $rRetired = [];
 			$rRedisDelete = ['line' => [], 'server' => [], 'server_lines' => [], 'proxy' => [], 'stream' => [], 'uuid' => [], 'count' => 0];
@@ -591,7 +591,7 @@ class UsersCronJob implements CommandInterface {
 				}
 				unset($rConnections);
 			} else {
-				$rUsers = ConnectionTracker::getConnections(($rServers[SERVER_ID]['is_main'] ? null : SERVER_ID));
+				$rUsers = ConnectionTracker::getConnections((($rServers[SERVER_ID]['is_main'] ?? 0) ? null : SERVER_ID));
 			}
 
 			$rRestreamerArray = $rMaxConnectionsArray = $rExpDateArray = [];
@@ -607,7 +607,7 @@ class UsersCronJob implements CommandInterface {
 				}
 			}
 
-			if ($rRedis && $rServers[SERVER_ID]['is_main']) {
+			if ($rRedis && ($rServers[SERVER_ID]['is_main'] ?? 0)) {
 				foreach (ConnectionTracker::getEnded() as $rConnection) {
 					if (is_array($rConnection)) {
 						$rConnection['identity'] = $this->connectionIdentity($rConnection);
@@ -762,7 +762,7 @@ class UsersCronJob implements CommandInterface {
 								$rDeleteStream[$rConnection['stream_id']] = $rDelete[$rConnection['server_id']];
 							}
 						}
-					} elseif ($rServers[SERVER_ID]['is_main'] && $rConnection['container'] == 'hls' && $rConnection['hls_end'] == 1 && HlsReaping::sweptByMain((int) $rConnection['server_id']) && class_exists(ConnectionIngest::class)) {
+					} elseif (($rServers[SERVER_ID]['is_main'] ?? 0) && $rConnection['container'] == 'hls' && $rConnection['hls_end'] == 1 && HlsReaping::sweptByMain((int) $rConnection['server_id']) && class_exists(ConnectionIngest::class)) {
 						// MySQL mode: each server sweeps its own rows, and a node in mode 2
 						// has no database to sweep them in. MAIN closes what such a node's
 						// agent said has ended, as it does for every server in Redis mode:
@@ -774,7 +774,7 @@ class UsersCronJob implements CommandInterface {
 							$rRetired[(int) $rConnection['server_id']][] = ['type' => 'delete_con', 'uuid' => (string) $rConnection['uuid']];
 						}
 						continue;
-					} elseif ($rServers[SERVER_ID]['is_main'] && self::orphaned($rConnection, $rServers, $rStartTime)) {
+					} elseif (($rServers[SERVER_ID]['is_main'] ?? 0) && self::orphaned($rConnection, $rServers, $rStartTime)) {
 						// MySQL mode: each server sweeps its own rows, so a deleted one's,
 						// or a crashed one's, stayed open for good. MAIN closes them, as
 						// ended: nothing is left to kill.
@@ -790,7 +790,7 @@ class UsersCronJob implements CommandInterface {
 					}
 				}
 
-				if ($rServers[SERVER_ID]['is_main'] && 0 < $rMaxConnections && $rMaxConnections < $rActiveCount) {
+				if (($rServers[SERVER_ID]['is_main'] ?? 0) && 0 < $rMaxConnections && $rMaxConnections < $rActiveCount) {
 					foreach ($rConnections as $rConnection) {
 						if (!$rConnection['hls_end']) {
 							echo 'Close connection: ' . $rConnection['uuid'] . "\n";
@@ -852,7 +852,7 @@ class UsersCronJob implements CommandInterface {
 
 		$this->writeDivergence($rRedis);
 
-		if ($rServers[SERVER_ID]['is_main']) {
+		if (($rServers[SERVER_ID]['is_main'] ?? 0)) {
 			if ($rRedis) {
 				$rDeleteQuery = "DELETE FROM `lines_divergence` WHERE `uuid` NOT IN ('" . implode("','", $rLiveKeys) . "');";
 				for ($rRetry = 0; $rRetry < 3; $rRetry++) {
