@@ -605,7 +605,7 @@ class ServerRepository {
 			}
 			// The constant is HOST: `host` is defined nowhere, and the requested host was never kept.
 			$rHost = (defined('HOST') ? HOST : null);
-			if ($rHost && in_array(strtolower($rHost), array_map('strtolower', $rServers[$rServerID]['domains']['urls']))) {
+			if ($rHost && in_array(strtolower($rHost), array_map('strtolower', $rServers[$rServerID]['domains']['urls'] ?? []))) {
 				$rDomain = $rHost;
 			} else {
 				$rDomain = (empty($rServers[$rServerID]['domain_name']) ? $rServers[$rServerID]['server_ip'] : explode(',', $rServers[$rServerID]['domain_name'])[0]);
