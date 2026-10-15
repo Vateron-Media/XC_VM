@@ -43,21 +43,41 @@ class FFprobeRunner {
 			$rOutput['bitrate'] = (!empty($rCodecs['format']['bit_rate']) ? $rCodecs['format']['bit_rate'] : null);
 			$rOutput['of_duration'] = (!empty($rCodecs['format']['duration']) ? $rCodecs['format']['duration'] : 'N/A');
 			$rOutput['duration'] = (!empty($rCodecs['format']['duration']) ? gmdate('H:i:s', intval($rCodecs['format']['duration'])) : 'N/A');
+			// A master/adaptive playlist (HLS) exposes every rendition as its own
+			// video stream. Keep the TOP rendition (highest picture) so the stored
+			// resolution reflects what a player actually gets, not the first — often
+			// the lowest — variant. Audio keeps the first stream; subtitles accumulate.
+			$rVideoStreams = 0;
+			$rBestHeight = -1;
 			foreach ($rCodecs['streams'] as $rCodec) {
-				if (isset($rCodec['codec_type']) && in_array($rCodec['codec_type'], ['audio', 'video', 'subtitle'])) {
-					if ($rCodec['codec_type'] == 'audio' || $rCodec['codec_type'] == 'video') {
-						if (empty($rOutput['codecs'][$rCodec['codec_type']])) {
-							$rOutput['codecs'][$rCodec['codec_type']] = $rCodec;
-						}
-					} else {
-						if ($rCodec['codec_type'] == 'subtitle') {
-							if (!isset($rOutput['codecs'][$rCodec['codec_type']])) {
-								$rOutput['codecs'][$rCodec['codec_type']] = [];
-							}
-							$rOutput['codecs'][$rCodec['codec_type']][] = $rCodec;
-						}
-					}
+				if (!isset($rCodec['codec_type'])) {
+					continue;
 				}
+				if ($rCodec['codec_type'] == 'video') {
+					$rVideoStreams++;
+					$rHeight = intval($rCodec['height'] ?? 0);
+					if ($rHeight > $rBestHeight) {
+						$rBestHeight = $rHeight;
+						$rOutput['codecs']['video'] = $rCodec;
+					}
+				} elseif ($rCodec['codec_type'] == 'audio') {
+					if (empty($rOutput['codecs']['audio'])) {
+						$rOutput['codecs']['audio'] = $rCodec;
+					}
+				} elseif ($rCodec['codec_type'] == 'subtitle') {
+					if (!isset($rOutput['codecs']['subtitle'])) {
+						$rOutput['codecs']['subtitle'] = [];
+					}
+					$rOutput['codecs']['subtitle'][] = $rCodec;
+				}
+			}
+			// More than one video rendition means format.bit_rate is the SUM of all
+			// of them, not the rate any single viewer pulls. Leaving it in makes the
+			// per-viewer divergence check (DivergenceSink) flag healthy viewers, so
+			// drop it: an unknown bitrate disables that check (expected() == 0).
+			if ($rVideoStreams > 1) {
+				$rOutput['adaptive'] = true;
+				$rOutput['bitrate'] = null;
 			}
 			return $rOutput;
 		}
