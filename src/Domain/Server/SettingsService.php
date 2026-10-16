@@ -266,11 +266,9 @@ class SettingsService {
 			}
 		}
 
-		foreach (DashboardAlerts::COUNTS as $rKey => $rBounds) {
-			if (array_key_exists($rKey, $rArray)) {
-				$rArray[$rKey] = DashboardAlerts::count($rKey, $rArray[$rKey]);
-			}
-		}
+		// Alert preferences are a delta from the rendered form, not a full-form
+		// snapshot that can undo another administrator's more recent choices.
+		$rArray = array_merge(array_diff_key($rArray, DashboardAlerts::values([])), DashboardAlerts::submitted($rData));
 
 		// Maintenance mode's end: the form sends a local date and time, the column
 		// holds a Unix time (0: no end).

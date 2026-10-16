@@ -464,6 +464,7 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 							</div>
 
 							<?php $xmAlertOptions = DashboardAlerts::options($rSettings); ?>
+							<input type="hidden" name="dashboard_alerts_original" value="<?= htmlspecialchars(json_encode(DashboardAlerts::values($rSettings)), ENT_QUOTES); ?>">
 							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="dashboard_alerts"><?= $language::get('dashboard_latest_alerts') ?></label>
 								<div class="col-md-2">
