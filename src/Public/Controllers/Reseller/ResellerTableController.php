@@ -180,9 +180,7 @@ class ResellerTableController extends BaseResellerController {
 		$rWhere[] = ActiveCodeService::LISTED_LINES;
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
 		if ((string) RequestManager::get('search')['value'] !== '') {
-			foreach (range(1, 6) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-			}
+			array_push($rWhereV, ...array_fill(0, 6, '%' . RequestManager::get('search')['value'] . '%'));
 			$rWhere[] = '(`lines`.`username` LIKE ? OR `lines`.`password` LIKE ? OR `users`.`username` LIKE ? OR FROM_UNIXTIME(`exp_date`) LIKE ? OR `lines`.`max_connections` LIKE ? OR `lines`.`reseller_notes` LIKE ?)';
 		}
 		if ((string) RequestManager::get('filter') !== '') {
@@ -300,7 +298,7 @@ class ResellerTableController extends BaseResellerController {
 				foreach ($rRows as $rRow) {
 					$rRow = array_merge($rRow, $rLineInfo[$rRow['id']]);
 					if ($rRedis) {
-						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
+						$rRow['active_connections'] = ($rConnectionCount[$rRow['id']] ?? 0);
 					}
 					if (!$rIsAPI) {
 						// Clean, keyed row payload (Bootstrap 5 view renders every
@@ -386,9 +384,7 @@ class ResellerTableController extends BaseResellerController {
 		$rWhere = $rWhereV = [];
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
 		if ((string) RequestManager::get('search')['value'] !== '') {
-			foreach (range(1, 6) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-			}
+			array_push($rWhereV, ...array_fill(0, 6, '%' . RequestManager::get('search')['value'] . '%'));
 			$rWhere[] = '(`lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `mag_devices`.`stb_type` LIKE ? OR `users`.`username` LIKE ? OR FROM_UNIXTIME(`exp_date`) LIKE ? OR `lines`.`reseller_notes` LIKE ?)';
 		}
 		if ((string) RequestManager::get('filter') !== '') {
@@ -453,7 +449,7 @@ class ResellerTableController extends BaseResellerController {
 				$rOnlineInfo = \XcVm\Domain\Stream\OnlineConnectionInfo::forUsers($db, $rLineIDs, (bool) $rRedis);
 				foreach ($rRows as $rRow) {
 					if ($rRedis) {
-						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
+						$rRow['active_connections'] = ($rConnectionCount[$rRow['id']] ?? 0);
 					}
 					if (!$rIsAPI) {
 						// Clean, keyed row payload; the Bootstrap 5 reseller mags view renders
@@ -519,9 +515,7 @@ class ResellerTableController extends BaseResellerController {
 		$rWhere = $rWhereV = [];
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
 		if ((string) RequestManager::get('search')['value'] !== '') {
-			foreach (range(1, 6) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-			}
+			array_push($rWhereV, ...array_fill(0, 6, '%' . RequestManager::get('search')['value'] . '%'));
 			$rWhere[] = '(`lines`.`username` LIKE ? OR `enigma2_devices`.`mac` LIKE ? OR `enigma2_devices`.`public_ip` LIKE ? OR `users`.`username` LIKE ? OR FROM_UNIXTIME(`exp_date`) LIKE ? OR `lines`.`reseller_notes` LIKE ?)';
 		}
 		if ((string) RequestManager::get('filter') !== '') {
@@ -585,7 +579,7 @@ class ResellerTableController extends BaseResellerController {
 				}
 				foreach ($rRows as $rRow) {
 					if ($rRedis) {
-						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
+						$rRow['active_connections'] = ($rConnectionCount[$rRow['id']] ?? 0);
 					}
 					if (!$rIsAPI) {
 						// Clean, keyed row payload; the Bootstrap 5 reseller enigmas view renders
@@ -655,9 +649,7 @@ class ResellerTableController extends BaseResellerController {
 				$rWhere[] = '`type` = 1';
 			}
 			if ((string) RequestManager::get('search')['value'] !== '') {
-				foreach (range(1, 2) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-				}
+				array_push($rWhereV, ...array_fill(0, 2, '%' . RequestManager::get('search')['value'] . '%'));
 				$rWhere[] = '(`id` LIKE ? OR `stream_display_name` LIKE ?)';
 			}
 			if ((string) RequestManager::get('category') !== '') {
@@ -695,14 +687,14 @@ class ResellerTableController extends BaseResellerController {
 						if (0 < count($rReports)) {
 							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rConnections) {
 								foreach ($rConnections as $rConnection) {
-									$rConnectionCount[$rConnection['stream_id']]++;
+									$rConnectionCount[$rConnection['stream_id']] = ($rConnectionCount[$rConnection['stream_id']] ?? 0) + 1;
 								}
 							}
 						}
 					}
 					foreach ($rRows as $rRow) {
 						if ($rRedis) {
-							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
+							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?? 0);
 						}
 						if (!$rIsAPI) {
 							// Clean, keyed row payload. The Bootstrap 5 reseller streams
@@ -771,9 +763,7 @@ class ResellerTableController extends BaseResellerController {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
 			$rWhere[] = '`type` = 4';
 			if ((string) RequestManager::get('search')['value'] !== '') {
-				foreach (range(1, 2) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-				}
+				array_push($rWhereV, ...array_fill(0, 2, '%' . RequestManager::get('search')['value'] . '%'));
 				$rWhere[] = '(`id` LIKE ? OR `stream_display_name` LIKE ?)';
 			}
 			if ((string) RequestManager::get('category') !== '') {
@@ -811,14 +801,14 @@ class ResellerTableController extends BaseResellerController {
 						if (0 < count($rReports)) {
 							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rConnections) {
 								foreach ($rConnections as $rConnection) {
-									$rConnectionCount[$rConnection['stream_id']]++;
+									$rConnectionCount[$rConnection['stream_id']] = ($rConnectionCount[$rConnection['stream_id']] ?? 0) + 1;
 								}
 							}
 						}
 					}
 					foreach ($rRows as $rRow) {
 						if ($rRedis) {
-							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
+							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?? 0);
 						}
 						if (!$rIsAPI) {
 							// Clean, keyed row payload. The Bootstrap 5 reseller radios
@@ -885,9 +875,7 @@ class ResellerTableController extends BaseResellerController {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
 			$rWhere[] = '`type` = 2';
 			if ((string) RequestManager::get('search')['value'] !== '') {
-				foreach (range(1, 2) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-				}
+				array_push($rWhereV, ...array_fill(0, 2, '%' . RequestManager::get('search')['value'] . '%'));
 				$rWhere[] = '(`id` LIKE ? OR `stream_display_name` LIKE ?)';
 			}
 			if ((string) RequestManager::get('category') !== '') {
@@ -925,14 +913,14 @@ class ResellerTableController extends BaseResellerController {
 						if (0 < count($rReports)) {
 							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rConnections) {
 								foreach ($rConnections as $rConnection) {
-									$rConnectionCount[$rConnection['stream_id']]++;
+									$rConnectionCount[$rConnection['stream_id']] = ($rConnectionCount[$rConnection['stream_id']] ?? 0) + 1;
 								}
 							}
 						}
 					}
 					foreach ($rRows as $rRow) {
 						if ($rRedis) {
-							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
+							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?? 0);
 						}
 						if (!$rIsAPI) {
 							// Clean, keyed row payload. The Bootstrap 5 reseller movies
@@ -1003,9 +991,7 @@ class ResellerTableController extends BaseResellerController {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
 			$rWhere[] = '`type` = 5';
 			if ((string) RequestManager::get('search')['value'] !== '') {
-				foreach (range(1, 3) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-				}
+				array_push($rWhereV, ...array_fill(0, 3, '%' . RequestManager::get('search')['value'] . '%'));
 				$rWhere[] = '(`streams`.`id` LIKE ? OR `stream_display_name` LIKE ? OR `streams_series`.`title` LIKE ?)';
 			}
 			if ((string) RequestManager::get('category') !== '') {
@@ -1049,14 +1035,14 @@ class ResellerTableController extends BaseResellerController {
 						if (0 < count($rReports)) {
 							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rConnections) {
 								foreach ($rConnections as $rConnection) {
-									$rConnectionCount[$rConnection['stream_id']]++;
+									$rConnectionCount[$rConnection['stream_id']] = ($rConnectionCount[$rConnection['stream_id']] ?? 0) + 1;
 								}
 							}
 						}
 					}
 					foreach ($rRows as $rRow) {
 						if ($rRedis) {
-							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
+							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?? 0);
 						}
 						if (!$rIsAPI) {
 							// Clean, keyed row payload. The Bootstrap 5 reseller episodes
@@ -1125,9 +1111,7 @@ class ResellerTableController extends BaseResellerController {
 		$rWhere = $rWhereV = [];
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
 		if ((string) RequestManager::get('search')['value'] !== '') {
-			foreach (range(1, 10) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-			}
+			array_push($rWhereV, ...array_fill(0, 10, '%' . RequestManager::get('search')['value'] . '%'));
 			// A user agent is stored entity-encoded and the player column shows
 			// it decoded: the name as shown is matched as well.
 			$rWhereV[] = '%' . htmlentities((string) RequestManager::get('search')['value']) . '%';
@@ -1292,7 +1276,8 @@ class ResellerTableController extends BaseResellerController {
 			// control column (index 0, `false`) or by a column past the end of
 			// the map, and array_multisort on an undefined key is a TypeError.
 			if (!empty($rOrder[$rOrderRow])) {
-				array_multisort(array_column($rRows, $rOrder[$rOrderRow]), ($rOrderDirection ? SORT_ASC : SORT_DESC), $rRows);
+				$rSortBy = array_column($rRows, $rOrder[$rOrderRow]);
+				array_multisort($rSortBy, ($rOrderDirection ? SORT_ASC : SORT_DESC), $rRows);
 			}
 			$rRows = array_slice($rRows, $rStart, $rLimit);
 			$rUUIDs = $rStreamIDs = $rUserIDs = [];
@@ -1360,9 +1345,7 @@ class ResellerTableController extends BaseResellerController {
 			$rWhere[] = '`hls_end` = 0';
 			$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
 			if ((string) RequestManager::get('search')['value'] !== '') {
-				foreach (range(1, 9) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-				}
+				array_push($rWhereV, ...array_fill(0, 9, '%' . RequestManager::get('search')['value'] . '%'));
 				// A user agent is stored entity-encoded and the player column shows
 				// it decoded: the name as shown is matched as well.
 				$rWhereV[] = '%' . htmlentities((string) RequestManager::get('search')['value']) . '%';
@@ -1468,9 +1451,7 @@ class ResellerTableController extends BaseResellerController {
 		$rWhere = $rWhereV = [];
 		$rWhere[] = '`users_logs`.`owner` IN (' . implode(',', $rUserInfo['reports']) . ')';
 		if ((string) RequestManager::get('search')['value'] !== '') {
-			foreach (range(1, 3) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-			}
+			array_push($rWhereV, ...array_fill(0, 3, '%' . RequestManager::get('search')['value'] . '%'));
 			$rWhere[] = '(`users`.`username` LIKE ? OR `users_logs`.`type` LIKE ? OR `users_logs`.`action` LIKE ?)';
 		}
 		if ((string) RequestManager::get('range') !== '') {
@@ -1610,9 +1591,7 @@ class ResellerTableController extends BaseResellerController {
 		$rWhere = $rWhereV = [];
 		$rWhere[] = '`users`.`owner_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
 		if ((string) RequestManager::get('search')['value'] !== '') {
-			foreach (range(1, 9) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
-			}
+			array_push($rWhereV, ...array_fill(0, 9, '%' . RequestManager::get('search')['value'] . '%'));
 			$rWhere[] = '(`users`.`id` LIKE ? OR `users`.`username` LIKE ? OR `users`.`notes` LIKE ? OR `r`.`username` LIKE ? OR FROM_UNIXTIME(`users`.`date_registered`) LIKE ? OR FROM_UNIXTIME(`users`.`last_login`) LIKE ? OR `users`.`email` LIKE ? OR `users`.`ip` LIKE ? OR `users_groups`.`group_name` LIKE ?)';
 		}
 		if ((string) RequestManager::get('filter') !== '') {
