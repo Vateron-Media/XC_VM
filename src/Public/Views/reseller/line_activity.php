@@ -3,7 +3,7 @@
 /**
  * Reseller Activity logs (Bootstrap 5). Full-parity port of admin/line_activity.php
  * adapted to the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleLineActivity emits data-only rows) with the
+ * (ResellerTableController::handleLineActivity emits data-only rows) with the
  * user/stream links, country flag, duration badge and IP whois rendered
  * client-side. Read-only log — no per-row actions beyond the IP whois lookup.
  *

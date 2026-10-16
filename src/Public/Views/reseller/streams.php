@@ -5,7 +5,7 @@ use XcVm\Core\Util\LayoutRenderer;
 /**
  * Reseller Streams (Bootstrap 5). Full-parity port of admin/streams.php adapted to
  * the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleStreams emits data-only rows), with the icon,
+ * (ResellerTableController::handleStreams emits data-only rows), with the icon,
  * title (+ archive marker), category, connections badge and per-row action
  * dropdown all rendered client-side.
  *

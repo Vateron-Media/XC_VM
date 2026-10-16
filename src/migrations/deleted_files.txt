@@ -16,6 +16,7 @@ Infrastructure/Bootstrap/player_session.php
 Infrastructure/Bootstrap/reseller_functions.php
 Infrastructure/Bootstrap/reseller_session.php
 Infrastructure/ResellerApiDispatcher.php
+Infrastructure/ResellerTableRenderer.php
 Modules/ministra_85a7d/MinistraModule.php
 Modules/ministra_85a7d/PortalHandler.php
 Modules/ministra_85a7d/PortalHelpers.php

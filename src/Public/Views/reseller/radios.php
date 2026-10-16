@@ -5,7 +5,7 @@ use XcVm\Core\Util\LayoutRenderer;
 /**
  * Reseller Radio stations (Bootstrap 5). Full-parity port of admin/radios.php adapted
  * to the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleRadios emits data-only rows), with the icon, title,
+ * (ResellerTableController::handleRadios emits data-only rows), with the icon, title,
  * category, connections badge and per-row action dropdown all rendered client-side.
  *
  * Reseller differences vs admin (the reseller API/renderer simply does not expose

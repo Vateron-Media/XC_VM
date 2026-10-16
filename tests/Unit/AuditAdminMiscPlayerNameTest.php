@@ -60,7 +60,7 @@ if ($rIn['panel'] === 'admin') {
 	$rHandler->setAccessible(true);
 	$rHandler->invoke(new \XcVm\Public\Controllers\Admin\TableController(), $rReturn, 0, 1000, $rIn['api']);
 } else {
-	$rHandler = new ReflectionMethod(\XcVm\Infrastructure\ResellerTableRenderer::class, $rIn['handler']);
+	$rHandler = new ReflectionMethod(\XcVm\Public\Controllers\Reseller\ResellerTableController::class, $rIn['handler']);
 	$rHandler->setAccessible(true);
 	$rArguments = [&$rReturn, false, ['id' => 5, 'reports' => [5]], ['reseller_client_connection_logs' => 1, 'can_view_vod' => 0], 0, 1000];
 	$rHandler->invokeArgs(null, $rArguments);

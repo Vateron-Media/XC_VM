@@ -6,7 +6,7 @@ use XcVm\Core\Util\LayoutRenderer;
  * Reseller Created Channels (Bootstrap 5). Full-parity port of
  * admin/created_channels.php adapted to the reseller contract. Like the admin
  * page, this is the reseller streams serverSide table filtered to created
- * channels (d.id='streams' + d.created=true -> ResellerTableRenderer::handleStreams
+ * channels (d.id='streams' + d.created=true -> ResellerTableController::handleStreams
  * selects `type` = 3), which already emits clean-JSON keyed rows; the icon, title
  * (+ archive marker), category, connections badge and per-row action dropdown are
  * all rendered client-side.

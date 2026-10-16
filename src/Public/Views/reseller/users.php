@@ -3,7 +3,7 @@
 /**
  * Reseller Users (Bootstrap 5). Full-parity port of admin/users.php adapted to the
  * reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleRegUsers emits data-only rows), with the status
+ * (ResellerTableController::handleRegUsers emits data-only rows), with the status
  * icon, credit / line-count badges, IP whois link and the per-row action dropdown
  * all rendered client-side.
  *

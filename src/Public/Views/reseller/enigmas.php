@@ -3,7 +3,7 @@
 /**
  * Reseller Enigma2 devices (Bootstrap 5). Full-parity port of admin/enigmas.php
  * adapted to the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleEnigmas emits data-only rows), with the status
+ * (ResellerTableController::handleEnigmas emits data-only rows), with the status
  * icon, online/trial dots, expiration cell, IP whois link and the per-row action
  * dropdown all rendered client-side.
  *
@@ -38,7 +38,7 @@ $rCanKill = !empty($rPermissions['reseller_client_connection_logs']);
 $rSelectedOwner = RequestManager::has('owner') ? (string) RequestManager::get('owner') : '';
 $rSelectedFilter = RequestManager::has('filter') ? (int) RequestManager::get('filter') : (RequestManager::has('trial') && RequestManager::get('trial') == 1 ? 4 : 0);
 
-// Reseller Enigma2 status filter values handled by ResellerTableRenderer::handleEnigmas.
+// Reseller Enigma2 status filter values handled by ResellerTableController::handleEnigmas.
 $rStatusFilters = [1 => $language::get('active'), 2 => $language::get('disabled'), 3 => $language::get('expired'), 4 => $language::get('trial')];
 
 $rDirectReports = (array) ($rPermissions['direct_reports'] ?? []);

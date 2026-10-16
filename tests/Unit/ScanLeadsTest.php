@@ -233,7 +233,7 @@ PHP;
 		$this->assertStringNotContainsString('curl_init', $rWrapper);
 
 		// A connection the filter leaves out is not listed (Redis).
-		foreach (['Public/Controllers/Admin/TableController.php', 'Infrastructure/ResellerTableRenderer.php'] as $rFile) {
+		foreach (['Public/Controllers/Admin/TableController.php', 'Public/Controllers/Reseller/ResellerTableController.php'] as $rFile) {
 			$this->assertMatchesRegularExpression('/\$rKeyCount--;\s+continue;/', $rSource($rFile), $rFile);
 		}
 

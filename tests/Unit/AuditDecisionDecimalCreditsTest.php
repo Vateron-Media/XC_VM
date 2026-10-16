@@ -108,7 +108,7 @@ final class AuditDecisionDecimalCreditsTest extends TestCase {
 		$this->assertStringContainsString('"credits"         => ResellerAPI::amount($rRow["credits"]),', $rTable);
 		$this->assertStringContainsString('$rRows = array_map([UserCredits::class, \'amounts\'], $db->get_rows());', $rTable);
 
-		$this->assertStringContainsString("'credits' => ResellerAPI::amount(\$rRow['credits']),", $rRead('Infrastructure/ResellerTableRenderer.php'));
+		$this->assertStringContainsString("'credits' => ResellerAPI::amount(\$rRow['credits']),", $rRead('Public/Controllers/Reseller/ResellerTableController.php'));
 
 		$rStats = $rRead('Public/Controllers/Reseller/Ajax/StatsAjaxController.php');
 		$this->assertStringContainsString("\$rReturn['credits'] = ResellerAPI::amount(\$db->get_row()['credits']);", $rStats);

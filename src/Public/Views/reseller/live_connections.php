@@ -3,7 +3,7 @@
 /**
  * Reseller Live connections (Bootstrap 5). Full-parity port of admin/live_connections.php
  * adapted to the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleLiveConnections emits data-only rows) with the
+ * (ResellerTableController::handleLiveConnections emits data-only rows) with the
  * divergence square, live-duration badge, country flag, IP whois and the kill
  * button rendered client-side. Periodically reloads for a live view.
  *

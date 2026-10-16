@@ -5,7 +5,7 @@ use XcVm\Core\Util\LayoutRenderer;
 /**
  * Reseller Movies / VOD (Bootstrap 5). Full-parity port of admin/movies.php adapted
  * to the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleMovies emits data-only rows), with the cover,
+ * (ResellerTableController::handleMovies emits data-only rows), with the cover,
  * title, category, connections badge and per-row action dropdown all rendered
  * client-side.
  *

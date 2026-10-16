@@ -5,7 +5,7 @@ use XcVm\Core\Util\LayoutRenderer;
 /**
  * Reseller Episodes (Bootstrap 5). Full-parity port of admin/episodes.php adapted
  * to the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleEpisodes emits data-only rows), with the image,
+ * (ResellerTableController::handleEpisodes emits data-only rows), with the image,
  * name (+ series/season subtitle), category, connections badge and per-row action
  * dropdown all rendered client-side.
  *
