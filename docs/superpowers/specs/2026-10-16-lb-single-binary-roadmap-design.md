@@ -1,96 +1,95 @@
 # LB as a single Go binary — roadmap (no nginx, no php-fpm)
 
 **Goal.** A load-balancer node runs exactly one process — the Go `xc_node`
-binary — with **no nginx and no php-fpm** installed. It binds the public
-ports, terminates TLS, answers every request a viewer or the cluster sends an
-LB, runs the stream lifecycle, the agent, the remux, and the LB's crons. MAIN
-stays the PHP panel; this is about the LB only (the long-standing "LB as one
-binary" line).
+binary — with **no nginx and no php-fpm** installed. It binds the public ports,
+terminates TLS, answers every request a viewer or the cluster sends an LB, runs
+the stream lifecycle, the agent, the remux, and the LB's crons. MAIN stays the
+PHP panel; this is about the LB only.
 
-**Non-negotiable:** the transition keeps strict parity with the PHP/nginx
-behaviour and rolls out shadow-first (judge-and-compare before serve), exactly
-as the segment gateway already does. A wrong answer in auth is an access-control
-failure, so correctness gates everything.
+## Decision (2026-10-16): the LB is SERVE-ONLY
+
+The LB **does not authenticate viewers.** MAIN (or whichever panel node owns the
+line) runs `auth.php`, applies the full block chain (expired/banned/disabled,
+geo/IP/ASN/ISP/UA, device limits, bouquets, line limits), and **mints a token
+for the chosen LB using that LB's per-node viewer key** (the per-node-viewer-keys
+design), then redirects the viewer to `lb-domain/auth|vauth|hls|…/<token>`. The
+LB only **verifies the token with its own key and serves** — which the gateway
+already does.
+
+**This eliminates the `auth.php` keystone** (the whole viewer-authorization
+system) from the LB. It was the single largest, most security-sensitive port;
+serve-only removes it instead of reimplementing it at the edge.
+
+**Security rationale (not weaker — stronger):**
+- A stolen **stream ID** is useless: the LB serves only a token sealed with its
+  secret key; it cannot be forged, so a bare ID / hand-built path is rejected.
+- Stolen **credentials** still have to clear MAIN's full auth to obtain a token;
+  the LB has no credential path to bypass. Same exposure credential theft always
+  has — not widened.
+- A leaked **minted token** replays only until its short expiry, IP-bound under
+  `restrict_same_ip` — identical to today's serve behaviour.
+- Auth is enforced in exactly one place (MAIN); there is no edge auth surface to
+  bypass and no risk of a reimplemented block-chain drifting out of sync.
+
+Operational change: a client pointed **directly at an LB domain for auth** no
+longer authenticates there; it must reach the stream through MAIN (which already
+mints per-LB). The stream still plays from the LB.
 
 ## Where we are
 
-- **Phase 1 — one binary.** `xc_node` merges fanout + agent + remux, dispatching
-  by argv0/subcommand. Merged both repos; dormant until a Fanout release ships it.
-- **Phase 2 — Go serves the streaming request path (the worker-holding
-  endpoints).** Done and in review (XC_VM_Fanout #81, XC_VM #431): segment, key,
-  live (+ HLS first request), thumb, subtitle, VOD, timeshift (archive + m3u8).
-  Each is a `Judge*` that serves the proven happy path and defers the rest to PHP;
-  rolled out via the `gateway_mode` ladder, shadow-first.
+- **Phase 1 — one binary.** `xc_node` merges fanout + agent + remux. Merged in
+  both repos; dormant until a Fanout release ships it.
+- **Phase 2 — Go serves the viewer-facing streaming path.** Done, in review
+  (XC_VM_Fanout #81, XC_VM #431): segment, key, live (+ HLS first request),
+  thumb, subtitle, VOD, timeshift (archive + m3u8). Shadow-first via the
+  `gateway_mode` ladder. **With serve-only, this is the LB's entire
+  viewer-facing surface.**
 
-## What still stands between us and "no php-fpm, no nginx" on the LB
+## What remains for a serve-only single-binary LB
 
-### A. The rest of the request path, in Go (to reach defer-0)
-
-Everything an LB's php-fpm still answers must move into the Go binary:
-
-1. **`StreamAuth` minting (`auth.php`, ~860 lines) — THE KEYSTONE.** `/stream/auth`
-   is the entry point every `/movie`, `/live`, `/series`, bare `/user/pass/stream`
-   funnels through. It is the whole viewer-authorization system: credential/token
-   validation, line status (expired / banned / disabled), geo / IP / ASN / ISP /
-   User-Agent allow- and block-lists, hosting & proxy detection, device limits,
-   bouquet access, server selection / redirect target, and finally minting the
-   per-request token the serve endpoints (already in Go) consume. Nothing streams
-   without it, and it is the single largest and most security-critical port in the
-   whole initiative. It also needs the LB to read, in Go, the data it decides on:
-   the user/line records (agent/replica), GeoLite2 + ASN (the MaxMind DBs), the
-   bouquet and block-rule settings. **This is its own sub-project with its own
-   design (next).**
-2. **`probe`, `rtmp`, `xfile`, `status`/`progress`, cluster `ctl`/`ingest`.** Smaller
-   but each real: `xfile` is cluster file-ticket crypto; `rtmp` is the nginx-rtmp
-   auth-notify (ties to replacing nginx-rtmp, below); the cluster lanes are partly
-   in Go already (the agent).
+### A. The non-viewer, cluster/edge endpoints (Go)
+Not viewer auth, so small, but needed on the LB:
+- **`/xfile`** — another server's agent reads a file this LB owns, via a
+  file-ticket (`FileTicketServer`: ticket + node-key proof + per-chunk signed
+  digest). Cluster crypto; port with the agent's existing cluster crypto.
+- **`/status`, `/progress`** — the node's health/progress reads (fast).
+- **`probe`** — stream probing (ffprobe-backed), MAIN-triggered.
+- **`rtmp`** — the nginx-rtmp auth-notify, which belongs with replacing
+  **nginx-rtmp** (a separate sub-system: the RTMP *server* the LB runs for
+  ingest/restream). This is where RTMP auth lands.
+- The cluster `ctl`/`ingest` lanes are already the Go agent.
 
 ### B. nginx's jobs, absorbed by the Go binary (to delete nginx)
-
+Smaller now, because a serve-only LB needs only the minted-token routes:
 - TLS termination + ACME (`/.well-known/acme-challenge/`), multi-port listen.
-- HTTP/1.1 + HTTP/2 (today) and HTTP/3 (the Alt-Svc headers already advertise it).
-- The ~30 server-level rewrites (`/play`, `/movie`, `/hls`, `/vauth`, …).
-- The `limit_req` rate-limit zones; trusted-proxy real-IP (Cloudflare/CDN ranges).
-- Static (`/images`, `/portal/assets`), gzip.
-- `X-Accel-Redirect` interpretation — already in-process for the fanout hand-offs.
-- **nginx-rtmp** (the RTMP *server*, not just the auth notify) is a separate
-  sub-system; replacing it is its own effort, and that is where RTMP auth lands.
+- HTTP/1.1 + HTTP/2 (today), HTTP/3 (Alt-Svc already advertises it) later.
+- The **serve** rewrites only (`/hls`, `/auth`, `/vauth`, `/subauth`, `/tsauth`,
+  `/thauth`, `/key` → `/stream/*`). The `/user/pass/stream` → `/stream/auth`
+  rewrites are **not needed on a serve-only LB.**
+- `limit_req` rate zones; trusted-proxy real-IP; static (`/images`,
+  `/portal/assets`); gzip; `X-Accel-Redirect` (already in-process for fanout).
 
-### C. Lifecycle & crons in Go (what php-fpm/cron did)
+### C. Lifecycle & crons in Go
+Stream start/stop/monitor, the reaper, the LB's maintenance loops — Phases 4–5.
 
-Stream start/stop/monitor, the reaper, EPG/maintenance loops, etc. — Phases 4–5.
+## Strategy
 
-## Strategy — port to defer-0, then flip (no permanent bridge)
-
-The LB's surface is narrow, so we finish it in Go and flip, rather than keep a
-long-lived Go→php-fpm FastCGI bridge:
-
-1. **Finish the request path in Go, shadow-first.** Keystone `StreamAuth` minting
-   first, then probe / xfile / status / cluster. Defer-rate → 0 on the LB.
-2. **The Go binary becomes the listener.** It binds the ports, terminates TLS +
-   ACME, does the rewrites / rate-limit / real-IP / static, routes everything
-   in-process. nginx removed.
-3. **Lifecycle + crons in Go** (Phases 4–5) — the last of php-fpm's work.
+1. **Request path in Go — essentially done** (serve path). Add the small
+   non-auth endpoints (xfile/status/probe) as needed; rtmp follows nginx-rtmp.
+2. **The Go binary becomes the listener** — binds ports, terminates TLS + ACME,
+   the (small) serve rewrites, rate-limit, real-IP, static, in-process routing.
+   nginx removed.
+3. **Lifecycle + crons in Go** (Phases 4–5).
 4. **`LbInstallFlow` stops provisioning nginx and php-fpm.** One binary.
 
-A Go→php-fpm FastCGI client is kept available only as transition insurance (to
-flip nginx before step 1 is fully complete if ever needed); it is not the
-destination.
-
 ## Risks / open questions
-
-- **Auth parity is the whole game.** The block/allow chain, GeoIP/ASN, bouquets
-  and line status must match PHP exactly; shadow comparison must cover auth
-  verdicts (serve-target + error) before any LB serves auth from Go.
-- **Data access on the LB.** Go needs the user/line/geo/bouquet data an API-mode
-  LB has only via the agent/replica (no MySQL). Mapping that is part of the auth
-  design.
 - **TLS/ACME lifecycle** must match however certs are issued/renewed today.
-- **HTTP/3** needs a QUIC implementation (quic-go) — deferred until the rest is stable.
+- **HTTP/3** needs a QUIC implementation (quic-go) — deferred.
+- **`/xfile` cluster crypto** (`FileTicketServer`) must be reproduced faithfully
+  in Go (it's security-sensitive, but cluster-internal and low-volume).
+- **nginx-rtmp replacement** is its own sub-system and effort.
 
 ## Next
-
-The gating sub-project is the **`StreamAuth` minting design**: map `auth.php` /
-`StreamAuth` end to end — every check, every data source, the mint, the redirect
-— and decide the Go port boundary (what it owns vs. defers first) and how the LB
-reads the data in Go. No auth code before that design.
+With auth off the table, the gating piece is now **replacing nginx** (Phase 3,
+section B): start with the TLS front + the small serve-only routing/rewrites.
+The `/xfile`, `status`, `probe` ports and nginx-rtmp are parallel tracks.
