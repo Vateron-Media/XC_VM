@@ -155,7 +155,8 @@ class DashboardController extends BaseAdminController {
 				$rOfflineAfter = ClusterSettings::int('cluster_offline_after_sec', SettingsManager::get('cluster_offline_after_sec'));
 				// A deleted server leaves its node revoked (NodeRegistry::serverDeleted), so a
 				// leftover agent is still refused; nothing routes to it, so it is no failure.
-				$rNodes = array_values(array_filter(ClusterAdmin::nodes($servers, $rOfflineAfter), static fn(array $rNode): bool => isset($servers[(int) $rNode['server_id']])));
+				// One whose revocation failed stays: its agent is still trusted.
+				$rNodes = array_values(array_filter(ClusterAdmin::nodes($servers, $rOfflineAfter), static fn(array $rNode): bool => $rNode['state'] !== 'revoked' || isset($servers[(int) $rNode['server_id']])));
 				$rPending = ClusterAdmin::pending($servers);
 			} catch (\Throwable) {
 				// The cluster tables are MAIN's and created by cluster:init: a
