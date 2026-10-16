@@ -32,7 +32,7 @@ use XcVm\Streaming\Fanout\FanoutMode;
  *  "keys": {"viewer": [{"hex": "…", "until": null}], "shared": […], "context": […], "accept_legacy_cbc": false},
  *  "restrict_same_ip": true, "ip_subnet_match": false, "encrypt_hls": true,
  *  "headers": {"server": "", "protection": true, "altsvc_port": 0, "unique_header": false},
- *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
+ *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "vod": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
  *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0, "unique_header": false,
  *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10, "create_expiration": 5, "admission": true},
  *  "verify_host": false, "allowed_domains": [],
@@ -69,9 +69,10 @@ final class GatewayPolicy {
 	 * `gateway_mode`: off; shadow (PHP serves, the gateway judges a mirrored copy
 	 * of each segment, key, playlist and thumbnail request); segments (the gateway
 	 * serves segments and keys); segments+playlist (and a known viewer's playlist
-	 * refresh); segments+playlist+thumb (and stream thumbnails).
+	 * refresh); segments+playlist+thumb (and stream thumbnails);
+	 * segments+playlist+thumb+subtitle (and VOD subtitles).
 	 */
-	public const MODES = ['off', 'shadow', 'segments', 'segments+playlist', 'segments+playlist+thumb'];
+	public const MODES = ['off', 'shadow', 'segments', 'segments+playlist', 'segments+playlist+thumb', 'segments+playlist+thumb+subtitle'];
 
 	/** Tests: another file; null restores TMP_PATH's. */
 	private static ?string $rFile = null;
@@ -144,7 +145,7 @@ final class GatewayPolicy {
 			],
 			'serve_until' => self::serveUntil($rSettings, $rNow),
 			'paths' => [
-				'cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH,
+				'cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'vod' => VOD_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH,
 				'agent_sock' => AgentPaths::file(AgentPaths::SOCKET), 'spool' => AgentPaths::file(AgentPaths::DIR . 'spool/'), 'flows' => AgentPaths::file(AgentPaths::DIR . 'flows.json'),
 			],
 			// What live.php reads for a playlist refresh or a TS reconnect, its comparisons made here.

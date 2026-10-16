@@ -16,12 +16,13 @@ namespace XcVm\Core\Gateway;
  * - shadow: PHP serves, as before, and nginx mirrors each request to the
  *   gateway, which only judges the copy. A mirror fires in the location that
  *   serves the request, hence locations of their own.
- * - segments, segments+playlist, segments+playlist+thumb: the gateway answers
- *   segments and keys (and, up the ladder, playlist refreshes `/auth/<token>`
- *   and stream thumbnails `/thauth/<token>`), passed the request as the rewrites
- *   made it (xc_fanout's `/stream/segment`, `/stream/key`, `/stream/live`,
- *   `/stream/thumb`). What it does not
- *   own it hands back with `X-Accel-Redirect: @gw_segment_php` (`@gw_key_php`, `@gw_live_php`, `@gw_thumb_php`),
+ * - segments, segments+playlist, segments+playlist+thumb,
+ *   segments+playlist+thumb+subtitle: the gateway answers segments and keys
+ *   (and, up the ladder, playlist refreshes `/auth/<token>`, stream thumbnails
+ *   `/thauth/<token>` and VOD subtitles `/subauth/<token>`), passed the request
+ *   as the rewrites made it (xc_fanout's `/stream/segment`, `/stream/key`,
+ *   `/stream/live`, `/stream/thumb`, `/stream/subtitle`). What it does not
+ *   own it hands back with `X-Accel-Redirect: @gw_segment_php` (`@gw_key_php`, `@gw_live_php`, `@gw_thumb_php`, `@gw_subtitle_php`),
  *   the PHP handler as before; and a gateway that does not answer (502, 504)
  *   sends the request there too, never an error to the viewer.
  */
@@ -36,7 +37,7 @@ final class GatewayNginxConfig {
 	public const UPSTREAM = 'xc_gateway';
 
 	/** The stream types each mode passes to the gateway. */
-	private const STREAMS = ['shadow' => ['segment', 'key', 'live', 'thumb'], 'segments' => ['segment', 'key'], 'segments+playlist' => ['segment', 'key', 'live'], 'segments+playlist+thumb' => ['segment', 'key', 'live', 'thumb']];
+	private const STREAMS = ['shadow' => ['segment', 'key', 'live', 'thumb', 'subtitle'], 'segments' => ['segment', 'key'], 'segments+playlist' => ['segment', 'key', 'live'], 'segments+playlist+thumb' => ['segment', 'key', 'live', 'thumb'], 'segments+playlist+thumb+subtitle' => ['segment', 'key', 'live', 'thumb', 'subtitle']];
 
 	/**
 	 * The include for $rMode. $rGatewayUp: xc_fanout's gateway socket is

@@ -4,8 +4,8 @@ namespace XcVm\Core\Gateway;
 
 /**
  * The segment gateway's shadow comparison, PHP's half (ADR 0005). In shadow
- * (`gateway_mode`), nginx mirrors each segment, key, playlist and thumbnail
- * request to the gateway, which judges it, and runs it through PHP as before; both get
+ * (`gateway_mode`), nginx mirrors each segment, key, playlist, thumbnail and
+ * subtitle request to the gateway, which judges it, and runs it through PHP as before; both get
  * nginx's request id (GatewayNginxConfig). PHP tells the gateway what it
  * answered once the viewer has the answer (watch()), and the gateway counts
  * the two as agreeing or not (xc_fanout's ShadowBook).
@@ -36,11 +36,11 @@ final class GatewayShadow {
 	/**
 	 * For a request nginx flagged (shadow): after PHP answered it, tell the
 	 * gateway what it answered. $rHandler is the stream endpoint (segment,
-	 * key, live, thumb). Nothing for any other request.
+	 * key, live, thumb, subtitle). Nothing for any other request.
 	 */
 	public static function watch(string $rHandler): void {
 		$rID = (string) ($_SERVER['XC_REQUEST_ID'] ?? '');
-		if (($_SERVER['XC_GW_SHADOW'] ?? '') !== '1' || !in_array($rHandler, ['segment', 'key', 'live', 'thumb'], true) || !preg_match('/^[0-9a-f]{32}\z/', $rID)) {
+		if (($_SERVER['XC_GW_SHADOW'] ?? '') !== '1' || !in_array($rHandler, ['segment', 'key', 'live', 'thumb', 'subtitle'], true) || !preg_match('/^[0-9a-f]{32}\z/', $rID)) {
 			return;
 		}
 		register_shutdown_function(static function () use ($rID, $rHandler): void {
