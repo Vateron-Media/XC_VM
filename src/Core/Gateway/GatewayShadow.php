@@ -36,11 +36,11 @@ final class GatewayShadow {
 	/**
 	 * For a request nginx flagged (shadow): after PHP answered it, tell the
 	 * gateway what it answered. $rHandler is the stream endpoint (segment,
-	 * key, live, thumb, subtitle, vod). Nothing for any other request.
+	 * key, live, thumb, subtitle, vod, timeshift). Nothing for any other request.
 	 */
 	public static function watch(string $rHandler): void {
 		$rID = (string) ($_SERVER['XC_REQUEST_ID'] ?? '');
-		if (($_SERVER['XC_GW_SHADOW'] ?? '') !== '1' || !in_array($rHandler, ['segment', 'key', 'live', 'thumb', 'subtitle', 'vod'], true) || !preg_match('/^[0-9a-f]{32}\z/', $rID)) {
+		if (($_SERVER['XC_GW_SHADOW'] ?? '') !== '1' || !in_array($rHandler, ['segment', 'key', 'live', 'thumb', 'subtitle', 'vod', 'timeshift'], true) || !preg_match('/^[0-9a-f]{32}\z/', $rID)) {
 			return;
 		}
 		register_shutdown_function(static function () use ($rID, $rHandler): void {

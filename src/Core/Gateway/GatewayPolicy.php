@@ -36,7 +36,7 @@ use XcVm\Streaming\Fanout\FanoutMode;
  *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0, "unique_header": false,
  *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10, "create_expiration": 5, "admission": true},
  *  "verify_host": false, "allowed_domains": [],
- *  "conn_store": "agent", "time_offset": 0, "vod_limit_perc": 0, "vod_bitrate_plus": 0, "redirect": {"5": ["http://lb5.example:8080"]}}
+ *  "conn_store": "agent", "time_offset": 0, "vod_limit_perc": 0, "vod_bitrate_plus": 0, "default_timezone": "", "redirect": {"5": ["http://lb5.example:8080"]}}
  * ```
  *
  * `paths.flood`, `verify_host` and `allowed_domains` are what
@@ -71,9 +71,10 @@ final class GatewayPolicy {
 	 * serves segments and keys); segments+playlist (and a known viewer's playlist
 	 * refresh); segments+playlist+thumb (and stream thumbnails);
 	 * segments+playlist+thumb+subtitle (and VOD subtitles);
-	 * segments+playlist+thumb+subtitle+vod (and movies the daemon serves).
+	 * segments+playlist+thumb+subtitle+vod (and movies the daemon serves);
+	 * segments+playlist+thumb+subtitle+vod+timeshift (and archive the daemon serves).
 	 */
-	public const MODES = ['off', 'shadow', 'segments', 'segments+playlist', 'segments+playlist+thumb', 'segments+playlist+thumb+subtitle', 'segments+playlist+thumb+subtitle+vod'];
+	public const MODES = ['off', 'shadow', 'segments', 'segments+playlist', 'segments+playlist+thumb', 'segments+playlist+thumb+subtitle', 'segments+playlist+thumb+subtitle+vod', 'segments+playlist+thumb+subtitle+vod+timeshift'];
 
 	/** Tests: another file; null restores TMP_PATH's. */
 	private static ?string $rFile = null;
@@ -175,6 +176,8 @@ final class GatewayPolicy {
 			// movie, at its bitrate plus vod_bitrate_plus percent.
 			'vod_limit_perc' => (int) ($rSettings['vod_limit_perc'] ?? 0),
 			'vod_bitrate_plus' => (int) ($rSettings['vod_bitrate_plus'] ?? 0),
+			// timeshift.php parses a date-form start with mktime in this zone (LegacyInitializer sets it).
+			'default_timezone' => (string) ($rSettings['default_timezone'] ?? ''),
 			'redirect' => self::redirects($rServers, $rServerID),
 		];
 	}
