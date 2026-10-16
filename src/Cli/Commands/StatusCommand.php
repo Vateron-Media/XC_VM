@@ -6,6 +6,7 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Core\Cluster\LbDatabaseAccessException;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Config\NginxPortsFile;
 use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Database\Database;
@@ -272,11 +273,7 @@ class StatusCommand implements CommandInterface {
 		$rHasIpv6 = is_readable('/proc/net/if_inet6'); // the kernel has the IPv6 stack; [::] will bind
 		foreach (['http', 'https'] as $rType) {
 			$rPath = MAIN_HOME . 'bin/nginx/conf/ports/' . $rType . '.conf';
-			$rPortConfig = (string) file_get_contents($rPath);
-			$rWanted = self::ipv6ListenFor($rPortConfig, $rHasIpv6);
-
-			if ($rWanted !== $rPortConfig) {
-				file_put_contents($rPath, $rWanted);
+			if (NginxPortsFile::update($rPath, static fn(string $rConfig): string => self::ipv6ListenFor($rConfig, $rHasIpv6))) {
 				$rReload = true;
 			}
 		}
@@ -295,14 +292,19 @@ class StatusCommand implements CommandInterface {
 	 */
 	public static function ipv6ListenFor(string $rConf, bool $rHasIpv6): string {
 		$rLines = array_values(array_filter(
-			array_map('trim', preg_split('/\R/', str_replace(' reuseport', '', $rConf)) ?: []),
+			array_map('trim', preg_split('/\R|(?<=;)\h*(?=listen\s)/i', str_replace(' reuseport', '', $rConf)) ?: []),
 			static fn(string $rLine): bool => $rLine !== '' && stripos($rLine, 'listen [::]:') !== 0
 		));
+		// Older versions copied an entire multi-listen line into the IPv6
+		// directive, duplicating its trailing IPv4 ports. Repair those too.
+		$rLines = array_values(array_unique(array_map(
+			static fn(string $rLine): string => preg_replace('/\s+ipv6only=(?:on|off)(?=\s|;)/i', '', $rLine) ?? $rLine,
+			$rLines
+		)));
 		if ($rHasIpv6) {
 			foreach ($rLines as $rLine) {
-				if (preg_match('/^listen\s+(\d+)(.*);$/i', $rLine, $rMatch) === 1) {
+				if (preg_match('/^listen\s+(\d+)([^;]*);$/i', $rLine, $rMatch) === 1) {
 					$rLines[] = 'listen [::]:' . $rMatch[1] . $rMatch[2] . ' ipv6only=on;';
-					break;
 				}
 			}
 		}
