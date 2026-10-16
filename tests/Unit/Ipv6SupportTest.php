@@ -43,6 +43,17 @@ final class Ipv6SupportTest extends TestCase {
 		);
 	}
 
+	public function testMultiplePortsOnOneLineAndBrokenUpgradeConfig(): void {
+		$rV4 = "listen 80;\nlisten 47995;\nlisten 8000;\nlisten 8080;\n";
+		$rExpected = $rV4 . "listen [::]:80 ipv6only=on;\nlisten [::]:47995 ipv6only=on;\nlisten [::]:8000 ipv6only=on;\nlisten [::]:8080 ipv6only=on;\n";
+		$rOriginal = "listen 80; listen 47995; listen 8000; listen 8080;\n";
+		$rBroken = $rOriginal . "listen [::]:80; listen 47995; listen 8000; listen 8080 ipv6only=on;\n";
+		$this->assertSame($rExpected, StatusCommand::ipv6ListenFor($rOriginal, true));
+		$this->assertSame($rExpected, StatusCommand::ipv6ListenFor($rBroken, true));
+		$this->assertSame($rExpected, StatusCommand::ipv6ListenFor($rExpected, true));
+		$this->assertSame($rV4, StatusCommand::ipv6ListenFor($rBroken, false));
+	}
+
 	public function testIpv6ListenIsIdempotentAndReversible(): void {
 		$rDual = StatusCommand::ipv6ListenFor("listen 80 reuseport;\n", true);
 		$this->assertSame($rDual, StatusCommand::ipv6ListenFor($rDual, true), 'applying it again changes nothing');

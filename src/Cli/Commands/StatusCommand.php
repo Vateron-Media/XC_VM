@@ -295,14 +295,19 @@ class StatusCommand implements CommandInterface {
 	 */
 	public static function ipv6ListenFor(string $rConf, bool $rHasIpv6): string {
 		$rLines = array_values(array_filter(
-			array_map('trim', preg_split('/\R/', str_replace(' reuseport', '', $rConf)) ?: []),
+			array_map('trim', preg_split('/\R|(?<=;)\h*(?=listen\s)/i', str_replace(' reuseport', '', $rConf)) ?: []),
 			static fn(string $rLine): bool => $rLine !== '' && stripos($rLine, 'listen [::]:') !== 0
 		));
+		// Older versions copied an entire multi-listen line into the IPv6
+		// directive, duplicating its trailing IPv4 ports. Repair those too.
+		$rLines = array_values(array_unique(array_map(
+			static fn(string $rLine): string => preg_replace('/\s+ipv6only=(?:on|off)(?=\s|;)/i', '', $rLine) ?? $rLine,
+			$rLines
+		)));
 		if ($rHasIpv6) {
 			foreach ($rLines as $rLine) {
-				if (preg_match('/^listen\s+(\d+)(.*);$/i', $rLine, $rMatch) === 1) {
+				if (preg_match('/^listen\s+(\d+)([^;]*);$/i', $rLine, $rMatch) === 1) {
 					$rLines[] = 'listen [::]:' . $rMatch[1] . $rMatch[2] . ' ipv6only=on;';
-					break;
 				}
 			}
 		}
