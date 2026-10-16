@@ -136,12 +136,12 @@ if (!($rNotify['addr'] == '127.0.0.1' && $rNotify['call'] == 'publish')) {
 				$rExtension = 'rtmp';
 				$rExternalDevice = '';
 				ConnectionTracker::openStore($rSettings);
-				$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
+				$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0);
 				$rConnectionData = ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'date_start' => $rLastRead, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => $rChannelInfo['on_demand'], 'identity' => $rUserInfo['id'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid'])];
 				// The table path keeps its own date_start (the node's clock), as it always did.
 				// No stream token: MAIN's mint, when it sent one, carries the proof and the claim;
 				// without one a limited line is admitted by the agent asking MAIN (conn_admit).
-				$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid']), 'date_start' => time(), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_last_read' => $rLastRead], ConnectionTracker::rtmpToken($rAuth), intval($rServers[SERVER_ID]['time_offset']));
+				$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'proxy_id' => 0, 'user_agent' => '', 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rNotify['clientid'], 'uuid' => ConnectionTracker::rtmpUuid($rNotify['clientid']), 'date_start' => time(), 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => $rExternalDevice, 'hls_last_read' => $rLastRead], ConnectionTracker::rtmpToken($rAuth), intval($rServers[SERVER_ID]['time_offset'] ?? 0));
 
 				if ($rResult) {
 					StreamAuth::validateConnections($rUserInfo, false, '', $rIP, null, ConnectionTracker::rtmpUuid($rNotify['clientid']));

@@ -595,7 +595,7 @@ class ServerRepository {
 				$rProtocol = $rServers[$rServerID]['server_protocol'] ?? 'http';
 			}
 		}
-		if ($rServers[$rServerID]) {
+		if (!empty($rServers[$rServerID])) {
 			if ($rServers[$rServerID]['enable_proxy']) {
 				$rProxyIDs = array_keys(ConnectionTracker::getProxies($rServerID));
 				if (count($rProxyIDs) == 0) {

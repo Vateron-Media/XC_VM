@@ -47,7 +47,7 @@ final class ScanMinorFixesTest extends TestCase {
 	/** Deleting was the answer to every bulk server action the handler did not name. */
 	public function testOnlyDeleteDeletesServers(): void {
 		$rSource = self::source('Public/Controllers/Admin/Ajax/MultiAjaxController.php');
-		$this->assertMatchesRegularExpression('/\} elseif \(\$rSub == \'delete\'\) \{\s+foreach \(\$rRequestIDs as \$rServerID\) \{\s+if \(\$rServers\[\$rServerID\]\[\'is_main\'\] == 0\) \{\s+ServerRepository::deleteById/', $rSource);
+		$this->assertMatchesRegularExpression('/\} elseif \(\$rSub == \'delete\'\) \{\s+foreach \(\$rRequestIDs as \$rServerID\) \{\s+if \(!empty\(\$rServers\[\$rServerID\]\) && \$rServers\[\$rServerID\]\[\'is_main\'\] == 0\) \{\s+ServerRepository::deleteById/', $rSource);
 	}
 
 	public function testTheGuideReadsTheChannelsArchiveWindow(): void {

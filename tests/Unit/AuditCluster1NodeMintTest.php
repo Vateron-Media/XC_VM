@@ -120,7 +120,7 @@ PHP);
 		$this->assertLessThan(strpos($rLive, '$rTokenData["uuid"] = ConnectionTracker::hlsConnectionKey('), strpos($rLive, '$rTokenData["adm_uuid"] = $rTokenData["uuid"] ?? null;'));
 		$this->assertStringContainsString('"token" => $rTokenData,', $rLive);
 		foreach (['vod.php', 'timeshift.php'] as $rFile) {
-			$this->assertStringContainsString('$rTokenData, intval($rServers[SERVER_ID][\'time_offset\']));', (string) file_get_contents(MAIN_HOME . 'Public/stream/' . $rFile));
+			$this->assertStringContainsString('$rTokenData, intval($rServers[SERVER_ID][\'time_offset\'] ?? 0));', (string) file_get_contents(MAIN_HOME . 'Public/stream/' . $rFile));
 		}
 	}
 }

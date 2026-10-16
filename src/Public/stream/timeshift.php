@@ -161,9 +161,9 @@ if ($rUserInfo) {
 					generateError('TOKEN_EXPIRED');
 				}
 
-				$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
+				$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0);
 				$rConnectionData = ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => 'hls', 'pid' => null, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => 0, 'identity' => $rUserInfo['id'], 'uuid' => $rTokenData['uuid']];
-				$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => 'hls', 'pid' => null, 'uuid' => $rTokenData['uuid'], 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_last_read' => $rLastRead], $rTokenData, intval($rServers[SERVER_ID]['time_offset']));
+				$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => 'hls', 'pid' => null, 'uuid' => $rTokenData['uuid'], 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_last_read' => $rLastRead], $rTokenData, intval($rServers[SERVER_ID]['time_offset'] ?? 0));
 			} else {
 				$rIPMatch = NetworkUtils::ipMatches((bool) $rSettings['ip_subnet_match'], $rConnection['user_ip'], $rIP);
 
@@ -173,7 +173,7 @@ if ($rUserInfo) {
 					generateError('IP_MISMATCH');
 				}
 
-				$rResult = ConnectionTracker::updateLive($rSettings, $rConnection, ['hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset'])]);
+				$rResult = ConnectionTracker::updateLive($rSettings, $rConnection, ['hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0)]);
 			}
 
 			if ($rResult) {
@@ -234,9 +234,9 @@ if ($rUserInfo) {
 					generateError('TOKEN_EXPIRED');
 				}
 
-				$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
+				$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0);
 				$rConnectionData = ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rConnPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => 0, 'identity' => $rUserInfo['id'], 'uuid' => $rTokenData['uuid']];
-				$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rConnPID, 'uuid' => $rTokenData['uuid'], 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_last_read' => $rLastRead], $rTokenData, intval($rServers[SERVER_ID]['time_offset']));
+				$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, ['user_id' => $rUserInfo['id'], 'stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => $rExtension, 'pid' => $rConnPID, 'uuid' => $rTokenData['uuid'], 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_last_read' => $rLastRead], $rTokenData, intval($rServers[SERVER_ID]['time_offset'] ?? 0));
 			} else {
 				$rIPMatch = NetworkUtils::ipMatches((bool) $rSettings['ip_subnet_match'], $rConnection['user_ip'], $rIP);
 
@@ -256,7 +256,7 @@ if ($rUserInfo) {
 					}
 				}
 
-				$rResult = ConnectionTracker::updateLive($rSettings, $rConnection, ['pid' => $rConnPID, 'hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset'])]);
+				$rResult = ConnectionTracker::updateLive($rSettings, $rConnection, ['pid' => $rConnPID, 'hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0)]);
 			}
 
 			if ($rResult) {
@@ -407,7 +407,7 @@ if ($rUserInfo) {
 						$rConnection = null;
 						$rSettings = CacheReader::get('settings');
 
-						if (!ConnectionTracker::checkIn($rSettings, $rTokenData['uuid'], time() - intval($rServers[SERVER_ID]['time_offset']), $rPID, $rLastCheck)) {
+						if (!ConnectionTracker::checkIn($rSettings, $rTokenData['uuid'], time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0), $rPID, $rLastCheck)) {
 							exit();
 						}
 					}
