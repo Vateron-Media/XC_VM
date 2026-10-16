@@ -181,17 +181,19 @@ final class NodeRegistry {
 	/**
 	 * Its server was deleted: the node, if it has one, is revoked, so an
 	 * agent still running there is refused (NODE_REVOKED) rather than handed
-	 * tokens, leases and commands. Never throws: the delete stands.
+	 * tokens, leases and commands. Its unused enrolment code and a request
+	 * still waiting for approval go too: they could only enrol a node for a
+	 * server that is gone. Never throws: the delete stands.
 	 */
 	public static function serverDeleted(int $rServerID, ?ClusterCrypto $rCrypto = null): bool {
 		try {
 			$rNode = self::byServer($rServerID);
-			if ($rNode === null || $rNode['state'] === 'revoked') {
-				return false;
-			}
-			return self::revoke($rServerID, $rCrypto ?? ClusterCryptoFactory::create(), 'admin');
+			$rRevoked = $rNode !== null && $rNode['state'] !== 'revoked' && self::revoke($rServerID, $rCrypto ?? ClusterCryptoFactory::create(), 'admin');
+			self::db()->query("DELETE FROM `cluster_enrol_requests` WHERE `server_id` = ? AND `state` = 'pending_approval';", $rServerID);
+			self::db()->query('DELETE FROM `cluster_enrol_codes` WHERE `server_id` = ? AND `used_at` IS NULL;', $rServerID);
+			return $rRevoked;
 		} catch (\Throwable $rE) {
-			FileLogger::log('cluster', 'Server ' . $rServerID . ' deleted, its cluster node not revoked', $rE->getMessage());
+			FileLogger::log('cluster', 'Server ' . $rServerID . ' deleted, its cluster node or enrolment not cleaned up', $rE->getMessage());
 			return false;
 		}
 	}
