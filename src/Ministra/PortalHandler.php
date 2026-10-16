@@ -1959,8 +1959,15 @@ class PortalHandler {
 	 * The device keeps the token and the entry it has until get_profile has verified that box.
 	 *
 	 */
-	public static function handleHandshake(string $rMAC) {
+	public static function handleHandshake(?string $rMAC) {
 		global $db, $rSettings, $rDevice, $rIP;
+
+		// A handshake whose request and cookie both carried no MAC cannot identify
+		// a device; answer as a failed lookup does rather than throw a TypeError.
+		if ($rMAC === null || $rMAC === '') {
+			http_response_code(503);
+			exit();
+		}
 
 		$rDevice = getdevice(null, $rMAC);
 		$rVerifyToken = null;

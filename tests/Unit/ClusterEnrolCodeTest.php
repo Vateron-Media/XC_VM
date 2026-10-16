@@ -212,6 +212,20 @@ final class ClusterEnrolCodeTest extends TestCase {
 		$this->assertSame('active', NodeRegistry::byServer(self::SID)['state']);
 	}
 
+	/** A deleted server's waiting request and unused code go with it: approving them would enrol a node for nothing. */
+	public function testADeletedServerDropsItsCodeAndWaitingRequest(): void {
+		$rCode = $this->code();
+		[$rRes, , $rCtx] = $this->send('enrol_code', $rCode['req'], $this->node());
+		$this->assertSame('pending_approval', $this->reply($rRes, $rCtx, $rCode['res'])['state']);
+		$this->assertFalse(NodeRegistry::serverDeleted(self::SID, $this->rCrypto), 'no node to revoke');
+		$this->assertNull(EnrolCodeService::request(self::SID));
+
+		$this->code(); // a new code is unused until a node sends it
+		NodeRegistry::serverDeleted(self::SID, $this->rCrypto);
+		$this->rDb->query('SELECT COUNT(*) AS `n` FROM `cluster_enrol_codes` WHERE `server_id` = ? AND `used_at` IS NULL', self::SID);
+		$this->assertSame(0, (int) $this->rDb->get_row()['n']);
+	}
+
 	public function testOnAFreshBusCodeRequestsStampedAtItsFloorAreRefusedWithAWait(): void {
 		$rBus = BusServer::start('code-bus');
 		if ($rBus === null) {

@@ -41,12 +41,12 @@ $rRtmpBase = htmlspecialchars((string) (ServerRepository::getAll()[$rServerId]['
             </thead>
             <tbody>
                 <tr>
-                    <td class="text-center"><?= htmlspecialchars((string) $rRTMPInfo['pid'], ENT_QUOTES); ?></td>
-                    <td class="text-center"><?= htmlspecialchars((string) $rRTMPInfo['nginx_version'], ENT_QUOTES); ?></td>
-                    <td class="text-center"><?= htmlspecialchars((string) $rRTMPInfo['nginx_http_flv_version'], ENT_QUOTES); ?></td>
-                    <td class="text-center"><span class="badge bg-label-success"><?= $rUptimeFmt((int) $rRTMPInfo['uptime']); ?></span></td>
-                    <td class="text-center"><?= number_format($rRTMPInfo['bw_in'] / 1000 / 1000, 2); ?> Mbps</td>
-                    <td class="text-center"><?= number_format($rRTMPInfo['bw_out'] / 1000 / 1000, 2); ?> Mbps</td>
+                    <td class="text-center"><?= htmlspecialchars((string) ($rRTMPInfo['pid'] ?? ''), ENT_QUOTES); ?></td>
+                    <td class="text-center"><?= htmlspecialchars((string) ($rRTMPInfo['nginx_version'] ?? ''), ENT_QUOTES); ?></td>
+                    <td class="text-center"><?= htmlspecialchars((string) ($rRTMPInfo['nginx_http_flv_version'] ?? ''), ENT_QUOTES); ?></td>
+                    <td class="text-center"><span class="badge bg-label-success"><?= $rUptimeFmt((int) ($rRTMPInfo['uptime'] ?? 0)); ?></span></td>
+                    <td class="text-center"><?= number_format(($rRTMPInfo['bw_in'] ?? 0) / 1000 / 1000, 2); ?> Mbps</td>
+                    <td class="text-center"><?= number_format(($rRTMPInfo['bw_out'] ?? 0) / 1000 / 1000, 2); ?> Mbps</td>
                 </tr>
             </tbody>
         </table>

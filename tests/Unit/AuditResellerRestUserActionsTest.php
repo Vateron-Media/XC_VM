@@ -10,7 +10,7 @@ use XcVm\Tests\Support\QueryLogDb;
 
 /**
  * The reseller REST API manages a reseller's sub-resellers as the reseller
- * panel does (ResellerApiDispatcher::handleRegUser, handleAdjustCredits): with
+ * panel does (Reseller\Ajax\UserAjaxController::regUser, adjustCredits): with
  * the same group permissions (create_sub_resellers, and delete_users to
  * delete), never on the reseller's own account, and a deleted sub-reseller's
  * credits return to the reseller while its lines and its own sub-resellers
@@ -78,7 +78,7 @@ $rUserInfo = \XcVm\Domain\User\UserRepository::getRegisteredUserById($rIn['resel
 $rPermissions = $rIn['permissions'];
 $rUserInfo['reports'] = array_merge([$rUserInfo['id']], $rPermissions['all_reports']);
 
-\XcVm\Infrastructure\ResellerApiDispatcher::dispatch('reg_user', $rUserInfo, $rPermissions);
+\XcVm\Tests\Support\ResellerAjax::call('reg_user', $rUserInfo, $rPermissions);
 PHP;
 
 	/**

@@ -45,7 +45,7 @@ $db = new \XcVm\Core\Database\DatabaseHandler();
 // No guide on disk: the channels answered are what is under test.
 defined('EPG_PATH') || define('EPG_PATH', sys_get_temp_dir() . '/xcvm-scan-leads-no-epg/');
 
-\XcVm\Infrastructure\ResellerApiDispatcher::dispatch($rIn['action'], ['id' => 5, 'reports' => [5]], $rIn['permissions']);
+\XcVm\Tests\Support\ResellerAjax::call($rIn['action'], ['id' => 5, 'reports' => [5]], $rIn['permissions']);
 PHP;
 
 	private TestDb $rDb;
@@ -233,7 +233,7 @@ PHP;
 		$this->assertStringNotContainsString('curl_init', $rWrapper);
 
 		// A connection the filter leaves out is not listed (Redis).
-		foreach (['Public/Controllers/Admin/TableController.php', 'Infrastructure/ResellerTableRenderer.php'] as $rFile) {
+		foreach (['Public/Controllers/Admin/TableController.php', 'Public/Controllers/Reseller/ResellerTableController.php'] as $rFile) {
 			$this->assertMatchesRegularExpression('/\$rKeyCount--;\s+continue;/', $rSource($rFile), $rFile);
 		}
 

@@ -45,7 +45,7 @@ $rUserInfo = \XcVm\Domain\User\UserRepository::getRegisteredUserById($rIn['resel
 $rPermissions = $rIn['permissions'];
 $rUserInfo['reports'] = array_merge([$rUserInfo['id']], $rPermissions['all_reports']);
 
-\XcVm\Infrastructure\ResellerApiDispatcher::dispatch('reg_user', $rUserInfo, $rPermissions);
+\XcVm\Tests\Support\ResellerAjax::call('reg_user', $rUserInfo, $rPermissions);
 PHP;
 
 	private TestDb $rDb;

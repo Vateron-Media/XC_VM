@@ -55,6 +55,10 @@ final class SettingsServiceClusterPortTest extends TestCase {
 		'cluster_policy_ver' => ['int', '1'],
 		'cluster_legacy_ports' => ['varchar', ''],
 		'search_items' => ['int', '15'],
+		'dashboard_alerts' => ['int', '1'],
+		'dashboard_alerts_count' => ['int', '4'],
+		'dashboard_alert_history' => ['int', '1'],
+		'dashboard_alert_history_count' => ['int', '20'],
 		'disable_table_responsive' => ['int', '0'],
 		'allowed_stb_types_for_local_recording' => ['text', ''],
 		'allowed_stb_types' => ['text', ''],
@@ -118,6 +122,24 @@ final class SettingsServiceClusterPortTest extends TestCase {
 		unset($GLOBALS['db']);
 		DatabaseFactory::reset();
 		exec('rm -rf ' . escapeshellarg($this->rDir));
+	}
+
+	public function testAlertPreferencesSaveGloballyAndClampTheirCounts(): void {
+		$rForm = ['user_agent' => '', 'http_proxy' => '', 'cookie' => '', 'headers' => '', 'search_items' => '15'];
+		$rOriginal = \XcVm\Core\Config\DashboardAlerts::values([]);
+		$rResult = SettingsService::edit($rForm + ['dashboard_alerts' => 1, 'dashboard_alerts_count' => 500, 'dashboard_alert_history' => 1, 'dashboard_alert_history_count' => 20]);
+		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+		$this->rDb->query('SELECT `dashboard_alerts`, `dashboard_alerts_count`, `dashboard_alert_history`, `dashboard_alert_history_count` FROM `settings`;');
+		$this->assertEquals(['dashboard_alerts' => 1, 'dashboard_alerts_count' => 50, 'dashboard_alert_history' => 1, 'dashboard_alert_history_count' => 20], $this->rDb->get_row());
+		$rResult = SettingsService::edit($rForm + ['dashboard_alerts' => 0, 'dashboard_alert_history' => 0, 'dashboard_alerts_count' => 4, 'dashboard_alert_history_count' => 999]);
+		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+		$this->rDb->query('SELECT `dashboard_alerts`, `dashboard_alerts_count`, `dashboard_alert_history`, `dashboard_alert_history_count` FROM `settings`;');
+		$this->assertEquals(['dashboard_alerts' => 0, 'dashboard_alerts_count' => 4, 'dashboard_alert_history' => 0, 'dashboard_alert_history_count' => 200], $this->rDb->get_row());
+		// Another administrator saves an old form without editing these controls.
+		$rResult = SettingsService::edit($rForm + $rOriginal + ['dashboard_alerts_original' => json_encode($rOriginal)]);
+		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+		$this->rDb->query('SELECT `dashboard_alerts`, `dashboard_alerts_count`, `dashboard_alert_history`, `dashboard_alert_history_count` FROM `settings`;');
+		$this->assertEquals(['dashboard_alerts' => 0, 'dashboard_alerts_count' => 4, 'dashboard_alert_history' => 0, 'dashboard_alert_history_count' => 200], $this->rDb->get_row());
 	}
 
 	/** @return array{0: int, 1: int} the stored cluster_api_port and cluster_policy_ver */

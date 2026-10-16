@@ -3,6 +3,7 @@
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
+use XcVm\Core\Config\DashboardAlerts;
 use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Reference\DeviceReference;
 use XcVm\Core\Reference\GeoReference;
@@ -461,6 +462,30 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 									<div class="form-check form-switch"><input name="dashboard_status" id="dashboard_status" type="checkbox" <?= $rSettings["dashboard_status"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
 								</div>
 							</div>
+
+							<?php $xmAlertOptions = DashboardAlerts::options($rSettings); ?>
+							<input type="hidden" name="dashboard_alerts_original" value="<?= htmlspecialchars(json_encode(DashboardAlerts::values($rSettings)), ENT_QUOTES); ?>">
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="dashboard_alerts"><?= $language::get('dashboard_latest_alerts') ?></label>
+								<div class="col-md-2">
+									<div class="form-check form-switch"><input name="dashboard_alerts" id="dashboard_alerts" type="checkbox" <?= $xmAlertOptions['latest_enabled'] ? 'checked' : '' ?> class="form-check-input"></div>
+								</div>
+								<label class="col-md-4 col-form-label" for="dashboard_alerts_count"><?= $language::get('dashboard_alert_entries') ?></label>
+								<div class="col-md-2">
+									<input type="number" class="form-control text-center" id="dashboard_alerts_count" name="dashboard_alerts_count" min="1" max="50" step="1" value="<?= $xmAlertOptions['latest_count'] ?>">
+								</div>
+							</div>
+							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="dashboard_alert_history"><?= $language::get('dashboard_alert_history_title') ?></label>
+								<div class="col-md-2">
+									<div class="form-check form-switch"><input name="dashboard_alert_history" id="dashboard_alert_history" type="checkbox" <?= $xmAlertOptions['history_enabled'] ? 'checked' : '' ?> class="form-check-input"></div>
+								</div>
+								<label class="col-md-4 col-form-label" for="dashboard_alert_history_count"><?= $language::get('dashboard_alert_history_entries') ?></label>
+								<div class="col-md-2">
+									<input type="number" class="form-control text-center" id="dashboard_alert_history_count" name="dashboard_alert_history_count" min="1" max="200" step="1" value="<?= $xmAlertOptions['history_count'] ?>">
+								</div>
+							</div>
+							<p class="text-body-secondary small mb-4"><?= $language::get('dashboard_alert_history_help') ?></p>
 
 							<h5 class="card-title mb-4"><?= $language::get('search') ?></h5>
 

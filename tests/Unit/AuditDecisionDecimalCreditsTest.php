@@ -108,12 +108,12 @@ final class AuditDecisionDecimalCreditsTest extends TestCase {
 		$this->assertStringContainsString('"credits"         => ResellerAPI::amount($rRow["credits"]),', $rTable);
 		$this->assertStringContainsString('$rRows = array_map([UserCredits::class, \'amounts\'], $db->get_rows());', $rTable);
 
-		$this->assertStringContainsString("'credits' => ResellerAPI::amount(\$rRow['credits']),", $rRead('Infrastructure/ResellerTableRenderer.php'));
+		$this->assertStringContainsString("'credits' => ResellerAPI::amount(\$rRow['credits']),", $rRead('Public/Controllers/Reseller/ResellerTableController.php'));
 
-		$rDispatcher = $rRead('Infrastructure/ResellerApiDispatcher.php');
-		$this->assertStringContainsString("\$rReturn['credits'] = ResellerAPI::amount(\$db->get_row()['credits']);", $rDispatcher);
-		$this->assertStringContainsString('$rRow = UserCredits::amounts($db->get_row());', $rDispatcher);
-		$this->assertSame(2, substr_count($rDispatcher, '$rData = UserCredits::amounts($db->get_row());'), 'the price of a package and of its trial');
+		$rStats = $rRead('Public/Controllers/Reseller/Ajax/StatsAjaxController.php');
+		$this->assertStringContainsString("\$rReturn['credits'] = ResellerAPI::amount(\$db->get_row()['credits']);", $rStats);
+		$this->assertStringContainsString('$rRow = UserCredits::amounts($db->get_row());', $rStats);
+		$this->assertSame(2, substr_count($rRead('Public/Controllers/Reseller/Ajax/LineAjaxController.php'), '$rData = UserCredits::amounts($db->get_row());'), 'the price of a package and of its trial');
 
 		$this->assertSame(2, substr_count($rRead('Public/Controllers/Admin/Ajax/PackageAjaxController.php'), '$rData = UserCredits::amounts($db->get_row());'));
 		$this->assertStringContainsString("\$rResults = array_map([UserCredits::class, 'amounts'], \$db->get_rows());", $rRead('Public/admin/api.php'));

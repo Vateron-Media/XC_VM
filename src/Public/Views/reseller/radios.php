@@ -5,13 +5,13 @@ use XcVm\Core\Util\LayoutRenderer;
 /**
  * Reseller Radio stations (Bootstrap 5). Full-parity port of admin/radios.php adapted
  * to the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleRadios emits data-only rows), with the icon, title,
+ * (ResellerTableController::handleRadios emits data-only rows), with the icon, title,
  * category, connections badge and per-row action dropdown all rendered client-side.
  *
  * Reseller differences vs admin (the reseller API/renderer simply does not expose
  * these, so the view legitimately omits them): no bulk toolbar (reseller has no
  * `multi` endpoint), no start / stop / restart / edit / delete / player
- * (ResellerApiDispatcher exposes only `action=connections&sub=purge`), no server /
+ * (Reseller\Ajax exposes only `action=connections&sub=purge`), no server /
  * status / stream-info columns (the reseller radios query does not fetch that data).
  * The only row action is Kill Connections, gated by
  * `reseller_client_connection_logs`. The category filter is limited to the

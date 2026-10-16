@@ -354,7 +354,7 @@ final class ClusterNginxConfigTest extends TestCase {
 		// old_port.conf only if the render sees the new one), and comes before
 		// the handler's reload request (applied once after the pass,
 		// RootSignalsCronJob::reloadAsked()).
-		foreach (["file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/http.conf'", "file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'"] as $rPorts) {
+		foreach (["NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/http.conf'", "NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'"] as $rPorts) {
 			$rWrite = strpos($rRoot, $rPorts);
 			$this->assertNotFalse($rWrite, $rPorts);
 			$rCall = strpos($rRoot, $rRender, $rWrite);

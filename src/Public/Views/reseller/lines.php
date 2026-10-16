@@ -2,7 +2,7 @@
 
 /**
  * Reseller Lines (Bootstrap 5). Full-parity port of admin/lines.php adapted to the
- * reseller contract: clean-JSON keyed serverSide DataTable (ResellerTableRenderer
+ * reseller contract: clean-JSON keyed serverSide DataTable (ResellerTableController
  * ::handleLines emits data-only rows), with the status badge, online/trial/
  * restreamer dots, connection badges, expiration/last-connection cells and the
  * per-row action dropdown all rendered client-side.
@@ -57,7 +57,7 @@ if ($rResellerDomains !== []) {
 $rSelectedOwner = RequestManager::has('owner') ? (string) RequestManager::get('owner') : '';
 $rSelectedFilter = RequestManager::has('filter') ? (int) RequestManager::get('filter') : (RequestManager::has('trial') && RequestManager::get('trial') == 1 ? 5 : 0);
 
-// Reseller status filter values handled by ResellerTableRenderer::handleLines.
+// Reseller status filter values handled by ResellerTableController::handleLines.
 $rStatusFilters = [1 => 'Active', 2 => 'Disabled', 3 => 'Banned', 4 => 'Expired', 5 => 'Trial'];
 
 $rDirectReports = (array) ($rPermissions['direct_reports'] ?? []);

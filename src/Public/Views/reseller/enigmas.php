@@ -3,7 +3,7 @@
 /**
  * Reseller Enigma2 devices (Bootstrap 5). Full-parity port of admin/enigmas.php
  * adapted to the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleEnigmas emits data-only rows), with the status
+ * (ResellerTableController::handleEnigmas emits data-only rows), with the status
  * icon, online/trial dots, expiration cell, IP whois link and the per-row action
  * dropdown all rendered client-side.
  *
@@ -12,7 +12,7 @@
  * reseller cannot toggle admin_enabled) and no fingerprint; no last-connection
  * column (the reseller enigmas query does not fetch it). Edit navigates to
  * `enigma?id=…` (the reseller Enigma2 editor has no iframe-modal shell). Row
- * actions are wired ONLY to endpoints ResellerApiDispatcher exposes:
+ * actions are wired ONLY to endpoints Reseller\Ajax exposes:
  * `action=enigma&sub=enable|disable|delete|convert|reset_isp|kill_line`. Convert
  * is gated by `create_line`, kill by `reseller_client_connection_logs`. The owner
  * filter is a static select2 built from the reseller's report tree. Permission
@@ -38,7 +38,7 @@ $rCanKill = !empty($rPermissions['reseller_client_connection_logs']);
 $rSelectedOwner = RequestManager::has('owner') ? (string) RequestManager::get('owner') : '';
 $rSelectedFilter = RequestManager::has('filter') ? (int) RequestManager::get('filter') : (RequestManager::has('trial') && RequestManager::get('trial') == 1 ? 4 : 0);
 
-// Reseller Enigma2 status filter values handled by ResellerTableRenderer::handleEnigmas.
+// Reseller Enigma2 status filter values handled by ResellerTableController::handleEnigmas.
 $rStatusFilters = [1 => $language::get('active'), 2 => $language::get('disabled'), 3 => $language::get('expired'), 4 => $language::get('trial')];
 
 $rDirectReports = (array) ($rPermissions['direct_reports'] ?? []);

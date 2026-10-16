@@ -32,6 +32,40 @@ class StreamRepository {
 	/** How far below `last` a missing id is reported as a hole, and how many holes are taken back. */
 	private const LOG_HOLE_SPAN = 200;
 
+	/** Count every event in the time window, independently of the displayed row limit. */
+	public static function logEventSummary(int $rSince, ?int $rUntil = null): ?array {
+		$rUntil ??= time();
+		$db = self::db();
+		if (!$db->query('SELECT `action`, COUNT(*) AS `count` FROM `streams_logs` WHERE `date` BETWEEN ? AND ? GROUP BY `action` ORDER BY `count` DESC, `action` ASC;', $rSince, $rUntil)) {
+			return null;
+		}
+		return array_map(static function (array $rRow): array {
+			$rAction = (string) $rRow['action'];
+			return ['action' => $rAction, 'label' => StatusBadge::streamLog($rAction) ?: $rAction, 'count' => (int) $rRow['count']];
+		}, $db->get_raw_rows());
+	}
+
+	/** Recent dashboard stream events, newest first. Null on database failure. */
+	public static function latestLogEvents(int $rLimit = 4): ?array {
+		$rLimit = max(1, min(200, $rLimit));
+		$db = self::db();
+		if (!$db->query('SELECT `l`.`id`, `l`.`stream_id`, `l`.`action`, `l`.`date`, `s`.`stream_display_name`, `v`.`server_name` FROM `streams_logs` `l` LEFT JOIN `streams` `s` ON `s`.`id` = `l`.`stream_id` LEFT JOIN `servers` `v` ON `v`.`id` = `l`.`server_id` ORDER BY `l`.`date` DESC, `l`.`id` DESC LIMIT ' . $rLimit . ';')) {
+			return null;
+		}
+		return array_map(static function (array $rRow): array {
+			$rAction = (string) $rRow['action'];
+			return [
+				'id' => (int) $rRow['id'],
+				'stream_id' => (int) $rRow['stream_id'],
+				'action' => $rAction,
+				'label' => StatusBadge::streamLog($rAction) ?: $rAction,
+				'stream' => (string) ($rRow['stream_display_name'] ?? '#' . $rRow['stream_id']),
+				'server' => (string) ($rRow['server_name'] ?? ''),
+				'time' => (int) $rRow['date'],
+			];
+		}, $db->get_raw_rows());
+	}
+
 	/**
 	 * The stream log past $rAfter, for the panel's toasts (start, stop, a
 	 * failed start…, from every server: a load balancer's entries reach MAIN

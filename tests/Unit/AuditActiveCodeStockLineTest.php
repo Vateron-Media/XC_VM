@@ -332,7 +332,7 @@ final class AuditActiveCodeStockLineTest extends TestCase {
 
 	/** The panel's three switches (line, MAG, Enigma2) answer and exit: they are read, not run. */
 	public function testEveryPanelSwitchAsksBeforeItSwitchesALineOn(): void {
-		$rSource = (string) file_get_contents(MAIN_HOME . 'Infrastructure/ResellerApiDispatcher.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Reseller/Ajax/LineAjaxController.php') . file_get_contents(MAIN_HOME . 'Public/Controllers/Reseller/Ajax/DeviceAjaxController.php');
 
 		$this->assertSame(3, preg_match_all('/if \(\$rSub == \'enable\'\) \{(.*?)UPDATE `lines` SET `enabled` = 1/s', $rSource, $rSwitches));
 		foreach ($rSwitches[1] as $rSwitch) {

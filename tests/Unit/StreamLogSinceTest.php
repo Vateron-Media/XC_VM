@@ -37,6 +37,76 @@ final class StreamLogSinceTest extends TestCase {
 		return array_column($rLog['events'], 'id');
 	}
 
+	public function testLatestAlertsReturnOnlyTwoNewestEventsAcrossGapsAndServers(): void {
+		$this->assertSame([], StreamRepository::latestLogEvents());
+		$this->log(5, 'STREAM_START', 2, 1);
+		$this->log(6, 'STREAM_STOP', 2, 10);
+		$this->log(99, 'NEW_KIND', 7, 40);
+		$rEvents = StreamRepository::latestLogEvents(2);
+		$this->assertSame([40, 10], array_column($rEvents, 'id'));
+		$this->assertSame('#99', $rEvents[0]['stream']);
+		$this->assertSame('', $rEvents[0]['server']);
+		$this->assertSame('NEW_KIND', $rEvents[0]['label']);
+		$this->assertSame('Sport', $rEvents[1]['stream']);
+		$this->assertSame('LB 2', $rEvents[1]['server']);
+		$this->assertSame(1, $rEvents[1]['time']);
+		$this->log(5, 'STREAM_FAILED', 2, 41);
+		$this->assertSame([41, 40], array_column(StreamRepository::latestLogEvents(2), 'id'));
+		$this->rDb->exec('DELETE FROM `streams_logs`;');
+		$this->assertSame([], StreamRepository::latestLogEvents());
+	}
+
+	public function testSummaryCountsAllEventsEvenWhenOnlyFourRowsAreShown(): void {
+		$this->rDb->exec('INSERT INTO `streams_logs` (`stream_id`, `server_id`, `action`, `date`) VALUES ' . implode(',', array_fill(0, 500, "(5, 2, 'STREAM_FAILED', 100)")) . ';');
+		$this->rDb->exec("INSERT INTO `streams_logs` (`stream_id`, `server_id`, `action`, `date`) VALUES (6, 2, 'STREAM_START', 110), (6, 2, 'STREAM_FAILED', 1);");
+		$this->assertCount(4, StreamRepository::latestLogEvents());
+		$rSummary = StreamRepository::logEventSummary(60);
+		$this->assertSame(['STREAM_FAILED' => 500, 'STREAM_START' => 1], array_column($rSummary, 'count', 'action'));
+		$this->assertNotEmpty($rSummary[0]['label']);
+		$this->assertSame([], StreamRepository::logEventSummary(111));
+	}
+
+	public function testLatestEventsSortByEventTimeWhenBatchesArriveLate(): void {
+		$this->log(5, 'STREAM_START', 2, 1);
+		$this->log(6, 'STREAM_STOP', 2, 2);
+		$this->log(5, 'STREAM_FAILED', 2, 3);
+		$this->rDb->exec('UPDATE `streams_logs` SET `date` = 100 WHERE `id` = 3;');
+		$this->rDb->exec('UPDATE `streams_logs` SET `date` = 200 WHERE `id` IN (1, 2);');
+		$this->assertSame([2, 1], array_column(StreamRepository::latestLogEvents(2), 'id'));
+	}
+
+	public function testSummaryExcludesFutureEvents(): void {
+		$this->rDb->exec("INSERT INTO `streams_logs` (`stream_id`, `server_id`, `action`, `date`) VALUES (5, 2, 'STREAM_FAILED', 40), (5, 2, 'STREAM_FAILED', 100), (5, 2, 'STREAM_FAILED', 101);");
+		$this->assertSame([2], array_column(StreamRepository::logEventSummary(40, 100), 'count'));
+	}
+
+	public function testDisabledLoggingOrAlertsReturnsNoStoredEvents(): void {
+		$this->log(5, 'STREAM_FAILED');
+		$rBefore = \XcVm\Core\Config\SettingsManager::getAll();
+		try {
+			foreach ([['save_restart_logs' => 0], ['save_restart_logs' => 1, 'dashboard_alerts' => 0]] as $rSettings) {
+				\XcVm\Core\Config\SettingsManager::set($rSettings);
+				$rFeed = \XcVm\Public\Controllers\Admin\Ajax\StatsAjaxController::latestAlertsPayload();
+				$this->assertSame([], $rFeed['events']);
+				$this->assertSame([], $rFeed['summary']);
+			}
+		} finally {
+			\XcVm\Core\Config\SettingsManager::set($rBefore);
+		}
+	}
+
+	public function testLatestAlertCountDefaultsToFourAndIsBounded(): void {
+		for ($i = 1; $i <= 55; $i++) {
+			$this->log(5, 'STREAM_START');
+		}
+		$this->assertSame([55, 54, 53, 52], array_column(StreamRepository::latestLogEvents(), 'id'));
+		$this->assertCount(1, StreamRepository::latestLogEvents(1));
+		$this->assertCount(10, StreamRepository::latestLogEvents(10));
+		$this->assertCount(1, StreamRepository::latestLogEvents(-5));
+		$this->assertCount(55, StreamRepository::latestLogEvents(9999));
+		$this->assertCount(20, StreamRepository::latestLogEvents(20));
+	}
+
 	public function testEachEntryOnceOldestFirstWithLabelsAndNames(): void {
 		$this->log(5, 'STREAM_START');
 		$this->assertSame(['last' => 1, 'events' => [], 'holes' => []], StreamRepository::logSince(-1), 'a first look only says where the log stands');
@@ -99,5 +169,7 @@ final class StreamLogSinceTest extends TestCase {
 			}
 		});
 		$this->assertNull(StreamRepository::logSince(3));
+		$this->assertNull(StreamRepository::latestLogEvents());
+		$this->assertNull(StreamRepository::logEventSummary(0));
 	}
 }

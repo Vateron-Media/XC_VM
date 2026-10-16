@@ -52,7 +52,7 @@ final class ActiveCodeListedLinesTest extends TestCase {
 
 	/** Both Lines tables, the administrator's and the reseller's, take the one rule. */
 	public function testBothLinesTablesUseIt(): void {
-		foreach (['Public/Controllers/Admin/TableController.php', 'Infrastructure/ResellerTableRenderer.php'] as $rFile) {
+		foreach (['Public/Controllers/Admin/TableController.php', 'Public/Controllers/Reseller/ResellerTableController.php'] as $rFile) {
 			$rSource = (string) file_get_contents(MAIN_HOME . $rFile);
 			$this->assertStringContainsString('ActiveCodeService::LISTED_LINES', $rSource, $rFile);
 			$this->assertStringNotContainsString('`is_activecode` = 0 OR `lines`.`is_activecode` IS NULL)', $rSource, $rFile);

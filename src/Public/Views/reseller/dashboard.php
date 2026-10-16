@@ -235,7 +235,7 @@ foreach ($rConnectionMap as $rCountry) {
     // [action, paneId, tableId, tabIcon, rowIcon, accent, imageColumnLabel, imageWidth].
     // `action` is both the ./table id and the list page the View All button opens.
     // The column order mirrors the Streams / Movies / Episodes pages because
-    // ResellerTableRenderer resolves the sort column by DataTables index — only
+    // ResellerTableController resolves the sort column by DataTables index — only
     // id (1), title (3) and category (4) are orderable, so the columns added
     // after them are safe to append.
     $xmMediaTabs = [
@@ -543,7 +543,7 @@ LayoutRenderer::renderFooter('reseller');
 
         <?php if ($xmCanSeeConnections): ?>
             // Live connections. The column list must stay identical to the Live
-            // Connections page: ResellerTableRenderer resolves the sort column by
+            // Connections page: ResellerTableController resolves the sort column by
             // DataTables index, so hiding columns is safe but reordering is not.
             var liveTable = jQuery('#dash-live-table').DataTable({
                 serverSide: true,

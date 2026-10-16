@@ -11,6 +11,7 @@
  */
 
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Config\DashboardAlerts;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Util\LayoutRenderer;
@@ -231,6 +232,158 @@ if (!LicenseGate::licensed()):
         </div>
     </div>
 </div>
+
+<?php if (Authorization::check('adv', 'streams')):
+    $xmAlertOptions = DashboardAlerts::options($rSettings);
+?>
+<div class="card mb-4 <?= $xmAlertOptions['latest_enabled'] ? '' : 'd-none'; ?>" id="latest-alerts">
+    <div class="card-header py-3 d-flex align-items-center gap-2">
+        <i class="icon-base ti tabler-bell icon-22px text-warning"></i>
+        <h5 class="card-title mb-0"><?= $language::get('dashboard_latest_alerts'); ?></h5>
+        <small class="text-body-secondary ms-auto" id="latest-alerts-count"></small>
+    </div>
+    <div class="card-body pt-0 pb-2">
+        <div class="d-flex flex-wrap align-items-center gap-2 pb-2 d-none" id="latest-alerts-summary" aria-live="polite" aria-atomic="true"></div>
+        <div id="latest-alerts-scroll" style="max-height: <?= $xmAlertOptions['latest_count'] * 44; ?>px; overflow-y: auto" tabindex="0" role="region" aria-label="<?= $language::get('dashboard_latest_alerts'); ?>">
+            <ul class="list-unstyled mb-0" id="latest-alerts-list"></ul>
+        </div>
+        <small class="text-body-secondary d-block pb-2" id="latest-alerts-empty"><?= $language::get('no_results_found'); ?></small>
+    </div>
+</div>
+<script>
+(function() {
+    var latestCard = document.getElementById('latest-alerts');
+    var list = document.getElementById('latest-alerts-list');
+    var empty = document.getElementById('latest-alerts-empty');
+    var scroll = document.getElementById('latest-alerts-scroll');
+    var count = document.getElementById('latest-alerts-count');
+    var summary = document.getElementById('latest-alerts-summary');
+    var previousSummary = null;
+    var previous = null;
+    var options = <?= json_encode($xmAlertOptions, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    var styles = {
+        STREAM_START: ['success', 'tabler-player-play'],
+        STREAM_STOP: ['info', 'tabler-player-stop'],
+        STREAM_START_FAIL: ['danger', 'tabler-alert-triangle'],
+        STREAM_FAILED: ['danger', 'tabler-alert-triangle'],
+        FFMPEG_ERROR: ['danger', 'tabler-alert-triangle'],
+        AUDIO_LOSS: ['warning', 'tabler-volume-off']
+    };
+    function renderSummary(groups) {
+        var signature = JSON.stringify(groups);
+        if (signature === previousSummary) return;
+        previousSummary = signature;
+        summary.replaceChildren();
+        summary.classList.toggle('d-none', groups.length === 0);
+        if (!groups.length) return;
+        var caption = document.createElement('small');
+        caption.className = 'text-body-secondary';
+        caption.textContent = <?= json_encode($language::get('dashboard_alert_summary_window'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        summary.appendChild(caption);
+        groups.forEach(function(group) {
+            var style = styles[group.action] || ['warning', 'tabler-bell'];
+            var badge = document.createElement('span');
+            badge.className = 'badge bg-label-' + style[0];
+            badge.textContent = Number(group.count).toLocaleString() + ' ' + group.label;
+            summary.appendChild(badge);
+        });
+    }
+    function renderRows(target, emptyState, events) {
+        target.replaceChildren();
+        emptyState.classList.toggle('d-none', events.length > 0);
+        events.forEach(function(event) {
+            var style = styles[event.action] || ['warning', 'tabler-bell'];
+            var row = document.createElement('li');
+            row.className = 'd-flex align-items-center gap-3 py-2';
+            row.style.minHeight = '44px';
+            row.style.boxSizing = 'border-box';
+            row.dataset.eventId = String(event.id);
+            var icon = document.createElement('i');
+            icon.className = 'icon-base ti ' + style[1] + ' text-' + style[0] + ' icon-20px flex-shrink-0';
+            var message = document.createElement('div');
+            message.className = 'flex-grow-1 min-w-0 text-truncate';
+            var stream = document.createElement('span');
+            stream.className = 'fw-medium';
+            stream.textContent = event.stream + (event.server ? ' (' + event.server + ')' : '');
+            var label = document.createElement('span');
+            label.className = 'text-body-secondary';
+            label.textContent = ' · ' + event.label;
+            message.append(stream, label);
+            message.title = stream.textContent + label.textContent;
+            var time = document.createElement('time');
+            time.className = 'small text-body-secondary flex-shrink-0 tabular-nums';
+            var date = new Date(event.time * 1000);
+            time.dateTime = date.toISOString();
+            time.textContent = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+            time.title = date.toLocaleString();
+            row.append(icon, message, time);
+            target.appendChild(row);
+        });
+    }
+    function render(data) {
+        options = data.options || options;
+        latestCard.classList.toggle('d-none', !options.latest_enabled);
+        var capacity = options.history_enabled ? Math.max(options.latest_count, options.history_count) : options.latest_count;
+        var events = options.latest_enabled ? data.events.slice(0, capacity) : [];
+        scroll.style.maxHeight = (options.latest_count * 44) + 'px';
+        var signature = JSON.stringify(events);
+        if (signature !== previous) {
+            previous = signature;
+            var oldTop = scroll.scrollTop;
+            var anchor = null;
+            if (oldTop > 0) {
+                var viewportTop = scroll.getBoundingClientRect().top;
+                Array.prototype.some.call(list.children, function(row) {
+                    var bounds = row.getBoundingClientRect();
+                    if (bounds.bottom > viewportTop) {
+                        anchor = {id: row.dataset.eventId, offset: bounds.top - viewportTop};
+                        return true;
+                    }
+                    return false;
+                });
+            }
+            renderRows(list, empty, events);
+            scroll.scrollTop = oldTop;
+            if (anchor) {
+                Array.prototype.some.call(list.children, function(row) {
+                    if (row.dataset.eventId === anchor.id) {
+                        scroll.scrollTop += row.getBoundingClientRect().top - scroll.getBoundingClientRect().top - anchor.offset;
+                        return true;
+                    }
+                    return false;
+                });
+            }
+        }
+        count.textContent = events.length + ' / ' + capacity;
+        if (Array.isArray(data.summary)) renderSummary(data.summary);
+    }
+    function poll() {
+        if (document.hidden) {
+            setTimeout(poll, 5000);
+            return;
+        }
+        var controller = new AbortController();
+        var timeout = setTimeout(function() { controller.abort(); }, 10000);
+        fetch('./api?action=stream_events&latest=1', {
+            signal: controller.signal,
+            cache: 'no-store',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        }).then(function(response) {
+            if (!response.ok) throw new Error('Alerts unavailable');
+            return response.json();
+        }).then(function(data) {
+            if (Array.isArray(data.events)) render(data);
+        }).catch(function() {
+            // Keep the last successful result until the next refresh.
+        }).finally(function() {
+            clearTimeout(timeout);
+            setTimeout(poll, 5000);
+        });
+    }
+    poll();
+})();
+</script>
+<?php endif; ?>
 
 <div class="row g-4 mb-4">
     <?php if ($rSettings['dashboard_status']): ?>

@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
+use XcVm\Core\Config\DashboardAlerts;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
@@ -328,14 +329,28 @@ class StatsAjaxController extends BaseAjaxController {
 		$this->json($rReturn, JSON_PARTIAL_OUTPUT_ON_ERROR);
 	}
 
-	/** action=stream_events — the stream log past `after` (and its `holes`), for the panel's start / stop / failure toasts (footer). */
+	/** action=stream_events — latest dashboard alerts, or the stream log past a cursor. */
 	public function streamEvents(): never {
 		$this->requireXhr();
 		$this->gate('adv', 'streams');
+		if ((string) RequestManager::get('latest') === '1') {
+			$this->json(self::latestAlertsPayload());
+		}
 		$rHoles = array_map('intval', array_filter(explode(',', (string) RequestManager::get('holes')), 'is_numeric'));
 		$rLog = StreamRepository::logSince(RequestManager::has('after') ? (int) RequestManager::get('after') : -1, $rHoles);
 		// No answer from the database: no `last`, so the tab keeps its cursor and asks again.
 		$this->json($rLog ?? ['error' => 'unavailable']);
+	}
+
+	/** Latest dashboard feed, with both logging and visibility enforced before reading events. */
+	public static function latestAlertsPayload(): array {
+		$rOptions = DashboardAlerts::options();
+		$rLogging = SettingsManager::getBool('save_restart_logs');
+		$rLimit = $rLogging && $rOptions['latest_enabled'] ? max($rOptions['latest_count'], $rOptions['history_enabled'] ? $rOptions['history_count'] : 0) : 0;
+		$rEvents = $rLimit > 0 ? StreamRepository::latestLogEvents($rLimit) : [];
+		$rNow = time();
+		$rSummary = $rLogging && $rOptions['latest_enabled'] ? StreamRepository::logEventSummary($rNow - 60, $rNow) : [];
+		return $rEvents === null || $rSummary === null ? ['error' => 'unavailable'] : ['events' => $rEvents, 'summary' => $rSummary, 'options' => $rOptions];
 	}
 
 	/** action=header_stats — compact fleet totals for the top navbar. */

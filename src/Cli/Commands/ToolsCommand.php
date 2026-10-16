@@ -9,6 +9,7 @@ use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Cluster\SignalDispatcher;
+use XcVm\Core\Config\NginxPortsFile;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsDeletedEvent;
@@ -372,7 +373,7 @@ class ToolsCommand implements CommandInterface {
 						$rListen[] = 'listen ' . intval($rPort) . ';';
 					}
 				}
-				file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/http.conf', implode(' ', $rListen));
+				NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/http.conf', implode(' ', $rListen));
 				file_put_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/live.conf', 'on_play http://127.0.0.1:' . intval($rPorts[0]) . '/stream/rtmp; on_publish http://127.0.0.1:' . intval($rPorts[0]) . '/stream/rtmp; on_play_done http://127.0.0.1:' . intval($rPorts[0]) . '/stream/rtmp;');
 			} elseif ($rKey === 'https') {
 				$rListen = [];
@@ -381,7 +382,7 @@ class ToolsCommand implements CommandInterface {
 						$rListen[] = 'listen ' . intval($rPort) . ' ssl;';
 					}
 				}
-				file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', implode(' ', $rListen));
+				NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', implode(' ', $rListen));
 			} elseif ($rKey === 'rtmp') {
 				file_put_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/port.conf', 'listen ' . intval($rPorts) . ';');
 			}

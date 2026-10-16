@@ -90,7 +90,7 @@ final class ClusterApiTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		foreach (['029_create_cluster_nodes', '030_create_cluster_commands', '032_create_cluster_audit', '063_widen_cluster_reservation_identity'] as $rName) {
+		foreach (['029_create_cluster_nodes', '030_create_cluster_commands', '031_create_cluster_enrolment', '032_create_cluster_audit', '063_widen_cluster_reservation_identity'] as $rName) {
 			$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/up/' . $rName . '.sql'));
 		}
 		$this->rDb->exec('ALTER TABLE `cluster_node_epochs` ADD COLUMN `agent_eph_pub` binary(32) DEFAULT NULL');
