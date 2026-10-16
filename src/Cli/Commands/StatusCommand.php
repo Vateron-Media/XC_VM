@@ -6,6 +6,7 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Core\Cluster\LbDatabaseAccessException;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Config\NginxPortsFile;
 use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Database\Database;
@@ -272,11 +273,7 @@ class StatusCommand implements CommandInterface {
 		$rHasIpv6 = is_readable('/proc/net/if_inet6'); // the kernel has the IPv6 stack; [::] will bind
 		foreach (['http', 'https'] as $rType) {
 			$rPath = MAIN_HOME . 'bin/nginx/conf/ports/' . $rType . '.conf';
-			$rPortConfig = (string) file_get_contents($rPath);
-			$rWanted = self::ipv6ListenFor($rPortConfig, $rHasIpv6);
-
-			if ($rWanted !== $rPortConfig) {
-				file_put_contents($rPath, $rWanted);
+			if (NginxPortsFile::update($rPath, static fn(string $rConfig): string => self::ipv6ListenFor($rConfig, $rHasIpv6))) {
 				$rReload = true;
 			}
 		}

@@ -21,6 +21,7 @@ use XcVm\Core\Cluster\ReplicaApply;
 use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Cluster\RootCredentials;
 use XcVm\Core\Cluster\RootPin;
+use XcVm\Core\Config\NginxPortsFile;
 use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Gateway\GatewayNginxConfig;
@@ -1472,7 +1473,7 @@ class RootSignalsCronJob implements CommandInterface {
 							$rListen[] = 'listen ' . intval($rPort) . ';';
 						}
 					}
-					file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/http.conf', implode(' ', $rListen));
+					NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/http.conf', implode(' ', $rListen));
 					// MAIN: the cluster API's servers follow the ports (its old ports,
 					// kept after a port change), rendered as xc_vm (ClusterNginxConfig).
 					if (NodeRole::isMain() && class_exists(ClusterNginxConfig::class)) {
@@ -1489,7 +1490,7 @@ class RootSignalsCronJob implements CommandInterface {
 							$rListen[] = 'listen ' . intval($rPort) . ' ssl;';
 						}
 					}
-					file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', implode(' ', $rListen));
+					NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', implode(' ', $rListen));
 					if (NodeRole::isMain() && class_exists(ClusterNginxConfig::class)) {
 						shell_exec('sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cluster:nginx --no-reload');
 					}
