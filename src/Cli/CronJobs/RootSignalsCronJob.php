@@ -895,7 +895,7 @@ class RootSignalsCronJob implements CommandInterface {
 				$rReload = true;
 			}
 		}
-		if ($rServers[SERVER_ID]['is_main']) {
+		if ($rServers[SERVER_ID]['is_main'] ?? 0) {
 			$rCurrentStatus = stripos((trim(file_get_contents(BIN_PATH . 'nginx/conf/gzip.conf')) ?: 'gzip off'), 'gzip on') !== false;
 			if ($rServers[SERVER_ID]['enable_gzip']) {
 				if (!$rCurrentStatus) {
@@ -1022,8 +1022,8 @@ class RootSignalsCronJob implements CommandInterface {
 			ProcessRunner::start(['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'ffmpeg']);
 		}
 
-		if ($rServers[SERVER_ID]['limit_requests'] > 0) {
-			$rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval($rServers[SERVER_ID]['limit_requests']) . 'r/s;';
+		if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
+			$rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval(($rServers[SERVER_ID]['limit_requests'] ?? 0)) . 'r/s;';
 		} else {
 			$rLimitConf = '';
 		}
@@ -1033,8 +1033,8 @@ class RootSignalsCronJob implements CommandInterface {
 			file_put_contents(BIN_PATH . 'nginx/conf/limit.conf', $rLimitConf);
 			$rReload = true;
 		}
-		if ($rServers[SERVER_ID]['limit_requests'] > 0) {
-			$rLimitConf = 'limit_req zone=two burst=' . intval($rServers[SERVER_ID]['limit_burst']) . ';';
+		if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
+			$rLimitConf = 'limit_req zone=two burst=' . intval(($rServers[SERVER_ID]['limit_burst'] ?? 0)) . ';';
 		} else {
 			$rLimitConf = '';
 		}

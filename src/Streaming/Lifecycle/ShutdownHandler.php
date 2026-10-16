@@ -34,7 +34,7 @@ class ShutdownHandler {
 		$rSettings = CacheReader::get('settings');
 
 		if ($rCloseCon) {
-			$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
+			$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0);
 
 			// A node in mode 2 has no other store: its agent did not answer.
 			if (!self::closeInRegistry((string) ($rTokenData['uuid'] ?? ''), (int) $rPID, $rLastRead) && !NodeRole::refusesConnects()) {

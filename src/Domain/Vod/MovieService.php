@@ -237,13 +237,13 @@ class MovieService {
 							}
 							$rParts = explode(':', $rData['import_folder']);
 
-							if (is_numeric($rParts[1])) {
+							if (isset($rParts[1], $rParts[2]) && is_numeric($rParts[1])) {
 								if (isset($rData['scan_recursive'])) {
 									$rFiles = ApiClient::scanRecursive(intval($rParts[1]), $rParts[2], ['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts']);
 								} else {
 									$rFiles = [];
 
-									foreach (ApiClient::listDir(intval($rParts[1]), rtrim($rParts[2], '/'), ['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'])['files'] as $rFile) {
+									foreach ((ApiClient::listDir(intval($rParts[1]), rtrim($rParts[2], '/'), ['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'])['files'] ?? []) as $rFile) {
 										$rFiles[] = rtrim($rParts[2], '/') . '/' . $rFile;
 									}
 								}
@@ -554,13 +554,13 @@ class MovieService {
 				} else {
 					if (!empty($rData['import_folder'])) {
 						$rParts = explode(':', $rData['import_folder']);
-						if (is_numeric($rParts[1])) {
+						if (isset($rParts[1], $rParts[2]) && is_numeric($rParts[1])) {
 							if (isset($rData['scan_recursive'])) {
 								$rFiles = ApiClient::scanRecursive(intval($rParts[1]), $rParts[2], ['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts']);
 							} else {
 								$rFiles = [];
 
-								foreach (ApiClient::listDir(intval($rParts[1]), rtrim($rParts[2], '/'), ['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'])['files'] as $rFile) {
+								foreach ((ApiClient::listDir(intval($rParts[1]), rtrim($rParts[2], '/'), ['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'])['files'] ?? []) as $rFile) {
 									$rFiles[] = rtrim($rParts[2], '/') . '/' . $rFile;
 								}
 							}

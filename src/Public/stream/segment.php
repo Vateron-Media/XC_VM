@@ -176,7 +176,7 @@ if (isset($_GET['token'])) {
 			// a store that cannot be asked does not stop the playback.
 			if ($rType == 'ARCHIVE') {
 				try {
-					$rHeard = ConnectionTracker::heartbeat($rSettings, $rUUID, time() - intval($rServers[SERVER_ID]['time_offset']));
+					$rHeard = ConnectionTracker::heartbeat($rSettings, $rUUID, time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0));
 				} catch (\Throwable) {
 					$rHeard = null;
 				}

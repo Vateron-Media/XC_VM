@@ -186,7 +186,7 @@ class WatchdogCommand implements CommandInterface {
 			}
 
 			if ($rResult) {
-				if ($rServers[SERVER_ID]['is_main']) {
+				if ($rServers[SERVER_ID]['is_main'] ?? 0) {
 					if (SettingsManager::get('redis_handler')) {
 						// Redis down: keep the last known connections/users totals
 						// for this round instead of overwriting them with garbage.

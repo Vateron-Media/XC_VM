@@ -212,7 +212,7 @@ class MultiAjaxController extends BaseAjaxController {
 			$db->query('UPDATE `servers` SET `enable_proxy` = 0 WHERE `id` IN (' . $this->inList($rRequestIDs) . ');');
 		} elseif ($rSub == 'delete') {
 			foreach ($rRequestIDs as $rServerID) {
-				if ($rServers[$rServerID]['is_main'] == 0) {
+				if (!empty($rServers[$rServerID]) && $rServers[$rServerID]['is_main'] == 0) {
 					ServerRepository::deleteById($rServerID);
 				}
 			}

@@ -12,13 +12,13 @@ use PHPUnit\Framework\TestCase;
 final class StreamServiceParseM3UTest extends TestCase {
 	// ── helpers ────────────────────────────────────────────────────────────
 
-	/** Shortcut: parse inline M3U string via StreamService. */
-	private function parse(string $m3u): \M3uParser\M3uData {
+	/** Shortcut: parse inline M3U string via StreamService (a list of entries that carry a URL). */
+	private function parse(string $m3u): array {
 		return StreamService::parseM3U($m3u, false);
 	}
 
 	/** Build import array from a single parsed entry (mirrors the logic in process()). */
-	private function buildImportArray(\M3uParser\M3uData $data): ?array {
+	private function buildImportArray(array $data): ?array {
 		foreach ($data as $result) {
 			$tags = $result->getExtTags();
 			$tag  = $tags[0] ?? null;
@@ -54,7 +54,7 @@ final class StreamServiceParseM3UTest extends TestCase {
 		$m3u = "#EXTM3U\n#EXTINF:-1,Test\nhttp://example.com/live.m3u8\n";
 
 		$data  = $this->parse($m3u);
-		$entry = iterator_to_array($data)[0];
+		$entry = $data[0];
 
 		$this->assertSame('http://example.com/live.m3u8', $entry->getPath());
 	}

@@ -149,7 +149,7 @@ if ($rChannelInfo) {
 			generateError('TOKEN_EXPIRED');
 		}
 
-		$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset']);
+		$rLastRead = time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0);
 		if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
 			$rOwner = ['user_id' => $rUserInfo['id']];
 			$rIdentity = $rUserInfo['id'];
@@ -158,7 +158,7 @@ if ($rChannelInfo) {
 			$rIdentity = $rIsHMAC . '_' . $rIdentifier;
 		}
 		$rConnectionData = $rOwner + ['stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => 'VOD', 'pid' => $rConnPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'external_device' => '', 'hls_end' => 0, 'hls_last_read' => $rLastRead, 'on_demand' => 0, 'identity' => $rIdentity, 'uuid' => $rTokenData['uuid']];
-		$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, $rOwner + ['stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => 'VOD', 'pid' => $rConnPID, 'uuid' => $rTokenData['uuid'], 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'hls_last_read' => $rLastRead], $rTokenData, intval($rServers[SERVER_ID]['time_offset']));
+		$rResult = ConnectionTracker::openRecord($rSettings, $rConnectionData, $rOwner + ['stream_id' => $rStreamID, 'server_id' => $rServerID, 'proxy_id' => $rProxyID, 'user_agent' => $rUserAgent, 'user_ip' => $rIP, 'container' => 'VOD', 'pid' => $rConnPID, 'uuid' => $rTokenData['uuid'], 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo['con_isp_name'], 'hls_last_read' => $rLastRead], $rTokenData, intval($rServers[SERVER_ID]['time_offset'] ?? 0));
 	} else {
 		if ($rIPMatch || !$rSettings['restrict_same_ip']) {
 		} else {
@@ -177,7 +177,7 @@ if ($rChannelInfo) {
 			}
 		}
 
-		$rResult = ConnectionTracker::updateLive($rSettings, $rConnection, ['pid' => $rConnPID, 'hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset'])]);
+		$rResult = ConnectionTracker::updateLive($rSettings, $rConnection, ['pid' => $rConnPID, 'hls_last_read' => time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0)]);
 	}
 
 	if (!$rResult) {
@@ -297,7 +297,7 @@ if ($rChannelInfo) {
 					$rConnection = null;
 					$rSettings = CacheReader::get('settings');
 
-					if (!ConnectionTracker::checkIn($rSettings, $rTokenData['uuid'], time() - intval($rServers[SERVER_ID]['time_offset']), $rPID, $rLastCheck)) {
+					if (!ConnectionTracker::checkIn($rSettings, $rTokenData['uuid'], time() - intval($rServers[SERVER_ID]['time_offset'] ?? 0), $rPID, $rLastCheck)) {
 						exit();
 					}
 				}
