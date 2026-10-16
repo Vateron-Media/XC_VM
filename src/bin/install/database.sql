@@ -1800,6 +1800,10 @@ CREATE TABLE IF NOT EXISTS `signals` (
   `time` int(11) DEFAULT NULL,
   `custom_data` mediumtext COLLATE utf8_unicode_ci,
   `cache` tinyint(4) DEFAULT '0',
+  `dashboard_alerts` tinyint(1) NOT NULL DEFAULT 1,
+  `dashboard_alerts_count` smallint unsigned NOT NULL DEFAULT 4,
+  `dashboard_alert_history` tinyint(1) NOT NULL DEFAULT 1,
+  `dashboard_alert_history_count` smallint unsigned NOT NULL DEFAULT 20,
   PRIMARY KEY (`signal_id`),
   KEY `server_id` (`server_id`),
   KEY `time` (`time`)
