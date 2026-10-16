@@ -3,7 +3,7 @@
 /**
  * Reseller Users (Bootstrap 5). Full-parity port of admin/users.php adapted to the
  * reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleRegUsers emits data-only rows), with the status
+ * (ResellerTableController::handleRegUsers emits data-only rows), with the status
  * icon, credit / line-count badges, IP whois link and the per-row action dropdown
  * all rendered client-side.
  *
@@ -15,7 +15,7 @@
  * (Global / Direct Reports / Indirect Reports) mapped to the `reseller` (owner_id)
  * param, not an ajax reguser search; edit navigates to `user?id=…` (the reseller
  * user editor has no iframe-modal shell). Row actions are wired ONLY to endpoints
- * ResellerApiDispatcher exposes: `action=reg_user&sub=enable|disable|delete`
+ * Reseller\Ajax exposes: `action=reg_user&sub=enable|disable|delete`
  * (delete gated by `delete_users`) and `action=adjust_credits`. Permission gating
  * uses $rPermissions['create_sub_resellers'], not Authorization::check.
  */

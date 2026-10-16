@@ -41,7 +41,7 @@ $rProxyServers = [];
 \XcVm\Core\Http\RequestManager::set($input['request'] + ['draw' => 1, 'search' => ['value' => '']]);
 $return = ['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []];
 if ($input['reseller']) {
-    $method = new ReflectionMethod(\XcVm\Infrastructure\ResellerTableRenderer::class, 'handleMags');
+    $method = new ReflectionMethod(\XcVm\Public\Controllers\Reseller\ResellerTableController::class, 'handleMags');
     $method->setAccessible(true);
     $method->invoke(null, $return, false, $rUserInfo, $rPermissions, 0, 100);
 } else {

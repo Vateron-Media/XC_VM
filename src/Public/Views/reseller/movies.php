@@ -5,13 +5,13 @@ use XcVm\Core\Util\LayoutRenderer;
 /**
  * Reseller Movies / VOD (Bootstrap 5). Full-parity port of admin/movies.php adapted
  * to the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleMovies emits data-only rows), with the cover,
+ * (ResellerTableController::handleMovies emits data-only rows), with the cover,
  * title, category, connections badge and per-row action dropdown all rendered
  * client-side.
  *
  * Reseller differences vs admin (the reseller API/renderer simply does not expose
  * these, so the view legitimately omits them): no bulk toolbar (reseller has no
- * `multi` endpoint), no encode / stop / edit / delete / player (ResellerApiDispatcher
+ * `multi` endpoint), no encode / stop / edit / delete / player (Reseller\Ajax
  * exposes only `action=connections&sub=purge`), no server / status / TMDB /
  * stream-info columns (the reseller movies query does not fetch that data). The only
  * row action is Kill Connections, gated by `reseller_client_connection_logs`. The

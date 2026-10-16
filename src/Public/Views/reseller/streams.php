@@ -5,14 +5,14 @@ use XcVm\Core\Util\LayoutRenderer;
 /**
  * Reseller Streams (Bootstrap 5). Full-parity port of admin/streams.php adapted to
  * the reseller contract: clean-JSON keyed serverSide DataTable
- * (ResellerTableRenderer::handleStreams emits data-only rows), with the icon,
+ * (ResellerTableController::handleStreams emits data-only rows), with the icon,
  * title (+ archive marker), category, connections badge and per-row action
  * dropdown all rendered client-side.
  *
  * Reseller differences vs admin (the reseller API/renderer simply does not expose
  * these, so the view legitimately omits them): no bulk toolbar (reseller has no
  * `multi` endpoint), no edit / start / stop / restart / delete / fingerprint /
- * player (ResellerApiDispatcher exposes only `action=connections&sub=purge`), no
+ * player (Reseller\Ajax exposes only `action=connections&sub=purge`), no
  * server / status / EPG / stream-info columns (the reseller streams query does not
  * fetch that data). The only row action is Kill Connections, gated by
  * `reseller_client_connection_logs`. The category filter is limited to the

@@ -20,7 +20,7 @@ use XcVm\Tests\Support\InstallSchema;
  * returned.
  *
  * It asks for the group permission the panel's same action asks for
- * (ResellerApiDispatcher::handleLine, handleMag, handleEnigma): create_line
+ * (Reseller\Ajax\LineAjaxController::line, DeviceAjaxController::mag, enigma): create_line
  * for a line, create_mag and create_enigma for a device.
  */
 final class AuditResellerRestOwnershipTest extends TestCase {

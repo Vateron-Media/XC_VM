@@ -45,7 +45,7 @@ $rUserInfo = \XcVm\Domain\User\UserRepository::getRegisteredUserById($rIn['resel
 $rPermissions = $rIn['permissions'];
 $rUserInfo['reports'] = array_merge([$rUserInfo['id']], $rPermissions['all_reports']);
 
-\XcVm\Infrastructure\ResellerApiDispatcher::dispatch('adjust_credits', $rUserInfo, $rPermissions);
+\XcVm\Tests\Support\ResellerAjax::call('adjust_credits', $rUserInfo, $rPermissions);
 PHP;
 
 	private TestDb $rDb;
