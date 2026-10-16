@@ -31,7 +31,7 @@ use XcVm\Streaming\Fanout\FanoutMode;
  * {"v": 1, "server_id": 3, "written_at": 1759900000, "mode": "shadow",
  *  "keys": {"viewer": [{"hex": "…", "until": null}], "shared": […], "context": […], "accept_legacy_cbc": false},
  *  "restrict_same_ip": true, "ip_subnet_match": false, "encrypt_hls": true,
- *  "headers": {"server": "", "protection": true, "altsvc_port": 0},
+ *  "headers": {"server": "", "protection": true, "altsvc_port": 0, "unique_header": false},
  *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
  *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0, "unique_header": false,
  *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10, "create_expiration": 5, "admission": true},
@@ -67,10 +67,11 @@ final class GatewayPolicy {
 
 	/**
 	 * `gateway_mode`: off; shadow (PHP serves, the gateway judges a mirrored copy
-	 * of each segment, key and playlist request); segments (the gateway serves
-	 * segments and keys); segments+playlist (and a known viewer's playlist refresh).
+	 * of each segment, key, playlist and thumbnail request); segments (the gateway
+	 * serves segments and keys); segments+playlist (and a known viewer's playlist
+	 * refresh); segments+playlist+thumb (and stream thumbnails).
 	 */
-	public const MODES = ['off', 'shadow', 'segments', 'segments+playlist'];
+	public const MODES = ['off', 'shadow', 'segments', 'segments+playlist', 'segments+playlist+thumb'];
 
 	/** Tests: another file; null restores TMP_PATH's. */
 	private static ?string $rFile = null;
@@ -137,6 +138,9 @@ final class GatewayPolicy {
 				'server' => (string) ($rSettings['send_server_header'] ?? ''),
 				'protection' => !empty($rSettings['send_protection_headers']),
 				'altsvc_port' => !empty($rSettings['send_altsvc_header']) ? (int) ($rOwn['https_broadcast_port'] ?? 0) : 0,
+				// thumb.php and subtitle.php write a fresh random cookie per response
+				// that the gateway does not reproduce: with it set, they stay PHP's.
+				'unique_header' => !empty($rSettings['send_unique_header']),
 			],
 			'serve_until' => self::serveUntil($rSettings, $rNow),
 			'paths' => [
