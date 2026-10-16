@@ -31,7 +31,8 @@ final class NginxPortsFile {
 				return false;
 			}
 			if (!rewind($rHandle) || !ftruncate($rHandle, 0)
-				|| fwrite($rHandle, $rWanted) !== strlen($rWanted) || !fflush($rHandle)) {
+				|| fwrite($rHandle, $rWanted) !== strlen($rWanted) || !fflush($rHandle)
+			) {
 				throw new \RuntimeException('Cannot write nginx ports file: ' . $rPath);
 			}
 			return true;
