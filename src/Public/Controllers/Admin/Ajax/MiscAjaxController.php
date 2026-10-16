@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
 use XcVm\Core\Cluster\ClusterSettings;
+use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\ApiClient;
@@ -219,7 +220,7 @@ class MiscAjaxController extends BaseAjaxController {
 		// verdict for this request, and discarding a good key over a stale "no"
 		// would be worse than leaving a dead one behind. Nothing trusts the
 		// file's presence any more — the dashboard banner asks LicenseGate too.
-		if (!LicenseGate::licensed()) {
+		if (!self::keyAccepted()) {
 			ClusterAudit::log('cluster.licence_key', null, ['accepted' => false], 'admin');
 			$this->fail(['message' => Translator::get('activation_key_rejected')]);
 		}
@@ -234,6 +235,28 @@ class MiscAjaxController extends BaseAjaxController {
 		ClusterAudit::log('cluster.licence_key', null, ['accepted' => true, 'rotated' => $rRotated['queued'] ?? 0], 'admin');
 
 		$this->ok(['message' => Translator::get('activation_saved')]);
+	}
+
+	/**
+	 * Whether the key just written licenses this install.
+	 *
+	 * On MAIN, ask the licence server now (XC_VM::license_check). The cached
+	 * verdict behind LicenseGate (XC_VM::license_valid) lets a fresh key ride
+	 * the issuance grace until the next scheduled refresh, so a key the server
+	 * rejects would report as accepted here. An unreachable licence server
+	 * leaves the answer to the offline verdict and grace: the extension never
+	 * reads "down" as "rejected".
+	 *
+	 * Anywhere else (a cluster node is licensed by its lease, not by a key), on
+	 * an unknown role, and on an extension build without license_check, keep
+	 * LicenseGate's answer.
+	 */
+	private static function keyAccepted(): bool {
+		if (NodeRole::isMain() && class_exists('XC_VM') && method_exists('XC_VM', 'license_check')) {
+			return (bool) \XC_VM::license_check();
+		}
+
+		return LicenseGate::licensed();
 	}
 
 	/** action=clear_failures — clear a stream's failure log. */
