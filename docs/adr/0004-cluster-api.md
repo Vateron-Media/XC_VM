@@ -4630,8 +4630,12 @@ under the old key keeps its stored `B` and runs to its `exp`, so nothing breaks.
 though, each node moves to the new key's chain only at its next scheduled refresh, up to
 `lb_token_rotation_min` later.
 
-- **The trigger.** `save_activation_key`, once the extension accepts the key
-  (`LicenseGate::licensed()`), compares it with the key it replaced. If they differ, it calls
+- **The trigger.** `save_activation_key`, once the extension accepts the key, compares it with
+  the key it replaced. On MAIN acceptance is `XC_VM::license_check()`, which asks the licence
+  server even while a cached verdict for the key is still fresh; on a node, on an unknown role and
+  on an extension without that method it is `LicenseGate::licensed()`. A key the server rejects on
+  MAIN puts back the key it replaced (audited as `restored`); elsewhere the rejected key stays,
+  since that "no" may be a cached one. If they differ, it calls
   `ClusterOverview::rotateAll`, the same as *Rotate all tokens now*: every active node that takes
   commands gets `token.rotate_now`, deduplicated and audited per node (`node.token_rotate`). The
   key's own audit line (`cluster.licence_key`) records how many were queued (`rotated`).
