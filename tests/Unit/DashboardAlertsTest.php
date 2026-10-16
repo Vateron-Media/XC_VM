@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Config\DashboardAlerts;
+use XcVm\Tests\Support\InstallSchema;
 
 final class DashboardAlertsTest extends TestCase {
 	public function testDefaultsEnableFourLatestAlertsAndTwentyHistoryEntries(): void {
@@ -18,6 +19,25 @@ final class DashboardAlertsTest extends TestCase {
 			'dashboard_alert_history' => '0', 'dashboard_alert_history_count' => 'invalid',
 		]));
 	}
+	public function testFreshInstallPutsPreferencesOnSettingsAndNotSignals(): void {
+		foreach (array_keys(DashboardAlerts::values([])) as $rKey) {
+			$this->assertContains($rKey, InstallSchema::columns('settings'));
+			$this->assertNotContains($rKey, InstallSchema::columns('signals'));
+		}
+	}
+
+	public function testStaleFormSubmitsOnlyThePreferencesActuallyEdited(): void {
+		$rOriginal = DashboardAlerts::values([]);
+		$rForm = $rOriginal + ['submit_settings' => 1, 'dashboard_alerts_original' => json_encode($rOriginal)];
+		$this->assertSame([], DashboardAlerts::submitted($rForm));
+		$rForm['dashboard_alert_history_count'] = 30;
+		$this->assertSame(['dashboard_alert_history_count' => 30], DashboardAlerts::submitted($rForm));
+		unset($rForm['dashboard_alerts'], $rForm['dashboard_alert_history']);
+		$this->assertEquals(['dashboard_alert_history_count' => 30, 'dashboard_alerts' => 0, 'dashboard_alert_history' => 0], DashboardAlerts::submitted($rForm));
+		$rForm['dashboard_alerts_original'] = 'broken';
+		$this->assertSame([], DashboardAlerts::submitted($rForm));
+	}
+
 	public function testMigrationIsRepeatableAndRollbackKeepsOtherSettings(): void {
 		$rDb = new TestDb();
 		$rDb->exec('CREATE TABLE `settings` (`id` int PRIMARY KEY, `search_items` int DEFAULT 15);');
