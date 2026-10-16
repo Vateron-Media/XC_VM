@@ -33,9 +33,10 @@ class StreamRepository {
 	private const LOG_HOLE_SPAN = 200;
 
 	/** Count every event in the time window, independently of the displayed row limit. */
-	public static function logEventSummary(int $rSince): ?array {
+	public static function logEventSummary(int $rSince, ?int $rUntil = null): ?array {
+		$rUntil ??= time();
 		$db = self::db();
-		if (!$db->query('SELECT `action`, COUNT(*) AS `count` FROM `streams_logs` WHERE `date` >= ? GROUP BY `action` ORDER BY `count` DESC, `action` ASC;', $rSince)) {
+		if (!$db->query('SELECT `action`, COUNT(*) AS `count` FROM `streams_logs` WHERE `date` BETWEEN ? AND ? GROUP BY `action` ORDER BY `count` DESC, `action` ASC;', $rSince, $rUntil)) {
 			return null;
 		}
 		return array_map(static function (array $rRow): array {
@@ -48,7 +49,7 @@ class StreamRepository {
 	public static function latestLogEvents(int $rLimit = 4): ?array {
 		$rLimit = max(1, min(200, $rLimit));
 		$db = self::db();
-		if (!$db->query('SELECT `l`.`id`, `l`.`stream_id`, `l`.`action`, `l`.`date`, `s`.`stream_display_name`, `v`.`server_name` FROM `streams_logs` `l` LEFT JOIN `streams` `s` ON `s`.`id` = `l`.`stream_id` LEFT JOIN `servers` `v` ON `v`.`id` = `l`.`server_id` ORDER BY `l`.`id` DESC LIMIT ' . $rLimit . ';')) {
+		if (!$db->query('SELECT `l`.`id`, `l`.`stream_id`, `l`.`action`, `l`.`date`, `s`.`stream_display_name`, `v`.`server_name` FROM `streams_logs` `l` LEFT JOIN `streams` `s` ON `s`.`id` = `l`.`stream_id` LEFT JOIN `servers` `v` ON `v`.`id` = `l`.`server_id` ORDER BY `l`.`date` DESC, `l`.`id` DESC LIMIT ' . $rLimit . ';')) {
 			return null;
 		}
 		return array_map(static function (array $rRow): array {

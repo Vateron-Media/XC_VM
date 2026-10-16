@@ -1776,6 +1776,10 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `cluster_db_allowlist_extra` varchar(1024) DEFAULT '',
   `cluster_auto_mode_down_min` smallint(5) unsigned DEFAULT '0',
   `secure_stream_tokens` tinyint(1) DEFAULT '1',
+  `dashboard_alerts` tinyint(1) NOT NULL DEFAULT 1,
+  `dashboard_alerts_count` smallint unsigned NOT NULL DEFAULT 4,
+  `dashboard_alert_history` tinyint(1) NOT NULL DEFAULT 1,
+  `dashboard_alert_history_count` smallint unsigned NOT NULL DEFAULT 20,
   `disable_table_responsive` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -1800,10 +1804,6 @@ CREATE TABLE IF NOT EXISTS `signals` (
   `time` int(11) DEFAULT NULL,
   `custom_data` mediumtext COLLATE utf8_unicode_ci,
   `cache` tinyint(4) DEFAULT '0',
-  `dashboard_alerts` tinyint(1) NOT NULL DEFAULT 1,
-  `dashboard_alerts_count` smallint unsigned NOT NULL DEFAULT 4,
-  `dashboard_alert_history` tinyint(1) NOT NULL DEFAULT 1,
-  `dashboard_alert_history_count` smallint unsigned NOT NULL DEFAULT 20,
   PRIMARY KEY (`signal_id`),
   KEY `server_id` (`server_id`),
   KEY `time` (`time`)

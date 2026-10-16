@@ -362,7 +362,10 @@ if (!LicenseGate::licensed()):
             setTimeout(poll, 5000);
             return;
         }
+        var controller = new AbortController();
+        var timeout = setTimeout(function() { controller.abort(); }, 10000);
         fetch('./api?action=stream_events&latest=1', {
+            signal: controller.signal,
             cache: 'no-store',
             headers: {'X-Requested-With': 'XMLHttpRequest'}
         }).then(function(response) {
@@ -373,6 +376,7 @@ if (!LicenseGate::licensed()):
         }).catch(function() {
             // Keep the last successful result until the next refresh.
         }).finally(function() {
+            clearTimeout(timeout);
             setTimeout(poll, 5000);
         });
     }
