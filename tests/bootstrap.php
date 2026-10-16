@@ -124,6 +124,7 @@ require_once __DIR__ . '/Support/TestSourceDriver.php';
 require_once __DIR__ . '/Support/AgentUser.php';
 require_once __DIR__ . '/Support/NodeLeaseFixture.php';
 require_once __DIR__ . '/Support/FakeTmdbClient.php';
+require_once __DIR__ . '/Support/ResellerAjax.php';
 
 // EventIngest's lane locks are real flock files. Without this they would land
 // in the shared TMP_PATH or system temp dir, where suite runs from other

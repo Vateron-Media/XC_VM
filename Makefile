@@ -83,7 +83,6 @@ LB_FILES_TO_REMOVE := \
 	Cli/CronJobs/RemindersCronJob.php \
 	Cli/CronJobs/BackupVerifyCronJob.php \
 	Cli/Commands/BackupOpenBundleCommand.php \
-	Infrastructure/ResellerApiDispatcher.php \
 	Infrastructure/ResellerTableRenderer.php \
 	config/rclone.conf \
 	Cli/migration_logic.php \

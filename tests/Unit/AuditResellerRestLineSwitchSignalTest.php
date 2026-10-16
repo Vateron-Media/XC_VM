@@ -67,7 +67,7 @@ register_shutdown_function(static function () use ($db): void {
 	echo "\n" . $db->rLookups;
 });
 
-\XcVm\Infrastructure\ResellerApiDispatcher::dispatch($rIn['action'], $rUserInfo, $rPermissions);
+\XcVm\Tests\Support\ResellerAjax::call($rIn['action'], $rUserInfo, $rPermissions);
 PHP;
 
 	private TestDb $rDb;

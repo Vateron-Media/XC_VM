@@ -31,12 +31,10 @@ $input = json_decode($argv[1], true);
 $db = \XcVm\Infrastructure\Database\DatabaseFactory::get();
 $db->query('SELECT * FROM users WHERE id = 5');
 $actor = $db->get_row();
-$rUserInfo = $actor;
-// The handler must use its authenticated argument, not a stale global allowance.
-$rUserInfo['allowed_bouquets'] = '[1]';
 $rPermissions = ['all_reports' => [6]];
+$actor['reports'] = [5, 6];
 \XcVm\Core\Http\RequestManager::set(['package_id' => 1] + ($input['owner'] ? ['member_id' => $input['owner']] : []));
-\XcVm\Infrastructure\ResellerApiDispatcher::dispatch($input['action'], $actor, $rPermissions);
+\XcVm\Tests\Support\ResellerAjax::call($input['action'], $actor, $rPermissions);
 PHP;
 		$code = str_replace('%BOOTSTRAP%', var_export(dirname(__DIR__) . '/bootstrap.php', true), $code);
 		$input = json_encode(['schema' => $this->db->schema(), 'action' => $action, 'owner' => $owner]);

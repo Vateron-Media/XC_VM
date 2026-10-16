@@ -11,7 +11,7 @@
  * these): no bulk toolbar (reseller has no `multi` endpoint), no ban/unban (the
  * reseller cannot toggle admin_enabled) and no fingerprint. Last Active includes current connection IP/ISP. Edit navigates to `mag?id=…`
  * (the reseller MAG editor has no iframe-modal shell). Row actions are wired ONLY
- * to endpoints ResellerApiDispatcher exposes: `action=mag&sub=enable|disable|
+ * to endpoints Reseller\Ajax exposes: `action=mag&sub=enable|disable|
  * delete|convert|reset_isp|kill_line` and `action=send_event` (MAG event). Convert
  * is gated by `create_line`, kill by `reseller_client_connection_logs`. The owner
  * filter is a static select2 built from the reseller's report tree. Permission

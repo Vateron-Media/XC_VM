@@ -171,7 +171,7 @@ class ResellerAPIWrapper {
 	}
 
 	public static function deleteLine($rID) {
-		// The group permission the panel asks for (ResellerApiDispatcher::handleLine).
+		// The group permission the panel asks for (Reseller\Ajax\LineAjaxController::line).
 		if (!Authorization::hasResellerPermissions('create_line')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -184,7 +184,7 @@ class ResellerAPIWrapper {
 	}
 
 	public static function disableLine($rID) {
-		// The group permission the panel asks for (ResellerApiDispatcher::handleLine).
+		// The group permission the panel asks for (Reseller\Ajax\LineAjaxController::line).
 		if (!Authorization::hasResellerPermissions('create_line')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -197,7 +197,7 @@ class ResellerAPIWrapper {
 	}
 
 	public static function enableLine($rID) {
-		// The group permission the panel asks for (ResellerApiDispatcher::handleLine).
+		// The group permission the panel asks for (Reseller\Ajax\LineAjaxController::line).
 		if (!Authorization::hasResellerPermissions('create_line')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -247,7 +247,7 @@ class ResellerAPIWrapper {
 	}
 
 	public static function deleteMAG($rID) {
-		// The group permission the panel asks for (ResellerApiDispatcher::handleMag).
+		// The group permission the panel asks for (Reseller\Ajax\DeviceAjaxController::mag).
 		if (!Authorization::hasResellerPermissions('create_mag')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -260,7 +260,7 @@ class ResellerAPIWrapper {
 	}
 
 	public static function disableMAG($rID) {
-		// The group permission the panel asks for (ResellerApiDispatcher::handleMag).
+		// The group permission the panel asks for (Reseller\Ajax\DeviceAjaxController::mag).
 		if (!Authorization::hasResellerPermissions('create_mag')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -273,7 +273,7 @@ class ResellerAPIWrapper {
 	}
 
 	public static function enableMAG($rID) {
-		// The group permission the panel asks for (ResellerApiDispatcher::handleMag).
+		// The group permission the panel asks for (Reseller\Ajax\DeviceAjaxController::mag).
 		if (!Authorization::hasResellerPermissions('create_mag')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -288,7 +288,7 @@ class ResellerAPIWrapper {
 
 	public static function convertMAG($rID) {
 		global $db;
-		// The group permission the panel asks for (ResellerApiDispatcher::handleMag).
+		// The group permission the panel asks for (Reseller\Ajax\DeviceAjaxController::mag).
 		if (!Authorization::hasResellerPermissions('create_mag')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -335,7 +335,7 @@ class ResellerAPIWrapper {
 	}
 
 	public static function deleteEnigma($rID) {
-		// The group permission the panel asks for (ResellerApiDispatcher::handleEnigma).
+		// The group permission the panel asks for (Reseller\Ajax\DeviceAjaxController::enigma).
 		if (!Authorization::hasResellerPermissions('create_enigma')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -348,7 +348,7 @@ class ResellerAPIWrapper {
 	}
 
 	public static function disableEnigma($rID) {
-		// The group permission the panel asks for (ResellerApiDispatcher::handleEnigma).
+		// The group permission the panel asks for (Reseller\Ajax\DeviceAjaxController::enigma).
 		if (!Authorization::hasResellerPermissions('create_enigma')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -361,7 +361,7 @@ class ResellerAPIWrapper {
 	}
 
 	public static function enableEnigma($rID) {
-		// The group permission the panel asks for (ResellerApiDispatcher::handleEnigma).
+		// The group permission the panel asks for (Reseller\Ajax\DeviceAjaxController::enigma).
 		if (!Authorization::hasResellerPermissions('create_enigma')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -376,7 +376,7 @@ class ResellerAPIWrapper {
 
 	public static function convertEnigma($rID) {
 		global $db;
-		// The group permission the panel asks for (ResellerApiDispatcher::handleEnigma).
+		// The group permission the panel asks for (Reseller\Ajax\DeviceAjaxController::enigma).
 		if (!Authorization::hasResellerPermissions('create_enigma')) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -423,7 +423,7 @@ class ResellerAPIWrapper {
 	public static function deleteUser($rID) {
 		global $rUserInfo;
 		global $rPermissions;
-		// The group permissions the panel asks for (ResellerApiDispatcher::handleRegUser).
+		// The group permissions the panel asks for (Reseller\Ajax\UserAjaxController::regUser).
 		if (empty($rPermissions['create_sub_resellers']) || empty($rPermissions['delete_users'])) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -452,7 +452,7 @@ class ResellerAPIWrapper {
 	public static function disableUser($rID) {
 		global $rUserInfo;
 		global $rPermissions;
-		// The group permission the panel asks for (ResellerApiDispatcher::handleRegUser).
+		// The group permission the panel asks for (Reseller\Ajax\UserAjaxController::regUser).
 		if (empty($rPermissions['create_sub_resellers'])) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -467,7 +467,7 @@ class ResellerAPIWrapper {
 	public static function enableUser($rID) {
 		global $rUserInfo;
 		global $rPermissions;
-		// The group permission the panel asks for (ResellerApiDispatcher::handleRegUser).
+		// The group permission the panel asks for (Reseller\Ajax\UserAjaxController::regUser).
 		if (empty($rPermissions['create_sub_resellers'])) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}
@@ -482,7 +482,7 @@ class ResellerAPIWrapper {
 	public static function adjustCredits($rID, $rCredits, $rNote) {
 		global $rUserInfo;
 		global $rPermissions;
-		// The group permission the panel asks for (ResellerApiDispatcher::handleAdjustCredits).
+		// The group permission the panel asks for (Reseller\Ajax\UserAjaxController::adjustCredits).
 		if (empty($rPermissions['create_sub_resellers'])) {
 			return ['status' => 'STATUS_NO_PERMISSIONS'];
 		}

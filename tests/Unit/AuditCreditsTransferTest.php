@@ -60,7 +60,7 @@ $rUserInfo['credits'] = $rIn['read'] ?? $rUserInfo['credits'];
 $rPermissions = $rIn['permissions'];
 $rUserInfo['reports'] = array_merge([$rUserInfo['id']], $rPermissions['all_reports']);
 
-\XcVm\Infrastructure\ResellerApiDispatcher::dispatch($rIn['action'], $rUserInfo, $rPermissions);
+\XcVm\Tests\Support\ResellerAjax::call($rIn['action'], $rUserInfo, $rPermissions);
 PHP;
 
 	private TestDb $rDb;

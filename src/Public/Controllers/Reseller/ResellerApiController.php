@@ -2,20 +2,13 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Infrastructure\ResellerApiDispatcher;
-
 /**
- * ResellerApiController — AJAX API handler for reseller panel.
+ * ResellerApiController — reseller-ajax fallback.
  *
- * Migrated from reseller/api.php.
- * Handles dashboard stats, connection management, line/mag/enigma/user CRUD,
- * package info, EPG data, search, etc.
- *
- * Called via: GET/POST api?action=dashboard (or any other action).
- * Bootstrap (session + functions) is loaded by Front Controller before dispatch.
+ * Every real `?action=` endpoint is handled by a controller under
+ * {@see Ajax}, reached via `Router::dispatchApi()` before this fallback (see
+ * `routes/reseller.php` and `Public/index.php`). Only an unknown action, or a
+ * bare `/api` request, reaches here, and it answers `{"result":false}`.
  *
  * @package XC_VM_Public_Controllers_Reseller
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -23,37 +16,13 @@ use XcVm\Infrastructure\ResellerApiDispatcher;
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-
 class ResellerApiController extends BaseResellerController {
 	public function index() {
-		session_write_close();
-
-		$rUserInfo = $GLOBALS['rUserInfo'] ?? null;
-		$rPermissions = $GLOBALS['rPermissions'] ?? [];
-		global $db;
-
-		if (!PHP_ERRORS) {
-			if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) !== 'xmlhttprequest') {
-				exit();
-			}
-		}
-
-		if (SettingsManager::get('redis_handler')) {
-			RedisManager::ensureConnected();
-		}
-
-		if (!$rUserInfo || !$rUserInfo['id']) {
-			echo json_encode(['result' => false]);
+		if (!PHP_ERRORS && strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') !== 'xmlhttprequest') {
 			exit();
 		}
 
-		if (!isset($rUserInfo['reports'])) {
-			echo json_encode(['result' => false]);
-			exit();
-		}
-
-		$action = RequestManager::get('action') ?? '';
-
-		ResellerApiDispatcher::dispatch($action, $rUserInfo, $rPermissions);
+		echo json_encode(['result' => false]);
+		exit();
 	}
 }

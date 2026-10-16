@@ -1,6 +1,12 @@
 <?php
 
 use XcVm\Public\Controllers\Admin\Ajax\CategoryTemplateAjaxController;
+use XcVm\Public\Controllers\Reseller\Ajax\ActiveCodeAjaxController;
+use XcVm\Public\Controllers\Reseller\Ajax\DeviceAjaxController;
+use XcVm\Public\Controllers\Reseller\Ajax\LineAjaxController;
+use XcVm\Public\Controllers\Reseller\Ajax\StatsAjaxController;
+use XcVm\Public\Controllers\Reseller\Ajax\StreamAjaxController;
+use XcVm\Public\Controllers\Reseller\Ajax\UserAjaxController;
 use XcVm\Public\Controllers\Reseller\ResellerActiveCodeController;
 use XcVm\Public\Controllers\Reseller\ResellerActiveCodesBatchController;
 use XcVm\Public\Controllers\Reseller\ResellerActiveCodesController;
@@ -68,6 +74,39 @@ $router->get('index', [ResellerLoginController::class, 'index']);
 $router->post('post', [ResellerPostController::class, 'index']);
 $router->get('api', [ResellerApiController::class, 'index']);
 $router->post('api', [ResellerApiController::class, 'index']);
+
+// ─── Ajax (api?action=…) ───────────────────────────
+// Each action is a Reseller\Ajax controller; an unknown one falls through to ResellerApiController.
+
+$router->api('dashboard', [StatsAjaxController::class, 'dashboard']);
+$router->api('header_stats', [StatsAjaxController::class, 'headerStats']);
+$router->api('stats', [StatsAjaxController::class, 'stats']);
+
+$router->api('line', [LineAjaxController::class, 'line']);
+$router->api('line_activity', [LineAjaxController::class, 'lineActivity']);
+$router->api('connections', [LineAjaxController::class, 'connections']);
+$router->api('userlist', [LineAjaxController::class, 'userlist']);
+$router->api('ip_whois', [LineAjaxController::class, 'ipWhois']);
+$router->api('get_package', [LineAjaxController::class, 'getPackage']);
+$router->api('get_package_trial', [LineAjaxController::class, 'getPackageTrial']);
+
+$router->api('mag', [DeviceAjaxController::class, 'mag']);
+$router->api('enigma', [DeviceAjaxController::class, 'enigma']);
+$router->api('send_event', [DeviceAjaxController::class, 'sendEvent']);
+
+$router->api('reg_user', [UserAjaxController::class, 'regUser']);
+$router->api('adjust_credits', [UserAjaxController::class, 'adjustCredits']);
+$router->api('ticket', [UserAjaxController::class, 'ticket']);
+
+$router->api('streamlist', [StreamAjaxController::class, 'streamlist']);
+$router->api('get_epg', [StreamAjaxController::class, 'getEpg']);
+$router->api('get_programme', [StreamAjaxController::class, 'getProgramme']);
+
+$router->api('active_code_details', [ActiveCodeAjaxController::class, 'details']);
+$router->api('active_codes_mass', [ActiveCodeAjaxController::class, 'mass']);
+$router->api('active_codes_batch_action', [ActiveCodeAjaxController::class, 'batchAction']);
+$router->api('active_codes_export_txt', [ActiveCodeAjaxController::class, 'exportTxt']);
+$router->api('generate_active_codes', [ActiveCodeAjaxController::class, 'generate']);
 $router->get('table', [ResellerTableController::class, 'index']);
 $router->post('table', [ResellerTableController::class, 'index']);
 $router->get('resize', [ResellerResizeController::class, 'index']);

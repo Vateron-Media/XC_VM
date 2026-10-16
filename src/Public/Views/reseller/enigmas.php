@@ -12,7 +12,7 @@
  * reseller cannot toggle admin_enabled) and no fingerprint; no last-connection
  * column (the reseller enigmas query does not fetch it). Edit navigates to
  * `enigma?id=…` (the reseller Enigma2 editor has no iframe-modal shell). Row
- * actions are wired ONLY to endpoints ResellerApiDispatcher exposes:
+ * actions are wired ONLY to endpoints Reseller\Ajax exposes:
  * `action=enigma&sub=enable|disable|delete|convert|reset_isp|kill_line`. Convert
  * is gated by `create_line`, kill by `reseller_client_connection_logs`. The owner
  * filter is a static select2 built from the reseller's report tree. Permission

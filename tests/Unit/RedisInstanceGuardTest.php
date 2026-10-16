@@ -15,7 +15,7 @@ final class RedisInstanceGuardTest extends TestCase {
 	/** @return array<string, array{0: string}> */
 	public static function files(): array {
 		return [
-			'reseller api dispatcher' => ['Infrastructure/ResellerApiDispatcher.php'],
+			'reseller line ajax' => ['Public/Controllers/Reseller/Ajax/LineAjaxController.php'],
 			'signals daemon' => ['Cli/Commands/SignalsCommand.php'],
 		];
 	}

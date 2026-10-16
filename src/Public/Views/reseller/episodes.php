@@ -12,7 +12,7 @@ use XcVm\Core\Util\LayoutRenderer;
  * Reseller differences vs admin (the reseller API/renderer simply does not expose
  * these, so the view legitimately omits them): no bulk toolbar (reseller has no
  * `multi` endpoint), no Add Episode, no encode / stop / restart / edit / delete /
- * player (ResellerApiDispatcher exposes only `action=connections&sub=purge` for
+ * player (Reseller\Ajax exposes only `action=connections&sub=purge` for
  * episodes), and no server / status / duration / stream-info columns (the reseller
  * episodes query does not fetch that data). The only row action is Kill
  * Connections, gated by `reseller_client_connection_logs`. The series and category
