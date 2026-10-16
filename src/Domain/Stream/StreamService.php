@@ -898,17 +898,27 @@ class StreamService {
 	 *
 	 * @param mixed $rData Playlist file path or raw M3U content.
 	 * @param bool  $rFile Treat $rData as a file path (true) or content (false).
-	 * @return \M3uParser\M3uData Parsed playlist entries (iterable, countable).
+	 * @return list<\M3uParser\M3uEntry> Parsed entries that carry a URL (path-less ones dropped).
 	 */
 	public static function parseM3U(mixed $rData, bool $rFile = true) {
 		$rParser = new \M3uParser\M3uParser();
 		$rParser->addDefaultTags();
+		$rEntries = $rFile ? $rParser->parseFile($rData) : $rParser->parse($rData);
 
-		if ($rFile) {
-			return $rParser->parseFile($rData);
+		// The parser emits an entry for an #EXTINF with no following URL line; its
+		// path stays null while getPath() is typed `string`, so reading it throws a
+		// TypeError. Drop those so every caller can read getPath() safely.
+		$rValid = [];
+		foreach ($rEntries as $rEntry) {
+			try {
+				$rEntry->getPath();
+			} catch (\TypeError $rError) {
+				continue;
+			}
+			$rValid[] = $rEntry;
 		}
 
-		return $rParser->parse($rData);
+		return $rValid;
 	}
 
 	/**

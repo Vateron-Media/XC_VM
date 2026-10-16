@@ -220,7 +220,7 @@ class StreamToolsAjaxController extends BaseAjaxController {
 			$rInfo = ['width' => 0, 'height' => 0, 'vbitrate' => 0, 'vcodec' => '', 'fps' => 0, 'abitrate' => 0, 'acodec' => ''];
 
 			foreach ($rStreamInfo['streams'] as $rCodec) {
-				if ($rCodec['codec_type'] == 'video') {
+				if (($rCodec['codec_type'] ?? '') == 'video') {
 					$rInfo['width'] = intval($rCodec['width'] ?? 0);
 					$rInfo['height'] = intval($rCodec['height'] ?? 0);
 					$rInfo['vbitrate'] = intval($rCodec['bit_rate'] ?? 0);
@@ -228,9 +228,9 @@ class StreamToolsAjaxController extends BaseAjaxController {
 					$rInfo['fps'] = intval(explode('/', $rCodec['r_frame_rate'] ?? '0/0')[0]);
 
 					if (!$rInfo['fps']) {
-						$rInfo['fps'] = intval(explode('/', $rCodec['avg_frame_rate'])[0]);
+						$rInfo['fps'] = intval(explode('/', $rCodec['avg_frame_rate'] ?? '0/0')[0]);
 					}
-				} elseif ($rCodec['codec_type'] == 'audio') {
+				} elseif (($rCodec['codec_type'] ?? '') == 'audio') {
 					$rInfo['abitrate'] = intval($rCodec['bit_rate'] ?? 0);
 					$rInfo['acodec'] = self::probeText($rCodec['codec_name'] ?? '');
 				}
@@ -317,7 +317,7 @@ class StreamToolsAjaxController extends BaseAjaxController {
 				$rInfo = [];
 
 				foreach ($rStreamInfo['streams'] as $rCodec) {
-					if ($rCodec['codec_type'] == 'video') {
+					if (($rCodec['codec_type'] ?? '') == 'video') {
 						$rInfo['width'] = intval($rCodec['width']);
 						$rInfo['height'] = intval($rCodec['height']);
 						$rInfo['vbitrate'] = intval($rCodec['bit_rate'] ?? 0);
@@ -325,9 +325,9 @@ class StreamToolsAjaxController extends BaseAjaxController {
 						$rInfo['fps'] = intval(explode('/', $rCodec['r_frame_rate'])[0]);
 
 						if (!$rInfo['fps']) {
-							$rInfo['fps'] = intval(explode('/', $rCodec['avg_frame_rate'])[0]);
+							$rInfo['fps'] = intval(explode('/', $rCodec['avg_frame_rate'] ?? '0/0')[0]);
 						}
-					} elseif ($rCodec['codec_type'] == 'audio') {
+					} elseif (($rCodec['codec_type'] ?? '') == 'audio') {
 						$rInfo['abitrate'] = intval($rCodec['bit_rate'] ?? 0);
 						$rInfo['acodec'] = self::probeText($rCodec['codec_name'] ?? '');
 					}

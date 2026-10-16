@@ -61,7 +61,7 @@ class ReviewController extends BaseAdminController {
 		}
 		$rNewCategories = [];
 
-		foreach (RequestManager::get('category_selection') as $rCategory) {
+		foreach ((RequestManager::get('category_selection') ?? []) as $rCategory) {
 			if (!in_array($rCategory, $rCategoryIDs) && !is_numeric($rCategory)) {
 				$rReturn = CategoryService::process(['category_type' => [1 => 'live', 2 => 'movie'][$rType], 'category_name' => $rCategory]);
 				$rNewCategories[$rCategory] = $rReturn['data']['insert_id'];
@@ -78,7 +78,7 @@ class ReviewController extends BaseAdminController {
 			}
 			$rCategories = [];
 
-			foreach (json_decode(RequestManager::get('category_id_' . $rID), true) as $rCategory) {
+			foreach ((json_decode(RequestManager::get('category_id_' . $rID), true) ?? []) as $rCategory) {
 				if (!is_numeric($rCategory) && isset($rNewCategories[$rCategory])) {
 					$rCategories[] = intval($rNewCategories[$rCategory]);
 				} elseif (is_numeric($rCategory)) {
