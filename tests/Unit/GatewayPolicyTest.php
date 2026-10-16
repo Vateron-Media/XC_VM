@@ -87,12 +87,13 @@ final class GatewayPolicyTest extends TestCase {
 
 	public function testTheRestIsWhatSegmentPhpReads(): void {
 		$rPolicy = GatewayPolicy::build($this->settings(['send_altsvc_header' => 1]), $this->servers(), 1, self::NOW);
-		$this->assertSame(['v', 'server_id', 'written_at', 'mode', 'keys', 'restrict_same_ip', 'ip_subnet_match', 'encrypt_hls', 'headers', 'serve_until', 'paths', 'live', 'verify_host', 'allowed_domains', 'conn_store', 'time_offset', 'redirect'], array_keys($rPolicy), 'nothing else, no other secret');
+		$this->assertSame(['v', 'server_id', 'written_at', 'mode', 'keys', 'restrict_same_ip', 'ip_subnet_match', 'encrypt_hls', 'headers', 'serve_until', 'paths', 'live', 'verify_host', 'allowed_domains', 'conn_store', 'time_offset', 'vod_limit_perc', 'vod_bitrate_plus', 'default_timezone', 'redirect'], array_keys($rPolicy), 'nothing else, no other secret');
 		$this->assertSame([1, self::NOW, 'shadow'], [$rPolicy['server_id'], $rPolicy['written_at'], $rPolicy['mode']]);
 		$this->assertSame([true, false, true], [$rPolicy['restrict_same_ip'], $rPolicy['ip_subnet_match'], $rPolicy['encrypt_hls']]);
-		$this->assertSame(['server' => 'XC', 'protection' => true, 'altsvc_port' => 8443], $rPolicy['headers']);
+		$this->assertSame(['server' => 'XC', 'protection' => true, 'altsvc_port' => 8443, 'unique_header' => false], $rPolicy['headers']);
+		$this->assertTrue(GatewayPolicy::build($this->settings(['send_unique_header' => 'xc']), $this->servers(), 1, self::NOW)['headers']['unique_header'], 'thumb.php and subtitle.php then stay PHP\'s');
 		$this->assertSame(0, $rPolicy['serve_until'], 'no lease limits a node without one');
-		$this->assertSame(['cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH, 'agent_sock' => AgentPaths::file(AgentPaths::SOCKET), 'spool' => AgentPaths::file(AgentPaths::DIR . 'spool/'), 'flows' => AgentPaths::file(AgentPaths::DIR . 'flows.json')], $rPolicy['paths']);
+		$this->assertSame(['cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'vod' => VOD_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH, 'agent_sock' => AgentPaths::file(AgentPaths::SOCKET), 'spool' => AgentPaths::file(AgentPaths::DIR . 'spool/'), 'flows' => AgentPaths::file(AgentPaths::DIR . 'flows.json')], $rPolicy['paths']);
 		$this->assertSame(['use_buffer' => false, 'on_demand_instant_off' => false, 'disallow_2nd_ip_con' => false, 'disallow_2nd_ip_max' => 0, 'unique_header' => false, 'ts' => true, 'client_prebuffer' => 0, 'restreamer_prebuffer' => 0, 'seg_time' => 1, 'create_expiration' => 5, 'admission' => false], $rPolicy['live'], 'use_buffer unset is live.php\'s "== 0"; seg_time at least a second; create_expiration unset is its "?: 5"; no agent admits');
 		$rLive = GatewayPolicy::build($this->settings(['use_buffer' => '1', 'on_demand_instant_off' => 1, 'disallow_2nd_ip_con' => 1, 'disallow_2nd_ip_max' => '3', 'send_unique_header' => 'xc', 'client_prebuffer' => '30', 'restreamer_prebuffer' => 5, 'seg_time' => '10', 'create_expiration' => '8']), $this->servers(), 1, self::NOW)['live'];
 		$this->assertSame(['use_buffer' => true, 'on_demand_instant_off' => true, 'disallow_2nd_ip_con' => true, 'disallow_2nd_ip_max' => 3, 'unique_header' => true, 'ts' => true, 'client_prebuffer' => 30, 'restreamer_prebuffer' => 5, 'seg_time' => 10, 'create_expiration' => 8, 'admission' => false], $rLive, 'a TS viewer\'s prebuffer, as live.php picks it, and how long its token opens a connection');
@@ -100,6 +101,11 @@ final class GatewayPolicyTest extends TestCase {
 		$rHost = GatewayPolicy::build($this->settings(['verify_host' => 1]), $this->servers(), 1, self::NOW, ['tv.example', 7, 'lb.example']);
 		$this->assertSame([true, ['tv.example', 'lb.example']], [$rHost['verify_host'], $rHost['allowed_domains']], 'the host check and its list, names only');
 		$this->assertSame(7, $rPolicy['time_offset']);
+		$this->assertSame([0, 0], [$rPolicy['vod_limit_perc'], $rPolicy['vod_bitrate_plus']], 'vod.php throttle, unset');
+		$rVod = GatewayPolicy::build($this->settings(['vod_limit_perc' => '80', 'vod_bitrate_plus' => '20']), $this->servers(), 1, self::NOW);
+		$this->assertSame([80, 20], [$rVod['vod_limit_perc'], $rVod['vod_bitrate_plus']]);
+		$this->assertSame('', $rPolicy['default_timezone'], 'timeshift mktime zone, unset');
+		$this->assertSame('Europe/Lisbon', GatewayPolicy::build($this->settings(['default_timezone' => 'Europe/Lisbon']), $this->servers(), 1, self::NOW)['default_timezone']);
 		$this->assertSame('php', $rPolicy['conn_store'], 'no agent: viewers are in MAIN\'s store');
 		file_put_contents($this->rDir . '/flows.json', json_encode(['mode' => 2, 'flows' => 255, 'state' => 'active']));
 		NodeFlows::usePath($this->rDir . '/flows.json');
@@ -127,6 +133,10 @@ final class GatewayPolicyTest extends TestCase {
 		$this->assertSame('off', GatewayPolicy::mode($this->settings(['fanout_enabled' => 0])), 'the gateway serves from fanout');
 		$this->assertSame('segments', GatewayPolicy::mode($this->settings(['gateway_mode' => 'segments'])));
 		$this->assertSame('segments+playlist', GatewayPolicy::mode($this->settings(['gateway_mode' => 'segments+playlist'])));
+		$this->assertSame('segments+playlist+thumb', GatewayPolicy::mode($this->settings(['gateway_mode' => 'segments+playlist+thumb'])));
+		$this->assertSame('segments+playlist+thumb+subtitle', GatewayPolicy::mode($this->settings(['gateway_mode' => 'segments+playlist+thumb+subtitle'])));
+		$this->assertSame('segments+playlist+thumb+subtitle+vod', GatewayPolicy::mode($this->settings(['gateway_mode' => 'segments+playlist+thumb+subtitle+vod'])));
+		$this->assertSame('segments+playlist+thumb+subtitle+vod+timeshift', GatewayPolicy::mode($this->settings(['gateway_mode' => 'segments+playlist+thumb+subtitle+vod+timeshift'])));
 		$this->assertSame('segments+playlist', GatewayPolicy::mode($this->settings(['gateway_mode' => 'playlist'])), 'not a mode: the default');
 		$this->assertSame('segments+playlist', GatewayPolicy::mode($this->settings(['gateway_mode' => null])), 'NULL in the column: the default');
 		$rUnheard = $this->settings();
@@ -152,7 +162,7 @@ final class GatewayPolicyTest extends TestCase {
 		$rShadow = GatewayNginxConfig::render('shadow');
 		$this->assertSame(GatewayNginxConfig::render('off'), GatewayNginxConfig::render('shadow', false), 'no gateway socket: nothing to send to');
 		$this->assertSame(GatewayNginxConfig::render('off'), GatewayNginxConfig::render('segments', false));
-		foreach (['segment', 'key', 'live'] as $rStream) {
+		foreach (['segment', 'key', 'live', 'thumb', 'subtitle', 'vod', 'timeshift'] as $rStream) {
 			$this->assertStringContainsString("location = /stream/{$rStream} {\n    mirror /xc_gw_shadow;", $rShadow);
 			$this->assertStringContainsString("fastcgi_param XC_STREAM {$rStream};", $rShadow);
 		}
@@ -181,6 +191,34 @@ final class GatewayPolicyTest extends TestCase {
 		$this->assertStringContainsString('error_page 502 504 = @gw_live_php;', $rPlaylist);
 		$this->assertStringContainsString("location @gw_live_php {", $rPlaylist);
 		$this->assertStringContainsString('fastcgi_param XC_STREAM live;', $rPlaylist);
+		$this->assertStringNotContainsString('/stream/thumb', $rPlaylist, 'segments+playlist: thumbnails stay PHP\'s');
+		$rThumb = GatewayNginxConfig::render('segments+playlist+thumb');
+		$this->assertStringContainsString("location = /stream/thumb {", $rThumb);
+		$this->assertStringContainsString('error_page 502 504 = @gw_thumb_php;', $rThumb);
+		$this->assertStringContainsString("location @gw_thumb_php {", $rThumb);
+		$this->assertStringContainsString('fastcgi_param XC_STREAM thumb;', $rThumb);
+		$this->assertStringContainsString("location = /stream/live {", $rThumb, 'and everything the rung below it serves');
+		$this->assertStringNotContainsString('/stream/subtitle', $rThumb, 'segments+playlist+thumb: subtitles stay PHP\'s');
+		$rSubtitle = GatewayNginxConfig::render('segments+playlist+thumb+subtitle');
+		$this->assertStringContainsString("location = /stream/subtitle {", $rSubtitle);
+		$this->assertStringContainsString('error_page 502 504 = @gw_subtitle_php;', $rSubtitle);
+		$this->assertStringContainsString("location @gw_subtitle_php {", $rSubtitle);
+		$this->assertStringContainsString('fastcgi_param XC_STREAM subtitle;', $rSubtitle);
+		$this->assertStringContainsString("location = /stream/thumb {", $rSubtitle, 'and everything the rung below it serves');
+		$this->assertStringNotContainsString('/stream/vod', $rSubtitle, 'segments+playlist+thumb+subtitle: movies stay PHP\'s');
+		$rVod = GatewayNginxConfig::render('segments+playlist+thumb+subtitle+vod');
+		$this->assertStringContainsString("location = /stream/vod {", $rVod);
+		$this->assertStringContainsString('error_page 502 504 = @gw_vod_php;', $rVod);
+		$this->assertStringContainsString("location @gw_vod_php {", $rVod);
+		$this->assertStringContainsString('fastcgi_param XC_STREAM vod;', $rVod);
+		$this->assertStringContainsString("location = /stream/subtitle {", $rVod, 'and everything the rung below it serves');
+		$this->assertStringNotContainsString('/stream/timeshift', $rVod, 'segments+playlist+thumb+subtitle+vod: archive stays PHP\'s');
+		$rTimeshift = GatewayNginxConfig::render('segments+playlist+thumb+subtitle+vod+timeshift');
+		$this->assertStringContainsString("location = /stream/timeshift {", $rTimeshift);
+		$this->assertStringContainsString('error_page 502 504 = @gw_timeshift_php;', $rTimeshift);
+		$this->assertStringContainsString("location @gw_timeshift_php {", $rTimeshift);
+		$this->assertStringContainsString('fastcgi_param XC_STREAM timeshift;', $rTimeshift);
+		$this->assertStringContainsString("location = /stream/vod {", $rTimeshift, 'and everything the rung below it serves');
 		// The shipped default is the render for off, so a fresh node does not reload nginx for nothing.
 		$this->assertSame(GatewayNginxConfig::render('off'), trim((string) file_get_contents(MAIN_HOME . 'bin/nginx/conf/gateway.conf')));
 		foreach ([MAIN_HOME . 'bin/nginx/conf/nginx.conf', dirname(MAIN_HOME) . '/lb_configs/nginx.conf'] as $rConf) {

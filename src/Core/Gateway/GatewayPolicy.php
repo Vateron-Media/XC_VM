@@ -31,12 +31,12 @@ use XcVm\Streaming\Fanout\FanoutMode;
  * {"v": 1, "server_id": 3, "written_at": 1759900000, "mode": "shadow",
  *  "keys": {"viewer": [{"hex": "…", "until": null}], "shared": […], "context": […], "accept_legacy_cbc": false},
  *  "restrict_same_ip": true, "ip_subnet_match": false, "encrypt_hls": true,
- *  "headers": {"server": "", "protection": true, "altsvc_port": 0},
- *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
+ *  "headers": {"server": "", "protection": true, "altsvc_port": 0, "unique_header": false},
+ *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "vod": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
  *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0, "unique_header": false,
  *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10, "create_expiration": 5, "admission": true},
  *  "verify_host": false, "allowed_domains": [],
- *  "conn_store": "agent", "time_offset": 0, "redirect": {"5": ["http://lb5.example:8080"]}}
+ *  "conn_store": "agent", "time_offset": 0, "vod_limit_perc": 0, "vod_bitrate_plus": 0, "default_timezone": "", "redirect": {"5": ["http://lb5.example:8080"]}}
  * ```
  *
  * `paths.flood`, `verify_host` and `allowed_domains` are what
@@ -67,10 +67,14 @@ final class GatewayPolicy {
 
 	/**
 	 * `gateway_mode`: off; shadow (PHP serves, the gateway judges a mirrored copy
-	 * of each segment, key and playlist request); segments (the gateway serves
-	 * segments and keys); segments+playlist (and a known viewer's playlist refresh).
+	 * of each segment, key, playlist and thumbnail request); segments (the gateway
+	 * serves segments and keys); segments+playlist (and a known viewer's playlist
+	 * refresh); segments+playlist+thumb (and stream thumbnails);
+	 * segments+playlist+thumb+subtitle (and VOD subtitles);
+	 * segments+playlist+thumb+subtitle+vod (and movies the daemon serves);
+	 * segments+playlist+thumb+subtitle+vod+timeshift (and archive the daemon serves).
 	 */
-	public const MODES = ['off', 'shadow', 'segments', 'segments+playlist'];
+	public const MODES = ['off', 'shadow', 'segments', 'segments+playlist', 'segments+playlist+thumb', 'segments+playlist+thumb+subtitle', 'segments+playlist+thumb+subtitle+vod', 'segments+playlist+thumb+subtitle+vod+timeshift'];
 
 	/** Tests: another file; null restores TMP_PATH's. */
 	private static ?string $rFile = null;
@@ -137,10 +141,13 @@ final class GatewayPolicy {
 				'server' => (string) ($rSettings['send_server_header'] ?? ''),
 				'protection' => !empty($rSettings['send_protection_headers']),
 				'altsvc_port' => !empty($rSettings['send_altsvc_header']) ? (int) ($rOwn['https_broadcast_port'] ?? 0) : 0,
+				// thumb.php and subtitle.php write a fresh random cookie per response
+				// that the gateway does not reproduce: with it set, they stay PHP's.
+				'unique_header' => !empty($rSettings['send_unique_header']),
 			],
 			'serve_until' => self::serveUntil($rSettings, $rNow),
 			'paths' => [
-				'cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH,
+				'cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'vod' => VOD_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH,
 				'agent_sock' => AgentPaths::file(AgentPaths::SOCKET), 'spool' => AgentPaths::file(AgentPaths::DIR . 'spool/'), 'flows' => AgentPaths::file(AgentPaths::DIR . 'flows.json'),
 			],
 			// What live.php reads for a playlist refresh or a TS reconnect, its comparisons made here.
@@ -165,6 +172,12 @@ final class GatewayPolicy {
 			'allowed_domains' => array_values(array_filter($rAllowedDomains, 'is_string')),
 			'conn_store' => AgentConnections::enabled() ? 'agent' : 'php',
 			'time_offset' => (int) ($rOwn['time_offset'] ?? 0),
+			// vod.php's download throttle (handOverFile): past vod_limit_perc of a
+			// movie, at its bitrate plus vod_bitrate_plus percent.
+			'vod_limit_perc' => (int) ($rSettings['vod_limit_perc'] ?? 0),
+			'vod_bitrate_plus' => (int) ($rSettings['vod_bitrate_plus'] ?? 0),
+			// timeshift.php parses a date-form start with mktime in this zone (LegacyInitializer sets it).
+			'default_timezone' => (string) ($rSettings['default_timezone'] ?? ''),
 			'redirect' => self::redirects($rServers, $rServerID),
 		];
 	}
