@@ -559,17 +559,17 @@ final class ArtefactHashRefusalTest extends TestCase {
 		// No release reachable: a fetch would fail, so only a skip succeeds.
 		$rNowhere = 'https://127.0.0.1:1/';
 		ob_start();
-		$this->assertTrue(FanoutBinaryCommand::agent($rNowhere, 'amd64', '1.5.0', false));
+		$this->assertTrue(FanoutBinaryCommand::agent($rNowhere, 'xc_agent-linux-amd64', '1.5.0', false));
 		$this->assertStringContainsString('up to date (1.5.0)', (string) ob_get_clean());
 
 		file_put_contents($this->rBase . 'bin/xc_agent/' . FanoutBinaryCommand::AGENT_TRIED, "1.6.0\n");
 		ob_start();
-		$this->assertTrue(FanoutBinaryCommand::agent($rNowhere, 'amd64', '1.6.0', false));
+		$this->assertTrue(FanoutBinaryCommand::agent($rNowhere, 'xc_agent-linux-amd64', '1.6.0', false));
 		$this->assertStringContainsString('1.6.0 did not stay on this node', (string) ob_get_clean());
 
 		foreach (['a newer release' => ['1.7.0', false], 'force' => ['1.6.0', true]] as $rWhy => [$rLatest, $rForce]) {
 			ob_start();
-			$this->assertFalse(FanoutBinaryCommand::agent($rNowhere, 'amd64', $rLatest, $rForce), $rWhy);
+			$this->assertFalse(FanoutBinaryCommand::agent($rNowhere, 'xc_agent-linux-amd64', $rLatest, $rForce), $rWhy);
 			$this->assertStringContainsString('Failed to download xc_agent-linux-amd64', (string) ob_get_clean(), $rWhy . ': fetched');
 		}
 		$this->assertSame("1.6.0\n", file_get_contents($this->rBase . 'bin/xc_agent/' . FanoutBinaryCommand::AGENT_TRIED), 'a failed download is not a try');
