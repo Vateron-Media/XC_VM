@@ -93,4 +93,29 @@ final class StreamRuntimeDirectiveTest extends TestCase {
 		$this->assertSame('proxy', $directive['kind']);
 		$this->assertArrayNotHasKey('spec', $directive);
 	}
+
+	public function testUpgradeOtherWithSpecBecomesTranscode() {
+		// A serve-only target composes a portable Spec after the directive was
+		// first classified "other" (StreamReplica::page); upgrade attaches it.
+		$spec = ['sources' => [['cmd' => '{ffmpeg_cpu} -i x']], 'encrypt' => false];
+
+		$this->assertSame(
+			['kind' => 'transcode', 'source' => null, 'spec' => $spec],
+			StreamRuntimeDirective::upgrade(['kind' => 'other', 'source' => null], $spec)
+		);
+	}
+
+	public function testUpgradeOtherWithNullSpecStaysOther() {
+		// buildSupervisorSpec returned null (not supervisable) → directive unchanged.
+		$directive = ['kind' => 'other', 'source' => null];
+
+		$this->assertSame($directive, StreamRuntimeDirective::upgrade($directive, null));
+	}
+
+	public function testUpgradeLeavesProxyUntouched() {
+		// A proxy is served by the puller; a Spec must never displace it.
+		$directive = ['kind' => 'proxy', 'source' => ['urls' => ['http://x']]];
+
+		$this->assertSame($directive, StreamRuntimeDirective::upgrade($directive, ['sources' => []]));
+	}
 }
