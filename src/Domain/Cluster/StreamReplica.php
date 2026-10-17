@@ -264,6 +264,50 @@ final class StreamReplica {
 	}
 
 	/**
+	 * A StreamSource loader (StreamSource::useLoader) backed by one batched read
+	 * each of the held streams' full rows, this server's `streams_servers` rows,
+	 * and their arguments — so a serve-only target's portable Spec composes
+	 * (StreamProcess::buildSupervisorSpec) with no per-stream query. The reads
+	 * mirror StreamSource's own SQL so the Spec matches an on-node read; the
+	 * stream join is live-only (streamRow(live: true)), so a non-live stream is
+	 * absent and the loader answers null for it. Only 'stream' / 'server' /
+	 * 'arguments' are answered from the snapshot (portable buildSupervisorSpec
+	 * reads no other kind); 'source' is an empty row, anything else null.
+	 *
+	 * @param list<int> $rIDs the held streams of the page
+	 * @return callable(string, int, array<string, mixed>): mixed
+	 */
+	public static function runtimeLoader(int $rServerID, array $rIDs): callable {
+		$rStreams = [];
+		$rServers = [];
+		$rArgs = [];
+		if ($rIDs !== []) {
+			$rIn = implode(',', array_map('intval', $rIDs));
+			self::read('SELECT t1.*, t2.*, t4.* FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.`type_id` = t1.`type` AND t2.`live` = 1 LEFT JOIN `profiles` t4 ON t1.`transcode_profile_id` = t4.`profile_id` WHERE t1.`direct_source` = 0 AND t1.`id` IN (' . $rIn . ');');
+			foreach (self::db()->get_raw_rows() as $rRow) {
+				$rStreams[(int) $rRow['id']] = StreamRecords::unescaped($rRow);
+			}
+			self::read('SELECT * FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . $rIn . ');', $rServerID);
+			foreach (self::db()->get_raw_rows() as $rRow) {
+				$rServers[(int) $rRow['stream_id']] = StreamRecords::unescaped($rRow);
+			}
+			self::read('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.`argument_id` = t2.`id` AND t1.`stream_id` IN (' . $rIn . ');');
+			foreach (self::db()->get_raw_rows() as $rRow) {
+				$rArgs[(int) $rRow['stream_id']][] = StreamRecords::unescaped($rRow);
+			}
+		}
+		return static function (string $rWhat, int $rID, array $rOpts) use ($rStreams, $rServers, $rArgs): mixed {
+			return match ($rWhat) {
+				'stream' => $rStreams[$rID] ?? null,
+				'server' => $rServers[$rID] ?? null,
+				'arguments' => ($rOpts['keyed'] ?? false) ? array_column($rArgs[$rID] ?? [], null, 'argument_key') : ($rArgs[$rID] ?? []),
+				'source' => [],
+				default => null,
+			};
+		};
+	}
+
+	/**
 	 * The versions of these streams for the server (0 for one never stamped).
 	 *
 	 * @param list<int> $rIDs
