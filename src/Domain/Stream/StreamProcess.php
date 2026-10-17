@@ -1688,12 +1688,19 @@ class StreamProcess {
 	/**
 	 * Build the supervisor spec for a live stream on this server, or null when it
 	 * has to run under the PHP monitor (not found, a kind the supervisor does not
-	 * take, or no daemon ingest to feed).
+	 * take, or — on-node — no daemon ingest to feed).
 	 *
-	 * Registers the stream's ingest with the daemon and writes its HLS key/iv,
-	 * because both are baked into the commands.
+	 * On-node ($rPortable === null): registers the stream's ingest with the local
+	 * daemon and writes its HLS key/iv, because both are baked into the commands.
+	 *
+	 * Portable mode ($rPortable !== null, 4b-i): composes a node-agnostic spec for
+	 * a serve-only LB — node-local values become placeholder tokens (the ingest
+	 * socket is `{ingest_sock}`), and the side effects above are SKIPPED: the LB's
+	 * agent generates+registers the key/iv itself at apply time. See the body.
 	 *
 	 * @param int $rStreamID Stream id.
+	 * @param array|null $rPortable Portable-mode options (`features`, `server_id`),
+	 *   or null for the on-node spec.
 	 * @return array|null The spec for FanoutClient::supervise(), or null.
 	 */
 	public static function buildSupervisorSpec(int $rStreamID, ?array $rPortable = null): ?array {
