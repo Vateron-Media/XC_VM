@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Epg\EPG;
+use XcVm\Domain\Epg\EpgReload;
 
 /**
  * EpgCronJob — epg cron job
@@ -41,7 +42,10 @@ class EpgCronJob implements CommandInterface {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
 		}
+		return EpgReload::run(fn(): int => $this->import($rArgs), CRONS_TMP_PATH . 'epg_import.lock');
+	}
 
+	private function import(array $rArgs): int {
 		$rEPGID = null;
 		if (!empty($rArgs[0])) {
 			$rEPGID = intval($rArgs[0]);
@@ -53,7 +57,6 @@ class EpgCronJob implements CommandInterface {
 		set_time_limit(0);
 		ini_set('memory_limit', -1);
 
-		shell_exec('kill -9 `ps -ef | grep \'XC_VM\\[EPG\\]\' | grep -v grep | awk \'{print $2}\'`;');
 		cli_set_process_title('XC_VM[EPG]');
 
 		global $db;
