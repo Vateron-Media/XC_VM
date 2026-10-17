@@ -11,6 +11,7 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\ProviderService;
 use XcVm\Streaming\Codec\FfmpegPaths;
 
 /**
@@ -167,6 +168,15 @@ class StreamToolsAjaxController extends BaseAjaxController {
 	public function probeStream(): never {
 		$this->requireXhr();
 		$this->gateAny([['adv', 'add_stream'], ['adv', 'edit_stream']]);
+
+		if (RequestManager::has('provider_id') || RequestManager::has('provider_stream_id')) {
+			$rSource = ProviderService::liveSourceUrl(intval(RequestManager::get('provider_id')), intval(RequestManager::get('provider_stream_id')));
+			if ($rSource === null) {
+				echo "<table class='table-data'><tbody><tr><td>Stream probe failed!</td></tr></tbody></table>";
+				exit();
+			}
+			RequestManager::update('url', $rSource);
+		}
 
 		global $rServers;
 		$rAnalyseDuration = abs(intval(SettingsManager::get('stream_max_analyze')));

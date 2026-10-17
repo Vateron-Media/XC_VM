@@ -21,6 +21,23 @@ use XcVm\Infrastructure\Database\DatabaseAware;
 class ProviderService {
 	use DatabaseAware;
 
+	/** Resolve a saved live channel for the existing source probe without exposing credentials. */
+	public static function liveSourceUrl(int $rProviderId, int $rStreamId): ?string {
+		if ($rProviderId <= 0 || $rStreamId <= 0) {
+			return null;
+		}
+		$db = self::db();
+		$db->query('SELECT p.`ip`, p.`port`, p.`username`, p.`password`, p.`ssl`, p.`hls`, p.`legacy` FROM `providers` p INNER JOIN `providers_streams` s ON s.`provider_id` = p.`id` WHERE p.`id` = ? AND s.`stream_id` = ? AND s.`type` = ? LIMIT 1;', $rProviderId, $rStreamId, 'live');
+		$rRow = $db->get_raw_row();
+		if (!$rRow) {
+			return null;
+		}
+		$rHost = rtrim((string) preg_replace('#^https?://#i', '', (string) $rRow['ip']), '/');
+		return ($rRow['ssl'] ? 'https' : 'http') . '://' . $rHost . ':' . intval($rRow['port']) . '/live/'
+			. rawurlencode((string) $rRow['username']) . '/' . rawurlencode((string) $rRow['password']) . '/' . $rStreamId
+			. ($rRow['hls'] ? '.m3u8' : ($rRow['legacy'] ? '.ts' : ''));
+	}
+
 	/**
 	 * Create or update a provider from admin form data.
 	 *

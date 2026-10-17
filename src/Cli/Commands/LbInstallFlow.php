@@ -480,6 +480,9 @@ class LbInstallFlow {
 		// install_id / config.enc as root. A root-owned install_id is unreadable by
 		// FPM (xc_vm) and makes config.enc decryption fall back to a default config.
 		call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm -R /home/xc_vm >/dev/null 2>&1');
+		// Older release archives also lack this directory; prepare it on the
+		// node even when API-mode startup waits for its replica.
+		call_user_func($rRunSSH, $rConn, 'sudo install -d -o xc_vm -g xc_vm -m 0755 /home/xc_vm/bin/ffmpeg_bin');
 		if (!$rCommands) {
 			return;
 		}
