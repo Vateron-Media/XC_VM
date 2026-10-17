@@ -64,29 +64,53 @@ The serve-only indicator is a **`--serve-only` option on `server:install`** (the
 
 > Note: at first install the streams are assigned *after* the row exists and assignment already bumps via `StreamsChangedEvent`; B2 is the toggle-on-existing-node case. It is dormant until Task 1 provides the write site, so it ships only with Part A.
 
-### Task 4 [needs real LB]: skip nginx + php-fpm for the serve-only kind
+### REVISED node-side design (strangler, not removal) — 2026-10-17
 
-**Files:** Modify `src/Cli/Commands/LbInstallFlow.php` + `ServerInstallCommand.php`.
+Reading the install flow + the launchers corrected the node side. A truly
+PHP-less node (removing nginx + php-fpm) collides with the LB's PHP
+keepalive/policy crons (`RootSignalsCronJob` relaunches `run.sh` and generates
+`gateway.conf`/`policy.json`); porting those to Go is the Phase 4c/4d/5
+lifecycle work, NOT Part A. So Part A activates serve-only **behaviour** with a
+**strangler front**, keeping nginx + php-fpm for now (removal is Phase 5):
 
-For `$rServeOnly`, branch the install so it does NOT run the nginx/php-fpm steps — `installDistributionBinaries` loadbalancer-bundle of PHP/nginx/nginx_rtmp (`:554`), `configureRuntime` nginx confs + `PhpFpmPools` (`:451/:464`), and the nginx/fpm portions of `installSystemdService` (`:359`, the `service` script) — while still installing `xc_node` + the agent. The branch logic is unit-checkable (the serve-only path omits those calls), but that a serve-only node actually boots with no nginx/php-fpm is only verifiable on a real LB.
+- The Fanout binary already supports it (verified): `xc_fanout -front :443
+  -front-cert <certbot crt> -front-key <key> -front-nginx http://127.0.0.1:<port>`
+  — the Go front takes :443/TLS and reverse-proxies non-serve requests to
+  nginx on a **plaintext backend port** during the transition. `xc_agent run
+  -seed-fanout -server-id <id> -fanout-binary <path>` is also present.
+- So nginx moves from :443/TLS to a local plaintext backend port (e.g. 8080);
+  php-fpm stays; the Go front owns :443. `serve_only` policy (#436, merged) +
+  the agent seeding make the gateway serve its assigned streams.
 
-- [ ] Unit-test the branch (serve-only path omits the nginx/php-fpm steps; legacy path unchanged). Implement. On a real LB: install, confirm no nginx/php-fpm process, Go front answers :443. Commit.
+This is tractable but still needs a **real LB node** to wire the nginx
+backend-port change and validate (a wrong listen directive or a wrong front
+backend breaks serving, and a seam test cannot catch that).
 
-### Task 5 [needs real LB]: `run.sh` threads the serve-only flags
+### Task 4 [needs real LB]: demote nginx to a backend port on a serve-only node
 
-**Files:** Modify `src/bin/xc_agent/run.sh` and `src/bin/xc_fanout/run.sh`.
+**Files:** `src/Cli/Commands/LbInstallFlow.php` (`configureRuntime`).
 
-Both scripts read the `serve_only` marker from the node's `config.enc` (the same way they read other node config) and, when set, append:
-- `xc_agent run`: `-seed-fanout -server-id <id> -ffmpeg <abs> -fanout-binary <abs> -logs <dir> -ffmpeg-gpu <abs> -ffprobe <abs>` (values from the node's install config).
-- `xc_fanout`: `-front :443 -front-cert <crt> -front-key <key>` (certbot's files; `-front-images` if static images are served).
+For `$rServeOnly`, generate the node's nginx config to listen on a local
+plaintext backend port instead of :443/TLS (the Go front terminates TLS and
+proxies to it), and `set_real_ip_from` the front. php-fpm and the nginx confs
+otherwise stay. Seam-test the generated conf (listen port, realip); validate
+on a real LB that nginx serves the backend and the front answers :443.
 
-Shell logic; must survive a `RootSignalsCronJob` keepalive relaunch. Validatable only on a real LB (the exact config-read mechanism + flag values are confirmed against the running node).
+### Task 5 [needs real LB]: `run.sh` launches the strangler front + agent seeding
 
-- [ ] Implement the marker-gated flag threading. On a real LB: confirm both daemons launch with the flags, and a keepalive relaunch keeps them. Commit.
+**Files:** `src/bin/xc_fanout/run.sh`, `src/bin/xc_agent/run.sh`.
+
+Gated on a `serve_only` marker the install writes (a plaintext marker file —
+the node still has PHP in this phase, but a shell-readable marker is simplest
+and survives the removal of PHP later), append:
+- `xc_fanout`: `-front :443 -front-cert … -front-key … -front-nginx http://127.0.0.1:<port>` (and `-front-realip`/`-front-images` as the front needs).
+- `xc_agent run`: `-seed-fanout -server-id <id> -fanout-binary <path> -ffmpeg <abs> -logs <dir>` (and gpu/ffprobe/streams as the transcode directive needs). Confirm whether the agent reads `server_id` from `agent.json` (its `-state`) or needs `-server-id` — pin against the node.
+
+Must survive a `RootSignalsCronJob` keepalive relaunch (both scripts re-read the marker each launch). Shell-testable for the flag threading; the live launch is validated on the node.
 
 ### Task 6 [needs real LB]: end-to-end validation
 
-- [ ] On a real serve-only LB: MAIN assigns a transcodable stream → the node receives a `kind:"transcode"` directive, the agent applies it (ingest + key/iv + `/monitor/`), and the Go gateway serves it — with no PHP in the path. Confirm the node has no php-fpm and nginx is not required for the serve path.
+- [ ] On a real serve-only LB (nginx demoted, Go front on :443, agent seeding): MAIN assigns a transcodable stream → the node receives a `kind:"transcode"` directive, the agent applies it (ingest + key/iv + `/monitor/`), and the gateway serves it. Removing nginx/php-fpm entirely is Phase 5, not here.
 
 ---
 
