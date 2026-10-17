@@ -13,7 +13,6 @@ use XcVm\Streaming\Fanout\FanoutClient;
  * restream-vs-transcode decision, `source` the node-agnostic pull config.
  */
 final class StreamRuntimeDirective {
-
 	/**
 	 * Build the directive for one stream.
 	 *

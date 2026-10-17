@@ -2421,7 +2421,7 @@ final class ClusterApiTest extends TestCase {
 		$rDoc = $this->openRecord($rEntry['sealed'], 'rep');
 		$this->assertSame(['stream', $this->rUuid, 1, $rEntry['id'], $rEntry['ver'], $rEntry['etag']], [$rDoc['section'], $rDoc['node'], $rDoc['gen'], $rDoc['stream_id'], $rDoc['ver'], $rDoc['etag']]);
 		$this->assertSame($rEntry['etag'], ReplicaBuilder::etag($rDoc['data']), 'the ETag is the data\'s hash');
-		$this->assertSame(['children', 'options', 'profile', 'recordings', 'server', 'stream', 'tickets', 'type'], array_keys($rDoc['data']));
+		$this->assertSame(['children', 'options', 'profile', 'recordings', 'runtime', 'server', 'stream', 'tickets', 'type'], array_keys($rDoc['data']));
 		return $rDoc;
 	}
 
