@@ -138,6 +138,9 @@ final class StreamRecords {
 				// Phase 8: the relay and file tickets a node pulls this stream with,
 				// which MAIN fills after taking the ETag with them null (TicketService).
 				'tickets' => null,
+				// Phase 4a: how a serve-only LB should run this stream, decided here so
+				// the LB's Go agent applies it without PHP and derives nothing (D3).
+				'runtime' => StreamRuntimeDirective::build($rStream, array_column($rOptions[$rID] ?? [], null, 'argument_key')),
 			]);
 		}
 		return $rOut;
