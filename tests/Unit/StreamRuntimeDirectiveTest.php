@@ -60,4 +60,37 @@ final class StreamRuntimeDirectiveTest extends TestCase {
 		$this->assertSame('proxy', $directive['kind']);
 		$this->assertSame([], $directive['source']['urls']);
 	}
+
+	public function testTranscodeDirectiveWhenPortableSpecGiven() {
+		// A non-proxy stream the target node can supervise: the portable Spec the
+		// caller built rides in `spec`, kind=transcode, source null (4b).
+		$row = ['direct_proxy' => 0, 'stream_source' => json_encode(['http://a/1.ts'])];
+		$spec = [
+			'sources' => [['label' => 's', 'cmd' => '{ffmpeg_cpu} -i x {streams}7_.m3u8']],
+			'pid_path' => '{streams}7_.pid', 'server_id' => '{server_id}', 'encrypt' => false,
+		];
+
+		$directive = StreamRuntimeDirective::build($row, [], $spec);
+
+		$this->assertSame('transcode', $directive['kind']);
+		$this->assertNull($directive['source']);
+		$this->assertSame($spec, $directive['spec']);
+	}
+
+	public function testNonProxyWithoutSpecIsOther() {
+		// null Spec (delay/created_live/resolver — buildSupervisorSpec returned null): "other", no spec key.
+		$directive = StreamRuntimeDirective::build(['direct_proxy' => 0, 'stream_source' => json_encode(['http://a/1.ts'])], [], null);
+
+		$this->assertSame('other', $directive['kind']);
+		$this->assertArrayNotHasKey('spec', $directive);
+	}
+
+	public function testProxyNeverCarriesATranscodeSpec() {
+		// direct_proxy wins even if a Spec is passed: a proxy is served by the
+		// puller, never the supervisor — no spec key.
+		$directive = StreamRuntimeDirective::build(['direct_proxy' => 1, 'stream_source' => json_encode(['http://a/1.ts'])], [], ['sources' => []]);
+
+		$this->assertSame('proxy', $directive['kind']);
+		$this->assertArrayNotHasKey('spec', $directive);
+	}
 }

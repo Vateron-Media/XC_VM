@@ -56,11 +56,13 @@ namespace XcVm\Core\Cluster;
  *               recording of it without running it)
  *   children    [sid] the servers that relay it from this node (parent_id)
  *   recordings  [RECORDING_FIELDS] its recordings scheduled on this node
- *   runtime     {kind: "proxy"|"other", source: {urls, ua, proxy, cookie}|null}
- *               how a serve-only LB runs this stream (StreamRuntimeDirective):
- *               kind "proxy" (direct-proxy restream) carries the node-agnostic
- *               source its agent registers with the fanout, "other" (transcode,
- *               Phase 4b) carries null
+ *   runtime     {kind: "proxy"|"transcode"|"other", source: {urls, ua, proxy,
+ *               cookie}|null, spec?: {...}} how a serve-only LB runs this stream
+ *               (StreamRuntimeDirective): kind "proxy" (direct-proxy restream)
+ *               carries the node-agnostic source its agent registers with the
+ *               fanout; "transcode" (Phase 4b) carries a portable supervisor
+ *               `spec` (node-local values as placeholder tokens) the agent runs,
+ *               source null; "other" carries neither
  *   tickets     the relay and file tickets of Phase 8, for a node whose
  *               DATAPLANE flow is on (Domain\Cluster\TicketService), else
  *               null; filled after the ETag was taken with it null

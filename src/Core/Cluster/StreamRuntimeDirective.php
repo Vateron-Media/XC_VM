@@ -18,23 +18,35 @@ final class StreamRuntimeDirective {
 	 *
 	 * `kind` is "proxy" when the stream is a direct-proxy restream
 	 * (`streams.direct_proxy == 1`) — the viewer path the fanout puller serves
-	 * and the same condition behind the live token's `channel_info.proxy`; it is
-	 * "other" otherwise (a transcode/encode stream, carried by Phase 4b).
+	 * and the same condition behind the live token's `channel_info.proxy`;
+	 * "transcode" when a portable supervisor Spec is supplied (Phase 4b: the
+	 * stream the target LB encodes), with that Spec in `spec`; "other" otherwise.
 	 *
 	 * For "proxy", `source` is {@see FanoutClient::buildSource()} WITHOUT the
 	 * node-local `ffmpeg` path: that is the LB's to fill from its own config, so
-	 * MAIN need not know each node's binary (D3). For "other", `source` is null.
+	 * MAIN need not know each node's binary (D3). For "transcode", `source` is
+	 * null and `spec` the portable Spec ({@see StreamProcess::buildSupervisorSpec}
+	 * in portable mode — node-local values as tokens). For "other", both are null.
+	 *
+	 * The Spec is built by the caller (DB context) and passed in, so this stays a
+	 * pure classifier: the proxy/other decision is `direct_proxy` alone, and a
+	 * non-proxy stream is "transcode" iff its portable Spec is non-null (null for
+	 * delay/created_live/resolver streams buildSupervisorSpec cannot supervise).
 	 *
 	 * @param array $rStreamRow The `streams` row (reads `direct_proxy`, `stream_source`).
 	 * @param array $rArgsByKey Stream arguments keyed by `argument_key` (user_agent/proxy/cookie).
-	 * @return array{kind: string, source: array|null}
+	 * @param array|null $rTranscodeSpec The portable supervisor Spec for a non-proxy stream, or null.
+	 * @return array{kind: string, source: array|null, spec?: array}
 	 */
-	public static function build(array $rStreamRow, array $rArgsByKey): array {
-		if ((int) ($rStreamRow['direct_proxy'] ?? 0) !== 1) {
-			return ['kind' => 'other', 'source' => null];
+	public static function build(array $rStreamRow, array $rArgsByKey, ?array $rTranscodeSpec = null): array {
+		if ((int) ($rStreamRow['direct_proxy'] ?? 0) === 1) {
+			$rSource = FanoutClient::buildSource($rStreamRow, $rArgsByKey);
+			unset($rSource['ffmpeg']); // node-local; the LB agent fills it
+			return ['kind' => 'proxy', 'source' => $rSource];
 		}
-		$rSource = FanoutClient::buildSource($rStreamRow, $rArgsByKey);
-		unset($rSource['ffmpeg']); // node-local; the LB agent fills it
-		return ['kind' => 'proxy', 'source' => $rSource];
+		if ($rTranscodeSpec !== null) {
+			return ['kind' => 'transcode', 'source' => null, 'spec' => $rTranscodeSpec];
+		}
+		return ['kind' => 'other', 'source' => null];
 	}
 }
