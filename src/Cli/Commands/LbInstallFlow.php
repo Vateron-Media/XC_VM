@@ -299,7 +299,7 @@ class LbInstallFlow {
 	 *
 	 * @return bool True on success; on failure marks the server as errored (status 4).
 	 */
-	public static function provisionConfig($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db, ?bool $rApiMode = null): bool {
+	public static function provisionConfig($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db, ?bool $rApiMode = null, bool $rServeOnly = false): bool {
 		echo "Generating configuration file\n";
 		$rApiMode ??= self::installsInApiMode(SettingsManager::getAll(), $rServerID);
 		if ($rApiMode && !CredentialFreeConfig::supported()) {
@@ -344,7 +344,7 @@ class LbInstallFlow {
 		// Pack config.enc targeted at the node's install_id. Credentials are
 		// read from MAIN's config.enc inside the extension, never exposed here;
 		// in API mode there are none (CredentialFreeConfig).
-		$rPackParams = self::configPackParams($rServers, $rServerID);
+		$rPackParams = self::configPackParams($rServers, $rServerID, $rServeOnly);
 		$rBlob = $rApiMode ? CredentialFreeConfig::pack($rInstallId, $rPackParams) : \XC_VM::config_pack($rInstallId, $rPackParams);
 		if (empty($rBlob)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -415,13 +415,13 @@ class LbInstallFlow {
 	 * @param array<int, array<string, mixed>> $rServers
 	 * @return array<string, mixed>
 	 */
-	public static function configPackParams(array $rServers, int $rServerID): array {
+	public static function configPackParams(array $rServers, int $rServerID, bool $rServeOnly = false): array {
 		return [
 			'hostname'  => $rServers[SERVER_ID]['server_ip'],
 			'database'  => 'xc_vm',
 			'server_id' => $rServerID,
 			'is_lb'     => 1,
-		];
+		] + ($rServeOnly ? ['serve_only' => 1] : []);
 	}
 
 	/**

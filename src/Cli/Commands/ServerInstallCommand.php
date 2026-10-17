@@ -4,6 +4,8 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Backup\BackupService;
+use XcVm\Core\Cluster\StreamRecords;
+use XcVm\Core\Cluster\StreamVersions;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Proxy\ProxyArchiveUpdater;
@@ -245,6 +247,10 @@ class ServerInstallCommand implements CommandInterface {
 		// config.enc. Decided once, before the enrolment replaces the node's row.
 		$rApiMode = $rType == 2 && LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID);
 
+		// A single-binary serve-only LB (server:install --serve-only): MAIN directs
+		// its streams and it runs xc_node with no nginx/php-fpm. Only an LB can be one.
+		$rServeOnly = $rType == 2 && !empty($rOptions['serve-only']);
+
 		if ($rType == 2 && !LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			return 1;
@@ -257,7 +263,7 @@ class ServerInstallCommand implements CommandInterface {
 			$this->sendFileSSH($rConn, TMP_PATH . 'config_' . $rServerID, CONFIG_PATH . 'config.ini');
 		} else {
 			// LB: secure provisioning — DB password never enters PHP (see LbInstallFlow::provisionConfig).
-			if (!LbInstallFlow::provisionConfig($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, $rApiMode)) {
+			if (!LbInstallFlow::provisionConfig($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, $rApiMode, $rServeOnly)) {
 				return 1;
 			}
 		}
@@ -295,7 +301,13 @@ class ServerInstallCommand implements CommandInterface {
 		}
 
 		if (in_array($rType, [1, 2])) {
-			$db->query('UPDATE `servers` SET `status` = 1, `http_broadcast_port` = ?, `https_broadcast_port` = ?, `total_services` = ? WHERE `id` = ?;', $rHTTPPort, $rHTTPSPort, $rServices, $rServerID);
+			$db->query('UPDATE `servers` SET `status` = 1, `http_broadcast_port` = ?, `https_broadcast_port` = ?, `total_services` = ?, `serve_only` = ? WHERE `id` = ?;', $rHTTPPort, $rHTTPSPort, $rServices, $rServeOnly ? 1 : 0, $rServerID);
+			if ($rServeOnly) {
+				// B2: serve_only gates whether this node's records carry a transcode
+				// Spec, so re-stamp its held streams' versions — the next delta re-emits
+				// their directives rather than waiting for the ~5-min resync safety net.
+				StreamVersions::bump(StreamRecords::held($rServerID, null));
+			}
 		} else {
 			$db->query('UPDATE `servers` SET `status` = 1 WHERE `id` = ?;', $rServerID);
 		}
