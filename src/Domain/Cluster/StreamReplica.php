@@ -6,8 +6,11 @@ use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
 use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Cluster\StreamRecords;
+use XcVm\Core\Cluster\StreamRuntimeDirective;
 use XcVm\Core\Cluster\StreamVersions;
 use XcVm\Core\Cluster\StrictQuery;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\StreamSource;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -305,6 +308,26 @@ final class StreamReplica {
 				default => null,
 			};
 		};
+	}
+
+	/**
+	 * The composer a serve-only target's page runs per surviving record: it
+	 * builds the portable Spec (StreamProcess::buildSupervisorSpec, portable
+	 * mode) and upgrades the record's already-classified directive
+	 * (StreamRuntimeDirective::upgrade) — "other" with a non-null Spec becomes
+	 * "transcode"; a proxy or a non-supervisable stream (null Spec) is left
+	 * unchanged. It reads the stream through whatever StreamSource loader is
+	 * installed (the snapshot from runtimeLoader in the signing path; a fake in
+	 * tests), so it runs no query of its own.
+	 *
+	 * @param list<string> $rFeatures the target node's live features (default []): no remux
+	 * @return callable(int, array): array
+	 */
+	public static function runtimeUpgrade(int $rServerID, array $rFeatures): callable {
+		return static fn(int $rID, array $rDirective): array => StreamRuntimeDirective::upgrade(
+			$rDirective,
+			StreamProcess::buildSupervisorSpec($rID, ['features' => $rFeatures, 'server_id' => $rServerID])
+		);
 	}
 
 	/**
