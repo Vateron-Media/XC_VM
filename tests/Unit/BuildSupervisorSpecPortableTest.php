@@ -54,8 +54,9 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 
 	protected function tearDown(): void {
 		StreamSource::useLoader(null);
-		@unlink(STREAMS_PATH . '7_.key');
-		@unlink(STREAMS_PATH . '7_.iv');
+		foreach (['7_.key', '7_.iv', '7.errors', '7_.source_0', '7_.source_1'] as $rF) {
+			@unlink(STREAMS_PATH . $rF);
+		}
 	}
 
 	/** @return array<string,mixed> */
@@ -148,6 +149,9 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 		$rSpec = StreamProcess::buildSupervisorSpec(7, ['features' => []]);
 		$this->assertStringNotContainsString('{binary}', (string) json_encode($rSpec), 'no native remuxer without the remux feature');
 		$this->assertStringContainsString('{ffmpeg_cpu}', $rSpec['sources'][0]['cmd']);
+		// backend=auto with no remux feature takes the refusal path, which on-node
+		// would noteProducer to disk — portable mode must write nothing.
+		$this->assertFileDoesNotExist(STREAMS_PATH . '7.errors', 'portable mode writes no producer note');
 	}
 
 	public function testPortableSpecSignalsEncryption(): void {

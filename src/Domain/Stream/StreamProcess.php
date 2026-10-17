@@ -1807,16 +1807,29 @@ class StreamProcess {
 				$rRefusal = 'this node\'s xc_fanout has no native remuxer (update the daemon binary)';
 			}
 			$rNativeStream = $rRefusal === null;
-			if ($rRefusal !== null) {
+			// noteProducer writes to this node's disk — skip in portable mode, which
+			// composes for another node and must stay side-effect-free.
+			if ($rRefusal !== null && !$rPortableMode) {
 				self::noteProducer($rStreamID, 'ffmpeg runs this stream: ' . $rRefusal);
 			}
 		}
 		$rPriority = !empty($rSettings['priority_backup']) && count($rSources) > 1 && !$rLoopback;
 		// Asked once, of the daemon the hand-over just asked (supportsRemux() above).
-		$rSourceFiles = $rNativeStream && ($rPortableMode ? in_array('remux_source_file', $rFeatures, true) : FanoutClient::supportsLive('remux_source_file'));
+		// Portable: never — writeNativeSource would write a file on MAIN the LB
+		// agent never creates, leaving the command's source path dangling. The
+		// source goes on the argv instead (tokenized like the rest).
+		$rSourceFiles = $rNativeStream && !$rPortableMode && FanoutClient::supportsLive('remux_source_file');
 
 		$rSpecSources = [];
 		foreach ($rSources as $i => $rSource) {
+			// A module source driver needs PHP and the module on the node, and its
+			// command carries un-portable MAIN paths (PHP_BIN, MAIN_HOME, the driver
+			// binary). A serve-only LB has none of that: out of portable scope — emit
+			// no transcode directive (checked before driverSpecEntries, which can
+			// write to this node's log on a driver error).
+			if ($rPortableMode && self::sourceDriverFor($rInfo, $rArgsByKey, (string) $rSource) !== null) {
+				return null;
+			}
 			$rDriverEntries = self::driverSpecEntries($rStreamID, $rInfo, $rArgsByKey, (string) $rSource, (string) $i, $rSegmentSettings, $rIngestSock);
 			if ($rDriverEntries !== null) {
 				array_push($rSpecSources, ...$rDriverEntries);
@@ -1864,7 +1877,7 @@ class StreamProcess {
 				if ($rBackend === 'auto') {
 					$rEntry['fallback_cmd'] = $rFFMPEG;
 				}
-			} elseif ($rNativeStream) {
+			} elseif ($rNativeStream && !$rPortableMode) {
 				self::noteProducer($rStreamID, 'ffmpeg runs source #' . $i . ': ' . strtolower((string) parse_url($rStreamSource, PHP_URL_SCHEME)) . ':// is not a scheme the remuxer reads');
 			}
 			if ($rPriority) {
