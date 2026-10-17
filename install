@@ -2467,6 +2467,7 @@ if __name__ == "__main__":
     # daily. Runs as xc_vm (owner of bin/ffmpeg_bin/); non-fatal, like the above.
     if os.path.exists(startup_cmd):
         printc("Downloading the ffmpeg builds...", col.OKBLUE)
+        run_command("install -d -o xc_vm -g xc_vm -m 0755 /home/xc_vm/bin/ffmpeg_bin")
         run_command(
             f"sudo -u xc_vm /home/xc_vm/bin/php/bin/php {startup_cmd} ffmpeg"
         )

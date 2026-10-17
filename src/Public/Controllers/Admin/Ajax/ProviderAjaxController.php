@@ -45,34 +45,38 @@ class ProviderAjaxController extends BaseAjaxController {
 	public function providerStreams(): never {
 		$this->requireXhr();
 
-		if (!Authorization::check('adv', 'streams')) {
-			$this->json(['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []]);
+		$rDraw = max(0, intval(RequestManager::get('draw') ?? 1));
+		$rProviderId = intval(RequestManager::get('provider_id') ?? 0);
+		if (!Authorization::check('adv', 'streams') || $rProviderId <= 0) {
+			$this->json(['draw' => $rDraw, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []]);
 		}
 
 		global $db;
-		$rProviderId = intval(RequestManager::get('provider_id') ?? 0);
-		$rType       = (RequestManager::get('stream_type') ?? 'live') === 'movie' ? 'movie' : 'live';
-		$rSearch     = trim(RequestManager::get('search')['value'] ?? '');
-		$rStart      = intval(RequestManager::get('start') ?? 0);
-		$rLength     = min(intval(RequestManager::get('length') ?? 100), 500);
-		$rDraw       = intval(RequestManager::get('draw') ?? 1);
+		$rType = (RequestManager::get('stream_type') ?? 'live') === 'movie' ? 'movie' : 'live';
+		$rSearchData = RequestManager::get('search');
+		$rSearch = is_array($rSearchData) && is_scalar($rSearchData['value'] ?? null) ? trim((string) $rSearchData['value']) : '';
+		$rStart = max(0, intval(RequestManager::get('start') ?? 0));
+		$rLength = max(1, min(intval(RequestManager::get('length') ?? 25), 500));
 
+		$db->query('SELECT COUNT(*) as cnt FROM `providers_streams` WHERE `provider_id` = ? AND `type` = ?;', $rProviderId, $rType);
+		$rTotal = intval($db->get_row()['cnt'] ?? 0);
+		$rWhere = '`provider_id` = ? AND `type` = ?';
+		$rParams = [$rProviderId, $rType];
+		$rFiltered = $rTotal;
 		if ($rSearch !== '') {
+			$rWhere .= ' AND (`stream_display_name` LIKE ? OR `channel_id` LIKE ? OR `stream_id` LIKE ?)';
 			$rLike = '%' . $rSearch . '%';
-			$db->query('SELECT COUNT(*) as cnt FROM `providers_streams` WHERE `provider_id` = ? AND `type` = ? AND `stream_display_name` LIKE ?;', $rProviderId, $rType, $rLike);
-			$rTotal = intval($db->get_row()['cnt'] ?? 0);
-			$db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon`, `channel_id` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = ? AND `stream_display_name` LIKE ? ORDER BY `modified` DESC, `stream_id` ASC LIMIT ' . $rStart . ', ' . $rLength . ';', $rProviderId, $rType, $rLike);
-		} else {
-			$db->query('SELECT COUNT(*) as cnt FROM `providers_streams` WHERE `provider_id` = ? AND `type` = ?;', $rProviderId, $rType);
-			$rTotal = intval($db->get_row()['cnt'] ?? 0);
-			$db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon`, `channel_id` FROM `providers_streams` WHERE `provider_id` = ? AND `type` = ? ORDER BY `modified` DESC, `stream_id` ASC LIMIT ' . $rStart . ', ' . $rLength . ';', $rProviderId, $rType);
+			array_push($rParams, $rLike, $rLike, $rLike);
+			$db->query('SELECT COUNT(*) as cnt FROM `providers_streams` WHERE ' . $rWhere . ';', ...$rParams);
+			$rFiltered = intval($db->get_row()['cnt'] ?? 0);
 		}
+		$db->query('SELECT `stream_id`, `category_array`, `stream_display_name`, `modified`, `stream_icon`, `channel_id` FROM `providers_streams` WHERE ' . $rWhere . ' ORDER BY `stream_display_name` ASC, `stream_id` ASC LIMIT ' . $rStart . ', ' . $rLength . ';', ...$rParams);
 
 		$this->json([
 			'draw'            => $rDraw,
 			'recordsTotal'    => $rTotal,
-			'recordsFiltered' => $rTotal,
-			'data'            => $db->get_rows(),
+			'recordsFiltered' => $rFiltered,
+			'data'            => $db->get_raw_rows(),
 		]);
 	}
 }
