@@ -134,7 +134,7 @@ final class StreamReplica {
 		self::read('SELECT `stream_id`, `ver` FROM `cluster_stream_ver` WHERE `server_id` = ? AND `ver` > ? ORDER BY `ver` ASC LIMIT ' . self::MAX_ROWS . ';', $rServerID, $rSince);
 		$rRows = array_map(static fn(array $rRow): array => [(int) $rRow['stream_id'], (int) $rRow['ver']], self::db()->get_rows() ?: []);
 		$rData = self::data($rServerID, self::held($rServerID, array_column($rRows, 0)));
-		$rPage = self::page($rCrypto, $rNode, $rRows, $rData, null);
+		$rPage = self::pageServeOnly($rCrypto, $rNode, $rRows, $rData, null);
 		$rDone = $rPage['done'];
 		$rOut = [
 			'ver' => $rDone > 0 ? $rRows[$rDone - 1][1] : $rSince, 'head' => $rHead,
@@ -170,12 +170,46 @@ final class StreamReplica {
 		sort($rIDs);
 		$rVers = self::versions($rServerID, $rHeld);
 		$rItems = array_map(static fn(int $rID): array => [$rID, $rVers[$rID] ?? 0], $rIDs);
-		$rPage = self::page($rCrypto, $rNode, $rItems, self::data($rServerID, $rHeld), $rHashes);
+		$rPage = self::pageServeOnly($rCrypto, $rNode, $rItems, self::data($rServerID, $rHeld), $rHashes);
 		if ($rPage['done'] < count($rItems)) {
 			$rNext = $rItems[$rPage['done']][0];
 		}
 		$rOut = ['ver' => $rSince, 'head' => $rHead, 'next' => $rNext, 'streams' => $rPage['streams'], 'removed' => $rPage['removed']];
 		return $rOut + ($rPage['withheld'] > 0 ? ['withheld' => $rPage['withheld']] : []);
+	}
+
+	/**
+	 * page(), gated for a serve-only target: before signing the records, it
+	 * installs the batched snapshot loader (runtimeLoader) and the directive
+	 * composer (runtimeUpgrade) so page() upgrades each survivor's directive to
+	 * a portable transcode Spec, always restoring the previous StreamSource
+	 * backend. A non-serve-only target pages exactly as before (no loader, no
+	 * composer) — the inert guarantee. The serve_only column is read once here.
+	 *
+	 * @param list<array{0: int, 1: int}> $rItems
+	 * @param array<int, array<string, mixed>> $rData
+	 * @param array<int, string>|null $rHave
+	 * @return array{streams: list<array{id: int, ver: int, etag: string, sealed: string}>, removed: list<int>, done: int, withheld: int}
+	 */
+	private static function pageServeOnly(ClusterCrypto $rCrypto, array $rNode, array $rItems, array $rData, ?array $rHave): array {
+		$rServerID = (int) $rNode['server_id'];
+		if (!self::serveOnly($rServerID)) {
+			return self::page($rCrypto, $rNode, $rItems, $rData, $rHave);
+		}
+		// features [] — MAIN does not store a node's live remux capability, so
+		// the Spec defaults to ffmpeg (never wrong). Wiring real features is a follow-up.
+		StreamSource::useLoader(self::runtimeLoader($rServerID, array_keys($rData)));
+		try {
+			return self::page($rCrypto, $rNode, $rItems, $rData, $rHave, self::runtimeUpgrade($rServerID, []));
+		} finally {
+			StreamSource::useLoader(null);
+		}
+	}
+
+	/** Is this server a serve-only LB (`serve_only` on its `servers` row): its Go agent runs the streams MAIN directs (runtimeUpgrade). */
+	private static function serveOnly(int $rServerID): bool {
+		self::read('SELECT `serve_only` FROM `servers` WHERE `id` = ?;', $rServerID);
+		return (bool) (int) (self::db()->get_row()['serve_only'] ?? 0);
 	}
 
 	/**
@@ -190,7 +224,7 @@ final class StreamReplica {
 	 * @param array<int, string>|null $rHave the node's ETags (a resync), null for a delta
 	 * @return array{streams: list<array{id: int, ver: int, etag: string, sealed: string}>, removed: list<int>, done: int, withheld: int}
 	 */
-	private static function page(ClusterCrypto $rCrypto, array $rNode, array $rItems, array $rData, ?array $rHave): array {
+	private static function page(ClusterCrypto $rCrypto, array $rNode, array $rItems, array $rData, ?array $rHave, ?callable $rUpgrade = null): array {
 		$rStreams = [];
 		$rRemoved = [];
 		$rBytes = 0;
@@ -203,6 +237,11 @@ final class StreamReplica {
 				}
 				$rDone++;
 				continue;
+			}
+			if ($rUpgrade !== null) {
+				// A serve-only target: compose the portable Spec for this survivor
+				// and upgrade its directive, before the ETag is taken over it.
+				$rData[$rID]['runtime'] = $rUpgrade($rID, $rData[$rID]['runtime']);
 			}
 			$rEtag = ReplicaBuilder::etag($rData[$rID]);
 			if ($rHave !== null && ($rHave[$rID] ?? '') === $rEtag) {
@@ -324,10 +363,19 @@ final class StreamReplica {
 	 * @return callable(int, array): array
 	 */
 	public static function runtimeUpgrade(int $rServerID, array $rFeatures): callable {
-		return static fn(int $rID, array $rDirective): array => StreamRuntimeDirective::upgrade(
-			$rDirective,
-			StreamProcess::buildSupervisorSpec($rID, ['features' => $rFeatures, 'server_id' => $rServerID])
-		);
+		return static function (int $rID, array $rDirective) use ($rServerID, $rFeatures): array {
+			// Only an "other" directive can become a transcode; a proxy (served by
+			// the puller) or an already-decided directive is left as is, and its
+			// Spec is never composed — so buildSupervisorSpec runs only where its
+			// result can be used.
+			if (($rDirective['kind'] ?? '') !== 'other') {
+				return $rDirective;
+			}
+			return StreamRuntimeDirective::upgrade(
+				$rDirective,
+				StreamProcess::buildSupervisorSpec($rID, ['features' => $rFeatures, 'server_id' => $rServerID])
+			);
+		};
 	}
 
 	/**
