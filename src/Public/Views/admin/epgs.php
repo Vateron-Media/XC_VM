@@ -83,7 +83,12 @@ LayoutRenderer::renderFooter('admin');
                 return;
             }
             forcePending = true;
+            var controller = new AbortController();
+            var timeout = setTimeout(function() {
+                controller.abort();
+            }, 15000);
             return fetch('./api?action=force_epg', {
+                    signal: controller.signal,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
@@ -104,6 +109,7 @@ LayoutRenderer::renderFooter('admin');
                     xcToast(errMsg, 'error');
                 })
                 .finally(function() {
+                    clearTimeout(timeout);
                     forcePending = false;
                 });
         };
