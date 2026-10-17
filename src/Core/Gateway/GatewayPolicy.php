@@ -146,6 +146,11 @@ final class GatewayPolicy {
 				'unique_header' => !empty($rSettings['send_unique_header']),
 			],
 			'serve_until' => self::serveUntil($rSettings, $rNow),
+			// A serve-only LB (no PHP/nginx behind the Go gateway): the gateway
+			// serves a registered idle stream (starts its puller) instead of
+			// deferring not-on-air to a backend that is not there. Read from this
+			// node's own server row; absent (a transition node) is false.
+			'serve_only' => !empty($rOwn['serve_only']),
 			'paths' => [
 				'cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'vod' => VOD_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH,
 				'agent_sock' => AgentPaths::file(AgentPaths::SOCKET), 'spool' => AgentPaths::file(AgentPaths::DIR . 'spool/'), 'flows' => AgentPaths::file(AgentPaths::DIR . 'flows.json'),

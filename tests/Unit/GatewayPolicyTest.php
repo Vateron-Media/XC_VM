@@ -64,6 +64,18 @@ final class GatewayPolicyTest extends TestCase {
 		];
 	}
 
+	public function testServeOnlyFromTheNodeAttribute(): void {
+		// A transition node has no serve_only attribute → false (the gateway
+		// keeps deferring to PHP).
+		$this->assertFalse(GatewayPolicy::build($this->settings(), $this->servers(), 1, self::NOW)['serve_only']);
+
+		// A node marked serve-only in its own server row → true (the gateway
+		// serves a registered idle stream instead of deferring not-on-air).
+		$rServers = $this->servers();
+		$rServers[1]['serve_only'] = 1;
+		$this->assertTrue(GatewayPolicy::build($this->settings(), $rServers, 1, self::NOW)['serve_only']);
+	}
+
 	public function testTheKeysAreReadTokensInItsOrderWithTheirWindows(): void {
 		file_put_contents($this->rDir . '/viewer', json_encode(['current' => 'vk-now', 'previous' => 'vk-old', 'previous_valid_until' => self::NOW + 60]));
 		file_put_contents($this->rDir . '/secret', json_encode(['value' => 'secret-old', 'valid_until' => self::NOW + 30]));
@@ -87,7 +99,7 @@ final class GatewayPolicyTest extends TestCase {
 
 	public function testTheRestIsWhatSegmentPhpReads(): void {
 		$rPolicy = GatewayPolicy::build($this->settings(['send_altsvc_header' => 1]), $this->servers(), 1, self::NOW);
-		$this->assertSame(['v', 'server_id', 'written_at', 'mode', 'keys', 'restrict_same_ip', 'ip_subnet_match', 'encrypt_hls', 'headers', 'serve_until', 'paths', 'live', 'verify_host', 'allowed_domains', 'conn_store', 'time_offset', 'vod_limit_perc', 'vod_bitrate_plus', 'default_timezone', 'redirect'], array_keys($rPolicy), 'nothing else, no other secret');
+		$this->assertSame(['v', 'server_id', 'written_at', 'mode', 'keys', 'restrict_same_ip', 'ip_subnet_match', 'encrypt_hls', 'headers', 'serve_until', 'serve_only', 'paths', 'live', 'verify_host', 'allowed_domains', 'conn_store', 'time_offset', 'vod_limit_perc', 'vod_bitrate_plus', 'default_timezone', 'redirect'], array_keys($rPolicy), 'nothing else, no other secret');
 		$this->assertSame([1, self::NOW, 'shadow'], [$rPolicy['server_id'], $rPolicy['written_at'], $rPolicy['mode']]);
 		$this->assertSame([true, false, true], [$rPolicy['restrict_same_ip'], $rPolicy['ip_subnet_match'], $rPolicy['encrypt_hls']]);
 		$this->assertSame(['server' => 'XC', 'protection' => true, 'altsvc_port' => 8443, 'unique_header' => false], $rPolicy['headers']);
