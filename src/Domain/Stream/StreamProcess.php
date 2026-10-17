@@ -1720,6 +1720,13 @@ class StreamProcess {
 			return null;
 		}
 		$rStream = ['stream_info' => $rStreamRow];
+		if ($rPortableMode) {
+			// external_push is keyed by SERVER_ID, so composing it here would use
+			// MAIN's bucket — wrong destinations and MAIN's push credentials in a
+			// replicated Spec. A serve-only LB does not push; strip it so neither
+			// buildLive nor the refusal checks compose or branch on it.
+			$rStream['stream_info']['external_push'] = '[]';
+		}
 		// Portable mode composes for the TARGET LB, so its server context
 		// (on_demand/parent_id, which drive loopback/LLOD) comes from the target's
 		// row, not this node's. The default path reads this node's (null → SERVER_ID).
@@ -1849,7 +1856,10 @@ class StreamProcess {
 			$rFetchOptions = implode(' ', StreamUtils::getArguments($rArguments, $rProtocol, 'fetch'));
 
 			$rFFMPEG = self::buildLive([
-				'stream' => $rStream, 'settings' => $rSettings, 'servers' => $rServers,
+				// Portable: force dts_legacy_ffmpeg off so buildLive does not swap the
+				// {ffmpeg_cpu} token for MAIN's legacy binary path (FfmpegPaths::legacy)
+				// on AC3/EAC3 — the token must survive; -nofix_dts is the target's call.
+				'stream' => $rStream, 'settings' => ($rPortableMode ? ['dts_legacy_ffmpeg' => 0] + $rSettings : $rSettings), 'servers' => $rServers,
 				'streamID' => $rStreamID, 'streamSource' => $rStreamSource,
 				'fetchOptions' => $rFetchOptions, 'ffprobe' => self::cachedProbe($rSource, $rStreamSource),
 				'protocol' => $rProtocol, 'source' => $rSource,
@@ -1911,8 +1921,40 @@ class StreamProcess {
 			$rSpec = self::tokenizeNodePaths($rSpec);
 			$rSpec['server_id'] = '{server_id}';
 			$rSpec['encrypt'] = $rEncrypt;
+			// Fail closed: a node-local binary or install path surviving in the Spec
+			// means a buildLive branch reached past the placeholders (a legacy-ffmpeg
+			// swap, a driver, a path we don't tokenize). Emit no directive rather than
+			// replicate MAIN's path/binary to the LB — the stream stays "other".
+			if (self::portableSpecHasNodeConcrete($rSpec)) {
+				return null;
+			}
 		}
 		return $rSpec;
+	}
+
+	/**
+	 * Whether a composed portable Spec still carries a node-local absolute binary
+	 * or install path (which should have been a placeholder token). A backstop for
+	 * buildLive branches that resolve a concrete path despite the token inputs.
+	 */
+	private static function portableSpecHasNodeConcrete(array $rSpec): bool {
+		$rJson = (string) json_encode($rSpec);
+		$rConcretes = [FfmpegPaths::cpu(), FfmpegPaths::gpu(), FfmpegPaths::probe(), FfmpegPaths::legacy()];
+		if (defined('MAIN_HOME')) {
+			$rConcretes[] = MAIN_HOME;
+		}
+		if (defined('PHP_BIN')) {
+			$rConcretes[] = PHP_BIN;
+		}
+		foreach ($rConcretes as $rConcrete) {
+			$rConcrete = (string) $rConcrete;
+			// Only absolute paths are distinctive enough to match on (a bare
+			// "ffmpeg" would false-positive); an absolute MAIN path never belongs.
+			if (strpos($rConcrete, '/') !== false && strpos($rJson, $rConcrete) !== false) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

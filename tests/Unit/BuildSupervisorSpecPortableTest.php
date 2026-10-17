@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSource;
 
@@ -50,10 +51,14 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 		$GLOBALS['rFFMPEG_CPU'] = '/bin/ffmpeg';
 		$GLOBALS['rFFMPEG_GPU'] = '/bin/ffmpeg-gpu';
 		$GLOBALS['rFFPROBE'] = '/bin/ffprobe';
+		// log_path reads SettingsManager (not the global), so enable it here to
+		// exercise the log-path tokenization.
+		SettingsManager::set(['save_restart_logs' => 1]);
 	}
 
 	protected function tearDown(): void {
 		StreamSource::useLoader(null);
+		SettingsManager::set([]);
 		foreach (['7_.key', '7_.iv', '7.errors', '7_.source_0', '7_.source_1'] as $rF) {
 			@unlink(STREAMS_PATH . $rF);
 		}
@@ -79,6 +84,9 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 			'rtmp_output' => 0,
 			'probesize_ondemand' => 0,
 			'llod' => 0,
+			// Keyed by server_id — on MAIN (SERVER_ID 1) this is MAIN's bucket and
+			// carries a push credential; portable mode must strip it.
+			'external_push' => json_encode(['1' => ['rtmp://push.example/app?streamKey=PUSHSECRET']]),
 		];
 	}
 
@@ -103,7 +111,7 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 		$this->assertStringContainsString('{ffmpeg_cpu}', $rCmd);
 		$this->assertStringContainsString('{streams}', $rCmd);
 		$this->assertStringNotContainsString(STREAMS_PATH, $rCmd, 'no node STREAMS_PATH prefix leaks');
-		$this->assertStringNotContainsString(LOGS_TMP_PATH, (string) $rSpec['log_path'] ?: '{logs}', 'log_path tokenized');
+		$this->assertSame('{logs}stream_log.log', $rSpec['log_path'], 'a populated log_path is tokenized');
 
 		$this->assertSame('{streams}7_.pid', $rSpec['pid_path']);
 		$this->assertSame('{streams}7.errors', $rSpec['errors_path']);
@@ -113,6 +121,8 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 		// No node-local absolute path leaks ANYWHERE in the Spec: every test path
 		// constant shares this prefix, so one scan catches a missed constant too.
 		$this->assertStringNotContainsString('/tmp/xcvm-test-', (string) json_encode($rSpec), 'no node path leaks into the portable Spec');
+		// external_push (MAIN's bucket + its push credential) is stripped.
+		$this->assertStringNotContainsString('PUSHSECRET', (string) json_encode($rSpec), 'external_push is stripped in portable mode');
 	}
 
 	public function testPortableLoopbackStreamIsNotComposed(): void {
@@ -136,7 +146,12 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 	}
 
 	public function testPortableModeHasNoSideEffects(): void {
-		StreamProcess::buildSupervisorSpec(7, ['features' => []]);
+		$rSpec = StreamProcess::buildSupervisorSpec(7, ['features' => []]);
+		// A non-null Spec with the {ingest_sock} token intact proves registerIngest
+		// was NOT called: if it had been, it would have failed (no fanout in the test
+		// → null Spec) or replaced the token with a real socket path.
+		$this->assertNotNull($rSpec, 'portable mode composes without touching the fanout');
+		$this->assertStringContainsString('{ingest_sock}', $rSpec['sources'][0]['cmd'], 'ingest socket stayed a token — registerIngest not called');
 		$this->assertFileDoesNotExist(STREAMS_PATH . '7_.key', 'portable mode writes no key file');
 		$this->assertFileDoesNotExist(STREAMS_PATH . '7_.iv', 'portable mode writes no IV file');
 	}
