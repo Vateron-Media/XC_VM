@@ -199,7 +199,7 @@ final class ReplicaFixture {
 		$this->whole('node', [
 			'id' => 5, 'http_broadcast_port' => 8080, 'https_broadcast_port' => 8443, 'http_ports_add' => '', 'https_ports_add' => '', 'rtmp_port' => 8880,
 			'limit_requests' => 0, 'limit_burst' => 0, 'total_services' => 4, 'use_disk' => 0, 'enable_https' => 0, 'domain_name' => '',
-			'network_interface' => 'eth0', 'governor' => '', 'sysctl' => '', 'time_offset' => 0, 'cloudflare' => 0, 'mag_legacy_redirect' => 0,
+			'network_interface' => 'eth0', 'governor' => '', 'sysctl' => '', 'time_offset' => 0, 'serve_only' => 0, 'cloudflare' => 0, 'mag_legacy_redirect' => 0,
 		]);
 		$this->whole('crontab', ['jobs' => [['filename' => 'cache', 'time' => '* * * * *'], ['filename' => 'cleanup', 'time' => '0 * * * *']]]);
 		$this->blocklist(['ip' => ['203.0.113.1'], 'asn' => [], 'ua' => [], 'isp' => [], 'rtmp' => []], 7);

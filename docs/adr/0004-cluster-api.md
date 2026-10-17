@@ -1338,7 +1338,7 @@ The settings columns come from the install schema and the migrations. Secrets ar
 | Section | `data` |
 | --- | --- |
 | `servers` | `{servers: [row], nodes: [{sid, gen, state, ed_pub}]}`. One row per `servers` row, ordered by id, with the routing and relay fields `SERVER_FIELDS`. `nodes` is every `cluster_nodes` row by `server_id`: its generation, its state and its Ed25519 key (`node_sign_pub`, base64) |
-| `node` | The node's own row: `NODE_FIELDS` (ports, `limit_requests`/`limit_burst`, `total_services`, `use_disk`, `enable_https`, `domain_name`, `network_interface`, `governor`, `sysctl`, `time_offset`) and the settings `cloudflare` and `mag_legacy_redirect`. `[]` when the row is gone |
+| `node` | The node's own row: `NODE_FIELDS` (ports, `limit_requests`/`limit_burst`, `total_services`, `use_disk`, `enable_https`, `domain_name`, `network_interface`, `governor`, `sysctl`, `time_offset`, `serve_only`) and the settings `cloudflare` and `mag_legacy_redirect`. `[]` when the row is gone |
 | `crontab` | `{jobs: [{filename, time}]}`: the enabled rows whose role fits the node's mode, in the table's order. A row that is not a job as the node takes it (below) is left out, and audited once as `replica.crontab_skipped` |
 | `cluster` | `{main_urls, urls_ver, policy_ver, transport, panel_sign_pub, panel_box_pub, min_proto, off_air}`. The policy is the one `hello` sends (`ClusterPolicy::current`). The keys are base64. `off_air` maps `connected`, `not_on_air`, `banned`, `expired` and `expiring` to the file name of the admin's video, or null for the node's default |
 

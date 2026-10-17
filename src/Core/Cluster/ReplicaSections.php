@@ -114,6 +114,10 @@ final class ReplicaSections {
 		'https_ports_add' => 'str', 'rtmp_port' => 'int', 'limit_requests' => 'int', 'limit_burst' => 'int',
 		'total_services' => 'int', 'use_disk' => 'int', 'enable_https' => 'int', 'domain_name' => 'str',
 		'network_interface' => 'str', 'governor' => 'str', 'sysctl' => 'str', 'time_offset' => 'int',
+		// Whether this node is a serve-only LB (gateway serves a registered idle
+		// stream instead of deferring to PHP). Only the node's own row carries it;
+		// GatewayPolicy reads it as serve_only. Survives mode-2 materialization.
+		'serve_only' => 'int',
 	];
 
 	/** `node`: the settings that configure a node's nginx (realip, the Ministra redirect). */

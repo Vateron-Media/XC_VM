@@ -66,14 +66,20 @@ final class GatewayPolicyTest extends TestCase {
 
 	public function testServeOnlyFromTheNodeAttribute(): void {
 		// A transition node has no serve_only attribute → false (the gateway
-		// keeps deferring to PHP).
-		$this->assertFalse(GatewayPolicy::build($this->settings(), $this->servers(), 1, self::NOW)['serve_only']);
+		// keeps deferring to PHP). Built for a non-first node id (5).
+		$this->assertFalse(GatewayPolicy::build($this->settings(), $this->servers(), 5, self::NOW)['serve_only']);
 
-		// A node marked serve-only in its own server row → true (the gateway
-		// serves a registered idle stream instead of deferring not-on-air).
+		// Marked serve-only in ITS OWN row (5) → true (the gateway serves a
+		// registered idle stream instead of deferring not-on-air).
 		$rServers = $this->servers();
-		$rServers[1]['serve_only'] = 1;
-		$this->assertTrue(GatewayPolicy::build($this->settings(), $rServers, 1, self::NOW)['serve_only']);
+		$rServers[5]['serve_only'] = 1;
+		$this->assertTrue(GatewayPolicy::build($this->settings(), $rServers, 5, self::NOW)['serve_only']);
+
+		// The flag is this node's own: another row's serve_only must not leak in
+		// (guards against reading the first row instead of the requested id).
+		$rOther = $this->servers();
+		$rOther[1]['serve_only'] = 1;
+		$this->assertFalse(GatewayPolicy::build($this->settings(), $rOther, 5, self::NOW)['serve_only'], 'another node\'s serve_only must not affect this node');
 	}
 
 	public function testTheKeysAreReadTokensInItsOrderWithTheirWindows(): void {
