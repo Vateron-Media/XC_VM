@@ -44,9 +44,26 @@ final class StreamRuntimeDirective {
 			unset($rSource['ffmpeg']); // node-local; the LB agent fills it
 			return ['kind' => 'proxy', 'source' => $rSource];
 		}
-		if ($rTranscodeSpec !== null) {
+		return self::upgrade(['kind' => 'other', 'source' => null], $rTranscodeSpec);
+	}
+
+	/**
+	 * Attach a portable supervisor Spec to a directive first classified without
+	 * one, for a serve-only target whose Spec is composed later (after the
+	 * record's held streams are read; {@see StreamReplica::page()}). An "other"
+	 * directive with a non-null Spec becomes "transcode"; a proxy, an
+	 * already-transcode, or a null Spec leaves the directive unchanged — so the
+	 * Spec never displaces the puller's proxy and a non-supervisable stream
+	 * (null Spec) stays "other".
+	 *
+	 * @param array $rDirective A directive from {@see build()}.
+	 * @param array|null $rTranscodeSpec The portable Spec, or null when none was composed.
+	 * @return array{kind: string, source: array|null, spec?: array}
+	 */
+	public static function upgrade(array $rDirective, ?array $rTranscodeSpec): array {
+		if (($rDirective['kind'] ?? '') === 'other' && $rTranscodeSpec !== null) {
 			return ['kind' => 'transcode', 'source' => null, 'spec' => $rTranscodeSpec];
 		}
-		return ['kind' => 'other', 'source' => null];
+		return $rDirective;
 	}
 }
