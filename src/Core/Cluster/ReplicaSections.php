@@ -45,7 +45,7 @@ namespace XcVm\Core\Cluster;
  * sent by the `streams` op (Domain\Cluster\StreamReplica), never whole:
  *
  * ```text
- * stream  {children, options, profile, recordings, server, stream, tickets, type}
+ * stream  {children, options, profile, recordings, runtime, server, stream, tickets, type}
  *   stream      STREAM_FIELDS of the `streams` row
  *   type        STREAM_TYPE_FIELDS of its `streams_types` row, or null
  *   profile     PROFILE_FIELDS of its transcoding profile, or null
@@ -56,6 +56,13 @@ namespace XcVm\Core\Cluster;
  *               recording of it without running it)
  *   children    [sid] the servers that relay it from this node (parent_id)
  *   recordings  [RECORDING_FIELDS] its recordings scheduled on this node
+ *   runtime     {kind: "proxy"|"transcode"|"other", source: {urls, ua, proxy,
+ *               cookie}|null, spec?: {...}} how a serve-only LB runs this stream
+ *               (StreamRuntimeDirective): kind "proxy" (direct-proxy restream)
+ *               carries the node-agnostic source its agent registers with the
+ *               fanout; "transcode" (Phase 4b) carries a portable supervisor
+ *               `spec` (node-local values as placeholder tokens) the agent runs,
+ *               source null; "other" carries neither
  *   tickets     the relay and file tickets of Phase 8, for a node whose
  *               DATAPLANE flow is on (Domain\Cluster\TicketService), else
  *               null; filled after the ETag was taken with it null
@@ -114,6 +121,10 @@ final class ReplicaSections {
 		'https_ports_add' => 'str', 'rtmp_port' => 'int', 'limit_requests' => 'int', 'limit_burst' => 'int',
 		'total_services' => 'int', 'use_disk' => 'int', 'enable_https' => 'int', 'domain_name' => 'str',
 		'network_interface' => 'str', 'governor' => 'str', 'sysctl' => 'str', 'time_offset' => 'int',
+		// Whether this node is a serve-only LB (gateway serves a registered idle
+		// stream instead of deferring to PHP). Only the node's own row carries it;
+		// GatewayPolicy reads it as serve_only. Survives mode-2 materialization.
+		'serve_only' => 'int',
 	];
 
 	/** `node`: the settings that configure a node's nginx (realip, the Ministra redirect). */

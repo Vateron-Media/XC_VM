@@ -1,0 +1,9 @@
+{
+  "kind": "proxy",
+  "source": {
+    "urls": ["http://a/1.ts", "http://b/2.m3u8"],
+    "ua": "MyPlayer/1.0",
+    "proxy": "1.2.3.4:8080",
+    "cookie": "sid=xyz"
+  }
+}
