@@ -98,14 +98,27 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
     // pointerdown, before Bootstrap's own click handler) so the menu escapes
     // the overflow clip and is positioned against the viewport — Popper then
     // flips/shifts it to stay on screen instead of hiding under the menu.
+    // A menu taller than the room both above and below its button (the servers
+    // row menu with the cluster actions) was cut off at the window edge: shift
+    // it along the button too (altAxis) and cap it at the window height.
     document.addEventListener('pointerdown', function(e) {
         var toggle = e.target.closest && e.target.closest('.card-datatable [data-bs-toggle="dropdown"]');
         if (!toggle || !window.bootstrap || bootstrap.Dropdown.getInstance(toggle)) {
             return;
         }
+        var menu = toggle.parentNode.querySelector('.dropdown-menu');
+        if (menu) {
+            menu.style.maxHeight = 'calc(100vh - 16px)';
+            menu.style.overflowY = 'auto';
+        }
         bootstrap.Dropdown.getOrCreateInstance(toggle, {
             popperConfig: function(cfg) {
                 cfg.strategy = 'fixed';
+                cfg.modifiers.forEach(function(m) {
+                    if (m.name === 'preventOverflow') {
+                        m.options = Object.assign({}, m.options, { altAxis: true, tether: false, padding: 8 });
+                    }
+                });
                 return cfg;
             }
         });
