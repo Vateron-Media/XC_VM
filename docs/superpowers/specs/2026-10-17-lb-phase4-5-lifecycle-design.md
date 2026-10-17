@@ -86,11 +86,13 @@ start primitive.** The runtimes and their on-demand behaviour already exist in
 the binary: a registered puller starts on the first viewer's `attach` and
 idle-stops/restarts on its own; the supervisor runs an ffmpeg `Spec` it is
 handed and manages its lifecycle. The missing piece on a serve-only LB is the
-*hand-over* PHP does today — `Manager.Register(id, puller.Source{…})` + `setEnc`
-for a restream, `m.sup.Supervise(id, Spec{…})` (the `/monitor/` PUT body) for a
-transcode. Phase 4 adds a Go **bridge** that takes the composed work MAIN
-delivers (D3), resolves node placeholders, and performs that hand-over to the
-right runtime, re-doing it on change and tearing it down on removal. Then the
+*hand-over* PHP does today, performed over the fanout's control socket (the
+`fanout` and `agent` are separate processes): `PUT /streams/<id>` (→
+`Manager.Register` + `setEnc`) for a restream, `PUT /monitor/<id>` (→
+`supervisor.Supervise`) for a transcode. Phase 4 adds a Go **bridge** in the
+agent that takes the composed work MAIN delivers (D3), resolves node
+placeholders, and performs that hand-over to the right runtime, re-doing it on
+change and tearing it down on removal. Then the
 existing on-demand start serves every viewer with no PHP, and the gateway — on a
 serve-only LB — serves a registered-but-idle stream (attaching/launching starts
 it) instead of deferring. The judge stays a pure classifier (no start side
@@ -124,38 +126,43 @@ control socket when it changes or should start (event-driven freshness). The
 delivered command carries a **closed set of node placeholders**
 (`{ffmpeg_bin}`, `{gpu}`, `{streams}/{id}_.pid`, `server_id`, …) that the daemon
 substitutes from its own config — substitution, not composition, so the daemon
-runs no logic and MAIN need not track each LB's environment. The record's
-`data` payload is MAIN-defined (PHP); its exact shape, extended to carry the
-composed command, is the one cross-repo contract Phase 4 owns, pinned as its
-first task.
+runs no logic and MAIN need not track each LB's environment. Concretely the
+record carries a ready **runtime directive** —
+`{kind: "proxy"|"transcode"|"skip", source|spec: …}` — that the agent applies
+verbatim; `kind` is MAIN's existing restream-vs-transcode determination (the
+same one behind `channel_info["proxy"]`, which is computed at mint, not a raw
+column), so **the agent never re-derives which runtime a stream uses or how its
+source/command is built.** That directive's shape is the one cross-repo contract
+Phase 4 owns, fixed as its first task with both repos open.
 
 ## Approach & phasing
 
-**Phase 4a — the restream (pull) bridge (the beachhead).** In the Go binary,
-parse each replicated stream record (`replica/streams/<id>.json`, the
-MAIN-signed `data`) for a *restream* into a `puller.Source` + key/IV and call
-`Manager.Register` + `setEnc`, driven off the streams-sync deltas the agent
-already produces, and unregister on removal. Gate the gateway serve path so a
-serve-only LB serves a registered-but-idle restream instead of deferring. This
-phase works on the record MAIN *already* signs (source fields), so it ships
-without a MAIN-side change and proves the whole chain end to end
-(record → hand-over → on-demand start → serve). First step: pin the restream
-fields of `streamDoc.data` (read what PHP signs and what `seedLocal` maps).
-Tests: a replicated restream record registers the puller; a delta
-re-registers; a removal unregisters; a serve-only node serves a registered idle
-restream (puller starts on attach); a shadow-mode node still never starts; a
-node with a PHP backend still defers.
+**Phase 4a — the restream directive (the beachhead, cross-repo).** MAIN: in the
+stream record it signs (`StreamRecords::data`), emit a ready `runtime` directive
+for the assigned node — `{kind: "proxy"|"transcode"|"skip", source: {urls, ua,
+proxy, cookie}}` — computing `kind` from its existing restream-vs-transcode
+determination and `source` from `FanoutClient::buildSource`, so the agent
+derives nothing. Go agent: on each applied record read `data.runtime`; for
+`kind:"proxy"` resolve the node ffmpeg path and `PUT /streams/<id>` to the fanout
+control socket; re-apply on the sync's deltas, `DELETE` on removal or
+`kind:"skip"`; a `kind:"transcode"` is left for 4b. This proves the chain
+record → directive → hand-over → on-demand start. (The gateway serve-not-defer
+change — so a serve-only LB *serves* a registered idle stream instead of
+deferring — is a sibling slice for which this registration is the prerequisite;
+it needs a separate trace of the clusteragent admission/connection path.) First
+step: fix the `runtime` directive shape with both repos open. Tests — Go: a
+`proxy` directive registers the puller with the resolved source; a delta
+re-registers; a removal / `skip` unregisters; a `transcode` directive is
+ignored. PHP: `StreamRecords::data` emits the right directive for a proxy stream
+and `kind:"transcode"` for a transcoding one.
 
-**Phase 4b — the transcode (encoder) path (the big one, cross-repo).** MAIN:
-extend what it signs into the stream record (and the live push) to carry the
-composed ffmpeg `Spec` for streams assigned to this LB — `buildLive` output with
-node values emitted as the D3 placeholders — so MAIN composes per (stream, LB)
-without hand-coding each LB's environment. Go: parse that into a
-`supervisor.Spec`, resolve the placeholders from the daemon's own config, and
-`m.sup.Supervise(id, spec)`; re-supervise on change, release on removal. The
-serve path treats a supervised transcode exactly like a registered restream for
-the serve-not-defer decision. First step: pin the `Spec`/placeholder shape with
-both repos open. Tests: a transcode record supervises with the right resolved
+**Phase 4b — the transcode directive (the big one, cross-repo).** MAIN: extend
+the `runtime` directive to `kind:"transcode"` carrying the composed ffmpeg `spec`
+— `buildLive` output with node values emitted as the D3 placeholders — so MAIN
+composes per (stream, LB) without hand-coding each LB's environment. Go agent:
+parse the `spec`, resolve the placeholders from the daemon's own config, and
+`PUT /monitor/<id>` (the supervisor hand-over); re-apply on change, release on
+removal. First step: fix the `spec`/placeholder shape with both repos open. Tests: a transcode record supervises with the right resolved
 command; a placeholder resolves to the node's `ffmpeg_bin`/`gpu`/paths; a change
 re-supervises; an unsupervise on removal; a malformed/unknown placeholder is
 rejected, never shell-expanded.
@@ -241,9 +248,9 @@ After 4a–4d and 5, php-fpm has no remaining job on a serve-only LB, and
 
 This design covers the shape and the three resolved decisions (D1 deliver-not-
 compose, D2 loopback-only, D3 MAIN is the single composer). The next step is a
-task-by-task implementation plan for **Phase 4a** (the restream/pull bridge) —
-the smallest shippable slice, which ships without a MAIN change and proves the
-whole chain end to end — whose first task pins the restream fields of MAIN's
-`streamDoc.data`. Phase 4b (transcode) is the larger cross-repo effort and gets
-its own plan once 4a lands and the `Spec`/placeholder contract is pinned against
-`buildLive`.
+task-by-task implementation plan for **Phase 4a** (the restream directive) — the
+smallest shippable slice, cross-repo (MAIN emits the `runtime` directive; the Go
+agent applies it), proving the whole chain end to end — whose first task fixes
+the `runtime` directive shape with both repos open. Phase 4b (transcode) extends
+the same directive to carry the composed `spec` and gets its own plan once 4a
+lands.
