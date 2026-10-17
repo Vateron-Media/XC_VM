@@ -74,6 +74,45 @@ LayoutRenderer::renderFooter('admin');
     (function() {
         var errMsg = <?= json_encode($language::get('error_occured')); ?>;
         var delMsg = <?= json_encode($language::get('delete') . '?'); ?>;
+        var queuedMsg = <?= json_encode($language::get('queued')); ?>;
+        var forcePending = false;
+
+        // Topbar's Force Reload menu calls this global handler.
+        window.forceUpdate = function() {
+            if (forcePending) {
+                return;
+            }
+            forcePending = true;
+            var controller = new AbortController();
+            var timeout = setTimeout(function() {
+                controller.abort();
+            }, 15000);
+            return fetch('./api?action=force_epg', {
+                    signal: controller.signal,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Request failed');
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (!data || data.result !== true) {
+                        throw new Error('Reload refused');
+                    }
+                    xcToast(queuedMsg, 'success');
+                })
+                .catch(function() {
+                    xcToast(errMsg, 'error');
+                })
+                .finally(function() {
+                    clearTimeout(timeout);
+                    forcePending = false;
+                });
+        };
         var table = jQuery('#epgs-table').DataTable({
             responsive: {
                 details: {

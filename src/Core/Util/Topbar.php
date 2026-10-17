@@ -122,7 +122,7 @@ class Topbar {
 			'serie' => ['Import' => ['serie?import', 'import_streams'], 'Add Single' => ['serie', 'add_series'], 'Manage Series' => ['series', 'series'], 'View Episodes' => ['episodes?series=' . $rID, 'episodes']],
 			'created_channel' => ['View Channel' => ['stream_view?id=' . $rID, 'streams'], 'Manage Channels' => ['created_channels', 'streams']],
 			'epg' => ["Manage EPG's" => ['epgs', 'epg']],
-			'epgs' => ['Add EPG' => ['epg', 'add_epg'], 'Force Reload' => [null, 'add_epg', 'onClick="forceUpdate();" id="force_update"']],
+			'epgs' => ['Add EPG' => ['epg', 'add_epg'], 'Force Reload' => [null, 'epg', 'onClick="forceUpdate();" id="force_update"']],
 			'fingerprint' => ['Manage Streams' => ['streams', 'streams']],
 			'group' => ['Manage Groups' => ['groups', 'mng_groups']],
 			'groups' => ['Add Group' => ['group', 'add_group']],

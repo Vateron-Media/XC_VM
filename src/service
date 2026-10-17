@@ -15,6 +15,9 @@ boot() {
   sudo chown -R xc_vm:xc_vm /sys/class/net
   sudo chown -R xc_vm:xc_vm /home/xc_vm/content/streams
   sudo chown -R xc_vm:xc_vm /home/xc_vm/tmp
+  # The runtime bundle no longer ships FFmpeg. MAIN's bin/ is root-owned,
+  # so prepare the downloader's directory before it runs as xc_vm.
+  install -d -o xc_vm -g xc_vm -m 0755 "$SCRIPT/bin/ffmpeg_bin" || return 1
   # The node audits' day files (ConnectAudit, SettingsAudit) live under
   # storage/cluster/, which an LB build does not ship: make it xc_vm's before
   # a root process can create it as root's and shut xc_vm's processes out.
@@ -109,7 +112,7 @@ start() {
     return 1
   fi
   clock_sync
-  boot
+  boot || return $?
   echo 'Running in foreground...'
   sleep infinity
 }
@@ -172,4 +175,4 @@ case "$1" in
     echo "Usage: $0 {start|boot|stop|restart|reload}"
 esac
 
-exit 0
+exit $?
