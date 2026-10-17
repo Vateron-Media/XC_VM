@@ -1163,7 +1163,7 @@ class StreamProcess {
 
 		// A push URL is a value, not template text: it takes a token of its own.
 		$rPushTargets = [];
-		if (!empty($rExternalPush[SERVER_ID])) {
+		if (defined('SERVER_ID') && !empty($rExternalPush[SERVER_ID])) {
 			foreach ($rExternalPush[SERVER_ID] as $rPushURL) {
 				$rToken = '{PUSH_' . count($rPushTargets) . '}';
 				$rPushTargets[$rToken] = escapeshellarg($rPushURL);
@@ -1764,6 +1764,14 @@ class StreamProcess {
 		if ((intval($rInfo['delay_minutes']) > 0 && $rParentID === 0) || $rInfo['type_key'] === 'created_live') {
 			return null;
 		}
+		// rtmp_output re-publishes to the node's OWN rtmp port, composed from the
+		// $rServers global (MAIN's, unset in the cluster process) with no portable
+		// token — a replicated Spec would embed a wrong port. A serve-only LB does
+		// not re-publish: refuse it portably (the stream stays "other"); a
+		// node-rtmp-port token is a later placeholder if one is ever needed.
+		if ($rPortableMode && intval($rInfo['rtmp_output'] ?? 0) === 1) {
+			return null;
+		}
 
 		if ($rParentID > 0) {
 			// Through the node's agent with DATAPLANE on (no secret in the command line), else the legacy URL.
@@ -1926,7 +1934,7 @@ class StreamProcess {
 			'pid_path'    => STREAMS_PATH . $rStreamID . '_.pid',
 			'errors_path' => STREAMS_PATH . $rStreamID . '.errors',
 			'log_path'    => (SettingsManager::get('save_restart_logs') != 0 ? LOGS_TMP_PATH . 'stream_log.log' : ''),
-			'server_id'   => intval(SERVER_ID),
+			'server_id'   => $rPortableMode ? intval($rTargetServerID) : intval(SERVER_ID),
 			// Both producers name this stream's playlist, and nothing else does:
 			// an encoder that outlived a daemon restart is recognised by it.
 			'adopt_match' => STREAMS_PATH . $rStreamID . '_.m3u8',

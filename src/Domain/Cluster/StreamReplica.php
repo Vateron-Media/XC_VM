@@ -371,10 +371,16 @@ final class StreamReplica {
 			if (($rDirective['kind'] ?? '') !== 'other') {
 				return $rDirective;
 			}
-			return StreamRuntimeDirective::upgrade(
-				$rDirective,
-				StreamProcess::buildSupervisorSpec($rID, ['features' => $rFeatures, 'server_id' => $rServerID])
-			);
+			try {
+				$rSpec = StreamProcess::buildSupervisorSpec($rID, ['features' => $rFeatures, 'server_id' => $rServerID]);
+			} catch (\Throwable $rE) {
+				// Fail closed: one stream that cannot be composed (a malformed source, a
+				// path we miss) must not fail the whole node's sync with a 503. Leave it
+				// "other" and log, so every other stream in the page still syncs.
+				error_log('StreamReplica: serve-only Spec composition failed for stream ' . $rID . ': ' . $rE->getMessage());
+				return $rDirective;
+			}
+			return StreamRuntimeDirective::upgrade($rDirective, $rSpec);
 		};
 	}
 

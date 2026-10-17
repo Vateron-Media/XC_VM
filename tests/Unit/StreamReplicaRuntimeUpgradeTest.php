@@ -117,4 +117,15 @@ final class StreamReplicaRuntimeUpgradeTest extends TestCase {
 		$this->assertArrayNotHasKey('spec', $rOut);
 		$this->assertStringNotContainsString('TOP-SECRET-RELAY-PASS', (string) json_encode($rOut), 'no relay secret in the directive');
 	}
+
+	public function testComposerFailsClosedWhenCompositionThrows(): void {
+		// One stream that blows up composition (a malformed source, a missing
+		// constant) must not take down the whole node's sync: the composer
+		// catches and leaves the directive "other" (fail closed), it does not throw.
+		StreamSource::useLoader(function (string $rWhat, int $rID, array $rOpts) {
+			throw new \RuntimeException('composition boom');
+		});
+		$rDir = ['kind' => 'other', 'source' => null];
+		$this->assertSame($rDir, StreamReplica::runtimeUpgrade(1, [])(7, $rDir), 'a composition error leaves the directive "other"');
+	}
 }
