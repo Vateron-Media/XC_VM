@@ -109,9 +109,17 @@ while true; do
     exit 0
   fi
   if [ -x "$AGENT_DIR/xc_agent" ]; then
+    # Serve-only LB (Phase A): seed the fanout with the node's assigned streams
+    # from the replica (replaces PHP seedLocal) and carry its id + fanout binary
+    # so a transcode directive resolves {server_id}/{binary}. The marker's content
+    # is the node's server id; absent on a legacy node, so no extra flags there.
+    SEED=()
+    if [ -f "$SCRIPT/config/cluster/serve_only" ]; then
+      SEED=(-seed-fanout -server-id "$(cat "$SCRIPT/config/cluster/serve_only")" -fanout-binary "$SCRIPT/bin/xc_fanout/xc_fanout" -logs "$SCRIPT/logs/tmp/")
+    fi
     pkill -u xc_vm -x xc_agent 2>/dev/null
     started=$(date +%s)
-    "$AGENT_DIR/xc_agent" run -state "$STATE" >> "$LOG" 2>&1 &
+    "$AGENT_DIR/xc_agent" run -state "$STATE" "${SEED[@]}" >> "$LOG" 2>&1 &
     pid=$!
     watcher=""
     if [ -f "$AGENT_DIR/xc_agent.trial" ]; then

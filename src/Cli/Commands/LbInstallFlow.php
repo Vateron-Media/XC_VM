@@ -376,6 +376,15 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH);
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 600 ' . CONFIG_PATH . 'config.enc');
 
+		if ($rServeOnly) {
+			// A serve-only node's run.sh reads this plaintext marker (its content is
+			// the node's server id) to launch the Go front and the agent's
+			// -seed-fanout: the serve path has no PHP decrypting config.enc in shell.
+			call_user_func($rRunSSH, $rConn, 'sudo mkdir -p ' . CONFIG_PATH . 'cluster');
+			call_user_func($rRunSSH, $rConn, self::sudoWrite((string) $rServerID, CONFIG_PATH . 'cluster/serve_only'));
+			call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH . 'cluster');
+		}
+
 		return true;
 	}
 

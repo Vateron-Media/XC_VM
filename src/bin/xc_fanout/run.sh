@@ -72,6 +72,14 @@ while true; do
     if "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-gw-policy'; then
       GW=(-gw "$FANOUT_DIR/sockets/gw.sock" -gw-policy "$SCRIPT/tmp/gateway/policy.json")
     fi
+    # Serve-only single-binary LB (Phase A): the Go front owns :443 and reverse-
+    # proxies non-serve requests to nginx on a local backend port (nginx demoted
+    # off :443 at install). Gated on the serve_only marker the install writes AND
+    # on the binary knowing -front (an older daemon would exit on an unknown flag).
+    FRONT=()
+    if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-front'; then
+      FRONT=(-front ":443" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "http://127.0.0.1:8080")
+    fi
     echo "=== $(date '+%F %T') supervisor pid=$$ spawning daemon (ffmpeg=$FF) ===" >> "$LOG"
     "$FANOUT_DIR/xc_fanout" \
       -sock "$FANOUT_DIR/sockets/http.sock" \
@@ -79,6 +87,7 @@ while true; do
       -ffmpeg "${FF:-ffmpeg}" \
       -font "$SCRIPT/bin/free-sans.ttf" \
       "${GW[@]}" \
+      "${FRONT[@]}" \
       >> "$LOG" 2>&1
     rc=$?
     echo "=== $(date '+%F %T') daemon EXITED rc=$rc (supervisor pid=$$) ===" >> "$LOG"

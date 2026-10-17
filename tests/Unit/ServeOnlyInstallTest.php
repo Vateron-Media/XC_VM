@@ -47,4 +47,23 @@ final class ServeOnlyInstallTest extends TestCase {
 		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
 		$this->assertStringContainsString('self::configPackParams($rServers, $rServerID, $rServeOnly)', $rSrc, 'provisionConfig passes serve_only to configPackParams');
 	}
+
+	public function testProvisionConfigWritesTheServeOnlyMarker(): void {
+		// The node's run.sh is shell and the serve path has no PHP to decrypt
+		// config.enc, so a serve-only install writes a plaintext marker whose
+		// content is the server id, under config/cluster/.
+		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
+		$this->assertStringContainsString("self::sudoWrite((string) \$rServerID, CONFIG_PATH . 'cluster/serve_only')", $rSrc);
+	}
+
+	public function testRunShLaunchersThreadServeOnlyFlagsOnTheMarker(): void {
+		$rFanout = (string) file_get_contents(MAIN_HOME . 'bin/xc_fanout/run.sh');
+		$this->assertStringContainsString('config/cluster/serve_only', $rFanout, 'fanout run.sh gates the front on the marker');
+		$this->assertStringContainsString('-front', $rFanout, 'fanout run.sh launches the Go front for a serve-only node');
+		$this->assertStringContainsString('-front-nginx', $rFanout, 'the front strangler proxies non-serve requests to nginx');
+
+		$rAgent = (string) file_get_contents(MAIN_HOME . 'bin/xc_agent/run.sh');
+		$this->assertStringContainsString('config/cluster/serve_only', $rAgent, 'agent run.sh gates seeding on the marker');
+		$this->assertStringContainsString('-seed-fanout', $rAgent, 'agent run.sh seeds the fanout for a serve-only node');
+	}
 }
