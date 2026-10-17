@@ -1084,7 +1084,11 @@ class StreamProcess {
 					$rFFMPEG_CPU = FfmpegPaths::legacy();
 				}
 
-				$rNoFix = FfmpegPaths::fixDts($rFFMPEG_CPU) ? '-nofix_dts' : '';
+				// Portable: the command keeps the {ffmpeg_cpu} token, so decide
+				// -nofix_dts from the real binary of the stream's ffmpeg version
+				// (ffmpegReal — the same build the target resolves the token to),
+				// never the placeholder. Off-portable, ffmpegReal is null → unchanged.
+				$rNoFix = FfmpegPaths::fixDts($data['ffmpegReal'] ?? $rFFMPEG_CPU) ? '-nofix_dts' : '';
 				$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
 			}
 
@@ -1868,6 +1872,12 @@ class StreamProcess {
 				'llod' => $rLLOD, 'loopback' => $rLoopback,
 				'segmentStart' => 0, 'delayActive' => false,
 				'ffmpegCpu' => $rFFMPEGCpu, 'ffmpegGpu' => $rFFMPEGGpu,
+				// Portable: the command carries the {ffmpeg_cpu} token, but -nofix_dts
+				// is a property of the ffmpeg version/build (cluster-wide), so decide
+				// it from MAIN's real binary of that version — the same build the
+				// target resolves the token to. Only the boolean flag reaches the
+				// command, never this path. null off-portable keeps today's behaviour.
+				'ffmpegReal' => $rPortableMode ? ($rFFMPEG_CPU ?: FfmpegPaths::cpu()) : null,
 				'ingestSock' => $rIngestSock, 'supervised' => true,
 			]);
 
