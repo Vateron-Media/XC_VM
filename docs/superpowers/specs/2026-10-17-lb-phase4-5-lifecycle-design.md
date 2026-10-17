@@ -13,10 +13,12 @@ and stops the streams it serves — with no php-fpm and no PHP cron loop.
 ## Key finding: the lifecycle *execution* is already in Go
 
 A load-balancer node does not run streams in PHP today. The Go fanout does. PHP
-on an LB is an **orchestrator**: it decides which streams to start and when, and
-calls the fanout's control API over a unix socket to make it happen. So Phases
-4–5 are about moving that orchestration in-process, not porting an encoder
-supervisor that does not exist yet.
+on an LB is an **orchestrator and a composer**: it decides which streams to run,
+turns each one's DB settings into the thing the runtime needs (a `puller.Source`
+for a restream, an ffmpeg command for a transcode), and calls the fanout's
+control API over a unix socket to make it happen. Phases 4–5 keep the two
+runtimes the binary already has (puller and supervisor) and replace that PHP
+orchestration/composition with a Go path fed by MAIN — see D3 on who composes.
 
 What the Go binary already owns (verified in `XC_VM_Fanout`, branch
 `feat/front-static-images`):
@@ -29,10 +31,12 @@ What the Go binary already owns (verified in `XC_VM_Fanout`, branch
   PHP-free, *for a stream that is registered*.
 - **The supervisor** (`internal/supervisor/`, `supervisor.go` ~58 KB plus
   `adopt.go`, `health.go`, `launch_unix.go`, `sources.go`): the *encoder*
-  side — launches ffmpeg, detects audio loss / flap / give-up and restarts,
-  falls back across sources, retries probes, adopts across a daemon restart.
-  Relevant only to a node that encodes/transcodes; a pure-restream LB uses the
-  puller, not this.
+  side — runs the ffmpeg command it is handed (`Spec.Sources[].Cmd`), detects
+  audio loss / flap / give-up and restarts, falls back across sources, retries
+  probes, adopts across a daemon restart, honours `OnDemand`. LBs encode and
+  transcode, so an LB uses **both** runtimes: the puller for restreams, the
+  supervisor for transcodes. Neither composes a command — they run what they
+  are given (ADR 0002).
 - **The reaper**: idle-stop of streams with no viewers (grace-window sweep).
 - **The control API** (`Manager.ControlHandler()`, `internal/server/server.go`):
   `/streams`, `/streams/`, `/monitor/`, `/monitors`, `/monitors/state`,
@@ -77,26 +81,22 @@ What the Go binary already owns (verified in `XC_VM_Fanout`, branch
 
 ## Design decisions (resolved)
 
-**D1 — On-demand start is a replica→registry bridge in Go, not a new start
-primitive.** The start already works in-process (puller `attach→startLocked`);
-the missing piece on a serve-only LB is the *registration* PHP supplies today.
-MAIN already delivers it: the cluster agent replicates each stream's
-MAIN-signed record to the node (ADR 0004 R2 streams section,
-`internal/clusteragent/streams.go` → `replica/streams/<id>.json`, source
-fields included — the header notes "stream sources may carry an upstream's
-credentials"). Today PHP's `seedLocal` (XC_VM #318) reads that replica and
-registers with the daemon. The bridge moves that step into the Go binary: the
-agent parses each replicated record's source fields and calls
-`Manager.Register(id, puller.Source{…})` + `setEnc(key, iv)`, re-registering on
-the sync's deltas. Then the puller's existing on-demand start/restart serves
-every viewer with no PHP, and the gateway — on a serve-only LB — serves a
-registered-but-idle stream (attaching starts it) instead of deferring. The
-judge stays a pure classifier (no start side effect inside a verdict, so shadow
-mode still never starts anything); the serve-not-defer choice is gated by a
-serve-only / no-PHP-backend flag, and the defer-to-PHP path stays for nodes
-still running nginx+PHP during the transition. The `streamDoc.Data` payload is
-MAIN-defined (PHP), so the bridge pins to that exact record shape — the one
-cross-repo contract this phase introduces.
+**D1 — The LB never composes; it delivers composed work to a runtime, not a new
+start primitive.** The runtimes and their on-demand behaviour already exist in
+the binary: a registered puller starts on the first viewer's `attach` and
+idle-stops/restarts on its own; the supervisor runs an ffmpeg `Spec` it is
+handed and manages its lifecycle. The missing piece on a serve-only LB is the
+*hand-over* PHP does today — `Manager.Register(id, puller.Source{…})` + `setEnc`
+for a restream, `m.sup.Supervise(id, Spec{…})` (the `/monitor/` PUT body) for a
+transcode. Phase 4 adds a Go **bridge** that takes the composed work MAIN
+delivers (D3), resolves node placeholders, and performs that hand-over to the
+right runtime, re-doing it on change and tearing it down on removal. Then the
+existing on-demand start serves every viewer with no PHP, and the gateway — on a
+serve-only LB — serves a registered-but-idle stream (attaching/launching starts
+it) instead of deferring. The judge stays a pure classifier (no start side
+effect inside a verdict, so shadow mode still never starts anything); the
+serve-not-defer choice is gated by a serve-only / no-PHP-backend flag, and the
+defer-to-PHP path stays for nodes still running nginx+PHP during the transition.
 
 **D2 — The LB runs only the loopback relay among the special modes;
 `archive`/`record`/`delay`/`llod` stay MAIN-orchestrated or out of scope.** A
@@ -108,42 +108,89 @@ served by the LB or always resolved at MAIN; today the gateway defers
 "a proxied or adaptive link" to PHP, so proxy is out of the serve-only LB's
 scope unless that changes.)
 
+**D3 — MAIN is the single composer; the LB receives its output, cached at rest
+and pushed live.** The ffmpeg-command composition (`StreamProcess::buildLive`,
+~3 k lines: codecs, CPU/GPU, `-filter_complex` logo/overlay, subtitle maps,
+source fallback, reconnect) stays on MAIN — the one proven implementation — and
+is **not** ported to Go. Porting would duplicate that logic (MAIN still composes
+for its own streams), forcing two composers to stay byte-identical forever, and
+would make the daemon compose a shell command (against ADR 0002); its only
+benefit, LB autonomy, is unusable because serve-only already needs MAIN at
+viewer time, and is anyway obtained by caching MAIN's output. So: MAIN composes
+the `puller.Source` / ffmpeg `Spec` per (stream, LB) and **delivers** it two
+ways — at rest in the replicated stream record (`replica/streams/<id>.json`, so
+the LB can cold-start through a brief MAIN blip) and pushed live to the LB's
+control socket when it changes or should start (event-driven freshness). The
+delivered command carries a **closed set of node placeholders**
+(`{ffmpeg_bin}`, `{gpu}`, `{streams}/{id}_.pid`, `server_id`, …) that the daemon
+substitutes from its own config — substitution, not composition, so the daemon
+runs no logic and MAIN need not track each LB's environment. The record's
+`data` payload is MAIN-defined (PHP); its exact shape, extended to carry the
+composed command, is the one cross-repo contract Phase 4 owns, pinned as its
+first task.
+
 ## Approach & phasing
 
-**Phase 4a — the replica→registry bridge (the core).** In the Go binary, parse
-each replicated stream record (`replica/streams/<id>.json`, the MAIN-signed
-`data`) into a `puller.Source` + key/IV and call `Manager.Register` + `setEnc`,
-driven off the streams-sync deltas the agent already produces, and unregister
-on removal. Then gate the gateway serve path so a serve-only LB serves a
-registered-but-idle stream instead of deferring. First step of this phase is to
-pin MAIN's `streamDoc.data` shape (read what PHP signs and what `seedLocal`
-maps). Tests: a replicated record registers the puller with the right source;
-a delta re-registers; a removal unregisters; a serve-only node serves a
-registered idle stream (puller starts on attach); a shadow-mode node still
-never starts; a node with a PHP backend still defers.
+**Phase 4a — the restream (pull) bridge (the beachhead).** In the Go binary,
+parse each replicated stream record (`replica/streams/<id>.json`, the
+MAIN-signed `data`) for a *restream* into a `puller.Source` + key/IV and call
+`Manager.Register` + `setEnc`, driven off the streams-sync deltas the agent
+already produces, and unregister on removal. Gate the gateway serve path so a
+serve-only LB serves a registered-but-idle restream instead of deferring. This
+phase works on the record MAIN *already* signs (source fields), so it ships
+without a MAIN-side change and proves the whole chain end to end
+(record → hand-over → on-demand start → serve). First step: pin the restream
+fields of `streamDoc.data` (read what PHP signs and what `seedLocal` maps).
+Tests: a replicated restream record registers the puller; a delta
+re-registers; a removal unregisters; a serve-only node serves a registered idle
+restream (puller starts on attach); a shadow-mode node still never starts; a
+node with a PHP backend still defers.
 
-**Phase 4b — MAIN start/stop via the Go agent.** Verify MAIN's explicit
-run/stop of an LB stream reaches the Manager entirely through the Go agent, and
-wire any step that still routes through a PHP command. No new mechanism if the
-agent already covers it — just close gaps and prove it with a test.
+**Phase 4b — the transcode (encoder) path (the big one, cross-repo).** MAIN:
+extend what it signs into the stream record (and the live push) to carry the
+composed ffmpeg `Spec` for streams assigned to this LB — `buildLive` output with
+node values emitted as the D3 placeholders — so MAIN composes per (stream, LB)
+without hand-coding each LB's environment. Go: parse that into a
+`supervisor.Spec`, resolve the placeholders from the daemon's own config, and
+`m.sup.Supervise(id, spec)`; re-supervise on change, release on removal. The
+serve path treats a supervised transcode exactly like a registered restream for
+the serve-not-defer decision. First step: pin the `Spec`/placeholder shape with
+both repos open. Tests: a transcode record supervises with the right resolved
+command; a placeholder resolves to the node's `ffmpeg_bin`/`gpu`/paths; a change
+re-supervises; an unsupervise on removal; a malformed/unknown placeholder is
+rejected, never shell-expanded.
 
-**Phase 4c — retire the LB's PHP lifecycle crons.** Map each LB cron
+**Phase 4c — live push + MAIN start/stop via the Go agent.** Add the
+control-socket delivery (D3's push): MAIN sends a start/stop/update for an LB
+stream and the Go agent applies it to the bridge, so a newly-created or changed
+stream is fresh without waiting for the next replica sync. Verify MAIN's
+explicit run/stop reaches the Manager entirely through the Go agent with no PHP
+command in the path, and settle MAIN↔LB authority (see risks). Tests: a pushed
+start supervises/registers at once; a pushed stop hard-stops and the serve path
+does not immediately restart it on the next viewer.
+
+**Phase 4d — retire the LB's PHP lifecycle crons.** Map each LB cron
 (`cron:streams` health/on-demand/rogue-pid, `cron:stats`, stream maintenance)
 to the Go supervisor/reaper. Where the Go side already covers it (health,
 idle-stop), drop the cron on the LB. Where a genuine gap exists, port that
-specific job into the binary's own scheduler. Deliverable: the `make lb` tree
-has no stream-lifecycle PHP cron, and the Go binary runs the equivalents.
+specific job into the binary's own scheduler. Inventory each job's side effects
+before deleting it, not just its name. Deliverable: the `make lb` tree has no
+stream-lifecycle PHP cron, and the Go binary runs the equivalents.
 
 **Phase 5 — loopback relay.** Ensure the supervisor can run a loopback-source
 stream on an LB (receive a relayed source from another node) end to end without
 PHP. Scope limited to loopback per D2.
 
-After 4a–4c and 5, php-fpm has no remaining job on a serve-only LB, and
+After 4a–4d and 5, php-fpm has no remaining job on a serve-only LB, and
 `LbInstallFlow` drops it (roadmap strategy step 4).
 
 ## Out of scope / stays in PHP (on MAIN)
 
 - All viewer authorization (already removed from the LB — option B).
+- **ffmpeg-command / `puller.Source` composition** — stays on MAIN per D3. The
+  LB *runs* encoders and pullers but never composes what they run; it only
+  resolves node placeholders. This is the line between "lifecycle in Go" (in
+  scope) and "composition in Go" (explicitly rejected).
 - Recording / archive / timeshift-write business logic and `llod`, `delay`,
   `record`, `archive` orchestration — MAIN owns these.
 - The admin/reseller/player panel and every MAIN-only cron.
@@ -152,16 +199,24 @@ After 4a–4c and 5, php-fpm has no remaining job on a serve-only LB, and
 
 ## Risks & open questions
 
-- **`streamDoc.data` is a MAIN-defined (PHP) contract.** The bridge parses
-  fields PHP signs into the record; a shape change on MAIN silently breaks
-  registration on the LB. Pin it explicitly (version/validate the parse), read
-  both sides when writing the bridge, and treat it as the one cross-repo
-  coupling this phase owns. First task of 4a.
-- **Does a serve-only LB ever encode/transcode?** If a line with a transcode
-  profile can be assigned to an LB, that stream needs the *supervisor* Spec
-  (encoder), not just a puller source — and the Spec is likewise PHP-composed,
-  so the bridge must cover it too (or MAIN keeps encoded streams off serve-only
-  LBs). Confirm before scoping; the pull-only case is assumed in 4a.
+- **`streamDoc.data` is a MAIN-defined (PHP) contract.** The bridge parses what
+  PHP signs — the restream fields (4a) and the composed `Spec` (4b); a shape
+  change on MAIN silently breaks hand-over on the LB. Pin and version it, read
+  both sides when writing the bridge, validate on parse, and treat it as the one
+  cross-repo coupling Phase 4 owns.
+- **Placeholder set completeness.** `buildLive` embeds node-specific values
+  (ffmpeg bin, GPU index, `<streams>`/`<logs>` paths, pid/errors/progress
+  files, server id). Every one must map to a daemon-resolved placeholder, or a
+  real MAIN path leaks into the LB's command or the command fails to run.
+  Enumerate them against `buildLive` when pinning the 4b shape; reject an
+  unknown placeholder rather than shell-expand it.
+- **MAIN composes per LB, so it needs the LB's capabilities, not just paths.**
+  Placeholders resolve a GPU's *index*, but whether to transcode on GPU at all
+  is a *composition* branch in `buildLive` that depends on the target LB having
+  a GPU, its codec support, its ffmpeg build. MAIN must learn those facts (the
+  agent already exchanges an ffmpeg-feature list at hello) and compose for the
+  assigned LB — not for MAIN's own hardware. Define the capability inputs 4b's
+  composition reads before building it.
 - **On-demand start latency.** With the config already resident (register from
   replica), first-viewer start is just the puller spin-up — no MAIN round-trip,
   so the current defer-then-retry latency is not worsened. The serve path must
@@ -184,9 +239,11 @@ After 4a–4c and 5, php-fpm has no remaining job on a serve-only LB, and
 
 ## Next
 
-This design covers the shape and the two resolved decisions. The next step is a
-task-by-task implementation plan for **Phase 4a** (the replica→registry bridge)
-— the smallest shippable slice and the one that unblocks the rest — whose first
-task pins MAIN's `streamDoc.data` record shape. The plan is written once this
-revised design is confirmed and the two open questions above (encode-on-LB,
-replica freshness) are settled.
+This design covers the shape and the three resolved decisions (D1 deliver-not-
+compose, D2 loopback-only, D3 MAIN is the single composer). The next step is a
+task-by-task implementation plan for **Phase 4a** (the restream/pull bridge) —
+the smallest shippable slice, which ships without a MAIN change and proves the
+whole chain end to end — whose first task pins the restream fields of MAIN's
+`streamDoc.data`. Phase 4b (transcode) is the larger cross-repo effort and gets
+its own plan once 4a lands and the `Spec`/placeholder contract is pinned against
+`buildLive`.
