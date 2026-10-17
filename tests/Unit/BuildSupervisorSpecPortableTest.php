@@ -169,6 +169,26 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 		$this->assertFileDoesNotExist(STREAMS_PATH . '7.errors', 'portable mode writes no producer note');
 	}
 
+	public function testPortableDtsLegacyNeitherLeaksBinaryNorSwaps(): void {
+		// AC3 audio + dts_legacy_ffmpeg on would, on-node, swap {ffmpeg_cpu} for
+		// FfmpegPaths::legacy() (a MAIN binary path) and decide -nofix_dts from the
+		// placeholder. Portable forces the setting off so the token survives, and
+		// the fail-closed guard rejects any residual MAIN binary.
+		@mkdir(CACHE_TMP_PATH, 0o777, true);
+		$rCache = CACHE_TMP_PATH . md5('http://src.example/live.ts');
+		file_put_contents($rCache, igbinary_serialize(['container' => 'mpegts', 'codecs' => ['audio' => ['codec_name' => 'ac3']]]));
+		$GLOBALS['rSettings'] = $this->settings(['dts_legacy_ffmpeg' => 1]);
+		try {
+			$rSpec = StreamProcess::buildSupervisorSpec(7, ['features' => []]);
+			$this->assertNotNull($rSpec, 'no MAIN binary in the Spec (the guard did not trip)');
+			$rCmd = $rSpec['sources'][0]['cmd'];
+			$this->assertStringContainsString('{ffmpeg_cpu}', $rCmd, 'binary token survives the AC3/dts_legacy path');
+			$this->assertStringNotContainsString(FFMPEG_BIN_40, $rCmd, 'no legacy MAIN binary swapped into the command');
+		} finally {
+			@unlink($rCache);
+		}
+	}
+
 	public function testPortableSpecSignalsEncryption(): void {
 		$GLOBALS['rSettings'] = $this->settings(['encrypt_hls' => 1]);
 		$rSpec = StreamProcess::buildSupervisorSpec(7, ['features' => []]);
