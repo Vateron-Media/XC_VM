@@ -114,10 +114,40 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 		$this->assertStringNotContainsString('/tmp/xcvm-test-', (string) json_encode($rSpec), 'no node path leaks into the portable Spec');
 	}
 
+	public function testPortableLoopbackStreamIsNotComposed(): void {
+		// A loopback child (parent_id > 0) is out of portable scope: its source is
+		// a relay URL carrying live_streaming_pass, which must never be composed
+		// into a replicated Spec. Portable mode returns null → directive "other".
+		StreamSource::useLoader(function (string $rWhat, int $rID, array $rOpts) {
+			if ($rWhat === 'stream') {
+				return $this->streamInfo();
+			}
+			if ($rWhat === 'server') {
+				return ['parent_id' => 3, 'server_id' => 1, 'on_demand' => 0];
+			}
+			return [];
+		});
+		$GLOBALS['rSettings'] = $this->settings(['live_streaming_pass' => 'TOP-SECRET-RELAY-PASS']);
+		$this->assertNull(
+			StreamProcess::buildSupervisorSpec(7, ['features' => []]),
+			'a loopback child must not be composed in portable mode (no secret leak)'
+		);
+	}
+
 	public function testPortableModeHasNoSideEffects(): void {
 		StreamProcess::buildSupervisorSpec(7, ['features' => []]);
 		$this->assertFileDoesNotExist(STREAMS_PATH . '7_.key', 'portable mode writes no key file');
 		$this->assertFileDoesNotExist(STREAMS_PATH . '7_.iv', 'portable mode writes no IV file');
+	}
+
+	public function testPortableRemuxGatedOnTargetFeatures(): void {
+		// backend=auto, but the target reports no `remux` feature → the native
+		// remuxer is not composed (no {binary}); the command stays ffmpeg. MAIN
+		// cannot know a remote node's live remux capability, so it defaults off.
+		$GLOBALS['rSettings'] = $this->settings(['fanout_source_backend' => 'auto']);
+		$rSpec = StreamProcess::buildSupervisorSpec(7, ['features' => []]);
+		$this->assertStringNotContainsString('{binary}', (string) json_encode($rSpec), 'no native remuxer without the remux feature');
+		$this->assertStringContainsString('{ffmpeg_cpu}', $rSpec['sources'][0]['cmd']);
 	}
 
 	public function testPortableSpecSignalsEncryption(): void {

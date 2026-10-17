@@ -1720,7 +1720,11 @@ class StreamProcess {
 			return null;
 		}
 		$rStream = ['stream_info' => $rStreamRow];
-		$rServerRow = StreamSource::serverRow(intval($rStreamID), null, $db);
+		// Portable mode composes for the TARGET LB, so its server context
+		// (on_demand/parent_id, which drive loopback/LLOD) comes from the target's
+		// row, not this node's. The default path reads this node's (null → SERVER_ID).
+		$rTargetServerID = $rPortableMode ? intval($rPortable['server_id'] ?? SERVER_ID) : null;
+		$rServerRow = StreamSource::serverRow(intval($rStreamID), $rTargetServerID, $db);
 		if ($rServerRow === null) {
 			return null;
 		}
@@ -1729,6 +1733,13 @@ class StreamProcess {
 
 		$rInfo = $rStream['stream_info'];
 		$rParentID = intval($rStream['server_info']['parent_id']);
+		// Loopback (parent_id > 0) is out of portable scope (design D-b, D2): its
+		// source is a relay URL carrying live_streaming_pass, which must never be
+		// composed into a replicated Spec — the LB resolves its own loopback relay
+		// (a later placeholder). Emit no transcode directive for it (kind "other").
+		if ($rPortableMode && $rParentID > 0) {
+			return null;
+		}
 		// Kinds the PHP monitor keeps: a delayed stream runs its own playlist
 		// worker off the encoder's, and a created channel resumes at an offset
 		// computed at each start.
