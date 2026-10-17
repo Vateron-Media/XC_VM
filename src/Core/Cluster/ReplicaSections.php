@@ -45,7 +45,7 @@ namespace XcVm\Core\Cluster;
  * sent by the `streams` op (Domain\Cluster\StreamReplica), never whole:
  *
  * ```text
- * stream  {children, options, profile, recordings, server, stream, tickets, type}
+ * stream  {children, options, profile, recordings, runtime, server, stream, tickets, type}
  *   stream      STREAM_FIELDS of the `streams` row
  *   type        STREAM_TYPE_FIELDS of its `streams_types` row, or null
  *   profile     PROFILE_FIELDS of its transcoding profile, or null
@@ -56,6 +56,11 @@ namespace XcVm\Core\Cluster;
  *               recording of it without running it)
  *   children    [sid] the servers that relay it from this node (parent_id)
  *   recordings  [RECORDING_FIELDS] its recordings scheduled on this node
+ *   runtime     {kind: "proxy"|"other", source: {urls, ua, proxy, cookie}|null}
+ *               how a serve-only LB runs this stream (StreamRuntimeDirective):
+ *               kind "proxy" (direct-proxy restream) carries the node-agnostic
+ *               source its agent registers with the fanout, "other" (transcode,
+ *               Phase 4b) carries null
  *   tickets     the relay and file tickets of Phase 8, for a node whose
  *               DATAPLANE flow is on (Domain\Cluster\TicketService), else
  *               null; filled after the ETag was taken with it null
