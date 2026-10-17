@@ -967,7 +967,8 @@ LayoutRenderer::renderFooter('admin');
                 return '<span class="tooltip" title="' + title + '">' + esc(row.provider_name) + '</span>';
             }
             function providerAddButton(row) {
-                return '<button type="button" class="btn btn-light waves-effect waves-light btn-xs prov-add" data-name="' + escAttr(row.name) + '" data-url="' + escAttr(row.stream_url) + '"><i class="mdi mdi-check"></i></button>';
+                return '<button type="button" class="btn btn-light waves-effect waves-light btn-xs prov-add" data-name="' + escAttr(row.name) + '" data-url="' + escAttr(row.stream_url) + '"><i class="mdi mdi-check"></i></button> ' +
+                    '<button type="button" class="btn btn-sm btn-label-info text-wrap prov-check" data-url="' + escAttr(row.stream_url) + '">' + esc(<?= json_encode($language::get('scan_source')); ?>) + '</button>';
             }
             var provTable = $('#datatable-provider-streams').DataTable({
                 serverSide: true,
@@ -1010,6 +1011,37 @@ LayoutRenderer::renderFooter('admin');
                         return providerAddButton(row);
                     }
                 }]
+            });
+            var providerProbeRequest = null;
+            var providerProbeSequence = 0;
+            $('#datatable-provider-streams tbody').on('click', '.prov-check', function() {
+                if (providerProbeRequest) { return; }
+                var button = this;
+                var sequence = ++providerProbeSequence;
+                button.textContent = <?= json_encode($language::get('loading')); ?> + '…';
+                button.classList.remove('btn-label-success', 'btn-label-danger');
+                button.classList.add('btn-label-info');
+                button.setAttribute('aria-live', 'polite');
+                button.disabled = true;
+                providerProbeRequest = $.ajax({ url: probeURL(button.dataset.url), dataType: 'html', timeout: 45000 })
+                    .done(function(data) {
+                        if (sequence !== providerProbeSequence) { return; }
+                        var rows = $('<div>').html(data).find('tr');
+                        var online = rows.length > 1;
+                        var details = online ? rows.eq(1).find('td').map(function() { return $(this).text().replace(/\s+/g, ' ').trim(); }).get().slice(0, 4).filter(Boolean).join(' · ') : '';
+                        button.textContent = online ? <?= json_encode($language::get('online')); ?> + (details ? ' · ' + details : '') : <?= json_encode($language::get('probe_failed')); ?>;
+                        button.classList.remove('btn-label-info');
+                        button.classList.add(online ? 'btn-label-success' : 'btn-label-danger');
+                    })
+                    .fail(function() { if (sequence === providerProbeSequence) { button.textContent = <?= json_encode($language::get('probe_failed')); ?>; button.classList.remove('btn-label-info'); button.classList.add('btn-label-danger'); } })
+                    .always(function() {
+                        button.disabled = false;
+                        if (sequence === providerProbeSequence) { providerProbeRequest = null; }
+                    });
+            });
+            document.getElementById('providerModal').addEventListener('hidden.bs.modal', function() {
+                providerProbeSequence++;
+                if (providerProbeRequest) { providerProbeRequest.abort(); providerProbeRequest = null; }
             });
             $('#datatable-provider-streams tbody').on('click', '.prov-add', function() {
                 addStream(this.dataset.url);
