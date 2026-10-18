@@ -822,10 +822,10 @@ class PortalHandler {
 			case "create_link":
 				$rCommand = $rRequest["cmd"];
 				$rValue = "http://localhost/ch/";
-				[$rStreamID, $rStreamValue] = explode(
+				[$rStreamID, $rStreamValue] = array_pad(explode(
 					"_",
 					substr($rCommand, strpos($rCommand, $rValue) + strlen($rValue)),
-				);
+				), 2, null);
 
 				if (empty($rStreamValue)) {
 					$rEncData =
@@ -1204,10 +1204,10 @@ class PortalHandler {
 
 					case "series":
 						if (!empty($rCommand["series_data"])) {
-							[$rCommand["series_id"], $rCommand["season_num"]] = explode(
+							[$rCommand["series_id"], $rCommand["season_num"]] = array_pad(explode(
 								":",
 								basename($rCommand["series_data"], ".mpg"),
-							);
+							), 2, null);
 						}
 
 						$db->query(
@@ -1554,7 +1554,7 @@ class PortalHandler {
 
 			case "create_link":
 				$rCommand = empty($rRequest["cmd"]) ? "" : $rRequest["cmd"];
-				[$rEPGDataID, $rStreamID] = explode("_", pathinfo($rCommand)["filename"]);
+				[$rEPGDataID, $rStreamID] = array_pad(explode("_", pathinfo($rCommand)["filename"]), 2, null);
 				$rRow = getprogramme($rStreamID, $rEPGDataID) ?: null;
 
 				if (!$rRow) {

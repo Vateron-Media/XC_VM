@@ -167,6 +167,11 @@ class AuthRepository {
 
 				[$rType, $rAlias, $rBurst] = self::codeLocation((int) $rCode['type']);
 				$rCurrentTemplate = in_array($rType, ['ministra', 'ministra/new']) ? $rMinistraTemplate : $rTemplate;
+				// Reseller pages use the admin asset bundle: point the alias straight at it
+				// (the Public/assets/reseller symlink it used to need was not always created).
+				if ($rType === 'reseller') {
+					$rCurrentTemplate = str_replace('Public/assets/#TYPE#/', 'Public/assets/admin/', $rCurrentTemplate);
+				}
 
 				if (in_array($rType, ['ministra', 'ministra/new']) || strlen($rCode['code']) >= 4) {
 					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(['#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#', '#ZONE#'], [implode(' ', $rWhitelist), (string) $rCode['code'], $rType, (string) $rBurst, $rAlias, $rZone], $rCurrentTemplate));
