@@ -350,3 +350,38 @@ PHP afterwards — the php-removal follow-on — and why it is not in this phase
   allowed-RTMP addresses, stream password); a divergence either lets an unauthorized
   publisher in or rejects a valid one, and an ingest wrongly admitted also skews
   line-limit accounting on MAIN.
+
+## Execution corrections (2026-10-18)
+
+Implementing the plan surfaced that several routes the draft listed for the
+front are not front routes on a serve-only LB. Verified against the LB nginx
+(`lb_configs/nginx.conf`), the Go gateway, and the `make lb` build:
+
+- **`/xc_hls` and `/xc_fanout*` are nginx `internal;` X-Accel targets**, reachable
+  only via an `X-Accel-Redirect`, never by an external client. The Go gateway
+  already serves that content **in-process** (its `segments` handler, "without the
+  hop" — `internal/gateway/server.go`). Exposing them as public front routes would
+  hand out segments/files with no token check. **The front 404s them** (matching
+  `internal;`); it does not serve them. Segment/live delivery stays the gateway's
+  in-process job, reached through the public serve routes the front already hands
+  to the gateway.
+- **`/portal/assets` is MAIN-only** (the Subscriber Activation Portal,
+  `src/bin/nginx/conf/nginx.conf`; `Public/assets` is stripped from the LB build).
+  It is not served on a serve-only LB. (`/images` is a real LB static route and is
+  already served in-process by the pre-existing `WithImages`.)
+- **`probe` is not a public LB route**: `Public/stream/probe.php` is stripped from
+  the `make lb` build; probing is the Go agent's control-lane job. Dropped.
+- **gzip is `off` on the LB** (`bin/nginx/conf/gzip.conf`) and `limit_req` applies
+  only to the serve routes (`zone=one`, already enforced in the front's
+  `serveStream`) and `/xfile` (`zone=xfile`, a follow-on). The front does **not**
+  add gzip or rate-limit the sendfile/fanout/static routes — nginx does not, and
+  doing so would throttle legitimate segment/fanout traffic.
+- **`serve_only` policy emission already shipped** with Phase 5 (XC_VM #448):
+  `GatewayPolicy::build()` emits it and `GatewayPolicyTest::testServeOnlyFromThe
+  NodeAttribute` pins it. No new MAIN change was needed.
+
+Net: the front's in-phase deliverable is the **multi-port dynamic listener**
+(the nginx-parity core), plus a **404 guard on the internal X-Accel paths**, a
+**no-nginx-backend safety guard**, and a **local-only guard on `/status`**. The
+`/status`/`/progress` native bodies, `/xfile`, `/stream/rtmp`, and the nginx/
+php-fpm de-provisioning remain the follow-on sub-projects.
