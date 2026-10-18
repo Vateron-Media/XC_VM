@@ -249,7 +249,10 @@ class ServerInstallCommand implements CommandInterface {
 
 		// A single-binary serve-only LB (server:install --serve-only): MAIN directs
 		// its streams and it runs xc_node with no nginx/php-fpm. Only an LB can be one.
-		$rServeOnly = $rType == 2 && !empty($rOptions['serve-only']);
+		// --serve-only is a valueless flag, so it stays in the positional list
+		// (splitOptions only lifts --name=value into $rOptions) and is matched
+		// there, as cluster:reenrol does with --all/--dry-run/--pending.
+		$rServeOnly = $rType == 2 && in_array('--serve-only', $rArgs, true);
 
 		if ($rType == 2 && !LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);

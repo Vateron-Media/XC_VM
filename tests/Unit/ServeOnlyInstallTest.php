@@ -36,24 +36,24 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertArrayNotHasKey('serve_only', $rOff, 'a legacy LB config is byte-identical (no marker)');
 	}
 
-	public function testServeOnlyFlagFlowsThroughSplitOptions(): void {
-		// Regression: `--serve-only` is valueless. splitOptions only parsed
-		// `--name=value`, so the bare flag fell through to the positional list
-		// and `!empty($rOptions['serve-only'])` was never true — the node
-		// installed as a normal LB. The flag must reach $rOptions as truthy.
+	public function testServeOnlyFlagStaysPositionalForInArrayMatch(): void {
+		// `--serve-only` is a valueless flag: splitOptions lifts only --name=value
+		// into the options map, so the flag stays in the positional list and the
+		// command matches it there with in_array() — the same convention
+		// cluster:reenrol uses for --all/--dry-run/--pending. Routing valueless
+		// flags into $rOptions instead broke cluster:reenrol's unknown-option check.
 		$rArgs = ['2', '2', '22', '-', '-', '80', '443', '0', '--serve-only', '--cred-file=/x'];
 		[$rPositional, $rOptions] = InstallCredentials::splitOptions($rArgs);
 
-		$this->assertArrayHasKey('serve-only', $rOptions, 'the valueless --serve-only flag reaches options');
-		$this->assertNotEmpty($rOptions['serve-only'], 'and is truthy, so the install arms serve_only');
-		$this->assertNotContains('--serve-only', $rPositional, 'it is no longer mistaken for a positional arg');
-		$this->assertSame('/x', $rOptions['cred-file'] ?? null, '--name=value options still parse');
-		$this->assertSame(['2', '2', '22', '-', '-', '80', '443', '0'], $rPositional, 'the real positionals are intact');
+		$this->assertContains('--serve-only', $rPositional, 'the valueless flag stays positional for an in_array() match');
+		$this->assertArrayNotHasKey('serve-only', $rOptions, 'it is not routed into the options map');
+		$this->assertSame('/x', $rOptions['cred-file'] ?? null, '--name=value options still parse into the map');
+		$this->assertTrue(in_array('--serve-only', $rPositional, true), 'so the command arms serve_only via in_array');
 	}
 
 	public function testServerInstallCommandWiresServeOnly(): void {
 		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
-		$this->assertStringContainsString("\$rServeOnly = \$rType == 2 && !empty(\$rOptions['serve-only']);", $rSrc, 'the --serve-only option is parsed for an LB');
+		$this->assertStringContainsString("\$rServeOnly = \$rType == 2 && in_array('--serve-only', \$rArgs, true);", $rSrc, 'the --serve-only flag is matched from the positional args for an LB');
 		$this->assertStringContainsString('`serve_only` = ?', $rSrc, 'the final success UPDATE sets serve_only');
 		$this->assertStringContainsString('StreamVersions::bump(StreamRecords::held($rServerID', $rSrc, 'B2: a serve_only install re-stamps its held streams');
 		$this->assertStringContainsString('$db, $rApiMode, $rServeOnly)', $rSrc, 'serve_only threads into provisionConfig');

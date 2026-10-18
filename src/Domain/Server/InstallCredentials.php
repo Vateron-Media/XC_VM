@@ -114,10 +114,12 @@ final class InstallCredentials {
 	}
 
 	/**
-	 * Split `--name=value` options and valueless `--name` flags out of
-	 * server:install's arguments. A valueless flag (e.g. `--serve-only`) becomes
-	 * `['name' => '1']` so a `!empty($rOptions['name'])` check sees it; without
-	 * this it fell through to the positional list and the flag was silently lost.
+	 * Split `--name=value` options out of server:install's arguments. A
+	 * valueless flag (e.g. `--serve-only`, `--all`, `--dry-run`) stays in the
+	 * positional list and the command recognises it there with `in_array()` —
+	 * do NOT route valueless flags into the options map, as cluster:reenrol
+	 * reads `--all`/`--pending`/`--dry-run` from the positional list and rejects
+	 * unknown option keys.
 	 *
 	 * @param list<string> $rArgs
 	 * @return array{0: list<string>, 1: array<string, string>} [positional, options]
@@ -128,8 +130,6 @@ final class InstallCredentials {
 		foreach ($rArgs as $rArg) {
 			if (is_string($rArg) && preg_match('/^--([a-z-]+)=(.*)$/s', $rArg, $rMatch)) {
 				$rOptions[$rMatch[1]] = $rMatch[2];
-			} elseif (is_string($rArg) && preg_match('/^--([a-z-]+)$/', $rArg, $rMatch)) {
-				$rOptions[$rMatch[1]] = '1';
 			} else {
 				$rPositional[] = $rArg;
 			}
