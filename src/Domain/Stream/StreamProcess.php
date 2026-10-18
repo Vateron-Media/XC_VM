@@ -164,11 +164,31 @@ class StreamProcess {
 	 * @return string MONITOR_FANOUT or MONITOR_PHP — which one now watches it —
 	 *                or MONITOR_FENCED when nothing may start here.
 	 */
+	/**
+	 * Is this node a serve-only LB? It recognises itself by the Part A marker
+	 * `CONFIG_PATH/cluster/serve_only` (the same signal RootSignalsCronJob reads),
+	 * written by the install as xc_vm. On such a node the Go agent + daemon own
+	 * every stream's lifecycle, so PHP starts and monitors none.
+	 */
+	public static function nodeServeOnly(): bool {
+		return defined('CONFIG_PATH') && is_file(CONFIG_PATH . 'cluster/serve_only');
+	}
+
 	public static function startMonitor(int $rStreamID, int $rRestart = 0) {
 		// A node fenced past its drain releases its producers (plan, section 9,
 		// FENCED; cron:streams) and starts none, whoever asks, until it lifts.
 		if (NodeLease::refusesEverything()) {
 			return self::MONITOR_FENCED;
+		}
+		// A serve-only LB relays a loopback stream (parent_id > 0) through its Go
+		// agent (which registers the node-local relay URL with the puller), not a
+		// PHP LoopbackCommand. Leave it to the agent/daemon before the supervise/PHP
+		// paths, or the daemon would be double-fed (PHP push + puller pull).
+		if (self::nodeServeOnly()) {
+			$rOwn = self::ownServerRow(intval($rStreamID), self::db());
+			if ($rOwn !== null && (int) ($rOwn['parent_id'] ?? 0) > 0) {
+				return self::MONITOR_FANOUT;
+			}
 		}
 		if (self::superviseStream(intval($rStreamID), (bool) $rRestart)) {
 			return self::MONITOR_FANOUT;
