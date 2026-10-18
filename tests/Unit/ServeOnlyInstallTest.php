@@ -56,6 +56,22 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString("self::sudoWrite((string) \$rServerID, CONFIG_PATH . 'cluster/serve_only')", $rSrc);
 	}
 
+	public function testConfigureRuntimeDemotesNginxForServeOnly(): void {
+		// Task 4: a serve-only node's Go front owns :443 (TLS), so nginx is
+		// demoted to a plaintext backend on :8080 (the front's -front-nginx
+		// target) and loses its :443 ssl listener; it trusts the front on
+		// loopback so X-Forwarded-For still resolves the viewer IP.
+		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
+		$this->assertStringContainsString('function configureRuntime(', $rSrc);
+		$this->assertStringContainsString('bool $rServeOnly = false', $rSrc, 'configureRuntime takes the serve_only flag');
+		$this->assertStringContainsString("self::sudoWrite('listen 8080 reuseport;'", $rSrc, 'nginx is demoted to the :8080 plaintext backend');
+		$this->assertStringContainsString("ports/https.conf'", $rSrc, 'the demote rewrites the :443 ssl listen');
+		$this->assertStringContainsString('set_real_ip_from 127.0.0.1;', $rSrc, 'nginx trusts the front on loopback for the viewer IP');
+
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$this->assertStringContainsString('LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID, $rServeOnly)', $rCmd, 'the install threads serve_only into configureRuntime');
+	}
+
 	public function testRunShLaunchersThreadServeOnlyFlagsOnTheMarker(): void {
 		$rFanout = (string) file_get_contents(MAIN_HOME . 'bin/xc_fanout/run.sh');
 		$this->assertStringContainsString('config/cluster/serve_only', $rFanout, 'fanout run.sh gates the front on the marker');

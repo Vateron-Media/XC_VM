@@ -457,7 +457,7 @@ class LbInstallFlow {
 		return true;
 	}
 
-	public static function configureRuntime($rConn, callable $rSendFileSSH, callable $rRunSSH, array $rServers, int $rServerID): int {
+	public static function configureRuntime($rConn, callable $rSendFileSSH, callable $rRunSSH, array $rServers, int $rServerID, bool $rServeOnly = false): int {
 		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/custom.conf', MAIN_HOME . 'bin/nginx/conf/custom.conf', false);
 		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/realip_cdn.conf', MAIN_HOME . 'bin/nginx/conf/realip_cdn.conf', false);
 		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/realip_cloudflare.conf', MAIN_HOME . 'bin/nginx/conf/realip_cloudflare.conf', false);
@@ -466,6 +466,20 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, self::sudoWrite('', '/home/xc_vm/bin/nginx/conf/limit_queue.conf'));
 		$rIP = '127.0.0.1:' . $rServers[$rServerID]['http_broadcast_port'];
 		call_user_func($rRunSSH, $rConn, self::sudoWrite('on_play http://' . $rIP . '/stream/rtmp; on_publish http://' . $rIP . '/stream/rtmp; on_play_done http://' . $rIP . '/stream/rtmp;', '/home/xc_vm/bin/nginx_rtmp/conf/live.conf'));
+		if ($rServeOnly) {
+			// Serve-only single-binary LB (Phase A): the Go front (xc_fanout
+			// -front) owns :443, terminates TLS, and reverse-proxies the rest to
+			// nginx on a loopback backend port. So nginx drops its own :443 ssl
+			// listener (the front owns 443) and listens plaintext on 8080 for the
+			// front; :80 stays for the rtmp callbacks and ACME. nginx trusts the
+			// front on loopback to carry the viewer IP — the front sets
+			// X-Real-IP / X-Forwarded-For, and nginx's real_ip_header is already
+			// X-Forwarded-For (nginx.conf). php-fpm and the rest of the node stay;
+			// removing them is Phase 5. ssl.conf's cert directives go inert with
+			// no ssl listener, which nginx allows.
+			call_user_func($rRunSSH, $rConn, self::sudoWrite('listen 8080 reuseport;', MAIN_HOME . 'bin/nginx/conf/ports/https.conf'));
+			call_user_func($rRunSSH, $rConn, self::sudoWrite("\nset_real_ip_from 127.0.0.1;\nset_real_ip_from ::1;\n", MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', true));
+		}
 		$rServices = (intval(call_user_func($rRunSSH, $rConn, 'sudo cat /proc/cpuinfo | grep "^processor" | wc -l')['output']) ?: 4);
 		call_user_func($rRunSSH, $rConn, 'sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');
 		// The pool configs, daemons.sh and balance.conf, each through a

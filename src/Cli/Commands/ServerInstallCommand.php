@@ -275,7 +275,7 @@ class ServerInstallCommand implements CommandInterface {
 			ProxyInstallFlow::provisionKey($rConn, $rSendFileSSH, $rRunSSH, $rServerID, $db);
 			$rServices = ProxyInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rParentIDs, $rPrivateIP, $rHTTPPort, $rHTTPSPort, $rServerID);
 		} else {
-			$rServices = LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID);
+			$rServices = LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID, $rServeOnly);
 		}
 
 		$this->finalizeHostAfterRuntime($rConn, $rRunSSH, $rHost, !$rApiMode);
