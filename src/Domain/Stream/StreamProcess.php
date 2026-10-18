@@ -155,16 +155,6 @@ class StreamProcess {
 	public const MONITOR_FENCED = 'fenced';
 
 	/**
-	 * Start watching a live stream: hand it to the fanout daemon's supervisor
-	 * when this server supervises (see superviseStream()), otherwise start the
-	 * PHP watchdog for it.
-	 *
-	 * @param int $rStreamID Stream id.
-	 * @param int $rRestart  Truthy to restart what is running rather than take it as it is.
-	 * @return string MONITOR_FANOUT or MONITOR_PHP — which one now watches it —
-	 *                or MONITOR_FENCED when nothing may start here.
-	 */
-	/**
 	 * Is this node a serve-only LB? It recognises itself by the Part A marker
 	 * `CONFIG_PATH/cluster/serve_only` (the same signal RootSignalsCronJob reads),
 	 * written by the install as xc_vm. On such a node the Go agent + daemon own
@@ -174,6 +164,16 @@ class StreamProcess {
 		return defined('CONFIG_PATH') && is_file(CONFIG_PATH . 'cluster/serve_only');
 	}
 
+	/**
+	 * Start watching a live stream: hand it to the fanout daemon's supervisor
+	 * when this server supervises (see superviseStream()), otherwise start the
+	 * PHP watchdog for it.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @param int $rRestart  Truthy to restart what is running rather than take it as it is.
+	 * @return string MONITOR_FANOUT or MONITOR_PHP — which one now watches it —
+	 *                or MONITOR_FENCED when nothing may start here.
+	 */
 	public static function startMonitor(int $rStreamID, int $rRestart = 0) {
 		// A node fenced past its drain releases its producers (plan, section 9,
 		// FENCED; cron:streams) and starts none, whoever asks, until it lifts.
