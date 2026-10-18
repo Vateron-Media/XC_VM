@@ -94,8 +94,11 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('-front', $rFanout, 'fanout run.sh launches the Go front for a serve-only node');
 		$this->assertStringContainsString('-front-nginx', $rFanout, 'the front strangler proxies non-serve requests to nginx');
 
+		$this->assertStringContainsString("grep -q -- '-front'", $rFanout, 'the front is gated on the fanout binary knowing -front');
+
 		$rAgent = (string) file_get_contents(MAIN_HOME . 'bin/xc_agent/run.sh');
 		$this->assertStringContainsString('config/cluster/serve_only', $rAgent, 'agent run.sh gates seeding on the marker');
 		$this->assertStringContainsString('-seed-fanout', $rAgent, 'agent run.sh seeds the fanout for a serve-only node');
+		$this->assertStringContainsString("grep -q -- '-seed-fanout'", $rAgent, 'seeding is gated on the agent binary knowing -seed-fanout, so an older agent still enrols');
 	}
 }

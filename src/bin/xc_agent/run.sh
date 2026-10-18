@@ -113,8 +113,13 @@ while true; do
     # from the replica (replaces PHP seedLocal) and carry its id + fanout binary
     # so a transcode directive resolves {server_id}/{binary}. The marker's content
     # is the node's server id; absent on a legacy node, so no extra flags there.
+    # Gated on the serve_only marker AND on the agent knowing -seed-fanout (an
+    # older agent binary exits non-zero on an unknown flag, which would fail the
+    # install's agent-start check and crash-loop here; without the flags it just
+    # enrols normally and seeding activates once a capable binary is in place —
+    # the same self-healing the fanout front gate uses).
     SEED=()
-    if [ -f "$SCRIPT/config/cluster/serve_only" ]; then
+    if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$AGENT_DIR/xc_agent" run -h 2>&1 | grep -q -- '-seed-fanout'; then
       SEED=(-seed-fanout -server-id "$(cat "$SCRIPT/config/cluster/serve_only")" -fanout-binary "$SCRIPT/bin/xc_fanout/xc_fanout" -logs "$SCRIPT/logs/tmp/")
     fi
     pkill -u xc_vm -x xc_agent 2>/dev/null
