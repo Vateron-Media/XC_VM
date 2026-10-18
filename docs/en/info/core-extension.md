@@ -224,7 +224,8 @@ passing the DB password through PHP or leaving it on the nodes in the clear.
 
 | Method | Where it runs | What it does |
 |--------|--------------|-------------|
-| `config_pack(target_install_id, params)` | MAIN | Builds a transport blob with a config for a node: reads the DB password from its own `config.enc` **inside the core** and encrypts it under a key derived from the node's `install_id`. Can build a config **without** DB credentials (for nodes in API mode) |
+| `config_pack(target_install_id, params, lb_panel_pk)` | MAIN | Builds a transport blob with a config for a node: reads the DB password from its own `config.enc` **inside the core**. With the node's panel key (XCVT v2) it signs the blob with MAIN's cluster root and seals it to that key; without one (v1, the old format) it encrypts it under a key derived from the node's `install_id`. Can build a config **without** DB credentials (for nodes in API mode). The panel packs every node config in one place, v2 for every load balancer it pinned with v2 ([XCVT v2](../administration/main-lb-cluster.md#signed-sealed-load-balancer-configs-xcvt-v2)) |
+| `panel_pk()` | node | The node's panel X25519 public key, the key MAIN seals a v2 config to. Creates `panel.sk` only when there is none; never replaces one |
 | `install_config(blob)` | node, as root | Verifies the blob (addressed to this node, at most an hour old, for an LB, for the right `server_id`) and writes it as its `config.enc`. **Never overwrites** a MAIN config. Writes nothing on refusal |
 | `strip_db_credentials()` | node, as root | Removes MAIN's DB user and password from the node's `config.enc` (switching the node to API mode). Refuses to run on MAIN |
 | `cluster_info()` | any | Cluster API version, panel public keys, licence and clock state. Never refuses |
@@ -234,7 +235,7 @@ passing the DB password through PHP or leaving it on the nodes in the clear.
 | `cluster_node_gen(node, gen, min_epoch)` | MAIN | Revokes a node (raises its "generation"); previously issued tokens stop working. Survives a DB restore from backup |
 | `cluster_sign` / `cluster_verify` / `cluster_record_class` | MAIN / LB | Signing and verifying cluster records (commands, denials, replicas). "Granting" records require a licence; "restricting" ones (stop, ban) are signed even without one — so an unlicensed MAIN can still stop its fleet |
 | `cluster_lease_issue` / `cluster_lease_verify` / `cluster_lease_store` / `cluster_lease_state` | MAIN → LB | A "lease" — MAIN-signed permission for an LB node to keep serving while MAIN is unreachable. On an LB, `license_valid()` follows the lease |
-| `cluster_pack` / `cluster_pin` / `cluster_pinned` | MAIN → LB | Delivering and pinning MAIN's public keys on an LB (trust on first use; a later key substitution is refused) |
+| `cluster_pack` / `cluster_pin` / `cluster_pinned` | MAIN → LB | Delivering and pinning MAIN's public keys on an LB (trust on first use; a later key substitution is refused). Version 1 needs a licence; version 2 is signed with MAIN's cluster root and needs none. A pinned LB accepts only v2 configs signed by the MAIN it pinned |
 | `cluster_seal_local` / `cluster_open_local` | any | Seal/open data to **this** machine's key — for the PHP panel to keep its own secrets |
 | `cluster_open_sealed(purpose, sealed)` | MAIN | Open a message addressed to the panel key (only for the node enrolment and re-keying stages) |
 | `cluster_export_keys(passphrase)` / `cluster_import_keys(bundle, passphrase)` | old → new MAIN | A backup of the cluster root keys for moving MAIN to new hardware. Encrypted from your passphrase via Argon2id (1 GiB of memory, a few seconds) — hence available **from the CLI only** |

@@ -372,6 +372,103 @@ itself.
   viewers after the **Fence Drain** (10 minutes by default). Turn it on before you ever need it,
   because it reaches the LBs only while your licence is valid.
 
+## Signed, sealed load balancer configs (XCVT v2)
+
+Every load balancer gets its `config.enc` (MAIN's database address and, unless it is in API mode,
+the credentials) from MAIN. From this release MAIN sends that config as **XCVT v2**: **signed** by
+MAIN's cluster root key and **sealed** to the load balancer's own key (its `panel.sk`). A load
+balancer pinned to MAIN refuses any config MAIN did not sign, and nobody who reads the config on
+its way (the command queue, a database backup) can open it. This covers every load balancer,
+with or without the cluster API. Proxies keep their `config.ini`.
+
+**Upgrade MAIN first.** An older MAIN sends only the old format (v1). A load balancer on the new
+release that is already pinned refuses v1 configs and keeps the config it has, so its config
+changes wait until MAIN is upgraded.
+
+### What the install does now
+
+A load balancer installed from this release is pinned during the install, before its config is
+written, over the same verified SSH session:
+
+1. MAIN creates the config directory and the load balancer's `install_id`, as root.
+2. The load balancer shows its panel key (`panel_pk`, creating `panel.sk` when it has none).
+3. MAIN checks its own cluster root and pins it on the load balancer (`core.pin`). No licence is
+   needed for this pin: it carries public keys only. If MAIN has no cluster root yet, and none
+   was ever recorded, it creates one and the install log asks you to back it up with
+   `console.php cluster:export-keys`: from now on that root protects every load balancer's
+   config. If a root was recorded before and is missing or does not open, the install refuses
+   to make a new one: restore it with `cluster:import-keys`. This check (and the only automatic
+   creation of a root) runs at an install and in `server:xcvt-pin`; there is no upgrade step that
+   makes one, and the v2 pins `cron:cluster` sends only use the existing root. `cluster:init` and
+   switching the cluster API on in Settings apply the same rule (`cluster:init --force` makes a
+   new root on purpose, and every pinned load balancer then needs `server:xcvt-pin`).
+4. MAIN packs the config for that key (v2) and uploads it. Only then does the config directory
+   go to the `xc_vm` user.
+5. When the load balancer runs, MAIN reads it back as `xc_vm` (the user PHP-FPM runs as): its
+   config must be a load balancer's, its panel key the one MAIN recorded and its pin MAIN's key.
+   If not, the install is marked failed (status 4).
+
+In this release, if the pin cannot be made (for example the load balancer's `xcvm_core` predates
+v2), MAIN checks that the load balancer holds **no** pin, sends it a v1 config, and says so in the
+install log. A load balancer that holds a pin MAIN could not replace fails the install: it would
+refuse a v1 config.
+
+### Load balancers installed before this release
+
+They have no v2 record on MAIN and keep getting v1 configs, with a `node.config_v1` warning in
+the cluster audit log, until they are covered:
+
+- **Enrolled load balancers that take root commands** are covered by `cron:cluster`: it asks each
+  one for its panel key (at most once a day) and sends it the v2 pin. Nothing to do, once the
+  load balancer has a `panel.sk` (otherwise use the command below, which creates one).
+- **Every other load balancer** (the cluster API off, or not enrolled): run on MAIN, as `xc_vm`
+
+  ```bash
+  console.php server:xcvt-pin <serverID> [sshPort] --cred-file=<path> --expect-hostkey=<sha1>
+  ```
+
+  The credentials file is the same 0600 `bin/install/<id>.cred` as for an install (it is read and
+  deleted). `--expect-hostkey` is the SHA-1 fingerprint read on the load balancer's console
+  (`ssh-keygen -l -E sha1 -f /etc/ssh/ssh_host_ed25519_key.pub`). It may be left out only when the
+  key MAIN stored was itself confirmed this way (an install or an earlier `server:xcvt-pin` given
+  it): a key saved on first use is refused, so a pin is never written over an SSH session nobody
+  checked. The command reads the `install_id`, shows the panel key, pins MAIN's root with replace,
+  reads the pin back and records it; the key and the pin are written to the cluster audit log.
+
+The same command re-pins a load balancer after MAIN's cluster root was replaced (a new
+`root.enc`, not a restore of the old one): pinned load balancers refuse everything the new root
+signs until they are re-pinned.
+
+When a config does not install on a load balancer (its `panel.sk` was regenerated, it was
+re-pinned elsewhere), MAIN forgets the key it held for it, sends it nothing until it has asked
+again, and records only the key the load balancer shows.
+
+### The gate for the next release
+
+```bash
+console.php server:xcvt-report
+```
+
+lists every enabled load balancer (not MAIN, proxies or disabled servers): **covered**, or why
+not:
+
+| Reason | Meaning | What to do |
+|--------|---------|------------|
+| `ext_old` | its `xcvm_core` predates v2 | update the load balancer, then `server:xcvt-pin` |
+| `no_pk` | it showed no panel key (`panel.sk` missing or does not open) | `server:xcvt-pin` (creates one when there is none) |
+| `no_pin` | MAIN never pinned it with v2 | `server:xcvt-pin`, or wait for `cron:cluster` |
+| `stale_fp` | its pin is of another MAIN root | `server:xcvt-pin` |
+| `ssh_unreachable` | the last `server:xcvt-pin` did not reach it | fix SSH, retry |
+
+A load balancer you are retiring can be waived: `--waive=<serverID> --reason=<text>`
+(`--unwaive=<serverID>` takes it back); both are written to the cluster audit log. The command
+ends with `N+1 gate: PASS` (exit 0) when no load balancer is uncovered.
+
+**The next release** sends no v1 config at all, and an install whose pin fails fails. Update MAIN
+to it only once `server:xcvt-report` passes: a load balancer still uncovered (or waived) then gets
+**no** config. Configs MAIN sent before this release stay readable in old command rows and
+backups: change the database credentials once your load balancers are covered.
+
 ## Common questions
 
 **Do I have to switch everything over at once?**
