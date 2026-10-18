@@ -2,10 +2,10 @@
 
 namespace XcVm\Domain\Cluster;
 
-use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeCorePin;
+use XcVm\Core\Cluster\NodeCredentials;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -35,8 +35,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  * Pin state lives in `cluster_meta` (`core_pin:<server_id>` = {gen, fp,
  * pinned_at, tried_at}): a re-enrolled node (a new generation) and a new panel
  * root (another fp) both read as not pinned and are offered again. A node that
- * failed is offered again after RETRY_SEC. packFor() is the same blob for
- * other senders (a panel key rotation re-pinning the fleet).
+ * failed is offered again after RETRY_SEC.
  *
  * @package XC_VM_Domain_Cluster
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -52,6 +51,9 @@ final class CorePins {
 
 	/** Nodes offered per cron:cluster pass. */
 	public const PER_PASS = 20;
+
+	/** How often a pinned node that is not an XCVT v2 target yet is asked for its panel key (ADR-005, Decision 10). */
+	public const BACKFILL_SEC = 86400;
 
 	private const META = 'core_pin:';
 
@@ -93,6 +95,15 @@ final class CorePins {
 		return $rFp !== null && $rState !== null && $rState['pinned_at'] !== null && $rState['gen'] === (int) $rNode['gen'] && hash_equals($rFp, $rState['fp']);
 	}
 
+	/** The node was seen with no pin (an install over SSH, `cluster_pinned`): whatever MAIN recorded of one goes. */
+	public static function unpinned(int $rServerID): void {
+		try {
+			ClusterMeta::delete(self::META . $rServerID);
+		} catch (\Throwable) {
+			// No cluster_meta: nothing was recorded.
+		}
+	}
+
 	/** Record a pin the node reported for its current generation. */
 	public static function recorded(int $rServerID, string $rFp, string $rActor = 'node'): bool {
 		$rNode = NodeRegistry::byServer($rServerID);
@@ -129,17 +140,12 @@ final class CorePins {
 		if (self::installId($rServerID) !== $rID) {
 			NodeRegistry::update($rServerID, ['install_id' => $rID]);
 		}
+		// Another install than MAIN's XCVT record is of: that record's key is not this install's.
+		$rXcvt = XcvtTargets::get($rServerID);
+		if ($rXcvt !== null && $rXcvt['install_id'] !== null && $rXcvt['install_id'] !== $rID) {
+			XcvtTargets::clear($rServerID);
+		}
 		return true;
-	}
-
-	/**
-	 * The pin blob for this node (`cluster_pack` for its recorded install_id),
-	 * or null while its install_id is unknown. Throws ClusterRefusedException
-	 * when the extension refuses (no licence, its clock).
-	 */
-	public static function packFor(ClusterCrypto $rCrypto, int $rServerID): ?string {
-		$rID = self::installId($rServerID);
-		return $rID === null ? null : $rCrypto->pack($rID);
 	}
 
 	/**
@@ -148,7 +154,7 @@ final class CorePins {
 	 * RETRY_SEC. Returns how many were sent a command.
 	 *
 	 * @param (callable(int, ?string): bool)|null $rSend tests: queue `pin_core` (with the blob, or without)
-	 * @param (callable(string): string)|null $rPack tests: `cluster_pack`
+	 * @param (callable(string, int): string)|null $rPack tests: `cluster_pack` (install_id, version)
 	 */
 	public static function offer(?callable $rSend = null, ?int $rNow = null, ?callable $rPack = null): int {
 		$rFp = self::panelFp();
@@ -163,11 +169,17 @@ final class CorePins {
 				break;
 			}
 			$rServerID = (int) $rNode['server_id'];
-			if (!CommandBus::acceptsRoot($rNode) || self::current($rNode, $rFp)) {
+			if (!CommandBus::acceptsRoot($rNode)) {
 				continue;
 			}
 			$rState = self::state($rServerID);
-			if ($rState !== null && $rState['gen'] === (int) $rNode['gen'] && $rState['tried_at'] !== null && $rNow - $rState['tried_at'] < self::RETRY_SEC) {
+			if (self::current($rNode, $rFp)) {
+				// Pinned, but not yet a v2 target (ADR-005 backfill): asked again, at
+				// most once a day, for root's answer carries the node's panel key.
+				if ((($rState['tried_at'] ?? null) !== null && $rNow - $rState['tried_at'] < self::BACKFILL_SEC) || XcvtTargets::ready($rServerID)) {
+					continue;
+				}
+			} elseif ($rState !== null && $rState['gen'] === (int) $rNode['gen'] && $rState['tried_at'] !== null && $rNow - $rState['tried_at'] < self::RETRY_SEC) {
 				continue;
 			}
 			self::sendDue($rNode, 'cron', $rNow, $rSend, $rPack);
@@ -182,7 +194,7 @@ final class CorePins {
 	 * message key of why not.
 	 *
 	 * @param (callable(int, ?string): bool)|null $rSend
-	 * @param (callable(string): string)|null $rPack
+	 * @param (callable(string, int): string)|null $rPack
 	 */
 	public static function request(int $rServerID, string $rActor = 'admin', ?callable $rSend = null, ?callable $rPack = null): ?string {
 		$rNode = NodeRegistry::byServer($rServerID);
@@ -199,18 +211,56 @@ final class CorePins {
 	}
 
 	/**
+	 * Ask a node that takes root commands for its install_id and panel key
+	 * now (`pin_core` step 1; the extension's ADR-005): what makes it a v2
+	 * target once acked (acked()). True when queued.
+	 *
+	 * @param (callable(int, ?string): bool)|null $rSend
+	 */
+	public static function askKey(int $rServerID, string $rActor = 'system', ?callable $rSend = null): bool {
+		$rNode = NodeRegistry::byServer($rServerID);
+		if ($rNode === null || $rNode['state'] !== 'active' || !CommandBus::acceptsRoot($rNode)) {
+			return false;
+		}
+		$rSend ??= static fn(int $rSid, ?string $rBlob): bool => NodeActions::pinCore($rSid, $rBlob);
+		try {
+			$rQueued = (bool) $rSend($rServerID, null);
+		} catch (\Throwable) {
+			$rQueued = false;
+		}
+		ClusterAudit::log('node.core_pin', $rServerID, ['step' => 'install_id', 'queued' => $rQueued], $rActor);
+		return $rQueued;
+	}
+
+	/**
 	 * A `node.root` command's first ack (ClusterApi). For `pin_core`: an
 	 * answer with the node's install_id records it and sends the pin; an
 	 * answer with the pinned key's SHA-256 is recorded when it is this
 	 * panel's. True when the node ended pinned to this panel's key.
 	 *
-	 * @param (callable(string): string)|null $rPack tests: `cluster_pack`
+	 * The XCVT v2 record (XcvtTargets, the extension's ADR-005) is kept from
+	 * these acks: the panel key root shows in step 1, the v2 pin it acks in
+	 * step 2. A pinned node with no v2 record yet is sent the v2 pin. A failed
+	 * `install_config` probes the node again (Decision 13), but for a replay
+	 * (`RECORD:replay`), which is packed afresh and sent once more
+	 * (DbCredentials::replayed).
+	 *
+	 * @param (callable(string, int): string)|null $rPack tests: `cluster_pack` (install_id, version)
 	 * @param (callable(int, ?string): bool)|null $rSend tests: queue `pin_core`
 	 */
 	public static function acked(int $rServerID, string $rCmdID, bool $rOk, string $rResult, ?callable $rPack = null, ?callable $rSend = null): bool {
 		self::db()->query('SELECT `type`, `payload` FROM `cluster_commands` WHERE `server_id` = ? AND `cmd_id` = ?;', $rServerID, $rCmdID);
 		$rRow = self::db()->num_rows() > 0 ? self::db()->get_raw_row() : null;
 		$rDoc = $rRow !== null && $rRow['type'] === 'node.root' ? json_decode((string) $rRow['payload'], true) : null;
+		if (is_array($rDoc) && ($rDoc['action'] ?? null) === NodeCredentials::INSTALL && !$rOk) {
+			// A replay is a stamp clash on MAIN, not a stale key: packed afresh, once.
+			if (str_contains($rResult, 'RECORD:replay')) {
+				DbCredentials::replayed($rServerID);
+			} else {
+				self::reprobe($rServerID, $rResult, $rSend);
+			}
+			return false;
+		}
 		if (!is_array($rDoc) || ($rDoc['action'] ?? null) !== NodeCorePin::ACTION) {
 			return false;
 		}
@@ -219,8 +269,10 @@ final class CorePins {
 			ClusterAudit::log('node.core_pin_failed', $rServerID, ['step' => $rStep, 'result' => mb_substr($rResult, 0, 300)], 'node');
 			if ($rStep === 'pin' && str_contains($rResult, 'CRYPTO')) {
 				// Not this install's blob (the machine was replaced, or the blob
-				// outlived its hour): ask the node for its install_id again.
+				// outlived its hour): ask the node for its install_id again, and
+				// forget the key MAIN held for it with it.
 				NodeRegistry::update($rServerID, ['install_id' => null]);
+				XcvtTargets::clear($rServerID);
 			}
 			return false;
 		}
@@ -232,8 +284,16 @@ final class CorePins {
 		if (self::validInstallId($rCore['install_id'] ?? null)) {
 			self::rememberInstallId($rServerID, (string) $rCore['install_id']);
 		}
-		if (is_string($rCore['pinned'] ?? null) && hash_equals($rFp, $rCore['pinned'])) {
-			return self::recorded($rServerID, $rCore['pinned']);
+		$rPinned = is_string($rCore['pinned'] ?? null) && hash_equals($rFp, $rCore['pinned']);
+		$rKey = self::keepXcvt($rServerID, $rStep, $rCore, $rPinned, $rStep === 'pin' && self::blobVersion($rDoc) === 2);
+		if ($rPinned) {
+			$rDone = self::recorded($rServerID, (string) $rCore['pinned']);
+			$rNode = NodeRegistry::byServer($rServerID);
+			if ($rDone && $rStep === 'install_id' && $rKey && $rNode !== null && !XcvtTargets::ready($rServerID)) {
+				// Pinned, but not with v2 by this MAIN: the v2 pin, for the key root just showed.
+				self::sendDue($rNode, 'system', ClusterClock::now(), $rSend, $rPack);
+			}
+			return $rDone;
 		}
 		if ($rStep === 'pin') {
 			ClusterAudit::log('node.core_pin_failed', $rServerID, ['step' => 'pin', 'result' => 'pinned another key'], 'node');
@@ -253,24 +313,94 @@ final class CorePins {
 	 * else the question for it. Records the attempt and audits it. True when a
 	 * command was queued.
 	 *
+	 * The pin is version 2 (ADR-005: no licence, a v2 target once acked) when
+	 * root showed MAIN this install's panel key, else version 1 (an extension
+	 * before ADR-005). A node pinned now stays recorded as pinned meanwhile.
+	 *
 	 * @param array<string, mixed> $rNode cluster_nodes row
 	 * @param (callable(int, ?string): bool)|null $rSend
-	 * @param (callable(string): string)|null $rPack
+	 * @param (callable(string, int): string)|null $rPack
 	 */
 	private static function sendDue(array $rNode, string $rActor, int $rNow, ?callable $rSend, ?callable $rPack): bool {
 		$rServerID = (int) $rNode['server_id'];
 		$rSend ??= static fn(int $rSid, ?string $rBlob): bool => NodeActions::pinCore($rSid, $rBlob);
-		$rPack ??= static fn(string $rInstallID): string => ClusterCryptoFactory::create()->pack($rInstallID);
+		$rPack ??= static fn(string $rInstallID, int $rVersion): string => ClusterCryptoFactory::create()->pack($rInstallID, $rVersion);
 		$rID = self::installId($rServerID);
-		self::write($rServerID, ['gen' => (int) $rNode['gen'], 'fp' => '', 'pinned_at' => null, 'tried_at' => $rNow]);
+		$rXcvt = XcvtTargets::get($rServerID);
+		$rVersion = $rID !== null && $rXcvt !== null && $rXcvt['install_id'] === $rID && $rXcvt['panel_pk'] !== null ? 2 : 1;
+		$rState = self::current($rNode) ? self::state($rServerID) : null;
+		self::write($rServerID, ['gen' => (int) $rNode['gen'], 'fp' => $rState['fp'] ?? '', 'pinned_at' => $rState['pinned_at'] ?? null, 'tried_at' => $rNow]);
 		try {
-			$rQueued = (bool) $rSend($rServerID, $rID === null ? null : $rPack($rID));
+			$rQueued = (bool) $rSend($rServerID, $rID === null ? null : $rPack($rID, $rVersion));
 		} catch (\Throwable $rE) {
 			ClusterAudit::log('node.core_pin_failed', $rServerID, ['step' => 'pack', 'result' => mb_substr($rE->getMessage(), 0, 300)], 'system');
 			return false;
 		}
 		ClusterAudit::log('node.core_pin', $rServerID, ['step' => $rID === null ? 'install_id' : 'pin', 'queued' => $rQueued], $rActor);
 		return $rQueued;
+	}
+
+	/**
+	 * Keep what a `pin_core` ack says for XCVT v2 (XcvtTargets): step 1's
+	 * panel key, for the install_id MAIN has (the same pin version when root
+	 * still shows the key and pin MAIN recorded), or why it showed none (no
+	 * `panel_pk` in the answer: an extension before ADR-005; null: no
+	 * panel.sk); step 2's v2 pin, for the key step 1 showed. True when the
+	 * node showed a key in step 1.
+	 *
+	 * @param array<string, mixed> $rCore NodeCorePin::outcome()
+	 */
+	private static function keepXcvt(int $rServerID, string $rStep, array $rCore, bool $rPinned, bool $rV2Pin): bool {
+		$rID = self::installId($rServerID);
+		if ($rID === null) {
+			return false;
+		}
+		$rWas = XcvtTargets::get($rServerID);
+		$rWasKey = $rWas !== null && $rWas['install_id'] === $rID ? $rWas['panel_pk'] : null;
+		if ($rStep === 'pin') {
+			if ($rV2Pin && $rPinned && $rWasKey !== null) {
+				XcvtTargets::record($rServerID, $rID, $rWasKey, (string) $rCore['pinned'], 2, 'node');
+			}
+			return false;
+		}
+		if (!array_key_exists('panel_pk', $rCore) || !XcvtTargets::validKey($rCore['panel_pk'])) {
+			XcvtTargets::noteProbe($rServerID, array_key_exists('panel_pk', $rCore) ? 'no_pk' : 'ext_old');
+			return false;
+		}
+		$rKey = (string) $rCore['panel_pk'];
+		$rStill = $rPinned && $rWas !== null && $rWasKey === $rKey && $rWas['pin_ver'] === 2 && $rWas['pin_fp'] === $rCore['pinned'];
+		XcvtTargets::record($rServerID, $rID, $rKey, $rStill ? $rWas['pin_fp'] : null, $rStill ? 2 : 0, 'node');
+		return true;
+	}
+
+	/**
+	 * The XCVT version of a `pin_core` command's blob (byte 4 after "XCVT"), 0 when there is none.
+	 *
+	 * @param array<string, mixed> $rDoc
+	 */
+	private static function blobVersion(array $rDoc): int {
+		$rArgs = (array) ($rDoc['args'] ?? []);
+		$rBlob = base64_decode((string) ($rArgs['blob'] ?? ''), true);
+		return is_string($rBlob) && strlen($rBlob) > 4 && str_starts_with($rBlob, 'XCVT') ? ord($rBlob[4]) : 0;
+	}
+
+	/**
+	 * A config MAIN sent did not install (ADR-005, Decision 13: the node's
+	 * panel.sk regenerated, a re-pin, a replay): forget the key MAIN holds
+	 * for it and ask root again (`pin_core` step 1), never recording a key the
+	 * node did not show.
+	 *
+	 * @param (callable(int, ?string): bool)|null $rSend
+	 */
+	private static function reprobe(int $rServerID, string $rResult, ?callable $rSend): void {
+		XcvtTargets::clear($rServerID);
+		$rSend ??= static fn(int $rSid, ?string $rBlob): bool => NodeActions::pinCore($rSid, $rBlob);
+		try {
+			$rQueued = (bool) $rSend($rServerID, null);
+		} catch (\Throwable) {
+			$rQueued = false;
+		}
+		ClusterAudit::log('node.xcvt_reprobe', $rServerID, ['result' => mb_substr($rResult, 0, 300), 'queued' => $rQueued], 'system');
 	}
 
 	/** @param array{gen: int, fp: string, pinned_at: int|null, tried_at: int|null} $rState */

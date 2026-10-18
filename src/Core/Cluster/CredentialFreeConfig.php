@@ -23,18 +23,13 @@ final class CredentialFreeConfig {
 	/** @var (callable(): bool)|null */
 	private static $rSupported = null;
 
-	/** @var (callable(string, array<string, mixed>): (string|false))|null */
-	private static $rPack = null;
-
 	/**
-	 * Tests: another feature check and packer; null restores the extension.
+	 * Tests: another feature check; null restores the extension.
 	 *
 	 * @param (callable(): bool)|null $rSupported
-	 * @param (callable(string, array<string, mixed>): (string|false))|null $rPack
 	 */
-	public static function useSeams(?callable $rSupported, ?callable $rPack = null): void {
+	public static function useSeams(?callable $rSupported): void {
 		self::$rSupported = $rSupported;
-		self::$rPack = $rPack;
 	}
 
 	/** Does this panel's xcvm_core pack a credential-free config? */
@@ -46,20 +41,14 @@ final class CredentialFreeConfig {
 	}
 
 	/**
-	 * The XCVT blob for $rInstallID, without credentials; false when the
-	 * extension refused, or cannot pack one at all.
+	 * config_pack's server params without credentials, for MAIN's one packer
+	 * (Domain\Cluster\NodeConfigPack, the extension's ADR-005); null when this
+	 * extension cannot pack a credential-free config at all.
 	 *
 	 * @param array<string, mixed> $rParams config_pack's server params
+	 * @return array<string, mixed>|null
 	 */
-	public static function pack(string $rInstallID, array $rParams): string|false {
-		if (!self::supported()) {
-			return false;
-		}
-		$rParams = ['db_credentials' => false] + array_diff_key($rParams, ['include_redis' => true]);
-		if (self::$rPack !== null) {
-			return (self::$rPack)($rInstallID, $rParams);
-		}
-		$rBlob = \XC_VM::config_pack($rInstallID, $rParams);
-		return is_string($rBlob) && $rBlob !== '' ? $rBlob : false;
+	public static function params(array $rParams): ?array {
+		return self::supported() ? ['db_credentials' => false] + array_diff_key($rParams, ['include_redis' => true]) : null;
 	}
 }

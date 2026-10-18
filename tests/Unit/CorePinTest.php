@@ -8,7 +8,6 @@ use XcVm\Domain\Cluster\ClusterMeta;
 use XcVm\Domain\Cluster\CorePins;
 use XcVm\Domain\Cluster\NodeRegistry;
 use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Tests\Support\FakeClusterCrypto;
 
 /**
  * Pinning MAIN's panel key in each node's xcvm_core (core.pin; ADR 0004,
@@ -122,7 +121,9 @@ final class CorePinTest extends TestCase {
 
 	public function testStepOneReportsTheInstallIdAndWhatIsPinned(): void {
 		file_put_contents($this->rDir . 'install_id', self::IID);
-		$this->assertSame(['install_id' => self::IID, 'pinned' => null, 'verdict' => true], NodeCorePin::outcome(NodeCorePin::run(['action' => 'pin_core'], null)));
+		// No panel.sk: no key to show, and none is created (ADR-005).
+		$this->assertSame(['install_id' => self::IID, 'pinned' => null, 'verdict' => true, 'panel_pk' => null], NodeCorePin::outcome(NodeCorePin::run(['action' => 'pin_core'], null)));
+		$this->assertNotContains('panel_pk', array_column($this->rCalls, 0));
 		$this->rExt['pinned'] = self::PANEL_PUB;
 		$this->assertSame(hash('sha256', self::PANEL_PUB), NodeCorePin::outcome(NodeCorePin::run(['action' => 'pin_core'], null))['pinned']);
 	}
@@ -272,11 +273,10 @@ final class CorePinTest extends TestCase {
 		$this->assertSame([[8, null]], $this->rSent);
 	}
 
-	public function testPackForUsesTheRecordedInstallId(): void {
-		$rCrypto = new FakeClusterCrypto();
-		$this->assertNull(CorePins::packFor($rCrypto, 7));
+	public function testTheInstallIdIsRememberedOnlyWhenValid(): void {
+		$this->assertNull(CorePins::installId(7));
 		$this->assertTrue(CorePins::rememberInstallId(7, self::IID));
 		$this->assertFalse(CorePins::rememberInstallId(7, 'bad id!'));
-		$this->assertStringContainsString(self::IID, (string) CorePins::packFor($rCrypto, 7));
+		$this->assertSame(self::IID, CorePins::installId(7));
 	}
 }
