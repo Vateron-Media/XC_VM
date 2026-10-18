@@ -11,9 +11,12 @@ namespace XcVm\Core\Localization;
  * A language is read from two directories: the bundled one, which is part of
  * the code and which every update replaces, and over it the custom one
  * (config/lang/), which holds what an administrator uploaded or edited
- * (TranslationStore). Nothing here writes a language file: a missing key used
- * to be appended to the bundled file at runtime, and the Translations page
- * lists what a language lacks instead.
+ * (TranslationStore). A loaded module's own lang/ directory (addModuleDir())
+ * adds the keys the bundled files lack: its strings belong to the panel's
+ * text like the core ones, and nothing of it is copied into the core files.
+ * Nothing here writes a language file: a missing key used to be appended to
+ * the bundled file at runtime, and the Translations page lists what a
+ * language lacks instead.
  *
  * @package XC_VM\Core\Localization
  * @author Divarion_D <https://github.com/Divarion-D>
@@ -34,6 +37,9 @@ class Translator {
 	/** @var string[] */
 	private static array $availableLanguages = [];
 
+	/** @var string[] The lang/ directories of the loaded modules, in load order */
+	private static array $moduleDirs = [];
+
 	/** @var array<string, string>|null Lazily loaded en.ini — the source of truth for fallbacks */
 	private static ?array $enTranslations = null;
 
@@ -50,6 +56,7 @@ class Translator {
 		if ($langsDir !== null) {
 			self::$langsDir = rtrim($langsDir, '/') . '/';
 			self::$customDir = $customDir !== null ? rtrim($customDir, '/') . '/' : '';
+			self::$moduleDirs = [];
 			self::$enTranslations = null; // Directory changed — drop the cached en.ini
 		}
 
@@ -147,6 +154,45 @@ class Translator {
 	}
 
 	/**
+	 * Read a loaded module's language files (lang/<code>.ini) under the
+	 * bundled ones: a key a bundled file has keeps its value. The modules
+	 * load after the language was, so the current one takes the module's
+	 * keys at once.
+	 *
+	 * @param string $dir The module's lang/ directory; one it lacks is no error
+	 */
+	public static function addModuleDir(string $dir): void {
+		$dir = rtrim($dir, '/') . '/';
+		if (in_array($dir, self::$moduleDirs, true) || !is_dir($dir)) {
+			return;
+		}
+		self::$moduleDirs[] = $dir;
+		self::$enTranslations = null;
+		if (self::$translations !== []) {
+			self::$translations += self::readFile($dir . self::$currentLang . '.ini') ?? [];
+		}
+	}
+
+	/**
+	 * What the panel ships of a language: its bundled file, and the keys of
+	 * the modules' files of it that the bundled one lacks.
+	 *
+	 * @param string $lang Language code
+	 * @return array<string, string>|null null when neither has the language
+	 */
+	public static function shipped(string $lang): ?array {
+		$shipped = self::readFile(self::$langsDir . $lang . '.ini');
+		foreach (self::$moduleDirs as $dir) {
+			$module = self::readFile($dir . $lang . '.ini');
+			if ($module !== null) {
+				$shipped = ($shipped ?? []) + $module;
+			}
+		}
+
+		return $shipped;
+	}
+
+	/**
 	 * Whether a value read from a language file translates its key. A value that
 	 * only repeats the English text, or the key itself, is what an exported file
 	 * holds for a key it lacks (and what the runtime once wrote for one), and is
@@ -157,16 +203,16 @@ class Translator {
 	}
 
 	/**
-	 * A language as the panel shows it: its bundled file under its custom one.
+	 * A language as the panel shows it: what it ships (shipped()) under its custom file.
 	 *
 	 * @param string $lang Language code
-	 * @return array<string, string>|null null when neither directory has the language
+	 * @return array<string, string>|null null when no directory has the language
 	 */
 	public static function load(string $lang): ?array {
-		$bundled = self::readFile(self::$langsDir . $lang . '.ini');
+		$shipped = self::shipped($lang);
 		$custom = self::customDir() !== '' ? self::readFile(self::customDir() . $lang . '.ini') : null;
 
-		return $custom === null ? $bundled : $custom + ($bundled ?? []);
+		return $custom === null ? $shipped : $custom + ($shipped ?? []);
 	}
 
 	/**
@@ -233,12 +279,13 @@ class Translator {
 	}
 
 	/**
-	 * Read the bundled en.ini once per request and cache it — every missing-key
-	 * lookup would otherwise re-parse the whole file from disk.
+	 * Read the shipped English (en.ini and the modules' en.ini) once per request
+	 * and cache it — every missing-key lookup would otherwise re-parse the whole
+	 * file from disk.
 	 *
 	 * @return array<string, string>
 	 */
 	public static function englishTranslations(): array {
-		return self::$enTranslations ??= self::readFile(self::$langsDir . 'en.ini') ?? [];
+		return self::$enTranslations ??= self::shipped('en') ?? [];
 	}
 }

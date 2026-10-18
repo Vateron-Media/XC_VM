@@ -13,6 +13,7 @@ use XcVm\Core\Exception\Module\ModuleLoadException;
 use XcVm\Core\Exception\Module\ModuleManifestException;
 use XcVm\Core\Exception\Module\ModuleNotFoundException;
 use XcVm\Core\Http\Router;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Module\Contract\CommandProviderInterface;
 use XcVm\Core\Module\Contract\CronProviderInterface;
 use XcVm\Core\Module\Contract\NavbarProviderInterface;
@@ -344,6 +345,7 @@ class ModuleLoader {
 		}
 
 		$this->modules[$name] = $module;
+		Translator::addModuleDir($modulePath . '/lang');
 		return true;
 	}
 
