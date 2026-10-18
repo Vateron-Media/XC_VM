@@ -50,12 +50,17 @@ must reproduce that faithfully.
   all routes (nginx no longer backs them).
 - TLS certs and ACME continue to work exactly as today (certbot-issued files,
   hot-reloaded; `/.well-known/acme-challenge/` from the webroot).
+- The RTMP ingest auth-notify (`/stream/rtmp`, called by the still-running
+  `nginx_rtmp`) is answered by Go, deferring authorization to MAIN, so RTMP ingest
+  keeps working with no PHP behind it.
 
 ## Non-goals
 
-- **nginx-rtmp (RTMP ingest)** is out of scope. It is a separate subsystem (its
-  own binary and its own RTMP auth-notify path) and rides a later track. "nginx
-  removed" here means the HTTP nginx; `nginx_rtmp` may remain for now.
+- **Replacing the nginx-rtmp *server*** (the RTMP listener binary `nginx_rtmp`) is
+  out of scope — that is a separate track (a Go RTMP server). `nginx_rtmp` stays
+  installed and running. **But its HTTP auth-notify (`/stream/rtmp`) is in scope**
+  (serve-only LBs ingest RTMP — confirmed), because removing the HTTP/PHP surface
+  would otherwise break it; see "RTMP ingest auth-notify".
 - **The non-HTTP PHP** is out of scope and is a named follow-on (see "PHP after
   this phase"). Several pieces have no Go replacement yet.
 - **HTTP/3 / QUIC** is deferred (roadmap open question; the front keeps advertising
@@ -183,6 +188,9 @@ The front builds a single `http.Handler` (shared by every listener) that routes:
     socket (the gateway already uses `agent_sock`). "Served by the node, fronted by
     the listener" — not re-implemented in fanout. `/xfile` is the security-sensitive
     piece and the largest single port; see "Review focus".
+  - **`/stream/rtmp`** — the nginx_rtmp auth-notify. Routed to an agent-side handler
+    (MAIN-deferred authorization), same reasoning as `/xfile`. See "RTMP ingest
+    auth-notify" for the behaviour and sequencing.
 - **Cross-cutting middleware** applied by the front on all routes: real-IP
   resolution (`realip.go`, trusted-proxy CIDRs from the `realip_*.conf` includes),
   rate-limit (nginx had two zones: `one` = per-viewer on serve routes, and
@@ -239,20 +247,37 @@ each now reflected above:
   nginx must not widen these trust boundaries.
 - **Single SAN cert; certbot webroot authenticator** once the front owns `:80`.
 
-## Open decision (yours) — RTMP auth-notify on a serve-only LB
+## RTMP ingest auth-notify (confirmed in scope)
 
-`nginx_rtmp` is provisioned on **every** LB (not serve_only-gated), and its
-`on_publish`/`on_play`/`on_play_done` callbacks hit
-`http://127.0.0.1:<http_broadcast_port>/stream/rtmp` — a route on the HTTP surface
-this phase removes. nginx-rtmp itself is out of scope, but its callback target is not.
-So one fact decides a piece of scope: **does a serve-only LB ever ingest RTMP?**
+Serve-only LBs **do** ingest RTMP (user-confirmed). `nginx_rtmp` is provisioned on
+every LB, and its `on_publish`/`on_play`/`on_play_done` callbacks hit
+`http://127.0.0.1:<http_broadcast_port>/stream/rtmp` — today `Public/stream/rtmp.php`
+under php-fpm. Removing the HTTP/PHP surface deletes that answerer, so a Go handler
+must take over, or RTMP ingest breaks.
 
-- **If no** (serve-only LBs are pure restreamers and never accept RTMP publishers):
-  `/stream/rtmp` + the nginx_rtmp provisioning retire with the nginx-rtmp track; this
-  phase just ensures nothing relies on that callback, and the route is dropped.
-- **If yes:** the front must keep a `/stream/rtmp` auth-notify handler (RTMP auth is a
-  large lifecycle endpoint — StreamAuth, blocklist, line-limit), which expands this
-  phase's scope. The default assumption in this draft is **no**; confirm or correct.
+**It is a faithful behavioural port, not a redesign, and it fits serve-only:**
+`rtmp.php` already carries the LB path and **defers authorization to MAIN** — a
+serve-only LB has no DB, so it is "not shipped the line lookup." Specifically the LB
+arm: parses the nginx_rtmp notify args (`StreamAuth::notifyArguments`); accepts the
+stream password or an allowed-RTMP address (`live_streaming_pass` /
+`BlocklistService::getAllowedRTMP`, replica-shipped); otherwise asks MAIN for its
+last yes (`RtmpOffline::ask`); resolves the stream/this-node row from the replica
+(`StreamSource::local`/`joined`, not a DB query); and opens the connection record
+with line-limit admission via **the agent asking MAIN** (`ConnectionTracker::
+openRecord` → `conn_admit`). All of that is MAIN-deferred or replica-backed — no LB
+DB.
+
+**Where it runs:** like `/xfile`, the machinery it needs (the MAIN-ask lanes,
+`conn_admit`, the connection records) lives **agent-side**, so the front routes
+`/stream/rtmp` to a handler in the agent and relays nginx_rtmp's allow/deny. The
+front itself only listens and routes.
+
+**Scope note:** this is a distinct, substantial sub-piece that overlaps the
+connection-lifecycle work (Phases 4–5). It gets its **own design pass + adversarial
+interop vectors** against `rtmp.php` (like `/xfile`), and it must land **before** the
+final removal step — nginx_rtmp's callback target cannot disappear until the Go
+handler answers it. It is sequenced within this phase, not folded into another
+route's work.
 
 ## PHP after this phase (named follow-on, not built here)
 
@@ -294,6 +319,11 @@ PHP afterwards — the php-removal follow-on — and why it is not in this phase
   settled") — faithful to the PHP (ticket + node-key proof + per-chunk signed
   digest). Security-sensitive and cluster-internal; warrants its own short design
   pass and adversarial interop vectors against the PHP before coding.
+- The **`/stream/rtmp` auth-notify handler in the agent** — a faithful port of
+  `rtmp.php`'s LB arm (notify-arg parse, `live_streaming_pass` / allowed-RTMP,
+  `RtmpOffline` MAIN-ask, `StreamSource::local`, `conn_admit` admission). Its own
+  design pass + adversarial interop vectors against `rtmp.php`; lands before the
+  removal step.
 - `status` / `progress` / `probe` handlers and static serving (paths, content types).
 - The gzip middleware's content-type set and the two rate-limit zones' exact keys.
 - MAIN-side: `LbInstallFlow` serve-only path stops provisioning the HTTP nginx; the
@@ -315,3 +345,8 @@ PHP afterwards — the php-removal follow-on — and why it is not in this phase
 - **Real-IP / rate-limit at the true edge** — with no nginx in front, the front is
   the edge; trusted-proxy CIDRs must still come from the `realip_*.conf` includes,
   and a spoofed `X-Forwarded-For` from an untrusted peer must not set the client IP.
+- **RTMP ingest with no PHP/DB** — the Go `/stream/rtmp` handler must reproduce
+  `rtmp.php`'s LB arm exactly (MAIN-deferred auth via `RtmpOffline`/`conn_admit`,
+  allowed-RTMP addresses, stream password); a divergence either lets an unauthorized
+  publisher in or rejects a valid one, and an ingest wrongly admitted also skews
+  line-limit accounting on MAIN.
