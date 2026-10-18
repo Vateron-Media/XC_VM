@@ -368,7 +368,7 @@ class LbInstallFlow {
 		if (empty($rBlob)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			$rWhy = error_get_last()['message'] ?? 'no warning';
-			echo 'Failed to pack node configuration (install_id ' . $rInstallId . ', hostname ' . var_export($rPackParams['hostname'], true) . ', api mode ' . ($rApiMode ? 'yes' : 'no') . ', ' . $rWhy . ")! Exiting\n";
+			echo 'Failed to pack node configuration (install_id ' . $rInstallId . ', hostname ' . var_export($rPackParams['hostname'], true) . ', legacy mode, ' . $rWhy . ")! Exiting\n";
 			return false;
 		}
 
@@ -409,7 +409,6 @@ class LbInstallFlow {
 		// (configPackParams) is PHP-side only and inert on an incomplete install.
 		return true;
 	}
-
 
 	/** The final check can run as the service user after runtime permissions are set. */
 	public static function verifyConfig($rConn, callable $rRunSSH, int $rServerID, bool $rAsUser = false): bool {
