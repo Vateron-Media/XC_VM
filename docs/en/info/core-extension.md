@@ -24,7 +24,7 @@ It solves exactly three problems:
 | Problem | What it does |
 |---------|--------------|
 | **Config, DB, Redis** | Keeps the panel settings in an encrypted, machine-bound `config.enc` and hands PHP ready-made MySQL/Redis connections so that passwords never appear in PHP code |
-| **Modules** | Downloads modules from the store, strips the transport encryption and leaves IonCube-encoded files on disk, which the stock ionCube Loader executes |
+| **Modules** | Downloads a module from the store as one archive inside a sealed envelope, unpacks it and swaps it in atomically. Every `*.php` in it is already IonCube-encoded; the stock ionCube Loader executes it. There is no module key and nothing to decrypt |
 | **Licence and cluster** | Checks the installation's licence and lets the MAIN server hand LB nodes configs and tokens without passing passwords around |
 
 It is **not**: a backdoor, a remote-control channel, a telemetry collector, a way
@@ -36,14 +36,16 @@ details for each of those claims follow.
 ## 2. Why the core is a binary
 
 The panel's PHP code is open and readable by anyone with access to the server. If
-database passwords, encryption keys or paid-module keys lived in it, they would go
+database passwords, private keys or the licence logic lived in it, they would go
 to the first person who opened the file. So exactly those things are moved into
 compiled code:
 
 1. **DB and Redis passwords** never appear in PHP: the core reads them from
    `config.enc` itself and opens the connection itself.
-2. **Module keys** never appear in PHP: the core fetches them from the server
-   itself, decrypts the files at install time itself, and stores the key encrypted.
+2. **Key material** never appears in PHP: the panel's private key, MAIN's cluster
+   root and the token material of the cluster API stay sealed to the machine and are
+   used only inside the core. (Modules need no key at all: their code is protected by
+   the ionCube licence, not by anything the core holds.)
 3. **Licence checks** cannot be commented out by editing PHP.
 
 That is the whole point of the binary being closed. Its behaviour is not secret —
@@ -61,12 +63,14 @@ complete list of what happens then — and nothing else:
    the core **refuses to load**. Nothing else happens: nothing is deleted, nothing
    is sent anywhere, the server is not stopped — the `XC_VM` class is simply
    unavailable in that process.
-2. **Registration of the ini directive** `xcvm_core.server_url` (see section 8.4).
+2. **No `php.ini` directive.** The core registers none and reads none; every setting
+   is built into the binary (see section 8.4).
 3. **ionCube Loader presence check.** If it is not loaded, an ordinary PHP warning
    is emitted. It is only a message — the core keeps going.
 4. **Installation identifier.** If the `install_id` file does not exist yet, a
    random UUID is generated and written to the config directory with `0600`
-   permissions. If it exists, it is read.
+   permissions. If it exists, it is read. The environment fingerprint is computed
+   at the same time (nothing is sent).
 5. **Automatic config migration.** If an old plaintext `config.ini` is in the config
    directory and `config.enc` is not, the ini is read, encrypted into `config.enc`,
    and `config.ini` is then **deleted** (so plaintext passwords do not stay on
@@ -93,7 +97,6 @@ core reads.
 | `config.enc` | Panel settings (DB, Redis, server role), AES-256-GCM encrypted. The key is derived from `install_id` **and** `/etc/machine-id`, so a copy on another machine does not decrypt | `0600` |
 | `install_id` | The random UUID of your installation. Created once and never changes (survives core and PHP upgrades) | `0600` |
 | `panel.pk` / `panel.sk` | The panel's X25519 key pair. The public half is sent to the server at registration; **the private half never leaves the machine** and is stored sealed to this machine's key | sk: `0600` |
-| `module_keys/<module>.key` | The transport-encryption key of each installed paid module, itself encrypted under the installation's master key | `0600` |
 | `activation_key` | The licence activation key (you paste it in the panel). Signed by the server, bound to your `install_id` | `0600` |
 | `license_verdict` | The cache of the server's last signed answer about the licence state | `0600` |
 | `license_checkin` | A timestamp for when the next daily check-in may happen (see section 7) | — |
@@ -134,7 +137,7 @@ calls it.
 | `config_init(data)` | Writes `config.enc` at panel install time (DB, Redis, server role). Deletes the old plaintext `config.ini` afterwards | writes `config.enc` | — |
 | `config_set_redis(host, port, auth)` | Updates **only** the Redis section of `config.enc` (needed when the Redis password changes) | writes `config.enc` | — |
 | `config_server()` | Returns the `server` section (server id, whether it is an LB). Does **not** return passwords | reads `config.enc` | — |
-| `config_set_db(pass)` | On an LB node: replaces the DB password in its `config.enc` (the node's half of a password rotation) | writes `config.enc` | — |
+| `config_set_db(pass)` | On an LB node, as root: replaces the DB password in its `config.enc` and nothing else (the node's half of a password rotation). Refuses on MAIN | writes `config.enc` | — |
 
 Every write of `config.enc` is atomic: a temporary file is written, then renamed
 over the old one. A failure at any point leaves either the old file or the new one,
@@ -168,53 +171,61 @@ methods is not possible.
 | `plugins_token(plugin, install_id, api_key)` | Obtains a short-lived (5-minute) module access token from the server | — | `plugins/token` |
 | `extensions_list(env, api_key, options)` | Returns the store catalogue (paged, with search and sorting) | — | `extensions` |
 | `extensions_check_update(list, api_key)` | Asks whether updates exist for a list of installed modules | — | `extensions/check-update` |
-| `module_install(slug, version, api_key)` | The full module installation cycle (see below) | writes `Modules/<slug>/`, `module_keys/<slug>.key` | `plugins/token`, `plugins/key`, `plugins/download` |
+| `module_install(slug, version, api_key)` | The full module installation cycle (see below) | writes `Modules/<slug>/` | `plugins/token`, `plugins/download` |
 | `module_license(slug, server_data, api_key)` | Requests an ionCube `.lic` licence file for a module, bound to your machine | — (the panel writes the file) | `plugins/token`, `plugins/license` |
 
 **How a module is installed (`module_install`)**, step by step:
 
 1. A module access token is requested from the server. The server checks whether
    the owner of the API key is entitled to this module. For a **free** module
-   neither an API key nor panel registration is needed.
-2. (Paid modules only.) The module's transport-encryption key is requested from the
-   server. It arrives sealed to your panel's **public** key, so only your panel can
-   open it with its private key.
-3. The key is saved to `module_keys/<slug>.key` — encrypted under the installation's
-   master key.
-4. The module archive (`tar.gz`) is downloaded. The server's response arrives inside
-   a sealed envelope (see section 6.1), and the archive is **extracted only if the
+   neither an API key nor panel registration is needed. An empty version means "the
+   latest approved one".
+2. The module archive (`tar.gz`) is downloaded. The server's response arrives inside
+   a sealed envelope (see section 6.1), and the archive is **used only if the
    envelope opens** — i.e. it is proven to come from the server and to answer this
    very request. Any failure at this step = no installation, nothing is written to
    disk.
-5. The archive is extracted into `/home/xc_vm/Modules/<slug>/`.
-6. (Paid modules only.) Every `*.xcvm` file is decrypted into `*.php` **once,
-   directly on disk**. Inside is IonCube-encoded PHP code.
+3. The archive is extracted into a staging directory next to the module's
+   (`/home/xc_vm/Modules/.<slug>.new.<random>/`). An archive that holds a symbolic
+   link, or any file of the retired per-file encrypted format (`*.xcvm`), is refused.
+4. The staging directory is swapped in for `/home/xc_vm/Modules/<slug>/` atomically
+   (`renameat2` with `RENAME_EXCHANGE`; a plain `rename` on a first install), and the
+   previous tree is deleted. The module directory is replaced whole: files the new
+   version no longer ships are gone. Installs are serialised by a lock on the modules
+   directory.
+
+A failure at any step removes the staging directory and leaves the previous version
+untouched. There is no module key and no decryption: a module is the same files on
+every machine, and what makes it run only where it was licensed is the ionCube
+licence (below).
 
 After that the core **has nothing to do with the module**: the files on disk are
 ordinary IonCube-encoded `.php` files, executed by the stock ionCube Loader through
 PHP's normal mechanism. The core decrypts nothing per request, intercepts no PHP
 compilation, and executes no code.
 
-What is in a module archive: `module.json` (the manifest, **not** encrypted — the
-panel reads it), and the module's files (`*.xcvm` for paid ones, `*.php` for free
-ones).
+What is in a module archive: `module.json` (the manifest — the panel reads it), the
+module's `*.php` files (all IonCube-encoded) and every other file as the developer
+shipped it.
 
 **Module licence (`module_license`).** An optional step for paid modules. The panel
 passes the core a machine fingerprint produced by ionCube itself
 (`ioncube_server_data()`); the core sends it to the server; the server mints a
 `.lic` file bound to this machine with a limited lifetime. The file goes next to the
 module; without a matching `.lic` the ionCube Loader does not decode the module's
-files. If module licensing is disabled on the server or there is no entitlement,
-the panel simply writes no `.lic`.
+files — this licence is the module's copy protection. If module licensing is
+disabled on the server or there is no entitlement, the panel simply writes no
+`.lic`.
 
 ### 5.5. Installation licence and attribution
 
-Both methods work **without a network call** at the moment of the call (with one
-caveat about the daily check-in, detailed in section 7).
+`verify_branding()` never touches the network; `license_valid()` does so only to
+refresh a stale verdict (section 7). `license_check()` asks the server on purpose.
 
 | Method | What it does | Disk | Network |
 |--------|-------------|------|---------|
 | `license_valid()` | Answers whether this installation may use licensed features (for example fanout and cluster token minting). Details in section 7 | reads `activation_key`, `license_verdict`, the attribution files | at most once a day — `activation/status` / `activation/checkin` (section 7.3) |
+| `license_check()` | MAIN, for right after an activation key is saved: asks the licence server **now**, even while the cached verdict is fresh, and returns the same verdict as `license_valid()` on MAIN. No key = `false` without a network call; an unreachable server is never read as a rejected key. On an LB it does not look at the lease and reads `false` (use `license_valid()` there) | reads `activation_key`, `license_verdict`, the attribution files | `activation/status` |
 | `verify_branding()` | Answers whether the panel's attribution is in place (see section 7.2) | reads 6 panel files | — |
 
 ### 5.6. Multiserver: MAIN ↔ LB nodes
@@ -225,7 +236,7 @@ passing the DB password through PHP or leaving it on the nodes in the clear.
 | Method | Where it runs | What it does |
 |--------|--------------|-------------|
 | `config_pack(target_install_id, params)` | MAIN | Builds a transport blob with a config for a node: reads the DB password from its own `config.enc` **inside the core** and encrypts it under a key derived from the node's `install_id`. Can build a config **without** DB credentials (for nodes in API mode) |
-| `install_config(blob)` | node, as root | Verifies the blob (addressed to this node, at most an hour old, for an LB, for the right `server_id`) and writes it as its `config.enc`. **Never overwrites** a MAIN config. Writes nothing on refusal |
+| `install_config(blob)` | node, as root | Verifies the blob (addressed to this node, at most an hour old, for an LB, for the right `server_id`) and writes it as its `config.enc`. **Never overwrites** a MAIN config. Writes nothing on refusal. Any other effective user is refused (`ARG:euid`) before the blob is read |
 | `strip_db_credentials()` | node, as root | Removes MAIN's DB user and password from the node's `config.enc` (switching the node to API mode). Refuses to run on MAIN |
 | `cluster_info()` | any | Cluster API version, panel public keys, licence and clock state. Never refuses |
 | `cluster_init()` | MAIN | Creates the cluster root keys once (`cluster/root.enc`). Calling it again changes nothing |
@@ -234,9 +245,9 @@ passing the DB password through PHP or leaving it on the nodes in the clear.
 | `cluster_node_gen(node, gen, min_epoch)` | MAIN | Revokes a node (raises its "generation"); previously issued tokens stop working. Survives a DB restore from backup |
 | `cluster_sign` / `cluster_verify` / `cluster_record_class` | MAIN / LB | Signing and verifying cluster records (commands, denials, replicas). "Granting" records require a licence; "restricting" ones (stop, ban) are signed even without one — so an unlicensed MAIN can still stop its fleet |
 | `cluster_lease_issue` / `cluster_lease_verify` / `cluster_lease_store` / `cluster_lease_state` | MAIN → LB | A "lease" — MAIN-signed permission for an LB node to keep serving while MAIN is unreachable. On an LB, `license_valid()` follows the lease |
-| `cluster_pack` / `cluster_pin` / `cluster_pinned` | MAIN → LB | Delivering and pinning MAIN's public keys on an LB (trust on first use; a later key substitution is refused) |
+| `cluster_pack` / `cluster_pin` / `cluster_pinned` | MAIN → LB | Delivering and pinning MAIN's public keys on an LB (trust on first use; a later key substitution is refused). `cluster_pin` is root-only, with or without `replace`: any other effective user is refused (`ARG:euid`) before the blob is read |
 | `cluster_seal_local` / `cluster_open_local` | any | Seal/open data to **this** machine's key — for the PHP panel to keep its own secrets |
-| `cluster_open_sealed(purpose, sealed)` | MAIN | Open a message addressed to the panel key (only for the node enrolment and re-keying stages) |
+| `cluster_open_sealed(purpose, sealed)` | MAIN | Open a message addressed to the panel key (only for the node enrolment, re-keying and relay stages) |
 | `cluster_export_keys(passphrase)` / `cluster_import_keys(bundle, passphrase)` | old → new MAIN | A backup of the cluster root keys for moving MAIN to new hardware. Encrypted from your passphrase via Argon2id (1 GiB of memory, a few seconds) — hence available **from the CLI only** |
 | `cluster_kek()` | LB | A machine-bound key for encrypting the node's key file |
 | `cluster_last_error()` | any | The reason code of the last cluster call's refusal |
@@ -274,6 +285,8 @@ Client parameters:
 - HTTPS only; certificate-chain and hostname verification is on and **cannot be
   turned off anywhere** — the library used simply has no such setting;
 - redirects are refused (301/302 = error);
+- no proxy: `HTTPS_PROXY` and its relatives in the PHP environment are ignored, every
+  request goes straight to the server;
 - timeouts: ordinary request 15 s, archive download 120 s, connection 10 s;
 - an archive is at most 100 MB;
 - there is no plaintext (unsealed) mode on either the client or the server.
@@ -285,7 +298,6 @@ Client parameters:
 | `panel/register` | registering the panel with the store | `install_id`; the panel's **public** key; `env_fp` (hash); `hw_id` (hash of `install_id + machine-id`); API key |
 | `plugins/check` | before installing a module | `plugin_id`; `install_id`; API key (optional) |
 | `plugins/token` | installing/licensing a module | `plugin_id`; `install_id`; API key (optional for free modules) |
-| `plugins/key` | installing a paid module | token; module name and version |
 | `plugins/download` | installing a module | slug, version, token |
 | `plugins/license` | requesting a `.lic` for a module | token; the ionCube machine fingerprint (`ioncube_server_data()`) |
 | `extensions` | browsing the store catalogue | filters: environment, page, search, sort; API key (optional) |
@@ -298,7 +310,7 @@ Client parameters:
 - ❌ data about your users, subscribers, playlists, streams, EPG;
 - ❌ the contents of your DB or Redis;
 - ❌ passwords — DB, Redis or system;
-- ❌ private keys, `config.enc`, module keys;
+- ❌ private keys, `config.enc`;
 - ❌ the hostname or `/etc/machine-id` in the clear — only their hash;
 - ❌ usage statistics, logs, your clients' IP lists, load figures;
 - ❌ anything "in the background": every request in the table happens inside a
@@ -411,17 +423,19 @@ is temporarily unreachable.
 
 ### 8.1. Anti-debugging
 Described in section 3, item 1. To repeat the key point: it is only a refusal to
-load under a debugger — with no side effects. Its purpose is to stop module keys
-being lifted from the memory of a running process.
+load under a debugger — with no side effects. Its purpose is to stop key
+material (the panel's private key, the cluster root, the decrypted config) being
+lifted from the memory of a running process.
 
 ### 8.2. Hidden strings in the binary
-The server address and two internal "peppers" (constants that take part in key
-derivation) are stored in the binary XOR-encoded, so `strings xcvm_core.so` does
-not show them. The purpose is to stop the core being trivially repointed at a fake
-server, and to stop key derivation resting on `install_id` alone. This **hides
-constants, not behaviour** — the behaviour is described here in full. Key-domain
-names such as `xcvm_cfg_v1` and `xcvm_module_v1` are visible in `strings`, and that
-is fine.
+The server address, the API paths and one internal "local pepper" (a constant that
+takes part in deriving the keys that seal local files) are stored in the binary
+XOR-encoded, so `strings xcvm_core.so` does not show them. The purpose is to stop the
+core being trivially repointed at a fake server. The pepper is the same in every
+build: it is obfuscation, not a secret — what binds a sealed file to your machine
+is `/etc/machine-id`. This **hides constants, not behaviour** — the behaviour is
+described here in full. Key-domain names such as `xcvm_cfg_v1` are visible in
+`strings`, and that is fine.
 
 ### 8.3. Machine binding: `env_fp` and `hw_id`
 - `env_fp` = `SHA-256(install_id + /etc/machine-id + hostname)`. A "soft" binding:
@@ -436,15 +450,16 @@ is fine.
 
 Both values are hashes; your hostname or machine-id cannot be recovered from them.
 
-### 8.4. The `xcvm_core.server_url` directive
-A different server address can be set in `php.ini`, but only in **encrypted** form
-— the value is issued by a tool of the platform owner. A plaintext URL in this
-directive is ignored and the built-in address is used. The decrypted address must be
-`https://`. The purpose is to stop the core being redirected, by changing one
-string, to a fake store serving fake modules.
+### 8.4. No way to change the server address
+The address is fixed in the binary. `php.ini` is not read at all and the core
+registers no `xcvm_core.*` directive (`php --ri xcvm_core` shows none); a
+`xcvm_core.server_url` line left in `php.ini` is ignored, and so is every
+environment variable except `XCVM_CONFIG_DIR`. The purpose is to stop the core
+being redirected, by changing one string, to a fake store serving fake modules.
+The address must be `https://`.
 
 ### 8.5. Self-wiping keys
-Module keys, the master key, DB passwords and other key material are held in the
+Private keys, derived keys, DB passwords and other key material are held in the
 core in buffers that are zeroed in memory when released — on every exit path,
 including errors.
 
@@ -454,7 +469,7 @@ including errors.
 
 - ❌ **A backdoor or remote control.** There is no method that executes commands or
   code sent by the server. The server can only answer with data to a request the
-  panel made: a catalogue, a token, a key, an archive, a licence verdict.
+  panel made: a catalogue, a token, an archive, a licence verdict.
 - ❌ **Execution of delivered code by the core.** The only thing that arrives from
   the server and is later executed is modules, and they are executed by the stock
   ionCube Loader through PHP's normal mechanism, after you yourself triggered the
@@ -486,7 +501,7 @@ None of the steps below needs the sources or our secrets.
 describes, and no global functions:
 ```bash
 php --rc XC_VM          # every method of the class
-php --re xcvm_core      # everything the extension registers: the class, ini directives
+php --re xcvm_core      # everything the extension registers: the class, and no ini directives
 ```
 
 **Network addresses and when they are contacted.** Capture traffic and confirm the
@@ -551,9 +566,10 @@ We do not claim the protection is absolute. Here is where it ends:
   obtain the decoding key. Machine binding and the short `.lic` lifetime make this
   more expensive and provide a kill-switch, but it is a fundamental limitation of
   any IonCube-like solution.
-- **A leak of `install_id`** by itself exposes neither `config.enc` (the
-  `machine-id` is also needed) nor the cluster transport blobs (an internal
-  "pepper" is also needed).
+- **A leak of `install_id`** by itself does not expose `config.enc` (the
+  `machine-id` is also needed). It does expose the load balancer's config blob:
+  the pepper is in every build, so the `.so` plus the node's `install_id` read and
+  forge it.
 - **The sealed API has no forward secrecy** against the server's long-lived
   transport key: compromising it would expose previously recorded exchanges, and
   recovery means shipping a new core with a new key. The address, message sizes and
@@ -592,8 +608,8 @@ lose access to the central DB, and the MAIN administrator can re-grant that acce
 MAIN, the data, streams and users are unaffected.
 
 **Why not just open the sources?**
-Because the core is where the DB passwords and paid-module keys live; its reason for
-existing is that they cannot be read from PHP. Instead of sources we provide a
+Because the core is where the DB passwords and the panel and cluster keys live; its
+reason for existing is that they cannot be read from PHP. Instead of sources we provide a
 complete description of the behaviour (this page) and ways to verify it from
 outside (section 10).
 
@@ -601,15 +617,15 @@ outside (section 10).
 If the PHP process is **started** under a `ptrace` tool (gdb, `strace php ...`),
 the core does not load in that process — this is checked once at start. Attaching
 to an already running process is possible (`strace -p`, `gdb -p`): there is no
-repeat check, and that is deliberate — the aim of the protection is to stop module
-keys being read from memory via a debugger *while they are being obtained*, not to
+repeat check, and that is deliberate — the aim of the protection is to stop key
+material being read from memory via a debugger *while it is in use*, not to
 stop you observing your own server. Tools without `ptrace` (`perf`, eBPF, `tcpdump`)
 are not affected at all.
 
 ---
 
 **Summary.** `xcvm_core` does exactly what the panel needs: it keeps the config and
-provides DB/Redis access without passwords in PHP, delivers and protects modules,
+provides DB/Redis access without passwords in PHP, delivers modules (the copy protection is the ionCube licence),
 checks the licence and serves the cluster. It contacts one server, only when the
 panel calls it, and sends only installation identifiers and operation parameters.
 It contains no backdoor, collects no telemetry, does not touch your data and cannot
