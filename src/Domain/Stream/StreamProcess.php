@@ -155,6 +155,16 @@ class StreamProcess {
 	public const MONITOR_FENCED = 'fenced';
 
 	/**
+	 * Is this node a serve-only LB? It recognises itself by the Part A marker
+	 * `CONFIG_PATH/cluster/serve_only` (the same signal RootSignalsCronJob reads),
+	 * written by the install as xc_vm. On such a node the Go agent + daemon own
+	 * every stream's lifecycle, so PHP starts and monitors none.
+	 */
+	public static function nodeServeOnly(): bool {
+		return defined('CONFIG_PATH') && is_file(CONFIG_PATH . 'cluster/serve_only');
+	}
+
+	/**
 	 * Start watching a live stream: hand it to the fanout daemon's supervisor
 	 * when this server supervises (see superviseStream()), otherwise start the
 	 * PHP watchdog for it.
@@ -169,6 +179,18 @@ class StreamProcess {
 		// FENCED; cron:streams) and starts none, whoever asks, until it lifts.
 		if (NodeLease::refusesEverything()) {
 			return self::MONITOR_FENCED;
+		}
+		// A serve-only LB relays a loopback stream (parent_id > 0) through its Go
+		// agent (which registers the node-local relay URL with the puller), not a
+		// PHP LoopbackCommand. Leave it to the agent/daemon before the supervise/PHP
+		// paths, or the daemon would be double-fed (PHP push + puller pull). The row
+		// is read via StreamSource (the replica on a serve-only LB, which has no
+		// MySQL) — never self::db(), which would throw there.
+		if (self::nodeServeOnly()) {
+			$rOwn = StreamSource::serverRow(intval($rStreamID));
+			if ($rOwn !== null && (int) ($rOwn['parent_id'] ?? 0) > 0) {
+				return self::MONITOR_FANOUT;
+			}
 		}
 		if (self::superviseStream(intval($rStreamID), (bool) $rRestart)) {
 			return self::MONITOR_FANOUT;
@@ -1751,12 +1773,15 @@ class StreamProcess {
 
 		$rInfo = $rStream['stream_info'];
 		$rParentID = intval($rStream['server_info']['parent_id']);
-		// Loopback (parent_id > 0) is out of portable scope (design D-b, D2): its
-		// source is a relay URL carrying live_streaming_pass, which must never be
-		// composed into a replicated Spec — the LB resolves its own loopback relay
-		// (a later placeholder). Emit no transcode directive for it (kind "other").
+		// Loopback (parent_id > 0) in portable mode: its real source is a relay URL
+		// carrying live_streaming_pass, which must never be composed into a
+		// replicated Spec. Signal loopback (the parent id only) so the serve-only
+		// composer classifies it kind "loopback"; the LB's agent builds its own
+		// node-local relay URL from that. The sentinel is distinct from a real Spec
+		// (which never carries a top-level `loopback` key) and from null, and is
+		// consumed only by StreamReplica::runtimeUpgrade (the sole portable caller).
 		if ($rPortableMode && $rParentID > 0) {
-			return null;
+			return ['loopback' => $rParentID];
 		}
 		// Kinds the PHP monitor keeps: a delayed stream runs its own playlist
 		// worker off the encoder's, and a created channel resumes at an offset

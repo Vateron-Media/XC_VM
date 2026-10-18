@@ -125,10 +125,12 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 		$this->assertStringNotContainsString('PUSHSECRET', (string) json_encode($rSpec), 'external_push is stripped in portable mode');
 	}
 
-	public function testPortableLoopbackStreamIsNotComposed(): void {
-		// A loopback child (parent_id > 0) is out of portable scope: its source is
-		// a relay URL carrying live_streaming_pass, which must never be composed
-		// into a replicated Spec. Portable mode returns null → directive "other".
+	public function testPortableLoopbackStreamSignalsParentNotASpec(): void {
+		// A loopback child (parent_id > 0) is out of portable transcode scope: its
+		// source is a relay URL carrying live_streaming_pass, which must never be
+		// composed into a replicated Spec. Portable mode signals loopback (the
+		// parent id only) so the serve-only composer classifies it kind "loopback";
+		// the LB's agent builds the node-local relay URL. No secret may leak.
 		StreamSource::useLoader(function (string $rWhat, int $rID, array $rOpts) {
 			if ($rWhat === 'stream') {
 				return $this->streamInfo();
@@ -139,10 +141,9 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 			return [];
 		});
 		$GLOBALS['rSettings'] = $this->settings(['live_streaming_pass' => 'TOP-SECRET-RELAY-PASS']);
-		$this->assertNull(
-			StreamProcess::buildSupervisorSpec(7, ['features' => []]),
-			'a loopback child must not be composed in portable mode (no secret leak)'
-		);
+		$rOut = StreamProcess::buildSupervisorSpec(7, ['features' => []]);
+		$this->assertSame(['loopback' => 3], $rOut, 'a loopback child signals its parent id, not a composed Spec');
+		$this->assertStringNotContainsString('TOP-SECRET-RELAY-PASS', (string) json_encode($rOut), 'no relay secret leaks into the signal');
 	}
 
 	public function testPortableModeHasNoSideEffects(): void {
