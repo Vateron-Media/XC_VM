@@ -103,16 +103,15 @@ final class ServeOnlyInstallTest extends TestCase {
 
 		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the cron is serve_only-aware, strictly gated on the marker');
-		$this->assertStringContainsString('grep -q -- -front', $rCron, 'the demote is gated on the fanout being -front-capable (no outage otherwise)');
+		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/front_capable')", $rCron, 'the demote is gated on the run.sh-recorded -front capability file');
 		$this->assertStringContainsString("'backend' => true", $rCron, 'serve_only enqueues the loopback-backend https listener');
 		$this->assertStringContainsString("'listen 127.0.0.1:8080;'", $rCron, 'the backend listener is loopback plaintext :8080');
-		$this->assertStringContainsString('cluster/front_addr', $rCron, 'the cron keeps the front listen address current for run.sh');
-		// Root-boundary: the cron must probe the xc_vm-owned fanout binary and write
-		// the xc_vm-owned front_addr AS xc_vm, never as root (exec = RCE, write =
-		// symlink clobber).
-		$this->assertStringContainsString("shell_exec('sudo -u xc_vm ' . escapeshellarg(MAIN_HOME . 'bin/xc_fanout/xc_fanout')", $rCron, 'the -front capability probe runs as xc_vm, not root');
-		$this->assertStringContainsString("| sudo -u xc_vm tee ' . escapeshellarg(CONFIG_PATH . 'cluster/front_addr')", $rCron, 'the cron writes front_addr as xc_vm, not a root write that follows a symlink');
-		$this->assertStringNotContainsString("NginxPortsFile::write(CONFIG_PATH . 'cluster/front_addr'", $rCron, 'front_addr is not written through a root symlink-following path');
+		// Root-boundary: the root cron must not execute the xc_vm-owned fanout binary
+		// nor write through the xc_vm-owned config/cluster path. It only stat-checks
+		// the capability file run.sh records; no shell_exec in the serve-only block.
+		$this->assertStringNotContainsString("shell_exec('sudo -u xc_vm ' . escapeshellarg(MAIN_HOME . 'bin/xc_fanout/xc_fanout')", $rCron, 'the cron does NOT execute the xc_vm-owned fanout binary');
+		$this->assertStringNotContainsString("NginxPortsFile::write(CONFIG_PATH . 'cluster/front_addr'", $rCron, 'the cron does NOT write front_addr through a root symlink-following path');
+		$this->assertStringNotContainsString("sudo -u xc_vm tee ' . escapeshellarg(CONFIG_PATH . 'cluster/front_addr')", $rCron, 'the cron does NOT write front_addr (the install owns it)');
 
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertStringContainsString('LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID, $rServeOnly)', $rCmd, 'the install threads serve_only into configureRuntime');
@@ -126,6 +125,7 @@ final class ServeOnlyInstallTest extends TestCase {
 
 		$this->assertStringContainsString("grep -q -- '-front'", $rFanout, 'the front is gated on the fanout binary knowing -front');
 		$this->assertStringContainsString('config/cluster/front_addr', $rFanout, 'the front listens on the node https_broadcast_port (front_addr), not a hardcoded :443');
+		$this->assertStringContainsString('config/cluster/front_capable', $rFanout, 'the supervisor records -front capability (as xc_vm) for the root cron to stat-check');
 		$this->assertStringContainsString('"${FRONT[@]}"', $rFanout, 'the fanout daemon invocation actually expands the FRONT flag array (not just declares it)');
 
 		$rAgent = (string) file_get_contents(MAIN_HOME . 'bin/xc_agent/run.sh');

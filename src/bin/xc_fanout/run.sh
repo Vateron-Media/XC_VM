@@ -12,7 +12,9 @@
 #
 # This file is git-tracked and deployed with the tree; fanout_binary only atomically
 # renames the downloaded binary into this same dir, so it never clobbers this script.
-SCRIPT=/home/xc_vm
+# XCVM_FANOUT_HOME is for tests only (sudo passes none on a node), matching the
+# agent supervisor's XCVM_AGENT_HOME.
+SCRIPT="${XCVM_FANOUT_HOME:-/home/xc_vm}"
 FANOUT_DIR="$SCRIPT/bin/xc_fanout"
 
 # Single-instance guard. Hold an exclusive lock for the supervisor's whole
@@ -74,15 +76,23 @@ while true; do
     fi
     # Serve-only single-binary LB (Phase A): the Go front owns the node's public
     # HTTPS port and reverse-proxies non-serve requests to nginx on a local backend
-    # port (RootSignalsCronJob demotes nginx off that port once the binary is
-    # -front-capable). Gated on the serve_only marker the install writes AND on the
-    # binary knowing -front (an older daemon would exit on an unknown flag). The
-    # listen address comes from config/cluster/front_addr (the node's
-    # https_broadcast_port, written by the install/cron), defaulting to :443.
+    # port. Gated on the serve_only marker the install writes AND on the binary
+    # knowing -front (an older daemon would exit on an unknown flag). The listen
+    # address comes from config/cluster/front_addr (the node's https_broadcast_port,
+    # written by the install), defaulting to :443.
+    #
+    # This supervisor runs as xc_vm, so it records the -front capability in
+    # config/cluster/front_capable (its own dir) — RootSignalsCronJob (root) only
+    # stat-checks that file and demotes nginx off :443 when present, rather than
+    # executing this xc_vm-owned binary as root. Removing it (no -front) reverts
+    # nginx to the public ssl listener, so the demote tracks the front's capability.
     FRONT=()
     if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-front'; then
+      touch "$SCRIPT/config/cluster/front_capable" 2>/dev/null
       FRONT_ADDR=$(cat "$SCRIPT/config/cluster/front_addr" 2>/dev/null); FRONT_ADDR=${FRONT_ADDR:-:443}
       FRONT=(-front "$FRONT_ADDR" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "http://127.0.0.1:8080")
+    else
+      rm -f "$SCRIPT/config/cluster/front_capable" 2>/dev/null
     fi
     echo "=== $(date '+%F %T') supervisor pid=$$ spawning daemon (ffmpeg=$FF) ===" >> "$LOG"
     "$FANOUT_DIR/xc_fanout" \

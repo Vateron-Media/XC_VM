@@ -1132,33 +1132,16 @@ class RootSignalsCronJob implements CommandInterface {
 				// public HTTPS port and nginx is demoted to a loopback backend, but only
 				// once the node's fanout is -front-capable (else nginx keeps the public
 				// port, so a binary without -front causes no outage). RootSignals owns
-				// this listener so it is never reconciled back to ssl, and keeps the
-				// front's listen address current for run.sh in cluster/front_addr.
+				// this listener, so the demote is never reverted while -front holds; if a
+				// running front later loses -front, it reverts to the public ssl listener.
 				$rServeOnly = is_file(CONFIG_PATH . 'cluster/serve_only');
-				$rFrontReady = false;
-				if ($rServeOnly && is_executable(MAIN_HOME . 'bin/xc_fanout/xc_fanout')) {
-					// Probe -front capability AS xc_vm: xc_fanout is xc_vm-owned/writable
-					// (fanout_binary replaces it), so running it from this root cron would
-					// be a local root RCE if tampered with — run.sh probes the same way.
-					// Injection-safe (sudo -u xc_vm; only an escapeshellarg'd constant path).
-					// nosemgrep on the shell_exec statement line, where the exec rule anchors.
-					// nosemgrep
-					$rFrontReady = trim((string) shell_exec('sudo -u xc_vm ' . escapeshellarg(MAIN_HOME . 'bin/xc_fanout/xc_fanout') . ' -h 2>&1 | grep -q -- -front && echo 1')) === '1';
-				}
-				if ($rServeOnly) {
-					// front_addr is in xc_vm-owned config/cluster: read and write it AS
-					// xc_vm so a root write never follows a symlink an unprivileged xc_vm
-					// could plant; only on change, to avoid churn.
-					$rFrontAddr = ':' . intval($rServers[SERVER_ID]['https_broadcast_port']);
-					// Deliberate privilege-dropping shell-outs, reviewed injection-safe
-					// (sudo -u xc_vm; interpolations are an escapeshellarg'd constant path and
-					// an escapeshellarg'd intval). Bare nosemgrep as above.
-					// nosemgrep
-					if (trim((string) shell_exec('sudo -u xc_vm cat ' . escapeshellarg(CONFIG_PATH . 'cluster/front_addr') . ' 2>/dev/null')) !== $rFrontAddr) {
-						// nosemgrep
-						shell_exec('echo ' . escapeshellarg($rFrontAddr) . ' | sudo -u xc_vm tee ' . escapeshellarg(CONFIG_PATH . 'cluster/front_addr') . ' > /dev/null');
-					}
-				}
+				// -front capability is recorded by the fanout supervisor (run.sh, as
+				// xc_vm) in cluster/front_capable, NOT probed by executing the
+				// xc_vm-owned binary from this root cron (that would be a local root RCE
+				// if the binary were tampered with). The cron only stat-checks the file,
+				// so no root exec or write touches an xc_vm-controlled path. The front's
+				// listen address (front_addr) is written by the install, not here.
+				$rFrontReady = $rServeOnly && is_file(CONFIG_PATH . 'cluster/front_capable');
 				if (!$rFrontReady) {
 					foreach (array_merge([intval($rServers[SERVER_ID]['https_broadcast_port'])], explode(',', $rServers[SERVER_ID]['https_ports_add'])) as $rPort) {
 						if (is_numeric($rPort) && $rPort > 0 && $rPort <= 65535) {
