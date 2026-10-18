@@ -1136,9 +1136,18 @@ class RootSignalsCronJob implements CommandInterface {
 				// front's listen address current for run.sh in cluster/front_addr.
 				$rServeOnly = is_file(CONFIG_PATH . 'cluster/serve_only');
 				$rFrontReady = $rServeOnly && is_executable(MAIN_HOME . 'bin/xc_fanout/xc_fanout')
-					&& trim((string) shell_exec(escapeshellarg(MAIN_HOME . 'bin/xc_fanout/xc_fanout') . ' -h 2>&1 | grep -q -- -front && echo 1')) === '1';
+					// AS xc_vm: xc_fanout is xc_vm-owned/writable, so executing it from this
+					// root cron would be a local root RCE if tampered with (run.sh probes
+					// the same way, as xc_vm).
+					&& trim((string) shell_exec('sudo -u xc_vm ' . escapeshellarg(MAIN_HOME . 'bin/xc_fanout/xc_fanout') . ' -h 2>&1 | grep -q -- -front && echo 1')) === '1';
 				if ($rServeOnly) {
-					NginxPortsFile::write(CONFIG_PATH . 'cluster/front_addr', ':' . intval($rServers[SERVER_ID]['https_broadcast_port']));
+					// front_addr is in xc_vm-owned config/cluster: read and write it AS
+					// xc_vm so a root write never follows a symlink an unprivileged xc_vm
+					// could plant; only on change, to avoid churn.
+					$rFrontAddr = ':' . intval($rServers[SERVER_ID]['https_broadcast_port']);
+					if (trim((string) shell_exec('sudo -u xc_vm cat ' . escapeshellarg(CONFIG_PATH . 'cluster/front_addr') . ' 2>/dev/null')) !== $rFrontAddr) {
+						shell_exec('echo ' . escapeshellarg($rFrontAddr) . ' | sudo -u xc_vm tee ' . escapeshellarg(CONFIG_PATH . 'cluster/front_addr') . ' > /dev/null');
+					}
 				}
 				if (!$rFrontReady) {
 					foreach (array_merge([intval($rServers[SERVER_ID]['https_broadcast_port'])], explode(',', $rServers[SERVER_ID]['https_ports_add'])) as $rPort) {

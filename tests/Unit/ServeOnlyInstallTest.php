@@ -106,7 +106,13 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('grep -q -- -front', $rCron, 'the demote is gated on the fanout being -front-capable (no outage otherwise)');
 		$this->assertStringContainsString("'backend' => true", $rCron, 'serve_only enqueues the loopback-backend https listener');
 		$this->assertStringContainsString("'listen 127.0.0.1:8080;'", $rCron, 'the backend listener is loopback plaintext :8080');
-		$this->assertStringContainsString("cluster/front_addr'", $rCron, 'the cron keeps the front listen address current for run.sh');
+		$this->assertStringContainsString('cluster/front_addr', $rCron, 'the cron keeps the front listen address current for run.sh');
+		// Root-boundary: the cron must probe the xc_vm-owned fanout binary and write
+		// the xc_vm-owned front_addr AS xc_vm, never as root (exec = RCE, write =
+		// symlink clobber).
+		$this->assertStringContainsString("shell_exec('sudo -u xc_vm ' . escapeshellarg(MAIN_HOME . 'bin/xc_fanout/xc_fanout')", $rCron, 'the -front capability probe runs as xc_vm, not root');
+		$this->assertStringContainsString("| sudo -u xc_vm tee ' . escapeshellarg(CONFIG_PATH . 'cluster/front_addr')", $rCron, 'the cron writes front_addr as xc_vm, not a root write that follows a symlink');
+		$this->assertStringNotContainsString("NginxPortsFile::write(CONFIG_PATH . 'cluster/front_addr'", $rCron, 'front_addr is not written through a root symlink-following path');
 
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertStringContainsString('LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID, $rServeOnly)', $rCmd, 'the install threads serve_only into configureRuntime');
@@ -131,6 +137,11 @@ final class ServeOnlyInstallTest extends TestCase {
 		foreach (['-ffmpeg ', '-ffmpeg-gpu ', '-ffprobe ', '-streams '] as $rFlag) {
 			$this->assertStringContainsString($rFlag, $rAgent, "agent seeding passes {$rFlag}for transcode-directive path resolution");
 		}
+		// {streams}/{logs} must resolve to the app's path constants (STREAMS_PATH =
+		// content/streams/ — the ramdisk nginx serves; LOGS_TMP_PATH = tmp/logs/),
+		// not the daemon's bare defaults, or transcode output lands off the served path.
+		$this->assertStringContainsString('-streams "$SCRIPT/content/streams/"', $rAgent, 'serve streams resolve to STREAMS_PATH (content/streams/)');
+		$this->assertStringContainsString('-logs "$SCRIPT/tmp/logs/"', $rAgent, 'logs resolve to LOGS_TMP_PATH (tmp/logs/)');
 		$this->assertStringContainsString('"${SEED[@]}"', $rAgent, 'the agent run invocation actually expands the SEED flag array (not just declares it)');
 	}
 }

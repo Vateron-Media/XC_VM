@@ -126,12 +126,15 @@ while true; do
       # bin/ffmpeg_bin/<ver>/; with no separate GPU build the CPU one is the fallback.
       FF=$(ls -d "$SCRIPT"/bin/ffmpeg_bin/*/ffmpeg 2>/dev/null | sort -Vr | head -1)
       FP="$(dirname "${FF:-x}")/ffprobe"
-      mkdir -p "$SCRIPT/logs/tmp" 2>/dev/null
+      # {streams}/{logs} must resolve to the app's own path constants (STREAMS_PATH
+      # = content/streams/, the ramdisk nginx serves; LOGS_TMP_PATH = tmp/logs/) —
+      # the node substitutes a directive's tokens back to these exact paths.
+      mkdir -p "$SCRIPT/tmp/logs" 2>/dev/null
       SEED=(-seed-fanout -server-id "$(cat "$SCRIPT/config/cluster/serve_only")" \
         -fanout-binary "$SCRIPT/bin/xc_fanout/xc_fanout" \
         -ffmpeg "${FF:-ffmpeg}" -ffmpeg-gpu "${FF:-ffmpeg}" \
         -ffprobe "$([ -x "$FP" ] && echo "$FP" || echo ffprobe)" \
-        -streams "$SCRIPT/streams/" -logs "$SCRIPT/logs/tmp/")
+        -streams "$SCRIPT/content/streams/" -logs "$SCRIPT/tmp/logs/")
     fi
     pkill -u xc_vm -x xc_agent 2>/dev/null
     started=$(date +%s)
