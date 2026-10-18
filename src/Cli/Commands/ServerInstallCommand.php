@@ -251,8 +251,10 @@ class ServerInstallCommand implements CommandInterface {
 		// its streams and it runs xc_node with no nginx/php-fpm. Only an LB can be one.
 		// --serve-only is a valueless flag, so it stays in the positional list
 		// (splitOptions only lifts --name=value into $rOptions) and is matched
-		// there, as cluster:reenrol does with --all/--dry-run/--pending.
-		$rServeOnly = $rType == 2 && in_array('--serve-only', $rArgs, true);
+		// there, as cluster:reenrol does with --all/--dry-run/--pending. Match only
+		// the tail (index >= 5, after type/id/port/username/password) so a root
+		// password that happens to equal "--serve-only" can never arm it.
+		$rServeOnly = $rType == 2 && in_array('--serve-only', array_slice($rArgs, 5), true);
 
 		if ($rType == 2 && !LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -318,6 +320,21 @@ class ServerInstallCommand implements CommandInterface {
 				}
 			}
 			$db->query('UPDATE `servers` SET `status` = 1, `http_broadcast_port` = ?, `https_broadcast_port` = ?, `total_services` = ?, `serve_only` = ? WHERE `id` = ?;', $rHTTPPort, $rHTTPSPort, $rServices, $rServeOnly ? 1 : 0, $rServerID);
+			if ($rType == 2) {
+				// The plaintext marker (run.sh reads it to launch the front + seeding,
+				// and RootSignalsCronJob keys the demote off it) is written only here, on
+				// a completed install, and removed on a non-serve-only (downgrade)
+				// install — so a failed install never leaves the node's runtime mode
+				// disagreeing with MAIN, and config/ (which survives a re-install) is kept
+				// consistent with the DB serve_only just committed above.
+				if ($rServeOnly) {
+					call_user_func($rRunSSH, $rConn, 'sudo install -d -o xc_vm -g xc_vm -m 0755 ' . CONFIG_PATH . 'cluster');
+					call_user_func($rRunSSH, $rConn, LbInstallFlow::sudoWrite((string) $rServerID, CONFIG_PATH . 'cluster/serve_only'));
+					call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/serve_only');
+				} else {
+					call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . CONFIG_PATH . 'cluster/serve_only');
+				}
+			}
 		} else {
 			$db->query('UPDATE `servers` SET `status` = 1 WHERE `id` = ?;', $rServerID);
 		}

@@ -53,7 +53,7 @@ final class ServeOnlyInstallTest extends TestCase {
 
 	public function testServerInstallCommandWiresServeOnly(): void {
 		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
-		$this->assertStringContainsString("\$rServeOnly = \$rType == 2 && in_array('--serve-only', \$rArgs, true);", $rSrc, 'the --serve-only flag is matched from the positional args for an LB');
+		$this->assertStringContainsString("\$rServeOnly = \$rType == 2 && in_array('--serve-only', array_slice(\$rArgs, 5), true);", $rSrc, 'the --serve-only flag is matched from the positional TAIL (not the cred slots) for an LB');
 		$this->assertStringContainsString('`serve_only` = ?', $rSrc, 'the final success UPDATE sets serve_only');
 		$this->assertStringContainsString('StreamVersions::bump(StreamRecords::held($rServerID', $rSrc, 'B2: a serve_only install re-stamps its held streams');
 		$this->assertMatchesRegularExpression('/try \{\s*StreamVersions::bump/', $rSrc, 'B2 is fault-tolerant: the non-essential re-stamp is wrapped so a DB hiccup does not fail the install');
@@ -65,15 +65,22 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('self::configPackParams($rServers, $rServerID, $rServeOnly)', $rSrc, 'provisionConfig passes serve_only to configPackParams');
 	}
 
-	public function testProvisionConfigWritesTheServeOnlyMarker(): void {
+	public function testServeOnlyMarkerIsManagedOnCompletedInstall(): void {
 		// The node's run.sh is shell and the serve path has no PHP to decrypt
-		// config.enc, so a serve-only install writes a plaintext marker whose
-		// content is the server id, under config/cluster/.
-		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
-		$this->assertStringContainsString("self::sudoWrite((string) \$rServerID, CONFIG_PATH . 'cluster/serve_only')", $rSrc);
-		// Downgrade safety: a non-serve-only (re)install must REMOVE a stale marker,
-		// so the off-path undoes the on-path (config/ survives a re-install).
-		$this->assertStringContainsString("sudo rm -f ' . CONFIG_PATH . 'cluster/serve_only'", $rSrc, 'a non-serve-only install clears the marker');
+		// config.enc, so a serve-only install writes a plaintext marker (its content
+		// is the server id) under config/cluster/. It is written by the success path
+		// — NOT by provisionConfig, so a failure after provisioning never leaves it —
+		// and removed on a non-serve-only (downgrade) install, since config/ survives
+		// a re-install. The off-path undoes the on-path, keeping the node's runtime
+		// mode consistent with the DB serve_only committed alongside it.
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$this->assertMatchesRegularExpression('/if \(\$rType == 2\) \{.*LbInstallFlow::sudoWrite\(\(string\) \$rServerID, CONFIG_PATH \. \047cluster\/serve_only\047\)/s', $rCmd, 'a completed serve-only install writes the marker');
+		$this->assertStringContainsString("sudo rm -f ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'a non-serve-only install clears a stale marker');
+
+		// provisionConfig no longer writes the plaintext marker (so a mid-install
+		// failure cannot leave it); it only packs the PHP-side serve_only into config.enc.
+		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
+		$this->assertStringNotContainsString("sudoWrite((string) \$rServerID, CONFIG_PATH . 'cluster/serve_only')", $rLb, 'the marker is not written during provisionConfig');
 	}
 
 	public function testServeOnlyNginxListenerIsOwnedByRootSignalsNotTheInstall(): void {
@@ -109,6 +116,7 @@ final class ServeOnlyInstallTest extends TestCase {
 
 		$this->assertStringContainsString("grep -q -- '-front'", $rFanout, 'the front is gated on the fanout binary knowing -front');
 		$this->assertStringContainsString('config/cluster/front_addr', $rFanout, 'the front listens on the node https_broadcast_port (front_addr), not a hardcoded :443');
+		$this->assertStringContainsString('"${FRONT[@]}"', $rFanout, 'the fanout daemon invocation actually expands the FRONT flag array (not just declares it)');
 
 		$rAgent = (string) file_get_contents(MAIN_HOME . 'bin/xc_agent/run.sh');
 		$this->assertStringContainsString('config/cluster/serve_only', $rAgent, 'agent run.sh gates seeding on the marker');
@@ -119,5 +127,6 @@ final class ServeOnlyInstallTest extends TestCase {
 		foreach (['-ffmpeg ', '-ffmpeg-gpu ', '-ffprobe ', '-streams '] as $rFlag) {
 			$this->assertStringContainsString($rFlag, $rAgent, "agent seeding passes {$rFlag}for transcode-directive path resolution");
 		}
+		$this->assertStringContainsString('"${SEED[@]}"', $rAgent, 'the agent run invocation actually expands the SEED flag array (not just declares it)');
 	}
 }

@@ -376,22 +376,11 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH);
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 600 ' . CONFIG_PATH . 'config.enc');
 
-		if ($rServeOnly) {
-			// A serve-only node's run.sh reads this plaintext marker (its content is
-			// the node's server id) to launch the Go front and the agent's
-			// -seed-fanout: the serve path has no PHP decrypting config.enc in shell.
-			call_user_func($rRunSSH, $rConn, 'sudo mkdir -p ' . CONFIG_PATH . 'cluster');
-			call_user_func($rRunSSH, $rConn, self::sudoWrite((string) $rServerID, CONFIG_PATH . 'cluster/serve_only'));
-			call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH . 'cluster');
-		} else {
-			// Downgrade safety: config/ survives a re-install, so a node reinstalled
-			// WITHOUT --serve-only must not keep a stale marker — otherwise its run.sh
-			// would keep launching the front + seeding while MAIN records serve_only=0
-			// and the archive-restored https.conf puts nginx back on :443, so the front
-			// and nginx both target :443. The off-path undoes the on-path.
-			call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . CONFIG_PATH . 'cluster/serve_only');
-		}
-
+		// The plaintext serve_only marker that run.sh reads is written by
+		// ServerInstallCommand on a completed install (and removed on a non-serve-only
+		// one), not here — so a failure after this point never leaves the node's
+		// runtime mode disagreeing with MAIN. The config.enc serve_only above
+		// (configPackParams) is PHP-side only and inert on an incomplete install.
 		return true;
 	}
 
@@ -491,6 +480,7 @@ class LbInstallFlow {
 			// demoted) and record the front's listen address for run.sh — the node's
 			// https_broadcast_port, not a hardcoded :443.
 			call_user_func($rRunSSH, $rConn, self::sudoWrite("\nset_real_ip_from 127.0.0.1;\nset_real_ip_from ::1;\n", MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', true));
+			call_user_func($rRunSSH, $rConn, 'sudo install -d -o xc_vm -g xc_vm -m 0755 ' . CONFIG_PATH . 'cluster');
 			call_user_func($rRunSSH, $rConn, self::sudoWrite(':' . intval($rServers[$rServerID]['https_broadcast_port']), CONFIG_PATH . 'cluster/front_addr'));
 			call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/front_addr');
 		}
