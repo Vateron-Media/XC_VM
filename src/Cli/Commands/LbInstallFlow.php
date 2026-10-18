@@ -474,18 +474,25 @@ class LbInstallFlow {
 		$rIP = '127.0.0.1:' . $rServers[$rServerID]['http_broadcast_port'];
 		call_user_func($rRunSSH, $rConn, self::sudoWrite('on_play http://' . $rIP . '/stream/rtmp; on_publish http://' . $rIP . '/stream/rtmp; on_play_done http://' . $rIP . '/stream/rtmp;', '/home/xc_vm/bin/nginx_rtmp/conf/live.conf'));
 		if ($rServeOnly) {
-			// Serve-only single-binary LB (Phase A): the Go front (xc_fanout
-			// -front) owns :443, terminates TLS, and reverse-proxies the rest to
-			// nginx on a loopback backend port. So nginx drops its own :443 ssl
-			// listener (the front owns 443) and listens plaintext on 8080 for the
-			// front; :80 stays for the rtmp callbacks and ACME. nginx trusts the
-			// front on loopback to carry the viewer IP — the front sets
-			// X-Real-IP / X-Forwarded-For, and nginx's real_ip_header is already
-			// X-Forwarded-For (nginx.conf). php-fpm and the rest of the node stay;
-			// removing them is Phase 5. ssl.conf's cert directives go inert with
-			// no ssl listener, which nginx allows.
-			call_user_func($rRunSSH, $rConn, self::sudoWrite('listen 8080 reuseport;', MAIN_HOME . 'bin/nginx/conf/ports/https.conf'));
+			// Serve-only single-binary LB (Phase A): the Go front (xc_fanout -front)
+			// owns the node's public HTTPS port and reverse-proxies non-serve requests
+			// to nginx on a loopback backend (127.0.0.1:8080). nginx trusts the front on
+			// loopback for the viewer IP (the front sets X-Real-IP / X-Forwarded-For and
+			// nginx's real_ip_header is already X-Forwarded-For). php-fpm and the rest of
+			// the node stay; removing them is Phase 5.
+			//
+			// The :443->:8080 demote itself is NOT written here. RootSignalsCronJob owns
+			// the serve-only https listener: it demotes only once the node's fanout is
+			// -front-capable (else it keeps nginx on the public port, so a node whose
+			// binary lacks -front has no outage), and it never reconciles the demoted
+			// listener back to ssl. An unconditional install-time demote created an
+			// outage on a -front-less binary and was reverted by that cron within ~60s.
+			// Here we only set the loopback real-IP trust (static, inert when not
+			// demoted) and record the front's listen address for run.sh — the node's
+			// https_broadcast_port, not a hardcoded :443.
 			call_user_func($rRunSSH, $rConn, self::sudoWrite("\nset_real_ip_from 127.0.0.1;\nset_real_ip_from ::1;\n", MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', true));
+			call_user_func($rRunSSH, $rConn, self::sudoWrite(':' . intval($rServers[$rServerID]['https_broadcast_port']), CONFIG_PATH . 'cluster/front_addr'));
+			call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/front_addr');
 		}
 		$rServices = (intval(call_user_func($rRunSSH, $rConn, 'sudo cat /proc/cpuinfo | grep "^processor" | wc -l')['output']) ?: 4);
 		call_user_func($rRunSSH, $rConn, 'sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');

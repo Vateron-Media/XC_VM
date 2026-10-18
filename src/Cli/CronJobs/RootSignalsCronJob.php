@@ -1127,16 +1127,35 @@ class RootSignalsCronJob implements CommandInterface {
 						$rPorts['http'][] = intval($rPort);
 					}
 				}
-				foreach (array_merge([intval($rServers[SERVER_ID]['https_broadcast_port'])], explode(',', $rServers[SERVER_ID]['https_ports_add'])) as $rPort) {
-					if (is_numeric($rPort) && $rPort > 0 && $rPort <= 65535) {
-						$rListen['https'][] = 'listen ' . intval($rPort) . ' ssl;';
-						$rPorts['https'][] = intval($rPort);
+				// Serve-only node (strictly gated on the marker — a normal LB or MAIN
+				// has none and takes the unchanged ssl path): the Go front owns the
+				// public HTTPS port and nginx is demoted to a loopback backend, but only
+				// once the node's fanout is -front-capable (else nginx keeps the public
+				// port, so a binary without -front causes no outage). RootSignals owns
+				// this listener so it is never reconciled back to ssl, and keeps the
+				// front's listen address current for run.sh in cluster/front_addr.
+				$rServeOnly = is_file(CONFIG_PATH . 'cluster/serve_only');
+				$rFrontReady = $rServeOnly && is_executable(MAIN_HOME . 'bin/xc_fanout/xc_fanout')
+					&& trim((string) shell_exec(escapeshellarg(MAIN_HOME . 'bin/xc_fanout/xc_fanout') . ' -h 2>&1 | grep -q -- -front && echo 1')) === '1';
+				if ($rServeOnly) {
+					NginxPortsFile::write(CONFIG_PATH . 'cluster/front_addr', ':' . intval($rServers[SERVER_ID]['https_broadcast_port']));
+				}
+				if (!$rFrontReady) {
+					foreach (array_merge([intval($rServers[SERVER_ID]['https_broadcast_port'])], explode(',', $rServers[SERVER_ID]['https_ports_add'])) as $rPort) {
+						if (is_numeric($rPort) && $rPort > 0 && $rPort <= 65535) {
+							$rListen['https'][] = 'listen ' . intval($rPort) . ' ssl;';
+							$rPorts['https'][] = intval($rPort);
+						}
 					}
 				}
 				if (trim(implode(' ', $rListen['http'])) != trim(file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/http.conf'))) {
 					array_unshift($rRows, ['custom_data' => json_encode(['action' => 'set_port', 'type' => 0, 'ports' => $rPorts['http'], 'reload' => true])]);
 				}
-				if (trim(implode(' ', $rListen['https'])) != trim(file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'))) {
+				if ($rFrontReady) {
+					if ('listen 127.0.0.1:8080;' !== trim(file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'))) {
+						array_unshift($rRows, ['custom_data' => json_encode(['action' => 'set_port', 'type' => 1, 'backend' => true, 'ports' => [8080], 'reload' => true])]);
+					}
+				} elseif (trim(implode(' ', $rListen['https'])) != trim(file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'))) {
 					array_unshift($rRows, ['custom_data' => json_encode(['action' => 'set_port', 'type' => 1, 'ports' => $rPorts['https'], 'reload' => true])]);
 				}
 				if ('listen ' . intval($rServers[SERVER_ID]['rtmp_port']) . ';' != trim(file_get_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/port.conf'))) {
@@ -1484,13 +1503,19 @@ class RootSignalsCronJob implements CommandInterface {
 						self::$rReloadNginx = true;
 					}
 				} elseif (intval($rData['type']) == 1) {
-					$rListen = [];
-					foreach ($rData['ports'] as $rPort) {
-						if (is_numeric($rPort) && $rPort >= 80 && $rPort <= 65535) {
-							$rListen[] = 'listen ' . intval($rPort) . ' ssl;';
+					if (!empty($rData['backend'])) {
+						// Serve-only node: nginx is the Go front's loopback backend, not a
+						// public ssl listener. The front owns the public HTTPS port.
+						NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', 'listen 127.0.0.1:8080;');
+					} else {
+						$rListen = [];
+						foreach ($rData['ports'] as $rPort) {
+							if (is_numeric($rPort) && $rPort >= 80 && $rPort <= 65535) {
+								$rListen[] = 'listen ' . intval($rPort) . ' ssl;';
+							}
 						}
+						NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', implode(' ', $rListen));
 					}
-					NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', implode(' ', $rListen));
 					if (NodeRole::isMain() && class_exists(ClusterNginxConfig::class)) {
 						shell_exec('sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cluster:nginx --no-reload');
 					}

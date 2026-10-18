@@ -72,13 +72,17 @@ while true; do
     if "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-gw-policy'; then
       GW=(-gw "$FANOUT_DIR/sockets/gw.sock" -gw-policy "$SCRIPT/tmp/gateway/policy.json")
     fi
-    # Serve-only single-binary LB (Phase A): the Go front owns :443 and reverse-
-    # proxies non-serve requests to nginx on a local backend port (nginx demoted
-    # off :443 at install). Gated on the serve_only marker the install writes AND
-    # on the binary knowing -front (an older daemon would exit on an unknown flag).
+    # Serve-only single-binary LB (Phase A): the Go front owns the node's public
+    # HTTPS port and reverse-proxies non-serve requests to nginx on a local backend
+    # port (RootSignalsCronJob demotes nginx off that port once the binary is
+    # -front-capable). Gated on the serve_only marker the install writes AND on the
+    # binary knowing -front (an older daemon would exit on an unknown flag). The
+    # listen address comes from config/cluster/front_addr (the node's
+    # https_broadcast_port, written by the install/cron), defaulting to :443.
     FRONT=()
     if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-front'; then
-      FRONT=(-front ":443" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "http://127.0.0.1:8080")
+      FRONT_ADDR=$(cat "$SCRIPT/config/cluster/front_addr" 2>/dev/null); FRONT_ADDR=${FRONT_ADDR:-:443}
+      FRONT=(-front "$FRONT_ADDR" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "http://127.0.0.1:8080")
     fi
     echo "=== $(date '+%F %T') supervisor pid=$$ spawning daemon (ffmpeg=$FF) ===" >> "$LOG"
     "$FANOUT_DIR/xc_fanout" \

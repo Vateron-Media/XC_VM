@@ -76,17 +76,26 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString("sudo rm -f ' . CONFIG_PATH . 'cluster/serve_only'", $rSrc, 'a non-serve-only install clears the marker');
 	}
 
-	public function testConfigureRuntimeDemotesNginxForServeOnly(): void {
-		// Task 4: a serve-only node's Go front owns :443 (TLS), so nginx is
-		// demoted to a plaintext backend on :8080 (the front's -front-nginx
-		// target) and loses its :443 ssl listener; it trusts the front on
-		// loopback so X-Forwarded-For still resolves the viewer IP.
-		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
-		$this->assertStringContainsString('function configureRuntime(', $rSrc);
-		$this->assertStringContainsString('bool $rServeOnly = false', $rSrc, 'configureRuntime takes the serve_only flag');
-		$this->assertStringContainsString("self::sudoWrite('listen 8080 reuseport;'", $rSrc, 'nginx is demoted to the :8080 plaintext backend');
-		$this->assertStringContainsString("ports/https.conf'", $rSrc, 'the demote rewrites the :443 ssl listen');
-		$this->assertStringContainsString('set_real_ip_from 127.0.0.1;', $rSrc, 'nginx trusts the front on loopback for the viewer IP');
+	public function testServeOnlyNginxListenerIsOwnedByRootSignalsNotTheInstall(): void {
+		// The :443->:8080 demote is NOT written at install: an unconditional
+		// install-time demote caused an outage on a -front-less binary and was
+		// reverted by the node's port-reconcile cron within ~60s. configureRuntime
+		// only sets the loopback real-IP trust and records the front's listen
+		// address; RootSignalsCronJob owns the serve-only https listener — it demotes
+		// to the loopback backend only once the fanout is -front-capable (else keeps
+		// the public ssl port, so no outage) and never reconciles the demote to ssl.
+		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
+		$this->assertStringContainsString('bool $rServeOnly = false', $rLb, 'configureRuntime takes the serve_only flag');
+		$this->assertStringNotContainsString("sudoWrite('listen 8080", $rLb, 'the demote is NOT written at install — the cron owns it');
+		$this->assertStringContainsString('set_real_ip_from 127.0.0.1;', $rLb, 'configureRuntime sets the loopback real-IP trust');
+		$this->assertStringContainsString("cluster/front_addr'", $rLb, 'configureRuntime records the front listen address (https_broadcast_port)');
+
+		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
+		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the cron is serve_only-aware, strictly gated on the marker');
+		$this->assertStringContainsString('grep -q -- -front', $rCron, 'the demote is gated on the fanout being -front-capable (no outage otherwise)');
+		$this->assertStringContainsString("'backend' => true", $rCron, 'serve_only enqueues the loopback-backend https listener');
+		$this->assertStringContainsString("'listen 127.0.0.1:8080;'", $rCron, 'the backend listener is loopback plaintext :8080');
+		$this->assertStringContainsString("cluster/front_addr'", $rCron, 'the cron keeps the front listen address current for run.sh');
 
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertStringContainsString('LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID, $rServeOnly)', $rCmd, 'the install threads serve_only into configureRuntime');
@@ -99,6 +108,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('-front-nginx', $rFanout, 'the front strangler proxies non-serve requests to nginx');
 
 		$this->assertStringContainsString("grep -q -- '-front'", $rFanout, 'the front is gated on the fanout binary knowing -front');
+		$this->assertStringContainsString('config/cluster/front_addr', $rFanout, 'the front listens on the node https_broadcast_port (front_addr), not a hardcoded :443');
 
 		$rAgent = (string) file_get_contents(MAIN_HOME . 'bin/xc_agent/run.sh');
 		$this->assertStringContainsString('config/cluster/serve_only', $rAgent, 'agent run.sh gates seeding on the marker');
