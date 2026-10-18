@@ -35,6 +35,8 @@ final class ApiModeInstallTest extends TestCase {
 	private array $rSent = [];
 
 	/** What the node prints for `XC_VM::install_id()`. */
+	private bool $rConfigReady = true;
+
 	private string $rIidOutput = "0f8fad5b-install-id-0001\n";
 
 	public static function setUpBeforeClass(): void {
@@ -69,7 +71,7 @@ final class ApiModeInstallTest extends TestCase {
 	private function install(bool $rApi): bool {
 		$rRun = function ($rConn, string $rCmd): array {
 			$this->rRan[] = $rCmd;
-			return ['output' => str_contains($rCmd, 'install_id') ? $this->rIidOutput : '', 'error' => ''];
+			return ['output' => str_contains($rCmd, 'install_id') ? $this->rIidOutput : (str_contains($rCmd, 'CONFIG_READY:') && $this->rConfigReady ? 'CONFIG_READY:' . self::SID : ''), 'error' => ''];
 		};
 		$rSend = function ($rConn, string $rLocal, string $rRemote): bool {
 			$this->rSent[$rRemote] = (string) file_get_contents($rLocal);
@@ -133,8 +135,9 @@ final class ApiModeInstallTest extends TestCase {
 			return 'XCVT-credential-free';
 		});
 		$this->assertTrue($this->install(true));
-		$this->assertSame([['0f8fad5b-install-id-0001', ['db_credentials' => false, 'hostname' => '10.0.0.1', 'database' => 'xc_vm', 'server_id' => self::SID, 'is_lb' => 1]]], $rPacked);
-		$this->assertSame('XCVT-credential-free', $this->rSent[CONFIG_PATH . 'config.enc']);
+		$this->assertSame([], $rPacked, 'API config is encrypted on the target, without an XCVT transport');
+		$this->assertArrayNotHasKey(CONFIG_PATH . 'config.enc', $this->rSent);
+		$this->assertStringContainsString('XC_VM::config_init', implode("\n", $this->rRan));
 		$this->assertSame(0, $this->serverStatus());
 	}
 
@@ -147,11 +150,19 @@ final class ApiModeInstallTest extends TestCase {
 		});
 		$this->rIidOutput = "Warning: XC_VM: ionCube Loader not detected.\n0f8fad5b-install-id-0001\n";
 		$this->assertTrue($this->install(true));
-		$this->assertSame(['0f8fad5b-install-id-0001'], $rPacked);
+		$this->assertSame([], $rPacked);
 
 		$this->rIidOutput = "Warning: no id here\n";
 		$this->assertFalse($this->install(true));
 		$this->assertSame(4, $this->serverStatus());
+	}
+
+	public function testAnUnverifiedApiConfigurationStopsTheInstall(): void {
+		CredentialFreeConfig::useSeams(static fn(): bool => true);
+		$this->rConfigReady = false;
+		$this->assertFalse($this->install(true));
+		$this->assertSame(4, $this->serverStatus());
+		$this->assertSame([], $this->rSent, 'no later provisioning after the failed read-back');
 	}
 
 	/** Born in mode 2 with the flows mode 2 needs, as a promoted node must have. */

@@ -96,7 +96,7 @@ final class LbInstallFlowOpensslExtraTest extends TestCase {
 		$this->assertSame(1, preg_match('/' . $rGuard . '\s*' . $rFail . '\s*echo [^;]+;\s*return false;\s*\}/', $rBody, $rMatch, PREG_OFFSET_CAPTURE), 'a failed upload fails the install');
 
 		$rConfigEnc = strpos($rBody, "CONFIG_PATH . 'config.enc', false)");
-		$rChown = strpos($rBody, "'sudo chown -R xc_vm:xc_vm '");
+		$rChown = strpos($rBody, "'sudo chown -R xc_vm:xc_vm '", $rConfigEnc ?: 0);
 		$this->assertNotFalse($rConfigEnc);
 		$this->assertNotFalse($rChown);
 		$this->assertGreaterThan($rConfigEnc, $rMatch[0][1]);

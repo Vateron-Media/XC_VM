@@ -286,6 +286,16 @@ class ServerInstallCommand implements CommandInterface {
 		$this->finalizeHostAfterRuntime($rConn, $rRunSSH, $rHost, !$rApiMode);
 
 		if ($rType == 2) {
+			// The service runs as xc_vm: a root-only read-back misses unreadable
+			// install_id/config.enc files after a reinstall or host replacement.
+			if (!LbInstallFlow::verifyConfig($rConn, $rRunSSH, $rServerID, true)) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo "The node configuration is not readable as xc_vm. Installation stopped.\n";
+				return 1;
+			}
+		}
+
+		if ($rType == 2) {
 			// An API-mode node boots from its replica, which only its enrolment brings.
 			LbInstallFlow::runStartup($rConn, $rRunSSH, !$rApiMode);
 			$rGenBefore = LbInstallFlow::nodeGen($rServerID);

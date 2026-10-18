@@ -288,10 +288,10 @@ class LbInstallFlow {
 	/**
 	 * Securely provision config.enc onto a freshly-installed LB node.
 	 *
-	 * The DB password never enters PHP: we read the node's install_id over the
-	 * SSH channel, then XC_VM::config_pack() pulls the credentials from MAIN's
-	 * own config.enc and returns a transport blob (XCVT) encrypted for that
-	 * install_id. The node re-encrypts it to its at-rest format on first read.
+	 * API nodes initialize a credential-free config locally, encrypted for the
+	 * target machine. Legacy nodes receive an encrypted transport blob whose
+	 * credentials never enter PHP. Both paths read back the target role and
+	 * server id before the install may proceed.
 	 *
 	 * Replaces the old config.ini flow, which wrote empty credentials because
 	 * the extension never exposes them to PHP — producing an unreadable
@@ -341,11 +341,30 @@ class LbInstallFlow {
 			return false;
 		}
 
+		// API nodes hold no MAIN credentials. Initialize their at-rest config on
+		// the target itself: an XCVT transport left unreadable after a reinstall
+		// otherwise looked like a successful upload but booted with server_id 0.
+		if ($rApiMode) {
+			$rParams = self::configPackParams($rServers, $rServerID, $rServeOnly);
+			$rResult = call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg(self::apiConfigScript($rParams)));
+			if (self::lastLine($rResult) !== 'CONFIG_READY:' . $rServerID) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo "The node's configuration could not be initialized and verified. Installation stopped.\n";
+				return false;
+			}
+			if (!self::provisionOpensslExtra($rConn, $rRunSSH, $rSendFileSSH, CONFIG_PATH . 'openssl_extra')) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				return false;
+			}
+			call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH);
+			return true;
+		}
+
 		// Pack config.enc targeted at the node's install_id. Credentials are
 		// read from MAIN's config.enc inside the extension, never exposed here;
 		// in API mode there are none (CredentialFreeConfig).
 		$rPackParams = self::configPackParams($rServers, $rServerID, $rServeOnly);
-		$rBlob = $rApiMode ? CredentialFreeConfig::pack($rInstallId, $rPackParams) : \XC_VM::config_pack($rInstallId, $rPackParams);
+		$rBlob = \XC_VM::config_pack($rInstallId, $rPackParams);
 		if (empty($rBlob)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			$rWhy = error_get_last()['message'] ?? 'no warning';
@@ -376,12 +395,69 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH);
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 600 ' . CONFIG_PATH . 'config.enc');
 
+		$rResult = call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg(self::configCheckScript($rServerID)));
+		if (self::lastLine($rResult) !== 'CONFIG_READY:' . $rServerID) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "The uploaded node configuration is unreadable or belongs to another server. Installation stopped.\n";
+			return false;
+		}
+
 		// The plaintext serve_only marker that run.sh reads is written by
 		// ServerInstallCommand on a completed install (and removed on a non-serve-only
 		// one), not here — so a failure after this point never leaves the node's
 		// runtime mode disagreeing with MAIN. The config.enc serve_only above
 		// (configPackParams) is PHP-side only and inert on an incomplete install.
 		return true;
+	}
+
+
+	/** The final check can run as the service user after runtime permissions are set. */
+	public static function verifyConfig($rConn, callable $rRunSSH, int $rServerID, bool $rAsUser = false): bool {
+		$rResult = call_user_func($rRunSSH, $rConn, ($rAsUser ? 'sudo -u xc_vm ' : 'sudo ') . PHP_BIN . ' -r ' . escapeshellarg(self::configCheckScript($rServerID)));
+		return self::lastLine($rResult) === 'CONFIG_READY:' . $rServerID;
+	}
+
+	/** Read back the role and slot; an upload or an exit code alone proves neither. */
+	public static function configCheckScript(int $rServerID): string {
+		return '$c = XC_VM::config_server(); if (!is_array($c) || (int) ($c["server_id"] ?? 0) !== ' . $rServerID
+			. ' || (int) ($c["is_lb"] ?? 0) !== 1) { exit(1); } echo "CONFIG_READY:' . $rServerID . '\n";';
+	}
+
+	/**
+	 * Non-secret API-node configuration, encrypted locally by xcvm_core. Keep
+	 * the previous file until config_server() confirms the initialized role.
+	 * $rPath is injectable for the regression test's isolated target directory.
+	 */
+	public static function apiConfigScript(array $rParams, ?string $rPath = null): string {
+		$rData = [
+			'db' => ['host' => $rParams['hostname'], 'port' => 3306, 'database' => $rParams['database'], 'username' => '', 'password' => ''],
+			'redis' => ['host' => '127.0.0.1', 'port' => 6379, 'auth' => ''],
+			'server' => array_intersect_key($rParams, array_flip(['server_id', 'is_lb', 'serve_only'])),
+		];
+		return '$path = ' . var_export($rPath ?? CONFIG_PATH . 'config.enc', true) . '; $data = ' . var_export($rData, true) . ';' . <<<'PHP'
+$backup = null;
+if (is_file($path)) {
+    $backup = tempnam(dirname($path), '.config-before-');
+    if ($backup === false || !copy($path, $backup) || !chmod($backup, 0600)) { exit(1); }
+    if (!chown($backup, fileowner($path)) || !chgrp($backup, filegroup($path))) { unlink($backup); exit(1); }
+}
+$ok = false;
+try {
+    if (!XC_VM::config_init($data)) { throw new RuntimeException('config_init'); }
+    $c = XC_VM::config_server();
+    $ok = is_array($c) && (int) ($c['server_id'] ?? 0) === $data['server']['server_id'] && (int) ($c['is_lb'] ?? 0) === 1;
+} catch (Throwable $e) {
+    $ok = false;
+}
+if (!$ok) {
+    if ($backup !== null) { rename($backup, $path); } else { @unlink($path); }
+    exit(1);
+}
+if ($backup !== null) { unlink($backup); }
+@unlink(dirname($path) . '/config.ini');
+chmod($path, 0600);
+echo 'CONFIG_READY:' . $data['server']['server_id'] . "\n";
+PHP;
 	}
 
 	/**
