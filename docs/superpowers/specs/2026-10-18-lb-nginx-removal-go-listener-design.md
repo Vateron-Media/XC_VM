@@ -40,10 +40,12 @@ must reproduce that faithfully.
 - A **MAIN-driven port change takes effect at runtime** without a process restart
   and without dropping active viewer connections: new ports start listening, removed
   ports stop, the way `nginx -s reload` behaves today.
-- Every route nginx serves today is served **in-process** by the front: the
-  gateway serve routes (made authoritative), the HLS sendfile (`/xc_hls`), the
-  fanout routes (`/xc_fanout*`), static assets (`/images`, `/portal/assets`), and
-  the non-auth edge endpoints `/xfile`, `/status`, `/progress`, `probe`.
+- Every route nginx serves today is answered by the front: the gateway serve
+  routes (made authoritative), the HLS sendfile (`/xc_hls`), the fanout routes
+  (`/xc_fanout*`), and static assets (`/images`, `/portal/assets`) served
+  **in-process**; the edge endpoints `/status` / `/progress` kept **local-only**,
+  `probe` **token-gated**, and `/xfile` **proxied to the agent** (which holds the
+  node signing key) — see Architecture §3 and "Decisions settled".
 - Rate-limiting, real-client-IP resolution, and gzip are applied by the front on
   all routes (nginx no longer backs them).
 - TLS certs and ACME continue to work exactly as today (certbot-issued files,
@@ -163,10 +165,24 @@ The front builds a single `http.Handler` (shared by every listener) that routes:
   fanout; route to the in-process handler instead of the unix socket + nginx.
 - **Static** `/images`, `/portal/assets` → serve from disk with correct content
   types.
-- **Edge endpoints:** `/status`, `/progress` (fast node health/progress reads),
-  `probe` (ffprobe-backed, MAIN-triggered), and **`/xfile`** — the cross-node file
-  read (ticket + node-key proof + per-chunk signed digest). `/xfile` is the
-  security-sensitive piece and the largest single port; see "Review focus".
+- **Edge endpoints** (trust boundaries preserved, not widened):
+  - `/status`, `/progress` stay **local-only** — today they are `allow 127.0.0.1;
+    deny all`. The front serves them only to loopback (a loopback-bound handler /
+    peer check), never as public routes; node internals are not exposed at the edge.
+  - `probe` (ffprobe-backed, MAIN-triggered) is **token-gated**: the front verifies
+    the same MAIN-minted proof `probe.php` checks before running ffprobe. This is an
+    SSRF / resource-abuse surface at the true edge; it keeps the project's agreed
+    LB-SSRF posture (no new egress policy beyond the one already accepted), and adds
+    no capability the token does not already authorise.
+  - **`/xfile`** — the cross-node file read (ticket + node-key proof + per-chunk
+    signed digest). The owner-side proof needs the node's Ed25519 signing key and
+    replay-nonce window, which live **only in the agent** (`agent.json`;
+    `DataPlaneTrust::signDigest`/`spendNonce` already delegate to the agent's local
+    HTTP). The key is NOT duplicated into fanout. So the front **routes `/xfile` to
+    an owner-side handler added to the agent** over the existing fanout↔agent local
+    socket (the gateway already uses `agent_sock`). "Served by the node, fronted by
+    the listener" — not re-implemented in fanout. `/xfile` is the security-sensitive
+    piece and the largest single port; see "Review focus".
 - **Cross-cutting middleware** applied by the front on all routes: real-IP
   resolution (`realip.go`, trusted-proxy CIDRs from the `realip_*.conf` includes),
   rate-limit (nginx had two zones: `one` = per-viewer on serve routes, and
@@ -183,23 +199,60 @@ The front builds a single `http.Handler` (shared by every listener) that routes:
   that starts it) and launches `xc_node` with the front owning the ports directly
   (no `-front-nginx` backend). This is the final step and lands only after the front
   serves everything.
-- If the `gateway_mode` ladder has no "authoritative serve, no nginx fallback" rung,
-  add it (small, mirrors the existing rungs).
+- Authoritative serving rides the **existing `serve_only` policy boolean** — the Go
+  gateway already honours `Policy.ServeOnly` (`internal/gateway/policy.go`,
+  `live.go`). No new `gateway_mode` enum rung, migration, settings dropdown,
+  `lb_settings_keys`, or i18n is needed. The only MAIN change is that PHP's
+  `GatewayPolicy` must **emit `serve_only: true` in the node's policy** for a
+  serve-only node (serve_only-gated, built on the Part A marker); confirm/complete
+  this emission as part of wiring.
 
 ## Rollout (staged, not big-bang) — author's call
 
 1. Build the listener manager + in-process routes + edge-endpoint ports behind the
    existing opt-in front, still in front of nginx (strangler). Shadow/serve via the
    `gateway_mode` ladder as today.
-2. Advance the serve path to **authoritative** on the ladder (the front answers, no
-   nginx fallback) once the shadow window is clean, per the established readiness
-   gate.
+2. Advance the serve path to **authoritative** (the front answers, no nginx
+   fallback) by MAIN emitting `serve_only: true` in the node's policy, once the
+   shadow window is clean per the established readiness gate.
 3. Flip the front to own the **real** ports (bind the full set directly) with nginx
    demoted/stopped but **still installed** as a one-release safety net.
 4. `LbInstallFlow` stops installing the HTTP nginx. One binary on the HTTP path.
 
 Each step is independently shippable and reversible; a problem at any step falls
 back to the prior one.
+
+## Decisions settled during builder-check (author's calls)
+
+A fresh reviewer read this design against both repos. The calls made in response,
+each now reflected above:
+
+- **`/xfile` stays in the agent.** The node's Ed25519 signing key and replay-nonce
+  window live only in the agent, so the owner-side `/xfile` proof is produced there;
+  the front proxies `/xfile` over the existing fanout↔agent socket. The key is never
+  copied into fanout (that would spread the node's private key to a second process).
+- **No new `gateway_mode` rung.** Authoritative serving uses the `serve_only` policy
+  boolean the Go gateway already honours; MAIN only needs to emit it for a serve-only
+  node. This avoids a migration + settings dropdown + i18n that would never be acted
+  on separately.
+- **`/status` and `/progress` stay local-only; `probe` stays token-gated.** Removing
+  nginx must not widen these trust boundaries.
+- **Single SAN cert; certbot webroot authenticator** once the front owns `:80`.
+
+## Open decision (yours) — RTMP auth-notify on a serve-only LB
+
+`nginx_rtmp` is provisioned on **every** LB (not serve_only-gated), and its
+`on_publish`/`on_play`/`on_play_done` callbacks hit
+`http://127.0.0.1:<http_broadcast_port>/stream/rtmp` — a route on the HTTP surface
+this phase removes. nginx-rtmp itself is out of scope, but its callback target is not.
+So one fact decides a piece of scope: **does a serve-only LB ever ingest RTMP?**
+
+- **If no** (serve-only LBs are pure restreamers and never accept RTMP publishers):
+  `/stream/rtmp` + the nginx_rtmp provisioning retire with the nginx-rtmp track; this
+  phase just ensures nothing relies on that callback, and the route is dropped.
+- **If yes:** the front must keep a `/stream/rtmp` auth-notify handler (RTMP auth is a
+  large lifecycle endpoint — StreamAuth, blocklist, line-limit), which expands this
+  phase's scope. The default assumption in this draft is **no**; confirm or correct.
 
 ## PHP after this phase (named follow-on, not built here)
 
@@ -223,6 +276,10 @@ PHP afterwards — the php-removal follow-on — and why it is not in this phase
 - Serve-only LB: no MySQL, no PHP (end state); it authenticates nothing (MAIN mints).
 - TLS: reuse certbot's `bin/nginx/conf/server.{crt,key}`; webroot
   `/home/xc_vm/certbot-webroot`. No ACME client reimplementation (certbot stays).
+  One SAN cert covers all of the LB's domains today, so all https listeners share
+  the single `CertReloader` config — confirmed assumption, not multi-cert SNI. Once
+  the front owns `:80`, certbot must run as the **webroot** authenticator (not the
+  standalone or nginx plugin); this lands with the LbInstallFlow follow-up.
 - AGPL-3.0; no Git LFS; Conventional Commits; English; no Claude attribution in
   commits/PRs.
 
@@ -232,9 +289,11 @@ PHP afterwards — the php-removal follow-on — and why it is not in this phase
   `http.Server` (drain deadline tuning).
 - The port-change signal mechanism (the author's-call default is a node-local file
   the front polls/reads on signal; confirm or pick the agent↔fanout control channel).
-- The **`/xfile` FileTicketServer Go port** — faithful to the PHP (ticket + node-key
-  proof + per-chunk signed digest). This is security-sensitive and cluster-internal;
-  it may warrant its own short design pass and interop vectors before coding.
+- The **`/xfile` owner-side handler in the agent** (the agent holds the key +
+  nonce window; the front proxies to it — see Architecture §3 and "Decisions
+  settled") — faithful to the PHP (ticket + node-key proof + per-chunk signed
+  digest). Security-sensitive and cluster-internal; warrants its own short design
+  pass and adversarial interop vectors against the PHP before coding.
 - `status` / `progress` / `probe` handlers and static serving (paths, content types).
 - The gzip middleware's content-type set and the two rate-limit zones' exact keys.
 - MAIN-side: `LbInstallFlow` serve-only path stops provisioning the HTTP nginx; the
