@@ -343,8 +343,13 @@ final class ReplicaBuilder {
 			$rData = self::canonical(self::secretsData((int) $rNode['server_id'], $rNode));
 			return ['etag' => self::etag($rData), 'data' => $rData];
 		}
+		// A serve-only LB gets a reduced crontab (the Go daemon owns stream lifecycle),
+		// so its crontab section caches under a distinct key from a normal node's —
+		// else the globally-cached crontab would cross-contaminate the two.
+		$rServeOnly = $rSection === ReplicaSections::CRONTAB && self::serveOnly((int) $rNode['server_id']);
 		$rKey = match ($rSection) {
 			ReplicaSections::NODE => $rSection . '.' . (int) $rNode['server_id'],
+			ReplicaSections::CRONTAB => $rServeOnly ? $rSection . '.serveonly' : $rSection,
 			default => $rSection,
 		};
 		$rNow = ClusterClock::nowMs();
@@ -357,7 +362,7 @@ final class ReplicaBuilder {
 			ReplicaSections::SETTINGS => self::settingsData(),
 			ReplicaSections::SERVERS => self::serversData(),
 			ReplicaSections::NODE => self::nodeData((int) $rNode['server_id']),
-			ReplicaSections::CRONTAB => self::crontabData((int) $rNode['mode']),
+			ReplicaSections::CRONTAB => self::crontabData((int) $rNode['mode'], $rServeOnly),
 			ReplicaSections::CLUSTER => self::clusterData($rCrypto, $rSettings, $rMain),
 			ReplicaSections::BOUQUETS => self::bouquetsData(),
 			ReplicaSections::CATEGORIES => self::categoriesData(),
@@ -450,13 +455,26 @@ final class ReplicaBuilder {
 	 *
 	 * @return array{jobs: list<array{filename: string, time: string}>}
 	 */
-	public static function crontabData(int $rMode): array {
+	/**
+	 * Stream-lifecycle crons a serve-only LB does not run: the Go daemon owns the
+	 * lifecycle (supervisor/reaper/agent on-demand start/stop) and MAIN rebuilds
+	 * their reporting from its event/telemetry feed (cron:streams' row via
+	 * stream.monitor, cron:activity's lines_activity via the conn feed). cron:streams_logs
+	 * is NOT here — it drains the daemon's own log spool into streams_logs and has
+	 * no agent-feed path yet, so it stays until that drain is ported.
+	 */
+	private const SERVE_ONLY_SKIP_CRONS = ['streams', 'activity'];
+
+	public static function crontabData(int $rMode, bool $rServeOnly = false): array {
 		$rRoles = ReplicaSections::cronRoles($rMode);
 		self::read('SELECT `filename`, `time`, `role` FROM `crontab` WHERE `enabled` = 1 ORDER BY `id` ASC;');
 		$rJobs = [];
 		$rSkipped = [];
 		foreach (self::db()->get_rows() ?: [] as $rRow) {
 			if (!in_array((string) ($rRow['role'] ?? 'all'), $rRoles, true)) {
+				continue;
+			}
+			if ($rServeOnly && in_array((string) $rRow['filename'], self::SERVE_ONLY_SKIP_CRONS, true)) {
 				continue;
 			}
 			$rRow = ['filename' => (string) $rRow['filename'], 'time' => (string) $rRow['time']];
@@ -471,6 +489,12 @@ final class ReplicaBuilder {
 			self::skippedJobs($rSkipped);
 		}
 		return ['jobs' => $rJobs];
+	}
+
+	/** Is this server a serve-only LB (`serve_only` on its `servers` row)? */
+	private static function serveOnly(int $rServerID): bool {
+		self::read('SELECT `serve_only` FROM `servers` WHERE `id` = ?;', $rServerID);
+		return (bool) (int) (self::db()->get_row()['serve_only'] ?? 0);
 	}
 
 	/**

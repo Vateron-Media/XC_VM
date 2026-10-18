@@ -228,6 +228,16 @@ final class ReplicaSectionsTest extends TestCase {
 		$this->assertSame(['streams', 'cache_engine'], array_column(ReplicaBuilder::crontabData(2)['jobs'], 'filename'), 'api mode: the same all rows, no users');
 	}
 
+	public function testAServeOnlyNodeDropsTheLifecycleCronsTheGoDaemonOwns(): void {
+		// On a serve-only LB the Go daemon owns stream lifecycle (supervisor/reaper/
+		// agent) and MAIN rebuilds the reporting from its event/telemetry feed, so
+		// cron:streams and cron:activity are retired. cron:streams_logs (the daemon's
+		// log drain, which has no agent-feed path yet) and every other 'all' row stay.
+		$this->rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('streams', '* * * * *', 1, 'all'), ('activity', '* * * * *', 1, 'all'), ('streams_logs', '* * * * *', 1, 'all'), ('servers', '* * * * *', 1, 'all'), ('cache', '* * * * *', 1, 'all'), ('users', '* * * * *', 1, 'main')");
+		$this->assertSame(['streams', 'activity', 'streams_logs', 'servers', 'cache'], array_column(ReplicaBuilder::crontabData(2, false)['jobs'], 'filename'), 'a normal node runs every all row, including the lifecycle crons');
+		$this->assertSame(['streams_logs', 'servers', 'cache'], array_column(ReplicaBuilder::crontabData(2, true)['jobs'], 'filename'), 'a serve-only node drops streams + activity; keeps streams_logs and the rest');
+	}
+
 	public function testARowANodeWouldRefuseIsLeftOutOfTheCrontabSection(): void {
 		// A node refuses the whole section over one such row, so MAIN never sends it.
 		$this->rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('streams', '* * * * *', 1, 'all'), ('vod', '0 4 * * MON', 1, 'all'), ('tmp', '@daily', 1, 'all'), ('Bad.Name', '* * * * *', 1, 'all'), ('users', '* * * * * *', 1, 'all')");

@@ -200,6 +200,26 @@ final class ReplicaBuilderSecretsTest extends TestCase {
 		}
 	}
 
+	public function testAServeOnlyNodesCrontabIsCachedApartFromANormalNodes(): void {
+		$rDb = $this->mainDb();
+		$rDb->exec("INSERT INTO `crontab` (`filename`, `time`, `enabled`, `role`) VALUES ('activity', '* * * * *', 1, 'all'), ('streams_logs', '* * * * *', 1, 'all')");
+		$rDb->query("INSERT INTO `servers` (`id`, `server_name`, `server_ip`, `is_main`, `enabled`, `serve_only`) VALUES (6, 'LB6', '10.0.0.6', 0, 1, 1)");
+		ReplicaEtagCache::useDir($this->dir() . '/etags/'); // caching ON: prove the serve-only key is distinct, not a reused normal-node entry
+		ClusterClock::fix(1800000000000);
+		$rCrypto = new FakeClusterCrypto();
+
+		// A normal node is built first and populates the crontab cache.
+		$rNormal = array_column(ReplicaBuilder::section($rCrypto, ['server_id' => 5, 'mode' => 1, 'state' => 'active'], ReplicaSections::CRONTAB, [], [])['data']['jobs'], 'filename');
+		$rServe = array_column(ReplicaBuilder::section($rCrypto, ['server_id' => 6, 'mode' => 1, 'state' => 'active'], ReplicaSections::CRONTAB, [], [])['data']['jobs'], 'filename');
+
+		$this->assertContains('streams', $rNormal, 'a normal node keeps the lifecycle crons');
+		$this->assertContains('activity', $rNormal);
+		// The serve-only node must NOT be handed the normal node's cached crontab.
+		$this->assertNotContains('streams', $rServe, 'serve-only drops cron:streams, not served the cached normal crontab');
+		$this->assertNotContains('activity', $rServe, 'serve-only drops cron:activity');
+		$this->assertContains('streams_logs', $rServe, 'serve-only keeps the log drain');
+	}
+
 	public function testTheSecretsAreNeverCachedUnsealedOnMain(): void {
 		$rDb = $this->mainDb();
 		ReplicaEtagCache::useDir($this->dir() . '/etags/');
