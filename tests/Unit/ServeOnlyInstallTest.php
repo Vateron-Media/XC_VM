@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use XcVm\Cli\Commands\LbInstallFlow;
+use XcVm\Domain\Server\InstallCredentials;
 
 /**
  * Phase A (MAIN side): a load balancer installed with `server:install
@@ -33,6 +34,21 @@ final class ServeOnlyInstallTest extends TestCase {
 
 		$rOff = LbInstallFlow::configPackParams($rServers, 5, false);
 		$this->assertArrayNotHasKey('serve_only', $rOff, 'a legacy LB config is byte-identical (no marker)');
+	}
+
+	public function testServeOnlyFlagFlowsThroughSplitOptions(): void {
+		// Regression: `--serve-only` is valueless. splitOptions only parsed
+		// `--name=value`, so the bare flag fell through to the positional list
+		// and `!empty($rOptions['serve-only'])` was never true — the node
+		// installed as a normal LB. The flag must reach $rOptions as truthy.
+		$rArgs = ['2', '2', '22', '-', '-', '80', '443', '0', '--serve-only', '--cred-file=/x'];
+		[$rPositional, $rOptions] = InstallCredentials::splitOptions($rArgs);
+
+		$this->assertArrayHasKey('serve-only', $rOptions, 'the valueless --serve-only flag reaches options');
+		$this->assertNotEmpty($rOptions['serve-only'], 'and is truthy, so the install arms serve_only');
+		$this->assertNotContains('--serve-only', $rPositional, 'it is no longer mistaken for a positional arg');
+		$this->assertSame('/x', $rOptions['cred-file'] ?? null, '--name=value options still parse');
+		$this->assertSame(['2', '2', '22', '-', '-', '80', '443', '0'], $rPositional, 'the real positionals are intact');
 	}
 
 	public function testServerInstallCommandWiresServeOnly(): void {
