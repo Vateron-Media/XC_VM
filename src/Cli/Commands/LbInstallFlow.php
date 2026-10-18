@@ -480,9 +480,11 @@ class LbInstallFlow {
 			// demoted) and record the front's listen address for run.sh — the node's
 			// https_broadcast_port, not a hardcoded :443.
 			call_user_func($rRunSSH, $rConn, self::sudoWrite("\nset_real_ip_from 127.0.0.1;\nset_real_ip_from ::1;\n", MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', true));
-			call_user_func($rRunSSH, $rConn, 'sudo install -d -o xc_vm -g xc_vm -m 0755 ' . CONFIG_PATH . 'cluster');
-			call_user_func($rRunSSH, $rConn, self::sudoWrite(':' . intval($rServers[$rServerID]['https_broadcast_port']), CONFIG_PATH . 'cluster/front_addr'));
-			call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/front_addr');
+			// Written AS xc_vm (never root): config/cluster is xc_vm-owned, so a root
+			// write/chown through it would follow a symlink an unprivileged xc_vm could
+			// plant there and escalate. xc_vm writing its own file crosses no boundary.
+			call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm mkdir -p ' . CONFIG_PATH . 'cluster');
+			call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg(':' . intval($rServers[$rServerID]['https_broadcast_port'])) . ' | sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/front_addr > /dev/null');
 		}
 		$rServices = (intval(call_user_func($rRunSSH, $rConn, 'sudo cat /proc/cpuinfo | grep "^processor" | wc -l')['output']) ?: 4);
 		call_user_func($rRunSSH, $rConn, 'sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');

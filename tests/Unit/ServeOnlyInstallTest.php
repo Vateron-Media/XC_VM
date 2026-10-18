@@ -73,9 +73,13 @@ final class ServeOnlyInstallTest extends TestCase {
 		// and removed on a non-serve-only (downgrade) install, since config/ survives
 		// a re-install. The off-path undoes the on-path, keeping the node's runtime
 		// mode consistent with the DB serve_only committed alongside it.
+		// Written AS xc_vm into its own config/cluster (never a root write/chown
+		// through that xc_vm-owned path, which could follow a planted symlink and
+		// escalate).
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
-		$this->assertMatchesRegularExpression('/if \(\$rType == 2\) \{.*LbInstallFlow::sudoWrite\(\(string\) \$rServerID, CONFIG_PATH \. \047cluster\/serve_only\047\)/s', $rCmd, 'a completed serve-only install writes the marker');
-		$this->assertStringContainsString("sudo rm -f ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'a non-serve-only install clears a stale marker');
+		$this->assertMatchesRegularExpression("/if \\(\\\$rType == 2\\) \\{.*sudo -u xc_vm tee ' \\. CONFIG_PATH \\. 'cluster\\/serve_only/s", $rCmd, 'a completed serve-only install writes the marker as xc_vm');
+		$this->assertStringContainsString("sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'a non-serve-only install clears a stale marker as xc_vm');
+		$this->assertStringNotContainsString("sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'no root chown through the xc_vm-owned marker path (symlink privesc)');
 
 		// provisionConfig no longer writes the plaintext marker (so a mid-install
 		// failure cannot leave it); it only packs the PHP-side serve_only into config.enc.
@@ -95,7 +99,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('bool $rServeOnly = false', $rLb, 'configureRuntime takes the serve_only flag');
 		$this->assertStringNotContainsString("sudoWrite('listen 8080", $rLb, 'the demote is NOT written at install — the cron owns it');
 		$this->assertStringContainsString('set_real_ip_from 127.0.0.1;', $rLb, 'configureRuntime sets the loopback real-IP trust');
-		$this->assertStringContainsString("cluster/front_addr'", $rLb, 'configureRuntime records the front listen address (https_broadcast_port)');
+		$this->assertStringContainsString("sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/front_addr", $rLb, 'configureRuntime records the front listen address (https_broadcast_port) as xc_vm, not a root write');
 
 		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the cron is serve_only-aware, strictly gated on the marker');

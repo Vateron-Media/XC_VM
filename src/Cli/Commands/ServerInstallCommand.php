@@ -327,12 +327,16 @@ class ServerInstallCommand implements CommandInterface {
 				// install — so a failed install never leaves the node's runtime mode
 				// disagreeing with MAIN, and config/ (which survives a re-install) is kept
 				// consistent with the DB serve_only just committed above.
+				//
+				// Written AS xc_vm (never root): config/cluster is xc_vm-owned, so a root
+				// write or chown through it would follow a symlink an unprivileged xc_vm
+				// could plant there and escalate. xc_vm writing its own files crosses no
+				// privilege boundary (it fails closed on a path it cannot already write).
 				if ($rServeOnly) {
-					call_user_func($rRunSSH, $rConn, 'sudo install -d -o xc_vm -g xc_vm -m 0755 ' . CONFIG_PATH . 'cluster');
-					call_user_func($rRunSSH, $rConn, LbInstallFlow::sudoWrite((string) $rServerID, CONFIG_PATH . 'cluster/serve_only'));
-					call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/serve_only');
+					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm mkdir -p ' . CONFIG_PATH . 'cluster');
+					call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg((string) $rServerID) . ' | sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/serve_only > /dev/null');
 				} else {
-					call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . CONFIG_PATH . 'cluster/serve_only');
+					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only');
 				}
 			}
 		} else {
