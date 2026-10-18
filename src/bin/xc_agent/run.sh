@@ -109,9 +109,36 @@ while true; do
     exit 0
   fi
   if [ -x "$AGENT_DIR/xc_agent" ]; then
+    # Serve-only LB (Phase A): seed the fanout with the node's assigned streams
+    # from the replica (replaces PHP seedLocal) and carry its id + fanout binary
+    # so a transcode directive resolves {server_id}/{binary}. The marker's content
+    # is the node's server id; absent on a legacy node, so no extra flags there.
+    # Gated on the serve_only marker AND on the agent knowing -seed-fanout (an
+    # older agent binary exits non-zero on an unknown flag, which would fail the
+    # install's agent-start check and crash-loop here; without the flags it just
+    # enrols normally and seeding activates once a capable binary is in place —
+    # the same self-healing the fanout front gate uses).
+    SEED=()
+    if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$AGENT_DIR/xc_agent" run -h 2>&1 | grep -q -- '-seed-fanout'; then
+      # Resolve the node's ffmpeg/ffprobe for a transcode directive's portable Spec
+      # ({ffmpeg_cpu}/{ffmpeg_gpu}/{ffprobe}/{streams}/{logs}). The daemon defaults
+      # ("ffmpeg"/"ffprobe") are not on a node's PATH — builds live under
+      # bin/ffmpeg_bin/<ver>/; with no separate GPU build the CPU one is the fallback.
+      FF=$(ls -d "$SCRIPT"/bin/ffmpeg_bin/*/ffmpeg 2>/dev/null | sort -Vr | head -1)
+      FP="$(dirname "${FF:-x}")/ffprobe"
+      # {streams}/{logs} must resolve to the app's own path constants (STREAMS_PATH
+      # = content/streams/, the ramdisk nginx serves; LOGS_TMP_PATH = tmp/logs/) —
+      # the node substitutes a directive's tokens back to these exact paths.
+      mkdir -p "$SCRIPT/tmp/logs" 2>/dev/null
+      SEED=(-seed-fanout -server-id "$(cat "$SCRIPT/config/cluster/serve_only")" \
+        -fanout-binary "$SCRIPT/bin/xc_fanout/xc_fanout" \
+        -ffmpeg "${FF:-ffmpeg}" -ffmpeg-gpu "${FF:-ffmpeg}" \
+        -ffprobe "$([ -x "$FP" ] && echo "$FP" || echo ffprobe)" \
+        -streams "$SCRIPT/content/streams/" -logs "$SCRIPT/tmp/logs/")
+    fi
     pkill -u xc_vm -x xc_agent 2>/dev/null
     started=$(date +%s)
-    "$AGENT_DIR/xc_agent" run -state "$STATE" >> "$LOG" 2>&1 &
+    "$AGENT_DIR/xc_agent" run -state "$STATE" "${SEED[@]}" >> "$LOG" 2>&1 &
     pid=$!
     watcher=""
     if [ -f "$AGENT_DIR/xc_agent.trial" ]; then

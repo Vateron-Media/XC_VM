@@ -6,8 +6,11 @@ use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
 use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Cluster\StreamRecords;
+use XcVm\Core\Cluster\StreamRuntimeDirective;
 use XcVm\Core\Cluster\StreamVersions;
 use XcVm\Core\Cluster\StrictQuery;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\StreamSource;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -131,7 +134,7 @@ final class StreamReplica {
 		self::read('SELECT `stream_id`, `ver` FROM `cluster_stream_ver` WHERE `server_id` = ? AND `ver` > ? ORDER BY `ver` ASC LIMIT ' . self::MAX_ROWS . ';', $rServerID, $rSince);
 		$rRows = array_map(static fn(array $rRow): array => [(int) $rRow['stream_id'], (int) $rRow['ver']], self::db()->get_rows() ?: []);
 		$rData = self::data($rServerID, self::held($rServerID, array_column($rRows, 0)));
-		$rPage = self::page($rCrypto, $rNode, $rRows, $rData, null);
+		$rPage = self::pageServeOnly($rCrypto, $rNode, $rRows, $rData, null);
 		$rDone = $rPage['done'];
 		$rOut = [
 			'ver' => $rDone > 0 ? $rRows[$rDone - 1][1] : $rSince, 'head' => $rHead,
@@ -167,12 +170,46 @@ final class StreamReplica {
 		sort($rIDs);
 		$rVers = self::versions($rServerID, $rHeld);
 		$rItems = array_map(static fn(int $rID): array => [$rID, $rVers[$rID] ?? 0], $rIDs);
-		$rPage = self::page($rCrypto, $rNode, $rItems, self::data($rServerID, $rHeld), $rHashes);
+		$rPage = self::pageServeOnly($rCrypto, $rNode, $rItems, self::data($rServerID, $rHeld), $rHashes);
 		if ($rPage['done'] < count($rItems)) {
 			$rNext = $rItems[$rPage['done']][0];
 		}
 		$rOut = ['ver' => $rSince, 'head' => $rHead, 'next' => $rNext, 'streams' => $rPage['streams'], 'removed' => $rPage['removed']];
 		return $rOut + ($rPage['withheld'] > 0 ? ['withheld' => $rPage['withheld']] : []);
+	}
+
+	/**
+	 * page(), gated for a serve-only target: before signing the records, it
+	 * installs the batched snapshot loader (runtimeLoader) and the directive
+	 * composer (runtimeUpgrade) so page() upgrades each survivor's directive to
+	 * a portable transcode Spec, always restoring the previous StreamSource
+	 * backend. A non-serve-only target pages exactly as before (no loader, no
+	 * composer) — the inert guarantee. The serve_only column is read once here.
+	 *
+	 * @param list<array{0: int, 1: int}> $rItems
+	 * @param array<int, array<string, mixed>> $rData
+	 * @param array<int, string>|null $rHave
+	 * @return array{streams: list<array{id: int, ver: int, etag: string, sealed: string}>, removed: list<int>, done: int, withheld: int}
+	 */
+	private static function pageServeOnly(ClusterCrypto $rCrypto, array $rNode, array $rItems, array $rData, ?array $rHave): array {
+		$rServerID = (int) $rNode['server_id'];
+		if (!self::serveOnly($rServerID)) {
+			return self::page($rCrypto, $rNode, $rItems, $rData, $rHave);
+		}
+		// features [] — MAIN does not store a node's live remux capability, so
+		// the Spec defaults to ffmpeg (never wrong). Wiring real features is a follow-up.
+		StreamSource::useLoader(self::runtimeLoader($rServerID, array_keys($rData)));
+		try {
+			return self::page($rCrypto, $rNode, $rItems, $rData, $rHave, self::runtimeUpgrade($rServerID, []));
+		} finally {
+			StreamSource::useLoader(null);
+		}
+	}
+
+	/** Is this server a serve-only LB (`serve_only` on its `servers` row): its Go agent runs the streams MAIN directs (runtimeUpgrade). */
+	private static function serveOnly(int $rServerID): bool {
+		self::read('SELECT `serve_only` FROM `servers` WHERE `id` = ?;', $rServerID);
+		return (bool) (int) (self::db()->get_row()['serve_only'] ?? 0);
 	}
 
 	/**
@@ -187,7 +224,7 @@ final class StreamReplica {
 	 * @param array<int, string>|null $rHave the node's ETags (a resync), null for a delta
 	 * @return array{streams: list<array{id: int, ver: int, etag: string, sealed: string}>, removed: list<int>, done: int, withheld: int}
 	 */
-	private static function page(ClusterCrypto $rCrypto, array $rNode, array $rItems, array $rData, ?array $rHave): array {
+	private static function page(ClusterCrypto $rCrypto, array $rNode, array $rItems, array $rData, ?array $rHave, ?callable $rUpgrade = null): array {
 		$rStreams = [];
 		$rRemoved = [];
 		$rBytes = 0;
@@ -200,6 +237,11 @@ final class StreamReplica {
 				}
 				$rDone++;
 				continue;
+			}
+			if ($rUpgrade !== null) {
+				// A serve-only target: compose the portable Spec for this survivor
+				// and upgrade its directive, before the ETag is taken over it.
+				$rData[$rID]['runtime'] = $rUpgrade($rID, $rData[$rID]['runtime']);
 			}
 			$rEtag = ReplicaBuilder::etag($rData[$rID]);
 			if ($rHave !== null && ($rHave[$rID] ?? '') === $rEtag) {
@@ -261,6 +303,85 @@ final class StreamReplica {
 	 */
 	public static function data(int $rServerID, array $rIDs): array {
 		return StreamRecords::data($rServerID, $rIDs);
+	}
+
+	/**
+	 * A StreamSource loader (StreamSource::useLoader) backed by one batched read
+	 * each of the held streams' full rows, this server's `streams_servers` rows,
+	 * and their arguments — so a serve-only target's portable Spec composes
+	 * (StreamProcess::buildSupervisorSpec) with no per-stream query. The reads
+	 * mirror StreamSource's own SQL so the Spec matches an on-node read; the
+	 * stream join is live-only (streamRow(live: true)), so a non-live stream is
+	 * absent and the loader answers null for it. Only 'stream' / 'server' /
+	 * 'arguments' are answered from the snapshot (portable buildSupervisorSpec
+	 * reads no other kind); 'source' is an empty row, anything else null.
+	 *
+	 * @param list<int> $rIDs the held streams of the page
+	 * @return callable(string, int, array<string, mixed>): mixed
+	 */
+	public static function runtimeLoader(int $rServerID, array $rIDs): callable {
+		$rStreams = [];
+		$rServers = [];
+		$rArgs = [];
+		if ($rIDs !== []) {
+			$rIn = implode(',', array_map('intval', $rIDs));
+			self::read('SELECT t1.*, t2.*, t4.* FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.`type_id` = t1.`type` AND t2.`live` = 1 LEFT JOIN `profiles` t4 ON t1.`transcode_profile_id` = t4.`profile_id` WHERE t1.`direct_source` = 0 AND t1.`id` IN (' . $rIn . ');');
+			foreach (self::db()->get_raw_rows() as $rRow) {
+				$rStreams[(int) $rRow['id']] = StreamRecords::unescaped($rRow);
+			}
+			self::read('SELECT * FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . $rIn . ');', $rServerID);
+			foreach (self::db()->get_raw_rows() as $rRow) {
+				$rServers[(int) $rRow['stream_id']] = StreamRecords::unescaped($rRow);
+			}
+			self::read('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.`argument_id` = t2.`id` AND t1.`stream_id` IN (' . $rIn . ');');
+			foreach (self::db()->get_raw_rows() as $rRow) {
+				$rArgs[(int) $rRow['stream_id']][] = StreamRecords::unescaped($rRow);
+			}
+		}
+		return static function (string $rWhat, int $rID, array $rOpts) use ($rStreams, $rServers, $rArgs): mixed {
+			return match ($rWhat) {
+				'stream' => $rStreams[$rID] ?? null,
+				'server' => $rServers[$rID] ?? null,
+				'arguments' => ($rOpts['keyed'] ?? false) ? array_column($rArgs[$rID] ?? [], null, 'argument_key') : ($rArgs[$rID] ?? []),
+				'source' => [],
+				default => null,
+			};
+		};
+	}
+
+	/**
+	 * The composer a serve-only target's page runs per surviving record: it
+	 * builds the portable Spec (StreamProcess::buildSupervisorSpec, portable
+	 * mode) and upgrades the record's already-classified directive
+	 * (StreamRuntimeDirective::upgrade) — "other" with a non-null Spec becomes
+	 * "transcode"; a proxy or a non-supervisable stream (null Spec) is left
+	 * unchanged. It reads the stream through whatever StreamSource loader is
+	 * installed (the snapshot from runtimeLoader in the signing path; a fake in
+	 * tests), so it runs no query of its own.
+	 *
+	 * @param list<string> $rFeatures the target node's live features (default []): no remux
+	 * @return callable(int, array): array
+	 */
+	public static function runtimeUpgrade(int $rServerID, array $rFeatures): callable {
+		return static function (int $rID, array $rDirective) use ($rServerID, $rFeatures): array {
+			// Only an "other" directive can become a transcode; a proxy (served by
+			// the puller) or an already-decided directive is left as is, and its
+			// Spec is never composed — so buildSupervisorSpec runs only where its
+			// result can be used.
+			if (($rDirective['kind'] ?? '') !== 'other') {
+				return $rDirective;
+			}
+			try {
+				$rSpec = StreamProcess::buildSupervisorSpec($rID, ['features' => $rFeatures, 'server_id' => $rServerID]);
+			} catch (\Throwable $rE) {
+				// Fail closed: one stream that cannot be composed (a malformed source, a
+				// path we miss) must not fail the whole node's sync with a 503. Leave it
+				// "other" and log, so every other stream in the page still syncs.
+				error_log('StreamReplica: serve-only Spec composition failed for stream ' . $rID . ': ' . $rE->getMessage());
+				return $rDirective;
+			}
+			return StreamRuntimeDirective::upgrade($rDirective, $rSpec);
+		};
 	}
 
 	/**

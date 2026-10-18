@@ -45,6 +45,7 @@ use XcVm\Domain\Cluster\StreamReplica;
 use XcVm\Domain\Cluster\TokenService;
 use XcVm\Domain\Stream\ContentSink;
 use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\StreamSource;
 use XcVm\Domain\Stream\StreamRowMerge;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Tests\Support\BusServer;
@@ -98,7 +99,7 @@ final class ClusterApiTest extends TestCase {
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `features` varchar(255) DEFAULT NULL');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `audit` text DEFAULT NULL');
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `arch` varchar(8) DEFAULT NULL');
-		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `status` int NOT NULL DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `servers` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `status` int NOT NULL DEFAULT 0, `serve_only` tinyint(1) NOT NULL DEFAULT 0)');
 		$this->rDb->exec('INSERT INTO `servers` (`id`, `status`) VALUES (5, 0)');
 		$this->rDb->exec('CREATE TABLE `users` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT, `reseller_dns` text, `status` int)');
 		DatabaseFactory::set($this->rDb);
@@ -2431,6 +2432,65 @@ final class ClusterApiTest extends TestCase {
 	}
 
 	private const EVERY_STREAM = ['from' => 0, 'to' => 2147483647];
+
+	/**
+	 * Phase B1: a non-serve-only node never gets a transcode directive — the
+	 * record's `runtime` stays the classifier's "proxy"/"other" with no `spec`.
+	 * This is the inert guarantee: the serve_only gate changes nothing here.
+	 */
+	public function testNonServeOnlyNodeEmitsNoTranscodeDirective(): void {
+		$this->streamsTables();
+		$rKeys = $this->streamsNode();
+		$rOut = $this->served('streams', ['since' => 0, 'resync' => self::EVERY_STREAM + ['hashes' => new \stdClass()]], 1, $rKeys);
+		foreach ($rOut['streams'] as $rE) {
+			$rData = $this->openRecord($rE['sealed'], 'rep')['data'];
+			$this->assertNotSame('transcode', $rData['runtime']['kind'], 'no transcode directive without serve_only');
+			$this->assertArrayNotHasKey('spec', $rData['runtime']);
+		}
+	}
+
+	/**
+	 * Phase B1: a serve-only node's record carries a portable transcode Spec
+	 * (StreamProcess::buildSupervisorSpec, node-local values as tokens), composed
+	 * page-bound from the batched snapshot; and the snapshot loader is reset
+	 * after the page (it does not leak into later StreamSource reads).
+	 */
+	public function testServeOnlyNodeEmitsTranscodeDirectiveAndResetsLoader(): void {
+		$this->streamsTables();
+		// buildSupervisorSpec reads these legacy globals/constants (see
+		// BuildSupervisorSpecPortableTest); set them so a real stream composes.
+		foreach (['STREAMS_PATH' => '/tmp/xcvm-ct-streams/', 'LOGS_TMP_PATH' => '/tmp/xcvm-ct-logs/', 'CACHE_TMP_PATH' => '/tmp/xcvm-ct-cache/', 'DELAY_PATH' => '/tmp/xcvm-ct-delay/', 'FFMPEG_BIN_40' => '/bin/ffmpeg40', 'FFPROBE_BIN_40' => '/bin/ffprobe40'] as $rK => $rV) {
+			if (!defined($rK)) {
+				define($rK, $rV);
+			}
+		}
+		@mkdir(STREAMS_PATH, 0o777, true);
+		$GLOBALS['rSettings'] = ['seg_time' => 6, 'seg_list_size' => 8, 'seg_delete_threshold' => 4, 'encrypt_hls' => 0, 'fanout_source_backend' => 'ffmpeg', 'live_streaming_pass' => 'secret', 'priority_backup' => 0, 'ffmpeg_warnings' => 0, 'read_native_hls' => 0, 'dts_legacy_ffmpeg' => 0, 'ignore_keyframes' => 0, 'save_restart_logs' => 0, 'stream_max_analyze' => 0, 'probesize' => 1000000, 'probe_extra_wait' => 0];
+		$GLOBALS['rServers'] = [5 => ['rtmp_port' => 1935, 'server_id' => 5]];
+		$GLOBALS['rFFMPEG_CPU'] = '/bin/ffmpeg';
+		$GLOBALS['rFFMPEG_GPU'] = '/bin/ffmpeg-gpu';
+		$GLOBALS['rFFPROBE'] = '/bin/ffprobe';
+		$this->rDb->exec('UPDATE `servers` SET `serve_only` = 1 WHERE `id` = 5');
+		$rKeys = $this->streamsNode();
+
+		$rOut = $this->served('streams', ['since' => 0, 'resync' => self::EVERY_STREAM + ['hashes' => new \stdClass()]], 1, $rKeys);
+		$rByID = [];
+		foreach ($rOut['streams'] as $rE) {
+			$rByID[$rE['id']] = $this->openRecord($rE['sealed'], 'rep')['data'];
+		}
+
+		// Stream 10 is a plain live stream assigned to node 5 → transcode directive.
+		$this->assertSame('transcode', $rByID[10]['runtime']['kind'], 'a serve-only node gets a transcode directive');
+		$this->assertStringContainsString('{ffmpeg_cpu}', $rByID[10]['runtime']['spec']['sources'][0]['cmd']);
+		// No node-local path leaks: assert against the real constants (another test
+		// may have defined them first — there is no per-test process isolation).
+		$rJson = (string) json_encode($rByID[10]['runtime']);
+		$this->assertStringNotContainsString(STREAMS_PATH, $rJson, 'no node streams path leaks into the directive');
+		$this->assertStringNotContainsString(LOGS_TMP_PATH, $rJson, 'no node logs path leaks into the directive');
+		// The loader is reset after the page: sourceRow reads the DB (the real
+		// source), where the snapshot loader answers 'source' with [].
+		$this->assertArrayHasKey('stream_source', StreamSource::sourceRow(10), 'snapshot loader reset after the page');
+	}
 
 	/**
 	 * Phase 8: with the node's DATAPLANE flow on, a record carries the relay

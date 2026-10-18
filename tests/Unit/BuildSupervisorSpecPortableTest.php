@@ -195,4 +195,23 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 		$this->assertTrue($rSpec['encrypt'], 'encrypt flag tells the agent to generate+register a key/IV');
 		$this->assertFileDoesNotExist(STREAMS_PATH . '7_.key', 'still no key file written on MAIN');
 	}
+
+	public function testPortableRtmpOutputStreamIsNotComposed(): void {
+		// rtmp_output pushes to the node's OWN rtmp port — composed from the $rServers
+		// global (MAIN's, unset in the cluster process) with no portable token, so it
+		// would embed a wrong port. Portable mode must refuse it (kind "other").
+		StreamSource::useLoader(function (string $rWhat, int $rID, array $rOpts) {
+			if ($rWhat === 'stream') {
+				return $this->streamInfo(['rtmp_output' => 1]);
+			}
+			if ($rWhat === 'server') {
+				return ['parent_id' => 0, 'server_id' => 1, 'on_demand' => 0];
+			}
+			return [];
+		});
+		$this->assertNull(
+			StreamProcess::buildSupervisorSpec(7, ['features' => []]),
+			'an rtmp_output stream is not portably composable (no node-port token)'
+		);
+	}
 }

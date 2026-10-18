@@ -299,7 +299,7 @@ class LbInstallFlow {
 	 *
 	 * @return bool True on success; on failure marks the server as errored (status 4).
 	 */
-	public static function provisionConfig($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db, ?bool $rApiMode = null): bool {
+	public static function provisionConfig($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db, ?bool $rApiMode = null, bool $rServeOnly = false): bool {
 		echo "Generating configuration file\n";
 		$rApiMode ??= self::installsInApiMode(SettingsManager::getAll(), $rServerID);
 		if ($rApiMode && !CredentialFreeConfig::supported()) {
@@ -344,7 +344,7 @@ class LbInstallFlow {
 		// Pack config.enc targeted at the node's install_id. Credentials are
 		// read from MAIN's config.enc inside the extension, never exposed here;
 		// in API mode there are none (CredentialFreeConfig).
-		$rPackParams = self::configPackParams($rServers, $rServerID);
+		$rPackParams = self::configPackParams($rServers, $rServerID, $rServeOnly);
 		$rBlob = $rApiMode ? CredentialFreeConfig::pack($rInstallId, $rPackParams) : \XC_VM::config_pack($rInstallId, $rPackParams);
 		if (empty($rBlob)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -376,6 +376,11 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH);
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 600 ' . CONFIG_PATH . 'config.enc');
 
+		// The plaintext serve_only marker that run.sh reads is written by
+		// ServerInstallCommand on a completed install (and removed on a non-serve-only
+		// one), not here — so a failure after this point never leaves the node's
+		// runtime mode disagreeing with MAIN. The config.enc serve_only above
+		// (configPackParams) is PHP-side only and inert on an incomplete install.
 		return true;
 	}
 
@@ -415,13 +420,13 @@ class LbInstallFlow {
 	 * @param array<int, array<string, mixed>> $rServers
 	 * @return array<string, mixed>
 	 */
-	public static function configPackParams(array $rServers, int $rServerID): array {
+	public static function configPackParams(array $rServers, int $rServerID, bool $rServeOnly = false): array {
 		return [
 			'hostname'  => $rServers[SERVER_ID]['server_ip'],
 			'database'  => 'xc_vm',
 			'server_id' => $rServerID,
 			'is_lb'     => 1,
-		];
+		] + ($rServeOnly ? ['serve_only' => 1] : []);
 	}
 
 	/**
@@ -448,7 +453,7 @@ class LbInstallFlow {
 		return true;
 	}
 
-	public static function configureRuntime($rConn, callable $rSendFileSSH, callable $rRunSSH, array $rServers, int $rServerID): int {
+	public static function configureRuntime($rConn, callable $rSendFileSSH, callable $rRunSSH, array $rServers, int $rServerID, bool $rServeOnly = false): int {
 		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/custom.conf', MAIN_HOME . 'bin/nginx/conf/custom.conf', false);
 		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/realip_cdn.conf', MAIN_HOME . 'bin/nginx/conf/realip_cdn.conf', false);
 		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/realip_cloudflare.conf', MAIN_HOME . 'bin/nginx/conf/realip_cloudflare.conf', false);
@@ -457,6 +462,30 @@ class LbInstallFlow {
 		call_user_func($rRunSSH, $rConn, self::sudoWrite('', '/home/xc_vm/bin/nginx/conf/limit_queue.conf'));
 		$rIP = '127.0.0.1:' . $rServers[$rServerID]['http_broadcast_port'];
 		call_user_func($rRunSSH, $rConn, self::sudoWrite('on_play http://' . $rIP . '/stream/rtmp; on_publish http://' . $rIP . '/stream/rtmp; on_play_done http://' . $rIP . '/stream/rtmp;', '/home/xc_vm/bin/nginx_rtmp/conf/live.conf'));
+		if ($rServeOnly) {
+			// Serve-only single-binary LB (Phase A): the Go front (xc_fanout -front)
+			// owns the node's public HTTPS port and reverse-proxies non-serve requests
+			// to nginx on a loopback backend (127.0.0.1:8080). nginx trusts the front on
+			// loopback for the viewer IP (the front sets X-Real-IP / X-Forwarded-For and
+			// nginx's real_ip_header is already X-Forwarded-For). php-fpm and the rest of
+			// the node stay; removing them is Phase 5.
+			//
+			// The :443->:8080 demote itself is NOT written here. RootSignalsCronJob owns
+			// the serve-only https listener: it demotes only once the node's fanout is
+			// -front-capable (else it keeps nginx on the public port, so a node whose
+			// binary lacks -front has no outage), and it never reconciles the demoted
+			// listener back to ssl. An unconditional install-time demote created an
+			// outage on a -front-less binary and was reverted by that cron within ~60s.
+			// Here we only set the loopback real-IP trust (static, inert when not
+			// demoted) and record the front's listen address for run.sh — the node's
+			// https_broadcast_port, not a hardcoded :443.
+			call_user_func($rRunSSH, $rConn, self::sudoWrite("\nset_real_ip_from 127.0.0.1;\nset_real_ip_from ::1;\n", MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', true));
+			// Written AS xc_vm (never root): config/cluster is xc_vm-owned, so a root
+			// write/chown through it would follow a symlink an unprivileged xc_vm could
+			// plant there and escalate. xc_vm writing its own file crosses no boundary.
+			call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm mkdir -p ' . CONFIG_PATH . 'cluster');
+			call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg(':' . intval($rServers[$rServerID]['https_broadcast_port'])) . ' | sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/front_addr > /dev/null');
+		}
 		$rServices = (intval(call_user_func($rRunSSH, $rConn, 'sudo cat /proc/cpuinfo | grep "^processor" | wc -l')['output']) ?: 4);
 		call_user_func($rRunSSH, $rConn, 'sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');
 		// The pool configs, daemons.sh and balance.conf, each through a
