@@ -183,9 +183,11 @@ class StreamProcess {
 		// A serve-only LB relays a loopback stream (parent_id > 0) through its Go
 		// agent (which registers the node-local relay URL with the puller), not a
 		// PHP LoopbackCommand. Leave it to the agent/daemon before the supervise/PHP
-		// paths, or the daemon would be double-fed (PHP push + puller pull).
+		// paths, or the daemon would be double-fed (PHP push + puller pull). The row
+		// is read via StreamSource (the replica on a serve-only LB, which has no
+		// MySQL) — never self::db(), which would throw there.
 		if (self::nodeServeOnly()) {
-			$rOwn = self::ownServerRow(intval($rStreamID), self::db());
+			$rOwn = StreamSource::serverRow(intval($rStreamID));
 			if ($rOwn !== null && (int) ($rOwn['parent_id'] ?? 0) > 0) {
 				return self::MONITOR_FANOUT;
 			}
