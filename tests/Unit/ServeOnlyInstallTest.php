@@ -56,6 +56,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString("\$rServeOnly = \$rType == 2 && in_array('--serve-only', \$rArgs, true);", $rSrc, 'the --serve-only flag is matched from the positional args for an LB');
 		$this->assertStringContainsString('`serve_only` = ?', $rSrc, 'the final success UPDATE sets serve_only');
 		$this->assertStringContainsString('StreamVersions::bump(StreamRecords::held($rServerID', $rSrc, 'B2: a serve_only install re-stamps its held streams');
+		$this->assertMatchesRegularExpression('/try \{\s*StreamVersions::bump/', $rSrc, 'B2 is fault-tolerant: the non-essential re-stamp is wrapped so a DB hiccup does not fail the install');
 		$this->assertStringContainsString('$db, $rApiMode, $rServeOnly)', $rSrc, 'serve_only threads into provisionConfig');
 	}
 
@@ -70,6 +71,9 @@ final class ServeOnlyInstallTest extends TestCase {
 		// content is the server id, under config/cluster/.
 		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
 		$this->assertStringContainsString("self::sudoWrite((string) \$rServerID, CONFIG_PATH . 'cluster/serve_only')", $rSrc);
+		// Downgrade safety: a non-serve-only (re)install must REMOVE a stale marker,
+		// so the off-path undoes the on-path (config/ survives a re-install).
+		$this->assertStringContainsString("sudo rm -f ' . CONFIG_PATH . 'cluster/serve_only'", $rSrc, 'a non-serve-only install clears the marker');
 	}
 
 	public function testConfigureRuntimeDemotesNginxForServeOnly(): void {
@@ -100,5 +104,10 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('config/cluster/serve_only', $rAgent, 'agent run.sh gates seeding on the marker');
 		$this->assertStringContainsString('-seed-fanout', $rAgent, 'agent run.sh seeds the fanout for a serve-only node');
 		$this->assertStringContainsString("grep -q -- '-seed-fanout'", $rAgent, 'seeding is gated on the agent binary knowing -seed-fanout, so an older agent still enrols');
+		// A transcode directive's portable Spec needs the node's resolver paths; the
+		// daemon defaults ("ffmpeg"/"ffprobe") are not on a node's PATH.
+		foreach (['-ffmpeg ', '-ffmpeg-gpu ', '-ffprobe ', '-streams '] as $rFlag) {
+			$this->assertStringContainsString($rFlag, $rAgent, "agent seeding passes {$rFlag}for transcode-directive path resolution");
+		}
 	}
 }

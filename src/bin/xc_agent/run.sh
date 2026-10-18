@@ -120,7 +120,18 @@ while true; do
     # the same self-healing the fanout front gate uses).
     SEED=()
     if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$AGENT_DIR/xc_agent" run -h 2>&1 | grep -q -- '-seed-fanout'; then
-      SEED=(-seed-fanout -server-id "$(cat "$SCRIPT/config/cluster/serve_only")" -fanout-binary "$SCRIPT/bin/xc_fanout/xc_fanout" -logs "$SCRIPT/logs/tmp/")
+      # Resolve the node's ffmpeg/ffprobe for a transcode directive's portable Spec
+      # ({ffmpeg_cpu}/{ffmpeg_gpu}/{ffprobe}/{streams}/{logs}). The daemon defaults
+      # ("ffmpeg"/"ffprobe") are not on a node's PATH — builds live under
+      # bin/ffmpeg_bin/<ver>/; with no separate GPU build the CPU one is the fallback.
+      FF=$(ls -d "$SCRIPT"/bin/ffmpeg_bin/*/ffmpeg 2>/dev/null | sort -Vr | head -1)
+      FP="$(dirname "${FF:-x}")/ffprobe"
+      mkdir -p "$SCRIPT/logs/tmp" 2>/dev/null
+      SEED=(-seed-fanout -server-id "$(cat "$SCRIPT/config/cluster/serve_only")" \
+        -fanout-binary "$SCRIPT/bin/xc_fanout/xc_fanout" \
+        -ffmpeg "${FF:-ffmpeg}" -ffmpeg-gpu "${FF:-ffmpeg}" \
+        -ffprobe "$([ -x "$FP" ] && echo "$FP" || echo ffprobe)" \
+        -streams "$SCRIPT/streams/" -logs "$SCRIPT/logs/tmp/")
     fi
     pkill -u xc_vm -x xc_agent 2>/dev/null
     started=$(date +%s)

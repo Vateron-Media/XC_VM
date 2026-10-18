@@ -304,13 +304,20 @@ class ServerInstallCommand implements CommandInterface {
 		}
 
 		if (in_array($rType, [1, 2])) {
-			$db->query('UPDATE `servers` SET `status` = 1, `http_broadcast_port` = ?, `https_broadcast_port` = ?, `total_services` = ?, `serve_only` = ? WHERE `id` = ?;', $rHTTPPort, $rHTTPSPort, $rServices, $rServeOnly ? 1 : 0, $rServerID);
 			if ($rServeOnly) {
-				// B2: serve_only gates whether this node's records carry a transcode
-				// Spec, so re-stamp its held streams' versions — the next delta re-emits
-				// their directives rather than waiting for the ~5-min resync safety net.
-				StreamVersions::bump(StreamRecords::held($rServerID, null));
+				// B2, before the mode flip: serve_only gates whether this node's records
+				// carry a transcode Spec, so re-stamp its held streams' versions — the
+				// next delta re-emits their directives rather than waiting for the ~5-min
+				// resync safety net. Done first so serve_only is never committed while the
+				// directives still carry the old version; non-essential (the resync covers
+				// it), so a DB hiccup here must not fail an otherwise-complete install.
+				try {
+					StreamVersions::bump(StreamRecords::held($rServerID, null));
+				} catch (\Throwable $rE) {
+					echo 'serve_only install: held-stream re-stamp failed (' . $rE->getMessage() . '); the periodic resync will re-emit.' . "\n";
+				}
 			}
+			$db->query('UPDATE `servers` SET `status` = 1, `http_broadcast_port` = ?, `https_broadcast_port` = ?, `total_services` = ?, `serve_only` = ? WHERE `id` = ?;', $rHTTPPort, $rHTTPSPort, $rServices, $rServeOnly ? 1 : 0, $rServerID);
 		} else {
 			$db->query('UPDATE `servers` SET `status` = 1 WHERE `id` = ?;', $rServerID);
 		}

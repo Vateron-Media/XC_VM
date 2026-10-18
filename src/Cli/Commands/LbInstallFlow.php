@@ -383,6 +383,13 @@ class LbInstallFlow {
 			call_user_func($rRunSSH, $rConn, 'sudo mkdir -p ' . CONFIG_PATH . 'cluster');
 			call_user_func($rRunSSH, $rConn, self::sudoWrite((string) $rServerID, CONFIG_PATH . 'cluster/serve_only'));
 			call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH . 'cluster');
+		} else {
+			// Downgrade safety: config/ survives a re-install, so a node reinstalled
+			// WITHOUT --serve-only must not keep a stale marker — otherwise its run.sh
+			// would keep launching the front + seeding while MAIN records serve_only=0
+			// and the archive-restored https.conf puts nginx back on :443, so the front
+			// and nginx both target :443. The off-path undoes the on-path.
+			call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . CONFIG_PATH . 'cluster/serve_only');
 		}
 
 		return true;
