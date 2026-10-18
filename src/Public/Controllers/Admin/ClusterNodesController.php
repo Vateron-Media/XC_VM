@@ -6,8 +6,8 @@ use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Cluster\ClusterAdmin;
-use XcVm\Domain\Cluster\ClusterMeta;
 use XcVm\Domain\Cluster\ClusterOverview;
+use XcVm\Domain\Cluster\CorePins;
 use XcVm\Domain\Cluster\MainDataPlane;
 use XcVm\Domain\Server\ServerRepository;
 
@@ -163,7 +163,7 @@ class ClusterNodesController extends BaseAdminController {
 				'clusterPending' => ClusterAdmin::pending($rServers),
 				'clusterLbs' => ClusterAdmin::loadBalancers($rServers),
 				'clusterFlashes' => $rFlashes,
-				'clusterPanelFp' => ClusterMeta::get('panel_fp') ?? '',
+				'clusterPanelFp' => CorePins::panelFp() ?? '',
 			];
 		} catch (\Throwable $rErr) {
 			// The tables exist but the read or a calculation failed unexpectedly:

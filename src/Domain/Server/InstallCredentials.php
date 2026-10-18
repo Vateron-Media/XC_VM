@@ -114,7 +114,12 @@ final class InstallCredentials {
 	}
 
 	/**
-	 * Split `--name=value` options out of server:install's arguments.
+	 * Split `--name=value` options out of server:install's arguments. A
+	 * valueless flag (e.g. `--serve-only`, `--all`, `--dry-run`) stays in the
+	 * positional list and the command recognises it there with `in_array()` —
+	 * do NOT route valueless flags into the options map, as cluster:reenrol
+	 * reads `--all`/`--pending`/`--dry-run` from the positional list and rejects
+	 * unknown option keys.
 	 *
 	 * @param list<string> $rArgs
 	 * @return array{0: list<string>, 1: array<string, string>} [positional, options]

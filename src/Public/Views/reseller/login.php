@@ -3,7 +3,7 @@
 // Bootstrap 5 (new-UI) reseller login — shares the XC_VM "Core Access" HUD design
 // with the admin login (single-look dark + red). Auth/flood/redirect handling is
 // done by the reseller controller before this view is included; here we only
-// render. Assets resolve to the admin tree via the Public/assets/reseller symlink.
+// render. Assets resolve to the admin tree (the reseller code's nginx assets alias points at Public/assets/admin).
 $rBrand = ($rSettings['server_name'] ?? '') ?: 'XC_VM';
 $rStatusMessages = [
     STATUS_FAILURE         => 'login_message_1',

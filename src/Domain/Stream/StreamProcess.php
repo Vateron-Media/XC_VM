@@ -1084,7 +1084,11 @@ class StreamProcess {
 					$rFFMPEG_CPU = FfmpegPaths::legacy();
 				}
 
-				$rNoFix = FfmpegPaths::fixDts($rFFMPEG_CPU) ? '-nofix_dts' : '';
+				// Portable: the command keeps the {ffmpeg_cpu} token, so decide
+				// -nofix_dts from the real binary of the stream's ffmpeg version
+				// (ffmpegReal — the same build the target resolves the token to),
+				// never the placeholder. Off-portable, ffmpegReal is null → unchanged.
+				$rNoFix = FfmpegPaths::fixDts($data['ffmpegReal'] ?? $rFFMPEG_CPU) ? '-nofix_dts' : '';
 				$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
 			}
 
@@ -1159,7 +1163,7 @@ class StreamProcess {
 
 		// A push URL is a value, not template text: it takes a token of its own.
 		$rPushTargets = [];
-		if (!empty($rExternalPush[SERVER_ID])) {
+		if (defined('SERVER_ID') && !empty($rExternalPush[SERVER_ID])) {
 			foreach ($rExternalPush[SERVER_ID] as $rPushURL) {
 				$rToken = '{PUSH_' . count($rPushTargets) . '}';
 				$rPushTargets[$rToken] = escapeshellarg($rPushURL);
@@ -1684,27 +1688,61 @@ class StreamProcess {
 	/**
 	 * Build the supervisor spec for a live stream on this server, or null when it
 	 * has to run under the PHP monitor (not found, a kind the supervisor does not
-	 * take, or no daemon ingest to feed).
+	 * take, or — on-node — no daemon ingest to feed).
 	 *
-	 * Registers the stream's ingest with the daemon and writes its HLS key/iv,
-	 * because both are baked into the commands.
+	 * On-node ($rPortable === null): registers the stream's ingest with the local
+	 * daemon and writes its HLS key/iv, because both are baked into the commands.
+	 *
+	 * Portable mode ($rPortable !== null, 4b-i): composes a node-agnostic spec for
+	 * a serve-only LB — node-local values become placeholder tokens (the ingest
+	 * socket is `{ingest_sock}`), and the side effects above are SKIPPED: the LB's
+	 * agent generates+registers the key/iv itself at apply time. See the body.
 	 *
 	 * @param int $rStreamID Stream id.
+	 * @param array|null $rPortable Portable-mode options (`features`, `server_id`),
+	 *   or null for the on-node spec.
 	 * @return array|null The spec for FanoutClient::supervise(), or null.
 	 */
-	public static function buildSupervisorSpec(int $rStreamID): ?array {
+	public static function buildSupervisorSpec(int $rStreamID, ?array $rPortable = null): ?array {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
-		$db = self::db();
-		$rFFMPEGCpu = $rFFMPEG_CPU ?: FfmpegPaths::cpu();
-		$rFFMPEGGpu = $rFFMPEG_GPU ?: FfmpegPaths::gpu();
-		$rFFProbeBin = $rFFPROBE ?: FfmpegPaths::probe();
+		// Portable mode (4b-i): compose a node-agnostic Spec for a serve-only LB —
+		// node-local values become placeholder tokens the target node resolves, and
+		// the on-node side effects (key/IV files, ingest registration) are skipped.
+		// The default path ($rPortable === null) is byte-for-byte unchanged. The
+		// target node's daemon features come from $rPortable['features'] (a string
+		// list); absent → no remux, so the portable command defaults to ffmpeg.
+		$rPortableMode = $rPortable !== null;
+		$rFeatures = $rPortableMode ? array_values(array_map('strval', (array) ($rPortable['features'] ?? []))) : [];
+		// Composing a record for another node (portable) reads the stream through
+		// the replica/loader, never this node's DB — so do not require one.
+		$db = $rPortableMode ? null : self::db();
+		if ($rPortableMode) {
+			$rFFMPEGCpu = '{ffmpeg_cpu}';
+			$rFFMPEGGpu = '{ffmpeg_gpu}';
+			$rFFProbeBin = '{ffprobe}';
+		} else {
+			$rFFMPEGCpu = $rFFMPEG_CPU ?: FfmpegPaths::cpu();
+			$rFFMPEGGpu = $rFFMPEG_GPU ?: FfmpegPaths::gpu();
+			$rFFProbeBin = $rFFPROBE ?: FfmpegPaths::probe();
+		}
 
 		$rStreamRow = StreamSource::streamRow(intval($rStreamID), true, $db);
 		if ($rStreamRow === null) {
 			return null;
 		}
 		$rStream = ['stream_info' => $rStreamRow];
-		$rServerRow = StreamSource::serverRow(intval($rStreamID), null, $db);
+		if ($rPortableMode) {
+			// external_push is keyed by SERVER_ID, so composing it here would use
+			// MAIN's bucket — wrong destinations and MAIN's push credentials in a
+			// replicated Spec. A serve-only LB does not push; strip it so neither
+			// buildLive nor the refusal checks compose or branch on it.
+			$rStream['stream_info']['external_push'] = '[]';
+		}
+		// Portable mode composes for the TARGET LB, so its server context
+		// (on_demand/parent_id, which drive loopback/LLOD) comes from the target's
+		// row, not this node's. The default path reads this node's (null → SERVER_ID).
+		$rTargetServerID = $rPortableMode ? intval($rPortable['server_id'] ?? SERVER_ID) : null;
+		$rServerRow = StreamSource::serverRow(intval($rStreamID), $rTargetServerID, $db);
 		if ($rServerRow === null) {
 			return null;
 		}
@@ -1713,10 +1751,25 @@ class StreamProcess {
 
 		$rInfo = $rStream['stream_info'];
 		$rParentID = intval($rStream['server_info']['parent_id']);
+		// Loopback (parent_id > 0) is out of portable scope (design D-b, D2): its
+		// source is a relay URL carrying live_streaming_pass, which must never be
+		// composed into a replicated Spec — the LB resolves its own loopback relay
+		// (a later placeholder). Emit no transcode directive for it (kind "other").
+		if ($rPortableMode && $rParentID > 0) {
+			return null;
+		}
 		// Kinds the PHP monitor keeps: a delayed stream runs its own playlist
 		// worker off the encoder's, and a created channel resumes at an offset
 		// computed at each start.
 		if ((intval($rInfo['delay_minutes']) > 0 && $rParentID === 0) || $rInfo['type_key'] === 'created_live') {
+			return null;
+		}
+		// rtmp_output re-publishes to the node's OWN rtmp port, composed from the
+		// $rServers global (MAIN's, unset in the cluster process) with no portable
+		// token — a replicated Spec would embed a wrong port. A serve-only LB does
+		// not re-publish: refuse it portably (the stream stays "other"); a
+		// node-rtmp-port token is a later placeholder if one is ever needed.
+		if ($rPortableMode && intval($rInfo['rtmp_output'] ?? 0) === 1) {
 			return null;
 		}
 
@@ -1744,14 +1797,24 @@ class StreamProcess {
 		$rSegmentSettings = ['seg_time' => intval($rSettings['seg_time']), 'seg_list_size' => intval($rSettings['seg_list_size']), 'seg_delete_threshold' => intval($rSettings['seg_delete_threshold'])];
 		list($rProbesize, $rAnalyseDuration, $rTimeout) = self::resolveProbeSettings($rStream['server_info']['on_demand'], $rInfo['probesize_ondemand'], $rLLOD, $rSettings);
 
-		self::writeStreamKeyIv($rStreamID);
-		// Loopback included: the playlist declares AES-128 whenever encrypt_hls is
-		// on (HLSGenerator::tokenizeDaemonPlaylist), so a daemon fed without the
-		// key served plain segments no player could decrypt.
-		[$rEncKey, $rEncIV] = !empty($rSettings['encrypt_hls']) ? IngestFeeder::streamKey($rStreamID) : [null, null];
-		$rIngestSock = FanoutClient::registerIngest($rStreamID, $rEncKey, $rEncIV);
-		if ($rIngestSock === null) {
-			return null; // no daemon to feed: the stream runs the legacy way
+		$rEncrypt = !empty($rSettings['encrypt_hls']);
+		if ($rPortableMode) {
+			// Side-effect-free: the LB agent generates the key/IV and registers the
+			// ingest socket at apply time (4b-ii). Here the socket is a token and no
+			// key/IV file is written; the Spec's `encrypt` flag tells the agent when
+			// to. The key/IV never appear in the Spec or command (the fanout, not
+			// ffmpeg, encrypts — set via the ingest registration).
+			$rIngestSock = '{ingest_sock}';
+		} else {
+			self::writeStreamKeyIv($rStreamID);
+			// Loopback included: the playlist declares AES-128 whenever encrypt_hls is
+			// on (HLSGenerator::tokenizeDaemonPlaylist), so a daemon fed without the
+			// key served plain segments no player could decrypt.
+			[$rEncKey, $rEncIV] = $rEncrypt ? IngestFeeder::streamKey($rStreamID) : [null, null];
+			$rIngestSock = FanoutClient::registerIngest($rStreamID, $rEncKey, $rEncIV);
+			if ($rIngestSock === null) {
+				return null; // no daemon to feed: the stream runs the legacy way
+			}
 		}
 
 		$rArgsByKey = [];
@@ -1762,7 +1825,7 @@ class StreamProcess {
 		$rNativeStream = false;
 		if ($rBackend !== 'ffmpeg') {
 			$rRefusal = self::remuxRefusal($rInfo, $rArgsByKey);
-			if ($rRefusal === null && !FanoutClient::supportsRemux()) {
+			if ($rRefusal === null && !($rPortableMode ? in_array('remux', $rFeatures, true) : FanoutClient::supportsRemux())) {
 				// The node's daemon predates `xc_fanout remux`. Handing it the
 				// command would not fail cleanly — it would start a process that
 				// tries to be a second daemon — so this stream stays on ffmpeg
@@ -1770,16 +1833,29 @@ class StreamProcess {
 				$rRefusal = 'this node\'s xc_fanout has no native remuxer (update the daemon binary)';
 			}
 			$rNativeStream = $rRefusal === null;
-			if ($rRefusal !== null) {
+			// noteProducer writes to this node's disk — skip in portable mode, which
+			// composes for another node and must stay side-effect-free.
+			if ($rRefusal !== null && !$rPortableMode) {
 				self::noteProducer($rStreamID, 'ffmpeg runs this stream: ' . $rRefusal);
 			}
 		}
 		$rPriority = !empty($rSettings['priority_backup']) && count($rSources) > 1 && !$rLoopback;
 		// Asked once, of the daemon the hand-over just asked (supportsRemux() above).
-		$rSourceFiles = $rNativeStream && FanoutClient::supportsLive('remux_source_file');
+		// Portable: never — writeNativeSource would write a file on MAIN the LB
+		// agent never creates, leaving the command's source path dangling. The
+		// source goes on the argv instead (tokenized like the rest).
+		$rSourceFiles = $rNativeStream && !$rPortableMode && FanoutClient::supportsLive('remux_source_file');
 
 		$rSpecSources = [];
 		foreach ($rSources as $i => $rSource) {
+			// A module source driver needs PHP and the module on the node, and its
+			// command carries un-portable MAIN paths (PHP_BIN, MAIN_HOME, the driver
+			// binary). A serve-only LB has none of that: out of portable scope — emit
+			// no transcode directive (checked before driverSpecEntries, which can
+			// write to this node's log on a driver error).
+			if ($rPortableMode && self::sourceDriverFor($rInfo, $rArgsByKey, (string) $rSource) !== null) {
+				return null;
+			}
 			$rDriverEntries = self::driverSpecEntries($rStreamID, $rInfo, $rArgsByKey, (string) $rSource, (string) $i, $rSegmentSettings, $rIngestSock);
 			if ($rDriverEntries !== null) {
 				array_push($rSpecSources, ...$rDriverEntries);
@@ -1799,7 +1875,10 @@ class StreamProcess {
 			$rFetchOptions = implode(' ', StreamUtils::getArguments($rArguments, $rProtocol, 'fetch'));
 
 			$rFFMPEG = self::buildLive([
-				'stream' => $rStream, 'settings' => $rSettings, 'servers' => $rServers,
+				// Portable: force dts_legacy_ffmpeg off so buildLive does not swap the
+				// {ffmpeg_cpu} token for MAIN's legacy binary path (FfmpegPaths::legacy)
+				// on AC3/EAC3 — the token must survive; -nofix_dts is the target's call.
+				'stream' => $rStream, 'settings' => ($rPortableMode ? ['dts_legacy_ffmpeg' => 0] + $rSettings : $rSettings), 'servers' => $rServers,
 				'streamID' => $rStreamID, 'streamSource' => $rStreamSource,
 				'fetchOptions' => $rFetchOptions, 'ffprobe' => self::cachedProbe($rSource, $rStreamSource),
 				'protocol' => $rProtocol, 'source' => $rSource,
@@ -1808,6 +1887,12 @@ class StreamProcess {
 				'llod' => $rLLOD, 'loopback' => $rLoopback,
 				'segmentStart' => 0, 'delayActive' => false,
 				'ffmpegCpu' => $rFFMPEGCpu, 'ffmpegGpu' => $rFFMPEGGpu,
+				// Portable: the command carries the {ffmpeg_cpu} token, but -nofix_dts
+				// is a property of the ffmpeg version/build (cluster-wide), so decide
+				// it from MAIN's real binary of that version — the same build the
+				// target resolves the token to. Only the boolean flag reaches the
+				// command, never this path. null off-portable keeps today's behaviour.
+				'ffmpegReal' => $rPortableMode ? ($rFFMPEG_CPU ?: FfmpegPaths::cpu()) : null,
 				'ingestSock' => $rIngestSock, 'supervised' => true,
 			]);
 
@@ -1816,7 +1901,7 @@ class StreamProcess {
 				$rNative = [
 					'streamID' => $rStreamID, 'source' => $rStreamSource, 'arguments' => array_column($rArguments, null, 'argument_key'),
 					'segmentSettings' => $rSegmentSettings, 'ingestSock' => $rIngestSock,
-					'settings' => $rSettings, 'binary' => FanoutClient::binaryPath(),
+					'settings' => $rSettings, 'binary' => $rPortableMode ? '{binary}' : FanoutClient::binaryPath(),
 				];
 				$rNative['sourceFile'] = $rSourceFiles ? self::writeNativeSource($rNative, intval($i)) : null;
 				if ($rSourceFiles && $rNative['sourceFile'] === null) {
@@ -1827,7 +1912,7 @@ class StreamProcess {
 				if ($rBackend === 'auto') {
 					$rEntry['fallback_cmd'] = $rFFMPEG;
 				}
-			} elseif ($rNativeStream) {
+			} elseif ($rNativeStream && !$rPortableMode) {
 				self::noteProducer($rStreamID, 'ffmpeg runs source #' . $i . ': ' . strtolower((string) parse_url($rStreamSource, PHP_URL_SCHEME)) . ':// is not a scheme the remuxer reads');
 			}
 			if ($rPriority) {
@@ -1842,18 +1927,77 @@ class StreamProcess {
 		$rPolicy = self::supervisorPolicy($rStream['server_info'], $rSettings, count($rSpecSources), intval($rTimeout));
 		$rPolicy['start_timeout_sec'] = max($rPolicy['start_timeout_sec'], self::driverStartTimeout($rSources));
 
-		return [
+		$rSpec = [
 			'sources'     => $rSpecSources,
 			'policy'      => $rPolicy,
 			'health'      => self::supervisorHealth($rInfo, $rSettings),
 			'pid_path'    => STREAMS_PATH . $rStreamID . '_.pid',
 			'errors_path' => STREAMS_PATH . $rStreamID . '.errors',
 			'log_path'    => (SettingsManager::get('save_restart_logs') != 0 ? LOGS_TMP_PATH . 'stream_log.log' : ''),
-			'server_id'   => intval(SERVER_ID),
+			'server_id'   => $rPortableMode ? intval($rTargetServerID) : intval(SERVER_ID),
 			// Both producers name this stream's playlist, and nothing else does:
 			// an encoder that outlived a daemon restart is recognised by it.
 			'adopt_match' => STREAMS_PATH . $rStreamID . '_.m3u8',
 		];
+		if ($rPortableMode) {
+			// The composed commands embed STREAMS_PATH/LOGS_TMP_PATH (via buildLive),
+			// as do the Spec's own paths: tokenize them all so the target node
+			// resolves them. server_id and the encrypt signal are set explicitly.
+			$rSpec = self::tokenizeNodePaths($rSpec);
+			$rSpec['server_id'] = '{server_id}';
+			$rSpec['encrypt'] = $rEncrypt;
+			// Fail closed: a node-local binary or install path surviving in the Spec
+			// means a buildLive branch reached past the placeholders (a legacy-ffmpeg
+			// swap, a driver, a path we don't tokenize). Emit no directive rather than
+			// replicate MAIN's path/binary to the LB — the stream stays "other".
+			if (self::portableSpecHasNodeConcrete($rSpec)) {
+				return null;
+			}
+		}
+		return $rSpec;
+	}
+
+	/**
+	 * Whether a composed portable Spec still carries a node-local absolute binary
+	 * or install path (which should have been a placeholder token). A backstop for
+	 * buildLive branches that resolve a concrete path despite the token inputs.
+	 */
+	private static function portableSpecHasNodeConcrete(array $rSpec): bool {
+		$rJson = (string) json_encode($rSpec);
+		$rConcretes = [FfmpegPaths::cpu(), FfmpegPaths::gpu(), FfmpegPaths::probe(), FfmpegPaths::legacy()];
+		if (defined('MAIN_HOME')) {
+			$rConcretes[] = MAIN_HOME;
+		}
+		if (defined('PHP_BIN')) {
+			$rConcretes[] = PHP_BIN;
+		}
+		foreach ($rConcretes as $rConcrete) {
+			$rConcrete = (string) $rConcrete;
+			// Only absolute paths are distinctive enough to match on (a bare
+			// "ffmpeg" would false-positive); an absolute MAIN path never belongs.
+			if (strpos($rConcrete, '/') !== false && strpos($rJson, $rConcrete) !== false) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Replace this node's absolute path constants with portable tokens throughout
+	 * a supervisor Spec (4b-i): STREAMS_PATH → {streams}, LOGS_TMP_PATH → {logs}.
+	 * Walks every string, so a path embedded in a composed command is tokenized
+	 * too. The two constants are distinct absolute directories, so strtr replaces
+	 * them unambiguously.
+	 */
+	private static function tokenizeNodePaths(array $rSpec): array {
+		$rMap = [STREAMS_PATH => '{streams}', LOGS_TMP_PATH => '{logs}'];
+		$rWalk = static function ($rValue) use (&$rWalk, $rMap) {
+			if (is_array($rValue)) {
+				return array_map($rWalk, $rValue);
+			}
+			return is_string($rValue) ? strtr($rValue, $rMap) : $rValue;
+		};
+		return $rWalk($rSpec);
 	}
 
 	/**

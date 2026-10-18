@@ -4,6 +4,8 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Backup\BackupService;
+use XcVm\Core\Cluster\StreamRecords;
+use XcVm\Core\Cluster\StreamVersions;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Proxy\ProxyArchiveUpdater;
@@ -245,6 +247,15 @@ class ServerInstallCommand implements CommandInterface {
 		// config.enc. Decided once, before the enrolment replaces the node's row.
 		$rApiMode = $rType == 2 && LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID);
 
+		// A single-binary serve-only LB (server:install --serve-only): MAIN directs
+		// its streams and it runs xc_node with no nginx/php-fpm. Only an LB can be one.
+		// --serve-only is a valueless flag, so it stays in the positional list
+		// (splitOptions only lifts --name=value into $rOptions) and is matched
+		// there, as cluster:reenrol does with --all/--dry-run/--pending. Match only
+		// the tail (index >= 5, after type/id/port/username/password) so a root
+		// password that happens to equal "--serve-only" can never arm it.
+		$rServeOnly = $rType == 2 && in_array('--serve-only', array_slice($rArgs, 5), true);
+
 		if ($rType == 2 && !LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			return 1;
@@ -257,7 +268,7 @@ class ServerInstallCommand implements CommandInterface {
 			$this->sendFileSSH($rConn, TMP_PATH . 'config_' . $rServerID, CONFIG_PATH . 'config.ini');
 		} else {
 			// LB: secure provisioning — DB password never enters PHP (see LbInstallFlow::provisionConfig).
-			if (!LbInstallFlow::provisionConfig($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, $rApiMode)) {
+			if (!LbInstallFlow::provisionConfig($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, $rApiMode, $rServeOnly)) {
 				return 1;
 			}
 		}
@@ -269,7 +280,7 @@ class ServerInstallCommand implements CommandInterface {
 			ProxyInstallFlow::provisionKey($rConn, $rSendFileSSH, $rRunSSH, $rServerID, $db);
 			$rServices = ProxyInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rParentIDs, $rPrivateIP, $rHTTPPort, $rHTTPSPort, $rServerID);
 		} else {
-			$rServices = LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID);
+			$rServices = LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID, $rServeOnly);
 		}
 
 		$this->finalizeHostAfterRuntime($rConn, $rRunSSH, $rHost, !$rApiMode);
@@ -295,7 +306,39 @@ class ServerInstallCommand implements CommandInterface {
 		}
 
 		if (in_array($rType, [1, 2])) {
-			$db->query('UPDATE `servers` SET `status` = 1, `http_broadcast_port` = ?, `https_broadcast_port` = ?, `total_services` = ? WHERE `id` = ?;', $rHTTPPort, $rHTTPSPort, $rServices, $rServerID);
+			if ($rServeOnly) {
+				// B2, before the mode flip: serve_only gates whether this node's records
+				// carry a transcode Spec, so re-stamp its held streams' versions — the
+				// next delta re-emits their directives rather than waiting for the ~5-min
+				// resync safety net. Done first so serve_only is never committed while the
+				// directives still carry the old version; non-essential (the resync covers
+				// it), so a DB hiccup here must not fail an otherwise-complete install.
+				try {
+					StreamVersions::bump(StreamRecords::held($rServerID, null));
+				} catch (\Throwable $rE) {
+					echo 'serve_only install: held-stream re-stamp failed (' . $rE->getMessage() . '); the periodic resync will re-emit.' . "\n";
+				}
+			}
+			$db->query('UPDATE `servers` SET `status` = 1, `http_broadcast_port` = ?, `https_broadcast_port` = ?, `total_services` = ?, `serve_only` = ? WHERE `id` = ?;', $rHTTPPort, $rHTTPSPort, $rServices, $rServeOnly ? 1 : 0, $rServerID);
+			if ($rType == 2) {
+				// The plaintext marker (run.sh reads it to launch the front + seeding,
+				// and RootSignalsCronJob keys the demote off it) is written only here, on
+				// a completed install, and removed on a non-serve-only (downgrade)
+				// install — so a failed install never leaves the node's runtime mode
+				// disagreeing with MAIN, and config/ (which survives a re-install) is kept
+				// consistent with the DB serve_only just committed above.
+				//
+				// Written AS xc_vm (never root): config/cluster is xc_vm-owned, so a root
+				// write or chown through it would follow a symlink an unprivileged xc_vm
+				// could plant there and escalate. xc_vm writing its own files crosses no
+				// privilege boundary (it fails closed on a path it cannot already write).
+				if ($rServeOnly) {
+					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm mkdir -p ' . CONFIG_PATH . 'cluster');
+					call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg((string) $rServerID) . ' | sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/serve_only > /dev/null');
+				} else {
+					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only');
+				}
+			}
 		} else {
 			$db->query('UPDATE `servers` SET `status` = 1 WHERE `id` = ?;', $rServerID);
 		}

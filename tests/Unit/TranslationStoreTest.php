@@ -51,6 +51,7 @@ final class TranslationStoreTest extends TestCase {
 			unlink($rFile);
 		}
 		@rmdir($this->rCustom);
+		@rmdir($this->rDir . '/module');
 		@rmdir($this->rBundled);
 		@rmdir($this->rDir);
 		unset($_COOKIE['lang']);
@@ -121,6 +122,28 @@ final class TranslationStoreTest extends TestCase {
 
 		$this->assertDirectoryDoesNotExist($this->rCustom, 'the custom directory holds what an administrator saved, nothing else');
 		$this->assertSame($rBefore, $this->bundled(), 'no file of the bundled directory is written or made');
+	}
+
+	public function testAModuleLangDirectoryAddsItsKeysUnderTheBundledOnes(): void {
+		$rModule = $this->rDir . '/module/';
+		mkdir($rModule, 0755, true);
+		file_put_contents($rModule . 'en.ini', "[Language]\nbots = \"Bots\"\ngreeting = \"Yo\"\n");
+		file_put_contents($rModule . 'ru.ini', "[Language]\nbots = \"Боты\"\n");
+		$_COOKIE['lang'] = 'ru';
+		Translator::init($this->rBundled, $this->rCustom);
+		$rBefore = $this->bundled();
+
+		Translator::addModuleDir($rModule);
+
+		$this->assertSame('Боты', Translator::get('bots'), 'the current language takes the module key at once');
+		$this->assertSame('Привет', Translator::get('greeting'), 'a bundled key keeps its value');
+		$this->assertSame('Bots', Translator::englishTranslations()['bots']);
+		$this->assertSame('Hello', Translator::englishTranslations()['greeting']);
+		$rTotal = count(Translator::englishTranslations());
+		$this->assertSame($rTotal, TranslationStore::languages()['en']['translated'], 'English has every key, the modules\' too');
+		$this->assertArrayHasKey('bots', TranslationStore::values('ru'));
+		$this->assertSame(['result' => true, 'saved' => 0], TranslationStore::save('ru', ['bots' => 'Боты']), 'what the module ships needs no custom copy');
+		$this->assertSame($rBefore, $this->bundled(), 'no bundled file is written');
 	}
 
 	// ── The sanitiser ───────────────────────────────────────────────────────

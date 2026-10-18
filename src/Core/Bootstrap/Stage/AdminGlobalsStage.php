@@ -11,7 +11,7 @@ use XcVm\Domain\Server\ServerRepository;
 
 /**
  * Initialize the legacy admin view globals: MobileDetect, timeouts, server
- * lists, protocol, allowed languages, and the reseller assets symlink.
+ * lists, protocol, and allowed languages.
  *
  * @package XC_VM_Core_Bootstrap_Stage
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -58,44 +58,6 @@ class AdminGlobalsStage implements BootStageInterface {
 					return $a['order'] - $b['order'];
 				}
 			);
-		}
-
-		// Ensure the legacy 'reseller' assets alias (Public/assets/reseller → admin).
-		$this->ensureResellerAssetsSymlink();
-	}
-
-	/**
-	 * Ensure the legacy 'reseller' assets alias exists (Public/assets/reseller → admin).
-	 *
-	 * Reseller pages reuse the admin asset bundle, and some nginx configs / legacy
-	 * routes expect Public/assets/reseller to resolve to Public/assets/admin. The
-	 * link is not stored in git (an absolute-path symlink broke the build), so the
-	 * panel recreates it here. Idempotent, and repairs a stale/broken link.
-	 */
-	private function ensureResellerAssetsSymlink(): void {
-		$assetsBase   = MAIN_HOME . 'Public/assets/';
-		$resellerLink = $assetsBase . 'reseller';
-
-		// Nothing to point at yet — skip.
-		if (!is_dir($assetsBase . 'admin')) {
-			return;
-		}
-
-		if (is_link($resellerLink)) {
-			// Correct, resolvable link → nothing to do.
-			if (readlink($resellerLink) === 'admin' && is_dir($resellerLink)) {
-				return;
-			}
-			@unlink($resellerLink); // stale/broken link — recreate below
-		} elseif (file_exists($resellerLink)) {
-			return; // a real directory/file lives here — leave it alone
-		}
-
-		// Relative link so it is independent of MAIN_HOME and path case.
-		if (!@symlink('admin', $resellerLink)) {
-			// Without the link every reseller access code serves pages with no
-			// CSS/JS (nginx aliases /CODE/assets/ to Public/assets/reseller/).
-			error_log('AdminGlobalsStage: failed to create Public/assets/reseller -> admin symlink — check ownership of Public/assets/ (expected xc_vm).');
 		}
 	}
 

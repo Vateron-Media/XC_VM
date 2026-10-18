@@ -8,6 +8,7 @@ use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Epg\EpgReload;
 use XcVm\Domain\Stream\CategoryService;
 
 /**
@@ -40,7 +41,9 @@ class EpgAjaxController extends BaseAjaxController {
 		}
 
 		if ($rSub == 'reload') {
-			shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:epg "' . intval(RequestManager::get('epg_id')) . '" > /dev/null 2>/dev/null &');
+			if (!EpgReload::start(intval(RequestManager::get('epg_id')))) {
+				$this->fail();
+			}
 			$this->ok();
 		}
 
@@ -82,7 +85,9 @@ class EpgAjaxController extends BaseAjaxController {
 		$this->requireXhr();
 		$this->gate('adv', 'epg');
 
-		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:epg > /dev/null 2>/dev/null &');
+		if (!EpgReload::start()) {
+			$this->fail();
+		}
 
 		$this->ok();
 	}
