@@ -171,9 +171,11 @@ The front builds a single `http.Handler` (shared by every listener) that routes:
 - **Static** `/images`, `/portal/assets` → serve from disk with correct content
   types.
 - **Edge endpoints** (trust boundaries preserved, not widened):
-  - `/status`, `/progress` stay **local-only** — today they are `allow 127.0.0.1;
-    deny all`. The front serves them only to loopback (a loopback-bound handler /
-    peer check), never as public routes; node internals are not exposed at the edge.
+  - `/status` stays **local-only** — today it is `allow 127.0.0.1; deny all`; the
+    front enforces loopback on the TCP peer, never exposing node internals at the
+    edge. (Correction: `/progress` is NOT local-only — it is a public route with
+    `limit_req zone=one`, like the serve routes; the cutover serves it natively with
+    that rate limit, not a loopback check.)
   - `probe` (ffprobe-backed, MAIN-triggered) is **token-gated**: the front verifies
     the same MAIN-minted proof `probe.php` checks before running ffprobe. This is an
     SSRF / resource-abuse surface at the true edge; it keeps the project's agreed
