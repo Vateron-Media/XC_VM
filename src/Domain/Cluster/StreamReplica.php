@@ -380,6 +380,11 @@ final class StreamReplica {
 				error_log('StreamReplica: serve-only Spec composition failed for stream ' . $rID . ': ' . $rE->getMessage());
 				return $rDirective;
 			}
+			// A loopback child: buildSupervisorSpec signals it (parent id only, no
+			// relay source) so the agent builds its own node-local relay URL.
+			if (is_array($rSpec) && isset($rSpec['loopback'])) {
+				return StreamRuntimeDirective::loopback((int) $rSpec['loopback']);
+			}
 			return StreamRuntimeDirective::upgrade($rDirective, $rSpec);
 		};
 	}

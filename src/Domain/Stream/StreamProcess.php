@@ -1751,12 +1751,15 @@ class StreamProcess {
 
 		$rInfo = $rStream['stream_info'];
 		$rParentID = intval($rStream['server_info']['parent_id']);
-		// Loopback (parent_id > 0) is out of portable scope (design D-b, D2): its
-		// source is a relay URL carrying live_streaming_pass, which must never be
-		// composed into a replicated Spec — the LB resolves its own loopback relay
-		// (a later placeholder). Emit no transcode directive for it (kind "other").
+		// Loopback (parent_id > 0) in portable mode: its real source is a relay URL
+		// carrying live_streaming_pass, which must never be composed into a
+		// replicated Spec. Signal loopback (the parent id only) so the serve-only
+		// composer classifies it kind "loopback"; the LB's agent builds its own
+		// node-local relay URL from that. The sentinel is distinct from a real Spec
+		// (which never carries a top-level `loopback` key) and from null, and is
+		// consumed only by StreamReplica::runtimeUpgrade (the sole portable caller).
 		if ($rPortableMode && $rParentID > 0) {
-			return null;
+			return ['loopback' => $rParentID];
 		}
 		// Kinds the PHP monitor keeps: a delayed stream runs its own playlist
 		// worker off the encoder's, and a created channel resumes at an offset

@@ -66,4 +66,17 @@ final class StreamRuntimeDirective {
 		}
 		return $rDirective;
 	}
+
+	/**
+	 * A loopback directive for a serve-only target whose `streams_servers.parent_id`
+	 * is set: the stream is relayed from parent node #parent_id. The source stays
+	 * null — the relay URL (`http://127.0.0.1:31290/relay/<k>/<id>.ts`) carries the
+	 * node-local relay key, so only the LB's agent can build it; MAIN names the kind
+	 * and the parent, nothing more.
+	 *
+	 * @return array{kind: string, source: null, parent_id: int}
+	 */
+	public static function loopback(int $rParentID): array {
+		return ['kind' => 'loopback', 'source' => null, 'parent_id' => $rParentID];
+	}
 }

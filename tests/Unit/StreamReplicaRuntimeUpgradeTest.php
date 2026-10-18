@@ -96,10 +96,11 @@ final class StreamReplicaRuntimeUpgradeTest extends TestCase {
 		$this->assertSame($rProxy, StreamReplica::runtimeUpgrade(1, [])(7, $rProxy));
 	}
 
-	public function testComposerKeepsLoopbackChildAsOther(): void {
-		// A loopback child (parent_id > 0): its source carries live_streaming_pass,
-		// so buildSupervisorSpec returns null in portable mode and the directive
-		// stays "other" — no relay secret may reach the record.
+	public function testComposerClassifiesLoopbackChildForServeOnly(): void {
+		// A loopback child (parent_id > 0) on a serve-only target is classified
+		// kind "loopback" carrying the parent id; the Go agent builds the node-local
+		// relay URL itself. The source stays null — the relay secret
+		// (live_streaming_pass) must NEVER reach the directive.
 		StreamSource::useLoader(function (string $rWhat, int $rID, array $rOpts) {
 			if ($rWhat === 'stream') {
 				return $this->streamInfo();
@@ -113,7 +114,9 @@ final class StreamReplicaRuntimeUpgradeTest extends TestCase {
 
 		$rOut = StreamReplica::runtimeUpgrade(1, [])(7, ['kind' => 'other', 'source' => null]);
 
-		$this->assertSame('other', $rOut['kind']);
+		$this->assertSame('loopback', $rOut['kind']);
+		$this->assertSame(3, $rOut['parent_id']);
+		$this->assertNull($rOut['source']);
 		$this->assertArrayNotHasKey('spec', $rOut);
 		$this->assertStringNotContainsString('TOP-SECRET-RELAY-PASS', (string) json_encode($rOut), 'no relay secret in the directive');
 	}
