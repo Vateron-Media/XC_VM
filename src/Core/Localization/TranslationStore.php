@@ -132,7 +132,7 @@ final class TranslationStore {
 		}
 		try {
 			$rFile = $rDir . $rCode . '.ini';
-			$rBundled = Translator::readFile(Translator::bundledDir() . $rCode . '.ini') ?? [];
+			$rBundled = Translator::shipped($rCode) ?? [];
 			$rCustom = array_replace(self::custom($rCode), $rValues);
 
 			// The whole file again, in en.ini's order: what was there is sanitised
