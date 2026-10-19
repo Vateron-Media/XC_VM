@@ -209,7 +209,7 @@ class ChannelService {
 				}
 
 				if ($rRestart) {
-					ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => [$rInsertID]]);
+					ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => [$rInsertID], 'async' => true]);
 				}
 
 				foreach ($rBouquets as $rBouquet) {
@@ -419,7 +419,7 @@ class ChannelService {
 				ApiClient::request(['action' => 'stream', 'sub' => 'stop', 'stream_ids' => array_values($rStreamIDs)]);
 			} else {
 				if (isset($rData['restart_on_edit'])) {
-					ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs)]);
+					ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'async' => true]);
 				}
 			}
 		}
