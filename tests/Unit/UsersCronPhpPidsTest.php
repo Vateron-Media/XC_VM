@@ -125,6 +125,16 @@ final class UsersCronPhpPidsTest extends TestCase {
 	}
 
 	/** A viewer closed for silence ended when it was last heard, not when the sweep noticed. */
+	public function testApiRegistryViewersAreNotClosedByTheLegacyPerViewerSilenceRule(): void {
+		$rNow = 1800000000;
+		foreach (['hls', 'ts', 'VOD'] as $rContainer) {
+			$rConnection = ['server_id' => 2, 'container' => $rContainer, 'pid' => 4242, 'hls_last_read' => $rNow - 86400];
+			$this->assertFalse($this->invoke('orphaned', [$rConnection, [2 => []], $rNow, true]), 'the live API node owns its registry');
+			$this->assertTrue($this->invoke('orphaned', [$rConnection, [2 => []], $rNow, false]), 'legacy remote workers still expire');
+			$this->assertTrue($this->invoke('orphaned', [$rConnection, [], $rNow, true]), 'a deleted server never retains viewers');
+		}
+	}
+
 	public function testASilentViewersEndIsWhenItWasLastHeard(): void {
 		$rNow = 1800000000;
 		$rHeard = fn(array $rConnection): int => $this->invoke('lastHeard', [$rConnection + ['hls_end' => 0, 'container' => 'ts', 'pid' => 4242], $rNow]);
