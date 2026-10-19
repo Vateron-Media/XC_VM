@@ -103,7 +103,7 @@ $manager->downloadFromPlatform(slug: 'my-module', version: '1.2.0', apiKey: $key
 
 Under the hood:
 
-1. `XC_VM::module_install($slug, $version, $apiKey)` — the core extension downloads, decrypts, unpacks
+1. `XC_VM::module_install($slug, $version, $apiKey)` — the core extension downloads the module's single `tar.gz` (every `*.php` already ionCube-encoded) inside the sealed XCVM-API-v1 envelope and swaps it into `Modules/<slug>/` atomically; there is no module key and no decryption
 2. `installModule($slug)` — applies the schema, then runs `install()` on the module. A first
    install applies `database.sql` (without one, every delta up to the module's version).
    Over an existing install (an update or a **Rollback**) it

@@ -413,6 +413,24 @@ v2), MAIN checks that the load balancer holds **no** pin, sends it a v1 config, 
 install log. A load balancer that holds a pin MAIN could not replace fails the install: it would
 refuse a v1 config.
 
+### How a load balancer judges a config
+
+The extension on the load balancer decides, not the panel:
+
+- A **pinned** load balancer installs only a v2 config signed by the MAIN it pinned; a v1
+  config is refused. An **un-pinned** one installs only v1; a v2 config is refused until it is
+  pinned. A v2 pin is signed with MAIN's cluster root and needs no licence.
+- The config must be addressed to this load balancer, at most an hour old, for a load balancer
+  (never MAIN's own config) and, when one is already in place, for the same server id.
+- A v2 config older than the last one installed from the same MAIN (or as old with a different
+  body) is refused as a replay. The extension keeps that mark itself; re-pinning with replace
+  and importing the cluster keys reset it.
+- Pinning and installing a config are done as root; the extension refuses any other user. The
+  panel's own calls already run as root.
+- Nothing is written when a config is refused.
+
+The v2 file layout is in [Core Extension](../info/core-extension.md#56-multiserver-main-lb-nodes).
+
 ### Load balancers installed before this release
 
 They have no v2 record on MAIN and keep getting v1 configs, with a `node.config_v1` warning in

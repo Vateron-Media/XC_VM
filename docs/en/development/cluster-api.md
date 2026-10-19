@@ -425,7 +425,9 @@ retirement*), in steps:
   `LicenseGate` lets it use fanout. The extension's verdict needs the node's `core.pin`:
   the SSH install pins it over its own session, and every other node that takes root
   commands is pinned by `cron:cluster` with a signed `node.root pin_core` (the *core* badge
-  on the Cluster Nodes page, or *Pin core* to send it now).
+  on the Cluster Nodes page, or *Pin core* to send it now). `XC_VM::cluster_pin` (first pin
+  or replace) and `XC_VM::install_config` refuse any effective user but root (`ARG:euid`), so
+  both run only from the install's `sudo php -r` and the `node.root` actions.
 - **The credential lockdown is partly built** (Phase 9). A node in mode 2 gives up MAIN's
   credentials with a signed `node.root strip_db_credentials` (or a credential-free
   `node.root install_config`), run by `xcvm_core` as root; when its ack reports a config
