@@ -17,9 +17,9 @@ use XcVm\Core\Events\Stream\StreamArgumentsChangedEvent;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Domain\Cluster\ClusterEndpoint;
-use XcVm\Domain\Cluster\ClusterMeta;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
 use XcVm\Domain\Cluster\NodeRegistry;
+use XcVm\Domain\Cluster\XcvtTargets;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Streaming\Codec\FfmpegPaths;
@@ -116,9 +116,14 @@ class SettingsService {
 		[$rValues, $rErrors] = ClusterSettings::normalize($rKeys, $rMain, $rCurrent, $rEnv);
 		if (($rValues['cluster_api_enabled'] ?? 0) === 1 && empty($rCurrent['cluster_api_enabled'])) {
 			// Create the cluster root from php-fpm, so its files belong to the
-			// user that serves /cluster/v1/. Idempotent.
+			// user that serves /cluster/v1/. Idempotent, and never a new root
+			// where one was recorded (xcvm_core's ADR-005, XcvtTargets::initRoot).
 			try {
-				ClusterMeta::init(ClusterCryptoFactory::create());
+				[$rWhy] = XcvtTargets::initRoot(ClusterCryptoFactory::create());
+				if ($rWhy !== null) {
+					unset($rValues['cluster_api_enabled']);
+					$rErrors[] = ['cluster_api_enabled', 'cluster_error_root'];
+				}
 			} catch (\Throwable) {
 				unset($rValues['cluster_api_enabled']);
 				$rErrors[] = ['cluster_api_enabled', 'cluster_error_extension'];

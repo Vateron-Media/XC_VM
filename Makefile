@@ -112,6 +112,8 @@ LB_FILES_TO_REMOVE := \
 	Cli/Commands/ClusterNginxCommand.php \
 	Cli/Commands/ClusterEndpointCommand.php \
 	Cli/Commands/ServerEnrolCommand.php \
+	Cli/Commands/ServerXcvtPinCommand.php \
+	Cli/Commands/ServerXcvtReportCommand.php \
 	Cli/Commands/ClusterReenrolCommand.php \
 	Cli/Commands/SshChannel.php \
 	Cli/Commands/SshSession.php \

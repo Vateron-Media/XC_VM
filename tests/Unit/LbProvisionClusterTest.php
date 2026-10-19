@@ -170,69 +170,38 @@ final class LbProvisionClusterTest extends TestCase {
 	}
 
 	/**
-	 * Phase 9: the extension's own pin (core.pin) over the same session — the
-	 * node's install_id read and recorded, the pin packed for it and pinned
-	 * there as root (replacing an earlier MAIN's: the session is verified),
-	 * the node answering with this panel's key, before the agent starts.
+	 * Phase 9 / ADR-005: the extension's own pin (core.pin) is written before
+	 * the config, in provisionConfig (Decision 7). The enrolment that replaces
+	 * the node's row records it there — its install_id and its pin — and pins
+	 * nothing itself.
 	 */
-	public function testPinsTheNodesCoreOverTheSameSession(): void {
+	public function testTheInstallsPinIsRecordedForTheNewRow(): void {
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `install_id` varchar(64) DEFAULT NULL');
 		\XcVm\Domain\Cluster\ClusterMeta::set('panel_sign_pub', base64_encode($this->rCrypto->info()['panel_sign_pub']));
 		$rFp = hash('sha256', $this->rCrypto->info()['panel_sign_pub']);
 		$rIid = '6c1b5bd2-2c86-4a4a-9a57-0f6e6d3b1f10';
-		[$rRun, $rSend] = $this->fakeSsh();
-		$rNode = function ($rConn, string $rCmd) use ($rRun, $rIid, $rFp): array {
-			if (str_contains($rCmd, 'XC_VM::install_id()')) {
-				$this->rCommands[] = $rCmd;
-				return ['output' => "PHP Warning: noise\n{$rIid}\n", 'error' => ''];
-			}
-			if (str_contains($rCmd, 'XC_VM::cluster_pin(')) {
-				$this->rCommands[] = $rCmd;
-				return ['output' => 'OK ' . $rFp . "\n", 'error' => ''];
-			}
-			return $rRun($rConn, $rCmd);
-		};
-		ob_start();
-		$rOk = LbInstallFlow::provisionCluster(null, $rNode, $rSend, $this->servers(), self::SID, $this->rDb, $this->rCrypto);
-		$rLog = (string) ob_get_clean();
+		\XcVm\Domain\Cluster\XcvtTargets::useCrypto($this->rCrypto);
+		try {
+			$this->assertTrue(\XcVm\Domain\Cluster\XcvtTargets::record(self::SID, $rIid, str_repeat('ab', 32), $rFp, 2, 'install'));
+			[$rOk, $rLog] = $this->provision();
+		} finally {
+			\XcVm\Domain\Cluster\XcvtTargets::useCrypto(null);
+		}
 		$this->assertTrue($rOk, $rLog);
-		$this->assertStringContainsString("Panel key pinned in the node's xcvm_core", $rLog);
 		$this->assertSame($rIid, \XcVm\Domain\Cluster\CorePins::installId(self::SID), 'recorded for later packs');
 		$this->assertTrue(\XcVm\Domain\Cluster\CorePins::current(NodeRegistry::byServer(self::SID)));
-
-		$rAskAt = array_key_first(array_filter($this->rCommands, static fn($c) => str_contains($c, 'XC_VM::install_id()')));
-		$rPinAt = array_key_first(array_filter($this->rCommands, static fn($c) => str_contains($c, 'XC_VM::cluster_pin(')));
-		$this->assertStringStartsWith('sudo ', $this->rCommands[$rAskAt], 'as root');
-		$this->assertStringContainsString('is_file(', $this->rCommands[$rAskAt], 'never creates an install_id');
-		$this->assertStringContainsString(base64_encode($this->rCrypto->pack($rIid)), $this->rCommands[$rPinAt], 'the blob packed for that install_id');
-		$this->assertStringContainsString('), true);', $this->rCommands[$rPinAt], 'replace: the SSH session is the authorised re-pin path');
-		$rRunAt = array_key_last(array_filter($this->rCommands, static fn($c) => str_contains($c, 'bash') && str_contains($c, 'run.sh')));
-		$this->assertLessThan($rRunAt, $rPinAt, 'pinned before the agent runs');
+		$this->assertSame([], array_filter($this->rCommands, static fn($c) => str_contains($c, 'XC_VM::cluster_pin(')), 'nothing pinned here');
 	}
 
-	public function testAPinThatFailsDoesNotFailTheInstall(): void {
+	/** A node the install could not pin is left to cron:cluster: not recorded as pinned, and the install goes on. */
+	public function testANodeTheInstallDidNotPinIsNotRecordedPinned(): void {
 		$this->rDb->exec('ALTER TABLE `cluster_nodes` ADD COLUMN `install_id` varchar(64) DEFAULT NULL');
-		[$rRun, $rSend] = $this->fakeSsh();
-		$rNode = static function ($rConn, string $rCmd) use ($rRun): array {
-			if (str_contains($rCmd, 'XC_VM::install_id()')) {
-				return ['output' => "6c1b5bd2-2c86-4a4a-9a57-0f6e6d3b1f10\n", 'error' => ''];
-			}
-			if (str_contains($rCmd, 'XC_VM::cluster_pin(')) {
-				return ['output' => "ERR CRYPTO\n", 'error' => ''];
-			}
-			return $rRun($rConn, $rCmd);
-		};
-		ob_start();
-		$rOk = LbInstallFlow::provisionCluster(null, $rNode, $rSend, $this->servers(), self::SID, $this->rDb, $this->rCrypto);
-		$rLog = (string) ob_get_clean();
+		\XcVm\Domain\Cluster\ClusterMeta::set('panel_sign_pub', base64_encode($this->rCrypto->info()['panel_sign_pub']));
+		$this->assertTrue(\XcVm\Domain\Cluster\XcvtTargets::record(self::SID, '6c1b5bd2-2c86-4a4a-9a57-0f6e6d3b1f10', null, null, 0, 'install', null, false, 'ext_old'));
+		[$rOk, $rLog] = $this->provision();
 		$this->assertTrue($rOk, $rLog);
-		$this->assertStringContainsString('not pinned yet (cluster_pin: ERR CRYPTO); MAIN pins it once the node takes root commands', $rLog);
-
-		// An old extension on the node answers nothing: only a reason, too.
-		$this->assertStringContainsString('no install_id', (string) LbInstallFlow::pinCore(null, $rRun, $this->rCrypto, self::SID));
-		// And an unlicensed MAIN packs nothing.
-		$this->rCrypto->rLicensed = false;
-		$this->assertSame('cluster_pack refused: LICENCE', LbInstallFlow::pinCore(null, $rNode, $this->rCrypto, self::SID));
+		$this->assertSame('6c1b5bd2-2c86-4a4a-9a57-0f6e6d3b1f10', \XcVm\Domain\Cluster\CorePins::installId(self::SID));
+		$this->assertFalse(\XcVm\Domain\Cluster\CorePins::current(NodeRegistry::byServer(self::SID)));
 	}
 
 	public function testUnreachableMainStopsBeforeAnyToken(): void {

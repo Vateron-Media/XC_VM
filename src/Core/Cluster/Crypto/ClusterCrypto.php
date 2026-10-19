@@ -60,9 +60,19 @@ class ClusterCrypto {
 		return $this->call('cluster_lease_issue', $rParams);
 	}
 
-	/** The XCVT pin blob carrying the panel keys to the LB with this install_id. */
-	public function pack(string $rTargetInstallID): string {
-		return $this->call('cluster_pack', $rTargetInstallID);
+	/**
+	 * The XCVT pin blob carrying the panel keys to the LB with this install_id:
+	 * version 1, licence-gated, or 2 (the extension's ADR-005), signed with the
+	 * cluster root, no licence. An extension before ADR-005 takes no version,
+	 * so 1 is asked as before.
+	 */
+	public function pack(string $rTargetInstallID, int $rVersion = 1): string {
+		return $rVersion === 1 ? $this->call('cluster_pack', $rTargetInstallID) : $this->call('cluster_pack', $rTargetInstallID, $rVersion);
+	}
+
+	/** Does this extension pack XCVT v2 (ADR-005: `panel_pk`, `config_pack` with a key, `cluster_pack` version 2)? */
+	public function supportsV2(): bool {
+		return method_exists('XC_VM', 'panel_pk');
 	}
 
 	/** Seal to this machine; purposes are namespaced `php:` by the extension. */

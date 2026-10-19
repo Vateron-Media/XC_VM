@@ -10,6 +10,7 @@ use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\ClusterClock;
 use XcVm\Domain\Cluster\DbCredentials;
 use XcVm\Domain\Cluster\EnrolmentService;
+use XcVm\Domain\Cluster\NodeConfigPack;
 use XcVm\Domain\Cluster\NodeRegistry;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Tests\Support\FakeClusterCrypto;
@@ -62,14 +63,22 @@ final class ApiModeInstallTest extends TestCase {
 
 	protected function tearDown(): void {
 		CredentialFreeConfig::useSeams(null);
+		NodeConfigPack::usePack(null);
 		DatabaseFactory::reset();
 		SettingsManager::set([]);
 	}
 
 	private function install(bool $rApi): bool {
+		// A node whose xcvm_core predates XCVT v2 and holds no pin: a v1 config (ADR-005, release N).
 		$rRun = function ($rConn, string $rCmd): array {
 			$this->rRan[] = $rCmd;
-			return ['output' => str_contains($rCmd, 'install_id') ? $this->rIidOutput : '', 'error' => ''];
+			$rOut = match (true) {
+				str_contains($rCmd, 'install_id') => $this->rIidOutput,
+				str_contains($rCmd, '"panel_pk"') => "NONE\n",
+				str_contains($rCmd, 'cluster_pinned') => "NOT_PINNED\n",
+				default => '',
+			};
+			return ['output' => $rOut, 'error' => ''];
 		};
 		$rSend = function ($rConn, string $rLocal, string $rRemote): bool {
 			$this->rSent[$rRemote] = (string) file_get_contents($rLocal);
@@ -116,24 +125,26 @@ final class ApiModeInstallTest extends TestCase {
 
 	/** An older extension would pack MAIN's credentials: the install stops before anything is written. */
 	public function testAnOldExtensionRefusesApiMode(): void {
-		CredentialFreeConfig::useSeams(static fn(): bool => false, static function (): string {
+		CredentialFreeConfig::useSeams(static fn(): bool => false);
+		NodeConfigPack::usePack(static function (): string {
 			throw new \LogicException('packed without the feature');
 		});
 		$this->assertFalse($this->install(true));
 		$this->assertSame(4, $this->serverStatus());
 		$this->assertSame([], $this->rRan, 'nothing ran on the node');
 		$this->assertSame([], $this->rSent);
-		$this->assertFalse(CredentialFreeConfig::pack('0f8fad5b-install-id-0001', ['hostname' => 'x']));
+		$this->assertNull(CredentialFreeConfig::params(['hostname' => 'x']));
 	}
 
 	public function testApiModeShipsACredentialFreeConfig(): void {
 		$rPacked = [];
-		CredentialFreeConfig::useSeams(static fn(): bool => true, static function (string $rIid, array $rParams) use (&$rPacked): string {
-			$rPacked[] = [$rIid, $rParams];
+		CredentialFreeConfig::useSeams(static fn(): bool => true);
+		NodeConfigPack::usePack(static function (string $rIid, array $rParams, ?string $rKey) use (&$rPacked): string {
+			$rPacked[] = [$rIid, $rParams, $rKey];
 			return 'XCVT-credential-free';
 		});
 		$this->assertTrue($this->install(true));
-		$this->assertSame([['0f8fad5b-install-id-0001', ['db_credentials' => false, 'hostname' => '10.0.0.1', 'database' => 'xc_vm', 'server_id' => self::SID, 'is_lb' => 1]]], $rPacked);
+		$this->assertSame([['0f8fad5b-install-id-0001', ['db_credentials' => false, 'hostname' => '10.0.0.1', 'database' => 'xc_vm', 'server_id' => self::SID, 'is_lb' => 1], null]], $rPacked);
 		$this->assertSame('XCVT-credential-free', $this->rSent[CONFIG_PATH . 'config.enc']);
 		$this->assertSame(0, $this->serverStatus());
 	}
@@ -141,7 +152,8 @@ final class ApiModeInstallTest extends TestCase {
 	/** A fresh node's PHP may print warnings before the id: only the id is packed for. */
 	public function testTheInstallIdIsTheLastLineOfTheNodesOutput(): void {
 		$rPacked = [];
-		CredentialFreeConfig::useSeams(static fn(): bool => true, static function (string $rIid) use (&$rPacked): string {
+		CredentialFreeConfig::useSeams(static fn(): bool => true);
+		NodeConfigPack::usePack(static function (string $rIid) use (&$rPacked): string {
 			$rPacked[] = $rIid;
 			return 'XCVT-credential-free';
 		});

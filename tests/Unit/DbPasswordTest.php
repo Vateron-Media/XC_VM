@@ -173,7 +173,9 @@ final class DbPasswordTest extends TestCase {
 		// No signed channel in this suite: packed, then not queued (and never a signals row).
 		$this->assertSame('cluster_config_not_queued', DbCredentials::installConfig(11, true, 'cli', $rPack));
 		$this->assertSame([[self::IID, ['hostname' => '10.0.0.1', 'database' => 'xc_vm', 'server_id' => 11, 'is_lb' => 1, 'db_credentials' => true]]], $rPacked);
-		$this->assertStringStartsWith('node.install_config {"credentials":true,"queued":false}', $this->events()[0]);
+		// Not a v2 target (ADR-005): v1, with a warning.
+		$this->assertStringStartsWith('node.config_v1 {"why":"no_pin"}', $this->events()[0]);
+		$this->assertStringStartsWith('node.install_config {"credentials":true,"queued":false}', $this->events()[1]);
 
 		$this->assertSame('cluster_config_needs_install_id', DbCredentials::installConfig(15, true, 'cli', $rPack));
 		$this->assertSame('cluster_not_enrolled', DbCredentials::installConfig(16, true, 'cli', $rPack));
