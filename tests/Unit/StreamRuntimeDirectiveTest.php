@@ -118,4 +118,15 @@ final class StreamRuntimeDirectiveTest extends TestCase {
 
 		$this->assertSame($directive, StreamRuntimeDirective::upgrade($directive, ['sources' => []]));
 	}
+
+	public function testLoopbackDirectiveCarriesTheParentId() {
+		// A serve-only target whose streams_servers.parent_id > 0 relays the stream
+		// from that parent node. MAIN cannot compose the relay URL (it carries the
+		// node-local relay key), so the directive only names the kind and parent;
+		// the Go agent builds http://127.0.0.1:31290/relay/<k>/<id>.ts itself.
+		$this->assertSame(
+			['kind' => 'loopback', 'source' => null, 'parent_id' => 7],
+			StreamRuntimeDirective::loopback(7)
+		);
+	}
 }

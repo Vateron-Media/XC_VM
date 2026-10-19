@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
 use XcVm\Core\Cluster\ClusterSettings;
+use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\ApiClient;
@@ -215,12 +216,19 @@ class MiscAjaxController extends BaseAjaxController {
 		// success, so a well-formed key that is not bound to this HWID stops
 		// reading as a completed activation.
 		//
-		// The key stays on disk either way: the extension may have cached its
-		// verdict for this request, and discarding a good key over a stale "no"
-		// would be worse than leaving a dead one behind. Nothing trusts the
-		// file's presence any more — the dashboard banner asks LicenseGate too.
-		if (!LicenseGate::licensed()) {
-			ClusterAudit::log('cluster.licence_key', null, ['accepted' => false], 'admin');
+		// On MAIN the answer comes from the licence server just now, and an
+		// unreachable server answers from the issuance grace, never "no". So a
+		// "no" there means the replacement is dead: put back the key it replaced
+		// rather than leave a working panel unlicensed. Elsewhere the verdict may
+		// be cached for this request, and discarding a good key over a stale "no"
+		// would be worse than leaving a dead one behind, so the new key stays.
+		// Nothing trusts the file's presence any more — the dashboard banner asks
+		// LicenseGate too.
+		$rAskServer = self::asksTheServer();
+		if (!self::keyAccepted($rAskServer)) {
+			$rRestored = $rAskServer && $rOld !== '' && $rOld !== $rKey
+				&& @file_put_contents($rPath, $rOld . "\n") !== false;
+			ClusterAudit::log('cluster.licence_key', null, ['accepted' => false, 'restored' => $rRestored], 'admin');
 			$this->fail(['message' => Translator::get('activation_key_rejected')]);
 		}
 
@@ -234,6 +242,30 @@ class MiscAjaxController extends BaseAjaxController {
 		ClusterAudit::log('cluster.licence_key', null, ['accepted' => true, 'rotated' => $rRotated['queued'] ?? 0], 'admin');
 
 		$this->ok(['message' => Translator::get('activation_saved')]);
+	}
+
+	/**
+	 * Whether a saved key is checked against the licence server: on MAIN, with an
+	 * extension that has XC_VM::license_check. A cluster node is licensed by its
+	 * lease, not by a key, and an unknown role reads as "not MAIN".
+	 */
+	private static function asksTheServer(): bool {
+		return NodeRole::isMain() && class_exists('XC_VM') && method_exists('XC_VM', 'license_check');
+	}
+
+	/**
+	 * Whether the key just written licenses this install.
+	 *
+	 * Asking the server, XC_VM::license_check() fetches a verdict even while a
+	 * cached one for this key is still fresh; XC_VM::license_valid() (behind
+	 * LicenseGate) trusts a cached verdict for up to a day, so re-saving a key
+	 * the server has revoked since would read as accepted. An unreachable
+	 * licence server leaves the answer to the cached verdict and the issuance
+	 * grace: the extension never reads "down" as "rejected". Otherwise keep
+	 * LicenseGate's answer.
+	 */
+	private static function keyAccepted(bool $rAskServer): bool {
+		return $rAskServer ? (bool) \XC_VM::license_check() : LicenseGate::licensed();
 	}
 
 	/** action=clear_failures — clear a stream's failure log. */

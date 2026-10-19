@@ -319,7 +319,18 @@ final class ClusterOverviewTest extends TestCase {
 		// token.rotate_now (another key gives the chain another base).
 		$rSrc = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/Ajax/MiscAjaxController.php');
 		$rBody = substr($rSrc, (int) strpos($rSrc, 'function saveActivationKey'), 3000);
-		$this->assertMatchesRegularExpression('/\$rOld = .*file_put_contents\(\$rPath.*LicenseGate::licensed\(\).*\$rOld !== \$rKey \? ClusterOverview::rotateAll\(null\) : null;/s', $rBody);
+		$this->assertMatchesRegularExpression('/\$rOld = .*file_put_contents\(\$rPath.*self::keyAccepted\(\$rAskServer\).*\$rOld !== \$rKey \? ClusterOverview::rotateAll\(null\) : null;/s', $rBody);
+
+		// A key the licence server rejects on MAIN puts back the key it replaced,
+		// so a working panel does not end up unlicensed over a bad paste.
+		$this->assertMatchesRegularExpression('/if \(!self::keyAccepted\(\$rAskServer\)\) \{\s*\$rRestored = \$rAskServer && \$rOld !== \'\' && \$rOld !== \$rKey\s*&& @file_put_contents\(\$rPath, \$rOld \. "\\\\n"\) !== false;/', $rBody);
+
+		// Acceptance on MAIN asks the licence server now (XC_VM::license_check);
+		// a node, an unknown role or an older extension keep LicenseGate.
+		$rAsks = substr($rSrc, (int) strpos($rSrc, 'function asksTheServer'), 300);
+		$this->assertMatchesRegularExpression('/return NodeRole::isMain\(\) && class_exists\(\'XC_VM\'\) && method_exists\(\'XC_VM\', \'license_check\'\);/', $rAsks);
+		$rCheck = substr($rSrc, (int) strpos($rSrc, 'function keyAccepted'), 300);
+		$this->assertMatchesRegularExpression('/return \$rAskServer \? \(bool\) \\\\XC_VM::license_check\(\) : LicenseGate::licensed\(\);/', $rCheck);
 	}
 
 	public function testThePagesActionNeedsNoServer(): void {
