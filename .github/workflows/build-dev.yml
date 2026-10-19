@@ -199,8 +199,11 @@ jobs:
         run: |
           set -euo pipefail
           DEV_REPO="${DEV_OWNER}/${DEV_REPO_NAME}"
-          gh release list -R "$DEV_REPO" --limit 200 --json tagName,createdAt \
-            --jq "sort_by(.createdAt) | reverse | .[${KEEP_RELEASES}:] | .[].tagName" \
+          # publishedAt, not createdAt: a release's createdAt is its tag commit's
+          # date, the same for every nightly in this releases-only repo, so a
+          # createdAt sort kept the oldest and deleted the one just published.
+          gh release list -R "$DEV_REPO" --limit 200 --json tagName,publishedAt \
+            --jq "sort_by(.publishedAt) | reverse | .[${KEEP_RELEASES}:] | .[].tagName" \
             | while read -r TAG; do
                 echo "Deleting ${TAG}"
                 gh release delete "$TAG" -R "$DEV_REPO" --yes --cleanup-tag

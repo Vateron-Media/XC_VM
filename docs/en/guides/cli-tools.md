@@ -59,6 +59,8 @@ To see all available commands:
 | `server:install` | `ServerInstallCommand` | Install/configure server (Proxy/LB) via SSH | root |
 | `server:diagnose` | `ServerDiagnoseCommand` | Diagnose why a proxy/LB node is silent to the main (heartbeat, reachability, iptables, service, cluster state) | root |
 | `server:sync-openssl-extra` | `ServerSyncOpensslExtraCommand` | Send the main's `OPENSSL_EXTRA` to load balancers that report another one (MAIN only) | root/xc_vm |
+| `server:xcvt-pin` | `ServerXcvtPinCommand` | Pin an installed load balancer for XCVT v2 configs over host-key-verified SSH: `<serverID> [sshPort] --cred-file=<path> [--expect-hostkey=<sha1>]` (MAIN only; see [XCVT v2](../administration/main-lb-cluster.md#signed-sealed-load-balancer-configs-xcvt-v2)) | xc_vm |
+| `server:xcvt-report` | `ServerXcvtReportCommand` | Which load balancers get XCVT v2 configs and why the others do not; exit 0 when none is uncovered (the gate for the next release). `--waive=<id> --reason=<text>`, `--unwaive=<id>` (MAIN only) | xc_vm |
 
 > **`server:install` credentials and host key.** The panel does not put the SSH
 > password on the command line or in `bin/install/<id>.json`: it writes a 0600

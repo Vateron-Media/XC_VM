@@ -68,8 +68,21 @@ class FakeClusterCrypto extends ClusterCrypto {
 		$this->rBoxSk = str_repeat("\x0b", 32);
 	}
 
+	/**
+	 * The extension's `root_error` (ADR-005, ensureRoot): NOT_INITIALISED (no
+	 * root.enc: init() creates one) or ROOT_UNREADABLE (init() refuses). Null:
+	 * the root is there, as every other test has it.
+	 */
+	public ?string $rRootError = null;
+
+	/** Does this extension pack XCVT v2 (`panel_pk`, `cluster_pack` version 2)? */
+	public bool $rV2 = true;
+
 	public function info(): array {
 		$rPub = ClusterReference::panelPub($this->rSeed);
+		if ($this->rRootError !== null) {
+			return ['api' => 1, 'ext_version' => 'fake', 'licensed' => $this->rLicensed, 'kid' => '', 'clock_ok' => true, 'initialised' => false, 'root_error' => $this->rRootError];
+		}
 		return [
 			'api' => 1, 'ext_version' => 'fake', 'licensed' => $this->rLicensed, 'kid' => bin2hex(substr($this->rB, 0, 4)),
 			'clock_ok' => true, 'initialised' => true, 'panel_sign_pub' => $rPub,
@@ -77,7 +90,15 @@ class FakeClusterCrypto extends ClusterCrypto {
 		];
 	}
 
+	public function supportsV2(): bool {
+		return $this->rV2;
+	}
+
 	public function init(): array {
+		if ($this->rRootError === 'ROOT_UNREADABLE') {
+			throw new ClusterRefusedException('ROOT_UNREADABLE', 'cluster_init');
+		}
+		$this->rRootError = null;
 		$rInfo = $this->info();
 		$rCreated = !$this->rInitialised;
 		$this->rInitialised = true;
@@ -143,13 +164,21 @@ class FakeClusterCrypto extends ClusterCrypto {
 
 	/**
 	 * `cluster_pack`: a stand-in pin blob naming its target and the panel key
-	 * (the real one is XCVT, which only that install opens). Licence-gated.
+	 * (the real one is XCVT, which only that install opens), its version in
+	 * byte 4 as the real one's. Version 1 is licence-gated; version 2 (ADR-005)
+	 * needs only the root; any other is refused (`ARG:version`).
 	 */
-	public function pack(string $rTargetInstallID): string {
-		if (!$this->rLicensed) {
+	public function pack(string $rTargetInstallID, int $rVersion = 1): string {
+		if ($rVersion !== 1 && $rVersion !== 2) {
+			throw new ClusterRefusedException('ARG:version', 'cluster_pack');
+		}
+		if ($this->rRootError !== null) {
+			throw new ClusterRefusedException($this->rRootError, 'cluster_pack');
+		}
+		if ($rVersion === 1 && !$this->rLicensed) {
 			throw new ClusterRefusedException('LICENCE', 'cluster_pack');
 		}
-		return 'XCVT' . str_repeat("\x01", 66) . json_encode(['target' => $rTargetInstallID, 'panel_sign_pub' => bin2hex($this->info()['panel_sign_pub'])]);
+		return 'XCVT' . chr($rVersion) . str_repeat("\x01", 65) . json_encode(['target' => $rTargetInstallID, 'panel_sign_pub' => bin2hex($this->info()['panel_sign_pub'])]);
 	}
 
 	/**
