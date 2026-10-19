@@ -167,6 +167,9 @@ final class AuditCluster1MintProofTest extends TestCase {
 		$rOther = $this->mintOf($this->mint($this->token('t9', 5, ['user_info' => ['id' => 43, 'max_connections' => 2]])));
 		$rElsewhere = $this->mintOf($this->mint($this->token('t8', 6)));
 		$this->rDb->exec('DELETE FROM `cluster_reservations`');
+		// Token mints now queue their own admission cuts. Measure only the
+		// additional work produced by the node requests under test.
+		$rQueuedBefore = glob($this->rDir . 'limits/*.json') ?: [];
 		foreach ([null, $rOther, $rElsewhere] as $i => $rMint) {
 			$rOut = $this->forNode(['uuid' => 'v' . $i, 'line_id' => 42, 'stream_id' => 100, 'ip' => '10.0.0.1', 'ua' => 'VLC'] + ($rMint === null ? [] : ['mint' => $rMint]));
 			$this->assertTrue($rOut['admit'], 'admitted: the line\'s own refusals only');
@@ -174,7 +177,7 @@ final class AuditCluster1MintProofTest extends TestCase {
 		$this->rNow = self::T + 16;
 		$this->assertTrue($this->forNode(['uuid' => 'v3', 'line_id' => 42, 'stream_id' => 100, 'ip' => '10.0.0.1', 'ua' => 'VLC', 'mint' => $rOld])['admit']);
 		$this->assertSame(0, $this->reservations(), 'no proof, another line\'s, another node\'s or an old one: nothing reserved');
-		$this->assertSame([], glob($this->rDir . 'limits/*.json') ?: [], 'and no cut queued');
+		$this->assertSame($rQueuedBefore, glob($this->rDir . 'limits/*.json') ?: [], 'and no additional cut queued');
 		// A line auth.php would refuse is still refused.
 		$this->rDb->exec('UPDATE `lines` SET `enabled` = 0 WHERE `id` = 43');
 		$this->assertSame('DISABLED', $this->forNode(['uuid' => 'v4', 'line_id' => 43, 'stream_id' => 100, 'ip' => '', 'ua' => ''])['reason'] ?? null);
@@ -182,14 +185,15 @@ final class AuditCluster1MintProofTest extends TestCase {
 		$this->rNow = self::T + 15;
 		$this->assertTrue($this->forNode(['uuid' => 'v5', 'line_id' => 42, 'stream_id' => 100, 'ip' => '10.0.0.1', 'ua' => 'VLC', 'mint' => $rOld])['admit']);
 		$this->assertSame(1, $this->reservations());
-		$this->assertCount(1, glob($this->rDir . 'limits/*.json') ?: []);
+		$this->assertCount(count($rQueuedBefore) + 1, glob($this->rDir . 'limits/*.json') ?: []);
 	}
 
 	public function testUnderObserveAConnAdmitWithoutAProofIsAnsweredAsBeforeAndCounted(): void {
 		$this->prove();
+		$rQueuedBefore = glob($this->rDir . 'limits/*.json') ?: [];
 		$this->assertTrue($this->forNode(['uuid' => 'w1', 'line_id' => 42, 'stream_id' => 100, 'ip' => '10.0.0.1', 'ua' => 'VLC'])['admit']);
 		$this->assertSame(1, $this->reservations(), 'reserved as before');
-		$this->assertCount(1, glob($this->rDir . 'limits/*.json') ?: [], 'and its cut queued');
+		$this->assertCount(count($rQueuedBefore) + 1, glob($this->rDir . 'limits/*.json') ?: [], 'and its cut queued');
 		ConnectionAdmission::flushBinding();
 		$this->assertSame(1, ConnectionAdmission::bindingCounts(5)['admit_unproven'] ?? null);
 	}
