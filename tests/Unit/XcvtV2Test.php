@@ -622,12 +622,12 @@ final class XcvtV2Test extends TestCase {
 		mkdir($rDir, 0700, true);
 		file_put_contents($rDir . 'install_id', self::IID);
 		$rCalls = [];
-		NodeCorePin::useExtension(static function (string $rMethod) use (&$rCalls): mixed {
+		NodeCorePin::useExtension(static function (string $rMethod, mixed ...$rArgs) use (&$rCalls): mixed {
 			$rCalls[] = $rMethod;
 			return match ($rMethod) {
 				'install_id' => self::IID,
 				'panel_pk' => self::KEY,
-				'has' => true,
+				'has' => ($rArgs[0] ?? '') !== 'identity_present',
 				default => false,
 			};
 		}, $rDir);

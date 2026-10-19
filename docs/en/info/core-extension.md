@@ -67,7 +67,7 @@ complete list of what happens then — and nothing else:
    is built into the binary (see section 8.4).
 3. **ionCube Loader presence check.** If it is not loaded, an ordinary PHP warning
    is emitted. It is only a message — the core keeps going.
-4. **Installation identifier.** If the `install_id` file does not exist yet, a
+4. **Installation identifier.** If the `keys/install_id` file does not exist yet, a
    random UUID is generated and written to the config directory with `0600`
    permissions. If it exists, it is read. The environment fingerprint is computed
    at the same time (nothing is sent).
@@ -92,15 +92,23 @@ All per-installation secrets live in the **config directory** — by default
 `XCVM_CONFIG_DIR` environment variable — the **only** environment variable the
 core reads.
 
+The core keeps its keys in `keys/` and its licence files in `licence/`, both `0700`
+([ADR-006](https://github.com/Vateron-Media/XC_VM_CoreExtention/blob/main/docs/adr/ADR-006-config-dir-layout.md)).
+A core from before that layout kept them directly in the config directory; the
+first core with it moves each file into place once, at load, and leaves a symlink
+under the old name (`install_id -> keys/install_id`), so an older core still finds
+it. Ask the core whether the identity exists with `identity_present()` rather than
+looking for the file.
+
 | File | What it is | Mode |
 |------|-----------|------|
 | `config.enc` | Panel settings (DB, Redis, server role), AES-256-GCM encrypted. The key is derived from `install_id` **and** `/etc/machine-id`, so a copy on another machine does not decrypt | `0600` |
-| `install_id` | The random UUID of your installation. Created once and never changes (survives core and PHP upgrades) | `0600` |
-| `panel.pk` / `panel.sk` | The panel's X25519 key pair. The public half is sent to the server at registration (and is what MAIN seals a load balancer's config to); **the private half never leaves the machine** and is stored sealed to this machine's key | sk: `0600` |
-| `activation_key` | The licence activation key (you paste it in the panel). Signed by the server, bound to your `install_id` | `0600` |
-| `license_verdict` | The cache of the server's last signed answer about the licence state | `0600` |
-| `license_checkin` | A timestamp for when the next daily check-in may happen (see section 7) | — |
-| `license_enforce_ts` / `license_revoked` | Timestamps of the last enforcement of a revoked licence, and the revocation mark itself (see section 7.4) | — |
+| `keys/install_id` | The random UUID of your installation. Created once and never changes (survives core and PHP upgrades) | `0600` |
+| `keys/panel.pk` / `keys/panel.sk` | The panel's X25519 key pair. The public half is sent to the server at registration (and is what MAIN seals a load balancer's config to); **the private half never leaves the machine** and is stored sealed to this machine's key | sk: `0600` |
+| `licence/activation_key` | The licence activation key (you paste it in the panel). Signed by the server, bound to your `install_id` | `0600` |
+| `licence/license_verdict` | The cache of the server's last signed answer about the licence state | `0600` |
+| `licence/license_checkin` | A timestamp for when the next daily check-in may happen (see section 7) | — |
+| `licence/license_enforce_ts` / `licence/license_revoked` | Timestamps of the last enforcement of a revoked licence, and the revocation mark itself (see section 7.4) | — |
 | `cluster/` | Cluster files: MAIN's root keys (`root.enc`), MAIN's pinned keys on an LB (`core.pin`), node revocation state (`nodes.state`), protected clocks (`clock.sealed`, `timeanchor`), LB leases (`lease`), the high-water marks of the configs an LB has installed (`xcvt.hwm`, see section 5.6). All encrypted under this machine's key | `0600` |
 
 Outside the config directory the core writes:
@@ -127,7 +135,8 @@ calls it.
 
 | Method | What it does | Disk | Network |
 |--------|-------------|------|---------|
-| `install_id()` | Returns the installation UUID (creates it on first call) | reads/creates `install_id` | — |
+| `install_id()` | Returns the installation UUID (creates it on first call) | reads/creates `keys/install_id` | — |
+| `identity_present()` | Whether `keys/install_id` and `keys/panel.sk` exist, **creating neither**: what the panel asks before `install_id()` or `panel_pk()` where a missing identity must stay missing | reads nothing but their presence | — |
 | `env_fingerprint()` | Returns the hash `SHA-256(install_id + /etc/machine-id + hostname)`. It is a **hash**: the hostname or machine-id cannot be recovered from it | reads `/etc/machine-id`, hostname | — |
 
 ### 5.2. Panel config

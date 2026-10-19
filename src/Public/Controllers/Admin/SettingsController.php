@@ -130,7 +130,7 @@ class SettingsController extends BaseAdminController {
 		return [
 			'status' => \XC_VM::license_valid() ? 'Licensed' : 'Unlicensed',
 			'hwid'   => (string) \XC_VM::install_id(),
-			'key'    => is_file(MAIN_HOME . 'config/activation_key') ? 'Present' : 'None',
+			'key'    => is_file(MAIN_HOME . 'config/licence/activation_key') || is_file(MAIN_HOME . 'config/activation_key') ? 'Present' : 'None',
 		];
 	}
 

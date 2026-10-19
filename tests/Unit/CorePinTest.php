@@ -64,7 +64,9 @@ final class CorePinTest extends TestCase {
 				case 'cluster_last_error':
 					return $this->rExt['pin_error'] ?? ($this->rExt['pin_error_now'] ?? null);
 				case 'has':
-					return $this->rExt['verdict'];
+					return $rArgs[0] === 'identity_present' ? isset($this->rExt['identity']) : $this->rExt['verdict'];
+				case 'identity_present':
+					return $this->rExt['identity'];
 			}
 			return null;
 		}, $this->rDir);
@@ -126,6 +128,26 @@ final class CorePinTest extends TestCase {
 		$this->assertNotContains('panel_pk', array_column($this->rCalls, 0));
 		$this->rExt['pinned'] = self::PANEL_PUB;
 		$this->assertSame(hash('sha256', self::PANEL_PUB), NodeCorePin::outcome(NodeCorePin::run(['action' => 'pin_core'], null))['pinned']);
+	}
+
+	/** The extension's ADR-006: an extension that can say whether the identity exists is asked, not the path. */
+	public function testStepOneAsksTheExtensionWhetherTheIdentityExists(): void {
+		$this->rExt['identity'] = ['install_id' => true, 'panel_sk' => false];
+		$this->assertSame(self::IID, NodeCorePin::outcome(NodeCorePin::run(['action' => 'pin_core'], null))['install_id'], 'no file at the flat path: the extension knows');
+		$this->rExt['identity'] = ['install_id' => false, 'panel_sk' => false];
+		file_put_contents($this->rDir . 'install_id', self::IID); // a stale flat copy is not trusted
+		$this->expectExceptionMessage('this node has no install_id');
+		NodeCorePin::run(['action' => 'pin_core'], null);
+	}
+
+	public function testTheProbeOverSshAsksTheExtensionAndFallsBackToTheOldPath(): void {
+		$rProbe = NodeCorePin::identityProbe('/home/xc_vm/config/');
+		$this->assertStringContainsString('XC_VM::identity_present()[\'install_id\']', $rProbe);
+		$this->assertStringContainsString("is_file('/home/xc_vm/config/install_id')", $rProbe);
+		$this->assertStringNotContainsString('install_id()', $rProbe, 'a probe creates nothing');
+		$rSk = NodeCorePin::identityProbe('/home/xc_vm/config/', 'panel_sk');
+		$this->assertStringContainsString('XC_VM::identity_present()[\'panel_sk\']', $rSk);
+		$this->assertStringContainsString("is_file('/home/xc_vm/config/panel.sk')", $rSk);
 	}
 
 	public function testStepOneNeverCreatesAnInstallId(): void {

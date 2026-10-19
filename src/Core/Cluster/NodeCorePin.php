@@ -116,7 +116,7 @@ final class NodeCorePin {
 	private static function report(\Closure $rCall): array {
 		// install_id() creates the file when it is missing, and a root-owned one
 		// would lock the panel's user out of config.enc: read only what exists.
-		if (!is_file(self::configDir() . 'install_id')) {
+		if (!self::present($rCall, 'install_id')) {
 			throw new \RuntimeException(self::ACTION . ': refused: this node has no install_id');
 		}
 		$rID = $rCall('install_id');
@@ -129,7 +129,7 @@ final class NodeCorePin {
 			// The key MAIN seals an XCVT v2 config to (the extension's ADR-005).
 			// Read only from a panel.sk that exists: a probe creates nothing. No
 			// panel_pk at all says this extension predates it.
-			$rPk = is_file(self::configDir() . 'panel.sk') ? $rCall('panel_pk') : null;
+			$rPk = self::present($rCall, 'panel_sk') ? $rCall('panel_pk') : null;
 			$rOut['panel_pk'] = is_string($rPk) && preg_match('/^[0-9a-f]{64}\z/', $rPk) === 1 ? $rPk : null;
 		}
 		return $rOut;
@@ -147,6 +147,29 @@ final class NodeCorePin {
 
 	private static function hasVerdict(\Closure $rCall): bool {
 		return self::has($rCall, 'cluster_lease_state');
+	}
+
+	/**
+	 * Does this node have its install_id or panel.sk, created by nothing? The
+	 * extension answers where it can (identity_present, its ADR-006: the files
+	 * live in keys/ now); an older one is asked by the old path, where it keeps
+	 * them and where ADR-006's first release leaves a symlink to the new one.
+	 */
+	private static function present(\Closure $rCall, string $rWhat): bool {
+		if (self::has($rCall, 'identity_present')) {
+			$rHas = $rCall('identity_present');
+			return is_array($rHas) && !empty($rHas[$rWhat]);
+		}
+		return is_file(self::configDir() . ($rWhat === 'panel_sk' ? 'panel.sk' : 'install_id'));
+	}
+
+	/**
+	 * The same question as PHP for `php -r` on a node over SSH: does its
+	 * `install_id` (or `panel_sk`) under `$rConfigDir` exist, created by nothing.
+	 */
+	public static function identityProbe(string $rConfigDir, string $rWhat = 'install_id'): string {
+		$rFile = $rWhat === 'panel_sk' ? 'panel.sk' : 'install_id';
+		return '(method_exists("XC_VM", "identity_present") ? XC_VM::identity_present()[' . var_export($rWhat, true) . '] : is_file(' . var_export($rConfigDir . $rFile, true) . '))';
 	}
 
 	private static function has(\Closure $rCall, string $rMethod): bool {
