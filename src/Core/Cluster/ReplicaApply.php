@@ -726,7 +726,7 @@ final class ReplicaApply {
 	 */
 	private static function streamDiffer(array $rMain, array $rData): array {
 		$rOut = [];
-		foreach (['stream', 'type', 'profile', 'server', 'options', 'children', 'recordings', 'runtime'] as $rPart) {
+		foreach (['stream', 'type', 'profile', 'server', 'options', 'children', 'recordings', 'runtime', 'resume'] as $rPart) {
 			$rHave = $rMain[$rPart] ?? null;
 			$rWant = $rData[$rPart] ?? null;
 			if (in_array($rPart, ['stream', 'server'], true) && is_array($rHave) && is_array($rWant)) {

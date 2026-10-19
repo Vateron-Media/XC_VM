@@ -387,6 +387,75 @@ final class StreamRuntimeReadersTest extends TestCase {
 		$this->assertTrue($rSays());
 	}
 
+	public function testModeTwoRecoversMissingLiveStateWithoutRevivingStoppedOrOnDemandStreams(): void {
+		$this->rDb->exec('UPDATE streams_servers SET on_demand=0 WHERE stream_id=10');
+		$this->replica(NodeFlows::STREAMS | NodeFlows::CONNECTIONS | NodeFlows::CONTENT, 2);
+		foreach ([10, 16, 20] as $rID) {
+			unlink(StreamRuntime::dir() . 'streams/' . $rID . '.json');
+		}
+		$this->assertSame([], NodeStreams::liveChecks(true), 'missing entries were invisible to the cron');
+		$this->assertSame(3, StreamRuntime::recoverMissing());
+		$this->assertSame([10, 16, 20], array_keys(self::byStream(NodeStreams::liveChecks(true))));
+		foreach ([10, 16, 20] as $rID) {
+			$this->assertSame(null, StreamRuntime::get($rID)['pid'], 'never restore a stale process ID');
+			$this->assertSame(1, StreamRuntime::get($rID)['stream_status'], 'report failed/starting before launch');
+		}
+		$this->assertSame([], StreamRuntime::get(12), 'an intentionally stopped stream stays stopped');
+		$this->assertSame(0, StreamRuntime::recoverMissing(), 'recovery is idempotent');
+		StreamStateWriter::update(10, $this->rSid, ['pid' => null, 'monitor_pid' => null, 'stream_status' => 0]);
+		$this->assertSame(0, StreamRuntime::recoverMissing(), 'local stop wins over an older resume hint');
+		$this->assertSame(0, StreamRuntime::get(10)['stream_status']);
+		$this->assertSame(0, $this->rRefusing->rConnects);
+	}
+
+	public function testMissingOnDemandAndMovieEntriesAreNotRecoveredAndCorruptLiveStateIs(): void {
+		$this->replica(NodeFlows::STREAMS | NodeFlows::CONNECTIONS | NodeFlows::CONTENT, 2);
+		foreach ([10, 11, 15] as $rID) {
+			unlink(StreamRuntime::dir() . 'streams/' . $rID . '.json');
+		}
+		file_put_contents(StreamRuntime::dir() . 'streams/16.json', '{broken');
+		$this->assertSame(1, StreamRuntime::recoverMissing());
+		$this->assertSame(1, StreamRuntime::get(16)['stream_status']);
+		foreach ([10, 11, 15] as $rID) {
+			$this->assertSame([], StreamRuntime::get($rID));
+		}
+		$this->assertSame(0, $this->rRefusing->rConnects);
+	}
+
+	public function testMissingStateRecoveryIsBoundedPerCronPass(): void {
+		$this->replica(NodeFlows::STREAMS | NodeFlows::CONNECTIONS | NodeFlows::CONTENT, 2);
+		$rIndex = ReplicaStreamCache::index();
+		for ($rID = 1000; $rID <= 1100; $rID++) {
+			$rData = ReplicaFixture::streamData($rID, $this->rSid);
+			$rData['server']['on_demand'] = 0;
+			$rData['resume'] = true;
+			$rEntry = ReplicaStreamCache::entry($rID, $rData, $this->rSid, 'recovery-' . $rID, 4);
+			$this->assertNotNull($rEntry);
+			$this->assertTrue(ReplicaStreamCache::store()->set((string) $rID, $rEntry));
+			$rIndex[$rID] = ReplicaStreamCache::meta($rEntry);
+		}
+		ReplicaStreamCache::writeIndex($rIndex);
+		$this->assertSame(100, StreamRuntime::recoverMissing());
+		$this->assertSame(1, StreamRuntime::recoverMissing());
+		$this->assertSame(0, StreamRuntime::recoverMissing());
+		$this->assertSame(0, $this->rRefusing->rConnects);
+	}
+
+	public function testMissingStateRecoveryWaitsForTheApiModeAndKeepsUnsentReports(): void {
+		$this->replica();
+		unlink(StreamRuntime::dir() . 'streams/16.json');
+		$this->assertSame(0, StreamRuntime::recoverMissing(), 'mode 1 retains its database seed path');
+		$this->flows(NodeFlows::STREAMS, 2);
+		file_put_contents($this->rDir . 'blocked-spool', 'not a directory');
+		EventSpool::useDir($this->rDir . 'blocked-spool/');
+		$this->assertSame(1, StreamRuntime::recoverMissing());
+		$rDoc = json_decode(file_get_contents(StreamRuntime::dir() . 'streams/16.json'), true);
+		$this->assertEqualsCanonicalizing(['pid', 'monitor_pid', 'stream_status'], $rDoc['unsent']);
+		EventSpool::useDir($this->rDir . 'cluster/spool/');
+		$this->assertSame(1, StreamStateWriter::resend());
+		$this->assertSame(0, $this->rRefusing->rConnects);
+	}
+
 	public function testTheReadersFollowWhatTheNodeWritesSince(): void {
 		$this->replica();
 		// A process that read no row names its stream by server_stream_id through the stream caches' index.
