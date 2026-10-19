@@ -451,7 +451,7 @@ class StreamService {
 						}
 
 						if ($rRestart) {
-							ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => [$rInsertID]]);
+							ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => [$rInsertID], 'async' => true]);
 						}
 
 						foreach ($rBouquets as $rBouquet) {
@@ -800,7 +800,7 @@ class StreamService {
 			EventDispatcher::dispatch(new StreamsChangedEvent(array_values(array_map('intval', $rStreamIDs))));
 
 			if (isset($rData['restart_on_edit'])) {
-				ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs)]);
+				ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'async' => true]);
 			}
 		}
 

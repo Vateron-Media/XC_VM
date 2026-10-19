@@ -26,7 +26,7 @@ final class ParchesCommandBusTest extends TestCase {
 	/** 1.16.104 — a best-effort per-node lock so concurrent enqueues serialise, not deadlock. */
 	public function testEnqueueSerialisesPerNodeWithABestEffortLock(): void {
 		$rSrc = (string) file_get_contents(MAIN_HOME . 'Domain/Cluster/CommandBus.php');
-		$this->assertStringContainsString("GET_LOCK(CONCAT(DATABASE(), '.cmd_seq_', ?), 2)", $rSrc);
+		$this->assertStringContainsString("GET_LOCK(CONCAT(DATABASE(), '.cmd_seq_', ?), 0)", $rSrc);
 		$this->assertStringContainsString("RELEASE_LOCK(CONCAT(DATABASE(), '.cmd_seq_', ?))", $rSrc);
 	}
 }

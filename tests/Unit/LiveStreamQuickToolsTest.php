@@ -53,4 +53,47 @@ final class LiveStreamQuickToolsTest extends TestCase {
 		$this->assertSame(0, $result['submitted']);
 		$this->assertSame([8], $calls[0]['stream_ids']);
 	}
+	public function testOnlineAndDownSelectExactPairsIncludingDaemonInstances(): void {
+		$db = new TestDb();
+		foreach (['streams', 'streams_servers'] as $table) {
+			$db->exec(InstallSchema::table($table));
+		}
+		$db->exec('INSERT INTO streams (id,type,direct_source) VALUES (10,1,0),(20,1,0),(30,2,0)');
+		$db->exec('INSERT INTO streams_servers (stream_id,server_id,pid,monitor_pid,stream_status) VALUES (10,1,100,NULL,0),(10,2,NULL,NULL,1),(20,1,NULL,200,1),(20,2,300,400,0),(30,1,NULL,500,1)');
+		$calls = [];
+		$send = static function ($payload, $timeout) use (&$calls) {
+			$calls[] = $payload;
+			self::assertTrue($payload['async']);
+			self::assertSame(5, $timeout);
+			return ['result' => true];
+		};
+		$this->assertSame(['result' => true, 'matched' => 2, 'submitted' => 2], LiveStreamQuickTools::restart($db, LiveStreamQuickTools::ONLINE, $send));
+		$this->assertSame([[10], [20]], array_column($calls, 'stream_ids'));
+		$this->assertSame([[1], [2]], array_column($calls, 'servers'));
+		$calls = [];
+		$this->assertSame(['result' => true, 'matched' => 2, 'submitted' => 2], LiveStreamQuickTools::restart($db, LiveStreamQuickTools::DOWN, $send));
+		$byServer = [];
+		foreach ($calls as $call) {
+			$byServer[$call['servers'][0]] = $call['stream_ids'];
+		}
+		$this->assertSame([20], $byServer[1]);
+		$this->assertSame([10], $byServer[2]);
+	}
+
+	public function testPartialSubmissionIsReportedAndDoesNotPreventOtherServers(): void {
+		$db = new class {
+			public function query($sql): bool { return true; }
+			public function get_rows(): array {
+				return [['server_id'=>1,'stream_id'=>10,'pid'=>100],['server_id'=>1,'stream_id'=>20,'pid'=>100],['server_id'=>2,'stream_id'=>30,'pid'=>100]];
+			}
+		};
+		$calls = [];
+		$result = LiveStreamQuickTools::restart($db, LiveStreamQuickTools::ONLINE, static function ($payload) use (&$calls) {
+			$calls[] = $payload['servers'][0];
+			return ['result' => $payload['servers'][0] === 2, 'accepted' => [['server_id'=>$payload['servers'][0], 'stream_id'=>$payload['stream_ids'][0]]]];
+		});
+		$this->assertSame([1,2], $calls);
+		$this->assertSame(['result'=>false,'matched'=>3,'submitted'=>2], $result);
+	}
+
 }

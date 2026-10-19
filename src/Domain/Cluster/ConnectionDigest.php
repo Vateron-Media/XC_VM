@@ -92,8 +92,8 @@ final class ConnectionDigest {
 	 * must hold for MISSES checks in a row (the events in flight catch up in
 	 * well under that), and a node is asked at most once per COOLDOWN_MS.
 	 */
-	public static function check(int $rServerID, mixed $rDigest): bool {
-		if (!is_array($rDigest) || !is_int($rDigest['count'] ?? null) || !is_int($rDigest['users'] ?? null) || !is_string($rDigest['xor64'] ?? null)) {
+	public static function check(int $rServerID, mixed $rDigest, ?array $rP0 = null): bool {
+		if (!is_array($rDigest) || !is_int($rDigest['count'] ?? null) || !is_int($rDigest['users'] ?? null) || !is_string($rDigest['xor64'] ?? null) || !preg_match('/^[a-f0-9]{16}$/iD', $rDigest['xor64'])) {
 			return false;
 		}
 		$rNow = ClusterClock::nowMs();
@@ -105,7 +105,22 @@ final class ConnectionDigest {
 		$rOurs = self::of(self::stored($rServerID));
 		$rSame = $rOurs['count'] === $rDigest['count'] && $rOurs['users'] === $rDigest['users'] && hash_equals($rOurs['xor64'], strtolower($rDigest['xor64']));
 		$rState['at'] = $rNow;
-		$rState['miss'] = $rSame ? 0 : (int) $rState['miss'] + 1;
+		$rState['reported'] = array_intersect_key($rDigest, array_flip(['count', 'users', 'xor64']));
+		$rState['stored'] = $rOurs;
+		// A registry change is already in P0 but not yet in MAIN's store.
+		// Counting that as drift makes busy nodes request full snapshots
+		// continuously, competing with the events that would settle it.
+		$rPending = is_int($rP0['files'] ?? null) && $rP0['files'] > 0;
+		$rState['pending_p0'] = $rPending;
+		$rGap = ($rDigest['count'] - $rOurs['count']) . ':' . ($rDigest['users'] - $rOurs['users']) . ':' . bin2hex((hex2bin($rOurs['xor64']) ?: '') ^ (hex2bin($rDigest['xor64']) ?: ''));
+		if (($rState['drift_key'] ?? null) !== $rGap) {
+			$rState['miss'] = 0;
+			$rState['drift_since'] = $rNow;
+		}
+		$rState['drift_key'] = $rGap;
+		$rState['drift_since'] = $rSame ? 0 : ((int) ($rState['drift_since'] ?? 0) ?: $rNow);
+		$rSettling = $rPending && $rNow - $rState['drift_since'] < self::COOLDOWN_MS;
+		$rState['miss'] = $rSame || $rSettling ? 0 : (int) $rState['miss'] + 1;
 		$rWant = $rState['miss'] >= self::MISSES && $rNow - (int) $rState['asked'] >= self::COOLDOWN_MS;
 		if ($rWant) {
 			$rState['miss'] = 0;

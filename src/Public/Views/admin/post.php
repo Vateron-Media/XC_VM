@@ -466,7 +466,7 @@ if (1 < $rICount) { ?>
 			case 'quick_tools':
 				set_time_limit(0);
 
-				foreach ([\XcVm\Domain\Stream\LiveStreamQuickTools::PROGRESS, \XcVm\Domain\Stream\LiveStreamQuickTools::CODECS] as $rTool) {
+				foreach ([\XcVm\Domain\Stream\LiveStreamQuickTools::PROGRESS, \XcVm\Domain\Stream\LiveStreamQuickTools::CODECS, \XcVm\Domain\Stream\LiveStreamQuickTools::ONLINE, \XcVm\Domain\Stream\LiveStreamQuickTools::DOWN] as $rTool) {
 					if (isset($rData[$rTool])) {
 						$rResult = \XcVm\Domain\Stream\LiveStreamQuickTools::restart($db, $rTool);
 						$rResult['status'] = $rResult['result'] ? STATUS_SUCCESS : STATUS_FAILURE;
@@ -815,48 +815,6 @@ if (1 < $rICount) { ?>
 						$rStreamIDs[] = intval($rRow['stream_id']);
 					}
 					$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1;');
-
-					foreach ($db->get_rows() as $rRow) {
-						$rServerIDs[] = intval($rRow['server_id']);
-					}
-
-					if (count($rStreamIDs) > 0) {
-						$rRet = ApiClient::request(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
-					}
-
-					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-					exit();
-				}
-
-				if (isset($rData['restart_online_streams'])) {
-					$rServerIDs = $rStreamIDs = array();
-					$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-					foreach ($db->get_rows() as $rRow) {
-						$rStreamIDs[] = intval($rRow['stream_id']);
-					}
-					$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`pid` > 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-					foreach ($db->get_rows() as $rRow) {
-						$rServerIDs[] = intval($rRow['server_id']);
-					}
-
-					if (count($rStreamIDs) > 0) {
-						$rRet = ApiClient::request(array('action' => 'stream', 'sub' => 'start', 'stream_ids' => $rStreamIDs, 'servers' => $rServerIDs), 120);
-					}
-
-					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-					exit();
-				}
-
-				if (isset($rData['restart_down_streams'])) {
-					$rServerIDs = $rStreamIDs = array();
-					$db->query('SELECT DISTINCT(`stream_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
-
-					foreach ($db->get_rows() as $rRow) {
-						$rStreamIDs[] = intval($rRow['stream_id']);
-					}
-					$db->query('SELECT DISTINCT(`server_id`) FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `streams`.`type` = 1 AND (`streams_servers`.`pid` IS NULL OR `streams_servers`.`pid` <= 0) AND `streams_servers`.`stream_status` <> 0 AND `streams_servers`.`monitor_pid` IS NOT NULL AND `streams_servers`.`monitor_pid` > 0;');
 
 					foreach ($db->get_rows() as $rRow) {
 						$rServerIDs[] = intval($rRow['server_id']);

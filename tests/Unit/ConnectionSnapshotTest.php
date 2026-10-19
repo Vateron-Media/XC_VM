@@ -84,6 +84,39 @@ final class ConnectionSnapshotTest extends TestCase {
 		$this->assertFalse(ConnectionDigest::check(5, ['count' => '1']), 'a malformed digest is ignored');
 	}
 
+	public function testPendingStateEventsDoNotTriggerFullSnapshotsButSettledDriftStillDoes(): void {
+		$this->row('a', 5, 7);
+		$rDigest = ConnectionDigest::of([$this->rec('a', 7), $this->rec('b', 8)]);
+		for ($i = 0; $i < 4; $i++) {
+			ClusterClock::fix(1800000000000 + $i * 4000);
+			$this->assertFalse(ConnectionDigest::check(5, $rDigest, ['files' => 1]), 'P0 already carries the missing change');
+		}
+		$this->assertSame(0, ConnectionDigest::state(5)['miss']);
+		$this->assertTrue(ConnectionDigest::state(5)['pending_p0']);
+		ClusterClock::fix(1800000016000);
+		$this->assertFalse(ConnectionDigest::check(5, $rDigest, ['files' => 0]));
+		ClusterClock::fix(1800000020000);
+		$this->assertTrue(ConnectionDigest::check(5, $rDigest, ['files' => 0]), 'persistent drift after the outbox drains still asks for recovery');
+	}
+
+	public function testDifferentInFlightViewersDoNotAccumulateAsOnePersistentGap(): void {
+		for ($i = 0; $i < 12; $i++) {
+			ClusterClock::fix(1800000000000 + $i * 4000);
+			$rDigest = ConnectionDigest::of([$this->rec('changing-' . $i, 7)]);
+			$this->assertFalse(ConnectionDigest::check(5, $rDigest, ['files' => 1]));
+		}
+	}
+
+	public function testBusyP0CannotHidePersistentDriftForever(): void {
+		$rDigest = ConnectionDigest::of([$this->rec('missing', 7)]);
+		ClusterClock::fix(1800000000000);
+		$this->assertFalse(ConnectionDigest::check(5, $rDigest, ['files' => 1]));
+		ClusterClock::fix(1800000032000);
+		$this->assertFalse(ConnectionDigest::check(5, $rDigest, ['files' => 1]));
+		ClusterClock::fix(1800000036000);
+		$this->assertTrue(ConnectionDigest::check(5, $rDigest, ['files' => 1]));
+	}
+
 	public function testASnapshotIsAppliedWholeWithItsLastChunk(): void {
 		$this->row('a', 5, 7);
 		$this->row('stale', 5, 7);
