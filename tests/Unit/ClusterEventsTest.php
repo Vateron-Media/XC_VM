@@ -128,6 +128,29 @@ final class ClusterEventsTest extends TestCase {
 
 	// ── Node side ────────────────────────────────────────────────────────
 
+	public function testLargeLogImportNeverBecomesOneOversizedSpoolFile(): void {
+		$this->flows(NodeFlows::LOGS);
+		$rRows = [];
+		for ($rID = 0; $rID < 120; $rID++) {
+			$rRows[] = ['stream_id' => $rID, 'server_id' => 5, 'date' => 10, 'error' => str_repeat('x', 100000)];
+		}
+		$this->assertTrue(LogSink::write('stream_error', $rRows));
+		$rFiles = glob($this->rDir . '/spool/p1/*.ndjson') ?: [];
+		$this->assertGreaterThan(1, count($rFiles));
+		$rSeen = [];
+		foreach ($rFiles as $rFile) {
+			$this->assertLessThan(1048576, filesize($rFile), 'every file fits the agent transport budget');
+			foreach (file($rFile, FILE_IGNORE_NEW_LINES) as $rLine) {
+				$rEvent = json_decode($rLine, true);
+				foreach ($rEvent['d']['rows'] as $rRow) {
+					$rSeen[] = $rRow['stream_id'];
+					$this->assertSame(100000, strlen($rRow['error']));
+				}
+			}
+		}
+		$this->assertSame(range(0, 119), $rSeen, 'all log rows and their order are preserved');
+	}
+
 	public function testLogsGoToTheSpoolRedactedWhenTheFlowIsOn(): void {
 		$this->flows(NodeFlows::LOGS);
 		$this->assertTrue(LogSink::write('client', [['stream_id' => 1, 'user_id' => 2, 'query_string' => 'username=alice&password=s3cret', 'ip' => '1.2.3.4', 'date' => 7, 'bogus' => 'x']]));
