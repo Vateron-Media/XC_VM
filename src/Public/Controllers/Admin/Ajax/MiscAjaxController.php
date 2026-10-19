@@ -202,7 +202,8 @@ class MiscAjaxController extends BaseAjaxController {
 			$this->fail(['message' => Translator::get('activation_invalid_key')]);
 		}
 
-		$rPath = MAIN_HOME . 'config/activation_key';
+		// The extension keeps it in licence/ (its ADR-006); an older one reads the flat path.
+		$rPath = MAIN_HOME . 'config/' . (is_dir(MAIN_HOME . 'config/licence') ? 'licence/' : '') . 'activation_key';
 		$rOld = is_file($rPath) ? trim((string) @file_get_contents($rPath)) : '';
 
 		if (@file_put_contents($rPath, $rKey . "\n") === false) {

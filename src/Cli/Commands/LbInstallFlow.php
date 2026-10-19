@@ -502,7 +502,8 @@ class LbInstallFlow {
 	 */
 	public static function readback($rConn, callable $rRunSSH, int $rServerID, ?ClusterCrypto $rCrypto = null): ?string {
 		// config_server() would mint a new install_id over one xc_vm cannot read: asked only when it can.
-		$rAsk = 'if (!is_readable(' . var_export(CONFIG_PATH . 'install_id', true) . ')) { echo json_encode(["error" => "install_id"]); } else { $s = XC_VM::config_server(); echo json_encode(["server_id" => is_array($s) ? (int) ($s["server_id"] ?? 0) : null, "is_lb" => is_array($s) ? (int) ($s["is_lb"] ?? 0) : null, "pk" => method_exists("XC_VM", "panel_pk") && is_file(' . var_export(CONFIG_PATH . 'panel.sk', true) . ') ? XC_VM::panel_pk() : null]); }';
+		// It is in keys/ with the extension's ADR-006, at the flat path before (a symlink after its move).
+		$rAsk = 'if (!(is_readable(' . var_export(CONFIG_PATH . 'keys/install_id', true) . ') || is_readable(' . var_export(CONFIG_PATH . 'install_id', true) . '))) { echo json_encode(["error" => "install_id"]); } else { $s = XC_VM::config_server(); echo json_encode(["server_id" => is_array($s) ? (int) ($s["server_id"] ?? 0) : null, "is_lb" => is_array($s) ? (int) ($s["is_lb"] ?? 0) : null, "pk" => method_exists("XC_VM", "panel_pk") && is_file(' . var_export(CONFIG_PATH . 'panel.sk', true) . ') ? XC_VM::panel_pk() : null]); }';
 		$rDoc = json_decode(self::lastLine((array) call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' -r ' . escapeshellarg($rAsk))), true);
 		if (is_array($rDoc) && isset($rDoc['error'])) {
 			return 'xc_vm cannot read its install_id';
