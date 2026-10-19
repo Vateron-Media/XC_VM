@@ -107,6 +107,44 @@ final class CommandBusEnqueueTest extends TestCase {
 		$this->assertSame([[1, 'other', 'conn.drop'], [2, $rCmdID, 'conn.drop']], $this->rows());
 	}
 
+	/** A refused signature must not strand the node lock on a long-lived handle. */
+	public function testSigningFailureReleasesTheSequenceLock(): void {
+		DatabaseFactory::set($this->rInner);
+		$this->rCrypto->rRefuseSign = 'CLOCK';
+		try {
+			CommandBus::enqueue($this->rCrypto, self::SID, 'stream.start', ['stream_id' => 1]);
+			$this->fail('signing should be refused');
+		} catch (\XcVm\Core\Cluster\Crypto\ClusterRefusedException $rE) {
+			$this->rInner->query("SELECT IS_FREE_LOCK(CONCAT(DATABASE(), '.cmd_seq_', ?));", self::SID);
+			$this->assertSame('1', (string) $this->rInner->get_col());
+		}
+		$this->assertSame([], $this->rows());
+	}
+
+	/** Another worker's sequence lock must not add a two-second wait to playback. */
+	public function testBusySequenceLockDoesNotBlockEnqueue(): void {
+		DatabaseFactory::set($this->rInner);
+		$this->rInner->query("SELECT CONCAT(DATABASE(), '.cmd_seq_', ?);", self::SID);
+		$rLock = $this->rInner->get_col();
+		$rOther = new TestDb();
+		$rOther->query('SELECT GET_LOCK(?, 0);', $rLock);
+		$this->assertSame('1', (string) $rOther->get_col());
+		try {
+			$rStart = microtime(true);
+			$rCmdID = CommandBus::enqueue($this->rCrypto, self::SID, 'conn.drop', ['uuid' => 'v1']);
+			$this->assertLessThan(1.0, microtime(true) - $rStart);
+			$this->assertSame([[1, $rCmdID, 'conn.drop']], $this->rows());
+		} finally {
+			$rOther->query('SELECT RELEASE_LOCK(?);', $rLock);
+		}
+	}
+
+	public function testNonBlockingRpcSubmissionReportsARefusedWrite(): void {
+		$this->rDb->rRefuseAll = true;
+		$this->assertFalse(\XcVm\Core\Cluster\NodeRpc::submit(self::SID, ['action'=>'stream','function'=>'start','stream_ids'=>[1]]));
+		$this->assertSame([], $this->rows());
+	}
+
 	/**
 	 * Database's contract over a TestDb: a statement that fails answers false
 	 * (it never throws), or, with rThrow, throws as TestDb does. rRace runs

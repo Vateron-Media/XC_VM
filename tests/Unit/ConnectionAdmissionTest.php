@@ -13,7 +13,7 @@ use XcVm\Tests\Support\RedisServer;
 /**
  * Admission at token mint (cluster plan, Phase 6): for a viewer bound for a
  * CONNECTIONS node, MAIN reserves it and cuts the line's open connections to
- * leave room for it and the viewers still in flight, before the node sees it.
+ * leave room for it and the viewers still in flight (queued when signals runs).
  */
 final class ConnectionAdmissionTest extends TestCase {
 	private const T = 1800000000;
@@ -76,6 +76,37 @@ final class ConnectionAdmissionTest extends TestCase {
 
 	private function admit(array $rToken, array $rSettings = []): bool {
 		return ConnectionAdmission::admit($rSettings + ['cluster_api_enabled' => 1, 'create_expiration' => 5, 'redis_handler' => 0], $rToken, '10.0.0.1', 'VLC');
+	}
+
+	public function testMintQueuesTheCutInsteadOfSweepingInsideTheLogin(): void {
+		$rDir = sys_get_temp_dir() . '/xcvm-admit-queue-' . bin2hex(random_bytes(4)) . '/';
+		mkdir($rDir);
+		ConnectionLimits::useQueue($rDir);
+		try {
+			$rUUID = str_repeat('a', 32);
+			$this->assertTrue($this->admit($this->token($rUUID, 5)));
+			$this->assertSame([], $this->rCuts, 'no synchronous sweep in the login');
+			$rFile = $rDir . 'a-5-' . $rUUID . '.json';
+			$rCut = json_decode(file_get_contents($rFile), true);
+			$this->assertSame(42, $rCut['user_id']);
+			$this->assertTrue($rCut['admission']);
+			$this->assertSame(self::T + 15, $rCut['exp']);
+			$this->assertTrue($this->admit($this->token(str_repeat('c', 32), 5, 2, ['extension' => 'm3u8'])));
+			$this->assertCount(1, $this->rCuts, 'HLS keeps its synchronous cut: its playlist UUID differs from the token UUID');
+			$this->assertFileDoesNotExist($rDir . 'a-5-' . str_repeat('c', 32) . '.json');
+			// If signals stops, the queue refuses the job and the limit is
+			// still applied synchronously rather than silently bypassed.
+			touch($rDir . '.drained', time() - 120);
+			$this->assertTrue($this->admit($this->token(str_repeat('b', 32), 5)));
+			$this->assertCount(2, $this->rCuts);
+		} finally {
+			ConnectionLimits::useQueue(null);
+			foreach (glob($rDir . '*') ?: [] as $rFile) {
+				unlink($rFile);
+			}
+			@unlink($rDir . '.drained');
+			rmdir($rDir);
+		}
 	}
 
 	public function testOnlyLimitedViewersBoundForACONNECTIONSNode(): void {
