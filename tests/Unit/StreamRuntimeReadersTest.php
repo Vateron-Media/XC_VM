@@ -422,6 +422,18 @@ final class StreamRuntimeReadersTest extends TestCase {
 		$this->assertSame(0, $this->rRefusing->rConnects);
 	}
 
+	public function testProgressOnlyStateDoesNotHideMissingLifecycleState(): void {
+		$this->replica(NodeFlows::STREAMS | NodeFlows::CONNECTIONS | NodeFlows::CONTENT, 2);
+		unlink(StreamRuntime::dir() . 'streams/16.json');
+		StreamStateWriter::update(16, $this->rSid, ['progress_info' => '{"pct":42}']);
+		$this->assertSame(1, StreamRuntime::recoverMissing());
+		$this->assertSame(1, StreamRuntime::get(16)['stream_status']);
+		$this->assertNull(StreamRuntime::get(16)['pid']);
+		$this->assertSame('{"pct":42}', StreamRuntime::get(16)['progress_info']);
+		$this->assertSame(0, StreamRuntime::recoverMissing());
+		$this->assertSame(0, $this->rRefusing->rConnects);
+	}
+
 	public function testMissingStateRecoveryIsBoundedPerCronPass(): void {
 		$this->replica(NodeFlows::STREAMS | NodeFlows::CONNECTIONS | NodeFlows::CONTENT, 2);
 		$rIndex = ReplicaStreamCache::index();

@@ -286,7 +286,7 @@ final class StreamRuntime {
 	/**
 	 * A mode-2 store may be incomplete after an install or lost file. Restore
 	 * at most 100 missing entries per cron pass from MAIN's signed recovery
-	 * intent. Existing entries (including an explicit local stop) always win.
+	 * intent. Existing lifecycle state (including an explicit local stop) always wins.
 	 * Report starting/failed, never MAIN's stale pid, before the normal cron
 	 * starts the monitor. A refused event stays unsent for resend().
 	 */
@@ -304,8 +304,11 @@ final class StreamRuntime {
 				continue;
 			}
 			$rRecovered = self::locked(static function () use ($rID, $rEntry): bool {
-				// Recheck under the writer lock: a concurrent stop must not be undone.
-				if (self::read(self::dir() . 'streams/' . (int) $rID . '.json', true) !== null) {
+				// Progress alone is not lifecycle state: a created-channel build may
+				// have reported it before a producer was ever started. A concurrent
+				// stop, with its explicit status/pid fields, must not be undone.
+				$rHave = self::read(self::dir() . 'streams/' . (int) $rID . '.json', true);
+				if ($rHave !== null && array_intersect(['pid', 'monitor_pid', 'stream_status', 'to_analyze'], array_keys($rHave['fields'])) !== []) {
 					return false;
 				}
 				$rFields = ['pid' => null, 'monitor_pid' => null, 'stream_status' => 1];
