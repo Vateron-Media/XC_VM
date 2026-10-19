@@ -125,7 +125,7 @@ class ServerXcvtPinCommand implements CommandInterface {
 				return $rFail('The SSH user must be root, or a user whose sudo asks for no password');
 			}
 			// install_id() creates the file when there is none: ask only when it exists.
-			$rAsk = 'echo class_exists("XC_VM") && ' . NodeCorePin::installIdProbe(CONFIG_PATH) . ' ? XC_VM::install_id() : "";';
+			$rAsk = 'echo class_exists("XC_VM") && ' . NodeCorePin::identityProbe(CONFIG_PATH) . ' ? XC_VM::install_id() : "";';
 			$rLines = preg_split('/\R/', trim((string) $rSsh->run('sudo ' . PHP_BIN . ' -r ' . escapeshellarg($rAsk))['output'])) ?: [];
 			$rInstallId = trim((string) end($rLines));
 			if (!CorePins::validInstallId($rInstallId)) {

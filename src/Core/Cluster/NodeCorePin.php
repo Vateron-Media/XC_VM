@@ -164,11 +164,12 @@ final class NodeCorePin {
 	}
 
 	/**
-	 * The same question as PHP for `php -r` on a node over SSH, for its
-	 * install_id under `$rConfigDir`.
+	 * The same question as PHP for `php -r` on a node over SSH: does its
+	 * `install_id` (or `panel_sk`) under `$rConfigDir` exist, created by nothing.
 	 */
-	public static function installIdProbe(string $rConfigDir): string {
-		return '(method_exists("XC_VM", "identity_present") ? XC_VM::identity_present()["install_id"] : is_file(' . var_export($rConfigDir . 'install_id', true) . '))';
+	public static function identityProbe(string $rConfigDir, string $rWhat = 'install_id'): string {
+		$rFile = $rWhat === 'panel_sk' ? 'panel.sk' : 'install_id';
+		return '(method_exists("XC_VM", "identity_present") ? XC_VM::identity_present()[' . var_export($rWhat, true) . '] : is_file(' . var_export($rConfigDir . $rFile, true) . '))';
 	}
 
 	private static function has(\Closure $rCall, string $rMethod): bool {

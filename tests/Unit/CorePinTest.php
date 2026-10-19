@@ -141,10 +141,13 @@ final class CorePinTest extends TestCase {
 	}
 
 	public function testTheProbeOverSshAsksTheExtensionAndFallsBackToTheOldPath(): void {
-		$rProbe = NodeCorePin::installIdProbe('/home/xc_vm/config/');
-		$this->assertStringContainsString('XC_VM::identity_present()["install_id"]', $rProbe);
+		$rProbe = NodeCorePin::identityProbe('/home/xc_vm/config/');
+		$this->assertStringContainsString('XC_VM::identity_present()[\'install_id\']', $rProbe);
 		$this->assertStringContainsString("is_file('/home/xc_vm/config/install_id')", $rProbe);
 		$this->assertStringNotContainsString('install_id()', $rProbe, 'a probe creates nothing');
+		$rSk = NodeCorePin::identityProbe('/home/xc_vm/config/', 'panel_sk');
+		$this->assertStringContainsString('XC_VM::identity_present()[\'panel_sk\']', $rSk);
+		$this->assertStringContainsString("is_file('/home/xc_vm/config/panel.sk')", $rSk);
 	}
 
 	public function testStepOneNeverCreatesAnInstallId(): void {

@@ -4645,7 +4645,8 @@ though, each node moves to the new key's chain only at its next scheduled refres
 - **No event.** The plan names an `ActivationKeyChangedEvent`. The dashboard's save is the only
   writer of the key, so the action calls `rotateAll` directly. An event is worth adding when a second
   writer appears.
-- **A key written by hand** (`config/activation_key` edited on disk) rotates nothing. Its nodes move
+- **A key written by hand** (`config/licence/activation_key`, or `config/activation_key` with
+  a core before its ADR-006 layout, edited on disk) rotates nothing. Its nodes move
   at their next refresh, as before.
 - **A rejected key** rotates nothing: without a licence there is no new `B` to rotate to.
 
