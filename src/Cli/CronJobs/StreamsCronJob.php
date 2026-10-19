@@ -2,6 +2,7 @@
 
 namespace XcVm\Cli\CronJobs;
 
+use XcVm\Core\Cluster\StreamRuntime;
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Cluster\AgentConnections;
@@ -138,6 +139,7 @@ class StreamsCronJob implements CommandInterface {
 
 		// What the node's store kept while the agent took no event (mode 2),
 		// first: a seed waits for it (a no-op without STREAMS or the agent).
+		StreamRuntime::recoverMissing();
 		StreamStateWriter::resend();
 		// This node's streams from its replica and its own store (mode 1 or 2
 		// with STREAMS on): an on-demand stream's viewers then come from the

@@ -367,14 +367,23 @@ final class ClusterBus {
 	 * servers cron as a watchdog). As root, it runs as xc_vm.
 	 */
 	public static function ensureRunning(): bool {
-		if (!defined('MAIN_HOME') || !file_exists(MAIN_HOME . 'bin/cluster_bus/cluster.conf') || !is_executable(MAIN_HOME . 'bin/redis/redis-server')) {
+		if (!defined('MAIN_HOME') || !file_exists(MAIN_HOME . 'bin/cluster_bus/cluster.conf')) {
 			return false;
 		}
 		if (self::running()) {
 			return true;
 		}
+		// A dedicated Redis can serve the control bus independently of the
+		// bundled cache server (KeyDB); keep the bundled binary as the default.
+		$rBinary = MAIN_HOME . 'bin/cluster_bus/redis-server';
+		if (!is_executable($rBinary)) {
+			$rBinary = MAIN_HOME . 'bin/redis/redis-server';
+		}
+		if (!is_executable($rBinary)) {
+			return false;
+		}
 		// The server daemonizes (cluster.conf), so this returns at once.
-		$rArgv = [MAIN_HOME . 'bin/redis/redis-server', MAIN_HOME . 'bin/cluster_bus/cluster.conf'];
+		$rArgv = [$rBinary, MAIN_HOME . 'bin/cluster_bus/cluster.conf'];
 		if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
 			$rArgv = array_merge(['sudo', '-u', 'xc_vm'], $rArgv);
 		}

@@ -137,6 +137,7 @@ final class ReplicaStreamCache {
 		}
 		return [
 			'etag' => $rEtag, 'ver' => $rVer,
+			'resume' => ($rData['resume'] ?? false) === true,
 			'stream' => ReplicaSections::typed($rStream, ReplicaSections::STREAM_FIELDS) + array_fill_keys(ReplicaSections::STREAM_LOCAL, null),
 			'type' => $rType === null ? null : ReplicaSections::typed($rType, ReplicaSections::STREAM_TYPE_FIELDS),
 			'profile' => $rProfile === null ? null : ReplicaSections::typed($rProfile, ReplicaSections::PROFILE_FIELDS),
@@ -157,7 +158,7 @@ final class ReplicaStreamCache {
 	 * (`ds`) and `direct_proxy` (`dp`). As the entries, the last apply's.
 	 *
 	 * @param array<string, mixed> $rEntry
-	 * @return array{etag: string, ver: int, rec: list<int>, ssid: int|null, od: int|null, type: int|null, live: int|null, ds: int|null, dp: int|null}
+	 * @return array{etag: string, ver: int, rec: list<int>, ssid: int|null, od: int|null, type: int|null, live: int|null, ds: int|null, dp: int|null, resume: bool}
 	 */
 	public static function meta(array $rEntry): array {
 		return [
@@ -165,6 +166,7 @@ final class ReplicaStreamCache {
 			'ssid' => $rEntry['server']['server_stream_id'] ?? null, 'od' => $rEntry['server']['on_demand'] ?? null,
 			'type' => $rEntry['stream']['type'] ?? null, 'live' => $rEntry['type']['live'] ?? null,
 			'ds' => $rEntry['stream']['direct_source'] ?? null, 'dp' => $rEntry['stream']['direct_proxy'] ?? null,
+			'resume' => ($rEntry['resume'] ?? false) === true,
 		];
 	}
 

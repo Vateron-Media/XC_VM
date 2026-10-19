@@ -710,7 +710,10 @@ if ($rChannelInfo) {
 						AsyncFileOperations::efficientSleep(1000000);
 						$rFails++;
 					} else {
-						AsyncFileOperations::efficientSleep(100000);
+						// No producer can append to this segment. Leave this loop
+						// so the bounded restart recovery below can run; sleeping
+						// here never advanced the stall counter and orphaned viewers.
+						break;
 					}
 				}
 

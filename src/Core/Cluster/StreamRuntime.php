@@ -284,6 +284,51 @@ final class StreamRuntime {
 	}
 
 	/**
+	 * A mode-2 store may be incomplete after an install or lost file. Restore
+	 * at most 100 missing entries per cron pass from MAIN's signed recovery
+	 * intent. Existing lifecycle state (including an explicit local stop) always wins.
+	 * Report starting/failed, never MAIN's stale pid, before the normal cron
+	 * starts the monitor. A refused event stays unsent for resend().
+	 */
+	public static function recoverMissing(): int {
+		if (!NodeRole::refusesConnects() || !self::keeps() || !ReplicaStreamCache::owned() || !self::ready()) {
+			return 0;
+		}
+		$rCount = 0;
+		foreach (ReplicaStreamCache::index() as $rID => $rMeta) {
+			if (($rMeta['resume'] ?? false) !== true || ($rMeta['live'] ?? null) !== 1 || ($rMeta['ds'] ?? null) !== 0 || ($rMeta['od'] ?? null) !== 0) {
+				continue;
+			}
+			$rEntry = ReplicaStreamCache::get((int) $rID);
+			if (($rEntry['resume'] ?? false) !== true || ($rEntry['type']['live'] ?? null) !== 1 || ($rEntry['stream']['direct_source'] ?? null) !== 0 || ($rEntry['server']['on_demand'] ?? null) !== 0) {
+				continue;
+			}
+			$rRecovered = self::locked(static function () use ($rID, $rEntry): bool {
+				// Progress alone is not lifecycle state: a created-channel build may
+				// have reported it before a producer was ever started. A concurrent
+				// stop, with its explicit status/pid fields, must not be undone.
+				$rHave = self::read(self::dir() . 'streams/' . (int) $rID . '.json', true);
+				if ($rHave !== null && array_intersect(['pid', 'monitor_pid', 'stream_status', 'to_analyze'], array_keys($rHave['fields'])) !== []) {
+					return false;
+				}
+				$rFields = ['pid' => null, 'monitor_pid' => null, 'stream_status' => 1];
+				if (!self::merge((int) $rID, $rEntry['server']['server_stream_id'], $rFields, false)) {
+					return false;
+				}
+				$rSent = EventSpool::append('p0', [['type' => 'stream.state', 'd' => ['stream_id' => (int) $rID, 'server_id' => (int) SERVER_ID, 'fields' => (object) $rFields]]]);
+				if ($rSent) {
+					self::merge((int) $rID, null, $rFields, true);
+				}
+				return true;
+			}, self::SEED_WAIT);
+			if ($rRecovered && ++$rCount >= 100) {
+				break;
+			}
+		}
+		return $rCount;
+	}
+
+	/**
 	 * The recordings with an entry, ascending.
 	 *
 	 * @return list<int>

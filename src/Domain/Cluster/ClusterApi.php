@@ -748,7 +748,7 @@ final class ClusterApi {
 		$rWant = false;
 		if (((int) $rNode['flows'] & NodeRegistry::FLOW_CONNECTIONS) !== 0 && isset($rP['conn_digest'])) {
 			try {
-				$rWant = ConnectionDigest::check((int) $rNode['server_id'], $rP['conn_digest']);
+				$rWant = ConnectionDigest::check((int) $rNode['server_id'], $rP['conn_digest'], is_array($rP['lanes']['p0'] ?? null) ? $rP['lanes']['p0'] : null);
 			} catch (\Throwable) {
 				$rWant = false; // the store is down: the next heartbeat checks again
 			}

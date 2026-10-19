@@ -14,8 +14,8 @@ use XcVm\Streaming\Protection\ConnectionLimiter;
 
 /**
  * Admission when MAIN mints a stream token (plan, Phase 6, "Global
- * max_connections and kills"): the line's limit is applied before the viewer
- * reaches a node, instead of a second after it opened there.
+ * max_connections and kills"): reserve the viewer at mint and queue the
+ * line's limit check for MAIN's signals loop, as conn_admit does.
  *
  * It applies to targets whose agent holds the viewers (the node that records
  * the connection, the originator behind a proxy, is active in mode ≥ 1 with
@@ -33,8 +33,8 @@ use XcVm\Streaming\Protection\ConnectionLimiter;
  *      by the uuid.
  * 2. The identity's open connections are cut, in ConnectionLimiter's order
  *    (the requesting device first, oldest first), to leave room for this
- *    viewer and the other reservations. The viewer is never evicted: it is not
- *    open yet. Evictions on CONNECTIONS nodes go out as conn.close / conn.drop
+ *    viewer and the other reservations. The queued check protects the viewer
+ *    if it has already opened. Evictions on CONNECTIONS nodes go out as conn.close / conn.drop
  *    commands, as every close MAIN makes does.
  * 3. The token carries the admission as its `adm` claim {exp, sid}: when the
  *    reservation expires (MAIN's unix seconds) and the node it was made for.
@@ -402,7 +402,16 @@ LUA;
 			// Room left for open connections: the limit, less this viewer and
 			// the others still on their way to a node.
 			$rRoom = max(0, $rMax - $rOthers - 1);
-			self::enforce($rHMAC !== 0 ? null : $rLineID, (int) ($rUser['pair_id'] ?? 0), $rRoom, $rHMAC !== 0 ? $rHMAC : null, $rIdentifier, $rIP, $rUserAgent, $rUUID);
+			// As for conn_admit, let the signals loop perform a line's cut.
+			// Closing a large stale set inside every concurrent viewer login
+			// amplifies the same kill commands and holds a MySQL handle for
+			// the entire sweep. The queued cut counts current reservations.
+			$rQueued = $rHMAC === 0 && ($rTokenData['extension'] ?? '') !== 'm3u8' && ConnectionLimits::queueAdmission($rNode, $rUUID, $rLineID, (string) $rIP, (string) $rUserAgent, self::now() + $rTtl);
+			if (!$rQueued) {
+				// HLS uses a different playlist UUID from the reservation UUID:
+				// keep its existing cut, as well as HMACs and a stopped/full queue.
+				self::enforce($rHMAC !== 0 ? null : $rLineID, (int) ($rUser['pair_id'] ?? 0), $rRoom, $rHMAC !== 0 ? $rHMAC : null, $rIdentifier, $rIP, $rUserAgent, $rUUID);
+			}
 			if ($rHls) {
 				self::makeWay($rSettings, $rNode, $rHMAC !== 0 ? $rHMAC : null, $rIdentifier, $rLineID, $rStreamID, (string) $rIP, (string) $rUserAgent);
 			}
