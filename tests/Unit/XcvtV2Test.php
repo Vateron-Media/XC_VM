@@ -580,6 +580,43 @@ final class XcvtV2Test extends TestCase {
 		$this->assertSame('ext_old', XcvtTargets::reason(self::SID));
 	}
 
+	/**
+	 * The daily backfill of a node pinned before v2 asks root for its key, never
+	 * re-sends a v1 pin: one that knew only the install_id looped on v1 pins,
+	 * and the key, which only step 1 carries, never came (seen on a live MAIN).
+	 */
+	public function testTheBackfillAsksAPinnedNodeForItsKeyNotAV1Pin(): void {
+		$this->rDb->query("INSERT INTO `cluster_nodes` (`server_id`, `node_uuid`, `install_id`) VALUES (?, 'x', ?)", self::SID, self::IID);
+		$this->assertTrue(CorePins::recorded(self::SID, $this->fp()));
+		$rSent = [];
+		$rSend = static function (int $rSid, ?string $rBlob) use (&$rSent): bool {
+			$rSent[] = $rBlob;
+			return true;
+		};
+		$rPack = fn(string $rIid, int $rVersion): string => $this->rCrypto->pack($rIid, $rVersion);
+
+		$this->assertSame(1, CorePins::offer($rSend, 1800000000, $rPack));
+		$this->assertSame([null], $rSent, 'step 1: the question, not a v1 pin');
+		$this->assertContains('node.core_pin {"step":"install_id","queued":true}', $this->events());
+
+		// Root shows its key: the v2 pin follows.
+		$this->command(str_repeat('a', 32), NodeCorePin::ACTION);
+		CorePins::acked(self::SID, str_repeat('a', 32), true, (string) json_encode(['core' => ['install_id' => self::IID, 'pinned' => $this->fp(), 'verdict' => true, 'panel_pk' => self::KEY]]), $rPack, $rSend);
+		$this->assertCount(2, $rSent);
+		$this->assertSame(2, ord((string) $rSent[1][4]), 'the v2 pin');
+
+		// An extension before ADR-005 shows no key: nothing more is sent (no loop),
+		// and the next day's backfill asks again.
+		$rSent = [];
+		XcvtTargets::clear(self::SID);
+		$this->command(str_repeat('b', 32), NodeCorePin::ACTION);
+		CorePins::acked(self::SID, str_repeat('b', 32), true, (string) json_encode(['core' => ['install_id' => self::IID, 'pinned' => $this->fp(), 'verdict' => true]]), $rPack, $rSend);
+		$this->assertSame([], $rSent);
+		$this->assertSame(0, CorePins::offer($rSend, 1800000000 + 60, $rPack), 'asked today already');
+		$this->assertSame(1, CorePins::offer($rSend, 1800000000 + CorePins::BACKFILL_SEC, $rPack));
+		$this->assertSame([null], $rSent);
+	}
+
 	public function testRootReportsItsKeyOnlyFromAnExistingPanelSk(): void {
 		$rDir = sys_get_temp_dir() . '/xcvm-xcvt-' . bin2hex(random_bytes(4)) . '/';
 		mkdir($rDir, 0700, true);

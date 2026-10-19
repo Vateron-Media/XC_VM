@@ -291,7 +291,7 @@ final class CorePins {
 			$rNode = NodeRegistry::byServer($rServerID);
 			if ($rDone && $rStep === 'install_id' && $rKey && $rNode !== null && !XcvtTargets::ready($rServerID)) {
 				// Pinned, but not with v2 by this MAIN: the v2 pin, for the key root just showed.
-				self::sendDue($rNode, 'system', ClusterClock::now(), $rSend, $rPack);
+				self::sendDue($rNode, 'system', ClusterClock::now(), $rSend, $rPack, false);
 			}
 			return $rDone;
 		}
@@ -304,14 +304,17 @@ final class CorePins {
 			ClusterAudit::log('node.core_pin_failed', $rServerID, ['step' => 'install_id', 'result' => 'no install_id'], 'node');
 			return false;
 		}
-		self::sendDue($rNode, 'system', ClusterClock::now(), $rSend, $rPack);
+		self::sendDue($rNode, 'system', ClusterClock::now(), $rSend, $rPack, false);
 		return false;
 	}
 
 	/**
-	 * Send the step that is due: the pin when the node's install_id is known,
-	 * else the question for it. Records the attempt and audits it. True when a
-	 * command was queued.
+	 * Send the step that is due: the pin when MAIN knows the node's install_id
+	 * and its panel key, else the question for both (step 1; root's answer
+	 * carries the key, ADR-005 Decision 10). `$rAskKey` false right after that
+	 * answer: the pin then goes out with what root showed, v1 for an extension
+	 * that showed no key, so a node never loops on step 1. Records the attempt
+	 * and audits it. True when a command was queued.
 	 *
 	 * The pin is version 2 (ADR-005: no licence, a v2 target once acked) when
 	 * root showed MAIN this install's panel key, else version 1 (an extension
@@ -321,22 +324,23 @@ final class CorePins {
 	 * @param (callable(int, ?string): bool)|null $rSend
 	 * @param (callable(string, int): string)|null $rPack
 	 */
-	private static function sendDue(array $rNode, string $rActor, int $rNow, ?callable $rSend, ?callable $rPack): bool {
+	private static function sendDue(array $rNode, string $rActor, int $rNow, ?callable $rSend, ?callable $rPack, bool $rAskKey = true): bool {
 		$rServerID = (int) $rNode['server_id'];
 		$rSend ??= static fn(int $rSid, ?string $rBlob): bool => NodeActions::pinCore($rSid, $rBlob);
 		$rPack ??= static fn(string $rInstallID, int $rVersion): string => ClusterCryptoFactory::create()->pack($rInstallID, $rVersion);
 		$rID = self::installId($rServerID);
 		$rXcvt = XcvtTargets::get($rServerID);
-		$rVersion = $rID !== null && $rXcvt !== null && $rXcvt['install_id'] === $rID && $rXcvt['panel_pk'] !== null ? 2 : 1;
+		$rKnown = $rID !== null && $rXcvt !== null && $rXcvt['install_id'] === $rID && $rXcvt['panel_pk'] !== null;
+		$rAsk = $rID === null || (!$rKnown && $rAskKey);
 		$rState = self::current($rNode) ? self::state($rServerID) : null;
 		self::write($rServerID, ['gen' => (int) $rNode['gen'], 'fp' => $rState['fp'] ?? '', 'pinned_at' => $rState['pinned_at'] ?? null, 'tried_at' => $rNow]);
 		try {
-			$rQueued = (bool) $rSend($rServerID, $rID === null ? null : $rPack($rID, $rVersion));
+			$rQueued = (bool) $rSend($rServerID, $rAsk ? null : $rPack((string) $rID, $rKnown ? 2 : 1));
 		} catch (\Throwable $rE) {
 			ClusterAudit::log('node.core_pin_failed', $rServerID, ['step' => 'pack', 'result' => mb_substr($rE->getMessage(), 0, 300)], 'system');
 			return false;
 		}
-		ClusterAudit::log('node.core_pin', $rServerID, ['step' => $rID === null ? 'install_id' : 'pin', 'queued' => $rQueued], $rActor);
+		ClusterAudit::log('node.core_pin', $rServerID, ['step' => $rAsk ? 'install_id' : 'pin', 'queued' => $rQueued], $rActor);
 		return $rQueued;
 	}
 

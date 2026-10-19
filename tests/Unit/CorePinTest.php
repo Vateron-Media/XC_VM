@@ -200,11 +200,12 @@ final class CorePinTest extends TestCase {
 
 	// ── MAIN ────────────────────────────────────────────────────────────────
 
-	public function testOfferAsksForTheInstallIdOrSendsThePin(): void {
+	/** MAIN asks first (step 1: install_id and panel key), also when it knows the install_id: the pin follows root's answer. */
+	public function testOfferAsksForTheInstallIdAndKeyFirst(): void {
 		$this->rDb->exec("UPDATE `cluster_nodes` SET `install_id` = '" . self::IID . "' WHERE `server_id` = 8");
 		$this->assertSame(2, CorePins::offer($this->send(), $this->rNow, self::pack()));
-		$this->assertSame([[7, null], [8, 'PIN-FOR-' . self::IID]], $this->rSent);
-		$this->assertSame(['node.core_pin {"step":"install_id","queued":true}', 'node.core_pin {"step":"pin","queued":true}'], $this->events());
+		$this->assertSame([[7, null], [8, null]], $this->rSent);
+		$this->assertSame(['node.core_pin {"step":"install_id","queued":true}', 'node.core_pin {"step":"install_id","queued":true}'], $this->events());
 		// Within the retry wait nothing is sent again; after it, again.
 		$this->assertSame(0, CorePins::offer($this->send(), $this->rNow + 60, self::pack()));
 		$this->assertSame(2, CorePins::offer($this->send(), $this->rNow + CorePins::RETRY_SEC, self::pack()));
