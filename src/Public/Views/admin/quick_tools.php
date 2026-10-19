@@ -187,7 +187,7 @@ LayoutRenderer::renderFooter('admin');
                             d = JSON.parse(txt);
                         } catch (err) {
                             d = {
-                                result: true
+                                result: false
                             };
                         }
                         btn.disabled = false;

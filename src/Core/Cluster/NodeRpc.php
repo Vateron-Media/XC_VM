@@ -53,6 +53,24 @@ final class NodeRpc {
 		return ApiClient::systemRequest($rServerID, $rData, $rTimeout);
 	}
 
+	/** Queue a cluster command without waiting for its ack; legacy nodes keep their HTTP response. */
+	public static function submit(int $rServerID, array $rData): bool {
+		self::check($rData);
+		if (self::$rTransport !== null) {
+			$rResult = (self::$rTransport)('broadcast', [$rServerID], $rData, 0);
+			return is_array($rResult) && ($rResult['result'] ?? false) === true;
+		}
+		if (class_exists(ClusterRoute::class)) {
+			[$rRouted, $rQueued] = ClusterRoute::send($rServerID, $rData);
+			if ($rRouted) {
+				return $rQueued;
+			}
+		}
+		$rReply = ApiClient::systemRequest($rServerID, $rData, 5);
+		$rAnswer = is_string($rReply) ? json_decode($rReply, true) : null;
+		return is_array($rAnswer) && ($rAnswer['result'] ?? false) === true;
+	}
+
 	/**
 	 * Send to several nodes at once without waiting for answers (offline nodes
 	 * are skipped).
