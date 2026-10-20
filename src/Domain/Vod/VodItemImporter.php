@@ -56,6 +56,21 @@ class VodItemImporter {
 	/** What the importer reads of a TMDb episode, and so all a season_*.cache keeps of it. */
 	private const EPISODE_FIELDS = ['episode_number' => 0, 'name' => 0, 'id' => 0, 'air_date' => 0, 'overview' => 0, 'vote_average' => 0, 'still_path' => 0];
 
+	/** Plain letters => the lowercase Latin letters parseTitle() reads as them. */
+	private const LATIN_FOLD = [
+		'a' => 'àáâãäåāăąǎ', 'c' => 'çćĉċč', 'd' => 'ďđð', 'e' => 'èéêëēĕėęě', 'g' => 'ĝğġģ', 'h' => 'ĥħ',
+		'i' => 'ìíîïĩīĭįıǐ', 'j' => 'ĵ', 'k' => 'ķ', 'l' => 'ĺļľŀł', 'n' => 'ñńņňŉ', 'o' => 'òóôõöøōŏőǒ',
+		'r' => 'ŕŗř', 's' => 'śŝşšș', 't' => 'ţťŧț', 'u' => 'ùúûüũūŭůűųǔ', 'w' => 'ŵ', 'y' => 'ýÿŷ', 'z' => 'źżž',
+		'ae' => 'æ', 'oe' => 'œ', 'ss' => 'ß', 'th' => 'þ',
+	];
+
+	/** Script of a letter, for titleCandidates(): kana and kanji are one Japanese run. */
+	private const TITLE_SCRIPTS = [
+		'Latin' => '\\p{Latin}', 'Arabic' => '\\p{Arabic}', 'Cyrillic' => '\\p{Cyrillic}', 'Greek' => '\\p{Greek}',
+		'Hebrew' => '\\p{Hebrew}', 'Cjk' => '[\\p{Han}\\p{Hiragana}\\p{Katakana}]', 'Hangul' => '\\p{Hangul}',
+		'Thai' => '\\p{Thai}', 'Devanagari' => '\\p{Devanagari}',
+	];
+
 	/**
 	 * Add an item to a bouquet (via the DB when importing, otherwise as a file for checkBouquets()).
 	 *
@@ -96,13 +111,9 @@ class VodItemImporter {
 		// override.
 		if (preg_match('/^(.+?)[\s._-]+[Ss](\d{1,3})[\s._-]*[Ee](\d{1,4})/', $rRelease, $rMatch)) {
 			$rCleanTitle = trim(preg_replace('/\s+/', ' ', preg_replace('/[._]+/', ' ', $rMatch[1])));
-			// Strip a trailing year from the title ("Boston Blue (2025)" →
-			// "Boston Blue") — it breaks the TMDB search. The year is kept
-			// separately for the search. Guard: don't touch it if the year is
-			// the whole title (e.g. the series "1923").
-			if (preg_match('/^(.*?)[\s._-]*\(?((?:19|20)\d{2})\)?$/', $rCleanTitle, $rYearMatch) && trim($rYearMatch[1]) !== '') {
-				$rResult['year'] = intval($rYearMatch[2]);
-				$rCleanTitle = trim($rYearMatch[1]);
+			[$rCleanTitle, $rTitleYear] = self::splitYear($rCleanTitle);
+			if ($rTitleYear !== null) {
+				$rResult['year'] = $rTitleYear;
 			}
 			if ($rCleanTitle !== '') {
 				$rResult['title'] = $rCleanTitle;
@@ -122,6 +133,72 @@ class VodItemImporter {
 			}
 		}
 		return $rResult;
+	}
+
+	/**
+	 * A title without the year it names, and that year: it breaks the TMDb
+	 * search, which takes the year on its own. The year may end the title
+	 * ("Boston Blue (2025)") or stand in brackets inside it, as in a provider's
+	 * two-language name ("Sumud (2026) صمود"). A title that is only a year (the
+	 * series "1923") keeps it.
+	 *
+	 * @return array{0: string, 1: int|null}
+	 */
+	public static function splitYear(string $rTitle): array {
+		if (preg_match('/^(.*?)[\s._-]*\(?((?:19|20)\d{2})\)?$/', $rTitle, $rMatch) && trim($rMatch[1]) !== '') {
+			return [trim($rMatch[1]), intval($rMatch[2])];
+		}
+		if (preg_match('/^(.+?)\s*\(((?:19|20)\d{2})\)\s*(.+)$/u', $rTitle, $rMatch)) {
+			return [trim($rMatch[1] . ' ' . $rMatch[3]), intval($rMatch[2])];
+		}
+		return [$rTitle, null];
+	}
+
+	/**
+	 * The titles to search TMDb with, best first: the title itself, then each
+	 * run of one script in it, as a provider names a show in two languages
+	 * ("Sumud صمود") and TMDb knows neither half joined to the other. With
+	 * $rWithParts, each " - " part of a run comes after ("Mother - Anne"): a
+	 * part alone is as often a common word as a title, so the caller searches
+	 * those only with a year. Without it, a run of one word is left out for the
+	 * same reason: "Mother - Anne - أمي" searched by "أمي" alone matched a
+	 * Saudi series of that name, not the Turkish "Anne".
+	 *
+	 * @return list<string>
+	 */
+	public static function titleCandidates(string $rTitle, bool $rWithParts): array {
+		$rRuns = [];
+		$rScript = null;
+		foreach (preg_split('/\s+/u', trim($rTitle), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $rWord) {
+			$rWordScript = preg_match('/\p{L}/u', $rWord, $rLetter) ? self::scriptOf($rLetter[0]) : null;
+			if ($rRuns === [] || ($rWordScript !== null && $rScript !== null && $rWordScript !== $rScript)) {
+				$rRuns[] = [];
+			}
+			$rRuns[count($rRuns) - 1][] = $rWord;
+			$rScript = $rWordScript ?? $rScript;
+		}
+		$rRuns = array_map(fn(array $rWords): string => trim(implode(' ', $rWords), " \t-–—:|,"), $rRuns);
+		$rSearchRuns = $rWithParts ? $rRuns : array_filter($rRuns, fn(string $rRun): bool => preg_match_all('/[\p{L}\p{N}]+/u', $rRun) >= 2);
+		$rCandidates = array_merge([trim($rTitle)], count($rRuns) > 1 ? $rSearchRuns : []);
+		if ($rWithParts) {
+			foreach ($rRuns as $rRun) {
+				$rParts = preg_split('/\s+[-–—|]\s+/u', $rRun) ?: [];
+				if (count($rParts) > 1) {
+					$rCandidates = array_merge($rCandidates, $rParts);
+				}
+			}
+		}
+		return array_values(array_unique(array_filter(array_map('trim', $rCandidates), fn(string $rCandidate): bool => mb_strlen($rCandidate, 'UTF-8') >= 3)));
+	}
+
+	/** The script of a letter (TITLE_SCRIPTS), 'Other' when none of them. */
+	private static function scriptOf(string $rLetter): string {
+		foreach (self::TITLE_SCRIPTS as $rName => $rClass) {
+			if (preg_match('/' . $rClass . '/u', $rLetter)) {
+				return $rName;
+			}
+		}
+		return 'Other';
 	}
 
 	/**
@@ -197,6 +274,26 @@ class VodItemImporter {
 	}
 
 	/**
+	 * Lowercase Latin letters with an accent or a stroke, mapped to their plain
+	 * letters, for parseTitle(). A table of its own, not intl's Transliterator,
+	 * so a title compares the same whether PHP has intl or not.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function latinFold(): array {
+		static $rMap = null;
+		if ($rMap === null) {
+			$rMap = [];
+			foreach (self::LATIN_FOLD as $rPlain => $rLetters) {
+				foreach (mb_str_split($rLetters, 1, 'UTF-8') as $rLetter) {
+					$rMap[$rLetter] = $rPlain;
+				}
+			}
+		}
+		return $rMap;
+	}
+
+	/**
 	 * Normalize a title for comparison.
 	 *
 	 * @param string $rTitle
@@ -210,9 +307,14 @@ class VodItemImporter {
 		// ~53% and got filtered out by the threshold. The dot is also
 		// removed from the keep-set of the regex below. The comparison is
 		// symmetric on both sides — it doesn't break existing matches.
-		$rTitle = str_replace(['-', '_', '.'], ' ', $rTitle);
-		$rTitle = strtolower(preg_replace("/(?![=\$'€%-])\\p{P}/u", '', $rTitle));
-		return trim(preg_replace('/\\s+/u', ' ', $rTitle));
+		$rTitle = str_replace(['-', '_', '.'], ' ', (string) $rTitle);
+		$rTitle = mb_strtolower((string) preg_replace("/(?![=\$'€%-])\\p{P}/u", '', $rTitle), 'UTF-8');
+		// Letters are compared without their accents: providers write "Altı Üstü
+		// İstanbul" as "Alti Ustu Istanbul", which scored 70% against TMDb's name,
+		// under the match threshold. mb_strtolower() makes "İ" an "i" plus U+0307,
+		// a combining mark, which goes with the others.
+		$rTitle = (string) preg_replace('/\\p{Mn}/u', '', strtr($rTitle, self::latinFold()));
+		return trim((string) preg_replace('/\\s+/u', ' ', $rTitle));
 	}
 
 	/**
@@ -244,6 +346,86 @@ class VodItemImporter {
 			return null;
 		} else {
 			return json_decode(file_get_contents(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data'), true);
+		}
+	}
+
+	/**
+	 * The panel's own series that one of $rTitles names, for an episode TMDb
+	 * has no show for: a series created by hand (one TMDb does not list yet)
+	 * is how such episodes get imported. Only a series without a TMDb id: one
+	 * with an id is TMDb's to match, and a search that missed it (TMDb down)
+	 * must not hang episodes on it without their metadata. Each title's candidates
+	 * (titleCandidates()) are compared with every series title as
+	 * parseTitle() leaves them, years cut (splitYear()); a year both sides
+	 * give must agree within one. Two series answering is no match.
+	 *
+	 * @param list<string> $rTitles
+	 * @return array{id: int|string, title: string, year: mixed}|null
+	 */
+	public static function findLocalSeries(array $rTitles, ?int $rYear): ?array {
+		$rWanted = [];
+		foreach ($rTitles as $rTitle) {
+			foreach (self::titleCandidates((string) $rTitle, true) as $rCandidate) {
+				$rWanted[self::parseTitle(self::splitYear($rCandidate)[0])] = true;
+			}
+		}
+		unset($rWanted['']);
+		if ($rWanted === []) {
+			return null;
+		}
+		// ponytail: reads every series per episode; filter in SQL on a stored normalized title if the table grows large.
+		$db = self::db();
+		$db->query('SELECT `id`, `title`, `year` FROM `streams_series` WHERE COALESCE(`tmdb_id`, 0) = 0;');
+		$rFound = [];
+		foreach ($db->get_rows() as $rRow) {
+			[$rName, $rNameYear] = self::splitYear((string) $rRow['title']);
+			$rRowYear = intval($rRow['year']) ?: $rNameYear;
+			if (isset($rWanted[self::parseTitle($rName)]) && !($rYear && $rRowYear && abs($rRowYear - $rYear) > 1)) {
+				$rFound[$rRow['id']] = $rRow;
+			}
+		}
+		return count($rFound) === 1 ? reset($rFound) : null;
+	}
+
+	/**
+	 * The hand-made series (findLocalSeries()) an episode belongs to when TMDb
+	 * found no show for it; null for a movie, a TMDb match or a name without
+	 * both a season and an episode number.
+	 *
+	 * @param object|null $rMatch
+	 * @param list<string> $rTitles The titles the episode was searched by.
+	 */
+	private static function localSeriesFor($rMatch, array $rThreadData, array $rTitles, $rYear, $rSeason, $rEpisode): ?array {
+		if ($rMatch || $rThreadData['type'] !== 'series' || $rSeason === null || $rEpisode === null) {
+			return null;
+		}
+		$rSeries = self::findLocalSeries($rTitles, $rYear ? intval($rYear) : null);
+		if ($rSeries) {
+			echo 'Series in the panel: ' . $rSeries['title'] . "\n";
+		}
+		return $rSeries;
+	}
+
+	/**
+	 * An episode of a hand-made series that the series already has under its
+	 * number is a duplicate, unless the import allows duplicates as it does for
+	 * TMDb ones. A TMDb match is checked by applyUpgrade() instead, through the
+	 * series cache, which a series without TMDb has none of.
+	 *
+	 * @param object|null $rMatch
+	 * @param array $rSeries
+	 * @throws VodItemImportHalt
+	 */
+	private static function haltOnDuplicateEpisode($rThreadData, $rThreadType, $rFile, $rMatch, array $rSeries, $rSeason, $rEpisode): void {
+		if ($rMatch || !empty($rThreadData['duplicate_tmdb'])) {
+			return;
+		}
+		$db = self::db();
+		$db->query('SELECT `stream_id` FROM `streams_episodes` WHERE `series_id` = ? AND `season_num` = ? AND `episode_num` = ? LIMIT 1;', $rSeries['id'], $rSeason, $rEpisode);
+		if ($db->num_rows() > 0) {
+			echo 'Episode already in the series.' . "\n";
+			self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_DUPLICATE, (int) $db->get_row()['stream_id']);
+			throw new VodItemImportHalt();
 		}
 	}
 
@@ -522,6 +704,26 @@ class VodItemImporter {
 	}
 
 	/**
+	 * findBestTmdbMatch() over a title's candidates (titleCandidates()), first
+	 * match wins. With a year, any candidate but the title itself is searched
+	 * only with it, never again without; " - " parts are tried only then.
+	 *
+	 * @param object $rTMDB TMDB client.
+	 * @param int|null $rYear
+	 * @return object|null
+	 */
+	public static function findTmdbMatch($rTMDB, array $rThreadData, array $rSettings, $rTitle, $rAltTitle, $rYear) {
+		$rYear = $rYear ? intval($rYear) : null;
+		foreach (self::titleCandidates((string) $rTitle, $rYear !== null) as $rIndex => $rCandidate) {
+			$rMatch = self::findBestTmdbMatch($rTMDB, $rThreadData, $rSettings, $rCandidate, $rIndex === 0 ? $rAltTitle : null, $rYear, $rIndex > 0);
+			if ($rMatch) {
+				return $rMatch;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Find the best TMDB match for a parsed title/alt title.
 	 *
 	 * Searches by title (and retries without the year if nothing was found with
@@ -536,14 +738,15 @@ class VodItemImporter {
 	 * @param string $rTitle
 	 * @param string|null $rAltTitle
 	 * @param int|null $rYear
+	 * @param bool $rYearRequired No retry without the year.
 	 * @return object|null The Movie/TVShow object with the highest similarity percentage, or null.
 	 */
-	public static function findBestTmdbMatch($rTMDB, array $rThreadData, array $rSettings, $rTitle, $rAltTitle, $rYear) {
+	public static function findBestTmdbMatch($rTMDB, array $rThreadData, array $rSettings, $rTitle, $rAltTitle, $rYear, bool $rYearRequired = false) {
 		$rMatches = [];
 		$rSearchYear = $rYear;
 		foreach (range(0, 1) as $rIgnoreYear) {
 			if ($rIgnoreYear) {
-				if ($rSearchYear) {
+				if ($rSearchYear && !$rYearRequired) {
 					$rSearchYear = null;
 				} else {
 					break;
@@ -1051,6 +1254,7 @@ class VodItemImporter {
 			}
 		} else {
 			if ($rSeries) {
+				self::haltOnDuplicateEpisode($rThreadData, $rThreadType, $rFile, $rMatch, $rSeries, $rReleaseSeason, $rReleaseEpisode);
 				$rImportArray['series_no'] = $rSeries['id'];
 			} else {
 				self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_MATCH);
@@ -1282,6 +1486,7 @@ class VodItemImporter {
 			if (!$rThreadData['ffprobe_input'] || isset($rSourceData['streams'])) {
 				$rMatch = $rPaths = null;
 				$rMetaMatch = false;
+				$rTriedTitles = [];
 				if ($rThreadData['extract_metadata'] && isset($rSourceData['format']) && !empty($rSourceData['tags']['title'])) {
 					if (!empty($rSourceData['tags']['date'])) {
 						$rYear = (intval(explode('-', $rSourceData['tags']['date'])[0]));
@@ -1350,8 +1555,9 @@ class VodItemImporter {
 								$rTitle = $rFilename;
 							}
 							echo 'Title: ' . $rTitle . "\n";
+							$rTriedTitles[] = $rTitle;
 							if (!$rThreadData['disable_tmdb']) {
-								$rFoundMatch = self::findBestTmdbMatch($rTMDB, $rThreadData, $rSettings, $rTitle, $rAltTitle, $rYear);
+								$rFoundMatch = self::findTmdbMatch($rTMDB, $rThreadData, $rSettings, $rTitle, $rAltTitle, $rYear);
 								if ($rFoundMatch) {
 									$rMatch = $rFoundMatch;
 								}
@@ -1367,7 +1573,7 @@ class VodItemImporter {
 							// name does not give is not guessed.
 							if (!empty($rSettings['tmdb_episode_by_title']) && !$rThreadData['disable_tmdb'] && isset($rRelease) && $rTitle && is_int($rReleaseSeason) && $rReleaseSeason > 0 && $rReleaseEpisode === null) {
 								$rEpisodeTitle = self::releaseEpisodeTitle($rRelease, $rFilename, $rReleaseSeason);
-								$rShow = $rEpisodeTitle !== null ? self::findBestTmdbMatch($rTMDB, $rThreadData, $rSettings, $rTitle, $rAltTitle, $rYear) : null;
+								$rShow = $rEpisodeTitle !== null ? self::findTmdbMatch($rTMDB, $rThreadData, $rSettings, $rTitle, $rAltTitle, $rYear) : null;
 								if ($rShow) {
 									$rEpisodeTitles = array_column(self::seasonEpisodes($rTMDB, $rShow->get('id'), $rReleaseSeason, $rLanguage), 'name', 'episode_number');
 									$rReleaseEpisode = self::matchEpisodeByTitle($rEpisodeTitle, $rEpisodeTitles, $rScore);
@@ -1389,7 +1595,8 @@ class VodItemImporter {
 						}
 					}
 				}
-				if (!$rMatch && !$rThreadData['ignore_no_match']) {
+				$rSeries = self::localSeriesFor($rMatch, $rThreadData, $rTriedTitles, $rYear, $rReleaseSeason, $rReleaseEpisode);
+				if (!$rMatch && !$rSeries && !$rThreadData['ignore_no_match']) {
 					echo 'No match!' . "\n";
 					self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_NO_MATCH);
 					return;
@@ -1432,7 +1639,7 @@ class VodItemImporter {
 							}
 						} else {
 							if ($rReleaseSeason !== null && $rReleaseEpisode !== null) {
-								$rImportArray['stream_display_name'] = $rTitle . ' - S' . sprintf('%02d', intval($rReleaseSeason)) . 'E' . sprintf('%02d', $rReleaseEpisode) . ' - ';
+								$rImportArray['stream_display_name'] = ($rSeries['title'] ?? $rTitle) . ' - S' . sprintf('%02d', intval($rReleaseSeason)) . 'E' . sprintf('%02d', $rReleaseEpisode);
 							}
 						}
 						self::applyCommonStreamSettings($rImportArray, $rThreadData);
