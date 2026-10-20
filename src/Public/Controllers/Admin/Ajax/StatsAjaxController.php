@@ -244,7 +244,7 @@ class StatsAjaxController extends BaseAjaxController {
 			foreach ($db->get_rows() as $rRow) {
 				$rOpenConnections[intval($rRow['server_id'])] = intval($rRow['count']);
 			}
-			$db->query('SELECT `server_id`, COUNT(DISTINCT(`user_id`)) AS `count` FROM `lines_live` GROUP BY `server_id`;');
+			$db->query('SELECT `server_id`, COUNT(DISTINCT(`user_id`)) AS `count` FROM `lines_live` WHERE `hls_end` = 0 GROUP BY `server_id`;');
 
 			foreach ($db->get_rows() as $rRow) {
 				$rOnlineUsers[intval($rRow['server_id'])] = intval($rRow['count']);
@@ -275,7 +275,6 @@ class StatsAjaxController extends BaseAjaxController {
 						$rReturn['total_connections'] += $rServers[$rServerID]['connections'];
 						$rArray['online_users'] = $rServers[$rServerID]['users'];
 						$rReturn['online_users'] += $rServers[$rServerID]['users'];
-						$rReturn['total_users'] += $rServers[$rServerID]['users'];
 					} else {
 						$rArray['open_connections'] = $rOpenConnections[$rServerID] ?? 0;
 						$rArray['online_users']     = $rOnlineUsers[$rServerID] ?? 0;
@@ -323,7 +322,9 @@ class StatsAjaxController extends BaseAjaxController {
 				$rReturn['total_running_streams'] += $rServerArray['total_running_streams'];
 				$rReturn['offline_streams'] += $rServerArray['offline_streams'];
 			}
-			$rReturn['online_users'] = SettingsManager::get('total_users');
+			if (SettingsManager::get('redis_handler')) {
+				$rReturn['online_users'] = SettingsManager::get('total_users');
+			}
 		}
 
 		$this->json($rReturn, JSON_PARTIAL_OUTPUT_ON_ERROR);
