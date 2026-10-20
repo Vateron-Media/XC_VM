@@ -213,8 +213,8 @@ class DeviceAjaxController extends BaseResellerAjaxController {
 						$rData['reboot_portal'] = 0;
 						$rData['message'] = intval($rData['channel']);
 					} elseif ($rData['type'] == 'reset_stb_lock') {
-						MagService::resetSTB($rData['id']);
-						echo json_encode(['result' => true]);
+						$rReset = MagService::resetSTBForReseller((int) $rData['id']);
+						echo json_encode(['result' => $rReset]);
 						exit();
 					} else {
 						$rData['need_confirm'] = 0;

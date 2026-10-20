@@ -242,7 +242,8 @@ if (!$rSettings["disable_ministra"]) {
 					$rDeviceID2,
 					$rHWVersion,
 					$rDevice["mag_id"],
-				)) {
+				)
+				) {
 					http_response_code(503);
 					exit();
 				}

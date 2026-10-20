@@ -565,6 +565,15 @@ class MagService {
 		return true;
 	}
 
+	/** Resellers may reset only devices on lines they are authorized to manage. */
+	public static function resetSTBForReseller(int $rID): bool {
+		if (empty($GLOBALS['rPermissions']['create_mag'])) {
+			return false;
+		}
+		$rDevice = self::getById($rID);
+		return $rDevice && Authorization::check('line', $rDevice['user_id']) && self::resetSTB($rID);
+	}
+
 	/**
 	 * Reset a MAG STB (clear its bound state/keys).
 	 *
@@ -573,6 +582,29 @@ class MagService {
 	 */
 	public static function resetSTB($rID) {
 		$db = self::db();
-		return $db->query("UPDATE `mag_devices` SET `ip` = '', `ver` = '', `image_version` = '', `stb_type` = '', `sn` = '', `device_id` = '', `device_id2` = '', `hw_version` = '', `token` = '' WHERE `mag_id` = ?;", $rID);
+		$rLock = null;
+		if (defined('MINISTRA_TMP_PATH')) {
+			$rLock = @fopen(MINISTRA_TMP_PATH . 'ministra_' . intval($rID) . '.binding.lock', 'c');
+			if (!$rLock || !flock($rLock, LOCK_EX)) {
+				return false;
+			}
+		}
+		try {
+			if (!$db->query("UPDATE `mag_devices` SET `ip` = '', `ver` = '', `image_version` = '', `stb_type` = '', `sn` = '', `device_id` = '', `device_id2` = '', `hw_version` = '', `token` = '', `last_user_agent` = '' WHERE `mag_id` = ?;", $rID)) {
+				return false;
+			}
+			if (defined('MINISTRA_TMP_PATH')) {
+				$rCache = MINISTRA_TMP_PATH . 'ministra_' . intval($rID);
+				if (is_file($rCache) && !unlink($rCache)) {
+					return false;
+				}
+			}
+			return true;
+		} finally {
+			if (is_resource($rLock)) {
+				flock($rLock, LOCK_UN);
+				fclose($rLock);
+			}
+		}
 	}
 }
