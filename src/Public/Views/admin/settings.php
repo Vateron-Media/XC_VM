@@ -1203,6 +1203,16 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 							</div>
 
 							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="disable_playlist_ministra">
+									<?= $language::get('disable_playlist_download_ministra') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('disable_playlist_download_ministra_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-2">
+									<div class="form-check form-switch"><input name="disable_playlist_ministra" id="disable_playlist_ministra" type="checkbox" <?= !empty($rSettings['disable_playlist_ministra']) ? ' checked' : '' ?> class="form-check-input"></div>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="disable_player_api">
 									<?= $language::get('disable_player_api') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('enable_to_stop_android_apps_tooltip') ?>"></i>
