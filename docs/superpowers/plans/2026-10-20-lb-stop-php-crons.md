@@ -15,7 +15,7 @@
 - Go stdlib + in-repo packages only; **zero new external deps**. `GOWORK=off` for every go command.
 - **Base:** XC_VM_Fanout `feat/lb-transcode-serve` **with SP1 PR #98 merged** (the tmp sweep reuses SP1's `Agent.FloodDir` / the `FLOOD_TMP_PATH` dir). XC_VM `2.8.0`.
 - Faithful to each cron's PHP behaviour and to `LogSink`/`EventIngest`'s event protocol; MAIN ingest unchanged. The drains are single-owner (shared lock); the gate is node-side + liveness-gated.
-- **`maxmind` is deferred** (user-sanctioned): it stays a PHP cron (weekly download, lowest value); it is NOT in the ported/dropped set. The dropped-cron set is exactly `streams_logs, lines_logs, activity, errors, tmp`.
+- **`maxmind` is ported too** (user: do not defer): it joins the ported/dropped set. The dropped-cron set is exactly `streams_logs, lines_logs, activity, errors, tmp, maxmind`.
 - **Path fact:** the drains read `LOGS_TMP_PATH = <home>/tmp/logs/`, **not** the agent's existing `-logs` (`<home>/logs/tmp/`, the ffmpeg `{logs}` path). A new `-tmp` root flag (default `/home/xc_vm/tmp/`) supplies `TMP_PATH`; `LOGS_TMP_PATH`/`CRONS_TMP_PATH`/`FLOOD_TMP_PATH`/`SIGNALS_TMP_PATH`/`DIVERGENCE_TMP_PATH`/`MINISTRA_TMP_PATH` all derive as `<tmp>/<sub>/`.
 - Conventional Commits, English, **no Claude attribution** (no generated-by line, no Claude co-author). The user merges PRs.
 - Whole-repo green: `GOWORK=off go test ./...` + `go vet ./...` (Fanout); `php tests/phpunit.phar -c tests/phpunit.xml.dist` (XC_VM).
@@ -269,7 +269,30 @@ Gate `RunChores` launch on `TmpRoot != ""`, on its own `context.WithCancel(ctx)`
 
 ---
 
-### Task 9: the node-side crontab filter (XC_VM)
+### Task 9: the `maxmind` GeoLite2 update
+
+**Files:** Create `internal/clusteragent/cronmaxmind.go`; Modify `internal/clusteragent/agent.go` (add the `updateMaxmind` call to `RunChores`); Test `internal/clusteragent/cronmaxmind_test.go`.
+
+**Interfaces:**
+- Consumes: `a.replicaSettings()` (`maxmind_account_id`, `maxmind_editions` JSON array) + `a.secret("maxmind_license_key")`; `mainHome` (→ `bin/maxmind/`); the lock (`XcVm\Cli\CronJobs\MaxMindCronJob`).
+- Produces: `func (a *Agent) updateMaxmind() error`, called each `RunChores` tick (self-gated — see cadence).
+
+Pinned (`MaxMindCronJob` + `MaxMindUpdater`/`GeoLiteReleaseUpdater`):
+- **Target** `MAXMIND_DIR = /home/xc_vm/bin/maxmind/` (`filepath.Join(mainHome,"bin/maxmind")`), `version.json` alongside.
+- **Cadence / self-heal:** PHP runs weekly (`0 4 * * 2`) and internally gates on `date('N')==='2'` OR `GeoLite2-Country.mmdb` missing. Since `RunChores` ticks each minute, `updateMaxmind` self-gates so it does not hit the API every minute: run only when `bin/maxmind/GeoLite2-Country.mmdb` is **missing** OR older than **6 days** (a faithful "weekly, self-heal if missing"); else no-op. (Builder may instead gate on `date.Weekday()==Tuesday` + a once-per-day marker — settle during implementation; the missing→run self-heal is mandatory.)
+- **Creds path** (all three present): per edition in `maxmind_editions`, GET `https://download.maxmind.com/geoip/databases/<edition>/download?suffix=tar.gz` with HTTP Basic auth `account_id:license_key`, `If-Modified-Since` = dest mtime (unless forced); **304 → skip**, non-200 → error; the body is a `.tar.gz` (stdlib `compress/gzip`+`archive/tar`) whose `*.mmdb` entry is extracted to `<MAXMIND_DIR>/<edition>.mmdb` atomically; update `version.json`.
+- **No creds → GitHub fallback:** download `GeoLite2-City.mmdb` + `GeoLite2-Country.mmdb` (+ `GeoIP2-ISP.mmdb` when configured) from the release assets, mirroring `GeoLiteReleaseUpdater`; pin the exact asset URLs (`GitHubReleases::assetUrl`) during implementation.
+- Outbound HTTPS from the agent uses `net/http` (the agent is not PHP-FPM; cURL-only applies to PHP). The ASN catalog sync is MAIN-only — skip.
+
+- [ ] **Step 1: Write the failing test** (`cronmaxmind_test.go`): stand up an `httptest.NewServer` returning a small valid `.tar.gz` containing `GeoLite2-Country.mmdb`; point the updater's base URL + `MAXMIND_DIR` at it/the temp dir via a seam; assert (a) a missing primary → downloads + extracts the `.mmdb`; (b) a present, <6-day-old primary → no-op (no request); (c) a `304` → skip without rewriting. Keep it hermetic (no real MaxMind/GitHub calls).
+- [ ] **Step 2: Run to verify it fails** — `GOWORK=off go test ./internal/clusteragent/ -run TestMaxmind -v` → FAIL.
+- [ ] **Step 3: Implement** `updateMaxmind` (creds vs GitHub path, conditional GET, tar.gz extract, version.json, self-heal gate) and add `a.updateMaxmind()` to the `RunChores` tick (error logged, not fatal), under the `MaxMindCronJob` lock.
+- [ ] **Step 4: Run to verify it passes** → PASS.
+- [ ] **Step 5: Commit** — `git commit -m "feat(cluster): the maxmind GeoLite2 update"`
+
+---
+
+### Task 10: the node-side crontab filter (XC_VM)
 
 **Files:**
 - Modify: `src/Core/Cluster/ReplicaApply.php` (`crontabText`/`cronJobs` — drop the ported rows while the marker is fresh; one-place dropped-set + marker path + freshness constant)
@@ -277,11 +300,11 @@ Gate `RunChores` launch on `TmpRoot != ""`, on its own `context.WithCancel(ctx)`
 
 **Interfaces:**
 - Consumes: `AgentPaths` (the `node_crons` marker path, `cluster/node_crons`), the `node_crons` marker the Go agent writes (Task 8).
-- Produces: a `const DROPPED_WHEN_AGENT_OWNS = ['streams_logs','lines_logs','activity','errors','tmp']` (one place) and a `agentOwnsNodeCrons(): bool` helper (the marker exists and its mtime age `< NODE_CRONS_FRESH_SEC`, a new constant ≈ `30`).
+- Produces: a `const DROPPED_WHEN_AGENT_OWNS = ['streams_logs','lines_logs','activity','errors','tmp','maxmind']` (one place) and a `agentOwnsNodeCrons(): bool` helper (the marker exists and its mtime age `< NODE_CRONS_FRESH_SEC`, a new constant ≈ `30`).
 
 Pinned: `crontabText` builds lines `<time> <PHP_BIN> <MAIN_HOME>console.php cron:<filename> # XC_VM` from `cronJobs()`. The filter drops a job when `in_array($job['filename'], DROPPED_WHEN_AGENT_OWNS, true) && agentOwnsNodeCrons()`. The marker lives under `CONFIG_PATH.'cluster/'` (not swept by `cron:tmp`). `cron:root_signals` already re-validates the installed crontab each minute and regenerates on mismatch, so toggling the marker converges within ≤1 min with no extra wiring. Leave `crontabData` (the central replica builder) unchanged — it has no per-node liveness knowledge.
 
-- [ ] **Step 1: Write the failing test** (`ReplicaApplyCronFilterTest.php`): with a fresh `node_crons` marker, `crontabText` over a job list containing the five ported crons + a non-ported one (`certbot`) omits exactly the five and keeps `certbot`; with the marker absent or its mtime older than `NODE_CRONS_FRESH_SEC`, all rows are present. (Point `AgentPaths`/the marker path at a temp dir via the test's existing config seam, or inject the path.)
+- [ ] **Step 1: Write the failing test** (`ReplicaApplyCronFilterTest.php`): with a fresh `node_crons` marker, `crontabText` over a job list containing the six ported crons + a non-ported one (`certbot`) omits exactly the six and keeps `certbot`; with the marker absent or its mtime older than `NODE_CRONS_FRESH_SEC`, all rows are present. (Point `AgentPaths`/the marker path at a temp dir via the test's existing config seam, or inject the path.)
 - [ ] **Step 2: Run to verify it fails** — `php tests/phpunit.phar -c tests/phpunit.xml.dist --filter ReplicaApplyCronFilterTest` → FAIL.
 - [ ] **Step 3: Implement** the `DROPPED_WHEN_AGENT_OWNS` const, `agentOwnsNodeCrons()`, and the filter in `crontabText` (skip a dropped job when the agent owns the crons).
 - [ ] **Step 4: Run to verify it passes** → PASS; then `make gates` + `make cs` (short-tag/PSR-4 gates).
@@ -289,7 +312,7 @@ Pinned: `crontabText` builds lines `<time> <PHP_BIN> <MAIN_HOME>console.php cron
 
 ---
 
-### Task 10: whole-suite green + vet (both repos)
+### Task 11: whole-suite green + vet (both repos)
 
 **Files:** none (verification).
 
