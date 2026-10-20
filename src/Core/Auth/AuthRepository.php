@@ -2,7 +2,7 @@
 
 namespace XcVm\Core\Auth;
 
-use XcVm\Core\Cluster\NodeRpc;
+use XcVm\Core\Cluster\NodeActions;
 use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 
@@ -127,10 +127,10 @@ class AuthRepository {
 	}
 
 	/**
-	 * Regenerate per-code nginx config files from the database and reload nginx.
+	 * Regenerate per-code nginx config files and queue a privileged nginx reload.
 	 *
 	 * Rebuilds `bin/nginx/conf/codes/*.conf` for every enabled access code,
-	 * manages the fallback `default.conf`, and triggers an nginx reload.
+	 * manages the fallback `default.conf`, and queues the reload for the root worker.
 	 *
 	 * @return void
 	 */
@@ -193,7 +193,9 @@ class AuthRepository {
 			}
 		}
 
-		NodeRpc::request($rServerId, ['action' => 'reload_nginx']);
+		// PHP runs as xc_vm and cannot signal nginx's root-owned master. The
+		// root worker applies this through the existing privileged action path.
+		NodeActions::reloadNginx($rServerId);
 	}
 
 	/**

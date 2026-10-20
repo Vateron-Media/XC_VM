@@ -63,6 +63,10 @@ class PlaylistApiController extends BaseApiController {
 			Maintenance::refuse(SettingsManager::getAll());
 		}
 
+		if (!empty($rUserInfo['is_stalker']) && SettingsManager::get('disable_playlist_ministra')) {
+			generateError('PLAYLIST_DISABLED');
+		}
+
 		if (!$rUserInfo['is_restreamer'] && SettingsManager::get('disable_playlist')) {
 			generateError('PLAYLIST_DISABLED');
 		}

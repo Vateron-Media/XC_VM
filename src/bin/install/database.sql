@@ -1553,6 +1553,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `streams_grouped` tinyint(1) DEFAULT '1',
   `disable_player_api` tinyint(1) DEFAULT '0',
   `disable_playlist` tinyint(1) DEFAULT '0',
+  `disable_playlist_ministra` tinyint(1) NOT NULL DEFAULT '0',
   `disable_xmltv` tinyint(1) DEFAULT '0',
   `disable_enigma2` tinyint(1) DEFAULT '1',
   `disable_ministra` tinyint(1) DEFAULT '0',

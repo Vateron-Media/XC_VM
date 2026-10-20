@@ -59,6 +59,7 @@ return [
 		'disable_enigma2',
 		'disable_player_api',
 		'disable_playlist',
+		'disable_playlist_ministra',
 		'disable_playlist_restreamer',
 		'disable_table_responsive',
 		'disable_trial',
