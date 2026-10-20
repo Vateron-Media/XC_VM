@@ -196,11 +196,16 @@ final class AuditReviewStreamVodConnectionTest extends TestCase {
 	 * @return resource
 	 */
 	private function worker() {
-		$rSleep = trim((string) shell_exec('command -v sleep'));
-		$this->assertNotSame('', $rSleep, 'no sleep binary on PATH to stand in for a worker');
-		$this->assertTrue(copy($rSleep, $this->rHome . 'php-fpm-worker'), 'could not copy the worker stand-in into ' . $this->rHome);
-		chmod($this->rHome . 'php-fpm-worker', 0755);
-		$rWorker = proc_open([$this->rHome . 'php-fpm-worker', '60'], [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $rPipes);
+		if (!is_file($this->rHome . 'php-fpm-worker')) {
+			// A copy of the PHP binary, named php-fpm-worker so
+			// ProcessManager::isRunning(pid,'php-fpm') matches it. PHP ignores its
+			// own binary name, so it runs on any runner — unlike a renamed coreutils
+			// `sleep`, which some runner images reject by argv[0] and exit 1.
+			$this->assertTrue(copy(PHP_BINARY, $this->rHome . 'php-fpm-worker'), 'could not copy the worker stand-in into ' . $this->rHome);
+			chmod($this->rHome . 'php-fpm-worker', 0755);
+		}
+		$rErr = $this->rHome . 'worker.err';
+		$rWorker = proc_open([$this->rHome . 'php-fpm-worker', '-n', '-r', 'sleep(60);'], [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', $rErr, 'w']], $rPipes);
 		$this->assertIsResource($rWorker);
 		$this->rWorkers[] = $rWorker;
 		// Until it is that executable: the pid is its parent's image for an instant.
@@ -208,10 +213,10 @@ final class AuditReviewStreamVodConnectionTest extends TestCase {
 		for ($i = 0; $i < 200 && basename((string) @readlink('/proc/' . $rPID . '/exe')) !== 'php-fpm-worker'; $i++) {
 			usleep(5000);
 		}
-		// Fail fast with the real reason: a stand-in that exited at once, or never
-		// became the php-fpm-worker image, would otherwise surface downstream as a
-		// misleading "worker stopped" (a noexec temp, a slow exec, a missing sleep).
-		$this->assertTrue(proc_get_status($rWorker)['running'], 'the stand-in worker exited immediately (temp noexec, or sleep not copyable/execable): ' . $this->rHome);
+		// Fail fast with the real reason if the stand-in does not stay up, rather
+		// than letting it surface downstream as a misleading "worker stopped".
+		$rStatus = proc_get_status($rWorker);
+		$this->assertTrue($rStatus['running'], 'the stand-in worker did not stay up: ' . json_encode($rStatus) . ' err=' . @file_get_contents($rErr));
 		$this->assertSame('php-fpm-worker', basename((string) @readlink('/proc/' . $rPID . '/exe')), 'the stand-in worker never became the php-fpm-worker image (ProcessManager::isRunning would not match it)');
 		return $rWorker;
 	}
@@ -269,10 +274,8 @@ final class AuditReviewStreamVodConnectionTest extends TestCase {
 		// The viewer's earlier request: its worker has not yet seen the player leave.
 		$this->connection(self::EARLIER, self::IP, proc_get_status($rWorker)['pid']);
 
-		$rBody = $this->request();
-		$rDiag = proc_get_status($rWorker); // DIAG(temp): death status right after the request (termsig 9 == killed)
-		$this->assertSame('MOVIE', $rBody);
-		$this->assertTrue($rDiag['running'], 'a Range request stops no worker [DIAG death=' . json_encode($rDiag) . ' conns=' . json_encode($this->connections()) . ' req=' . @file_get_contents($this->rHome . 'request.json') . ']');
+		$this->assertSame('MOVIE', $this->request());
+		$this->assertTrue(proc_get_status($rWorker)['running'], 'a Range request stops no worker');
 		// The seek took the connection over: it is ended with the seek's response, not left open under a worker that is gone.
 		$this->assertSame([self::EARLIER => 1], array_map('intval', array_column($this->connections(), 'hls_end', 'uuid')));
 	}

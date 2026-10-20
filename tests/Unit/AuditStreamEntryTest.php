@@ -218,12 +218,15 @@ final class AuditStreamEntryTest extends TestCase {
 	 */
 	private function worker() {
 		if (!is_file($this->rHome . 'php-fpm-worker')) {
-			$rSleep = trim((string) shell_exec('command -v sleep'));
-			$this->assertNotSame('', $rSleep, 'no sleep binary on PATH to stand in for a worker');
-			$this->assertTrue(copy($rSleep, $this->rHome . 'php-fpm-worker'), 'could not copy the worker stand-in into ' . $this->rHome);
+			// A copy of the PHP binary, named php-fpm-worker so
+			// ProcessManager::isRunning(pid,'php-fpm') matches it. PHP ignores its
+			// own binary name, so it runs on any runner — unlike a renamed coreutils
+			// `sleep`, which some runner images reject by argv[0] and exit 1.
+			$this->assertTrue(copy(PHP_BINARY, $this->rHome . 'php-fpm-worker'), 'could not copy the worker stand-in into ' . $this->rHome);
 			chmod($this->rHome . 'php-fpm-worker', 0755);
 		}
-		$rWorker = proc_open([$this->rHome . 'php-fpm-worker', '60'], [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $rPipes);
+		$rErr = $this->rHome . 'worker.err';
+		$rWorker = proc_open([$this->rHome . 'php-fpm-worker', '-n', '-r', 'sleep(60);'], [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', $rErr, 'w']], $rPipes);
 		$this->assertIsResource($rWorker);
 		$this->rWorkers[] = $rWorker;
 		// Until it is that executable: the pid is its parent's image for an instant.
@@ -231,10 +234,10 @@ final class AuditStreamEntryTest extends TestCase {
 		for ($i = 0; $i < 200 && basename((string) @readlink('/proc/' . $rPID . '/exe')) !== 'php-fpm-worker'; $i++) {
 			usleep(5000);
 		}
-		// Fail fast with the real reason: a stand-in that exited at once, or never
-		// became the php-fpm-worker image, would otherwise surface downstream as a
-		// misleading "worker stopped" (a noexec temp, a slow exec, a missing sleep).
-		$this->assertTrue(proc_get_status($rWorker)['running'], 'the stand-in worker exited immediately (temp noexec, or sleep not copyable/execable): ' . $this->rHome);
+		// Fail fast with the real reason if the stand-in does not stay up, rather
+		// than letting it surface downstream as a misleading "worker stopped".
+		$rStatus = proc_get_status($rWorker);
+		$this->assertTrue($rStatus['running'], 'the stand-in worker did not stay up: ' . json_encode($rStatus) . ' err=' . @file_get_contents($rErr));
 		$this->assertSame('php-fpm-worker', basename((string) @readlink('/proc/' . $rPID . '/exe')), 'the stand-in worker never became the php-fpm-worker image (ProcessManager::isRunning would not match it)');
 		return $rWorker;
 	}
@@ -258,10 +261,8 @@ final class AuditStreamEntryTest extends TestCase {
 		// The connection this link opened has ended: its worker serves another request now.
 		$this->connection(self::UUID, 'VOD', 300, self::IP, proc_get_status($rWorker)['pid'], 1);
 
-		$rBody = $this->request('vod', ['token' => $this->movie()]);
-		$rDiag = proc_get_status($rWorker); // DIAG(temp): death status right after the request (termsig 9 == killed)
-		$this->assertSame('MOVIE', $rBody);
-		$this->assertTrue($this->running($rWorker), 'the worker of an ended connection was stopped [DIAG death=' . json_encode($rDiag) . ' conns=' . json_encode($this->connections()) . ']');
+		$this->assertSame('MOVIE', $this->request('vod', ['token' => $this->movie()]));
+		$this->assertTrue($this->running($rWorker), 'the worker of an ended connection was stopped');
 	}
 
 	public function testAMovieLinkAskedForAgainStillTakesOverFromTheWorkerOfItsOpenConnection(): void {
@@ -278,10 +279,8 @@ final class AuditStreamEntryTest extends TestCase {
 		$rWorker = $this->worker();
 		$this->connection(self::UUID, 'ts', 55, self::IP, proc_get_status($rWorker)['pid'], 1);
 
-		$rBody = $this->request('timeshift', ['token' => $this->recording()]);
-		$rDiag = proc_get_status($rWorker); // DIAG(temp): death status right after the request (termsig 9 == killed)
-		$this->assertSame('AAAA', $rBody);
-		$this->assertTrue($this->running($rWorker), 'the worker of an ended connection was stopped [DIAG death=' . json_encode($rDiag) . ' conns=' . json_encode($this->connections()) . ']');
+		$this->assertSame('AAAA', $this->request('timeshift', ['token' => $this->recording()]));
+		$this->assertTrue($this->running($rWorker), 'the worker of an ended connection was stopped');
 	}
 
 	public function testARecordingLinkAskedForAgainStillTakesOverFromTheWorkerOfItsOpenConnection(): void {
