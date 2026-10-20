@@ -129,6 +129,14 @@ final class ReplicaApply {
 	public const CRON_CACHE = 'cron_jobs';
 
 	/**
+	 * How fresh the agent's node_crons marker must be (seconds) for the node to
+	 * drop the crons the agent owns. A marker older than this means the agent
+	 * crashed/stopped/was rolled back, so the PHP crons are kept — never a gap
+	 * with no owner. The agent (RunChores) touches it every heartbeat (1–3s).
+	 */
+	public const NODE_CRONS_FRESH_SEC = 30;
+
+	/**
 	 * The sections whose cache an authoritative apply built (section => the
 	 * ETags applied). Beside the caches in `tmp/cache/`, so it goes with them
 	 * at a reboot.
@@ -303,11 +311,45 @@ final class ReplicaApply {
 		if ($rJobs === null) {
 			return null;
 		}
+		return self::crontabLines($rJobs, self::nodeOwnedCrons());
+	}
+
+	/**
+	 * The crontab text for $rJobs, dropping any job whose `filename` the local
+	 * agent owns ($rOwned) — it drains that cron itself, so scheduling it here
+	 * too would let both consume one log file. Pure; the test drives it directly.
+	 *
+	 * @param list<array{filename: string, time: string}> $rJobs
+	 * @param list<string>                                 $rOwned
+	 */
+	public static function crontabLines(array $rJobs, array $rOwned): string {
 		$rLines = [];
 		foreach ($rJobs as $rJob) {
+			if (in_array($rJob['filename'], $rOwned, true)) {
+				continue;
+			}
 			$rLines[] = $rJob['time'] . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rJob['filename'] . ' # XC_VM';
 		}
 		return implode("\n", $rLines);
+	}
+
+	/**
+	 * The node crons the local agent currently owns, read from its node_crons
+	 * marker ({"crons":[...]}). [] when the marker is missing, stale (older than
+	 * NODE_CRONS_FRESH_SEC — the agent is gone), or unreadable, so the PHP
+	 * crontab keeps every row.
+	 *
+	 * @param string|null $rPath a test's marker; null for AgentPaths::file(NODE_CRONS)
+	 * @return list<string>
+	 */
+	public static function nodeOwnedCrons(?string $rPath = null): array {
+		$rFile = $rPath ?? AgentPaths::file(AgentPaths::NODE_CRONS);
+		if (!is_file($rFile) || time() - (int) @filemtime($rFile) >= self::NODE_CRONS_FRESH_SEC) {
+			return [];
+		}
+		$rDoc = json_decode((string) @file_get_contents($rFile), true);
+		$rCrons = (is_array($rDoc) && isset($rDoc['crons']) && is_array($rDoc['crons'])) ? $rDoc['crons'] : [];
+		return array_values(array_filter($rCrons, 'is_string'));
 	}
 
 	/**
