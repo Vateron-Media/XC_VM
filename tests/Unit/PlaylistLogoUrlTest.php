@@ -49,6 +49,8 @@ $rCached = false;
 \XcVm\Core\Cluster\NodeFlows::usePath($rIn['dir'] . 'flows.json');
 \XcVm\Infrastructure\Database\DatabaseFactory::connect();
 $db = \XcVm\Infrastructure\Database\DatabaseFactory::get();
+// Match PHP-FPM buffering when the error responder emits its body before status.
+ob_start();
 $rController = new $rIn['controller']();
 register_shutdown_function([$rController, 'shutdown']);
 $rController->index();
@@ -92,8 +94,8 @@ PHP;
 		exec('rm -rf ' . escapeshellarg($this->rDir));
 	}
 
-	private function playlist(string $rDevice): string {
-		$rIn = ['schema' => $this->rDb->schema(), 'dir' => $this->rDir, 'settings' => self::SETTINGS, 'request' => ['username' => 'viewer', 'password' => 'secret', 'type' => $rDevice, 'output' => 'ts'], 'controller' => PlaylistApiController::class];
+	private function playlist(string $rDevice, array $rSettings = []): string {
+		$rIn = ['schema' => $this->rDb->schema(), 'dir' => $this->rDir, 'settings' => array_replace(self::SETTINGS, $rSettings), 'request' => ['username' => 'viewer', 'password' => 'secret', 'type' => $rDevice, 'output' => 'ts'], 'controller' => PlaylistApiController::class];
 		$rProc = proc_open([...xcvm_test_child_php(), '-d', 'display_errors=stderr', $this->rDir . 'child.php', (string) json_encode($rIn)], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);
 		$this->assertIsResource($rProc);
 		$rOut = (string) stream_get_contents($rPipes[1]);
@@ -101,6 +103,27 @@ PHP;
 		proc_close($rProc);
 		$this->assertSame('', $rErr, $rOut);
 		return $rOut;
+	}
+
+	public function testMinistraPlaylistSwitchBlocksBothM3uFormatsIncludingRestreamers(): void {
+		foreach ([0, 1] as $rRestreamer) {
+			$this->rDb->exec('UPDATE `lines` SET `is_stalker` = 1, `is_restreamer` = ' . $rRestreamer);
+			foreach (['m3u', 'm3u_plus'] as $rDevice) {
+				$rBody = $this->playlist($rDevice, ['disable_playlist_ministra' => 1]);
+				$this->assertStringContainsString('PLAYLIST_DISABLED', $rBody);
+				$this->assertStringNotContainsString('#EXTM3U', $rBody);
+			}
+		}
+	}
+
+	public function testMinistraPlaylistSwitchCanBeDisabled(): void {
+		$this->rDb->exec('UPDATE `lines` SET `is_stalker` = 1');
+		$this->assertStringContainsString('#EXTM3U', $this->playlist('m3u_plus', ['disable_playlist_ministra' => 0]));
+		$this->assertStringContainsString('#EXTM3U', $this->playlist('m3u_plus'));
+	}
+
+	public function testMinistraPlaylistSwitchAllowsRegularUsers(): void {
+		$this->assertStringContainsString('#EXTM3U', $this->playlist('m3u_plus', ['disable_playlist_ministra' => 1]));
 	}
 
 	public function testAnEntryInNoCategoryCarriesThePublicUrlOfItsStoredLogo(): void {
