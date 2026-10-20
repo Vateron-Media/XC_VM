@@ -1,0 +1,990 @@
+openapi: 3.1.0
+info:
+  title: XC_VM Enigma2 API
+  version: 2.7.2
+  summary: Enigma2, XPlugin of the Xtream Codes compatible HTTP surface, as implemented by XC_VM.
+  description: |
+    A source-level reference for the **Xtream Codes (XC) API**: the de facto standard HTTP interface
+    between IPTV panels and player apps. The reference implementation is
+    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.2, an open-source continuation of Xtream UI / XC.
+    Each operation cites the XC_VM source file and line it was traced from (`src/...:line`).
+
+    ## Authentication models
+
+    The panel has several independent auth schemes. Each endpoint states which one it uses.
+
+    | Who | How |
+    |---|---|
+    | Line (subscriber) | `username` + `password` query parameters, or `token` (32-char line access token). Also in path form: `/player_api/{u}/{p}`, `/live/{u}/{p}/...` |
+    | Activation code | The code typed as `username` (or `token`) is activated on first use and becomes a line |
+    | MAG / Stalker box | MAC address cookie + bearer token from `handshake` (`/c/portal.php`, `/stalker_portal/...`) |
+    | Enigma2 box | MAC/device registration (`enigma2.php`) |
+    | Admin / reseller REST | `api_key` query parameter (named `xct_` token or legacy per-user key) on `/{access_code}/?action=...`; the access code's IP whitelist is enforced by nginx |
+    | Load-balancer nodes | Shared cluster secret (`/cluster/v1`); signed `node.rpc` (legacy `api.php` on nodes older than 2.7.0) |
+
+    ## Notation
+
+    OpenAPI cannot express query-string multiplexing, so action-based endpoints are written as separate
+    literal paths such as `/player_api.php?action=get_live_streams`. The request is still a single
+    `GET /player_api.php` with `action` as an ordinary query parameter.
+
+    The admin and reseller REST APIs share one URL shape, `/{access_code}/?action=...`. Each access code has a type
+    (3 = Admin API, 4 = Reseller API) and nginx routes it to that API, so `/{access_code}/...` and `/{reseller_access_code}/...` are the
+    same URL and differ only in which kind of code is used.
+  contact:
+    name: XC_VM project
+    url: https://github.com/Vateron-Media/XC_VM
+  license:
+    name: AGPL-3.0 (XC_VM source); this document describes its public interface
+    identifier: AGPL-3.0-only
+servers:
+  - url: '{protocol}://{host}:{port}'
+    description: Any XC compatible panel or load-balancer node
+    variables:
+      protocol:
+        default: http
+        enum:
+          - http
+          - https
+      host:
+        default: tv.example.com
+      port:
+        default: '80'
+        description: HTTP broadcast port (often 80, 8080, 8000, 25461); HTTPS often 443 or 25463.
+externalDocs:
+  description: XC_VM source
+  url: https://github.com/Vateron-Media/XC_VM
+components:
+  parameters:
+    Username:
+      name: username
+      in: query
+      required: true
+      description: Line username. Optional when `token` is sent instead.
+      schema:
+        type: string
+        example: demo
+    Password:
+      name: password
+      in: query
+      required: true
+      description: Line password. Optional when `token` is sent instead.
+      schema:
+        type: string
+        format: password
+        example: s3cret
+    E2_CatId:
+      name: cat_id
+      in: query
+      required: false
+      description: Category id filter (integer-cast). 0, "0" or empty means all categories.
+      schema:
+        type: integer
+        default: 0
+    E2_SeriesId:
+      name: series_id
+      in: query
+      required: true
+      description: Series id (integer-cast); must be in the line's bouquets or the body is empty.
+      schema:
+        type: integer
+    E2_TypeLiveCategories:
+      name: type
+      in: query
+      required: true
+      schema:
+        type: string
+        enum:
+          - get_live_categories
+    XPlugin_Token:
+      name: token
+      in: query
+      required: true
+      description: 32-char uppercase hex token from `action=auth`; valid only from the same public IP and User-Agent.
+      schema:
+        type: string
+        pattern: ^[0-9A-F]{32}$
+  responses:
+    E2_Error404:
+      description: |
+        Any `generateError()` code (src/Core/Error/ErrorHandler.php:31, src/Core/Error/ErrorResponder.php:203).
+        In production the body is an nginx-imitating 404 page with no hint of the cause (render404, :119).
+        With setting `debug_show_errors` on, a styled page titled `XC_VM - Debug Mode` shows the code and its
+        description (renderDebug, :110), still with status 404. Codes used here: NO_CREDENTIALS,
+        INVALID_CREDENTIALS, EXPIRED, BANNED, DISABLED, E2_DISABLED ("Device has been disabled."), E2_NO_TOKEN,
+        E2_TOKEN_DOESNT_MATCH, E2_WATCHDOG_TIMEOUT ("Time limit reached."), E2_DEVICE_LOCK_FAILED
+        ("Device lock checks failed."), INVALID_HOST.
+      content:
+        text/html:
+          schema:
+            type: string
+          examples:
+            production:
+              value: "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->"
+            debug:
+              summary: debug_show_errors on (style sheet elided)
+              value: <html><head><title>XC_VM - Debug Mode</title>...</head><body><div id="notfound"><div class="notfound"><div class="notfound-404"><h1>XC_VM</h1><h2>INVALID_CREDENTIALS</h2><br/></div><p>Username or password is invalid.</p></div></div></body></html>
+    E2_FloodBlocked403:
+      description: |
+        The client IP is blocked (a `block_<ip>` file exists in FLOOD_TMP_PATH): FloodProtectionStage
+        answers 403 with an empty body before any controller runs
+        (src/Infrastructure/Bootstrap/WebApiBootstrap.php:50-66). IPs are blocked by
+        `BruteforceGuard::checkFlood` (`flood_limit` requests in `flood_seconds`) or `checkBruteforce`
+        (too many distinct failed usernames/passwords, MACs or codes within `bruteforce_frequency`)
+        (src/Core/Auth/BruteforceGuard.php:149, :277). Allowed IPs and `flood_ips_exclude` are never blocked.
+    E2_Maintenance503:
+      description: |
+        Maintenance mode (src/Core/Config/Maintenance.php:44): the `maintenance_message` setting or
+        "The service is under maintenance. Please try again later.". `Retry-After` (seconds, min 60) is sent
+        when `maintenance_until` is set.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            example: 600
+      content:
+        text/plain; charset=utf-8:
+          schema:
+            type: string
+          example: The service is under maintenance. Please try again later.
+  examples:
+    E2_MainMenu:
+      summary: Root menu of a line with live, VOD and series
+      value: |
+        <?xml version="1.0"?>
+        <items><playlist_name>StreamHub</playlist_name><category><category_id>1</category_id><category_title>StreamHub</category_title></category><channel><title>TGl2ZSBTdHJlYW1z</title><description>TGl2ZSBTdHJlYW1zIENhdGVnb3J5</description><category_id>0</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_live_categories]]></playlist_url></channel><channel><title>Vk9E</title><description>VmlkZW8gT24gRGVtYW5kIENhdGVnb3J5</description><category_id>1</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_vod_categories]]></playlist_url></channel><channel><title>VFYgU2VyaWVz</title><description>VFYgU2VyaWVzIENhdGVnb3J5</description><category_id>2</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_series_categories]]></playlist_url></channel></items>
+    E2_LiveCategories:
+      summary: Live categories ("All" + Sports)
+      value: |
+        <?xml version="1.0"?>
+        <items><playlist_name>Live [ StreamHub ]</playlist_name><category><category_id>1</category_id><category_title>Live [ StreamHub ]</category_title></category><channel><title>QWxs</title><description>TGl2ZSBTdHJlYW1zIENhdGVnb3J5IFsgQUxMIF0=</description><category_id>0</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_live_streams&cat_id=0]]></playlist_url></channel><channel><title>U3BvcnRz</title><description>TGl2ZSBTdHJlYW1zIENhdGVnb3J5</description><category_id>3</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_live_streams&cat_id=3]]></playlist_url></channel></items>
+    E2_LiveStreams:
+      summary: Live channels, one with EPG ("BBC One HD [20:00 - 21:00] + 42.5 min   EastEnders") and one without ("Sky Sports News ")
+      value: |
+        <?xml version="1.0"?>
+        <items><playlist_name>Live [ StreamHub ]</playlist_name><category><category_id>1</category_id><category_title>Live [ StreamHub ]</category_title></category><channel><title>QkJDIE9uZSBIRCBbMjA6MDAgLSAyMTowMF0gKyA0Mi41IG1pbiAgIEVhc3RFbmRlcnM=</title><description>WzIwOjAwXSBFYXN0RW5kZXJzCiggRHJhbWEgaW4gQWxiZXJ0IFNxdWFyZS4pClsyMTowMF0gQkJDIE5ld3MgYXQgVGVuCiggVGhlIGxhdGVzdCBuYXRpb25hbCBuZXdzLikK</description><desc_image><![CDATA[http://tv.example.com/images/logos/bbc1.png]]></desc_image><category_id>3</category_id><stream_url><![CDATA[http://tv.example.com/play/mZ4t9Qp2Lx7cV1bN8kR3wJ6yH0sF5dG2aEuToIiYrWqXnBvC]]></stream_url></channel><channel><title>U2t5IFNwb3J0cyBOZXdzIA==</title><description></description><desc_image><![CDATA[http://tv.example.com/images/logos/skynews.png]]></desc_image><category_id>3</category_id><stream_url><![CDATA[http://tv.example.com/play/Tq1Wv7nX3cB9mL5kZ2pR8yJ4sH6dF0gAeUoIiYtRwEqNbMvC]]></stream_url></channel></items>
+  schemas:
+    E2_Items:
+      type: object
+      description: |
+        Root `<items>` element. Children in document order: `playlist_name`, `category`, then zero or more
+        `channel`. Channel children differ by type: navigation lists carry `title`, `description`,
+        `category_id`, `playlist_url`; stream lists carry `title`, `description`, `desc_image`, `category_id`,
+        `stream_url` (VOD and episodes emit `desc_image` before `description`). `title`/`description` are
+        base64 (series/season descriptions are empty, not base64).
+      xml:
+        name: items
+      properties:
+        playlist_name:
+          type: string
+        category:
+          type: object
+          properties:
+            category_id:
+              type: string
+              enum:
+                - '1'
+            category_title:
+              type: string
+        channel:
+          type: array
+          xml:
+            wrapped: false
+          items:
+            type: object
+            xml:
+              name: channel
+            properties:
+              title:
+                type: string
+                contentEncoding: base64
+              description:
+                type: string
+                contentEncoding: base64
+              desc_image:
+                type: string
+                format: uri
+                description: CDATA
+              category_id:
+                type: string
+                description: Category id; series id in get_series; season number in get_seasons; may be empty.
+              playlist_url:
+                type: string
+                format: uri
+                description: CDATA; next navigation level.
+              stream_url:
+                type: string
+                format: uri
+                description: CDATA; `<base>play/<token>`.
+    XPlugin_AuthResponse:
+      type: object
+      properties:
+        details:
+          type: object
+          properties:
+            token:
+              type: string
+              pattern: ^[0-9A-F]{32}$
+            username:
+              type: string
+            password:
+              type: string
+            watchdog_seconds:
+              type: integer
+              minimum: 60
+              maximum: 70
+    XPlugin_CommandPoll:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          enum:
+            - true
+        data:
+          description: Empty array `[]` when no command is queued, otherwise an object with one key.
+          oneOf:
+            - type: array
+              maxItems: 0
+            - type: object
+              properties:
+                message:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    message:
+                      type: string
+                ssh:
+                  type: string
+                screen:
+                  type: string
+                  enum:
+                    - '1'
+                reboot_gui:
+                  type: integer
+                  enum:
+                    - 1
+                reboot:
+                  type: integer
+                  enum:
+                    - 1
+                update:
+                  type: string
+                block_ssh:
+                  type: integer
+                block_telnet:
+                  type: integer
+                block_ftp:
+                  type: integer
+                block_all:
+                  type: integer
+                block_plugin:
+                  type: integer
+tags:
+  - name: Enigma2
+    description: |
+      XML playlist API for Enigma2 set-top boxes (the XC "enigma2.php" API). Every response is a single
+      `<items>` document whose `<channel>` titles and descriptions are base64-encoded and whose URLs are CDATA.
+      Served by src/Public/Controllers/Api/Enigma2ApiController.php via the front controller
+      (src/Public/index.php:170-203, XC_API=enigma2). Reachable as /enigma2, /enigma2.php and /api/enigma2
+      (src/bin/nginx/conf/nginx.conf:374-409, limit_req burst=8).
+  - name: XPlugin
+    description: |
+      Companion API for the XC Enigma2 plugin ("xplugin"): MAC generation, device authentication by MAC, a
+      watchdog poll that delivers remote commands, and screenshot upload. Served by
+      src/Public/Controllers/Api/XPluginApiController.php. Reachable as /xplugin, /xplugin.php and /api/xplugin.
+paths:
+  /enigma2.php:
+    get:
+      operationId: E2_getMainMenu
+      tags:
+        - Enigma2
+      summary: Enigma2 root menu (no type / unknown type)
+      description: |
+        Root menu of the Enigma2 XML playlist. Returned when `type` is absent, empty, or any value not in the
+        list of known types (src/Public/Controllers/Api/Enigma2ApiController.php:157-187 `default:` branch,
+        builder at :513-547).
+
+        Aliases: `/enigma2`, `/api/enigma2` (src/bin/nginx/conf/nginx.conf:374-409). GET and POST both work;
+        parameters are read from GET merged with POST (POST wins) (src/Core/Init/LegacyInitializer.php:57-58).
+
+        **Auth / gate order** (Enigma2ApiController.php:50-114), shared by every `type`:
+        1. Boot: an IP in the flood block list gets `403` with an empty body; `verify_host` failure gets the
+           404 page (`INVALID_HOST`) (src/Infrastructure/Bootstrap/WebApiBootstrap.php:50-66).
+        2. `disable_enigma2` setting → `E2_DISABLED` 404 page (:55-58).
+        3. Maintenance mode → `503` text/plain (:60-63, src/Core/Config/Maintenance.php:44).
+        4. Missing `username`/`password` → `NO_CREDENTIALS` 404 page (:82-84).
+        5. Wrong credentials → `BruteforceGuard::checkBruteforce` counts the distinct failed username/password
+           for this IP (src/Core/Auth/BruteforceGuard.php:277) then `INVALID_CREDENTIALS` 404 page (:86-91).
+        6. Expired line → `EXPIRED`; `admin_enabled=0` → `BANNED`; `enabled=0` → `DISABLED` (:96-106).
+           Note: unlike player_api, is_mag/is_e2/allowed IP/UA checks are not applied here.
+        7. `checkAuthFlood` (BruteforceGuard.php:410): beyond `auth_flood_limit` requests per
+           `auth_flood_seconds` the request is *delayed* by `auth_flood_sleep` seconds (not refused).
+
+        **Flood counting:** until credentials validate, the request counts toward the per-IP flood limit at
+        shutdown (src/Public/Controllers/Api/BaseApiController.php:31-45, BruteforceGuard.php:149). Reaching
+        `flood_limit` within `flood_seconds` adds the IP to `blocked_ips`; every later request gets 403.
+
+        **Menu content:** `Live Streams` (category_id 0) only if the line has live streams, `VOD`
+        (category_id 1) only if it has VOD, `TV Series` (category_id 2) always.
+
+        **URLs:** absolute base is `<scheme>://<Host header>/` (https if HTTPS, REQUEST_SCHEME=https, port
+        443/3434, or `X-Forwarded-Proto: https`), else the server's `site_url` (:74-79). Links use the
+        extension-less `enigma2?` path and raw-url-encode the credentials (:153-155).
+
+        The XML is produced by SimpleXML `asXML()`: an `<?xml version="1.0"?>` declaration then the whole
+        document on one line (:549-552). Content-Type `application/xml; charset=utf-8`.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - name: type
+          in: query
+          required: false
+          description: Omitted, empty, or any unrecognised value returns this menu.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Root menu XML.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/E2_Items'
+              examples:
+                menu:
+                  $ref: '#/components/examples/E2_MainMenu'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+        '503':
+          $ref: '#/components/responses/E2_Maintenance503'
+  /enigma2.php?type=get_live_categories:
+    get:
+      operationId: E2_getLiveCategories
+      tags:
+        - Enigma2
+      summary: Live categories
+      description: |
+        Live categories the line's bouquets reach (categories are filtered to the line's `category_ids`,
+        src/Public/Controllers/Api/Enigma2ApiController.php:111-114). Builder :189-213.
+
+        `playlist_name` is `Live [ <server_name> ]`. The first channel is always an "All" entry
+        (title base64 `All`, description base64 `Live Streams Category [ ALL ]`, `category_id` 0) whose
+        playlist_url is `...&type=get_live_streams&cat_id=0`. Quirk: the code appends `$rCategory['id']` (an
+        absent XML attribute, i.e. empty) to that URL, so it is always exactly `cat_id=0` (:201).
+        Then one channel per category: title base64(category_name), description base64
+        `Live Streams Category`, `category_id` = category id, playlist_url `...&type=get_live_streams&cat_id=<id>`.
+
+        Aliases `/enigma2`, `/api/enigma2`. Auth, gates and errors as for `E2_getMainMenu`.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/E2_TypeLiveCategories'
+      responses:
+        '200':
+          description: Category list XML.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/E2_Items'
+              examples:
+                live_categories:
+                  $ref: '#/components/examples/E2_LiveCategories'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+        '503':
+          $ref: '#/components/responses/E2_Maintenance503'
+  /enigma2.php?type=get_vod_categories:
+    get:
+      operationId: E2_getVodCategories
+      tags:
+        - Enigma2
+      summary: VOD (movie) categories
+      description: |
+        Same structure as `get_live_categories` (src/Public/Controllers/Api/Enigma2ApiController.php:215-239):
+        `playlist_name` `Movie [ <server_name> ]`; "All" channel described `Movie Streams Category [ ALL ]`
+        pointing to `type=get_vod_streams&cat_id=0`; one channel per movie category described
+        `Movie Streams Category` pointing to `type=get_vod_streams&cat_id=<id>`.
+        Aliases `/enigma2`, `/api/enigma2`. Auth, gates and errors as for `E2_getMainMenu`.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_vod_categories
+      responses:
+        '200':
+          description: Category list XML.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/E2_Items'
+              example: |
+                <?xml version="1.0"?>
+                <items><playlist_name>Movie [ StreamHub ]</playlist_name><category><category_id>1</category_id><category_title>Movie [ StreamHub ]</category_title></category><channel><title>QWxs</title><description>TW92aWUgU3RyZWFtcyBDYXRlZ29yeSBbIEFMTCBd</description><category_id>0</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_vod_streams&cat_id=0]]></playlist_url></channel><channel><title>TW92aWVz</title><description>TW92aWUgU3RyZWFtcyBDYXRlZ29yeQ==</description><category_id>7</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_vod_streams&cat_id=7]]></playlist_url></channel></items>
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+        '503':
+          $ref: '#/components/responses/E2_Maintenance503'
+  /enigma2.php?type=get_series_categories:
+    get:
+      operationId: E2_getSeriesCategories
+      tags:
+        - Enigma2
+      summary: Series categories
+      description: |
+        Same structure as `get_live_categories` (src/Public/Controllers/Api/Enigma2ApiController.php:241-265):
+        `playlist_name` `SubCategory [ <server_name> ]`; "All" channel described `TV Series Category [ ALL ]`
+        pointing to `type=get_series&cat_id=0`; one channel per series category described `TV Series Category`
+        pointing to `type=get_series&cat_id=<id>`.
+        Aliases `/enigma2`, `/api/enigma2`. Auth, gates and errors as for `E2_getMainMenu`.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_series_categories
+      responses:
+        '200':
+          description: Category list XML.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/E2_Items'
+              example: |
+                <?xml version="1.0"?>
+                <items><playlist_name>SubCategory [ StreamHub ]</playlist_name><category><category_id>1</category_id><category_title>SubCategory [ StreamHub ]</category_title></category><channel><title>QWxs</title><description>VFYgU2VyaWVzIENhdGVnb3J5IFsgQUxMIF0=</description><category_id>0</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_series&cat_id=0]]></playlist_url></channel><channel><title>RHJhbWE=</title><description>VFYgU2VyaWVzIENhdGVnb3J5</description><category_id>12</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_series&cat_id=12]]></playlist_url></channel></items>
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+        '503':
+          $ref: '#/components/responses/E2_Maintenance503'
+  /enigma2.php?type=get_series:
+    get:
+      operationId: E2_getSeries
+      tags:
+        - Enigma2
+      summary: Series in a category (or all series)
+      description: |
+        Lists series the line's bouquets include (src/Public/Controllers/Api/Enigma2ApiController.php:267-318).
+        Category filter is `cat_id`, falling back to `scat_id` when `cat_id` is absent/0. `cat_id` of 0, `"0"`
+        or empty means "all" (`!empty()` check, :68). Unfiltered, each series appears once (under its first
+        category); filtered, only series whose `category_id` JSON list contains the id.
+
+        `playlist_name` is `TV Series [ <category name> ]`, or `TV Series [ ALL ]` when no category matched.
+        Each channel: title base64(series title), `<description/>` empty (NOT base64),
+        `category_id` = the **series id** (not a category id), playlist_url
+        `...&type=get_seasons&series_id=<id>`. Ordering: `last_modified DESC` when `vod_sort_newest` is set,
+        otherwise bouquet order (:288-292). A line with no series gets the header only.
+        Aliases `/enigma2`, `/api/enigma2`. Auth, gates and errors as for `E2_getMainMenu`.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_series
+        - $ref: '#/components/parameters/E2_CatId'
+        - name: scat_id
+          in: query
+          required: false
+          description: Fallback category id used only when `cat_id` is absent or 0 (integer-cast).
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Series list XML.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/E2_Items'
+              example: |
+                <?xml version="1.0"?>
+                <items><playlist_name>TV Series [ Drama ]</playlist_name><category><category_id>1</category_id><category_title>TV Series [ Drama ]</category_title></category><channel><title>QnJlYWtpbmcgQmFk</title><description/><category_id>41</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_seasons&series_id=41]]></playlist_url></channel></items>
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+        '503':
+          $ref: '#/components/responses/E2_Maintenance503'
+  /enigma2.php?type=get_seasons:
+    get:
+      operationId: E2_getSeasons
+      tags:
+        - Enigma2
+      summary: Seasons of a series
+      description: |
+        Seasons of one series (src/Public/Controllers/Api/Enigma2ApiController.php:320-349).
+        If `series_id` is missing or not among the line's `series_ids` (strict integer comparison) the response
+        is **HTTP 200 with an empty body** and no Content-Type set by the controller (:323-326).
+        `playlist_name` is `TV Series [ <series title> ]`. One channel per season: title base64 `Season N`,
+        empty `<description/>`, `category_id` = season number, playlist_url
+        `...&type=get_series_streams&series_id=<id>&season=<N>`.
+        Aliases `/enigma2`, `/api/enigma2`. Auth, gates and errors as for `E2_getMainMenu`.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_seasons
+        - $ref: '#/components/parameters/E2_SeriesId'
+      responses:
+        '200':
+          description: Season list XML, or an empty body when the series is not available to the line.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/E2_Items'
+              examples:
+                seasons:
+                  value: |
+                    <?xml version="1.0"?>
+                    <items><playlist_name>TV Series [ Breaking Bad ]</playlist_name><category><category_id>1</category_id><category_title>TV Series [ Breaking Bad ]</category_title></category><channel><title>U2Vhc29uIDE=</title><description/><category_id>1</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_series_streams&series_id=41&season=1]]></playlist_url></channel><channel><title>U2Vhc29uIDI=</title><description/><category_id>2</category_id><playlist_url><![CDATA[http://tv.example.com/enigma2?username=john&password=s3cret&type=get_series_streams&series_id=41&season=2]]></playlist_url></channel></items>
+                not_owned:
+                  summary: Series not in the line's bouquets (empty body)
+                  value: ''
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+        '503':
+          $ref: '#/components/responses/E2_Maintenance503'
+  /enigma2.php?type=get_series_streams:
+    get:
+      operationId: E2_getSeriesStreams
+      tags:
+        - Enigma2
+      summary: Episodes of a season
+      description: |
+        Episodes of one season (src/Public/Controllers/Api/Enigma2ApiController.php:351-387).
+        Empty 200 body when `season` is missing/0 or the series is not in the line's `series_ids`.
+        `playlist_name` is `TV Series [ <title> Season <N> ]`. Episodes ordered by `episode_num`.
+        Each channel, in this element order: title base64 `Episode NN` (a sequential 1-based counter, **not**
+        the stored episode number), `desc_image` CDATA (series cover), `description` = base64('') i.e. an
+        empty element, `category_id` = the `cat_id` request value or an empty element when not given,
+        `stream_url` CDATA `<base>play/<token>`.
+        The token is `Encryption::mintToken('movie/<user>/<pass>/<stream_id>/<container>', live_streaming_pass,
+        OPENSSL_EXTRA, secure_stream_tokens)` (src/Core/Util/Encryption.php:123): a base64url AES-GCM sealed
+        token, or the legacy AES-CBC format when `secure_stream_tokens` is off.
+        Aliases `/enigma2`, `/api/enigma2`. Auth, gates and errors as for `E2_getMainMenu`.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_series_streams
+        - $ref: '#/components/parameters/E2_SeriesId'
+        - name: season
+          in: query
+          required: true
+          description: Season number (integer-cast; 0/empty yields an empty body).
+          schema:
+            type: integer
+            minimum: 1
+        - $ref: '#/components/parameters/E2_CatId'
+      responses:
+        '200':
+          description: Episode list XML, or an empty body.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/E2_Items'
+              examples:
+                episodes:
+                  value: |
+                    <?xml version="1.0"?>
+                    <items><playlist_name>TV Series [ Breaking Bad Season 1 ]</playlist_name><category><category_id>1</category_id><category_title>TV Series [ Breaking Bad Season 1 ]</category_title></category><channel><title>RXBpc29kZSAwMQ==</title><desc_image><![CDATA[https://image.tmdb.org/t/p/w600_and_h900_bestv2/ggFHVNu6YYI5L9pCfOacjizRGt.jpg]]></desc_image><description></description><category_id/><stream_url><![CDATA[http://tv.example.com/play/9vQm3X1pL0aZt7c2Kx8bJwR4sN6yHf5dE0uVgTqYi1oMnBkC]]></stream_url></channel><channel><title>RXBpc29kZSAwMg==</title><desc_image><![CDATA[https://image.tmdb.org/t/p/w600_and_h900_bestv2/ggFHVNu6YYI5L9pCfOacjizRGt.jpg]]></desc_image><description></description><category_id/><stream_url><![CDATA[http://tv.example.com/play/Lr2Wq8nE4tYb6uJ0cX3vM9kZ1sP7aD5fG2hQwRtYuIoBnVxC]]></stream_url></channel></items>
+                empty:
+                  summary: Missing season or series not available to the line
+                  value: ''
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+        '503':
+          $ref: '#/components/responses/E2_Maintenance503'
+  /enigma2.php?type=get_live_streams:
+    get:
+      operationId: E2_getLiveStreams
+      tags:
+        - Enigma2
+      summary: Live channels (with now/next EPG)
+      description: |
+        Live channels of the line (src/Public/Controllers/Api/Enigma2ApiController.php:389-459), in the line's
+        channel order (StreamSorter). `cat_id` 0/absent = all channels, each listed **once** under its first
+        category; with `cat_id` a channel appears only if that id is in its `category_id` JSON list.
+
+        Up to two upcoming EPG entries (end >= now) are read from the EPG cache file `EPG_PATH/stream_<id>`.
+        Per channel, in this element order:
+        - `title`: base64 of `<stream_display_name> <shortEPG>` where shortEPG is
+          `[HH:MM - HH:MM] + <minutes left, 1 decimal> min   <title>` (three spaces) for the current entry. With no
+          EPG the title is the name followed by a single trailing space.
+        - `description`: base64 of `[HH:MM] <title>\n( <description>)\n` per EPG entry (empty when none). Times
+          use the PHP default timezone.
+        - `desc_image`: CDATA, stream icon (validated URL).
+        - `category_id`: category id.
+        - `stream_url`: CDATA `<base>play/<token>`, token = mintToken('live/<user>/<pass>/<stream_id>', ...).
+        Aliases `/enigma2`, `/api/enigma2`. Auth, gates and errors as for `E2_getMainMenu`.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_live_streams
+        - $ref: '#/components/parameters/E2_CatId'
+      responses:
+        '200':
+          description: Live channel list XML.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/E2_Items'
+              examples:
+                live_streams:
+                  $ref: '#/components/examples/E2_LiveStreams'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+        '503':
+          $ref: '#/components/responses/E2_Maintenance503'
+  /enigma2.php?type=get_vod_streams:
+    get:
+      operationId: E2_getVodStreams
+      tags:
+        - Enigma2
+      summary: Movies
+      description: |
+        Movies of the line (src/Public/Controllers/Api/Enigma2ApiController.php:461-511). Category filtering as
+        for `get_live_streams`. Per channel, in this element order: `title` base64(stream_display_name);
+        `desc_image` CDATA from `movie_properties.movie_image`; `description` base64 of one
+        `UPPERCASED_KEY: value\n` line per `movie_properties` entry except `movie_image` (keys as stored, e.g.
+        NAME, O_NAME, COVER_BIG, PLOT, CAST, DIRECTOR, GENRE, RELEASEDATE, RATING, DURATION...); `category_id`;
+        `stream_url` CDATA `<base>play/<token>`, token = mintToken('movie/<user>/<pass>/<id>/<container>', ...).
+        Aliases `/enigma2`, `/api/enigma2`. Auth, gates and errors as for `E2_getMainMenu`.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_vod_streams
+        - $ref: '#/components/parameters/E2_CatId'
+      responses:
+        '200':
+          description: Movie list XML.
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/E2_Items'
+              example: |
+                <?xml version="1.0"?>
+                <items><playlist_name>Movie [ StreamHub ]</playlist_name><category><category_id>1</category_id><category_title>Movie [ StreamHub ]</category_title></category><channel><title>VGhlIE1hdHJpeA==</title><desc_image><![CDATA[https://image.tmdb.org/t/p/w600_and_h900_bestv2/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg]]></desc_image><description>TkFNRTogVGhlIE1hdHJpeApQTE9UOiBBIGhhY2tlciBsZWFybnMgdGhlIHRydXRoIGFib3V0IHJlYWxpdHkuCkdFTlJFOiBBY3Rpb24sIFNjaS1GaQpSRUxFQVNFREFURTogMTk5OS0wMy0zMQpSQVRJTkc6IDguNwo=</description><category_id>7</category_id><stream_url><![CDATA[http://tv.example.com/play/Qx7nV2bT9mK4cJ1wZ8rL5yF3hD6sA0pGeUoIiYtRwEqNbMvC]]></stream_url></channel></items>
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+        '503':
+          $ref: '#/components/responses/E2_Maintenance503'
+  /xplugin.php?action=gen_mac:
+    get:
+      operationId: XPlugin_genMac
+      tags:
+        - XPlugin
+      summary: Generate a random MAC address for the plugin
+      description: |
+        src/Public/Controllers/Api/XPluginApiController.php:52-60. No authentication. Requires a non-empty
+        `pversion`; when it equals exactly `0.0.1` the body is a JSON-encoded **string** (with quotes) of 6
+        random bytes as uppercase colon-separated hex. Any other `pversion` → HTTP 200 with an empty body.
+        Quirk: no Content-Type header is set (PHP default `text/html`). Without `pversion` the request falls
+        through to the token flow and gets `E2_NO_TOKEN` (404). Not counted toward flood (deny=false).
+        Gate: `disable_enigma2` → `E2_DISABLED` 404 page (:44-47). There is no maintenance-mode check on xplugin.
+        Aliases `/xplugin`, `/api/xplugin`. GET and POST both work.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - gen_mac
+        - name: pversion
+          in: query
+          required: true
+          description: Plugin version; only `0.0.1` produces a MAC.
+          schema:
+            type: string
+            example: 0.0.1
+      responses:
+        '200':
+          description: JSON string MAC (pversion 0.0.1) or empty body.
+          content:
+            text/html:
+              schema:
+                type: string
+              examples:
+                mac:
+                  value: '"3A:F1:0B:9C:22:7D"'
+                other_version:
+                  value: ''
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+  /xplugin.php?action=auth:
+    get:
+      operationId: XPlugin_auth
+      tags:
+        - XPlugin
+      summary: Authenticate an Enigma2 device by MAC and obtain a watchdog token
+      description: |
+        src/Public/Controllers/Api/XPluginApiController.php:64-66, handleAuth :97-140.
+        Looks up the Enigma2 device by uppercased `mac` (`UserRepository::getE2Info`,
+        src/Domain/User/UserRepository.php:652). Unknown MAC → `checkBruteforce(null, MAC)` (counts distinct
+        failed MACs per IP against `bruteforce_mac_attempts`) then `INVALID_CREDENTIALS` 404 page.
+        If the device has `lock_device=1` and a stored `modem_mac` that differs from `mmac` → brute-force count
+        and `E2_DEVICE_LOCK_FAILED` 404 page.
+
+        **Side effects:** updates the `enigma2_devices` row: `original_mac`=cmac, `dns`=dn (or `-`),
+        `key_auth`=User-Agent, `lversion`=base64-decoded lversion, `watchdog_timeout`=random 60-70,
+        `modem_mac`, `local_ip`, `public_ip`=REMOTE_ADDR, `enigma_version`, `cpu`, `version`=pversion,
+        `token`, `last_updated`=now. The token is then only valid from the same public IP **and** the same
+        User-Agent (see the poll endpoint). Text parameters are stored HTML-entity-encoded.
+
+        Response `Content-Type: application/json`; `watchdog_seconds` is an integer, `username`/`password`
+        are the paired line's credentials. Aliases `/xplugin`, `/api/xplugin`. GET/POST.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - auth
+        - name: mac
+          in: query
+          required: true
+          description: Device MAC registered as an Enigma2 device (case-insensitive).
+          schema:
+            type: string
+            example: 00:1D:EC:0A:3F:21
+        - name: mmac
+          in: query
+          required: false
+          description: Modem MAC; must match the stored one when the device is locked.
+          schema:
+            type: string
+        - name: ip
+          in: query
+          required: false
+          description: Box local IP (stored as local_ip).
+          schema:
+            type: string
+        - name: version
+          in: query
+          required: false
+          description: Enigma2 image version (stored as enigma_version).
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: false
+          description: CPU / box type (stored as cpu).
+          schema:
+            type: string
+        - name: pversion
+          in: query
+          required: false
+          description: Plugin version (stored as version).
+          schema:
+            type: string
+        - name: lversion
+          in: query
+          required: false
+          description: Base64-encoded Linux/kernel version string (stored decoded).
+          schema:
+            type: string
+        - name: dn
+          in: query
+          required: false
+          description: DNS/portal name the box uses (stored as dns; `-` when empty).
+          schema:
+            type: string
+        - name: cmac
+          in: query
+          required: false
+          description: Original/chip MAC (stored uppercased as original_mac).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Device authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/XPlugin_AuthResponse'
+              example:
+                details:
+                  token: 9F2C4A7E1B3D5F60718293A4B5C6D7E8
+                  username: john
+                  password: s3cret
+                  watchdog_seconds: 64
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+  /xplugin.php:
+    get:
+      operationId: XPlugin_pollCommands
+      tags:
+        - XPlugin
+      summary: Watchdog heartbeat; fetch the next queued remote command
+      description: |
+        src/Public/Controllers/Api/XPluginApiController.php:68-94, checkCommands :142-183.
+        Requires `token` (else `E2_NO_TOKEN` 404). The token must match an `enigma2_devices` row **and** the
+        request's REMOTE_ADDR and trimmed User-Agent as saved at auth time (else `E2_TOKEN_DOESNT_MATCH`
+        404). If more than `watchdog_timeout + 20` seconds passed since the last heartbeat →
+        `E2_WATCHDOG_TIMEOUT` 404 (the box must re-auth). Failed token lookups count toward the IP flood limit.
+
+        With `page` empty/absent: sets `last_updated`=now and `rc`, pops the oldest row of `enigma2_actions` for
+        the device (it is deleted) and returns it as `data`. Quirk: with no command `data` is an empty JSON
+        **array** `[]`, otherwise an object with exactly one key (types as emitted):
+        `message` {title, message}; `ssh` (string); `screen` ("1", string); `reboot_gui` (1, int);
+        `reboot` (1, int); `update` (string); `block_ssh`/`block_telnet`/`block_ftp`/`block_all`/`block_plugin`
+        (int from the action's `type`). An unknown action key is deleted and yields `[]`.
+        Any other non-empty `page` value except `file` → HTTP 200 empty body.
+        Aliases `/xplugin`, `/api/xplugin`. GET/POST.
+      parameters:
+        - $ref: '#/components/parameters/XPlugin_Token'
+        - name: rc
+          in: query
+          required: false
+          description: Remote-control state reported by the box (stored in `enigma2_devices.rc`).
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          description: Leave empty for the command poll (`file` = screenshot upload, documented separately).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Poll result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/XPlugin_CommandPoll'
+              examples:
+                no_command:
+                  value:
+                    valid: true
+                    data: []
+                message:
+                  value:
+                    valid: true
+                    data:
+                      message:
+                        title: Notice
+                        message: Your subscription renews tomorrow.
+                screenshot_request:
+                  value:
+                    valid: true
+                    data:
+                      screen: '1'
+                reboot:
+                  value:
+                    valid: true
+                    data:
+                      reboot: 1
+                block_ssh:
+                  value:
+                    valid: true
+                    data:
+                      block_ssh: 1
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
+  /xplugin.php?page=file:
+    post:
+      operationId: XPlugin_uploadScreenshot
+      tags:
+        - XPlugin
+      summary: Upload a screenshot (answer to a `screen` command)
+      description: |
+        src/Public/Controllers/Api/XPluginApiController.php:90-94, handleFileUpload :185-198.
+        Same token / IP / User-Agent / watchdog checks as the poll endpoint (errors identical). Multipart upload
+        of field `f` with `t=screen`; when the file is a JPEG (getimagesize) it is stored as
+        `E2_IMAGES_PATH/<device_id>_screen_<time>_<uniqid>.jpg`. Non-JPEG, other `t`, or upload errors are
+        silently ignored. Always HTTP 200 with an empty body. `token`, `page` and `t` may be in the query or the
+        multipart body. Aliases `/xplugin`, `/api/xplugin`.
+      parameters:
+        - $ref: '#/components/parameters/XPlugin_Token'
+        - name: page
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - file
+        - name: t
+          in: query
+          required: true
+          description: Upload type; only `screen` is handled.
+          schema:
+            type: string
+            enum:
+              - screen
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - f
+              properties:
+                f:
+                  type: string
+                  format: binary
+                  description: JPEG screenshot.
+      responses:
+        '200':
+          description: Empty body (whether or not the file was stored).
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          $ref: '#/components/responses/E2_Error404'
