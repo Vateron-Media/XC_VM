@@ -269,8 +269,10 @@ final class AuditReviewStreamVodConnectionTest extends TestCase {
 		// The viewer's earlier request: its worker has not yet seen the player leave.
 		$this->connection(self::EARLIER, self::IP, proc_get_status($rWorker)['pid']);
 
-		$this->assertSame('MOVIE', $this->request());
-		$this->assertTrue(proc_get_status($rWorker)['running'], 'a Range request stops no worker');
+		$rBody = $this->request();
+		$rDiag = proc_get_status($rWorker); // DIAG(temp): death status right after the request (termsig 9 == killed)
+		$this->assertSame('MOVIE', $rBody);
+		$this->assertTrue($rDiag['running'], 'a Range request stops no worker [DIAG death=' . json_encode($rDiag) . ' conns=' . json_encode($this->connections()) . ' req=' . @file_get_contents($this->rHome . 'request.json') . ']');
 		// The seek took the connection over: it is ended with the seek's response, not left open under a worker that is gone.
 		$this->assertSame([self::EARLIER => 1], array_map('intval', array_column($this->connections(), 'hls_end', 'uuid')));
 	}

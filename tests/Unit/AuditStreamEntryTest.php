@@ -258,8 +258,10 @@ final class AuditStreamEntryTest extends TestCase {
 		// The connection this link opened has ended: its worker serves another request now.
 		$this->connection(self::UUID, 'VOD', 300, self::IP, proc_get_status($rWorker)['pid'], 1);
 
-		$this->assertSame('MOVIE', $this->request('vod', ['token' => $this->movie()]));
-		$this->assertTrue($this->running($rWorker), 'the worker of an ended connection was stopped');
+		$rBody = $this->request('vod', ['token' => $this->movie()]);
+		$rDiag = proc_get_status($rWorker); // DIAG(temp): death status right after the request (termsig 9 == killed)
+		$this->assertSame('MOVIE', $rBody);
+		$this->assertTrue($this->running($rWorker), 'the worker of an ended connection was stopped [DIAG death=' . json_encode($rDiag) . ' conns=' . json_encode($this->connections()) . ']');
 	}
 
 	public function testAMovieLinkAskedForAgainStillTakesOverFromTheWorkerOfItsOpenConnection(): void {
@@ -276,8 +278,10 @@ final class AuditStreamEntryTest extends TestCase {
 		$rWorker = $this->worker();
 		$this->connection(self::UUID, 'ts', 55, self::IP, proc_get_status($rWorker)['pid'], 1);
 
-		$this->assertSame('AAAA', $this->request('timeshift', ['token' => $this->recording()]));
-		$this->assertTrue($this->running($rWorker), 'the worker of an ended connection was stopped');
+		$rBody = $this->request('timeshift', ['token' => $this->recording()]);
+		$rDiag = proc_get_status($rWorker); // DIAG(temp): death status right after the request (termsig 9 == killed)
+		$this->assertSame('AAAA', $rBody);
+		$this->assertTrue($this->running($rWorker), 'the worker of an ended connection was stopped [DIAG death=' . json_encode($rDiag) . ' conns=' . json_encode($this->connections()) . ']');
 	}
 
 	public function testARecordingLinkAskedForAgainStillTakesOverFromTheWorkerOfItsOpenConnection(): void {
