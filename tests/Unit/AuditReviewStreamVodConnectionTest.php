@@ -196,9 +196,11 @@ final class AuditReviewStreamVodConnectionTest extends TestCase {
 	 * @return resource
 	 */
 	private function worker() {
-		copy(trim((string) shell_exec('command -v sleep')), $this->rHome . 'php-fpm-worker');
+		copy(PHP_BINARY, $this->rHome . 'php-fpm-worker');
 		chmod($this->rHome . 'php-fpm-worker', 0755);
-		$rWorker = proc_open([$this->rHome . 'php-fpm-worker', '60'], [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $rPipes);
+		// Use PHP rather than a renamed sleep: Ubuntu's multicall coreutils
+		// refuses to run under the php-fpm-worker executable name. No ini/extensions needed.
+		$rWorker = proc_open([$this->rHome . 'php-fpm-worker', '-n', '-r', 'sleep(60);'], [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', $this->rHome . 'worker.errors', 'w']], $rPipes);
 		$this->assertIsResource($rWorker);
 		$this->rWorkers[] = $rWorker;
 		// Until it is that executable: the pid is its parent's image for an instant.
@@ -206,6 +208,8 @@ final class AuditReviewStreamVodConnectionTest extends TestCase {
 		for ($i = 0; $i < 200 && basename((string) @readlink('/proc/' . $rPID . '/exe')) !== 'php-fpm-worker'; $i++) {
 			usleep(5000);
 		}
+		$this->assertTrue(proc_get_status($rWorker)['running'], (string) file_get_contents($this->rHome . 'worker.errors'));
+		$this->assertSame('php-fpm-worker', basename((string) @readlink('/proc/' . $rPID . '/exe')), 'the worker executable is ready before the request');
 		return $rWorker;
 	}
 
