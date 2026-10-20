@@ -57,6 +57,7 @@ final class ReplicaApplyCronFilterTest extends TestCase {
 		$this->assertSame(['streams_logs', 'tmp'], ReplicaApply::nodeOwnedCrons($marker));
 
 		touch($marker, time() - 3600); // stale -> the agent is gone, keep the PHP crons
+		clearstatcache(true, $marker); // drop the mtime the fresh read above cached (same-process test only)
 		$this->assertSame([], ReplicaApply::nodeOwnedCrons($marker));
 
 		$this->assertSame([], ReplicaApply::nodeOwnedCrons($dir . '/nope')); // absent
