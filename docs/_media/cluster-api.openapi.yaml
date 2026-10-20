@@ -1,0 +1,2219 @@
+openapi: 3.1.0
+info:
+  title: XC_VM Cluster API
+  version: 2.7.2
+  summary: Cluster API of the Xtream Codes compatible HTTP surface, as implemented by XC_VM.
+  description: |
+    A source-level reference for the **Xtream Codes (XC) API**: the de facto standard HTTP interface
+    between IPTV panels and player apps. The reference implementation is
+    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.2, an open-source continuation of Xtream UI / XC.
+    Each operation cites the XC_VM source file and line it was traced from (`src/...:line`).
+
+    ## Authentication models
+
+    The panel has several independent auth schemes. Each endpoint states which one it uses.
+
+    | Who | How |
+    |---|---|
+    | Line (subscriber) | `username` + `password` query parameters, or `token` (32-char line access token). Also in path form: `/player_api/{u}/{p}`, `/live/{u}/{p}/...` |
+    | Activation code | The code typed as `username` (or `token`) is activated on first use and becomes a line |
+    | MAG / Stalker box | MAC address cookie + bearer token from `handshake` (`/c/portal.php`, `/stalker_portal/...`) |
+    | Enigma2 box | MAC/device registration (`enigma2.php`) |
+    | Admin / reseller REST | `api_key` query parameter (named `xct_` token or legacy per-user key) on `/{access_code}/?action=...`; the access code's IP whitelist is enforced by nginx |
+    | Load-balancer nodes | Shared cluster secret (`/cluster/v1`); signed `node.rpc` (legacy `api.php` on nodes older than 2.7.0) |
+  contact:
+    name: XC_VM project
+    url: https://github.com/Vateron-Media/XC_VM
+  license:
+    name: AGPL-3.0 (XC_VM source); this document describes its public interface
+    identifier: AGPL-3.0-only
+servers:
+  - url: '{protocol}://{host}:{port}'
+    description: Any XC compatible panel or load-balancer node
+    variables:
+      protocol:
+        default: http
+        enum:
+          - http
+          - https
+      host:
+        default: tv.example.com
+      port:
+        default: '80'
+        description: HTTP broadcast port (often 80, 8080, 8000, 25461); HTTPS often 443 or 25463.
+externalDocs:
+  description: XC_VM source
+  url: https://github.com/Vateron-Media/XC_VM
+components:
+  parameters:
+    Cluster_Proto:
+      name: X-XCVM-Proto
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^\d{1,4}$
+        example: '1'
+      description: Protocol version. Outside 1..1 gives 426 PROTO `{min,max}`.
+    Cluster_Agent:
+      name: X-XCVM-Agent
+      in: header
+      required: true
+      schema:
+        type: string
+        maxLength: 64
+      description: Agent identifier (printable).
+    Cluster_Node:
+      name: X-XCVM-Node
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Lowercase node uuid, or `sid:<n>` for enrol-code ops.
+    Cluster_Epoch:
+      name: X-XCVM-Epoch
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^\d{1,18}$
+      description: Token epoch (0 for rekey / enrol-code).
+    Cluster_Ts:
+      name: X-XCVM-Ts
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^\d{13,16}$
+      description: Unix ms, within ±90000 ms of MAIN; else 401 CLOCK_SKEW.
+    Cluster_Nonce:
+      name: X-XCVM-Nonce
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^[0-9a-f]{32}$
+      description: Single-use; a reuse gives 401 REPLAY.
+    Cluster_Sig:
+      name: X-XCVM-Sig
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^[0-9a-f]{64}$
+      description: HMAC-SHA256 MAC of the request; a mismatch gives 401 BAD_MAC.
+    Cluster_NodeSig:
+      name: X-XCVM-Node-Sig
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^[0-9a-f]{128}$
+      description: Node Ed25519 signature; a mismatch gives 401 BAD_NODE_SIG.
+  responses:
+    Cluster_Denied:
+      description: |
+        Panel-signed denial (DenialFactory::deny; tag `den`). Statuses and reasons:
+        - 400 BAD_REQUEST
+        - 401 CLOCK_SKEW | UNKNOWN_NODE | TOKEN_EXPIRED{detail} | BAD_MAC | BAD_NODE_SIG | REPLAY{retry_after_ms?} | CHALLENGE | CODE_INVALID
+        - 403 NODE_REVOKED{revoked_gen} | HTTPS_REQUIRED | LICENCE_INVALID{commands_sealed?} | GRANT_INVALID
+        - 404 UNKNOWN_OP
+        - 405 BAD_REQUEST
+        - 409 NOT_ACTIVE{state} | ENROL_EXPIRED | ENROL_CONFLICT | USEQ_GAP{expected_useq} | SNAP_GAP{expected_seq} | FLOW_OFF{flow,feature?} | ARTEFACT_CHANGED
+        - 416 BAD_RANGE{size,max_chunk}
+        - 426 PROTO{min,max}
+        - 429 RATE_LIMITED{retry_after_ms} (rekey)
+        - 503 DISABLED | STARTING{retry_after_ms:5000} | DB | CLOCK | RATE_LIMITED{retry_after_ms,op,lane?}
+
+        Unsigned exceptions: 503 `{"v":1,"reason":"ERROR"}`, and 503 STARTING when the extension is missing.
+        nginx's 429 (zone `cluster`) and 413 carry no signature.
+      headers:
+        X-XCVM-Panel-Sig:
+          schema:
+            type: string
+          description: base64url Ed25519 over the body (tag den).
+        Cache-Control:
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Cluster_Denial'
+          examples:
+            notActive:
+              value:
+                v: 1
+                typ: xcvm-denial
+                reason: NOT_ACTIVE
+                node: 3f1c2a4e-8b7d-4c1a-9e2f-0a1b2c3d4e5f
+                req_nonce: a3f1c9e07b2d4e5f8a9b0c1d2e3f4a5b
+                main_time_ms: 1760700000123
+                state: quarantined
+            starting:
+              value:
+                v: 1
+                typ: xcvm-denial
+                reason: STARTING
+                node: null
+                req_nonce: null
+                main_time_ms: 1760700000123
+                retry_after_ms: 5000
+            error:
+              value:
+                v: 1
+                reason: ERROR
+  schemas:
+    Cluster_Denial:
+      type: object
+      required:
+        - v
+        - reason
+      properties:
+        v:
+          type: integer
+          const: 1
+        typ:
+          type: string
+          const: xcvm-denial
+        reason:
+          type: string
+        node:
+          type:
+            - string
+            - 'null'
+        req_nonce:
+          type:
+            - string
+            - 'null'
+          description: The request's nonce (hex) when bound.
+        main_time_ms:
+          type: integer
+        retry_after_ms:
+          type: integer
+        state:
+          type: string
+        min:
+          type: integer
+        max:
+          type: integer
+        detail:
+          type: string
+        revoked_gen:
+          type: integer
+        expected_useq:
+          type: integer
+        expected_seq:
+          type: integer
+        flow:
+          type: string
+        feature:
+          type: string
+        op:
+          type: string
+        lane:
+          type: string
+          enum:
+            - p0
+            - bulk
+        commands_sealed:
+          type: string
+        size:
+          type: integer
+        max_chunk:
+          type: integer
+    Cluster_Policy:
+      type: object
+      description: ClusterPolicy::current (src/Domain/Cluster/ClusterPolicy.php:22-95).
+      properties:
+        policy_ver:
+          type: integer
+        transport:
+          type: string
+          enum:
+            - auto
+            - http
+            - https_preferred
+            - https_required
+        heartbeat_sec:
+          type: integer
+        main_urls:
+          type: array
+          items:
+            type: string
+    Cluster_Health:
+      type: object
+      properties:
+        v:
+          type: integer
+          const: 1
+        typ:
+          type: string
+          const: xcvm-health
+        main_time_ms:
+          type: integer
+        proto:
+          type: object
+          properties:
+            min:
+              type: integer
+            max:
+              type: integer
+        api:
+          type: integer
+        panel_sign_pub:
+          type: string
+          description: base64 Ed25519 public key.
+        panel_box_pub:
+          type: string
+          description: base64 X25519 public key.
+        panel_fp:
+          type: string
+          description: hex fingerprint.
+      example:
+        v: 1
+        typ: xcvm-health
+        main_time_ms: 1760700000123
+        proto:
+          min: 1
+          max: 1
+        api: 1
+        panel_sign_pub: q2Vd3fT0rW0mA1xY9b7cJk8L0pQ5sR2tU4vW6xY8zA0=
+        panel_box_pub: Z3h4aTJ0b2tlbl9leGFtcGxlX2JveF9wdWJrZXkwMDA=
+        panel_fp: 5f2b9c0e7a1d4e3f
+    Cluster_Challenge:
+      type: object
+      properties:
+        v:
+          type: integer
+          const: 1
+        typ:
+          type: string
+          const: xcvm-challenge
+        cn:
+          type: string
+        challenge:
+          type: string
+          description: base64 32 bytes; single use, 180 s.
+        main_time_ms:
+          type: integer
+        licence_ok:
+          type: boolean
+        policy:
+          $ref: '#/components/schemas/Cluster_Policy'
+      example:
+        v: 1
+        typ: xcvm-challenge
+        cn: 3f1c2a4e-8b7d-4c1a-9e2f-0a1b2c3d4e5f
+        challenge: mJ6o2d0yq1n8Zr5bJm8tP3w0aQ9eT6uY2hK4sV7xW1c=
+        main_time_ms: 1760700000123
+        licence_ok: true
+        policy:
+          policy_ver: 1
+          transport: auto
+          heartbeat_sec: 2
+          main_urls:
+            - http://10.0.0.1:80/cluster/v1/
+    Cluster_Lease:
+      type: object
+      properties:
+        payload:
+          type: string
+        sig:
+          type: string
+        exp:
+          type: integer
+    Cluster_TokenIssued:
+      type: object
+      description: TokenService issue (src/Domain/Cluster/ClusterApi.php:475; lease from src/Domain/Cluster/LeaseService.php:81).
+      properties:
+        token_sealed:
+          type: string
+          description: base64 token sealed to eph_pub.
+        epoch:
+          type: integer
+        nbf:
+          type: integer
+        exp:
+          type: integer
+        refresh_at:
+          type: integer
+        main_time_ms:
+          type: integer
+        lease:
+          $ref: '#/components/schemas/Cluster_Lease'
+      example:
+        token_sealed: base64...
+        epoch: 43
+        nbf: 1760700000
+        exp: 1760703600
+        refresh_at: 1760702700
+        main_time_ms: 1760700000123
+    Cluster_EnrolStatus:
+      type: object
+      properties:
+        v:
+          type: integer
+          const: 1
+        typ:
+          type: string
+          const: xcvm-enrol-status
+        state:
+          type: string
+          description: pending_approval, rejected, ...
+        main_time_ms:
+          type: integer
+tags:
+  - name: Cluster API
+    description: |
+      MAIN-only node-to-MAIN control plane at `/cluster/v1/<op>` (docs/adr/0004-cluster-api.md,
+      docs/en/development/cluster-api.md). nginx: src/bin/nginx/conf/cluster_locations.conf.
+      - Rate limit: `limit_req zone=cluster burst=400`, so excess requests get 429.
+      - `client_max_body_size 8m`.
+      - Ingest ops (events, config, streams, conn_snapshot, recording_complete, queue_*, artefact) go to the
+        `cluster_ingest` FPM pool; the rest go to `cluster_ctl`.
+
+      **Request authentication** (src/Domain/Cluster/ClusterApi.php `preflight` :251, `handle` :110-215):
+      - Headers `X-XCVM-Proto`, `X-XCVM-Agent`, `X-XCVM-Node`, `X-XCVM-Epoch`, `X-XCVM-Ts`, `X-XCVM-Nonce`, `X-XCVM-Sig`.
+        Ops flagged "node sig" also take `X-XCVM-Node-Sig`.
+      - The canonical context is `xcvm-req-v1` over proto, agent, method, path, sorted query, content-type,
+        content-encoding, node, epoch, ts and nonce (src/Core/Cluster/Crypto/Canonical.php).
+      - `X-XCVM-Sig` = hex HMAC-SHA256 under the session's K_mac_up over `xcvm-mac-v1` ‖ lp(ctx) ‖ sha256(body).
+      - Ts must be within ±90000 ms of MAIN's clock (Canonical::WINDOW_MS). Each nonce is accepted once.
+      - Session bodies are an AES-256-GCM "XCVM-BOX-v1" under K_enc_up, carrying JSON.
+        A body that fails to open or decode gives 400 BAD_REQUEST (ClusterApi.php:357-362).
+      - Bodies are at most 8 MiB, or 64 KiB for unsessioned ops (ClusterApi.php:45-48). PROTO_MIN = PROTO_MAX = 1.
+
+      **Replies**
+      - Success is `ClusterReply::boxed` (src/Domain/Cluster/ClusterReply.php:20): `application/octet-stream`
+        Box under K_enc_down, headers `X-XCVM-Ts`, `X-XCVM-Nonce`, `X-XCVM-Sig` (MAC under K_mac_down over the response
+        context) and `Cache-Control: no-store`. The plaintext JSON always carries `main_time_ms` (ClusterApi.php:1380).
+        It is shown below as `x-xcvm-plaintext`.
+      - Denials are `DenialFactory::deny` (src/Domain/Cluster/DenialFactory.php:28): cleartext JSON
+        `{"v":1,"typ":"xcvm-denial","reason",...}` signed in `X-XCVM-Panel-Sig` (base64url Ed25519, tag `den`).
+      - nginx's own 429/413/502/504/404 bodies carry no MAC.
+
+      **Gates** (src/Public/cluster/index.php):
+      - 503 `STARTING` unsigned when the crypto extension is missing (:46-52).
+      - `ClusterPool::gate` gives 503 `STARTING` `{retry_after_ms:5000}` until the pools are ready (:74-78;
+        src/Domain/Cluster/ClusterPool.php:253-259). `health` is exempt and needs no DB (:79-84).
+      - 503 `DB` when the database is down (:105-107). An uncaught failure gives unsigned 503 `{"v":1,"reason":"ERROR"}` (:116).
+      - `cluster_api_enabled=0` gives 503 `DISABLED`. HTTPS policy gives 403 `HTTPS_REQUIRED` (ClusterApi.php:125-132).
+      - Busy semaphores give **503** `RATE_LIMITED` `{retry_after_ms, op[, lane]}` (src/Domain/Cluster/ClusterSemaphore.php:126-244).
+
+      `rpc_result`, `stream_bundle` and `vod_analysis` match the nginx ingest regex but are not ops.
+      They answer 404 `UNKNOWN_OP` (ClusterApi.php:115). `vod.analysis` is a P0 event type sent via `events`.
+paths:
+  /cluster/v1/health:
+    get:
+      operationId: Cluster_health
+      tags:
+        - Cluster API
+      summary: Panel public keys and clock (unauthenticated)
+      description: |
+        `health()` (src/Domain/Cluster/ClusterApi.php:389-401). It needs no DB and skips the DISABLED, HTTPS and STARTING gates
+        (src/Public/cluster/index.php:79-84). The cleartext JSON is signed in `X-XCVM-Panel-Sig` with tag `hlt`.
+      responses:
+        '200':
+          description: Health document.
+          headers:
+            X-XCVM-Panel-Sig:
+              schema:
+                type: string
+              description: base64url Ed25519 over the body (tag hlt).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cluster_Health'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/challenge:
+    get:
+      operationId: Cluster_challenge
+      tags:
+        - Cluster API
+      summary: Single-use challenge for token_rekey (unauthenticated)
+      description: |
+        `challenge()` (src/Domain/Cluster/ClusterApi.php:404-421). It issues 32 random bytes stored as `chal:<cn>` for 180 s,
+        consumed by `token_rekey`. It is served over plain HTTP even under `https_required` (:127).
+        An invalid `cn` gives 400 BAD_REQUEST. Signed with tag `hlt`.
+      parameters:
+        - name: cn
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Node uuid (Canonical::validNode).
+      responses:
+        '200':
+          description: Challenge.
+          headers:
+            X-XCVM-Panel-Sig:
+              schema:
+                type: string
+              description: base64url Ed25519 (tag hlt).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cluster_Challenge'
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/enrol_complete:
+    post:
+      operationId: Cluster_enrolComplete
+      tags:
+        - Cluster API
+      summary: Finish enrolment (node sig; state enrolling)
+      description: |
+        `enrolComplete()` (src/Domain/Cluster/ClusterApi.php:424-450). Requires epoch 1, before `enrol_deadline`, else 409 ENROL_EXPIRED.
+        It sets the node `active`. If the conditional update loses, the reply is 403 NODE_REVOKED, 401 UNKNOWN_NODE or 409 NOT_ACTIVE.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+        - $ref: '#/components/parameters/Cluster_NodeSig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              properties:
+                instance_id:
+                  type: string
+                  maxLength: 64
+                boot_id:
+                  type: string
+                  maxLength: 64
+                agent_version:
+                  type: string
+                  maxLength: 32
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  state: active
+                  mode: 1
+                  flows: 255
+                  gen: 1
+                  main_time_ms: 1760700000123
+                  policy:
+                    policy_ver: 1
+                    transport: auto
+                    heartbeat_sec: 2
+                    main_urls:
+                      - http://10.0.0.1:80/cluster/v1/
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '403':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/token_refresh:
+    post:
+      operationId: Cluster_tokenRefresh
+      tags:
+        - Cluster API
+      summary: Refresh the session token (node sig; active/quarantined)
+      description: |
+        `tokenRefresh()` (src/Domain/Cluster/ClusterApi.php:454-497) runs `TokenService::refresh` with a fresh X25519 ephemeral key.
+        Refusals (`refusal()` :1270-1280):
+        - REVOKED gives 403.
+        - LICENCE gives 403 LICENCE_INVALID, optionally with `commands_sealed`.
+        - CLOCK gives 503.
+        - Anything else gives 401 TOKEN_EXPIRED `{detail}`.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+        - $ref: '#/components/parameters/Cluster_NodeSig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - eph_pub
+              properties:
+                eph_pub:
+                  type: string
+                  description: base64 32-byte X25519 public key.
+      responses:
+        '200':
+          description: Boxed `issued()` (:475).
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                $ref: '#/components/schemas/Cluster_TokenIssued'
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '403':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/token_rekey:
+    post:
+      operationId: Cluster_tokenRekey
+      tags:
+        - Cluster API
+      summary: Re-establish a session without a token (node sig; active)
+      description: |
+        `tokenRekey()` / `rekeyAuthenticated()` (src/Domain/Cluster/ClusterApi.php:500-560).
+        Request auth:
+        - No `X-XCVM-Sig`. `X-XCVM-Epoch: 0`. Non-empty body of at most 65536 bytes.
+        - `X-XCVM-Node-Sig` is checked against the stored `node_sign_pub` over ctx ‖ sha256(body).
+
+        The body is a SEAL to the panel box key (purpose `rekey`, bound to the request context) holding JSON.
+        Its `challenge` comes from `GET challenge?cn=`.
+
+        Denials:
+        - 429 RATE_LIMITED `{retry_after_ms}`: once per 60 s per node.
+        - 401 CHALLENGE: challenge unknown or already used.
+        - 409 NOT_ACTIVE `{state:"quarantined"}`: `instance_id` mismatch, which also quarantines the node.
+        - Refusals as for token_refresh.
+
+        Success is **cleartext JSON** signed with Panel-Sig tag `pre` (:556-558), not boxed.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_NodeSig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - challenge
+                - eph_pub
+              properties:
+                challenge:
+                  type: string
+                  description: base64 32 bytes.
+                eph_pub:
+                  type: string
+                  description: base64 32 bytes.
+                instance_id:
+                  type: string
+                boot_id:
+                  type: string
+                agent_version:
+                  type: string
+      responses:
+        '200':
+          description: Panel-signed rekey document.
+          headers:
+            X-XCVM-Panel-Sig:
+              schema:
+                type: string
+              description: base64url Ed25519 (tag pre).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Cluster_TokenIssued'
+                  - type: object
+                    properties:
+                      v:
+                        type: integer
+                        const: 1
+                      typ:
+                        type: string
+                        const: xcvm-rekey
+                      node:
+                        type: string
+                      req_nonce:
+                        type: string
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '403':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '429':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/enrol_code:
+    post:
+      operationId: Cluster_enrolCode
+      tags:
+        - Cluster API
+      summary: Submit an enrolment by one-time code (node sig)
+      description: |
+        `enrolByCode()` (src/Domain/Cluster/ClusterApi.php:577-648).
+
+        Request auth:
+        - Headers `X-XCVM-Node: sid:<n>`, `X-XCVM-Epoch: 0`.
+        - `X-XCVM-Sig` is a MAC under K_req = HKDF(code secret, salt u32 sid, `xcvm/enrol-code/v1/req`) (src/Domain/Cluster/EnrolCodeService.php:15-16).
+        - The body (at most 64 KiB) is SEALed, purpose `enrol_code`.
+        - `X-XCVM-Node-Sig` is verified with the body's `sign_pub`.
+
+        Denials:
+        - 401 CODE_INVALID: no code. 401 BAD_MAC.
+        - From `submit` (EnrolCodeService.php:148-165): 409 ENROL_CONFLICT, 409 CODE_INVALID, 400.
+
+        Success: `ClusterReply::maced` cleartext JSON under K_res.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+        - $ref: '#/components/parameters/Cluster_NodeSig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - node_uuid
+                - sign_pub
+                - box_pub
+                - eph_pub
+              properties:
+                node_uuid:
+                  type: string
+                sign_pub:
+                  type: string
+                  description: base64 Ed25519 32 bytes.
+                box_pub:
+                  type: string
+                  description: base64 X25519 32 bytes.
+                eph_pub:
+                  type: string
+                instance_id:
+                  type: string
+      responses:
+        '200':
+          description: MAC'd cleartext status.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cluster_EnrolStatus'
+              example:
+                v: 1
+                typ: xcvm-enrol-status
+                state: pending_approval
+                main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/enrol_code_status:
+    post:
+      operationId: Cluster_enrolCodeStatus
+      tags:
+        - Cluster API
+      summary: Poll an enrol-code request
+      description: |
+        `enrolByCode()` status branch (src/Domain/Cluster/ClusterApi.php:595-610). Headers are as for enrol_code, without Node-Sig.
+        The body is plain JSON (MAC'd, not sealed) `{node_uuid}`, and must match the pending request, else 400.
+
+        Replies:
+        - Approved: `maced(K_res)` with `typ: xcvm-enrol-approved` plus the stored panel signature in `X-XCVM-Panel-Sig`
+          (src/Domain/Cluster/EnrolCodeService.php:221-227).
+        - Otherwise: `xcvm-enrol-status` with the stored state (`pending_approval`, `rejected`, ...).
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - node_uuid
+              properties:
+                node_uuid:
+                  type: string
+      responses:
+        '200':
+          description: Status or approval.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Cluster_EnrolStatus'
+                  - type: object
+                    properties:
+                      v:
+                        type: integer
+                        const: 1
+                      typ:
+                        type: string
+                        const: xcvm-enrol-approved
+                      node_uuid:
+                        type: string
+                      server_id:
+                        type: integer
+                      gen:
+                        type: integer
+                      epoch:
+                        type: integer
+                        const: 1
+                      token_sealed:
+                        type: string
+                      exp:
+                        type: integer
+                      refresh_at:
+                        type: integer
+                      cluster:
+                        type: object
+                        description: cluster.json contents.
+                      lease:
+                        $ref: '#/components/schemas/Cluster_Lease'
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/hello:
+    post:
+      operationId: Cluster_hello
+      tags:
+        - Cluster API
+      summary: Session start / capability exchange (active/quarantined)
+      description: |
+        `hello()` (src/Domain/Cluster/ClusterApi.php:651-720). Semaphore-limited: 4 concurrent, else 503 RATE_LIMITED.
+        An `instance_id` mismatch on an active node quarantines it; the returned `state` shows this.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              properties:
+                instance_id:
+                  type: string
+                  maxLength: 64
+                boot_id:
+                  type: string
+                  maxLength: 64
+                agent_version:
+                  type: string
+                  maxLength: 32
+                features:
+                  type: array
+                  maxItems: 16
+                  items:
+                    type: string
+                    pattern: ^[a-z0-9_]{1,32}$
+                arch:
+                  type: string
+                  maxLength: 8
+                  description: Must be a ReleaseAsset::ARCH_MAP key.
+                policy_ver:
+                  type: integer
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  state: active
+                  mode: 1
+                  flows: 255
+                  gen: 3
+                  epoch: 42
+                  main_time_ms: 1760700000123
+                  proto:
+                    min: 1
+                    max: 1
+                  policy:
+                    policy_ver: 1
+                    transport: auto
+                    heartbeat_sec: 2
+                    main_urls:
+                      - http://10.0.0.1:80/cluster/v1/
+                  cursors:
+                    p0: 1200
+                    p1: 88
+                  offline_admission: local
+                  p2_types:
+                    - log.line
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '403':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '426':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/heartbeat:
+    post:
+      operationId: Cluster_heartbeat
+      tags:
+        - Cluster API
+      summary: Node heartbeat and telemetry (active/quarantined)
+      description: |
+        `heartbeat()` (src/Domain/Cluster/ClusterApi.php:729-764) runs `HeartbeatService::record` (src/Domain/Cluster/HeartbeatService.php:246).
+        Every key is optional. `telemetry` is kept only if its encoding is at most 131072 bytes.
+        `want_conn_snapshot: true` asks the node to send `conn_snapshot`.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              properties:
+                local_ms:
+                  type: integer
+                root_ready:
+                  type: boolean
+                telemetry:
+                  type: object
+                policy_ver:
+                  type: integer
+                audit:
+                  type: object
+                  description: '{sql_connects, redis_connects, sites, connects_since?}'
+                relay:
+                  type: object
+                  description: '{bound, since_ms?, error? (≤255)}'
+                lanes:
+                  type: object
+                  description: '{p0:{lag_ms}, p1:{lag_ms}}'
+                unreachable:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                digest_n1:
+                  type: array
+                  maxItems: 32
+                  items:
+                    type: integer
+                conn_digest:
+                  type: object
+                  description: '{count, users, xor64} (CONNECTIONS flow only).'
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  state: active
+                  mode: 1
+                  flows: 255
+                  main_time_ms: 1760700000123
+                  pending: 0
+                  policy_ver: 1
+                  offline_admission: local
+                  p2_types:
+                    - log.line
+                  want_conn_snapshot: true
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '403':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/commands:
+    post:
+      operationId: Cluster_commands
+      tags:
+        - Cluster API
+      summary: Long-poll MAIN-to-node commands (active/quarantined)
+      description: |
+        `commands()` (src/Domain/Cluster/ClusterApi.php:776-835). Long-poll for up to `wait_ms` (≤ 20000). Returns at most 50 commands.
+        A quarantined node receives only restrictive ones.
+
+        Each `doc` is the JSON command (e.g. `node.rpc` carrying an `/api.php` action, `conn.drop`, `config.changed`,
+        `token.rotate_now`). Its `sig` is the panel's b64url Ed25519 signature with tag `cmd` (src/Domain/Cluster/CommandBus.php:124).
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - after_seq
+              properties:
+                after_seq:
+                  type: integer
+                  minimum: 0
+                wait_ms:
+                  type: integer
+                  minimum: 0
+                  maximum: 20000
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  commands:
+                    - doc: '{"id":"9b1e...","type":"node.rpc","args":{"action":"stats"}}'
+                      sig: Zm9v...
+                      seq: 1201
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/ack:
+    post:
+      operationId: Cluster_ack
+      tags:
+        - Cluster API
+      summary: Acknowledge a command with its result (active/quarantined)
+      description: |
+        `ack()` (src/Domain/Cluster/ClusterApi.php:838-873). `result` is truncated at 4194304 bytes (CommandBus.php:59).
+        An unknown or malformed `cmd_id` gives 400.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - cmd_id
+                - ok
+              properties:
+                cmd_id:
+                  type: string
+                  pattern: ^[0-9a-f]{32}$
+                ok:
+                  type: boolean
+                result:
+                  type: string
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  ok: true
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/events:
+    post:
+      operationId: Cluster_events
+      tags:
+        - Cluster API
+      summary: Ingest a batch of lane events (active)
+      description: |
+        `events()` (src/Domain/Cluster/ClusterApi.php:876-905) runs `EventIngest::ingest` (src/Domain/Cluster/EventIngest.php:143). Ingest pool.
+        A batch holds at most 5000 events. `first_useq` is ignored for p2, where `useq` is returned as 0. A repeated batch returns `applied:0, dropped:0`.
+
+        Denials:
+        - 409 USEQ_GAP `{expected_useq}`.
+        - P0 going backwards quarantines the node and gives 409 NOT_ACTIVE.
+        - 503 DB, including when the previous batch is still locked.
+        - 503 RATE_LIMITED `{lane}` when ingest permits are exhausted.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - lane
+                - events
+              properties:
+                lane:
+                  type: string
+                  enum:
+                    - p0
+                    - p1
+                    - p2
+                first_useq:
+                  type: integer
+                  minimum: 1
+                events:
+                  type: array
+                  maxItems: 5000
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  ok: true
+                  useq: 1250
+                  applied: 50
+                  dropped: 0
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/recording_complete:
+    post:
+      operationId: Cluster_recordingComplete
+      tags:
+        - Cluster API
+      summary: Finalise a recording into a movie (active, CONTENT flow)
+      description: |
+        src/Domain/Cluster/ClusterApi.php:908-937. Denials: 409 FLOW_OFF `{flow:"content"}`; 400, including when the finalizer
+        returns null; 503 DB.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - recording_id
+              properties:
+                recording_id:
+                  type: integer
+                  minimum: 1
+                stream_icon:
+                  type:
+                    - string
+                    - 'null'
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  stream_id: 345
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/queue_enqueue:
+    post:
+      operationId: Cluster_queueEnqueue
+      tags:
+        - Cluster API
+      summary: Enqueue movie/channel jobs (active, CONTENT flow)
+      description: |
+        `queue()` (src/Domain/Cluster/ClusterApi.php:940-976) uses `NodeQueue`. Up to 200 ids (src/Core/Cluster/QueueSink.php:35-38).
+        Denials: 409 FLOW_OFF, 400, 503 DB.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - type
+                - stream_ids
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - movie
+                    - channel
+                stream_ids:
+                  type: array
+                  minItems: 1
+                  maxItems: 200
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  queued: 3
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/queue_claim:
+    post:
+      operationId: Cluster_queueClaim
+      tags:
+        - Cluster API
+      summary: Claim queued jobs (active, CONTENT flow)
+      description: |
+        `queue()` (src/Domain/Cluster/ClusterApi.php:940-976). `limit` is clamped to 0..200. Denials: 409 FLOW_OFF, 400, 503 DB.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - movie
+                    - channel
+                limit:
+                  type: integer
+                  minimum: 0
+                  maximum: 200
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  running:
+                    - id: 7
+                      pid: 4321
+                  pending:
+                    - id: 8
+                      stream_id: 346
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/queue_update:
+    post:
+      operationId: Cluster_queueUpdate
+      tags:
+        - Cluster API
+      summary: Report job pids / delete finished jobs (active, CONTENT flow)
+      description: |
+        `queue()` (src/Domain/Cluster/ClusterApi.php:940-976). `pids` and `delete` together hold at most 400 entries. Denials: 409 FLOW_OFF, 400, 503 DB.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              properties:
+                pids:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                  description: queue id to pid
+                delete:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  applied: 2
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/conn_snapshot:
+    post:
+      operationId: Cluster_connSnapshot
+      tags:
+        - Cluster API
+      summary: Chunked full connection snapshot (active, CONNECTIONS flow)
+      description: |
+        src/Domain/Cluster/ClusterApi.php:979-1004 uses `ConnectionSnapshot::receive` (src/Domain/Cluster/ConnectionSnapshot.php:49).
+        Semaphore- and ingest-limited. A middle chunk gets `{done:false}`; the last chunk gets the totals.
+        Denials: 409 SNAP_GAP `{expected_seq}`, 409 FLOW_OFF `{flow:"connections"}`, 400, 503 DB.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - snap_id
+                - seq
+                - last
+                - records
+              properties:
+                snap_id:
+                  type: string
+                  pattern: ^[0-9a-f]{16,32}$
+                seq:
+                  type: integer
+                  minimum: 0
+                  maximum: 49
+                last:
+                  type: boolean
+                records:
+                  type: array
+                  maxItems: 1000
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  done: true
+                  applied: 812
+                  removed: 4
+                  dropped: 0
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/conn_admit:
+    post:
+      operationId: Cluster_connAdmit
+      tags:
+        - Cluster API
+      summary: Ask MAIN to admit a viewer connection (active, CONNECTIONS flow)
+      description: |
+        src/Domain/Cluster/ClusterApi.php:1007-1029 uses `ConnectionAdmission::forNode` (src/Domain/Cluster/ConnectionAdmission.php:483).
+        Supply exactly one identity: `line_id`, or `hmac_id` + `identifier`.
+        A refusal is a 200 with `admit:false, exp:0, reason`. Denials: 400, 409 FLOW_OFF, 503 DB.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - uuid
+                - stream_id
+                - ip
+                - ua
+              properties:
+                uuid:
+                  type: string
+                stream_id:
+                  type: integer
+                  minimum: 0
+                ip:
+                  type: string
+                  maxLength: 64
+                ua:
+                  type: string
+                  maxLength: 512
+                mint:
+                  description: Optional mint hint.
+                line_id:
+                  type: integer
+                  minimum: 1
+                hmac_id:
+                  type: integer
+                  minimum: 1
+                identifier:
+                  type: string
+                  maxLength: 255
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                examples:
+                  admitted:
+                    admit: true
+                    exp: 1760703600
+                    main_time_ms: 1760700000123
+                  refused:
+                    admit: false
+                    exp: 0
+                    reason: EXPIRED
+                    main_time_ms: 1760700000123
+                reasons:
+                  - UNKNOWN_LINE
+                  - EXPIRED
+                  - BANNED
+                  - DISABLED
+                  - UNKNOWN_HMAC
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/rtmp_auth:
+    post:
+      operationId: Cluster_rtmpAuth
+      tags:
+        - Cluster API
+      summary: Authenticate an RTMP viewer/publisher against MAIN (active)
+      description: |
+        src/Domain/Cluster/ClusterApi.php:1032-1124. Supply `token`, or `username` + `password` (each at most 512 chars).
+        After more than 300 failed checks per minute per node (RTMP_FAIL_BUDGET), the reply is `{ok:false, reason:"REFUSED"}`.
+        Denials: 400, 503 DB.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - stream_id
+                - ip
+              properties:
+                stream_id:
+                  type: integer
+                  minimum: 1
+                ip:
+                  type: string
+                restream:
+                  type: boolean
+                uuid:
+                  type: string
+                token:
+                  type: string
+                  maxLength: 512
+                username:
+                  type: string
+                  maxLength: 512
+                password:
+                  type: string
+                  maxLength: 512
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                examples:
+                  ok:
+                    ok: true
+                    user:
+                      id: 5
+                      max_connections: 1
+                      pair_id: null
+                      con_isp_name: ''
+                      is_restreamer: 0
+                      exp_date: 1767225600
+                    country_code: GB
+                    main_time_ms: 1760700000123
+                  failed:
+                    ok: false
+                    reason: AUTH_FAILED
+                    main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/config:
+    post:
+      operationId: Cluster_config
+      tags:
+        - Cluster API
+      summary: Pull replicated config sections (active)
+      description: |
+        `config()` / `configPart()` (src/Domain/Cluster/ClusterApi.php:1127-1218) use `ReplicaBuilder`. Semaphore plus bulk ingest.
+
+        Sections: settings, servers, node, crontab, cluster, secrets (modes 1/2 only), bouquets, categories.
+        For each section the reply carries one of:
+        - `{unchanged:true}`
+        - `{etag, sealed}`, sealed to the node
+        - `{too_large:true, etag, parts}`, to be fetched with `{part:{section, etag, n}}`
+
+        Limits: the reply is at most 8323072 bytes, and a section at most 4194304. A `part` reply is
+        `{part:{section, etag, n, parts, data}}`, or `{part:{section, etag, gone:true}}`.
+        Denials: 400, 503 DB, refusals.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              properties:
+                blocklist_since:
+                  type: integer
+                  minimum: 0
+                have:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: section to last etag ("" or 64 hex)
+                parts:
+                  type: boolean
+                blocklist_parts:
+                  type: boolean
+                part:
+                  type: object
+                  description: '{section, etag (64 hex), n}'
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  blocklist:
+                    seq: 991
+                    more: false
+                    unchanged: true
+                  settings:
+                    etag: 3f9a...64hex
+                    sealed: base64...
+                  servers:
+                    unchanged: true
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '401':
+          $ref: '#/components/responses/Cluster_Denied'
+        '403':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/streams:
+    post:
+      operationId: Cluster_streams
+      tags:
+        - Cluster API
+      summary: Pull the stream replica delta and tickets (active, STREAMS flow)
+      description: |
+        src/Domain/Cluster/ClusterApi.php:1221-1250 uses `StreamReplica` / `TicketService`. A page holds at most 200 records and
+        4 MiB (src/Domain/Cluster/StreamReplica.php:118-121). A `resync` reply has the form `{ver, head, next, streams, removed, withheld?}`.
+        Denials:
+        - 409 FLOW_OFF `{flow:"streams"}`, with `feature:"streams"` when hello did not announce the feature.
+        - 400, 503 DB.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - since
+              properties:
+                since:
+                  type: integer
+                  minimum: 0
+                resync:
+                  type:
+                    - object
+                    - 'null'
+                  description: '{from, to, hashes:{id:64hex} (≤2000)}'
+                tickets:
+                  type: object
+                  description: '{epoch, from}'
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  ver: 5120
+                  head: 5120
+                  more: false
+                  streams:
+                    - id: 12
+                      ver: 5119
+                      etag: ab12...
+                      sealed: base64...
+                  removed:
+                    - 44
+                  tickets:
+                    epoch: 3
+                    streams: {}
+                    next: null
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'
+  /cluster/v1/artefact:
+    post:
+      operationId: Cluster_artefact
+      tags:
+        - Cluster API
+      summary: Download a granted artefact chunk (active)
+      description: |
+        src/Domain/Cluster/ClusterApi.php:1253-1265 uses `ArtefactGrants::serve` (src/Domain/Cluster/ArtefactGrants.php:248-279).
+        `grant` is the `artefact.fetch` command id. Denials: 400, 403 GRANT_INVALID, 416 BAD_RANGE `{size, max_chunk}`,
+        409 ARTEFACT_CHANGED, 503 DB.
+      parameters:
+        - $ref: '#/components/parameters/Cluster_Proto'
+        - $ref: '#/components/parameters/Cluster_Agent'
+        - $ref: '#/components/parameters/Cluster_Node'
+        - $ref: '#/components/parameters/Cluster_Epoch'
+        - $ref: '#/components/parameters/Cluster_Ts'
+        - $ref: '#/components/parameters/Cluster_Nonce'
+        - $ref: '#/components/parameters/Cluster_Sig'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            x-xcvm-plaintext:
+              type: object
+              required:
+                - grant
+                - offset
+                - length
+              properties:
+                grant:
+                  type: string
+                  pattern: ^[0-9a-f]{32}$
+                offset:
+                  type: integer
+                  minimum: 0
+                length:
+                  type: integer
+                  minimum: 1
+                  maximum: 4194304
+      responses:
+        '200':
+          description: Boxed.
+          headers:
+            X-XCVM-Ts:
+              schema:
+                type: string
+              description: Reply timestamp (ms).
+            X-XCVM-Nonce:
+              schema:
+                type: string
+              description: 32 hex.
+            X-XCVM-Sig:
+              schema:
+                type: string
+              description: Hex HMAC-SHA256 under K_mac_down.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              x-xcvm-plaintext:
+                example:
+                  grant: 9b1e0c2d3e4f5a6b7c8d9e0f1a2b3c4d
+                  offset: 0
+                  length: 4194304
+                  size: 52428800
+                  sha256: e3b0...
+                  data: base64...
+                  eof: false
+                  main_time_ms: 1760700000123
+        '400':
+          $ref: '#/components/responses/Cluster_Denied'
+        '403':
+          $ref: '#/components/responses/Cluster_Denied'
+        '409':
+          $ref: '#/components/responses/Cluster_Denied'
+        '416':
+          $ref: '#/components/responses/Cluster_Denied'
+        '503':
+          $ref: '#/components/responses/Cluster_Denied'

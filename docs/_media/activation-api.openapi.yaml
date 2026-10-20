@@ -1,0 +1,2202 @@
+openapi: 3.1.0
+info:
+  title: XC_VM Activation API
+  version: 2.7.2
+  summary: Active Codes, Activation Portal of the Xtream Codes compatible HTTP surface, as implemented by XC_VM.
+  description: |
+    A source-level reference for the **Xtream Codes (XC) API**: the de facto standard HTTP interface
+    between IPTV panels and player apps. The reference implementation is
+    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.2, an open-source continuation of Xtream UI / XC.
+    Each operation cites the XC_VM source file and line it was traced from (`src/...:line`).
+
+    ## Authentication models
+
+    The panel has several independent auth schemes. Each endpoint states which one it uses.
+
+    | Who | How |
+    |---|---|
+    | Line (subscriber) | `username` + `password` query parameters, or `token` (32-char line access token). Also in path form: `/player_api/{u}/{p}`, `/live/{u}/{p}/...` |
+    | Activation code | The code typed as `username` (or `token`) is activated on first use and becomes a line |
+    | MAG / Stalker box | MAC address cookie + bearer token from `handshake` (`/c/portal.php`, `/stalker_portal/...`) |
+    | Enigma2 box | MAC/device registration (`enigma2.php`) |
+    | Admin / reseller REST | `api_key` query parameter (named `xct_` token or legacy per-user key) on `/{access_code}/?action=...`; the access code's IP whitelist is enforced by nginx |
+    | Load-balancer nodes | Shared cluster secret (`/cluster/v1`); signed `node.rpc` (legacy `api.php` on nodes older than 2.7.0) |
+
+    ## Notation
+
+    OpenAPI cannot express query-string multiplexing, so action-based endpoints are written as separate
+    literal paths such as `/player_api.php?action=get_live_streams`. The request is still a single
+    `GET /player_api.php` with `action` as an ordinary query parameter.
+
+    The admin and reseller REST APIs share one URL shape, `/{access_code}/?action=...`. Each access code has a type
+    (3 = Admin API, 4 = Reseller API) and nginx routes it to that API, so `/{access_code}/...` and `/{reseller_access_code}/...` are the
+    same URL and differ only in which kind of code is used.
+  contact:
+    name: XC_VM project
+    url: https://github.com/Vateron-Media/XC_VM
+  license:
+    name: AGPL-3.0 (XC_VM source); this document describes its public interface
+    identifier: AGPL-3.0-only
+servers:
+  - url: '{protocol}://{host}:{port}'
+    description: Any XC compatible panel or load-balancer node
+    variables:
+      protocol:
+        default: http
+        enum:
+          - http
+          - https
+      host:
+        default: tv.example.com
+      port:
+        default: '80'
+        description: HTTP broadcast port (often 80, 8080, 8000, 25461); HTTPS often 443 or 25463.
+externalDocs:
+  description: XC_VM source
+  url: https://github.com/Vateron-Media/XC_VM
+components:
+  parameters:
+    ActiveCode_Code:
+      name: code
+      in: query
+      required: true
+      description: |
+        Activation code (aliases `activation_code`, `pin`, `c`; may also be in the form or JSON body).
+        Case-insensitive.
+      schema:
+        type: string
+        example: K7M2Q9XRTP
+    ActiveCode_ApiKey:
+      name: api_key
+      in: query
+      required: false
+      description: |
+        Admin or reseller API key. May instead be sent in the form/JSON body, as `Authorization: Bearer <key>`,
+        or as `X-Api-Key: <key>` (checked in that order). Required for every management action.
+      schema:
+        type: string
+    ActiveCode_Id:
+      name: id
+      in: query
+      required: true
+      description: Activation code row id.
+      schema:
+        type: integer
+    ActiveCode_Start:
+      name: start
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    ActiveCode_Limit:
+      name: limit
+      in: query
+      required: false
+      description: Clamped to 1-500.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 50
+    ActiveCode_ShowColumns:
+      name: show_columns
+      in: query
+      required: false
+      description: CSV of row keys to keep.
+      schema:
+        type: string
+    ActiveCode_HideColumns:
+      name: hide_columns
+      in: query
+      required: false
+      description: CSV of row keys to drop (ignored when show_columns is set).
+      schema:
+        type: string
+  responses:
+    E2_FloodBlocked403:
+      description: |
+        The client IP is blocked (a `block_<ip>` file exists in FLOOD_TMP_PATH): FloodProtectionStage
+        answers 403 with an empty body before any controller runs
+        (src/Infrastructure/Bootstrap/WebApiBootstrap.php:50-66). IPs are blocked by
+        `BruteforceGuard::checkFlood` (`flood_limit` requests in `flood_seconds`) or `checkBruteforce`
+        (too many distinct failed usernames/passwords, MACs or codes within `bruteforce_frequency`)
+        (src/Core/Auth/BruteforceGuard.php:149, :277). Allowed IPs and `flood_ips_exclude` are never blocked.
+    ActiveCode_InvalidKey401:
+      description: API key matched neither an admin nor a reseller (src/Public/Controllers/Api/ActiveCodeApiController.php:97-103).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActiveCode_ApiFailure'
+          example:
+            status: STATUS_FAILURE
+            error: Invalid or expired API key.
+    ActiveCode_ResellerMaintenance503:
+      description: Reseller key during maintenance mode (src/Public/Controllers/Api/ActiveCodeApiController.php:348-353). Admin keys are not affected.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActiveCode_ApiFailure'
+          example:
+            status: STATUS_FAILURE
+            error: The service is under maintenance. Please try again later.
+  examples:
+    ActiveCode_ClientSuccess:
+      summary: First activation of a stock code
+      value:
+        status: SUCCESS
+        user_info:
+          username: ac_x7k2m9q4z
+          password: 8f3a1c9e2b
+          message: Welcome to StreamHub
+          auth: 1
+          status: Active
+          exp_date: '1793557325'
+          exp_formatted: '2026-10-31 18:22:05'
+          is_trial: '0'
+          active_cons: '0'
+          created_at: '1790965000'
+          max_connections: '1'
+          allowed_output_formats:
+            - m3u8
+            - ts
+            - rtmp
+        server_info:
+          version: 1.2.6
+          url: tv.example.com
+          port: '8080'
+          https_port: '443'
+          server_protocol: http
+          rtmp_port: '25462'
+          timestamp_now: 1790965325
+          time_now: '2026-10-01 18:22:05'
+          timezone: Europe/London
+          process: true
+        active_code:
+          code: K7M2Q9XRTP
+          batch_name: OCT-PROMO
+          package_name: 1 Month Premium
+          status: Active
+          is_new_activation: true
+        playlists:
+          m3u_ts: http://tv.example.com:8080/get.php?username=ac_x7k2m9q4z&password=8f3a1c9e2b&type=m3u_plus&output=ts
+          m3u_hls: http://tv.example.com:8080/get.php?username=ac_x7k2m9q4z&password=8f3a1c9e2b&type=m3u_plus&output=m3u8
+        player_api_url: http://tv.example.com:8080/player_api.php?username=ac_x7k2m9q4z&password=8f3a1c9e2b
+        web_player_url: null
+    ActiveCode_List:
+      summary: Admin list
+      value:
+        status: STATUS_SUCCESS
+        total: 50
+        count: 1
+        start: 0
+        limit: 1
+        data:
+          - id: 87
+            activation_code: K7M2Q9XRTP
+            batch_name: OCT-PROMO
+            status: 2
+            status_key: active
+            status_label: Active
+            package_id: 3
+            package_name: 1 Month Premium
+            subscriber_id: 1532
+            line_username: ac_x7k2m9q4z
+            line_password: 8f3a1c9e2b
+            exp_date: 1793557325
+            exp_date_formatted: '2026-10-31 18:22:05'
+            remaining_days: 30
+            mac: 00:1A:79:4B:C2:9E
+            device_id: null
+            max_connections: 1
+            is_trial: 0
+            is_adult: 0
+            purchase_cost: 2.5
+            created_by: 1
+            creator_username: admin
+            created_at: 1790965000
+            created_at_formatted: '2026-10-01 18:16:40'
+            activated_at: 1790965325
+            activated_at_formatted: '2026-10-01 18:22:05'
+    ActiveCode_Details:
+      summary: get_active_code success
+      value:
+        status: STATUS_SUCCESS
+        data:
+          id: 87
+          activation_code: K7M2Q9XRTP
+          batch_name: OCT-PROMO
+          status: 2
+          status_key: active
+          status_label: Active
+          package:
+            id: 3
+            name: 1 Month Premium
+            is_trial: false
+            official_duration: 1
+            official_duration_in: months
+          subscriber_line:
+            id: 1532
+            username: ac_x7k2m9q4z
+            password: 8f3a1c9e2b
+            exp_date: 1793557325
+            exp_date_formatted: '2026-10-31 18:22:05'
+            enabled: true
+            admin_enabled: true
+            last_ip: 203.0.113.24
+            last_activity: '2026-10-01 19:20:00'
+          device_binding:
+            mac: 00:1A:79:4B:C2:9E
+            device_id: null
+            is_locked: true
+          connection_limits:
+            max_connections: 1
+            active_connections: 0
+          playlists:
+            m3u_hls: https://tv.example.com/get.php?username=ac_x7k2m9q4z&password=8f3a1c9e2b&type=m3u_plus&output=hls
+            m3u_ts: https://tv.example.com/get.php?username=ac_x7k2m9q4z&password=8f3a1c9e2b&type=m3u_plus&output=ts
+          credentials:
+            server_url: https://tv.example.com
+            username: ac_x7k2m9q4z
+            password: 8f3a1c9e2b
+          created_by:
+            id: 1
+            username: admin
+          created_at: 1790965000
+          created_at_formatted: '2026-10-01 18:16:40'
+          activated_at: 1790965325
+          activated_at_formatted: '2026-10-01 18:22:05'
+    Portal_Success:
+      summary: Portal AJAX activation success (json_encode escapes "/" as "\/" on the wire)
+      value:
+        status: SUCCESS
+        code: K7M2Q9XRTP
+        is_new_activation: true
+        package_name: 1 Month Premium
+        exp_date: 1793557325
+        exp_date_formatted: '2026-10-31 18:22:05'
+        max_connections: 1
+        web_player_url: https://tv.example.com/WEBPLAYER/
+        credentials:
+          server: tv.example.com
+          port: 443
+          host: https://tv.example.com
+          username: ac_x7k2m9q4z
+          password: 8f3a1c9e2b
+        playlists:
+          m3u_hls: https://tv.example.com/get.php?username=ac_x7k2m9q4z&password=8f3a1c9e2b&type=m3u_plus&output=hls
+          m3u_ts: https://tv.example.com/get.php?username=ac_x7k2m9q4z&password=8f3a1c9e2b&type=m3u_plus&output=ts
+        device:
+          mac: 00:1A:79:4B:C2:9E
+          device_id: ''
+  schemas:
+    ActiveCode_ClientRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          description: '`check` or anything else (activate).'
+        code:
+          type: string
+        activation_code:
+          type: string
+        pin:
+          type: string
+        c:
+          type: string
+        mac:
+          type: string
+        mac_address:
+          type: string
+        device_id:
+          type: string
+        device:
+          type: string
+        api_key:
+          type: string
+          description: Switches to management mode.
+    ActiveCode_ClientError:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ERROR
+        error_code:
+          type: string
+          enum:
+            - INVALID_CODE
+            - DISABLED
+            - LINE_NOT_FOUND
+            - EXPIRED
+            - DEVICE_MISMATCH
+          description: Absent on the 400 missing-code response.
+        user_info:
+          type: object
+          properties:
+            auth:
+              type: integer
+              enum:
+                - 0
+        message:
+          type: string
+    ActiveCode_ClientSuccess:
+      type: object
+      description: Player-API-like login payload (src/Public/Controllers/Api/ActiveCodeApiController.php:176-241).
+      properties:
+        status:
+          type: string
+          enum:
+            - SUCCESS
+        user_info:
+          type: object
+          properties:
+            username:
+              type: string
+            password:
+              type: string
+            message:
+              type: string
+            auth:
+              type: integer
+              enum:
+                - 1
+            status:
+              type: string
+              enum:
+                - Active
+            exp_date:
+              type:
+                - string
+                - 'null'
+              description: Unix time as a numeric string.
+            exp_formatted:
+              type: string
+            is_trial:
+              type: string
+              enum:
+                - '0'
+                - '1'
+            active_cons:
+              type: string
+              enum:
+                - '0'
+            created_at:
+              type: string
+              description: Unix time as a numeric string.
+            max_connections:
+              type: string
+              description: Numeric string.
+            allowed_output_formats:
+              type: array
+              items:
+                type: string
+        server_info:
+          type: object
+          properties:
+            version:
+              type: string
+            url:
+              type: string
+            port:
+              type: string
+            https_port:
+              type: string
+            server_protocol:
+              type: string
+            rtmp_port:
+              type: string
+            timestamp_now:
+              type: integer
+            time_now:
+              type: string
+            timezone:
+              type: string
+            process:
+              type: boolean
+        active_code:
+          type: object
+          properties:
+            code:
+              type: string
+            batch_name:
+              type:
+                - string
+                - 'null'
+            package_name:
+              type: string
+            status:
+              type: string
+              enum:
+                - Active
+            is_new_activation:
+              type: boolean
+        playlists:
+          type: object
+          properties:
+            m3u_ts:
+              type: string
+            m3u_hls:
+              type: string
+        player_api_url:
+          type: string
+        web_player_url:
+          type:
+            - string
+            - 'null'
+    ActiveCode_CheckResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - SUCCESS
+            - INVALID_CODE
+            - DISABLED
+            - EXPIRED
+        valid:
+          type: boolean
+        code:
+          type: string
+        code_status:
+          type: integer
+          enum:
+            - 0
+            - 1
+            - 2
+            - 3
+        status_label:
+          type: string
+          enum:
+            - Ready (Stock)
+            - Active
+        package_name:
+          type: string
+        is_trial:
+          type: boolean
+        max_connections:
+          type: integer
+        is_activated:
+          type: boolean
+        activated_at:
+          type:
+            - string
+            - 'null'
+        exp_date:
+          type:
+            - integer
+            - 'null'
+        exp_date_formatted:
+          type:
+            - string
+            - 'null'
+        is_device_locked:
+          type: boolean
+        message:
+          type: string
+    ActiveCode_ApiFailure:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - STATUS_FAILURE
+            - STATUS_NO_PERMISSIONS
+        error:
+          type: string
+    ActiveCode_ApiMessage:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - STATUS_SUCCESS
+            - STATUS_FAILURE
+            - STATUS_NO_PERMISSIONS
+        message:
+          type: string
+        error:
+          type: string
+        remaining_credits:
+          type: number
+          description: Reseller delete/mass only.
+    ActiveCode_ListRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        activation_code:
+          type: string
+        batch_name:
+          type: string
+        status:
+          type: integer
+          enum:
+            - 0
+            - 1
+            - 2
+        status_key:
+          type: string
+          enum:
+            - disabled
+            - stock
+            - active
+            - expired
+        status_label:
+          type: string
+        package_id:
+          type: integer
+        package_name:
+          type: string
+        subscriber_id:
+          type: integer
+        line_username:
+          type: string
+        line_password:
+          type: string
+        exp_date:
+          type:
+            - integer
+            - 'null'
+        exp_date_formatted:
+          type:
+            - string
+            - 'null'
+        remaining_days:
+          type: integer
+        mac:
+          type:
+            - string
+            - 'null'
+        device_id:
+          type:
+            - string
+            - 'null'
+        max_connections:
+          type: integer
+        is_trial:
+          type: integer
+          enum:
+            - 0
+            - 1
+        is_adult:
+          type: integer
+          enum:
+            - 0
+            - 1
+        purchase_cost:
+          type: number
+        created_by:
+          type: integer
+        creator_username:
+          type: string
+        created_at:
+          type: integer
+        created_at_formatted:
+          type: string
+        activated_at:
+          type:
+            - integer
+            - 'null'
+        activated_at_formatted:
+          type:
+            - string
+            - 'null'
+    ActiveCode_Details:
+      type: object
+      description: ActiveCodeService::getCodeDetails (src/Domain/Line/ActiveCodeService.php:1379).
+      properties:
+        id:
+          type: integer
+        activation_code:
+          type: string
+        batch_name:
+          type: string
+        status:
+          type: integer
+        status_key:
+          type: string
+        status_label:
+          type: string
+        package:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            is_trial:
+              type: boolean
+            official_duration:
+              type:
+                - integer
+                - string
+            official_duration_in:
+              type: string
+        subscriber_line:
+          type: object
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+            password:
+              type: string
+            exp_date:
+              type:
+                - integer
+                - 'null'
+            exp_date_formatted:
+              type:
+                - string
+                - 'null'
+            enabled:
+              type: boolean
+            admin_enabled:
+              type: boolean
+            last_ip:
+              type:
+                - string
+                - 'null'
+            last_activity:
+              type:
+                - string
+                - 'null'
+              description: Y-m-d H:i:s.
+        device_binding:
+          type: object
+          properties:
+            mac:
+              type:
+                - string
+                - 'null'
+            device_id:
+              type:
+                - string
+                - 'null'
+            is_locked:
+              type: boolean
+        connection_limits:
+          type: object
+          properties:
+            max_connections:
+              type: integer
+            active_connections:
+              type: integer
+        playlists:
+          type: object
+          properties:
+            m3u_hls:
+              type: string
+            m3u_ts:
+              type: string
+        credentials:
+          type: object
+          properties:
+            server_url:
+              type: string
+            username:
+              type: string
+            password:
+              type: string
+        created_by:
+          type: object
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+        created_at:
+          type: integer
+        created_at_formatted:
+          type: string
+        activated_at:
+          type:
+            - integer
+            - 'null'
+        activated_at_formatted:
+          type:
+            - string
+            - 'null'
+    ActiveCode_GenerateRequest:
+      type: object
+      required:
+        - package_id
+      properties:
+        num_codes:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 1
+        code_length:
+          type: integer
+          minimum: 6
+          maximum: 24
+          default: 10
+        code_format:
+          type: string
+          enum:
+            - alphanumeric
+            - numeric
+          default: alphanumeric
+        package_id:
+          type: integer
+        is_trial:
+          type: integer
+          enum:
+            - 0
+            - 1
+        batch_name:
+          type: string
+        bouquets_selected:
+          type: array
+          items:
+            type: integer
+        dns_base:
+          type: string
+          description: Host/URL used in the client's playlist and portal links.
+        is_adult:
+          type: integer
+          enum:
+            - 0
+            - 1
+        category_template_id:
+          type: integer
+        created_by:
+          type: integer
+          description: Admin only (resellers may pick themselves or a sub-reseller).
+        forced_country:
+          type: string
+          description: Admin only.
+        max_connections:
+          type: integer
+          description: Admin only.
+        custom_data:
+          type: string
+          description: Admin only.
+        streaming_username:
+          type: string
+          description: Only when num_codes is 1 (alias `username`).
+        streaming_password:
+          type: string
+          description: Only when num_codes is 1 (alias `password`).
+    ActiveCode_GeneratedCode:
+      type: object
+      properties:
+        code:
+          type: string
+        line_id:
+          type: integer
+        username:
+          type: string
+        password:
+          type: string
+        batch_name:
+          type: string
+    ActiveCode_EditRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        activation_code:
+          type: string
+        status:
+          type: integer
+          enum:
+            - 0
+            - 1
+            - 2
+        mac:
+          type: string
+          description: '`None` or empty clears.'
+        device_id:
+          type: string
+          description: '`None` or empty clears.'
+        password:
+          type: string
+        batch_name:
+          type: string
+        package_id:
+          type: integer
+          description: Admin; resellers limited to group packages.
+        max_connections:
+          type: integer
+          description: Admin only.
+        exp_date:
+          type:
+            - integer
+            - string
+          description: Admin only; unix time or date string.
+    ActiveCode_MassRequest:
+      type: object
+      required:
+        - sub_action
+        - ids
+      properties:
+        sub_action:
+          type: string
+          enum:
+            - enable
+            - disable
+            - extend
+            - reset_device
+            - change_package
+            - delete
+            - mass_enable
+            - mass_disable
+            - mass_extend
+            - mass_reset_device
+            - mass_change_package
+            - mass_delete
+        action_type:
+          type: string
+          description: Alias of sub_action.
+        ids:
+          oneOf:
+            - type: array
+              items:
+                type: integer
+            - type: string
+              description: CSV of ids.
+        days:
+          type: integer
+          default: 30
+        package_id:
+          type: integer
+        refund_credits:
+          type:
+            - boolean
+            - integer
+    ActiveCode_BatchRow:
+      type: object
+      description: Aggregates come from SQL; numeric columns are typically numeric strings.
+      properties:
+        batch_name:
+          type: string
+        created_by:
+          type:
+            - string
+            - integer
+        package_id:
+          type:
+            - string
+            - integer
+        is_trial:
+          type:
+            - string
+            - integer
+        created_at:
+          type:
+            - string
+            - integer
+        total_codes:
+          type:
+            - string
+            - integer
+        stock_count:
+          type:
+            - string
+            - integer
+        active_count:
+          type:
+            - string
+            - integer
+        disabled_count:
+          type:
+            - string
+            - integer
+        package_name:
+          type: string
+        creator_name:
+          type: string
+        ready_codes:
+          type:
+            - string
+            - integer
+        active_codes:
+          type:
+            - string
+            - integer
+    ActiveCode_Voucher:
+      type: object
+      properties:
+        voucher_no:
+          type: integer
+        activation_code:
+          type: string
+        batch_name:
+          type: string
+        package_name:
+          type: string
+        status:
+          type: string
+          enum:
+            - READY
+            - ACTIVE
+            - DISABLED
+        max_connections:
+          type: integer
+        portal_url:
+          type: string
+        credentials:
+          type: object
+          properties:
+            username:
+              type: string
+            password:
+              type: string
+        created_at:
+          type: integer
+        created_at_formatted:
+          type: string
+    Portal_ActivationSuccess:
+      type: object
+      description: ActiveCodeService::activateCode result minus `line` and `code_details`.
+      properties:
+        status:
+          type: string
+          enum:
+            - SUCCESS
+        code:
+          type: string
+        is_new_activation:
+          type: boolean
+        package_name:
+          type: string
+        exp_date:
+          type: integer
+        exp_date_formatted:
+          type: string
+        max_connections:
+          type: integer
+        web_player_url:
+          type:
+            - string
+            - 'null'
+        credentials:
+          type: object
+          properties:
+            server:
+              type: string
+            port:
+              type: integer
+            host:
+              type: string
+            username:
+              type: string
+            password:
+              type: string
+        playlists:
+          type: object
+          properties:
+            m3u_hls:
+              type: string
+            m3u_ts:
+              type: string
+        device:
+          type: object
+          properties:
+            mac:
+              type: string
+            device_id:
+              type: string
+    Portal_ActivationError:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ERROR
+            - INVALID_CODE
+            - DISABLED
+            - LINE_NOT_FOUND
+            - EXPIRED
+            - DEVICE_MISMATCH
+        message:
+          type: string
+        exp_date:
+          type:
+            - string
+            - integer
+          description: EXPIRED only.
+        code:
+          type: string
+          description: EXPIRED only.
+tags:
+  - name: Active Codes
+    description: |
+      Activation-code ("voucher"/PIN) API. Without an API key it is the subscriber/device activation endpoint;
+      with an admin or reseller API key it is a management API for codes and batches.
+      Served by src/Public/Controllers/Api/ActiveCodeApiController.php (domain logic in
+      src/Domain/Line/ActiveCodeService.php). Reachable as /active_code, /active_code.php, /api/active_code and
+      /api/v1/active-code/auth (src/bin/nginx/conf/nginx.conf:141-145, 374-409).
+      NOTE: docs/ACTIVE_CODES_AND_CATEGORY_TEMPLATES_GUIDE.md:144-180 describes `POST /api?action=active_code`
+      returning `{result, status:"active", username, password, exp_date, server_url, portal_url}` and a portal at
+      `/activate`; neither matches the code. The shapes documented here are the ones the code emits.
+  - name: Activation Portal
+    description: |
+      Public subscriber self-activation web page at /portal (src/Public/Controllers/Player/PortalController.php,
+      view src/Public/Views/portal/index.php). Answers HTML, or JSON to AJAX requests.
+      Not to be confused with /portal.php, the Ministra/Stalker legacy redirect (nginx.conf:520-526).
+paths:
+  /active_code.php:
+    post:
+      operationId: ActiveCode_activate
+      tags:
+        - Active Codes
+      summary: Activate / authenticate a device with an activation code
+      description: |
+        Client mode ("Mode B") of src/Public/Controllers/Api/ActiveCodeApiController.php:109-241, used when no
+        API key is supplied (api_key param, `Authorization: Bearer`, or `X-Api-Key`; see management ops).
+        Aliases: `/active_code`, `/api/active_code`, `/api/v1/active-code/auth` (nginx.conf:141-145, 374-409).
+        GET works the same as POST. `action` defaults to `auth`; any value other than `check` activates.
+
+        **Input** (:48-54): `array_merge($_GET, $_POST, <JSON body>)`, so JSON body overrides form overrides
+        query. Code from `code` | `activation_code` | `pin` | `c`; MAC from `mac` | `mac_address`; device id from
+        `device_id` | `device`. Codes are uppercased/trimmed by the service.
+
+        **Headers on every response** (:32-35): `Content-Type: application/json; charset=utf-8`,
+        `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS`,
+        `Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Api-Key`.
+        Bodies are pretty-printed with unescaped slashes.
+
+        **Activation** (`ActiveCodeService::activateCode`, src/Domain/Line/ActiveCodeService.php:381-624):
+        the first use atomically claims a stock code (status 1 → 2, `activated_at`), sets the line's expiry to
+        now + package duration (trial or official) and enables the line (`is_new_activation: true`). Later uses
+        re-authenticate: EXPIRED once the line's expiry passed; DEVICE_MISMATCH when the code is bound to a
+        different MAC (case-insensitive) or real device_id (synthetic `DEV-` fingerprints never lock).
+        The first MAC/device_id seen is bound to the code.
+
+        **Failures** return HTTP **200** with `status: "ERROR"` and `error_code` one of INVALID_CODE,
+        DISABLED, LINE_NOT_FOUND, EXPIRED, DEVICE_MISMATCH; each failure counts the code as a distinct failed
+        attempt for the IP (`checkBruteforce(null, null, code)`, against `bruteforce_username_attempts`
+        within `bruteforce_frequency`) and toward the flood limit, after which the IP is blocked (403).
+        Missing code → HTTP 400.
+
+        **Success quirks:** `exp_date`, `is_trial`, `created_at`, `max_connections`, `port`, `https_port`,
+        `rtmp_port` are strings; `timestamp_now` is an int; `is_new_activation` boolean. `playlists.m3u_hls`
+        uses `output=m3u8` here (the portal/service use `output=hls`). The server URL is
+        `<server_protocol>://<domain>[:<http_broadcast_port> unless 80/443]`, replaced by the code's `dns_base`
+        verbatim when set (no scheme added here, unlike the service). `user_info.message` is the
+        `message_of_day` setting.
+      parameters:
+        - name: action
+          in: query
+          required: false
+          description: Anything except `check` (default `auth`) activates.
+          schema:
+            type: string
+            default: auth
+        - $ref: '#/components/parameters/ActiveCode_Code'
+        - name: activation_code
+          in: query
+          required: false
+          description: Alias of `code`.
+          schema:
+            type: string
+        - name: pin
+          in: query
+          required: false
+          description: Alias of `code`.
+          schema:
+            type: string
+        - name: c
+          in: query
+          required: false
+          description: Alias of `code`.
+          schema:
+            type: string
+        - name: mac
+          in: query
+          required: false
+          description: Device MAC to bind/verify (alias `mac_address`).
+          schema:
+            type: string
+            example: 00:1A:79:4B:C2:9E
+        - name: device_id
+          in: query
+          required: false
+          description: Device id/UUID to bind/verify (alias `device`).
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActiveCode_ClientRequest'
+            example:
+              code: K7M2Q9XRTP
+              mac: 00:1A:79:4B:C2:9E
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ActiveCode_ClientRequest'
+      responses:
+        '200':
+          description: Activation succeeded, or failed with an `ERROR` body (still HTTP 200).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ActiveCode_ClientSuccess'
+                  - $ref: '#/components/schemas/ActiveCode_ClientError'
+              examples:
+                success:
+                  $ref: '#/components/examples/ActiveCode_ClientSuccess'
+                invalid_code:
+                  value:
+                    status: ERROR
+                    error_code: INVALID_CODE
+                    user_info:
+                      auth: 0
+                    message: Invalid or unknown activation code.
+                disabled:
+                  value:
+                    status: ERROR
+                    error_code: DISABLED
+                    user_info:
+                      auth: 0
+                    message: This activation code has been suspended or revoked.
+                line_not_found:
+                  value:
+                    status: ERROR
+                    error_code: LINE_NOT_FOUND
+                    user_info:
+                      auth: 0
+                    message: Underlying subscription line not found.
+                expired:
+                  value:
+                    status: ERROR
+                    error_code: EXPIRED
+                    user_info:
+                      auth: 0
+                    message: Subscription has expired.
+                device_mismatch:
+                  value:
+                    status: ERROR
+                    error_code: DEVICE_MISMATCH
+                    user_info:
+                      auth: 0
+                    message: Code is locked to another hardware device.
+        '400':
+          description: No code and no API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveCode_ClientError'
+              example:
+                status: ERROR
+                user_info:
+                  auth: 0
+                message: Missing activation code or API key. Please provide "code" or "api_key".
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          description: |
+            Host verification failure (`INVALID_HOST`) at boot renders the nginx-style 404 page
+            (see `E2_Error404`).
+    options:
+      operationId: ActiveCode_preflight
+      tags:
+        - Active Codes
+      summary: CORS preflight
+      description: |
+        src/Public/Controllers/Api/ActiveCodeApiController.php:37-40. Any OPTIONS request returns 200 with an
+        empty body and the CORS headers (`Access-Control-Allow-Origin: *`, methods
+        `GET, POST, PUT, DELETE, OPTIONS`, headers `Content-Type, Authorization, X-Requested-With, X-Api-Key`).
+        Aliases as for `ActiveCode_activate`.
+      responses:
+        '200':
+          description: Empty body with CORS headers.
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+                example: '*'
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+                example: GET, POST, PUT, DELETE, OPTIONS
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+                example: Content-Type, Authorization, X-Requested-With, X-Api-Key
+  /active_code.php?action=check:
+    get:
+      operationId: ActiveCode_check
+      tags:
+        - Active Codes
+      summary: Check an activation code without activating it
+      description: |
+        src/Public/Controllers/Api/ActiveCodeApiController.php:141-147 → `ActiveCodeService::checkCode`
+        (src/Domain/Line/ActiveCodeService.php:1501-1560). Read-only. Always HTTP 200; inspect `valid`.
+        Code aliases (`code`/`activation_code`/`pin`/`c`), input merging, CORS headers and the 400 for a missing
+        code are as for `ActiveCode_activate`. Quirk: failed checks are NOT counted by the brute-force guard,
+        but every check counts toward the per-IP flood limit (`deny` stays true).
+        `code_status`: 0 disabled, 1 ready/stock, 2 active, 3 expired. `is_trial` boolean,
+        `max_connections` int, `exp_date` int or null, `activated_at` a `Y-m-d H:i:s` string or null.
+        Aliases `/active_code`, `/api/active_code`, `/api/v1/active-code/auth`; POST/JSON also accepted.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - check
+        - $ref: '#/components/parameters/ActiveCode_Code'
+      responses:
+        '200':
+          description: Check result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveCode_CheckResult'
+              examples:
+                ready:
+                  value:
+                    status: SUCCESS
+                    valid: true
+                    code: K7M2Q9XRTP
+                    code_status: 1
+                    status_label: Ready (Stock)
+                    package_name: 1 Month Premium
+                    is_trial: false
+                    max_connections: 1
+                    is_activated: false
+                    activated_at: null
+                    exp_date: null
+                    exp_date_formatted: null
+                    is_device_locked: false
+                active:
+                  value:
+                    status: SUCCESS
+                    valid: true
+                    code: K7M2Q9XRTP
+                    code_status: 2
+                    status_label: Active
+                    package_name: 1 Month Premium
+                    is_trial: false
+                    max_connections: 1
+                    is_activated: true
+                    activated_at: '2026-10-01 18:22:05'
+                    exp_date: 1793557325
+                    exp_date_formatted: '2026-10-31 18:22:05'
+                    is_device_locked: true
+                invalid:
+                  value:
+                    status: INVALID_CODE
+                    valid: false
+                    message: Invalid or unknown activation code.
+                disabled:
+                  value:
+                    status: DISABLED
+                    valid: false
+                    code_status: 0
+                    message: This activation code is suspended or revoked.
+                expired:
+                  value:
+                    status: EXPIRED
+                    valid: false
+                    code_status: 3
+                    exp_date: 1790965325
+                    exp_date_formatted: '2026-10-01 18:22:05'
+                    message: This activation code has expired.
+        '400':
+          description: No code supplied (same body as ActiveCode_activate 400).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveCode_ClientError'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+  /active_code.php?action=get_active_codes:
+    get:
+      operationId: ActiveCode_listCodes
+      tags:
+        - Active Codes
+      summary: List activation codes (admin/reseller API key)
+      description: |
+        Management mode ("Mode A", src/Public/Controllers/Api/ActiveCodeApiController.php:77-104).
+        **Auth:** an API key via `api_key` (query/form/JSON), else `Authorization: Bearer <key>`, else
+        `X-Api-Key` (:57-65). The key is tried as an admin key (`AdminAPIWrapper::createSession`), then as a
+        reseller key (`ResellerAPIWrapper::createSession`); keys are `api_tokens` tokens (may be IP-restricted
+        and scoped) or legacy `users.api_key` while `api_legacy_keys` is on
+        (src/Core/Auth/ApiTokens.php:75). Unknown key → 401 and the request counts toward the flood limit.
+        Admin permission: `AdminApiController::permitted('get_active_codes')`, else `STATUS_NO_PERMISSIONS`.
+        Reseller: token scope via `ApiTokens::allows()`; panel maintenance → 503 (resellers only).
+        Reseller results are limited to codes created by the reseller and its sub-resellers.
+
+        Short aliases for `action`: `list`, `get_codes` (:246-251). Handler: admin :262-266 →
+        src/Public/Controllers/Api/AdminAPIWrapper.php:1954; reseller :359-363; service
+        `ActiveCodeService::listCodes` (src/Domain/Line/ActiveCodeService.php:1193).
+        `show_columns`/`hide_columns` (CSV) filter row keys. Rows are typed ints/floats as shown; `mac`,
+        `device_id`, `exp_date`, `activated_at` may be null; `batch_name` is `None` when empty.
+        Aliases for the path: `/active_code`, `/api/active_code`, `/api/v1/active-code/auth`. GET or POST.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_active_codes
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+        - $ref: '#/components/parameters/ActiveCode_Start'
+        - $ref: '#/components/parameters/ActiveCode_Limit'
+        - $ref: '#/components/parameters/ActiveCode_ShowColumns'
+        - $ref: '#/components/parameters/ActiveCode_HideColumns'
+        - name: batch_name
+          in: query
+          required: false
+          description: Filter by batch (alias `batch`).
+          schema:
+            type: string
+        - name: package_id
+          in: query
+          required: false
+          description: Filter by package (alias `package`).
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          description: Filter by status (0/disabled/suspended, 1/stock/ready, 2/active, 3/expired).
+          schema:
+            type: string
+            enum:
+              - '0'
+              - '1'
+              - '2'
+              - '3'
+              - disabled
+              - suspended
+              - stock
+              - ready
+              - active
+              - expired
+        - name: search
+          in: query
+          required: false
+          description: Free-text search over code / batch / line username.
+          schema:
+            type: string
+        - name: created_by
+          in: query
+          required: false
+          description: Admin only. Filter by creator user id (alias `reseller_id`).
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Code list, or a STATUS_NO_PERMISSIONS / STATUS_FAILURE body.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - STATUS_SUCCESS
+                      total:
+                        type: integer
+                      count:
+                        type: integer
+                      start:
+                        type: integer
+                      limit:
+                        type: integer
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ActiveCode_ListRow'
+                  - $ref: '#/components/schemas/ActiveCode_ApiFailure'
+              examples:
+                list:
+                  $ref: '#/components/examples/ActiveCode_List'
+                no_permissions:
+                  value:
+                    status: STATUS_NO_PERMISSIONS
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=get_active_code:
+    get:
+      operationId: ActiveCode_getCode
+      tags:
+        - Active Codes
+      summary: Get one activation code's details
+      description: |
+        Management mode; auth, permission and errors as for `ActiveCode_listCodes`. Short aliases `get`,
+        `details`. The code is referenced by `id` (numeric → integer id) or `code` / non-numeric `id` (code
+        text) (`ActiveCodeService::reference`, src/Domain/Line/ActiveCodeService.php:1363). Details from
+        `getCodeDetails` (:1379). Admin: src/Public/Controllers/Api/ActiveCodeApiController.php:268-273,
+        AdminAPIWrapper.php:1970 (`Active code not found.`); reseller: :365-370, ResellerAPIWrapper
+        (`Active code not found or access denied.`).
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_active_code
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+        - $ref: '#/components/parameters/ActiveCode_Id'
+        - name: code
+          in: query
+          required: false
+          description: Activation code text (used when `id` is absent).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Details, or failure.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - STATUS_SUCCESS
+                      data:
+                        $ref: '#/components/schemas/ActiveCode_Details'
+                  - $ref: '#/components/schemas/ActiveCode_ApiFailure'
+              examples:
+                found:
+                  $ref: '#/components/examples/ActiveCode_Details'
+                not_found:
+                  value:
+                    status: STATUS_FAILURE
+                    error: Active code not found.
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=generate_active_codes:
+    post:
+      operationId: ActiveCode_generateCodes
+      tags:
+        - Active Codes
+      summary: Generate a batch of activation codes
+      description: |
+        Management mode; auth and errors as for `ActiveCode_listCodes`. Action aliases:
+        `create_active_code`, `generate`, `create` (src/Public/Controllers/Api/ActiveCodeApiController.php:275-280,
+        reseller :372-377). Service `ActiveCodeService::generateCodes` (src/Domain/Line/ActiveCodeService.php:69-373).
+        Creates `num_codes` (1-500) codes plus one disabled subscription line each (`enabled=0`, no expiry,
+        username `ac_` + 9 random chars, 10-hex-char password); the line is enabled with its expiry on first
+        activation. Default batch name `BATCH-YYYYMMDD-XXXXX` (:57). Code charset: digits, or
+        `23456789ABCDEFGHJKLMNPQRSTUVWXYZ` for alphanumeric (:36).
+        **Reseller:** the package must be offered to the reseller's group
+        (`The selected package is not allowed for your account group.`), credits are deducted
+        (`INSUFFICIENT_CREDITS`: `Insufficient balance. Required: X credits, Available: Y credits.`),
+        `created_by` is forced to the reseller (or one of its sub-resellers), and the success body adds
+        `total_cost` and `remaining_credits` (floats). Admin-only fields are ignored for resellers.
+        Records an admin/reseller audit entry.
+        Other errors: `Invalid package selected.`, `You cannot generate this many trial codes at this time.`,
+        username validation messages, `Failed to generate codes: ...`.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - generate_active_codes
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActiveCode_GenerateRequest'
+            example:
+              num_codes: 2
+              package_id: 3
+              code_length: 10
+              code_format: alphanumeric
+              batch_name: OCT-PROMO
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ActiveCode_GenerateRequest'
+      responses:
+        '200':
+          description: Generated codes, or failure.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - STATUS_SUCCESS
+                      message:
+                        type: string
+                      batch_name:
+                        type: string
+                      qty:
+                        type: integer
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ActiveCode_GeneratedCode'
+                      total_cost:
+                        type: number
+                        description: Reseller only.
+                      remaining_credits:
+                        type: number
+                        description: Reseller only.
+                  - $ref: '#/components/schemas/ActiveCode_ApiFailure'
+              examples:
+                admin_success:
+                  value:
+                    status: STATUS_SUCCESS
+                    message: Successfully generated 2 active codes.
+                    batch_name: OCT-PROMO
+                    qty: 2
+                    data:
+                      - code: K7M2Q9XRTP
+                        line_id: 1532
+                        username: ac_x7k2m9q4z
+                        password: 8f3a1c9e2b
+                        batch_name: OCT-PROMO
+                      - code: 4HN8WZ2CDY
+                        line_id: 1533
+                        username: ac_p2r8t6w1n
+                        password: c41e9b07d3
+                        batch_name: OCT-PROMO
+                insufficient_credits:
+                  value:
+                    status: STATUS_FAILURE
+                    error: 'Insufficient balance. Required: 20 credits, Available: 5 credits.'
+                bad_package:
+                  value:
+                    status: STATUS_FAILURE
+                    error: Invalid package selected.
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=edit_active_code:
+    post:
+      operationId: ActiveCode_editCode
+      tags:
+        - Active Codes
+      summary: Edit an activation code
+      description: |
+        Management mode; auth as for `ActiveCode_listCodes`. Aliases `edit`, `update`. `id` is integer-cast and
+        removed from the data; remaining fields go to `ActiveCodeService::updateCode`
+        (src/Domain/Line/ActiveCodeService.php:884). Fields: `activation_code`, `status` (0/1/2), `mac`,
+        `device_id` (`None` or empty clears), `password` (line password), `batch_name`; admin only:
+        `package_id`, `max_connections`, `exp_date` (unix time or date string). Reseller: package must be
+        allowed for its group (`Package not permitted for your reseller group.`).
+        Success: `{status: STATUS_SUCCESS, message: "Active code updated successfully.", data: <details>}`.
+        Errors: `Invalid code ID.`, `Activation code not found or access denied.`, code-taken/slash errors.
+        Handler :282-288 (admin), :379-385 (reseller).
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - edit_active_code
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+        - $ref: '#/components/parameters/ActiveCode_Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActiveCode_EditRequest'
+            example:
+              id: 87
+              mac: None
+              batch_name: OCT-PROMO-B
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ActiveCode_EditRequest'
+      responses:
+        '200':
+          description: Updated, or failure.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - STATUS_SUCCESS
+                      message:
+                        type: string
+                      data:
+                        $ref: '#/components/schemas/ActiveCode_Details'
+                  - $ref: '#/components/schemas/ActiveCode_ApiFailure'
+              examples:
+                not_found:
+                  value:
+                    status: STATUS_FAILURE
+                    error: Activation code not found or access denied.
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=delete_active_code:
+    post:
+      operationId: ActiveCode_deleteCode
+      tags:
+        - Active Codes
+      summary: Delete an activation code
+      description: |
+        Management mode; alias `delete`. `id` integer. Deletes the code (and its unused line). Admin: no refund,
+        `{status: STATUS_SUCCESS, message}`. Reseller: refunds unused stock and adds `remaining_credits`
+        (float). Handler src/Public/Controllers/Api/ActiveCodeApiController.php:290-294 / :387-391.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - delete_active_code
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+        - $ref: '#/components/parameters/ActiveCode_Id'
+      responses:
+        '200':
+          description: Result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveCode_ApiMessage'
+              example:
+                status: STATUS_SUCCESS
+                message: 1 code(s) deleted successfully.
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=enable_active_code:
+    post:
+      operationId: ActiveCode_enableCode
+      tags:
+        - Active Codes
+      summary: Enable an activation code
+      description: |
+        Management mode; alias `enable`. `id` integer. Returns `{status, message}` (`STATUS_FAILURE` + `error`
+        on failure). Handler src/Public/Controllers/Api/ActiveCodeApiController.php:296-300 / :393-397
+        (via `ActiveCodeService::massAction`, :727).
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - enable_active_code
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+        - $ref: '#/components/parameters/ActiveCode_Id'
+      responses:
+        '200':
+          description: Result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveCode_ApiMessage'
+              example:
+                status: STATUS_SUCCESS
+                message: 1 codes successfully enabled.
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=disable_active_code:
+    post:
+      operationId: ActiveCode_disableCode
+      tags:
+        - Active Codes
+      summary: Disable (suspend) an activation code
+      description: |
+        Management mode; alias `disable`. `id` integer. Returns `{status, message}`.
+        Handler src/Public/Controllers/Api/ActiveCodeApiController.php:302-306 / :399-403.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - disable_active_code
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+        - $ref: '#/components/parameters/ActiveCode_Id'
+      responses:
+        '200':
+          description: Result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveCode_ApiMessage'
+              example:
+                status: STATUS_SUCCESS
+                message: 1 codes suspended.
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=reset_active_code_device:
+    post:
+      operationId: ActiveCode_resetDevice
+      tags:
+        - Active Codes
+      summary: Clear an activation code's MAC / device lock
+      description: |
+        Management mode; alias `reset_device`. Code referenced by `id` or `code` (as for get_active_code).
+        Clears `mac` and `device_id` (`ActiveCodeService::resetDevice`, src/Domain/Line/ActiveCodeService.php:1566).
+        Handler src/Public/Controllers/Api/ActiveCodeApiController.php:308-312 / :405-409.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - reset_active_code_device
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+        - $ref: '#/components/parameters/ActiveCode_Id'
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveCode_ApiMessage'
+              example:
+                status: STATUS_SUCCESS
+                message: Hardware/Device lock reset on selected codes.
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=mass_active_codes:
+    post:
+      operationId: ActiveCode_massAction
+      tags:
+        - Active Codes
+      summary: Bulk action on several activation codes
+      description: |
+        Management mode; alias `mass`. `sub_action` (or `action_type`) selects the operation, `ids` is an
+        array or a CSV string; all other fields are passed as extras (src/Public/Controllers/Api/ActiveCodeApiController.php:314-319,
+        :411-416; `ActiveCodeService::massAction` src/Domain/Line/ActiveCodeService.php:727).
+        Sub-actions (the `mass_` prefixed forms are accepted too): `enable`, `disable`, `reset_device`,
+        `delete` (`refund_credits`/`refund`: resellers are refunded only for unused stock codes),
+        admin only: `extend` (`days`, default 30), `change_package` (`package_id`).
+        Messages: `N codes successfully enabled.`, `N codes suspended.`,
+        `Extended expiration of selected active codes by N days.`, `Hardware/Device lock reset on selected codes.`,
+        `Updated package on selected codes.`, `N code(s) deleted successfully. Refunded X credits for unused stock.`
+        Errors: `No active code IDs provided.`, `No accessible codes found for mass action.`, `Unknown action.`,
+        `Only an administrator can extend activation codes or change their package.`
+        Reseller responses add `remaining_credits`.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - mass_active_codes
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActiveCode_MassRequest'
+            example:
+              sub_action: extend
+              ids:
+                - 87
+                - 88
+                - 91
+              days: 30
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ActiveCode_MassRequest'
+      responses:
+        '200':
+          description: Result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveCode_ApiMessage'
+              examples:
+                extended:
+                  value:
+                    status: STATUS_SUCCESS
+                    message: Extended expiration of selected active codes by 30 days.
+                no_ids:
+                  value:
+                    status: STATUS_FAILURE
+                    error: No active code IDs provided.
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=get_active_codes_batches:
+    get:
+      operationId: ActiveCode_listBatches
+      tags:
+        - Active Codes
+      summary: Batch summaries
+      description: |
+        Management mode; alias `batches`. Optional `batch_name` filter. Rows from
+        `ActiveCodeService::getBatchSummary` (src/Domain/Line/ActiveCodeService.php:1076); count/aggregate
+        columns come straight from SQL and are typically numeric **strings**.
+        Handler src/Public/Controllers/Api/ActiveCodeApiController.php:321-325 / :418-422.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_active_codes_batches
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+        - name: batch_name
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Batches.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - STATUS_SUCCESS
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActiveCode_BatchRow'
+              example:
+                status: STATUS_SUCCESS
+                data:
+                  - batch_name: OCT-PROMO
+                    created_by: '1'
+                    package_id: '3'
+                    is_trial: '0'
+                    created_at: '1790965000'
+                    total_codes: '50'
+                    stock_count: '41'
+                    active_count: '8'
+                    disabled_count: '1'
+                    package_name: 1 Month Premium
+                    creator_name: admin
+                    ready_codes: '41'
+                    active_codes: '8'
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /active_code.php?action=export_active_code_batch:
+    get:
+      operationId: ActiveCode_exportBatch
+      tags:
+        - Active Codes
+      summary: Export a batch as vouchers (JSON or text)
+      description: |
+        Management mode; alias `export`. `batch_name` required (`Batch name is required.`). `format` `json`
+        (default) returns voucher objects (`ActiveCodeService::exportBatchJson`, :1607); `txt`/`text` returns a
+        boxed plain-text voucher sheet in `content` (`exportBatchTxt`, :1136; an unknown batch gives
+        `No codes found for batch X.\n`). The response itself is always JSON.
+        `portal_url` is `<dns_base or host>/portal`.
+        Handler src/Public/Controllers/Api/ActiveCodeApiController.php:327-332 / :424-429.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - export_active_code_batch
+        - $ref: '#/components/parameters/ActiveCode_ApiKey'
+        - name: batch_name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - json
+              - txt
+              - text
+            default: json
+      responses:
+        '200':
+          description: Export.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - STATUS_SUCCESS
+                      format:
+                        type: string
+                        enum:
+                          - json
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ActiveCode_Voucher'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - STATUS_SUCCESS
+                      format:
+                        type: string
+                        enum:
+                          - txt
+                      content:
+                        type: string
+                  - $ref: '#/components/schemas/ActiveCode_ApiFailure'
+              examples:
+                json:
+                  value:
+                    status: STATUS_SUCCESS
+                    format: json
+                    data:
+                      - voucher_no: 1
+                        activation_code: K7M2Q9XRTP
+                        batch_name: OCT-PROMO
+                        package_name: 1 Month Premium
+                        status: READY
+                        max_connections: 1
+                        portal_url: https://tv.example.com/portal
+                        credentials:
+                          username: ac_x7k2m9q4z
+                          password: 8f3a1c9e2b
+                        created_at: 1790965000
+                        created_at_formatted: '2026-10-01 18:16:40'
+                missing_batch:
+                  value:
+                    status: STATUS_FAILURE
+                    error: Batch name is required.
+        '401':
+          $ref: '#/components/responses/ActiveCode_InvalidKey401'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          $ref: '#/components/responses/ActiveCode_ResellerMaintenance503'
+  /portal:
+    get:
+      operationId: Portal_page
+      tags:
+        - Activation Portal
+      summary: Activation portal page (optionally activating `?code=`)
+      description: |
+        src/Public/Controllers/Player/PortalController.php:17-88, routed by nginx `location ^~ /portal`
+        (src/bin/nginx/conf/nginx.conf:423-444, XC_SCOPE=portal, limit_req burst=15) through
+        `WebApiBootstrap::init('portal')` (src/Public/index.php:221-226). Any `/portal/...` subpath behaves the
+        same, except `/portal/assets/` which serves static files. No authentication.
+
+        Without `code`: renders the HTML page (src/Public/Views/portal/index.php) — a form with `code` and
+        `mac` fields whose JavaScript POSTs to the same URL (see the POST operation). `?code=` pre-fills it.
+        `action=activate` without a code renders the page with the "Please enter an activation code." error.
+
+        **With `code` the GET activates the code** (same side effects as ActiveCode_activate: claims stock,
+        starts the subscription, binds MAC/device) and renders the result page; with
+        `X-Requested-With: XMLHttpRequest` it returns the JSON described in the POST operation instead.
+        Failed codes are counted by `checkBruteforce(null, null, CODE)` → IP block (403) after
+        `bruteforce_username_attempts` distinct failures. No flood counter runs (no shutdown hook).
+
+        Device identity: `mac` param, else headers `X-MAC-Address`, `X-STB-MAC`, `MAC`; `device_id` param,
+        else `X-Device-ID`, `Device-ID`. Client IP is taken from `CF-Connecting-IP`, then the first
+        `X-Forwarded-For` entry, then REMOTE_ADDR (client-supplied, stored as the device IP only).
+      parameters:
+        - name: code
+          in: query
+          required: false
+          description: Activation code; when present it is activated immediately.
+          schema:
+            type: string
+        - name: mac
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: device_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - activate
+        - name: X-Requested-With
+          in: header
+          required: false
+          description: '`XMLHttpRequest` switches the response to JSON (only when a code is given or action=activate).'
+          schema:
+            type: string
+            enum:
+              - XMLHttpRequest
+      responses:
+        '200':
+          description: HTML portal page (or JSON for AJAX, see POST).
+          content:
+            text/html:
+              schema:
+                type: string
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Portal_ActivationSuccess'
+                  - $ref: '#/components/schemas/Portal_ActivationError'
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          description: Host verification failure (`INVALID_HOST`), nginx-style 404 page (see E2_Error404).
+    post:
+      operationId: Portal_activate
+      tags:
+        - Activation Portal
+      summary: Activate a code from the portal form (AJAX JSON or HTML)
+      description: |
+        src/Public/Controllers/Player/PortalController.php:58-84. The bundled page sends
+        `application/x-www-form-urlencoded` `action=activate&code=...&mac=...` with
+        `X-Requested-With: XMLHttpRequest` to the current path. Parameters may be in the query or the body
+        (POST overrides GET). Activation as `ActiveCodeService::activateCode`
+        (src/Domain/Line/ActiveCodeService.php:381-624); the raw `line` and `code_details` rows are removed
+        from the result (:68).
+
+        AJAX JSON (`Content-Type: application/json; charset=utf-8`, not pretty-printed, slashes escaped as
+        `\/`): on success the service result (`status: SUCCESS`, `exp_date` int, `max_connections` int,
+        `credentials.port` int, `playlists.m3u_hls` with `output=hls`); on failure `{status: <ERROR_CODE>,
+        message}` where status is INVALID_CODE / DISABLED / LINE_NOT_FOUND / DEVICE_MISMATCH, or EXPIRED with
+        extra `exp_date` (raw DB value, string or int) and `code`. Empty code →
+        `{"status":"ERROR","message":"Please enter an activation code."}`. All are HTTP 200.
+        Without the AJAX header the HTML page is rendered with the result. Brute-force counting as for GET.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - activate
+                code:
+                  type: string
+                mac:
+                  type: string
+                device_id:
+                  type: string
+            example:
+              action: activate
+              code: K7M2Q9XRTP
+              mac: 00:1A:79:4B:C2:9E
+      parameters:
+        - name: X-Requested-With
+          in: header
+          required: false
+          schema:
+            type: string
+            enum:
+              - XMLHttpRequest
+        - name: X-MAC-Address
+          in: header
+          required: false
+          description: MAC fallback when no `mac` parameter (also `X-STB-MAC`, `MAC`).
+          schema:
+            type: string
+        - name: X-Device-ID
+          in: header
+          required: false
+          description: Device id fallback when no `device_id` parameter (also `Device-ID`).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: JSON (AJAX) or HTML page.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Portal_ActivationSuccess'
+                  - $ref: '#/components/schemas/Portal_ActivationError'
+              examples:
+                success:
+                  $ref: '#/components/examples/Portal_Success'
+                invalid:
+                  value:
+                    status: INVALID_CODE
+                    message: Invalid or unknown activation code.
+                expired:
+                  value:
+                    status: EXPIRED
+                    message: Subscription has expired.
+                    exp_date: '1790965325'
+                    code: K7M2Q9XRTP
+                empty_code:
+                  value:
+                    status: ERROR
+                    message: Please enter an activation code.
+            text/html:
+              schema:
+                type: string
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'

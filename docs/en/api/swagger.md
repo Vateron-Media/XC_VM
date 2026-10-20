@@ -1,14 +1,20 @@
 # Interactive API Reference (Swagger)
 
-Interactive, always-in-sync Swagger UI for every XC_VM API, generated from OpenAPI specifications. Use the **API tabs** at the top of the page to switch between APIs, or open one directly via the links below.
+Interactive, always-in-sync Swagger UI for every XC_VM API, generated from OpenAPI 3.1 specifications traced from the source: each operation cites the file and line it was read from (`src/...:line`). Use the **API tabs** at the top of the page to switch between APIs, or open one directly via the links below.
 
 | API | Description | Auth | Open |
 | --- | --- | --- | --- |
-| **Admin API** | XUI.ONE-compatible administration — lines, users, streams, VOD, series, servers, settings (104 endpoints) | `api_key` + access code | [Open ↗](../../_media/swagger-ui.html?spec=admin) |
-| **System API** | Internal `/api.php` — stream/VOD control, stats, processes, files, connections (31 actions) | `password` (`live_streaming_pass`) | [Open ↗](../../_media/swagger-ui.html?spec=system) |
-| **Player API** | XtreamCodes player — Live TV, VOD, Series, EPG | `username` + `password` | [Open ↗](../../_media/swagger-ui.html?spec=player) |
-| **Playlist API** | `/playlist` authentication + playlist generation | `username`/`password` or `token` | [Open ↗](../../_media/swagger-ui.html?spec=playlist) |
-| **Full Reference** | The whole HTTP surface in one OpenAPI 3.1 document — player, streaming, MAG/Enigma2, activation, admin, reseller, internal and cluster APIs (469 operations), each citing its source line | Per endpoint | [Open ↗](../../_media/swagger-ui.html?spec=full) |
+| **Player API** | `player_api.php` sign-in, live TV, VOD, series and EPG; legacy `panel_api.php`; `xmltv.php` guide (15 operations) | `username` + `password`, `token` or activation code | [Open ↗](../../_media/swagger-ui.html?spec=player) |
+| **Playlist API** | `get.php` playlists — M3U, M3U Plus, Enigma2 bouquets, set-top box formats; also `/playlist` | `username` + `password` or `token` | [Open ↗](../../_media/swagger-ui.html?spec=playlist) |
+| **Streaming** | Live, VOD, series, catch-up, HLS segments and keys, thumbnails, subtitles (36 operations) | Line credentials in the path, or a line / play token | [Open ↗](../../_media/swagger-ui.html?spec=streaming) |
+| **MAG Portal** | Stalker/Ministra portal for MAG and compatible set-top boxes (91 operations) | MAC handshake + bearer token | [Open ↗](../../_media/swagger-ui.html?spec=mag) |
+| **Enigma2** | `enigma2.php` XML playlists and the `xplugin.php` companion API (13 operations) | `username` + `password`; device MAC + token | [Open ↗](../../_media/swagger-ui.html?spec=enigma2) |
+| **Activation** | `active_code.php` activation and code management, and the `/portal` self-activation page (15 operations) | Activation code, or admin / reseller `api_key` | [Open ↗](../../_media/swagger-ui.html?spec=activation) |
+| **Admin API** | Administration — lines, devices, users, groups, packages, streams, VOD, series, servers, settings, logs (187 actions) | `api_key` + Admin API access code | [Open ↗](../../_media/swagger-ui.html?spec=admin) |
+| **Reseller API** | A reseller's lines, devices, sub-accounts, activation codes and credits (49 actions) | `api_key` + Reseller API access code | [Open ↗](../../_media/swagger-ui.html?spec=reseller) |
+| **System API** | Node actions of `/api.php` (now run over the cluster bus; HTTP answers 404) and the `/admin/*` stream endpoints (37 operations) | Signed `node.rpc`; relay ticket or `live_streaming_pass` | [Open ↗](../../_media/swagger-ui.html?spec=system) |
+| **Cluster API** | MAIN-only node-to-MAIN control plane `/cluster/v1/<op>` (22 operations) | Signed `X-XCVM-*` headers | [Open ↗](../../_media/swagger-ui.html?spec=cluster) |
+| **Monitoring** | `/metrics` (Prometheus), `/healthz`, `/progress` (3 operations) | `metrics_token` bearer for `/metrics` | [Open ↗](../../_media/swagger-ui.html?spec=monitoring) |
 
 ---
 
@@ -16,7 +22,7 @@ Interactive, always-in-sync Swagger UI for every XC_VM API, generated from OpenA
 
 1. Open a spec, then use the **API tabs** to switch APIs, and the **Documentation / Interactive (Swagger)** tabs for each API.
 2. Expand any endpoint → **Try it out** → fill parameters → **Execute** to see the real request URL, cURL command and live response.
-3. For the Admin API, click **Authorize 🔓** and paste your API key — it is then attached to every request automatically.
+3. For the Admin, Reseller and Monitoring APIs, click **Authorize 🔓** and paste your API key or metrics token — it is then attached to every request automatically.
 
 > **CORS note:** direct "Try it out" calls from the browser to your server may be blocked by CORS. This is expected — use the generated cURL command, Postman or Insomnia instead. The error does not mean the API is broken.
 
@@ -48,10 +54,16 @@ Interactive, always-in-sync Swagger UI for every XC_VM API, generated from OpenA
 
 ## Raw specifications
 
-Every spec can be imported into Postman, Insomnia or any OpenAPI tooling (the full reference is OpenAPI 3.1, the others 3.0):
+Every spec can be imported into Postman, Insomnia or any OpenAPI 3.1 tooling:
 
-- [`admin-api.openapi.yaml`](../../_media/admin-api.openapi.yaml)
-- [`system-api.openapi.yaml`](../../_media/system-api.openapi.yaml)
 - [`player-api.openapi.yaml`](../../_media/player-api.openapi.yaml)
 - [`playlist-api.openapi.yaml`](../../_media/playlist-api.openapi.yaml)
-- [`xc-api.openapi.yaml`](../../_media/xc-api.openapi.yaml)
+- [`streaming-api.openapi.yaml`](../../_media/streaming-api.openapi.yaml)
+- [`mag-portal-api.openapi.yaml`](../../_media/mag-portal-api.openapi.yaml)
+- [`enigma2-api.openapi.yaml`](../../_media/enigma2-api.openapi.yaml)
+- [`activation-api.openapi.yaml`](../../_media/activation-api.openapi.yaml)
+- [`admin-api.openapi.yaml`](../../_media/admin-api.openapi.yaml)
+- [`reseller-api.openapi.yaml`](../../_media/reseller-api.openapi.yaml)
+- [`system-api.openapi.yaml`](../../_media/system-api.openapi.yaml)
+- [`cluster-api.openapi.yaml`](../../_media/cluster-api.openapi.yaml)
+- [`monitoring-api.openapi.yaml`](../../_media/monitoring-api.openapi.yaml)

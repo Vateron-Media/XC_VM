@@ -1,420 +1,2095 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: XC_VM Player API (XtreamCodes)
-  version: "1.0.0"
+  title: XC_VM Player API
+  version: 2.7.2
+  summary: Player API, Panel API (legacy), EPG of the Xtream Codes compatible HTTP surface, as implemented by XC_VM.
   description: |
-    XtreamCodes-compatible **Player API** — access to Live TV, Radio, VOD (movies),
-    Series and EPG for client applications.
+    A source-level reference for the **Xtream Codes (XC) API**: the de facto standard HTTP interface
+    between IPTV panels and player apps. The reference implementation is
+    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.2, an open-source continuation of Xtream UI / XC.
+    Each operation cites the XC_VM source file and line it was traced from (`src/...:line`).
 
-    - **Controller:** `src/Public/Controllers/Api/PlayerApiController.php`
-    - **EPG / XMLTV:** `src/Public/Controllers/Api/EpgApiController.php` (`/xmltv.php`)
-    - **Authentication:** every request requires `username` and `password` query parameters.
+    ## Where to start
 
-    **Request pattern:**
-    ```
-    {protocol}://{host}:{port}/player_api?username={username}&password={password}&action={action}
-    ```
-    The legacy XtreamCodes `/player_api.php?…` spelling and the path-style
-    `/player_api/{username}/{password}[/{action}]` form hit the same handler.
+    The three endpoints almost every client uses:
 
-    ## Media access (direct links)
-    After authorization, media is served from:
-    ```
-    /live/{username}/{password}/{stream_id}.ts
-    /movie/{username}/{password}/{vod_id}.mp4
-    /series/{username}/{password}/{episode_id}.mp4
-    ```
-    On the first request a redirect to `/auth/...` occurs for authentication before content is served.
+    | Endpoint | Purpose |
+    |---|---|
+    | `GET /player_api.php` | JSON sign-in and catalogue browsing (`action=get_live_streams`, `get_vod_info`, `get_short_epg`, ...) |
+    | `GET /get.php` | Downloadable playlist (`type=m3u_plus&output=ts`) |
+    | `GET /xmltv.php` | XMLTV guide for the line's channels |
 
-    **Output formats:** `m3u8`, `ts`, `rtmp`.
+    Playback then uses plain media URLs (see the **Streaming** tag):
+
+    ```
+    {server}/live/{username}/{password}/{stream_id}.{ts|m3u8}
+    {server}/movie/{username}/{password}/{stream_id}.{container_extension}
+    {server}/series/{username}/{password}/{episode_id}.{container_extension}
+    {server}/timeshift/{username}/{password}/{duration_min}/{YYYY-MM-DD:HH-MM}/{stream_id}.ts
+    ```
+
+    `{server}` is `server_info.server_protocol` + `://` + `server_info.url` + `:` + `server_info.port`
+    (or `https_port`) from the sign-in answer.
+
+    ## Authentication models
+
+    The panel has several independent auth schemes. Each endpoint states which one it uses.
+
+    | Who | How |
+    |---|---|
+    | Line (subscriber) | `username` + `password` query parameters, or `token` (32-char line access token). Also in path form: `/player_api/{u}/{p}`, `/live/{u}/{p}/...` |
+    | Activation code | The code typed as `username` (or `token`) is activated on first use and becomes a line |
+    | MAG / Stalker box | MAC address cookie + bearer token from `handshake` (`/c/portal.php`, `/stalker_portal/...`) |
+    | Enigma2 box | MAC/device registration (`enigma2.php`) |
+    | Admin / reseller REST | `api_key` query parameter (named `xct_` token or legacy per-user key) on `/{access_code}/?action=...`; the access code's IP whitelist is enforced by nginx |
+    | Load-balancer nodes | Shared cluster secret (`/cluster/v1`); signed `node.rpc` (legacy `api.php` on nodes older than 2.7.0) |
+
+    ## Error model
+
+    - `player_api.php` / `panel_api.php` **never** use HTTP status for auth failure. They answer **200** with
+      `{"user_info":{"auth":0,"status":"...","message":"..."}}`. Always check `user_info.auth`.
+    - `get.php`, `xmltv.php` and the media endpoints answer a bare **nginx-style 404 page** for nearly every
+      error (bad credentials, expired, banned, wrong type…), so apps cannot tell errors apart. With the panel
+      setting `debug_show_errors` on, the page names the error code instead.
+    - Download limits answer **429**; a blocked IP answers **403** before any controller runs;
+      maintenance mode answers **503** with optional `Retry-After` on streaming endpoints (player_api reports
+      maintenance as `status: "Maintenance"`).
+    - nginx answers `200` with an empty body for any HTTP method other than GET or POST on client routes.
+
+    ## Typing quirks (true of XC in general)
+
+    PHP origins show through. Many numeric fields are **strings** (`exp_date`, `max_connections`,
+    `category_id`, `added`), others are integers (`stream_id` in player_api, but a string in panel_api).
+    `exp_date` is `null` for unlimited lines. Empty objects serialise as `[]`. EPG titles and descriptions
+    in player_api are **base64**. Clients should parse defensively (accept string or number everywhere).
+
+    ## Cross-panel compatibility
+
+    "Xtream Codes" is a family of panels, not one implementation. This document follows XC_VM. The
+    table shows the differences a client sees on other panels. It is based on decoded XC 2.9 and XUI.one 1.5.13
+    source and on real captured responses.
+
+    | Aspect | Original XC 2.x | XUI.one 1.5.x | XC_VM 2.7 |
+    |---|---|---|---|
+    | Auth | username/password | username/password or `token` | username/password, `token`, or activation code |
+    | Bad credentials | `{"user_info":{"auth":0}}` (missing credentials: empty body) | error codes (wire format unverified) | `{"user_info":{"auth":0,"message":...}}` |
+    | `server_info` extras | `process` | `xui`, `version`, `revision` | `version`, `process` |
+    | Actions | names plus aliases 200-209 | adds `get_epg` (alias 0) | adds `get_epg` (no alias) and multi-stream EPG |
+    | Live list | no `category_ids` | `category_ids`, `thumbnail` | same as XUI |
+    | VOD `rating` | string | number | number (series list: string) |
+    | Series release date | `releaseDate` | `release_date` and `releaseDate` | both |
+    | `panel_api.php` | always on | only with `legacy_panel_api` | only with `legacy_panel_api` |
+    | m3u_plus id attribute | `tvg-ID` (1.6) | `xui-id` | `xc_vm-id` (only when stream encryption is on) |
+    | Output keys | `hls`, `mpegts` (1.6) | `m3u8`, `ts`, `rtmp` | `m3u8`, `ts`, `rtmp` (`hls`/`mpegts` still accepted) |
+    | xmltv.php | `prev_days`/`next_days` params; HTTP 401 on bad auth | prebuilt file | prebuilt per-bouquet file; 404 on bad auth |
+    | Catch-up | `/timeshift/...` and `/streaming/timeshift.php` | same | same (see **Streaming**) |
+
+    Defensive parsing rules collected from client libraries (tellytv/go.xtream-codes, iptvnator, XStreamity):
+    - Integers may arrive quoted.
+    - Floats may arrive as `""`.
+    - Booleans may be `0`/`1`, `"0"`/`"1"` or `"true"`/`"false"`.
+    - `backdrop_path` may be a list, a string, `null` or `""`.
+    - `server_info.timezone` is not always a valid IANA name.
+    - Some panels reject generic HTTP user agents; players commonly send a VLC user agent.
+    - `get_seasons` and `get_series_streams` are not real actions.
+
+    ## Notation
+
+    OpenAPI cannot express query-string multiplexing, so action-based endpoints are written as separate
+    literal paths such as `/player_api.php?action=get_live_streams`. The request is still a single
+    `GET /player_api.php` with `action` as an ordinary query parameter.
+
+    The admin and reseller REST APIs share one URL shape, `/{access_code}/?action=...`. Each access code has a type
+    (3 = Admin API, 4 = Reseller API) and nginx routes it to that API, so `/{access_code}/...` and `/{reseller_access_code}/...` are the
+    same URL and differ only in which kind of code is used.
+  contact:
+    name: XC_VM project
+    url: https://github.com/Vateron-Media/XC_VM
+  license:
+    name: AGPL-3.0 (XC_VM source); this document describes its public interface
+    identifier: AGPL-3.0-only
 servers:
   - url: '{protocol}://{host}:{port}'
-    description: XC_VM server
+    description: Any XC compatible panel or load-balancer node
     variables:
       protocol:
         default: http
-        enum: [http, https]
+        enum:
+          - http
+          - https
       host:
-        default: your-server.com
-        description: Server IP or domain
+        default: tv.example.com
       port:
         default: '80'
-        description: HTTP port
-
-security:
-  - Username: []
-    Password: []
-
-tags:
-  - name: Authorization
-    description: Credential validation and server information
-  - name: Live TV
-    description: Live streams, categories and EPG
-  - name: VOD
-    description: Video-on-Demand movies
-  - name: Series
-    description: TV series, seasons and episodes
-  - name: Media
-    description: Direct media links
-
-paths:
-  /player_api:
-    get:
-      tags: [Authorization]
-      summary: Authorize
-      description: Validates user credentials and returns user and server information.
-      responses:
-        '200':
-          description: User and server info
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user_info: { type: object }
-                  server_info: { type: object }
-              example:
+        description: HTTP broadcast port (often 80, 8080, 8000, 25461); HTTPS often 443 or 25463.
+externalDocs:
+  description: XC_VM source
+  url: https://github.com/Vateron-Media/XC_VM
+components:
+  parameters:
+    Username:
+      name: username
+      in: query
+      required: true
+      description: Line username. Optional when `token` is sent instead.
+      schema:
+        type: string
+        example: demo
+    Password:
+      name: password
+      in: query
+      required: true
+      description: Line password. Optional when `token` is sent instead.
+      schema:
+        type: string
+        format: password
+        example: s3cret
+    Core_Token:
+      name: token
+      in: query
+      required: false
+      description: |
+        Alternative to `username` + `password`: the line's 32-character `access_token`. Used only when
+        `username` is absent. Not accepted for MAG/Enigma2 device lines. An activation code is also accepted here.
+      schema:
+        type: string
+        minLength: 32
+        maxLength: 32
+        example: 6f1ed002ab5595859014ebf0951522d9
+    Core_ActivationMac:
+      name: mac
+      in: query
+      required: false
+      description: Device MAC recorded when the username/token is an activation code that gets activated by this request.
+      schema:
+        type: string
+        example: 00:1A:79:12:34:56
+    Core_ActivationDeviceId:
+      name: device_id
+      in: query
+      required: false
+      description: Device id recorded when the username/token is an activation code that gets activated by this request.
+      schema:
+        type: string
+    Core_CategoryId:
+      name: category_id
+      in: query
+      required: false
+      description: Only rows in this category (matches any of the stream's categories).
+      schema:
+        type: integer
+        example: 12
+    Core_PageOffset:
+      name: params[offset]
+      in: query
+      required: false
+      description: Paging offset (XC_VM extension). Ignored unless `params[items_per_page]` is also set.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Core_PageItemsPerPage:
+      name: params[items_per_page]
+      in: query
+      required: false
+      description: Page size (XC_VM extension). `0`/absent returns everything.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Core_EpgStreamId:
+      name: stream_id
+      in: query
+      required: true
+      description: Live stream id, or a comma-separated list of ids (multi mode, XC_VM extension).
+      schema:
+        type: string
+        example: '1043'
+    Core_EpgMulti:
+      name: multi
+      in: query
+      required: false
+      description: Presence (any value) forces multi mode even for a single id; the result is keyed by stream id.
+      schema:
+        type: string
+    Core_ActionGetLiveCategories:
+      name: action
+      in: query
+      required: true
+      description: Alias `201`.
+      schema:
+        type: string
+        enum:
+          - get_live_categories
+    Core_ActionGetVodCategories:
+      name: action
+      in: query
+      required: true
+      description: Alias `200`.
+      schema:
+        type: string
+        enum:
+          - get_vod_categories
+    Core_ActionGetSeriesCategories:
+      name: action
+      in: query
+      required: true
+      description: Alias `206`.
+      schema:
+        type: string
+        enum:
+          - get_series_categories
+    Core_ActionGetLiveStreams:
+      name: action
+      in: query
+      required: true
+      description: Alias `202`.
+      schema:
+        type: string
+        enum:
+          - get_live_streams
+    Core_ActionGetVodStreams:
+      name: action
+      in: query
+      required: true
+      description: Alias `203`.
+      schema:
+        type: string
+        enum:
+          - get_vod_streams
+    Core_ActionGetVodInfo:
+      name: action
+      in: query
+      required: true
+      description: Alias `209`.
+      schema:
+        type: string
+        enum:
+          - get_vod_info
+    Core_ActionGetSeries:
+      name: action
+      in: query
+      required: true
+      description: Alias `208`.
+      schema:
+        type: string
+        enum:
+          - get_series
+    Core_ActionGetSeriesInfo:
+      name: action
+      in: query
+      required: true
+      description: Alias `204`.
+      schema:
+        type: string
+        enum:
+          - get_series_info
+    Core_ActionGetShortEpg:
+      name: action
+      in: query
+      required: true
+      description: Alias `205`.
+      schema:
+        type: string
+        enum:
+          - get_short_epg
+    Core_ActionGetSimpleDataTable:
+      name: action
+      in: query
+      required: true
+      description: Alias `207`.
+      schema:
+        type: string
+        enum:
+          - get_simple_data_table
+    Core_ActionGetEpg:
+      name: action
+      in: query
+      required: true
+      description: XC_VM only; no numeric alias.
+      schema:
+        type: string
+        enum:
+          - get_epg
+  responses:
+    Core_SignInOrAuthError:
+      description: |
+        Sign-in payload, or an auth error object. Always HTTP 200 with `Content-Type: application/json; charset=utf-8`
+        and `Access-Control-Allow-Origin: *`.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/Core_SignInResponse'
+              - $ref: '#/components/schemas/Core_AuthError'
+          examples:
+            active:
+              $ref: '#/components/examples/Core_SignInActive'
+            invalid:
+              $ref: '#/components/examples/Core_AuthInvalid'
+            noCredentials:
+              value:
                 user_info:
-                  username: testxc
-                  password: testxc
-                  message: Welcome to XC_VM
-                  auth: 1
-                  status: Active
-                  exp_date: null
-                  is_trial: 0
-                  created_at: 1757353729
-                  max_connections: 1
-                  allowed_output_formats: [m3u8, ts, rtmp]
-                server_info:
-                  xui: true
-                  version: "1.1.0"
-                  url: "176.124.192.118"
-                  port: "80"
-                  https_port: "443"
-                  server_protocol: http
-                  rtmp_port: "8880"
-                  timestamp_now: 1757442189
-                  time_now: "2025-09-09 19:23:09"
-                  timezone: Europe/London
-
-  /player_api?action=get_live_categories:
+                  auth: 0
+                  message: No credentials provided.
+            banned:
+              value:
+                user_info:
+                  auth: 0
+                  status: Banned
+                  message: Account has been banned.
+            disabled:
+              value:
+                user_info:
+                  auth: 0
+                  status: Disabled
+                  message: Account has been disabled.
+            expired:
+              value:
+                user_info:
+                  auth: 0
+                  status: Expired
+                  message: Account has expired.
+            apiDisabled:
+              value:
+                user_info:
+                  auth: 0
+                  status: Disabled
+                  message: Player API has been disabled.
+            maintenance:
+              value:
+                user_info:
+                  auth: 0
+                  status: Maintenance
+                  message: Scheduled maintenance, back soon.
+    Core_IpBlocked:
+      description: |
+        The client address is blocked (brute-force / flood protection, or the panel's IP block list).
+        Bare 403, empty body, sent before any controller runs.
+        Source: `src/Core/Bootstrap/Stage/FloodProtectionStage.php:24` (checks `FLOOD_TMP_PATH/block_<ip>`).
+    Core_PanelErrorPage:
+      description: |
+        Panel error page (`generateError`, `src/Core/Error/ErrorHandler.php:31`, `src/Core/Error/ErrorResponder.php:203`).
+        In production it is the bare nginx-style 404 page below regardless of the error code.
+        With the `debug_show_errors` setting on, it is an HTML page showing the code and its description
+        (e.g. `INVALID_CREDENTIALS` / "Username or password is invalid.").
+      content:
+        text/html:
+          schema:
+            type: string
+          examples:
+            production:
+              value: "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+            debug:
+              value: <html><head><title>XC_VM - Debug Mode</title>...</head><body><div id="notfound"><div class="notfound"><div class="notfound-404"><h1>XC_VM</h1><h2>INVALID_CREDENTIALS</h2><br/></div><p>Username or password is invalid.</p></div></div></body></html>
+  examples:
+    Core_SignInActive:
+      summary: Valid line
+      value:
+        user_info:
+          username: demo
+          password: s3cret
+          message: Welcome!
+          auth: 1
+          status: Active
+          exp_date: '1798675200'
+          is_trial: '0'
+          active_cons: '0'
+          created_at: '1767225600'
+          max_connections: '1'
+          allowed_output_formats:
+            - m3u8
+            - ts
+            - rtmp
+        server_info:
+          version: 2.7.2
+          url: tv.example.com
+          port: '80'
+          https_port: '443'
+          server_protocol: http
+          rtmp_port: '8880'
+          timestamp_now: 1792261200
+          time_now: '2026-10-17 18:20:00'
+          timezone: Europe/London
+          process: true
+    Core_AuthInvalid:
+      summary: Wrong username/password
+      value:
+        user_info:
+          auth: 0
+          message: Username or password is invalid.
+  schemas:
+    Core_PlayerApiPostBody:
+      type: object
+      description: Any player_api query parameter may be sent in the body.
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        token:
+          type: string
+        action:
+          type: string
+        category_id:
+          type:
+            - string
+            - integer
+        stream_id:
+          type:
+            - string
+            - integer
+        vod_id:
+          type:
+            - string
+            - integer
+        series_id:
+          type:
+            - string
+            - integer
+        limit:
+          type:
+            - string
+            - integer
+        params:
+          type: object
+          properties:
+            offset:
+              type: integer
+            items_per_page:
+              type: integer
+      additionalProperties: true
+    Core_AuthError:
+      type: object
+      description: |
+        Refusal from player_api/panel_api. HTTP status is still 200. `status` is omitted for
+        "No credentials provided." and "Username or password is invalid.".
+      required:
+        - user_info
+      properties:
+        user_info:
+          type: object
+          required:
+            - auth
+          properties:
+            auth:
+              type: integer
+              const: 0
+            status:
+              type: string
+              enum:
+                - Banned
+                - Disabled
+                - Expired
+                - Maintenance
+            message:
+              type: string
+    Core_UserInfo:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        message:
+          type: string
+          description: Panel "message of the day" (`message_of_day` setting).
+        auth:
+          type: integer
+          const: 1
+        status:
+          type: string
+          const: Active
+        exp_date:
+          type:
+            - string
+            - 'null'
+          description: Unix timestamp as a string; `null` = never expires.
+        is_trial:
+          type: string
+          enum:
+            - '0'
+            - '1'
+        active_cons:
+          type: string
+          description: Open connections (numeric string).
+        created_at:
+          type: string
+          description: Unix timestamp string.
+        max_connections:
+          type: string
+          description: Numeric string.
+        allowed_output_formats:
+          type: array
+          description: Containers the line may use. All three when the line has no restriction.
+          items:
+            type: string
+            enum:
+              - m3u8
+              - ts
+              - rtmp
+    Core_ServerInfo:
+      type: object
+      properties:
+        version:
+          type: string
+          description: XC_VM version (XC_VM extension; classic XC has no such field).
+        url:
+          type: string
+          description: Host the client called (Host header), or the server domain when called via localhost. No scheme, no port.
+        port:
+          type: string
+          description: HTTP port (numeric string).
+        https_port:
+          type: string
+        server_protocol:
+          type: string
+          enum:
+            - http
+            - https
+        rtmp_port:
+          type: string
+        timestamp_now:
+          type: integer
+        time_now:
+          type: string
+          description: '`Y-m-d H:i:s` in `timezone`.'
+        timezone:
+          type: string
+          example: Europe/London
+        process:
+          type: boolean
+          const: true
+    Core_SignInResponse:
+      type: object
+      required:
+        - user_info
+        - server_info
+      properties:
+        user_info:
+          $ref: '#/components/schemas/Core_UserInfo'
+        server_info:
+          $ref: '#/components/schemas/Core_ServerInfo'
+    Core_Category:
+      type: object
+      required:
+        - category_id
+        - category_name
+        - parent_id
+      properties:
+        category_id:
+          type: string
+          description: Numeric string.
+        category_name:
+          type: string
+        parent_id:
+          type: integer
+          const: 0
+    Core_LiveStream:
+      type: object
+      properties:
+        num:
+          type: integer
+          description: 1-based position in the list.
+        name:
+          type: string
+        stream_type:
+          type: string
+          enum:
+            - live
+            - created_live
+            - radio_streams
+        stream_id:
+          type: integer
+        stream_icon:
+          type: string
+        epg_channel_id:
+          type:
+            - string
+            - 'null'
+          description: XMLTV channel id; matches `tvg-id` and xmltv.php `<channel id>`.
+        added:
+          type: string
+          description: Unix timestamp string, or empty.
+        custom_sid:
+          type: string
+          description: Custom Enigma2 service reference, usually empty.
+        tv_archive:
+          type: integer
+          enum:
+            - 0
+            - 1
+        direct_source:
+          type: string
+          description: '`{server}play/{token}` when `api_redirect` is on, else "".'
+        tv_archive_duration:
+          type: integer
+          description: Catch-up days (0 when no archive).
+        category_id:
+          type: string
+        category_ids:
+          type: array
+          items:
+            type: integer
+        thumbnail:
+          type: string
+    Core_VodStream:
+      type: object
+      properties:
+        num:
+          type: integer
+        name:
+          type: string
+        title:
+          type: string
+        year:
+          type: string
+        stream_type:
+          type: string
+          const: movie
+        stream_id:
+          type: integer
+        stream_icon:
+          type: string
+        rating:
+          type: number
+        rating_5based:
+          type: number
+        added:
+          type: string
+        plot:
+          type:
+            - string
+            - 'null'
+        cast:
+          type:
+            - string
+            - 'null'
+        director:
+          type:
+            - string
+            - 'null'
+        genre:
+          type:
+            - string
+            - 'null'
+        release_date:
+          type:
+            - string
+            - 'null'
+        youtube_trailer:
+          type:
+            - string
+            - 'null'
+        episode_run_time:
+          type:
+            - string
+            - integer
+            - 'null'
+        category_id:
+          type: string
+        category_ids:
+          type: array
+          items:
+            type: integer
+        container_extension:
+          type: string
+          example: mkv
+        custom_sid:
+          type: string
+        direct_source:
+          type: string
+    Core_Subtitle:
+      type: object
+      properties:
+        index:
+          type: integer
+        language:
+          type:
+            - string
+            - 'null'
+        title:
+          type:
+            - string
+            - 'null'
+    Core_VodInfo:
+      type: object
+      required:
+        - info
+      properties:
+        info:
+          oneOf:
+            - type: array
+              maxItems: 0
+              description: Not found / not in the line's bouquets.
+            - type: object
+              additionalProperties: true
+              properties:
+                tmdb_id:
+                  type: integer
+                name:
+                  type: string
+                o_name:
+                  type: string
+                cover_big:
+                  type: string
+                movie_image:
+                  type: string
+                release_date:
+                  type: string
+                releasedate:
+                  type: string
+                episode_run_time:
+                  type: integer
+                youtube_trailer:
+                  type: string
+                director:
+                  type: string
+                actors:
+                  type: string
+                cast:
+                  type: string
+                description:
+                  type: string
+                plot:
+                  type: string
+                genre:
+                  type: string
+                country:
+                  type: string
+                backdrop_path:
+                  type: array
+                  items:
+                    type: string
+                duration_secs:
+                  type: integer
+                duration:
+                  type: string
+                bitrate:
+                  type: integer
+                rating:
+                  type: number
+                subtitles:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Core_Subtitle'
+        movie_data:
+          type: object
+          properties:
+            stream_id:
+              type: integer
+            name:
+              type: string
+            title:
+              type: string
+            year:
+              type:
+                - string
+                - 'null'
+            added:
+              type: string
+            category_id:
+              type: string
+            category_ids:
+              type: array
+              items:
+                type: integer
+            container_extension:
+              type: string
+            custom_sid:
+              type: string
+            direct_source:
+              type: string
+    Core_Series:
+      type: object
+      properties:
+        num:
+          type: integer
+        name:
+          type: string
+        title:
+          type: string
+        year:
+          type: string
+        stream_type:
+          type: string
+          const: series
+        series_id:
+          type: integer
+        cover:
+          type: string
+        plot:
+          type: string
+        cast:
+          type: string
+        director:
+          type: string
+        genre:
+          type: string
+        release_date:
+          type: string
+        releaseDate:
+          type: string
+        last_modified:
+          type: string
+        rating:
+          type: string
+          description: Whole number as a string, e.g. "8".
+        rating_5based:
+          type: number
+        backdrop_path:
+          type:
+            - array
+            - 'null'
+          items:
+            type: string
+        youtube_trailer:
+          type: string
+        episode_run_time:
+          type: string
+        category_id:
+          type: string
+        category_ids:
+          type: array
+          items:
+            type: integer
+    Core_Season:
+      type: object
+      description: Stored TMDB season object; keys pass through.
+      additionalProperties: true
+      properties:
+        air_date:
+          type: string
+        episode_count:
+          type: integer
+        id:
+          type: integer
+        name:
+          type: string
+        overview:
+          type: string
+        season_number:
+          type: integer
+        cover:
+          type: string
+        cover_big:
+          type: string
+    Core_Episode:
+      type: object
+      properties:
+        id:
+          type:
+            - string
+            - integer
+          description: Episode stream id.
+        episode_num:
+          type:
+            - string
+            - integer
+        title:
+          type: string
+        container_extension:
+          type: string
+        info:
+          type: object
+          additionalProperties: true
+        subtitles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Core_Subtitle'
+        custom_sid:
+          type: string
+        added:
+          type: string
+        season:
+          type:
+            - integer
+            - string
+        direct_source:
+          type: string
+    Core_SeriesInfo:
+      type: object
+      properties:
+        seasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/Core_Season'
+        info:
+          type: object
+          description: Same fields as a `get_series` row without `num`, `stream_type`, `series_id`.
+          additionalProperties: true
+        episodes:
+          description: Keyed by season number (object), or a list when season keys are 0..n.
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Core_Episode'
+            - type: array
+              items:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Core_Episode'
+    Core_EpgBaseRow:
+      type: object
+      description: Row of the `epg_data` table as cached by the EPG cron.
+      properties:
+        id:
+          type:
+            - string
+            - integer
+        epg_id:
+          type:
+            - string
+            - integer
+          description: EPG source id.
+        channel_id:
+          type: string
+          description: XMLTV channel id.
+        lang:
+          type: string
+        title:
+          type: string
+          contentEncoding: base64
+        description:
+          type: string
+          contentEncoding: base64
+    Core_ShortEpgRow:
+      allOf:
+        - $ref: '#/components/schemas/Core_EpgBaseRow'
+        - type: object
+          properties:
+            start:
+              type: string
+              description: '`Y-m-d H:i:s`'
+            end:
+              type: string
+            stop:
+              type: string
+            start_timestamp:
+              type:
+                - string
+                - integer
+            stop_timestamp:
+              type:
+                - string
+                - integer
+            end_timestamp:
+              type:
+                - string
+                - integer
+    Core_DataTableEpgRow:
+      allOf:
+        - $ref: '#/components/schemas/Core_EpgBaseRow'
+        - type: object
+          properties:
+            start:
+              type: string
+            end:
+              type: string
+            start_timestamp:
+              type:
+                - string
+                - integer
+            stop_timestamp:
+              type:
+                - string
+                - integer
+            now_playing:
+              type: integer
+              enum:
+                - 0
+                - 1
+            has_archive:
+              type: integer
+              enum:
+                - 0
+                - 1
+    Core_RawEpgRow:
+      allOf:
+        - $ref: '#/components/schemas/Core_EpgBaseRow'
+        - type: object
+          properties:
+            start:
+              type: integer
+            end:
+              type: integer
+    Core_PanelChannel:
+      type: object
+      properties:
+        num:
+          type: integer
+        name:
+          type: string
+        stream_type:
+          type: string
+          enum:
+            - live
+            - created_live
+            - radio_streams
+            - movie
+        type_name:
+          type: string
+          enum:
+            - Live Streams
+            - Movies
+            - Created Live Channels
+            - Radio
+        stream_id:
+          type: string
+        stream_icon:
+          type: string
+        epg_channel_id:
+          type:
+            - string
+            - 'null'
+        added:
+          type: string
+        category_name:
+          type:
+            - string
+            - 'null'
+        category_id:
+          type: string
+        series_no:
+          type: 'null'
+        live:
+          type: string
+          enum:
+            - '0'
+            - '1'
+        container_extension:
+          type:
+            - string
+            - 'null'
+        custom_sid:
+          type: string
+        tv_archive:
+          type: integer
+        direct_source:
+          type: string
+        tv_archive_duration:
+          type: integer
+    Core_PanelApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/Core_SignInResponse'
+        - type: object
+          properties:
+            categories:
+              type: object
+              properties:
+                series:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Core_Category'
+                movie:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Core_Category'
+                live:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Core_Category'
+            available_channels:
+              oneOf:
+                - type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/Core_PanelChannel'
+                - type: array
+                  maxItems: 0
+tags:
+  - name: Player API
+    description: |
+      `player_api.php`: the JSON API that every Xtream Codes compatible app (TiviMate, IPTV Smarters,
+      XCIPTV, OTT Navigator, Kodi PVR IPTV Simple, etc.) uses to sign in and browse live TV, VOD and series.
+      One endpoint, multiplexed by the `action` query parameter. With no action (or an unknown action)
+      it answers the sign-in payload (`user_info` + `server_info`).
+  - name: Panel API (legacy)
+    description: |
+      `panel_api.php`: the original XC v1 API. Answers the sign-in payload plus every category and
+      every live/VOD stream of the line in one response. XC_VM serves it from the same controller as
+      player_api and only when the `legacy_panel_api` setting is on.
+  - name: EPG
+    description: |
+      `xmltv.php`: the full XMLTV guide for the line's channels.
+paths:
+  /player_api.php:
     get:
-      tags: [Live TV]
-      summary: Get all live categories
+      operationId: Core_playerApiSignIn
+      tags:
+        - Player API
+      summary: Sign in / account and server info
+      description: |
+        Returns `user_info` and `server_info` for the line. This is the request every app sends first.
+        It is also the answer to any `action` value that is not in the valid action list
+        (an unknown action silently falls through to this response).
+
+        **Aliases (same controller, same parameters):** `/player_api`, `/api/player_api`,
+        `/player_api/{username}/{password}` and `/player_api/{username}/{password}/{action}` (path form; nginx
+        rewrites the segments into query parameters).
+
+        **Authentication:** either `username` + `password`, or `token` (the line's 32-character
+        `access_token`; lines flagged `is_mag` / `is_e2` cannot use tokens). Credential matching follows the
+        `case_sensitive_line` setting. If nothing matches and the username (or token) is a known activation
+        code, the code is activated on the fly (`ActiveCodeService::activateCode`, with `mac` and `device_id`
+        taken from the request) and the request continues as the new line.
+
+        **Request body:** a JSON object POSTed with no `username` query parameter is merged into the
+        request, so `{"username":"u","password":"p","action":"get_live_streams"}` works as a POST body.
+        Form-encoded POST bodies work as in PHP (`$_REQUEST`).
+
+        **Numeric action aliases:** `200` get_vod_categories, `201` get_live_categories, `202` get_live_streams,
+        `203` get_vod_streams, `204` get_series_info, `205` get_short_epg, `206` get_series_categories,
+        `207` get_simple_data_table, `208` get_series, `209` get_vod_info.
+
+        **Errors:** every refusal is HTTP 200 with `{"user_info":{"auth":0,...}}`; apps must test
+        `user_info.auth`. Failed sign-ins count toward brute-force and flood limits; once an address is
+        blocked, every streaming endpoint answers a bare `403` before reaching this controller.
+        Repeat valid requests faster than `auth_flood_limit` are slowed (the server sleeps `auth_flood_sleep`).
+        Only this response reports `active_cons`.
+
+        Sources: `src/Public/Controllers/Api/PlayerApiController.php:87` (entry),
+        `:1066` (`getDefaultInfo`), `:1111` (`sendAuthError`), `:1130` (`getOutputFormats`).
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
+        - $ref: '#/components/parameters/Core_ActivationMac'
+        - $ref: '#/components/parameters/Core_ActivationDeviceId'
       responses:
         '200':
-          description: Live categories
+          $ref: '#/components/responses/Core_SignInOrAuthError'
+        '403':
+          $ref: '#/components/responses/Core_IpBlocked'
+        '404':
+          description: Settings cache missing (server not initialised) or request host not allowed.
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      operationId: Core_playerApiSignInPost
+      tags:
+        - Player API
+      summary: Sign in / any action via POST
+      description: |
+        Same as GET. Parameters may be sent form-encoded or as a JSON body (the JSON body is merged only when
+        `username` is not already in the query string). Any `action` and its parameters can be sent this way.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:116`.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Core_PlayerApiPostBody'
+            example:
+              username: demo
+              password: s3cret
+              action: get_live_streams
+              category_id: '12'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Core_PlayerApiPostBody'
+      responses:
+        '200':
+          description: |
+            Same body as the matching GET operation for the given `action`; the sign-in payload when no action
+            is given; or an auth error object.
           content:
             application/json:
-              schema: { type: array, items: { $ref: '#/components/schemas/Category' } }
-              example:
-                - { category_id: "1", category_name: News, parent_id: 0 }
-                - { category_id: "2", category_name: Sports, parent_id: 0 }
-
-  /player_api?action=get_live_streams:
+              schema: {}
+              examples:
+                signIn:
+                  $ref: '#/components/examples/Core_SignInActive'
+                invalid:
+                  $ref: '#/components/examples/Core_AuthInvalid'
+  /player_api.php?action=get_live_categories:
     get:
-      tags: [Live TV]
-      summary: Get all live streams
-      description: Returns all live streams, optionally filtered by `category_id`.
+      operationId: Core_getLiveCategories
+      tags:
+        - Player API
+      summary: Live TV categories (includes radio)
+      description: |
+        Categories of type `live` and `radio` that the line's bouquets reach, in panel order.
+        A category template in the line's settings can rename or hide categories.
+        `category_id` is a string; `parent_id` is always the integer `0` (XC_VM has no subcategories).
+        Returns `[]` when the line has no categories.
+        Numeric alias: `action=201`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:646`.
       parameters:
-        - name: category_id
-          in: query
-          required: false
-          schema: { type: integer }
-          description: Filter streams by category
+        - $ref: '#/components/parameters/Core_ActionGetLiveCategories'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
       responses:
         '200':
-          description: Live streams
-          content:
-            application/json:
-              schema: { type: array, items: { type: object } }
-              example:
-                - num: 1
-                  name: BBC News
-                  stream_type: live
-                  stream_id: 101
-                  stream_icon: "http://176.124.192.118/images/bbc.png"
-                  epg_channel_id: bbc.news.uk
-                  added: "1660568200"
-                  category_id: "1"
-                  custom_sid: ""
-                  tv_archive: 0
-                  direct_source: ""
-                  tv_archive_duration: 0
-
-  /player_api?action=get_short_epg:
-    get:
-      tags: [Live TV]
-      summary: Get channel short EPG
-      parameters:
-        - name: stream_id
-          in: query
-          required: true
-          schema: { type: integer }
-        - name: limit
-          in: query
-          required: false
-          schema: { type: integer }
-          description: Number of EPG entries to return
-      responses:
-        '200':
-          description: EPG listings
+          description: Category list, or an auth error object.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  epg_listings: { type: array, items: { type: object } }
-              example:
-                epg_listings:
-                  - id: 1
-                    title: Morning News
-                    start: "2022-08-15 07:00:00"
-                    end: "2022-08-15 08:00:00"
-                    description: Daily morning news update.
-
-  /player_api?action=get_simple_data_table:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Core_Category'
+                  - $ref: '#/components/schemas/Core_AuthError'
+              examples:
+                ok:
+                  value:
+                    - category_id: '1'
+                      category_name: UK | Entertainment
+                      parent_id: 0
+                    - category_id: '2'
+                      category_name: UK | Sports
+                      parent_id: 0
+                    - category_id: '9'
+                      category_name: Radio | UK
+                      parent_id: 0
+                invalid:
+                  $ref: '#/components/examples/Core_AuthInvalid'
+  /player_api.php?action=get_vod_categories:
     get:
-      tags: [Live TV]
-      summary: Get full channel schedule
+      operationId: Core_getVodCategories
+      tags:
+        - Player API
+      summary: VOD (movie) categories
+      description: |
+        Categories of type `movie` reachable through the line's bouquets. Same row shape as live categories.
+        Numeric alias: `action=200`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:620`.
       parameters:
-        - name: stream_id
-          in: query
-          required: true
-          schema: { type: integer }
+        - $ref: '#/components/parameters/Core_ActionGetVodCategories'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
       responses:
         '200':
-          description: Full EPG schedule for the channel
+          description: Category list, or an auth error object.
           content:
             application/json:
-              schema: { type: object }
-
-  /xmltv.php:
-    get:
-      tags: [Live TV]
-      summary: Get EPG for all channels (XMLTV)
-      description: Returns the full XMLTV guide for all channels.
-      responses:
-        '200':
-          description: XMLTV document
-          content:
-            application/xml:
-              schema: { type: string }
-              example: |
-                <tv>
-                  <channel id="bbc.news.uk">
-                    <display-name>BBC News</display-name>
-                  </channel>
-                  <programme start="20220815070000 +0000" stop="20220815080000 +0000" channel="bbc.news.uk">
-                    <title>Morning News</title>
-                    <desc>Daily morning news update.</desc>
-                  </programme>
-                </tv>
-
-  /player_api?action=get_vod_categories:
-    get:
-      tags: [VOD]
-      summary: Get movie categories
-      responses:
-        '200':
-          description: VOD categories
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: '#/components/schemas/Category' } }
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Core_Category'
+                  - $ref: '#/components/schemas/Core_AuthError'
               example:
-                - { category_id: "10", category_name: Action, parent_id: 0 }
-                - { category_id: "11", category_name: Drama, parent_id: 0 }
-
-  /player_api?action=get_vod_streams:
+                - category_id: '21'
+                  category_name: Movies | Action
+                  parent_id: 0
+                - category_id: '22'
+                  category_name: Movies | Comedy
+                  parent_id: 0
+  /player_api.php?action=get_series_categories:
     get:
-      tags: [VOD]
-      summary: Get all VOD streams
-      description: Returns all movies, optionally filtered by `category_id`.
+      operationId: Core_getSeriesCategories
+      tags:
+        - Player API
+      summary: Series categories
+      description: |
+        Categories of type `series` reachable through the line's bouquets.
+        Numeric alias: `action=206`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:633`.
       parameters:
-        - name: category_id
-          in: query
-          required: false
-          schema: { type: integer }
+        - $ref: '#/components/parameters/Core_ActionGetSeriesCategories'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
       responses:
         '200':
-          description: VOD streams
+          description: Category list, or an auth error object.
           content:
             application/json:
-              schema: { type: array, items: { type: object } }
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Core_Category'
+                  - $ref: '#/components/schemas/Core_AuthError'
+              example:
+                - category_id: '31'
+                  category_name: Series | Drama
+                  parent_id: 0
+  /player_api.php?action=get_live_streams:
+    get:
+      operationId: Core_getLiveStreams
+      tags:
+        - Player API
+      summary: Live channels (and radio / created channels)
+      description: |
+        All live streams, created (looped) channels and radio stations in the line's bouquets.
+        `stream_type` is `live`, `created_live` or `radio_streams`.
+
+        Sorting follows the line's channel order (bouquet order, or the panel's manual order). Paging
+        (`params[offset]`, `params[items_per_page]`) slices the sorted id list *before* the category filter is
+        applied, so a page can hold fewer rows than requested.
+
+        A stream in several categories is listed once (under its first category) unless the
+        `show_category_duplicates` setting is on, or `category_id` is given.
+
+        **Playback URL** (not in the response; apps build it): `{server}/live/{username}/{password}/{stream_id}.{ext}`
+        with `ext` = `ts` or `m3u8` (from `allowed_output_formats`). `direct_source` holds a ready-made
+        `{server}play/{token}` URL only when the `api_redirect` setting is on; otherwise it is `""`.
+        `thumbnail` is a `play/` URL for the live preview frame when the stream has a vframes server, else `""`.
+
+        Type quirks: `stream_id` and `num` are integers; `added`, `custom_sid`, `category_id` are strings;
+        `tv_archive` is integer `0`/`1`; `epg_channel_id` may be `null`.
+        Numeric alias: `action=202`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:779` (row built at `:884`).
+      parameters:
+        - $ref: '#/components/parameters/Core_ActionGetLiveStreams'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
+        - $ref: '#/components/parameters/Core_CategoryId'
+        - $ref: '#/components/parameters/Core_PageOffset'
+        - $ref: '#/components/parameters/Core_PageItemsPerPage'
+      responses:
+        '200':
+          description: Stream list, or an auth error object.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Core_LiveStream'
+                  - $ref: '#/components/schemas/Core_AuthError'
               example:
                 - num: 1
-                  name: The Dark Knight (2008)
-                  title: The Dark Knight
-                  year: 2008
-                  stream_type: movie
-                  stream_id: 1
-                  rating: 8.5
-                  rating_5based: 4.3
-                  added: 1757343129
-                  genre: "Drama, Action, Crime"
-                  release_date: "2008-07-16"
-                  youtube_trailer: kmJLuwP3MbY
-                  episode_run_time: "152"
-                  category_id: "1"
-                  category_ids: [1, 2]
-                  container_extension: mp4
-                  custom_sid: ""
-                  direct_source: ""
-
-  /player_api?action=get_vod_info:
+                  name: 'UK: BBC One HD'
+                  stream_type: live
+                  stream_id: 1043
+                  stream_icon: http://example.com/logos/bbc1.png
+                  epg_channel_id: BBCOne.uk
+                  added: '1699999123'
+                  custom_sid: ''
+                  tv_archive: 1
+                  direct_source: ''
+                  tv_archive_duration: 7
+                  category_id: '1'
+                  category_ids:
+                    - 1
+                  thumbnail: ''
+                - num: 2
+                  name: 'Radio: Capital FM'
+                  stream_type: radio_streams
+                  stream_id: 2001
+                  stream_icon: ''
+                  epg_channel_id: null
+                  added: '1699999555'
+                  custom_sid: ''
+                  tv_archive: 0
+                  direct_source: ''
+                  tv_archive_duration: 0
+                  category_id: '9'
+                  category_ids:
+                    - 9
+                  thumbnail: ''
+  /player_api.php?action=get_vod_streams:
     get:
-      tags: [VOD]
-      summary: Get movie info
+      operationId: Core_getVodStreams
+      tags:
+        - Player API
+      summary: Movies
+      description: |
+        All movies in the line's bouquets. Paging and duplicate rules are the same as `get_live_streams`.
+
+        **Playback URL:** `{server}/movie/{username}/{password}/{stream_id}.{container_extension}`.
+
+        Type quirks: `rating` and `rating_5based` are JSON numbers (`rating` one decimal place, e.g. `7.3`;
+        `rating_5based` is half of it); `year` and `added` are strings; `plot`, `cast`, `director`, `genre`,
+        `release_date`, `youtube_trailer` and `episode_run_time` are copied from the TMDB metadata and are `null`
+        when missing. `name` is the title with the year appended (format depends on panel settings), `title` is the bare title.
+        Numeric alias: `action=203`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:963` (row built at `:1051`).
       parameters:
+        - $ref: '#/components/parameters/Core_ActionGetVodStreams'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
+        - $ref: '#/components/parameters/Core_CategoryId'
+        - $ref: '#/components/parameters/Core_PageOffset'
+        - $ref: '#/components/parameters/Core_PageItemsPerPage'
+      responses:
+        '200':
+          description: Movie list, or an auth error object.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Core_VodStream'
+                  - $ref: '#/components/schemas/Core_AuthError'
+              example:
+                - num: 1
+                  name: Inception (2010)
+                  title: Inception
+                  year: '2010'
+                  stream_type: movie
+                  stream_id: 50012
+                  stream_icon: https://image.tmdb.org/t/p/w600_and_h900_bestv2/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg
+                  rating: 8.4
+                  rating_5based: 4.2
+                  added: '1700001234'
+                  plot: Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious...
+                  cast: Leonardo DiCaprio, Joseph Gordon-Levitt, Elliot Page
+                  director: Christopher Nolan
+                  genre: Action, Science Fiction, Adventure
+                  release_date: '2010-07-15'
+                  youtube_trailer: YoHD9XEInc0
+                  episode_run_time: 148
+                  category_id: '21'
+                  category_ids:
+                    - 21
+                  container_extension: mkv
+                  custom_sid: ''
+                  direct_source: ''
+  /player_api.php?action=get_vod_info:
+    get:
+      operationId: Core_getVodInfo
+      tags:
+        - Player API
+      summary: Movie details
+      description: |
+        Full metadata for one movie. Answers only for a movie the line's bouquets include; any other id
+        (or a missing id) answers `{"info":[]}`. Note `info` is then an empty JSON *array*, not an object.
+
+        `info` is the stored TMDB properties object with these changes: `tmdb_id` and `episode_run_time` cast to
+        integers, `rating` a number with up to two decimals, `releasedate` copied from `release_date`,
+        `backdrop_path` URLs resolved, `subtitles` built from the probed subtitle tracks, and the raw probe keys
+        `audio`, `video`, `subtitle` removed. Other keys (`kinopoisk_url`, `o_name`, `duration_secs`, `duration`,
+        `bitrate`, `country`, `age`, `mpaa_rating`, …) pass through as stored and vary by import source.
+        Numeric alias: `action=209`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:897`.
+      parameters:
+        - $ref: '#/components/parameters/Core_ActionGetVodInfo'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
         - name: vod_id
           in: query
           required: true
-          schema: { type: integer }
+          description: The movie's `stream_id` from `get_vod_streams`.
+          schema:
+            type: integer
+            example: 50012
       responses:
         '200':
-          description: Detailed movie info
+          description: Movie details, `{"info":[]}` when not found/not allowed, or an auth error object.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  info: { type: object }
-                  movie_data: { type: object }
-
-  /player_api?action=get_series_categories:
+                oneOf:
+                  - $ref: '#/components/schemas/Core_VodInfo'
+                  - $ref: '#/components/schemas/Core_AuthError'
+              examples:
+                ok:
+                  value:
+                    info:
+                      kinopoisk_url: https://www.themoviedb.org/movie/27205
+                      tmdb_id: 27205
+                      name: Inception
+                      o_name: Inception
+                      cover_big: https://image.tmdb.org/t/p/w600_and_h900_bestv2/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg
+                      movie_image: https://image.tmdb.org/t/p/w600_and_h900_bestv2/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg
+                      release_date: '2010-07-15'
+                      releasedate: '2010-07-15'
+                      episode_run_time: 148
+                      youtube_trailer: YoHD9XEInc0
+                      director: Christopher Nolan
+                      actors: Leonardo DiCaprio, Joseph Gordon-Levitt, Elliot Page
+                      cast: Leonardo DiCaprio, Joseph Gordon-Levitt, Elliot Page
+                      description: Cobb, a skilled thief...
+                      plot: Cobb, a skilled thief...
+                      age: ''
+                      mpaa_rating: ''
+                      rating_count_kinopoisk: 0
+                      country: United States of America
+                      genre: Action, Science Fiction, Adventure
+                      backdrop_path:
+                        - https://image.tmdb.org/t/p/w1280/s3TBrRGB1iav7gFOCNx3H31MoES.jpg
+                      duration_secs: 8880
+                      duration: '02:28:00'
+                      bitrate: 4512
+                      rating: 8.37
+                      subtitles:
+                        - index: 0
+                          language: eng
+                          title: English
+                    movie_data:
+                      stream_id: 50012
+                      name: Inception (2010)
+                      title: Inception
+                      year: '2010'
+                      added: '1700001234'
+                      category_id: '21'
+                      category_ids:
+                        - 21
+                      container_extension: mkv
+                      custom_sid: ''
+                      direct_source: ''
+                notFound:
+                  value:
+                    info: []
+  /player_api.php?action=get_series:
     get:
-      tags: [Series]
-      summary: Get series categories
-      responses:
-        '200':
-          description: Series categories
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: '#/components/schemas/Category' } }
-              example:
-                - { category_id: "20", category_name: Drama, parent_id: 0 }
+      operationId: Core_getSeries
+      tags:
+        - Player API
+      summary: Series list
+      description: |
+        All series in the line's bouquets, sorted by the line's order (or most recently updated first when the
+        panel sorts by newest). Paging parameters are **ignored** for this action.
 
-  /player_api?action=get_series:
-    get:
-      tags: [Series]
-      summary: Get all series
-      description: Returns all series, optionally filtered by `category_id`.
+        Type quirks: `series_id` is an integer; `rating` is a *string* with no decimals (e.g. `"8"`) while
+        `rating_5based` is a number; `backdrop_path` is an array of URLs (or `null`); `episode_run_time` is a
+        string. Both `release_date` and `releaseDate` are sent with the same value (apps read either).
+        `last_modified` is a Unix timestamp string.
+        Numeric alias: `action=208`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:525` (row built at `:566`).
       parameters:
-        - name: category_id
-          in: query
-          required: false
-          schema: { type: integer }
+        - $ref: '#/components/parameters/Core_ActionGetSeries'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
+        - $ref: '#/components/parameters/Core_CategoryId'
       responses:
         '200':
-          description: Series list
+          description: Series list, or an auth error object.
           content:
             application/json:
-              schema: { type: array, items: { type: object } }
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Core_Series'
+                  - $ref: '#/components/schemas/Core_AuthError'
               example:
                 - num: 1
-                  name: Braceface (2001)
-                  title: Braceface
-                  year: 2001
+                  name: Breaking Bad (2008)
+                  title: Breaking Bad
+                  year: '2008'
                   stream_type: series
-                  series_id: 1
-                  genre: "Drama, Animation, Comedy"
-                  release_date: "2001-06-02"
-                  last_modified: "1757348651"
-                  rating: "7"
-                  rating_5based: 3.5
-                  episode_run_time: 25
-                  category_id: "4"
-                  category_ids: [4]
-
-  /player_api?action=get_series_info:
+                  series_id: 301
+                  cover: https://image.tmdb.org/t/p/w600_and_h900_bestv2/ggFHVNu6YYI5L9pCfOacjizRGt.jpg
+                  plot: Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer...
+                  cast: Bryan Cranston, Aaron Paul, Anna Gunn
+                  director: Vince Gilligan
+                  genre: Drama, Crime
+                  release_date: '2008-01-20'
+                  releaseDate: '2008-01-20'
+                  last_modified: '1700005000'
+                  rating: '9'
+                  rating_5based: 4.5
+                  backdrop_path:
+                    - https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg
+                  youtube_trailer: HhesaQXLuRY
+                  episode_run_time: '47'
+                  category_id: '31'
+                  category_ids:
+                    - 31
+  /player_api.php?action=get_series_info:
     get:
-      tags: [Series]
-      summary: Get series info
-      description: Returns seasons, series info and episodes for a series.
+      operationId: Core_getSeriesInfo
+      tags:
+        - Player API
+      summary: Series details, seasons and episodes
+      description: |
+        Seasons, series info and every episode of one series. Answers only for a series the line's bouquets
+        include; any other id answers `[]` (an empty JSON array).
+
+        `episodes` is keyed by season number. PHP's `json_encode` makes it a JSON **object** (`{"1":[...],"2":[...]}`)
+        in the normal case, but a **list** when the season keys happen to be `0,1,2…` (e.g. only a season 0 of
+        specials gives `[[...]]`). The `episodes` key is absent when the series has no episodes.
+        `seasons` is the stored TMDB season list (often `[]` for manually added series).
+
+        Per-episode `id` is the episode's stream id (string from the DB row). **Playback URL:**
+        `{server}/series/{username}/{password}/{id}.{container_extension}`.
+        `info` inside each episode is the stored properties (TMDB) with `audio`/`video`/`subtitle` removed;
+        `cover_big` falls back to `movie_image`.
+        Numeric alias: `action=204`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:405` (episode row at `:520`).
       parameters:
+        - $ref: '#/components/parameters/Core_ActionGetSeriesInfo'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
         - name: series_id
           in: query
           required: true
-          schema: { type: integer }
+          description: The `series_id` from `get_series`.
+          schema:
+            type: integer
+            example: 301
       responses:
         '200':
-          description: Series detail
+          description: Series details, `[]` when not found/not allowed, or an auth error object.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  seasons: { type: array, items: { type: object } }
-                  info: { type: object }
-                  episodes: { type: object }
-
-  /live/{username}/{password}/{stream_id}.ts:
+                oneOf:
+                  - $ref: '#/components/schemas/Core_SeriesInfo'
+                  - type: array
+                    maxItems: 0
+                  - $ref: '#/components/schemas/Core_AuthError'
+              examples:
+                ok:
+                  value:
+                    seasons:
+                      - air_date: '2008-01-20'
+                        episode_count: 7
+                        id: 3572
+                        name: Season 1
+                        overview: ''
+                        season_number: 1
+                        vote_average: 8.3
+                        cover: https://image.tmdb.org/t/p/w600_and_h900_bestv2/1BP4xYv9ZG4ZVHkL7ocOziBbSYH.jpg
+                        cover_big: https://image.tmdb.org/t/p/w600_and_h900_bestv2/1BP4xYv9ZG4ZVHkL7ocOziBbSYH.jpg
+                    info:
+                      name: Breaking Bad (2008)
+                      title: Breaking Bad
+                      year: '2008'
+                      cover: https://image.tmdb.org/t/p/w600_and_h900_bestv2/ggFHVNu6YYI5L9pCfOacjizRGt.jpg
+                      plot: Walter White, a New Mexico chemistry teacher...
+                      cast: Bryan Cranston, Aaron Paul, Anna Gunn
+                      director: Vince Gilligan
+                      genre: Drama, Crime
+                      release_date: '2008-01-20'
+                      releaseDate: '2008-01-20'
+                      last_modified: '1700005000'
+                      rating: '9'
+                      rating_5based: 4.5
+                      backdrop_path:
+                        - https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg
+                      youtube_trailer: HhesaQXLuRY
+                      episode_run_time: '47'
+                      category_id: '31'
+                      category_ids:
+                        - 31
+                    episodes:
+                      '1':
+                        - id: '70001'
+                          episode_num: '1'
+                          title: Breaking Bad - S01E01 - Pilot
+                          container_extension: mkv
+                          info:
+                            tmdb_id: 62085
+                            release_date: '2008-01-20'
+                            plot: When an unassuming high school chemistry teacher discovers he has a rare form of lung cancer...
+                            duration_secs: 3488
+                            duration: '00:58:08'
+                            movie_image: https://image.tmdb.org/t/p/w1280/ydlY3iPfeOAvu8gVqrxPoMvzNCn.jpg
+                            cover_big: https://image.tmdb.org/t/p/w1280/ydlY3iPfeOAvu8gVqrxPoMvzNCn.jpg
+                            bitrate: 3890
+                            rating: 8.2
+                            season: '1'
+                          subtitles: []
+                          custom_sid: ''
+                          added: '1700004000'
+                          season: 1
+                          direct_source: ''
+                notFound:
+                  value: []
+  /player_api.php?action=get_short_epg:
     get:
-      tags: [Media]
-      summary: Live TV stream
-      description: Direct link to a live channel stream.
+      operationId: Core_getShortEpg
+      tags:
+        - Player API
+      summary: Now/next programmes for a channel
+      description: |
+        The programme on now plus the next ones, up to `limit` (default 4) per stream. Past programmes are skipped.
+        `title` and `description` are **base64-encoded** UTF-8.
+        `start`/`end`/`stop` are `Y-m-d H:i:s` strings in the server time zone (`server_info.timezone`; UTC when
+        `force_epg_timezone` is on); `start_timestamp`/`stop_timestamp`/`end_timestamp` are Unix times
+        (string or integer depending on how the EPG cache stored them).
+
+        **Multi mode (XC_VM extra):** a comma-separated `stream_id` (`1043,1044`) or the `multi` flag keys
+        `epg_listings` by stream id, and the limit then applies per stream.
+
+        Data comes from a per-stream cache (`EPG_PATH/stream_<id>`) that the EPG cron writes. A stream with no
+        EPG answers `{"epg_listings":[]}`.
+        Numeric alias: `action=205`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:727`; cache writer `src/Cli/CronJobs/EpgCronJob.php:229`.
       parameters:
-        - { name: username, in: path, required: true, schema: { type: string } }
-        - { name: password, in: path, required: true, schema: { type: string } }
-        - { name: stream_id, in: path, required: true, schema: { type: integer } }
-      security: []
+        - $ref: '#/components/parameters/Core_ActionGetShortEpg'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
+        - $ref: '#/components/parameters/Core_EpgStreamId'
+        - name: limit
+          in: query
+          required: false
+          description: Maximum programmes per stream.
+          schema:
+            type: integer
+            default: 4
+        - $ref: '#/components/parameters/Core_EpgMulti'
       responses:
         '200':
-          description: MPEG-TS stream
+          description: EPG listings, or an auth error object.
           content:
-            video/mp2t:
-              schema: { type: string, format: binary }
-
-  /movie/{username}/{password}/{vod_id}.mp4:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required:
+                      - epg_listings
+                    properties:
+                      epg_listings:
+                        oneOf:
+                          - type: array
+                            items:
+                              $ref: '#/components/schemas/Core_ShortEpgRow'
+                          - type: object
+                            description: Multi mode, keyed by stream id.
+                            additionalProperties:
+                              type: array
+                              items:
+                                $ref: '#/components/schemas/Core_ShortEpgRow'
+                  - $ref: '#/components/schemas/Core_AuthError'
+              examples:
+                single:
+                  value:
+                    epg_listings:
+                      - id: '8812231'
+                        epg_id: '3'
+                        title: QkJDIE5ld3M=
+                        lang: en
+                        start: '2026-10-17 18:00:00'
+                        end: '2026-10-17 18:30:00'
+                        description: VGhlIGxhdGVzdCBuYXRpb25hbCBhbmQgaW50ZXJuYXRpb25hbCBuZXdzLg==
+                        channel_id: BBCOne.uk
+                        start_timestamp: '1792260000'
+                        stop_timestamp: '1792261800'
+                        end_timestamp: '1792261800'
+                        stop: '2026-10-17 18:30:00'
+                multi:
+                  value:
+                    epg_listings:
+                      '1043':
+                        - id: '8812231'
+                          epg_id: '3'
+                          title: QkJDIE5ld3M=
+                          lang: en
+                          start: '2026-10-17 18:00:00'
+                          end: '2026-10-17 18:30:00'
+                          description: ''
+                          channel_id: BBCOne.uk
+                          start_timestamp: '1792260000'
+                          stop_timestamp: '1792261800'
+                          end_timestamp: '1792261800'
+                          stop: '2026-10-17 18:30:00'
+                empty:
+                  value:
+                    epg_listings: []
+  /player_api.php?action=get_simple_data_table:
     get:
-      tags: [Media]
-      summary: Movie (VOD)
-      description: Direct link to a movie file.
+      operationId: Core_getSimpleDataTable
+      tags:
+        - Player API
+      summary: Full EPG for a channel (with archive flags)
+      description: |
+        Every cached programme for the stream (past and future), with `now_playing` and `has_archive` flags.
+        Used by apps to draw the catch-up (timeshift) guide. `has_archive` is `1` when the stream records
+        archive (`tv_archive_duration` days) and the programme ended inside that window.
+
+        Same base64 and date conventions as `get_short_epg`, but there is no `stop` or `end_timestamp` field.
+        Multi mode works as in `get_short_epg`.
+
+        **Catch-up URL** for a programme with `has_archive: 1`:
+        `{server}/timeshift/{username}/{password}/{duration_minutes}/{Y-m-d:H-i}/{stream_id}.ts`.
+        Numeric alias: `action=207`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:659`.
       parameters:
-        - { name: username, in: path, required: true, schema: { type: string } }
-        - { name: password, in: path, required: true, schema: { type: string } }
-        - { name: vod_id, in: path, required: true, schema: { type: integer } }
-      security: []
+        - $ref: '#/components/parameters/Core_ActionGetSimpleDataTable'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
+        - $ref: '#/components/parameters/Core_EpgStreamId'
+        - $ref: '#/components/parameters/Core_EpgMulti'
       responses:
         '200':
-          description: Movie file
+          description: EPG listings, or an auth error object.
           content:
-            video/mp4:
-              schema: { type: string, format: binary }
-
-  /series/{username}/{password}/{episode_id}.mp4:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required:
+                      - epg_listings
+                    properties:
+                      epg_listings:
+                        oneOf:
+                          - type: array
+                            items:
+                              $ref: '#/components/schemas/Core_DataTableEpgRow'
+                          - type: object
+                            additionalProperties:
+                              type: array
+                              items:
+                                $ref: '#/components/schemas/Core_DataTableEpgRow'
+                  - $ref: '#/components/schemas/Core_AuthError'
+              example:
+                epg_listings:
+                  - id: '8812230'
+                    epg_id: '3'
+                    title: RWFzdEVuZGVycw==
+                    lang: en
+                    start: '2026-10-16 19:30:00'
+                    end: '2026-10-16 20:00:00'
+                    description: ''
+                    channel_id: BBCOne.uk
+                    start_timestamp: '1792179000'
+                    stop_timestamp: '1792180800'
+                    now_playing: 0
+                    has_archive: 1
+                  - id: '8812231'
+                    epg_id: '3'
+                    title: QkJDIE5ld3M=
+                    lang: en
+                    start: '2026-10-17 18:00:00'
+                    end: '2026-10-17 18:30:00'
+                    description: ''
+                    channel_id: BBCOne.uk
+                    start_timestamp: '1792260000'
+                    stop_timestamp: '1792261800'
+                    now_playing: 1
+                    has_archive: 0
+  /player_api.php?action=get_epg:
     get:
-      tags: [Media]
-      summary: Episode
-      description: Direct link to an episode file.
+      operationId: Core_getEpg
+      tags:
+        - Player API
+      summary: Raw EPG rows for a channel (XC_VM extension)
+      description: |
+        Not part of the classic XC API. Returns the cached EPG rows of the stream as a bare JSON array (or an
+        object keyed by stream id in multi mode). `title`/`description` are base64; `start`/`end` are integer Unix
+        times (no formatted dates). `from_now=1` drops programmes that have already ended.
+        Answers `[]` when no `stream_id` is given or the line has expired.
+        No numeric alias.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:364`.
       parameters:
-        - { name: username, in: path, required: true, schema: { type: string } }
-        - { name: password, in: path, required: true, schema: { type: string } }
-        - { name: episode_id, in: path, required: true, schema: { type: integer } }
-      security: []
+        - $ref: '#/components/parameters/Core_ActionGetEpg'
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
+        - $ref: '#/components/parameters/Core_EpgStreamId'
+        - $ref: '#/components/parameters/Core_EpgMulti'
+        - name: from_now
+          in: query
+          required: false
+          description: Any positive value skips programmes whose end time is in the past.
+          schema:
+            type: integer
+            enum:
+              - 0
+              - 1
       responses:
         '200':
-          description: Episode file
+          description: EPG rows, or an auth error object.
           content:
-            video/mp4:
-              schema: { type: string, format: binary }
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Core_RawEpgRow'
+                  - type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Core_RawEpgRow'
+                  - $ref: '#/components/schemas/Core_AuthError'
+              example:
+                - id: '8812231'
+                  epg_id: '3'
+                  channel_id: BBCOne.uk
+                  start: 1792260000
+                  end: 1792261800
+                  lang: en
+                  title: QkJDIE5ld3M=
+                  description: ''
+  /panel_api.php:
+    get:
+      operationId: Core_panelApi
+      tags:
+        - Panel API (legacy)
+      summary: Legacy all-in-one sign-in
+      description: |
+        Sign-in payload (as `player_api.php` with no action) plus `categories` (`series`, `movie`, `live`) and
+        `available_channels`: every live channel, radio, created channel and movie of the line, keyed by stream id.
+        A stream in several categories appears once, under its first category. Series are not listed
+        (only their categories are). Can be very large on big lines.
 
-components:
-  securitySchemes:
-    Username:
-      type: apiKey
-      in: query
-      name: username
-      description: Account username.
-    Password:
-      type: apiKey
-      in: query
-      name: password
-      description: Account password.
-  schemas:
-    Category:
-      type: object
-      properties:
-        category_id: { type: string }
-        category_name: { type: string }
-        parent_id: { type: integer }
+        With an `action`, behaves exactly like `player_api.php` with the same action.
+
+        Answers `{"user_info":{"auth":0,"status":"Disabled","message":"Legacy panel_api access has been disabled."}}`
+        unless the `legacy_panel_api` setting is on. Aliases: `/panel_api`.
+
+        Type quirks inside `available_channels`: `stream_id` and `added` are strings (unlike player_api);
+        `live` is `"1"`/`"0"`; `series_no` is always `null`; `type_name` is `Live Streams`, `Movies`,
+        `Created Live Channels` or `Radio`. When empty, `available_channels` is `[]` (JSON array) not `{}`.
+        Source: `src/Public/Controllers/Api/PlayerApiController.php:107`, `:332` (`getLegacyLists`).
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
+      responses:
+        '200':
+          description: Panel API payload, or an auth error object.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Core_PanelApiResponse'
+                  - $ref: '#/components/schemas/Core_AuthError'
+              examples:
+                ok:
+                  value:
+                    user_info:
+                      username: demo
+                      password: s3cret
+                      message: Welcome!
+                      auth: 1
+                      status: Active
+                      exp_date: '1798675200'
+                      is_trial: '0'
+                      active_cons: '0'
+                      created_at: '1767225600'
+                      max_connections: '1'
+                      allowed_output_formats:
+                        - m3u8
+                        - ts
+                        - rtmp
+                    server_info:
+                      version: 2.7.2
+                      url: tv.example.com
+                      port: '80'
+                      https_port: '443'
+                      server_protocol: http
+                      rtmp_port: '8880'
+                      timestamp_now: 1792261200
+                      time_now: '2026-10-17 18:20:00'
+                      timezone: Europe/London
+                      process: true
+                    categories:
+                      series:
+                        - category_id: '31'
+                          category_name: Series | Drama
+                          parent_id: 0
+                      movie:
+                        - category_id: '21'
+                          category_name: Movies | Action
+                          parent_id: 0
+                      live:
+                        - category_id: '1'
+                          category_name: UK | Entertainment
+                          parent_id: 0
+                    available_channels:
+                      '1043':
+                        num: 1
+                        name: 'UK: BBC One HD'
+                        stream_type: live
+                        type_name: Live Streams
+                        stream_id: '1043'
+                        stream_icon: http://example.com/logos/bbc1.png
+                        epg_channel_id: BBCOne.uk
+                        added: '1699999123'
+                        category_name: UK | Entertainment
+                        category_id: '1'
+                        series_no: null
+                        live: '1'
+                        container_extension: null
+                        custom_sid: ''
+                        tv_archive: 1
+                        direct_source: ''
+                        tv_archive_duration: 7
+                      '50012':
+                        num: 1
+                        name: Inception (2010)
+                        stream_type: movie
+                        type_name: Movies
+                        stream_id: '50012'
+                        stream_icon: https://image.tmdb.org/t/p/w600_and_h900_bestv2/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg
+                        epg_channel_id: null
+                        added: '1700001234'
+                        category_name: Movies | Action
+                        category_id: '21'
+                        series_no: null
+                        live: '0'
+                        container_extension: mkv
+                        custom_sid: ''
+                        tv_archive: 0
+                        direct_source: ''
+                        tv_archive_duration: 0
+                disabled:
+                  value:
+                    user_info:
+                      auth: 0
+                      status: Disabled
+                      message: Legacy panel_api access has been disabled.
+  /xmltv.php:
+    get:
+      operationId: Core_getXmltv
+      tags:
+        - EPG
+      summary: Download the XMLTV guide
+      description: |
+        Serves the pre-built XMLTV file for the line's bouquet set. The EPG cron writes one file per distinct
+        bouquet combination, `EPG_PATH/epg_<sha256(sorted bouquet ids joined by "_")>.xml`, and falls back to
+        `epg_all.xml`; with `gzip=1` the `.xml.gz` sibling is sent. The file is streamed in 1 MB chunks.
+        Aliases: `/xmltv`, `/epg.php`, `/epg`, `/api/epg`, `/epg/{username}/{password}` and
+        `/epg/{username}/{password}/gz` (sets `gzip=1`). The `x-tvg-url` in M3U playlists points to the `/epg/` form.
+
+        **Format:** `<tv generator-info-name="{server_name}">` with one `<channel id="{epg_channel_id}">`
+        (`display-name`, optional `icon`) per stream that has EPG, then `<programme start stop channel>` with
+        `title` and `desc`. Times are `YmdHis ±hhmm`. Only current/future programmes are written unless at least
+        one channel in the set has catch-up archive, in which case past programmes are kept too. No `lang`
+        attribute, categories, or episode numbers are emitted.
+
+        **Errors** (panel error page, 404 in production): `LEGACY_EPG_DISABLED`, `INVALID_CREDENTIALS`, the
+        `BaseApiController::validateUser` codes (as for `get.php`), `EPG_DISABLED`, `EPG_FILE_MISSING`.
+        `429` with an empty body when the download limit is reached.
+
+        Sources: `src/Public/Controllers/Api/EpgApiController.php:27`, `src/Cli/CronJobs/EpgCronJob.php:254`
+        (`buildXmltv`), `:376` (programme rows).
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
+        - name: gzip
+          in: query
+          required: false
+          description: '`1` sends the gzip-compressed file (`epg.xml.gz`, `application/octet-stream`).'
+          schema:
+            type: integer
+            enum:
+              - 0
+              - 1
+            default: 0
+      responses:
+        '200':
+          description: XMLTV document.
+          headers:
+            Content-disposition:
+              schema:
+                type: string
+              example: attachment; filename="epg.xml"
+          content:
+            application/xml:
+              schema:
+                type: string
+              example: "<?xml version=\"1.0\" encoding=\"utf-8\" ?><!DOCTYPE tv SYSTEM \"xmltv.dtd\">\n<tv generator-info-name=\"XC_VM\">\n\t<channel id=\"BBCOne.uk\">\t\t<display-name>UK: BBC One HD</display-name>\t\t<icon src=\"http://example.com/logos/bbc1.png\" />\t</channel>\t<programme start=\"20261017180000 +0100\" stop=\"20261017183000 +0100\" channel=\"BBCOne.uk\">\t\t<title>BBC News</title>\t\t<desc>The latest national and international news.</desc>\t</programme>\n</tv>\n"
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: With `gzip=1`; the gzip-compressed XMLTV document (`epg.xml.gz`).
+        '403':
+          $ref: '#/components/responses/Core_IpBlocked'
+        '404':
+          $ref: '#/components/responses/Core_PanelErrorPage'
+        '429':
+          description: Download limit reached (`max_simultaneous_downloads`). Empty body.

@@ -1,0 +1,213 @@
+openapi: 3.1.0
+info:
+  title: XC_VM Monitoring API
+  version: 2.7.2
+  summary: Monitoring of the Xtream Codes compatible HTTP surface, as implemented by XC_VM.
+  description: |
+    A source-level reference for the **Xtream Codes (XC) API**: the de facto standard HTTP interface
+    between IPTV panels and player apps. The reference implementation is
+    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.2, an open-source continuation of Xtream UI / XC.
+    Each operation cites the XC_VM source file and line it was traced from (`src/...:line`).
+  contact:
+    name: XC_VM project
+    url: https://github.com/Vateron-Media/XC_VM
+  license:
+    name: AGPL-3.0 (XC_VM source); this document describes its public interface
+    identifier: AGPL-3.0-only
+servers:
+  - url: '{protocol}://{host}:{port}'
+    description: Any XC compatible panel or load-balancer node
+    variables:
+      protocol:
+        default: http
+        enum:
+          - http
+          - https
+      host:
+        default: tv.example.com
+      port:
+        default: '80'
+        description: HTTP broadcast port (often 80, 8080, 8000, 25461); HTTPS often 443 or 25463.
+externalDocs:
+  description: XC_VM source
+  url: https://github.com/Vateron-Media/XC_VM
+components:
+  securitySchemes:
+    Metrics_BearerToken:
+      type: http
+      scheme: bearer
+      description: 'The panel setting `metrics_token`, sent as `Authorization: Bearer <token>`.'
+  responses:
+    E2_FloodBlocked403:
+      description: |
+        The client IP is blocked (a `block_<ip>` file exists in FLOOD_TMP_PATH): FloodProtectionStage
+        answers 403 with an empty body before any controller runs
+        (src/Infrastructure/Bootstrap/WebApiBootstrap.php:50-66). IPs are blocked by
+        `BruteforceGuard::checkFlood` (`flood_limit` requests in `flood_seconds`) or `checkBruteforce`
+        (too many distinct failed usernames/passwords, MACs or codes within `bruteforce_frequency`)
+        (src/Core/Auth/BruteforceGuard.php:149, :277). Allowed IPs and `flood_ips_exclude` are never blocked.
+tags:
+  - name: Monitoring
+    description: |
+      Prometheus exposition (/metrics, bearer token) and a liveness probe (/healthz), served by
+      src/Public/Controllers/Api/MetricsController.php. Only the extension-less paths exist
+      (src/bin/nginx/conf/nginx.conf:411-421): no .php or /api/ variants.
+paths:
+  /metrics:
+    get:
+      operationId: Metrics_scrape
+      tags:
+        - Monitoring
+      summary: Prometheus metrics
+      description: |
+        src/Public/Controllers/Api/MetricsController.php:39-60, render :86-152, family :232.
+        Only `/metrics` (nginx.conf:411-421). **Auth:** setting `metrics_token` must be non-empty (else 404 with
+        an empty body, i.e. the endpoint is off) and the request must send `Authorization: Bearer <token>`
+        (header only, never a query parameter; compared with hash_equals) — otherwise 401, empty body,
+        `WWW-Authenticate: Bearer`. Every response sends `Cache-Control: no-store`. Output is cached for 15 s.
+        Not counted by the flood guard (empty shutdown), but the boot-time IP block (403) still applies.
+
+        All families are gauges: `xcvm_up`; per enabled server (labels `server`, `name`):
+        `xcvm_server_online`, `xcvm_server_cpu_percent`, `xcvm_server_memory_percent`,
+        `xcvm_server_disk_free_bytes`, `xcvm_server_disk_total_bytes`,
+        `xcvm_server_network_bytes_per_second{direction="in|out"}`, `xcvm_server_connections`,
+        `xcvm_server_streams{state="running|down"}`; `xcvm_lines{state="active|expired|disabled"}`;
+        `xcvm_last_run_age_seconds{job="root_cron|backup|cache"}`; `xcvm_status_check{check}` (-1 off, 0 ok,
+        1 warning, 2 failing). When `cluster_api_enabled`: `xcvm_cluster_node{state,health,mode}`,
+        `xcvm_cluster_node_last_seen_seconds`, `xcvm_cluster_node_clock_offset_seconds`,
+        `xcvm_cluster_node_lane_lag_seconds{lane="p0|p1"}`, `xcvm_cluster_node_unreachable_urls`,
+        `xcvm_cluster_node_streams_local`, `xcvm_cluster_node_commands_queued`,
+        `xcvm_cluster_command_latency_seconds{stage="deliver|ack",quantile="0.5|0.99"}`,
+        `xcvm_gateway_requests{kind,action,reason}`, `xcvm_gateway_shadow_requests{result}`,
+        `xcvm_gateway_ready{mode,readiness}`. Floats are printed with up to 4 decimals, trailing zeros trimmed.
+      security:
+        - Metrics_BearerToken: []
+      responses:
+        '200':
+          description: Prometheus text exposition format 0.0.4.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            text/plain; version=0.0.4; charset=utf-8:
+              schema:
+                type: string
+              example: |
+                # HELP xcvm_up The panel answered.
+                # TYPE xcvm_up gauge
+                xcvm_up 1
+                # HELP xcvm_server_online Whether an enabled server answers MAIN.
+                # TYPE xcvm_server_online gauge
+                xcvm_server_online{server="1",name="Main Server"} 1
+                # HELP xcvm_server_cpu_percent CPU use the server last reported.
+                # TYPE xcvm_server_cpu_percent gauge
+                xcvm_server_cpu_percent{server="1",name="Main Server"} 23.47
+                # HELP xcvm_server_network_bytes_per_second Network rate the server last reported.
+                # TYPE xcvm_server_network_bytes_per_second gauge
+                xcvm_server_network_bytes_per_second{server="1",name="Main Server",direction="in"} 1843200
+                xcvm_server_network_bytes_per_second{server="1",name="Main Server",direction="out"} 52428800
+                # HELP xcvm_server_streams Streams on the server by state.
+                # TYPE xcvm_server_streams gauge
+                xcvm_server_streams{server="1",name="Main Server",state="running"} 312
+                xcvm_server_streams{server="1",name="Main Server",state="down"} 4
+                # HELP xcvm_lines Lines by state.
+                # TYPE xcvm_lines gauge
+                xcvm_lines{state="active"} 1820
+                xcvm_lines{state="expired"} 344
+                xcvm_lines{state="disabled"} 27
+                # HELP xcvm_last_run_age_seconds Seconds since the job last ran.
+                # TYPE xcvm_last_run_age_seconds gauge
+                xcvm_last_run_age_seconds{job="root_cron"} 42
+                xcvm_last_run_age_seconds{job="backup"} 51200
+                # HELP xcvm_status_check The dashboard's status checks: -1 off, 0 ok, 1 warning, 2 failing.
+                # TYPE xcvm_status_check gauge
+                xcvm_status_check{check="backups"} 0
+                xcvm_status_check{check="certs"} 1
+        '401':
+          description: Missing or wrong bearer token. Empty body.
+          headers:
+            WWW-Authenticate:
+              schema:
+                type: string
+                example: Bearer
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '404':
+          description: Metrics disabled (`metrics_token` empty). Empty body.
+  /healthz:
+    get:
+      operationId: Metrics_healthz
+      tags:
+        - Monitoring
+      summary: Health probe
+      description: |
+        src/Public/Controllers/Api/MetricsController.php:41-47, healthy() :74-84. No authentication.
+        200 `ok\n` when the database answers `SELECT 1` and no dashboard status check is in state `fail`;
+        otherwise (or on any exception) 503 `fail\n`. Result cached 15 s. `Cache-Control: no-store`.
+        Only `/healthz` (nginx.conf:411-421).
+      responses:
+        '200':
+          description: Healthy.
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+              example: |
+                ok
+        '403':
+          $ref: '#/components/responses/E2_FloodBlocked403'
+        '503':
+          description: Unhealthy.
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+              example: |
+                fail
+  /progress:
+    post:
+      operationId: Metrics_ffmpegProgress
+      tags:
+        - Monitoring
+      summary: Internal FFmpeg progress sink (localhost only)
+      x-internal: true
+      description: |
+        src/Public/progress/index.php:1-41, nginx.conf:348-366 (`/progress.php` → 302 `/progress?$args`).
+        **Not public:** only accepted from REMOTE_ADDR 127.0.0.1 with a non-empty `stream_id` query parameter
+        and a non-empty body; anything else (including every external request) gets the nginx-style 404 page
+        (:24-27). The body is FFmpeg `-progress` output (`key=value` lines), stored as JSON in
+        `STREAMS_PATH/<stream_id>_.progress`. Success is HTTP 200 with an empty body.
+      parameters:
+        - name: stream_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+            example: |
+              frame=1520
+              fps=25.00
+              bitrate=4210.3kbits/s
+              out_time_ms=60800000
+              speed=1.00x
+              progress=continue
+      responses:
+        '200':
+          description: Stored. Empty body.
+        '404':
+          description: Any non-localhost request or missing stream_id/body.
+          content:
+            text/html:
+              schema:
+                type: string
