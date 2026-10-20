@@ -1,0 +1,2039 @@
+openapi: 3.1.0
+info:
+  title: XC_VM Streaming API
+  version: 2.7.2
+  summary: Streaming of the Xtream Codes compatible HTTP surface, as implemented by XC_VM.
+  description: |
+    A source-level reference for the **Xtream Codes (XC) API**: the de facto standard HTTP interface
+    between IPTV panels and player apps. The reference implementation is
+    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.2, an open-source continuation of Xtream UI / XC.
+    Each operation cites the XC_VM source file and line it was traced from (`src/...:line`).
+
+    ## Where to start
+
+    The three endpoints almost every client uses:
+
+    | Endpoint | Purpose |
+    |---|---|
+    | `GET /player_api.php` | JSON sign-in and catalogue browsing (`action=get_live_streams`, `get_vod_info`, `get_short_epg`, ...) |
+    | `GET /get.php` | Downloadable playlist (`type=m3u_plus&output=ts`) |
+    | `GET /xmltv.php` | XMLTV guide for the line's channels |
+
+    Playback then uses plain media URLs (see the **Streaming** tag):
+
+    ```
+    {server}/live/{username}/{password}/{stream_id}.{ts|m3u8}
+    {server}/movie/{username}/{password}/{stream_id}.{container_extension}
+    {server}/series/{username}/{password}/{episode_id}.{container_extension}
+    {server}/timeshift/{username}/{password}/{duration_min}/{YYYY-MM-DD:HH-MM}/{stream_id}.ts
+    ```
+
+    `{server}` is `server_info.server_protocol` + `://` + `server_info.url` + `:` + `server_info.port`
+    (or `https_port`) from the sign-in answer.
+
+    ## Authentication models
+
+    The panel has several independent auth schemes. Each endpoint states which one it uses.
+
+    | Who | How |
+    |---|---|
+    | Line (subscriber) | `username` + `password` query parameters, or `token` (32-char line access token). Also in path form: `/player_api/{u}/{p}`, `/live/{u}/{p}/...` |
+    | Activation code | The code typed as `username` (or `token`) is activated on first use and becomes a line |
+    | MAG / Stalker box | MAC address cookie + bearer token from `handshake` (`/c/portal.php`, `/stalker_portal/...`) |
+    | Enigma2 box | MAC/device registration (`enigma2.php`) |
+    | Admin / reseller REST | `api_key` query parameter (named `xct_` token or legacy per-user key) on `/{access_code}/?action=...`; the access code's IP whitelist is enforced by nginx |
+    | Load-balancer nodes | Shared cluster secret (`/cluster/v1`); signed `node.rpc` (legacy `api.php` on nodes older than 2.7.0) |
+
+    ## Error model
+
+    - `player_api.php` / `panel_api.php` **never** use HTTP status for auth failure. They answer **200** with
+      `{"user_info":{"auth":0,"status":"...","message":"..."}}`. Always check `user_info.auth`.
+    - `get.php`, `xmltv.php` and the media endpoints answer a bare **nginx-style 404 page** for nearly every
+      error (bad credentials, expired, banned, wrong type…), so apps cannot tell errors apart. With the panel
+      setting `debug_show_errors` on, the page names the error code instead.
+    - Download limits answer **429**; a blocked IP answers **403** before any controller runs;
+      maintenance mode answers **503** with optional `Retry-After` on streaming endpoints (player_api reports
+      maintenance as `status: "Maintenance"`).
+    - nginx answers `200` with an empty body for any HTTP method other than GET or POST on client routes.
+  contact:
+    name: XC_VM project
+    url: https://github.com/Vateron-Media/XC_VM
+  license:
+    name: AGPL-3.0 (XC_VM source); this document describes its public interface
+    identifier: AGPL-3.0-only
+servers:
+  - url: '{protocol}://{host}:{port}'
+    description: Any XC compatible panel or load-balancer node
+    variables:
+      protocol:
+        default: http
+        enum:
+          - http
+          - https
+      host:
+        default: tv.example.com
+      port:
+        default: '80'
+        description: HTTP broadcast port (often 80, 8080, 8000, 25461); HTTPS often 443 or 25463.
+externalDocs:
+  description: XC_VM source
+  url: https://github.com/Vateron-Media/XC_VM
+components:
+  parameters:
+    Username:
+      name: username
+      in: query
+      required: true
+      description: Line username. Optional when `token` is sent instead.
+      schema:
+        type: string
+        example: demo
+    Password:
+      name: password
+      in: query
+      required: true
+      description: Line password. Optional when `token` is sent instead.
+      schema:
+        type: string
+        format: password
+        example: s3cret
+    Stream_PathUsername:
+      name: username
+      in: path
+      required: true
+      description: Line username. A `?username=` query arg overrides it (nginx appends args; PHP keeps the last).
+      schema:
+        type: string
+        example: user
+    Stream_PathPassword:
+      name: password
+      in: path
+      required: true
+      description: Line password. A `?password=` query arg overrides it.
+      schema:
+        type: string
+        example: pass
+    Stream_PathStreamId:
+      name: stream_id
+      in: path
+      required: true
+      description: Numeric stream id (the nginx regex requires `\d+`; it is intval'd).
+      schema:
+        type: integer
+        example: 123
+    Stream_PathExtension:
+      name: extension
+      in: path
+      required: true
+      description: |
+        Container. It is lowercased and non-alphanumerics are stripped (src/Public/stream/auth.php:133).
+        - Live: `ts` or `m3u8`. Others are passed through as `api_container` and must be in the
+          line's `output_formats`.
+        - Timeshift: `m3u8` gives a playlist; anything else gives TS.
+      schema:
+        type: string
+        example: m3u8
+    Stream_PathVodFile:
+      name: stream
+      in: path
+      required: true
+      description: |
+        `{stream_id}.{ext}`. For movies, ext must equal the movie's `target_container` (or be
+        srt, m3u8 or ts), and VOD_PATH/{id}.{ext} must exist.
+      schema:
+        type: string
+        example: 456.mp4
+    Stream_PathLineToken:
+      name: token
+      in: path
+      required: true
+      description: |
+        A line `access_token` (hex), or a non-hex encrypted play token, which then overrides
+        type, credentials and stream. A trailing `.{ext}` on a play token is split off.
+      schema:
+        type: string
+        example: 9f86d081884c7d659a2feaa0c55ad015
+    Stream_PathPlayToken:
+      name: token
+      in: path
+      required: true
+      description: |
+        A base64url AES-256-GCM token sealed with `live_streaming_pass` (src/Public/stream/auth.php:49-115).
+        A legacy AES-256-CBC token is accepted when `secure_stream_tokens` is off. The plaintext is
+        `type/username/password/stream[/ext[/expiry|magtoken]]`.
+      schema:
+        type: string
+        example: q2V9Rk1hY3x0ZXN0X3Rva2VuX2V4YW1wbGU
+    Stream_PathInternalToken:
+      name: token
+      in: path
+      required: true
+      description: |
+        Server-minted, short-lived token (ViewerKey::mint/mintOwn). It is only obtained from a
+        302 Location or a generated playlist. In the CDN form it is a filename such as
+        `123.m3u8`, and the real token is passed as `?token=`.
+      schema:
+        type: string
+        example: Zk1TbWJ4c2VhbGVkX3Rva2VuX2V4YW1wbGU
+    Stream_PathDuration:
+      name: duration
+      in: path
+      required: true
+      description: Length in MINUTES (intval, capped at 21600) (src/Public/stream/auth.php:735).
+      schema:
+        type: integer
+        example: 60
+    Stream_PathStart:
+      name: start
+      in: path
+      required: true
+      description: |
+        A unix timestamp (up to 10 digits), `YYYYMMDD-H`, or `YYYY-MM-DD:HH-MM` with optional
+        `:SS` or `-SS`. Date forms are in server-local time (mktime). Anything else gives
+        NO_TIMESTAMP (src/Public/stream/auth.php:729).
+      schema:
+        type: string
+        example: 2026-10-17:20-00
+    Stream_QueryStream:
+      name: stream
+      in: query
+      required: true
+      description: Stream id; `{id}.{ext}` for movie, series and subtitle.
+      schema:
+        type: string
+        example: '123'
+    Stream_QueryExtension:
+      name: extension
+      in: query
+      required: false
+      schema:
+        type: string
+        example: ts
+    Stream_QueryStart:
+      name: start
+      in: query
+      required: false
+      description: Timeshift start (formats as in the path `start`).
+      schema:
+        type: string
+        example: '1792267200'
+    Stream_QueryDuration:
+      name: duration
+      in: query
+      required: false
+      description: Timeshift length in minutes (capped at 21600).
+      schema:
+        type: integer
+        example: 120
+    Stream_QueryUtc:
+      name: utc
+      in: query
+      required: false
+      description: |
+        When present, the request becomes `type=timeshift`, `start=utc` and `duration=360`
+        minutes, whatever the path says (src/Public/stream/auth.php:117-123). Read from $_GET only.
+      schema:
+        type: string
+        example: '1792267200'
+    Stream_QueryPrebuffer:
+      name: prebuffer
+      in: query
+      required: false
+      description: Presence enables prebuffering of the live TS start (src/Public/stream/auth.php:224).
+      schema:
+        type: string
+    Stream_QueryWebvtt:
+      name: webvtt
+      in: query
+      required: false
+      description: 1 converts SRT to WebVTT (src/Public/stream/auth.php:823).
+      schema:
+        type: integer
+        enum:
+          - 0
+          - 1
+        default: 0
+    Stream_HeaderDetect:
+      name: X-XC_VM-DETECT
+      in: header
+      required: false
+      description: Any value flags the request as a restream probe for restream detection (src/Public/stream/auth.php:226-229).
+      schema:
+        type: string
+    Stream_HeaderPrebuffer:
+      name: X-XC_VM-PREBUFFER
+      in: header
+      required: false
+      description: Same as `?prebuffer` (src/Public/stream/auth.php:230-232).
+      schema:
+        type: string
+    Stream_HeaderRange:
+      name: Range
+      in: header
+      required: false
+      description: A single `bytes=` range only. Suffix ranges are allowed. Multi-range gives 416 (src/Streaming/Delivery/HttpRange.php:24-60).
+      schema:
+        type: string
+        example: bytes=0-1048575
+  responses:
+    Stream_NotFound:
+      description: |
+        Every error. This includes auth failures, disabled formats, bad tokens and missing
+        files. generateError and generate404 both end with HTTP 404
+        (src/Core/Error/ErrorResponder.php:203-237). With `debug_show_errors` on, the body is the
+        "XC_VM - Debug Mode" page naming the code (e.g. INVALID_CREDENTIALS), still with status 404.
+      content:
+        text/html:
+          schema:
+            type: string
+          examples:
+            production:
+              $ref: '#/components/examples/Stream_NotFoundPage'
+    Stream_FloodBlocked:
+      description: Client IP is flood/brute-force blocked. Empty body (src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php:42-44).
+    Stream_EmptyOk:
+      description: HTTP 200 with an empty body.
+    Stream_RangeNotSatisfiable:
+      description: Multi-range, malformed or out-of-bounds Range. No body (src/Streaming/Delivery/HttpRange.php:24-82).
+      headers:
+        Accept-Ranges:
+          schema:
+            type: string
+            example: bytes
+        Content-Range:
+          schema:
+            type: string
+            example: bytes */1468006400
+    Stream_GatewayPlaylist:
+      description: |
+        Inline playlist from the gateway: an adaptive master (live m3u8 adaptive links) or the
+        off-air/expired clip playlist (m3u8). It is also a blank 200 when no extension is resolved.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: no-store, no-cache, must-revalidate
+        Access-Control-Allow-Origin:
+          schema:
+            type: string
+            example: '*'
+      content:
+        application/x-mpegurl:
+          schema:
+            type: string
+          examples:
+            adaptive:
+              $ref: '#/components/examples/Stream_AdaptiveMaster'
+            offAir:
+              $ref: '#/components/examples/Stream_OffAirPlaylist'
+    Stream_LiveRedirect:
+      description: |
+        Redirect to the streaming server's internal endpoint (or proxy). The default form is
+        `{server}/auth/{token}`; with allow_cdn_access it is `{server}/auth/{id}.{m3u8|ts}?token=`.
+        A direct source goes to its source URL.
+      headers:
+        Location:
+          schema:
+            type: string
+          examples:
+            default:
+              value: http://lb1.example.com:8080/auth/Zk1TbWJ4c2VhbGVkX3Rva2VuX2V4YW1wbGU
+            cdn:
+              value: http://lb1.example.com:8080/auth/123.m3u8?token=Zk1TbWJ4c2VhbGVkX3Rva2VuX2V4YW1wbGU
+            directSource:
+              value: http://origin.example.net/live/channel1.m3u8
+        Cache-Control:
+          schema:
+            type: string
+            example: no-store, no-cache, must-revalidate
+    Stream_VodRedirect:
+      description: Redirect to `{server}/vauth/{token}`, or `{server}/vauth/{id}.{ext}?token=` with allow_cdn_access.
+      headers:
+        Location:
+          schema:
+            type: string
+          examples:
+            default:
+              value: http://lb1.example.com:8080/vauth/Vm9kVG9rZW5TZWFsZWRFeGFtcGxl
+            cdn:
+              value: http://lb1.example.com:8080/vauth/456.mp4?token=Vm9kVG9rZW5TZWFsZWRFeGFtcGxl
+    Stream_TimeshiftRedirect:
+      description: Redirect to `{archive_server}/tsauth/{token}`, or `/tsauth/{id}_{start}_{duration}.{m3u8|ts}?token=` with allow_cdn_access.
+      headers:
+        Location:
+          schema:
+            type: string
+          examples:
+            default:
+              value: http://lb1.example.com:8080/tsauth/VHNUb2tlblNlYWxlZEV4YW1wbGU
+            cdn:
+              value: http://lb1.example.com:8080/tsauth/123_2026-10-17:20-00_60.m3u8?token=VHNUb2tlblNlYWxlZEV4YW1wbGU
+    Stream_ThumbRedirect:
+      description: Redirect to `{vframes_server}/thauth/{token}` (token valid for 5 s).
+      headers:
+        Location:
+          schema:
+            type: string
+            example: http://lb1.example.com:8080/thauth/VGh1bWJUb2tlbkV4YW1wbGU
+    Stream_SubtitleRedirect:
+      description: Redirect to `{server}/subauth/{token}` (token valid for 5 s).
+      headers:
+        Location:
+          schema:
+            type: string
+            example: http://lb1.example.com:8080/subauth/U3ViVG9rZW5FeGFtcGxl
+  examples:
+    Stream_NotFoundPage:
+      summary: Production error body (every generateError/generate404)
+      value: "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->\r\n<!-- a padding to disable MSIE and Chrome friendly error page -->"
+    Stream_AdaptiveMaster:
+      summary: Adaptive-link master playlist from auth.php (src/Public/stream/auth.php:556-611)
+      value: |
+        #EXTM3U
+        #EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080
+        http://lb1.example.com:8080/auth/Zk1TbWJ4c2VhbGVkX3Rva2VuXzEwODA
+        #EXT-X-STREAM-INF:BANDWIDTH=2500000,RESOLUTION=1280x720
+        http://lb1.example.com:8080/auth/Zk1TbWJ4c2VhbGVkX3Rva2VuXzcyMA
+    Stream_OffAirPlaylist:
+      summary: Off-air/expired clip playlist (src/Streaming/Delivery/OffAirHandler.php:119-194)
+      value: |
+        #EXTM3U
+        #EXT-X-VERSION:3
+        #EXT-X-MEDIA-SEQUENCE:179226720
+        #EXT-X-ALLOW-CACHE:NO
+        #EXT-X-TARGETDURATION:10
+        #EXT-X-PLAYLIST-TYPE:EVENT
+        #EXTINF:10.0,
+        http://lb1.example.com:8080/auth/T2ZmQWlyVG9rZW5FeHBpcmVzSW4xMHM
+        #EXTINF:10.0,
+        http://lb1.example.com:8080/auth/T2ZmQWlyVG9rZW5FeHBpcmVzSW4xMHM
+        #EXTINF:10.0,
+        http://lb1.example.com:8080/auth/T2ZmQWlyVG9rZW5FeHBpcmVzSW4xMHM
+    Stream_LiveMediaPlaylist:
+      summary: Live media playlist from /auth/{token} (segment URLs rewritten to /hls/{token})
+      value: |
+        #EXTM3U
+        #EXT-X-VERSION:3
+        #EXT-X-TARGETDURATION:10
+        #EXT-X-MEDIA-SEQUENCE:179226718
+        #EXTINF:10.000000,
+        /hls/U2VnVG9rZW4tMTc5MjI2NzE4LXVzZXItcGFzcw
+        #EXTINF:10.000000,
+        /hls/U2VnVG9rZW4tMTc5MjI2NzE5LXVzZXItcGFzcw
+        #EXTINF:10.000000,
+        /hls/U2VnVG9rZW4tMTc5MjI2NzIwLXVzZXItcGFzcw
+    Stream_LiveMediaPlaylistEncrypted:
+      summary: With encrypt_hls (src/Streaming/Delivery/HLSGenerator.php:31-77)
+      value: |
+        #EXTM3U
+        #EXT-X-KEY:METHOD=AES-128,URI="/key/S2V5VG9rZW4tMjAzLjAuMTEzLjktMTIz",IV=0x3f1c2a9b8d7e6f50a1b2c3d4e5f60718
+        #EXT-X-VERSION:3
+        #EXT-X-TARGETDURATION:10
+        #EXT-X-MEDIA-SEQUENCE:179226718
+        #EXTINF:10.000000,
+        /hls/U2VnVG9rZW4tMTc5MjI2NzE4LXVzZXItcGFzcw
+    Stream_LiveMediaPlaylistCdn:
+      summary: With allow_cdn_access (segment name in path, token in query)
+      value: |
+        #EXTM3U
+        #EXT-X-VERSION:3
+        #EXT-X-TARGETDURATION:10
+        #EXT-X-MEDIA-SEQUENCE:179226718
+        #EXTINF:10.000000,
+        /hls/123_d179226718.ts?token=U2VnVG9rZW4tMTc5MjI2NzE4LXVzZXItcGFzcw
+    Stream_TimeshiftPlaylist:
+      summary: Catch-up playlist (src/Public/stream/timeshift.php:197-216). One 60 s entry per archived minute; no trailing newline.
+      value: |-
+        #EXTM3U
+        #EXT-X-VERSION:3
+        #EXT-X-TARGETDURATION:60
+        #EXT-X-MEDIA-SEQUENCE:0
+        #EXT-X-PLAYLIST-TYPE:VOD
+        #EXTINF:60.0,
+        /hls/VFMvdXNlci9wYXNzL2FyY2hpdmUtbWludXRlLTA
+        #EXTINF:60.0,
+        /hls/VFMvdXNlci9wYXNzL2FyY2hpdmUtbWludXRlLTE
+        #EXT-X-ENDLIST
+    Stream_ProbeResult:
+      summary: /probe/{data} body
+      value:
+        codecs:
+          video:
+            codec_name: h264
+            width: 1920
+            height: 1080
+          audio:
+            codec_name: aac
+            channels: 2
+        container: mpegts
+        bitrate: 4521
+  schemas:
+    Stream_ProbeResult:
+      type: object
+      properties:
+        codecs:
+          type:
+            - object
+            - 'null'
+          description: The stream's probed codec info, passed through as stored.
+        container:
+          type:
+            - string
+            - 'null'
+        bitrate:
+          type:
+            - integer
+            - string
+            - 'null'
+          description: Stored bitrate, passed through as stored. It may be numeric or a numeric string.
+tags:
+  - name: Streaming
+    description: |
+      XC media/streaming URL surface (live, VOD, series, catch-up, thumbnails, subtitles, HLS
+      segments and keys, RTMP callbacks). Routing lives in src/bin/nginx/conf/nginx.conf:95-127
+      (rewrites) and :147-174 (legacy 302s). Every rewrite target is `/stream/<handler>`, served by
+      the single front controller src/Public/stream/index.php:22-52, which picks a handler from the
+      `XC_STREAM` fastcgi param (nginx.conf:253-270) or `?handler=`.
+
+      General behaviour that applies to EVERY path below:
+      - Any method other than GET/POST gets HTTP 200 with an empty body from nginx before routing
+        (nginx.conf:85-87). HEAD probes therefore never reflect stream state.
+      - The `/stream/*` hot path is rate limited (`limit_req zone=one burst=8`, nginx.conf:254;
+        zone is 20 r/s). Excess requests get nginx's limit_req status.
+      - nginx appends the client's original query string to each rewrite target. PHP keeps the
+        LAST duplicate key, so a query arg overrides the value taken from the path. For example,
+        `/live/a/b/1.ts?username=c` authenticates as `c`. The CDN `?token=` forms rely on this.
+      - `$rRequest` is GET merged with POST (POST wins), plus a JSON body if one is sent
+        (src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php:107-113).
+      - A flood-blocked IP gets HTTP 403 with an empty body
+        (StreamingRequestBootstrap.php:42-44). A missing settings cache gets 404 (:93-95).
+        A failed `verify_host` check gives INVALID_HOST (:65-77).
+      - Errors: generateError(CODE) always ends with HTTP 404
+        (src/Core/Error/ErrorResponder.php:203-237). In production the body is a fake nginx
+        "404 Not Found" HTML page plus six MSIE padding comments (ErrorResponder.php:119-121).
+        With `debug_show_errors` on, the body is a styled "XC_VM - Debug Mode" page naming the
+        code, still with status 404. Error codes are listed at ErrorResponder.php:33-101.
+        The error code is never exposed in production. Players see only 404.
+      - Two-stage flow: the public URL is authenticated by auth.php, usually on MAIN or on the LB
+        the client hit. auth.php then answers 302 to the chosen streaming server's internal token
+        URL: `/auth/`, `/vauth/`, `/tsauth/`, `/thauth/` or `/subauth/`, followed by a token.
+        The token is an AES-256-GCM sealed JSON blob, base64url, minted by ViewerKey::mint.
+        When `secure_stream_tokens` is off, legacy AES-256-CBC tokens are also accepted.
+        When the line goes through a proxy server, the Location is `{proxy_url}/{routeSegment}/...`
+        (src/Streaming/Delivery/StreamRedirector.php:187-228).
+      - RTMP is not HTTP. nginx-rtmp listens on 8880 with `application live`
+        (src/bin/nginx_rtmp/conf/port.conf:1, nginx.conf:21-25). Clients play
+        `rtmp://{host}:8880/live/{stream_id}?username=U&password=P` (or `?token=T`). The
+        `rtmp_server` advertised to clients is `rtmp://{url}:{rtmp_port}/live/`
+        (src/Domain/Server/ServerRepository.php:149). on_play, on_publish and on_play_done call
+        `GET http://127.0.0.1:80/stream/rtmp` (src/bin/nginx_rtmp/conf/live.conf:1). See
+        `/stream/rtmp`.
+paths:
+  /live/{username}/{password}/{stream_id}.{extension}:
+    get:
+      operationId: Stream_LiveByCredentials
+      tags:
+        - Streaming
+      summary: Live channel by username/password (explicit container)
+      description: |
+        Rewritten to `/stream/auth?username&password&stream&extension&type=live`
+        (src/bin/nginx/conf/nginx.conf:121). Handled by src/Public/stream/auth.php.
+
+        Auth checks run in this order, and each failure gives HTTP 404:
+        - CACHE_INCOMPLETE (auth.php:34)
+        - STREAM_OFFLINE when NodeLease refuses (:42)
+        - INVALID_STREAM_ID for an unknown or uncached stream (:146-149). With cache on, this fires
+          BEFORE credential checks.
+        - Pre-auth STREAM_OFFLINE when no server can serve the stream (:196-216)
+        - Credentials (:254-312) in this precedence: `token` (line access token), then `hmac`,
+          then `username`/`password`.
+        - PROXY_ACCESS_DENIED (:332)
+        - Expired, banned or disabled lines get the expired/banned off-air video (see below), else
+          EXPIRED, BANNED or DISABLED (:346-386).
+        - Non-subtitle checks (:388-446): BLOCKED_USER_AGENT, EMPTY_USER_AGENT, NOT_IN_ALLOWED_IPS,
+          FORCED_COUNTRY_INVALID, NOT_IN_ALLOWED_COUNTRY, NOT_IN_ALLOWED_UAS, ISP_BLOCKED,
+          ASN_BLOCKED, and DEVICE_NOT_ALLOWED (an `is_mag` line not playing from a MAG).
+        - Detection checks (:448-481): HOSTING_DETECT, PROXY_DETECT, and RESTREAM_DETECT, which
+          can also disable the line.
+        - USER_DISALLOW_EXT when `extension` is not in the line's `output_formats` (:483-488)
+        - NOT_IN_BOUQUET (:497-500)
+        - INVALID_CREDENTIALS, which counts toward brute-force blocking (:512-516)
+        A line expiring within 7 days may be shown the "expiring" video once per 24 h (:502-510).
+        MAG lines are forced to http when `mag_disable_ssl` is set; Enigma lines always are
+        (:518-526).
+
+        Redirect chain for live (auth.php:528-660):
+        - StreamRedirector::redirectStream picks a server by force_server_id, then geoip, then ISP,
+          then capacity (StreamRedirector.php:24-165).
+        - A `direct_source` stream with `direct_proxy=0` is 302'd straight to its first source URL
+          (StreamRedirector.php:51,69-77).
+        - No server gives NO_SERVERS_AVAILABLE. A missing channel gives the "not on air" video.
+        - `m3u8`:
+          - HLS_DISABLED when `disable_hls` is set (unless the line is a restreamer and
+            `disable_hls_allow_restream` is on) or when the stream is a `direct_proxy`.
+          - An adaptive link returns an inline master playlist with 200 (:556-611).
+          - Otherwise the response is 302 to `{server}/auth/{token}`. With `allow_cdn_access`
+            it is 302 to `{server}/auth/{stream_id}.m3u8?token={token}` (:617-627).
+        - `ts` and any other extension: TS_DISABLED, else 302 to `{server}/auth/{token}`. With
+          `allow_cdn_access` it is 302 to `{server}/auth/{stream_id}.ts?token={token}` (:632-652).
+          live.php then treats a non-ts/m3u8 extension as `api_container` (live.php:92-94).
+
+        Off-air videos (src/Streaming/Delivery/OffAirHandler.php:119-194):
+        - For `m3u8`, the response is a 200 inline EVENT playlist of 3 x 10 s entries, each
+          pointing at `{server}/auth/{token}`. The token expires in 10 s.
+        - Otherwise the response is 302 to `{server}/auth/{token}`, which serves the clip as
+          video/mp2t (live.php:82-86).
+        - Restreamers, or installs with no clip configured, get the error code instead
+          (EXPIRED, BANNED or STREAM_OFFLINE).
+
+        Response headers: `Cache-Control: no-store, no-cache, must-revalidate` (auth.php:31) and
+        `Access-Control-Allow-Origin: *` (:221).
+        Quirks:
+        - `?utc={start}` turns the request into a timeshift with `start=utc` and duration=360
+          minutes (:117-123).
+        - Over max_connections, the OLDEST connections are kicked; the new one is not refused
+          (src/Streaming/Auth/StreamAuth.php:111-134).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - $ref: '#/components/parameters/Stream_PathExtension'
+        - $ref: '#/components/parameters/Stream_QueryUtc'
+        - $ref: '#/components/parameters/Stream_QueryPrebuffer'
+        - $ref: '#/components/parameters/Stream_HeaderDetect'
+        - $ref: '#/components/parameters/Stream_HeaderPrebuffer'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_GatewayPlaylist'
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /live/{username}/{password}/{stream_id}:
+    get:
+      operationId: Stream_LiveByCredentialsNoExt
+      tags:
+        - Streaming
+      summary: Live channel by username/password (no extension, MPEG-TS)
+      description: |
+        Rewritten to `/stream/auth?...&extension=ts&type=live` (src/bin/nginx/conf/nginx.conf:122).
+        The stream is played as MPEG-TS. Auth, redirect and errors are the same as
+        `Stream_LiveByCredentials` (src/Public/stream/auth.php:528-660, ts arm :632-652).
+        Because nginx appends the query string, `?extension=m3u8` overrides the forced ts.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - $ref: '#/components/parameters/Stream_QueryUtc'
+        - $ref: '#/components/parameters/Stream_QueryPrebuffer'
+      responses:
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /{username}/{password}/{stream_id}.{extension}:
+    get:
+      operationId: Stream_LiveShort
+      tags:
+        - Streaming
+      summary: Live channel, short form without /live prefix
+      description: |
+        Rewritten to `/stream/auth?username&password&stream&extension&type=live`
+        (src/bin/nginx/conf/nginx.conf:126). It behaves exactly like `Stream_LiveByCredentials`.
+        It matches only when no earlier rewrite does: `stream_id` must be digits, and
+        `/movie/`, `/series/`, `/live/` and the other prefixes win. M3U playlists use this short form
+        for live (`{u}/{p}/{id}`, src/Domain/Stream/PlaylistGenerator.php:265-290).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - $ref: '#/components/parameters/Stream_PathExtension'
+        - $ref: '#/components/parameters/Stream_QueryUtc'
+        - $ref: '#/components/parameters/Stream_QueryPrebuffer'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_GatewayPlaylist'
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /{username}/{password}/{stream_id}:
+    get:
+      operationId: Stream_LiveShortNoExt
+      tags:
+        - Streaming
+      summary: Live channel, short form, no extension (MPEG-TS)
+      description: |
+        Rewritten to `/stream/auth?...&extension=ts&type=live` (src/bin/nginx/conf/nginx.conf:127).
+        It is the same as `Stream_LiveByCredentialsNoExt`. With the `cloudflare` playlist option,
+        generated ts URLs drop the extension and so land here
+        (src/Domain/Stream/PlaylistGenerator.php:395-430).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - $ref: '#/components/parameters/Stream_QueryUtc'
+      responses:
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /live/{token}/{stream_id}.{extension}:
+    get:
+      operationId: Stream_LiveByToken
+      tags:
+        - Streaming
+      summary: Live channel by line access token
+      description: |
+        Rewritten to `/stream/auth?token&stream&extension&type=live`
+        (src/bin/nginx/conf/nginx.conf:123).
+        - A hex `token` is the line's `access_token`, looked up by UserRepository::getStreamingUserInfo
+          (src/Public/stream/auth.php:254-263). Playlists emit `{type}/{access_token}/{id}.{ext}`
+          for lines with an access token (src/Domain/Stream/PlaylistGenerator.php:265-290).
+        - A NON-hex token is decrypted as a play token (auth.php:49-115). Its embedded
+          type, username, password and stream then REPLACE the path's stream_id.
+        - A token that fails to decrypt counts toward brute-force blocking and gives BAD_TOKEN, as
+          a 404. BAD_TOKEN is not in the code list, so debug pages show no description.
+        All other checks and the redirect chain match `Stream_LiveByCredentials`.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathLineToken'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - $ref: '#/components/parameters/Stream_PathExtension'
+        - $ref: '#/components/parameters/Stream_QueryUtc'
+        - $ref: '#/components/parameters/Stream_QueryPrebuffer'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_GatewayPlaylist'
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /live/{token}/{stream_id}:
+    get:
+      operationId: Stream_LiveByTokenNoExt
+      tags:
+        - Streaming
+      summary: Live channel by line access token (no extension, MPEG-TS)
+      description: |
+        Rewritten to `/stream/auth?token&stream&extension=ts&type=live`
+        (src/bin/nginx/conf/nginx.conf:124). It is the same as `Stream_LiveByToken` with ts
+        (src/Public/stream/auth.php:632-652).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathLineToken'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - $ref: '#/components/parameters/Stream_QueryUtc'
+      responses:
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /movie/{username}/{password}/{stream}:
+    get:
+      operationId: Stream_MovieByCredentials
+      tags:
+        - Streaming
+      summary: VOD movie by username/password
+      description: |
+        Rewritten to `/stream/auth?username&password&stream&type=movie`
+        (src/bin/nginx/conf/nginx.conf:99). `stream` carries the extension, e.g. `123.mp4`.
+        auth.php splits it with pathinfo (src/Public/stream/auth.php:133-144).
+        The HLS-like form `{id}/segment_N.ts|m4s` cannot arrive here, because the rewrite forbids
+        `/`; it only works via `/stream/auth?stream=`.
+
+        Auth checks are the same as live, except:
+        - There is no `output_formats` check.
+        - Expired, banned or disabled lines get the off-air video via the `ts` path (:346-386).
+
+        Server choice requires the server to run the movie (pid, `to_analyze=0`, `stream_status=0`).
+        The extension must also equal the movie's `target_container`, or be `srt`, `m3u8` or `ts`
+        (src/Streaming/Delivery/StreamRedirector.php:59-62). Otherwise the movie counts as
+        "not on air": the off-air video, or STREAM_OFFLINE, as a 404.
+        - Success is 302 to `{server}/vauth/{token}`. With `allow_cdn_access` it is 302 to
+          `{server}/vauth/{id}.{ext}?token={token}` (auth.php:662-704).
+        - The token carries the original `Range` header as `http_range` (:679-681).
+        - A `direct_source` movie with `direct_proxy=0` is 302'd to its source URL
+          (StreamRedirector.php:69-77).
+        Range support is on the final `/vauth` hop (see `Stream_VodPlayback`).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - $ref: '#/components/parameters/Stream_PathVodFile'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_EmptyOk'
+        '302':
+          $ref: '#/components/responses/Stream_VodRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /movie/{token}/{stream}:
+    get:
+      operationId: Stream_MovieByToken
+      tags:
+        - Streaming
+      summary: VOD movie by line access token
+      description: |
+        Rewritten to `/stream/auth?token&stream&type=movie` (src/bin/nginx/conf/nginx.conf:100).
+        The token rules are those of `Stream_LiveByToken` (src/Public/stream/auth.php:49-115,254-263).
+        Everything else matches `Stream_MovieByCredentials` (auth.php:662-704).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathLineToken'
+        - $ref: '#/components/parameters/Stream_PathVodFile'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_EmptyOk'
+        '302':
+          $ref: '#/components/responses/Stream_VodRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /series/{username}/{password}/{stream}:
+    get:
+      operationId: Stream_SeriesByCredentials
+      tags:
+        - Streaming
+      summary: Series episode by username/password
+      description: |
+        Rewritten to `/stream/auth?username&password&stream&type=series`
+        (src/bin/nginx/conf/nginx.conf:101). `stream` is `{episode_stream_id}.{ext}`.
+        It is identical to the movie flow: same case arm (src/Public/stream/auth.php:662-704),
+        302 to `{server}/vauth/{token}`.
+        Quirk: StreamRedirector checks `target_container` only when `$rType == 'movie'`. Series go
+        through the live availability branch, so the extension is NOT matched against
+        `target_container` at selection time (src/Streaming/Delivery/StreamRedirector.php:59-66).
+        A wrong extension then fails later in vod.php with VOD_DOESNT_EXIST.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - $ref: '#/components/parameters/Stream_PathVodFile'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_EmptyOk'
+        '302':
+          $ref: '#/components/responses/Stream_VodRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /series/{token}/{stream}:
+    get:
+      operationId: Stream_SeriesByToken
+      tags:
+        - Streaming
+      summary: Series episode by line access token
+      description: |
+        Rewritten to `/stream/auth?token&stream&type=series` (src/bin/nginx/conf/nginx.conf:102).
+        It works like `Stream_SeriesByCredentials` with token auth (src/Public/stream/auth.php:254-263).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathLineToken'
+        - $ref: '#/components/parameters/Stream_PathVodFile'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_EmptyOk'
+        '302':
+          $ref: '#/components/responses/Stream_VodRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /timeshift/{username}/{password}/{duration}/{start}/{stream_id}.{extension}:
+    get:
+      operationId: Stream_TimeshiftByCredentials
+      tags:
+        - Streaming
+      summary: Catch-up (TV archive) by username/password
+      description: |
+        Rewritten to `/stream/auth?username&password&stream&extension&duration&start&type=timeshift`
+        (src/bin/nginx/conf/nginx.conf:111).
+
+        Auth checks match live, but with no `output_formats` check.
+        Redirect chain (src/Public/stream/auth.php:706-776):
+        - Server choice: the stream's `tv_archive_server_id`, which is used only if
+          `tv_archive_duration > 0` (src/Streaming/Delivery/StreamRedirector.php:46-49). If there
+          is none, the "not on air" video is shown, or STREAM_OFFLINE.
+        - `start` must match
+          `/^(\d{1,10}|\d{8}-\d{1,2}|\d{4}-\d{1,2}-\d{1,2}:\d{1,2}-\d{1,2}(?:[:-]\d{1,2})?)$/D`
+          (auth.php:729), else NO_TIMESTAMP. Accepted forms:
+          - a unix timestamp
+          - `YYYYMMDD-H` (hour only, minute 0)
+          - `YYYY-MM-DD:HH-MM`, with optional `:SS` or `-SS`, which is ignored
+        - `duration` is in MINUTES: `min(intval(duration), 21600)`, a 15-day cap (auth.php:735).
+          One archive file exists per minute.
+        - `m3u8`: HLS_DISABLED, else 302 to `{server}/tsauth/{token}`. With `allow_cdn_access` it
+          is 302 to `{server}/tsauth/{id}_{start}_{duration}.m3u8?token=` (:738-753).
+        - Any other extension: TS_DISABLED, else 302 to `{server}/tsauth/{token}`, or the CDN form
+          `{id}_{start}_{duration}.ts?token=` (:755-773).
+        Timezone quirk: the non-unix forms are turned into time with PHP mktime in the server's
+        default timezone. Archive minute files are named with `gmdate('Y-m-d:H-i')`
+        (src/Public/stream/timeshift.php:82-101). So `YYYY-MM-DD:HH-MM` is local server time,
+        while a unix `start` is absolute.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - $ref: '#/components/parameters/Stream_PathDuration'
+        - $ref: '#/components/parameters/Stream_PathStart'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - $ref: '#/components/parameters/Stream_PathExtension'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_GatewayPlaylist'
+        '302':
+          $ref: '#/components/responses/Stream_TimeshiftRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /timeshift/{token}/{duration}/{start}/{stream_id}.{extension}:
+    get:
+      operationId: Stream_TimeshiftByToken
+      tags:
+        - Streaming
+      summary: Catch-up (TV archive) by line access token
+      description: |
+        Rewritten to `/stream/auth?token&stream&extension&duration&start&type=timeshift`
+        (src/bin/nginx/conf/nginx.conf:112). It works like `Stream_TimeshiftByCredentials`
+        (src/Public/stream/auth.php:706-776).
+        A non-hex play token of type `timeshift` carries `timeshift/u/p/duration/start/stream`. It
+        forces extension=ts and overrides the path values (auth.php:77-88).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathLineToken'
+        - $ref: '#/components/parameters/Stream_PathDuration'
+        - $ref: '#/components/parameters/Stream_PathStart'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - $ref: '#/components/parameters/Stream_PathExtension'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_GatewayPlaylist'
+        '302':
+          $ref: '#/components/responses/Stream_TimeshiftRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /thumb/{username}/{password}/{stream_id}:
+    get:
+      operationId: Stream_ThumbByCredentials
+      tags:
+        - Streaming
+      summary: Live channel thumbnail by username/password
+      description: |
+        Rewritten to `/stream/auth?username&password&stream&type=thumb`
+        (src/bin/nginx/conf/nginx.conf:113). The rewrite sets NO extension.
+
+        BUG/QUIRK: the thumb arm only runs inside `if ($rExtension)`
+        (src/Public/stream/auth.php:146,778-811). Without an extension, auth.php falls into the
+        else branch at :834-848, which outputs nothing, so this URL returns a blank HTTP 200.
+        Adding any extension, e.g. `?extension=jpg`, makes it work. Player API thumbnails instead
+        use `/play/{token}`, a `thumb/u/p/id` play token with the ts default, which does work.
+
+        When it works:
+        - The thumb arm skips the HOSTING, PROXY and RESTREAM detection checks.
+        - INVALID_STREAM_ID when the stream is not a live non-direct stream.
+        - THUMBNAILS_NOT_ENABLED when `vframes_server_id` = 0, or when that server's proxy is
+          unavailable.
+        - Otherwise 302 to `{vframes_server}/thauth/{token}`, with a token that expires in 5 s
+          (:799-809).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - name: extension
+          in: query
+          required: false
+          description: Any non-empty value. Needed for this form to do anything (see quirk).
+          schema:
+            type: string
+            example: jpg
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_EmptyOk'
+        '302':
+          $ref: '#/components/responses/Stream_ThumbRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /thumb/{token}/{stream_id}:
+    get:
+      operationId: Stream_ThumbByToken
+      tags:
+        - Streaming
+      summary: Live channel thumbnail by line access token
+      description: |
+        Rewritten to `/stream/auth?token&stream&type=thumb` (src/bin/nginx/conf/nginx.conf:114).
+        It has the same blank-200 quirk as `Stream_ThumbByCredentials`
+        (src/Public/stream/auth.php:834-848) unless `extension` is supplied.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathLineToken'
+        - $ref: '#/components/parameters/Stream_PathStreamId'
+        - name: extension
+          in: query
+          required: false
+          description: Any non-empty value. Needed for this form to do anything.
+          schema:
+            type: string
+            example: jpg
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_EmptyOk'
+        '302':
+          $ref: '#/components/responses/Stream_ThumbRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /subtitle/{username}/{password}/{sid}/{stream}:
+    get:
+      operationId: Stream_SubtitleById
+      tags:
+        - Streaming
+      summary: VOD subtitle track by index
+      description: |
+        Rewritten to `/stream/auth?username&password&stream&sid&type=subtitle`
+        (src/bin/nginx/conf/nginx.conf:103). `stream` is `{movie_id}.{ext}`, e.g. `123.srt`.
+        The extension comes from pathinfo (src/Public/stream/auth.php:134-144). Without an
+        extension, the response is a blank 200 (:834-848).
+
+        Subtitle requests skip all of the following:
+        - user-agent, IP, country, ISP and MAG checks (:388)
+        - detection checks (:448)
+        Server choice uses movie rules with extension `srt` (:813-815).
+        Success is 302 to `{server}/subauth/{token}`. The token holds
+        `{stream_id, sub_id: intval(sid), webvtt: intval(webvtt), expires: now+5}` (:823-825).
+        INVALID_STREAM_ID when the movie is not available (:830).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - name: sid
+          in: path
+          required: true
+          description: Subtitle index; intval'd. The file read is `{movie_id}_{sid}.srt`.
+          schema:
+            type: integer
+            example: 0
+        - $ref: '#/components/parameters/Stream_PathVodFile'
+        - $ref: '#/components/parameters/Stream_QueryWebvtt'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_EmptyOk'
+        '302':
+          $ref: '#/components/responses/Stream_SubtitleRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /subtitle/{username}/{password}/{stream}:
+    get:
+      operationId: Stream_SubtitleDefault
+      tags:
+        - Streaming
+      summary: VOD subtitle, first track
+      description: |
+        Rewritten to `/stream/auth?username&password&stream&type=subtitle`
+        (src/bin/nginx/conf/nginx.conf:104). `sid` defaults to 0, unless passed as a query arg
+        (src/Public/stream/auth.php:823). Otherwise it matches `Stream_SubtitleById`.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathUsername'
+        - $ref: '#/components/parameters/Stream_PathPassword'
+        - $ref: '#/components/parameters/Stream_PathVodFile'
+        - $ref: '#/components/parameters/Stream_QueryWebvtt'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_EmptyOk'
+        '302':
+          $ref: '#/components/responses/Stream_SubtitleRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /play/{token}.{extension}:
+    get:
+      operationId: Stream_PlayTokenWithExt
+      tags:
+        - Streaming
+      summary: Encrypted play-token link (dot extension)
+      description: |
+        Rewritten to `/stream/auth?token&extension` (src/bin/nginx/conf/nginx.conf:95). The token
+        part matches `[^/.]+`. Encrypted M3U playlists emit `play/{token}.{ext}`
+        (src/Domain/Stream/PlaylistGenerator.php:395-430).
+
+        The token is decrypted with `live_streaming_pass` (src/Public/stream/auth.php:49-115).
+        The decrypted text is slash-separated:
+        - `type/username/password/stream[/extension[/expiry|magtoken]]`
+        - for timeshift, `timeshift/username/password/duration/start/stream[/magtoken]`, which
+          forces ts
+        - type may carry a MAG prefix, e.g. `x::live`, which marks the request as MAG
+        The URL extension is used only if the token has none (:51-53).
+
+        Errors:
+        - Decrypt failure counts toward brute-force blocking and gives BAD_TOKEN.
+        - Too few fields gives BAD_TOKEN.
+        - An expiry in the past gives TOKEN_EXPIRED (:438-442).
+        - A MAG token mismatch gives TOKEN_EXPIRED.
+        The token's type then selects the live, movie, series, timeshift, thumb or subtitle flow
+        documented on the plain-credential paths, including the same responses.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathPlayToken'
+        - $ref: '#/components/parameters/Stream_PathExtension'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_GatewayPlaylist'
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /play/{token}/{extension}:
+    get:
+      operationId: Stream_PlayTokenSlashExt
+      tags:
+        - Streaming
+      summary: Encrypted play-token link (slash extension)
+      description: |
+        Rewritten to `/stream/auth?token&extension` (src/bin/nginx/conf/nginx.conf:96). The Player
+        API's `api_redirect` emits `play/{token}/{api_container}` for movies and series
+        (src/Public/Controllers/Api/PlayerApiController.php:862-880). Otherwise this is the same
+        as `Stream_PlayTokenWithExt` (src/Public/stream/auth.php:49-115).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathPlayToken'
+        - $ref: '#/components/parameters/Stream_PathExtension'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_GatewayPlaylist'
+        '302':
+          $ref: '#/components/responses/Stream_VodRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /play/{token}:
+    get:
+      operationId: Stream_PlayToken
+      tags:
+        - Streaming
+      summary: Encrypted play-token link (default ts)
+      description: |
+        Rewritten to `/stream/auth?token&extension=ts` (src/bin/nginx/conf/nginx.conf:97). The
+        extension embedded in the token wins over ts (src/Public/stream/auth.php:93-95).
+        Player API thumbnail URLs use this form, with a `thumb/u/p/id` token, giving the thumb flow
+        (auth.php:778-811). Otherwise this is the same as `Stream_PlayTokenWithExt`.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathPlayToken'
+      responses:
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /auth/{token}:
+    get:
+      operationId: Stream_LivePlayback
+      tags:
+        - Streaming
+      summary: Internal live playback endpoint (redirect target)
+      description: |
+        Rewritten to `/stream/live?token` (src/bin/nginx/conf/nginx.conf:108). Handler
+        src/Public/stream/live.php. This is the 302 target minted by auth.php, not a URL users
+        build. The CDN form `/auth/{stream_id}.{m3u8|ts}?token=T` also lands here: nginx appends
+        `?token=T`, and PHP keeps the last `token`.
+
+        Headers are set by src/Streaming/Auth/StreamAuthMiddleware.php:30-54:
+        - `Access-Control-Allow-Origin: *`
+        - an optional `Server`
+        - `X-XSS-Protection: 0`
+        - `X-Content-Type-Options: nosniff`
+        - `Alt-Svc` (h3)
+        - an optional `Set-Cookie` from `send_unique_header`
+
+        Token handling (live.php:56-90, StreamAuthMiddleware.php:87-111):
+        - LB_TOKEN_INVALID when the token does not decrypt
+        - TOKEN_EXPIRED when `expires` is past, checked against MAIN's clock
+        - `uuid` must be 32 hex characters
+        - An off-air token (`off_air` or `video_path`) streams the clip as `video/mp2t` via
+          readfile (:82-86).
+        - A missing token gives NO_TOKEN_SPECIFIED.
+
+        Other errors:
+        - A proxied channel with a non-ts extension gives USER_DISALLOW_EXT (:96-98).
+        - An on-demand start that times out gives WAIT_TIME_EXPIRED (:148-291).
+        - With `disallow_2nd_ip_con`, a second IP gets the "already connected" video
+          (:299-310).
+
+        `m3u8` (live.php:351-415):
+        - Connection creation must happen within `create_expiration` (default 5 s) of the token,
+          else TOKEN_EXPIRED.
+        - IP_MISMATCH when `restrict_same_ip` is on.
+        - LINE_CREATE_FAIL when the connection cannot be recorded.
+        - Over-limit lines kick their oldest connection.
+        - Success is 200 `application/x-mpegurl` with Content-Length and no-store. It holds the
+          on-disk or daemon playlist, with every segment rewritten to `/hls/{token}`, or
+          `/hls/{segment}?token=` with `allow_cdn_access`. With `encrypt_hls`, an
+          `#EXT-X-KEY:METHOD=AES-128,URI="/key/{token}",IV=0x...` line is added
+          (src/Streaming/Delivery/HLSGenerator.php:31-77,90-139).
+
+        `ts` (live.php:417-774):
+        - Success is 200 `video/mp2t`, an endless body with no Content-Length and no Range
+          support.
+        - The response is served via the fanout daemon (`X-Accel-Redirect: /xc_fanout/{id}`,
+          :495-497) or a PHP segment chase-read.
+        - A previous php-fpm worker serving the same connection is killed.
+        `X-Accel-Buffering: no` is sent when `use_buffer=0` (:100-101).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathInternalToken'
+        - name: token
+          in: query
+          required: false
+          description: CDN form only (`allow_cdn_access`). The real token, overriding the path value.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Live HLS media playlist or endless MPEG-TS.
+          content:
+            application/x-mpegurl:
+              schema:
+                type: string
+              examples:
+                plain:
+                  $ref: '#/components/examples/Stream_LiveMediaPlaylist'
+                encrypted:
+                  $ref: '#/components/examples/Stream_LiveMediaPlaylistEncrypted'
+                cdn:
+                  $ref: '#/components/examples/Stream_LiveMediaPlaylistCdn'
+            video/mp2t:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /vauth/{token}:
+    get:
+      operationId: Stream_VodPlayback
+      tags:
+        - Streaming
+      summary: Internal VOD/series file delivery (redirect target)
+      description: |
+        Rewritten to `/stream/vod?token` (src/bin/nginx/conf/nginx.conf:109). Handler
+        src/Public/stream/vod.php. The CDN form is `/vauth/{id}.{ext}?token=T`.
+
+        Errors:
+        - NO_TOKEN_SPECIFIED (:75)
+        - VOD_DOESNT_EXIST when `VOD_PATH/{id}.{ext}` is missing (:78-82). The requested extension
+          must be the real file's extension.
+        - TOKEN_EXPIRED when the connection is created more than 60 s (`create_expiration`) after
+          the token (:149)
+        - IP_MISMATCH when `restrict_same_ip` is on (:166)
+        - LINE_CREATE_FAIL (:186)
+        - TOKEN_ERROR when the token has no channel_info (:403)
+
+        Content-Type is chosen by the movie's `target_container`, not by the URL (:212-214):
+        - mp4 and m4v: video/mp4
+        - mkv: video/x-matroska
+        - avi: video/x-msvideo
+        - 3gp: video/3gpp
+        - flv: video/x-flv
+        - wmv: video/x-ms-wmv
+        - mov: video/quicktime
+        - ts: video/mp2t
+        - mpg and mpeg: video/mpeg
+        - anything else: application/octet-stream
+
+        Range (src/Streaming/Delivery/HttpRange.php:24-82, used at vod.php:231-234):
+        - `Accept-Ranges: bytes` is always sent.
+        - A single `bytes=a-b`, `a-` or `-n` (suffix) range gives 206 with
+          `Content-Range: bytes a-b/size` and Content-Length.
+        - A multi-range, malformed or unsatisfiable range gives 416 with
+          `Content-Range: bytes */size` and no body.
+        - A non-`bytes` unit is ignored, giving 200 with the full body.
+        - On the fanout-daemon path (`/xc_fanout_file`), the original Range from the token's
+          `http_range` is honoured (:218-227).
+
+        Other behaviour:
+        - With `vod_limit_perc` > 0 and a non-restreamer line, the body is throttled to the
+          bitrate once that percentage of the response has been sent.
+        - With `direct_proxy`, the source is relayed via curl.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathInternalToken'
+        - $ref: '#/components/parameters/Stream_HeaderRange'
+      responses:
+        '200':
+          description: Whole file.
+          headers:
+            Accept-Ranges:
+              schema:
+                type: string
+                example: bytes
+            Content-Length:
+              schema:
+                type: integer
+                example: 1468006400
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+            video/x-matroska:
+              schema:
+                type: string
+                format: binary
+            video/mp2t:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Single byte range.
+          headers:
+            Accept-Ranges:
+              schema:
+                type: string
+                example: bytes
+            Content-Range:
+              schema:
+                type: string
+                example: bytes 0-1048575/1468006400
+            Content-Length:
+              schema:
+                type: integer
+                example: 1048576
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+        '416':
+          $ref: '#/components/responses/Stream_RangeNotSatisfiable'
+  /tsauth/{token}:
+    get:
+      operationId: Stream_TimeshiftPlayback
+      tags:
+        - Streaming
+      summary: Internal catch-up delivery (redirect target)
+      description: |
+        Rewritten to `/stream/timeshift?token` (src/bin/nginx/conf/nginx.conf:106). Handler
+        src/Public/stream/timeshift.php. The CDN form is
+        `/tsauth/{id}_{start}_{duration}.{ext}?token=T`.
+
+        `start` is re-validated (:76-80, `\d+` unix or the two date forms) and converted with
+        mktime in the server timezone. Archive files are named
+        `ARCHIVE_PATH/{id}/{gmdate('Y-m-d:H-i')}.ts`, one per minute (:82-101).
+        `duration` is in minutes. The scan stops at the current minute (:113-125).
+
+        Errors:
+        - NO_TOKEN_SPECIFIED
+        - NO_TIMESTAMP
+        - ARCHIVE_DOESNT_EXIST when the first minute file or every minute file is missing
+          (:103-133)
+        - TOKEN_EXPIRED, IP_MISMATCH and LINE_CREATE_FAIL
+        - TOKEN_ERROR when there is no user_info (:422)
+
+        `m3u8` (:197-216): a 200 `application/x-mpegurl` VOD playlist with one 60 s entry per
+        recorded minute. Each entry is `/hls/{token}`, an ARCHIVE segment token. The first entry
+        starts at the minute file's `.offset` byte offset.
+
+        `ts` (:286-370): a 200 `video/mp2t` concatenation of the minute files, with Range support
+        through HttpRange (:315). It is 416 on a bad range and throttled like VOD, or served via
+        the fanout daemon.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathInternalToken'
+        - $ref: '#/components/parameters/Stream_HeaderRange'
+      responses:
+        '200':
+          description: Archive playlist or concatenated archive TS.
+          content:
+            application/x-mpegurl:
+              schema:
+                type: string
+              examples:
+                archive:
+                  $ref: '#/components/examples/Stream_TimeshiftPlaylist'
+            video/mp2t:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Single byte range of the concatenated archive (ts only).
+          headers:
+            Content-Range:
+              schema:
+                type: string
+                example: bytes 0-524287/94371840
+          content:
+            video/mp2t:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+        '416':
+          $ref: '#/components/responses/Stream_RangeNotSatisfiable'
+  /thauth/{token}:
+    get:
+      operationId: Stream_ThumbPlayback
+      tags:
+        - Streaming
+      summary: Internal thumbnail delivery (redirect target)
+      description: |
+        Rewritten to `/stream/thumb?token` (src/bin/nginx/conf/nginx.conf:107). Handler
+        src/Public/stream/thumb.php.
+        - The token must carry `expires` that has not passed, else TOKEN_EXPIRED (:53). The
+          lifetime is 5 s from auth.php.
+        - The handler serves `STREAMS_PATH/{id}_.jpg` if it is less than 60 s old, with
+          `Content-type: image/jpg` (sic: not image/jpeg) and `Age: {seconds}` (:58-62).
+        - Otherwise THUMBNAIL_DOESNT_EXIST (:67).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathInternalToken'
+      responses:
+        '200':
+          description: Latest frame grab.
+          headers:
+            Age:
+              schema:
+                type: integer
+                example: 12
+          content:
+            image/jpg:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /subauth/{token}:
+    get:
+      operationId: Stream_SubtitlePlayback
+      tags:
+        - Streaming
+      summary: Internal subtitle delivery (redirect target)
+      description: |
+        Rewritten to `/stream/subtitle?token` (src/bin/nginx/conf/nginx.conf:110). Handler
+        src/Public/stream/subtitle.php. TOKEN_EXPIRED applies when the 5 s token has expired
+        (:54).
+
+        The handler reads `VOD_PATH/{stream_id}_{sub_id}.srt`. When the token has `webvtt=1`, the
+        file is converted to WebVTT. The response is sent as a download (:63-74):
+        - `Content-Description: File Transfer`
+        - `Content-type: application/octet-stream`
+        - `Content-Disposition: attachment; filename="{id}_{sid}.srt|vtt"`
+        - Content-Length
+
+        Quirk: a missing subtitle reports THUMBNAIL_DOESNT_EXIST (:79), as a 404.
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathInternalToken'
+      responses:
+        '200':
+          description: SRT or WebVTT text served as a download.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="123_0.vtt"
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              example: |
+                WEBVTT
+
+                00:00:01.000 --> 00:00:04.000
+                Hello.
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /hls/{token}:
+    get:
+      operationId: Stream_HlsSegment
+      tags:
+        - Streaming
+      summary: HLS segment (live or archive)
+      description: |
+        Rewritten to `/stream/segment?token` (src/bin/nginx/conf/nginx.conf:105). Handler
+        src/Public/stream/segment.php. The CDN form is `/hls/{segment_name}?token=T`.
+
+        Every failure is a plain generate404 with no error code, including:
+        - no `live_streaming_pass`
+        - NodeLease refusal (:38,44)
+        - a bad token
+        - a missing connection (CONS) file
+        - an IP mismatch under `restrict_same_ip`
+        - an archive connection with `hls_end` set
+
+        LIVE token payload: `user/pass/ip/stream/segment/uuid/server/codec/ondemand`, or
+        `HMAC#id/identifier/...`.
+        - Daemon segments `{id}_d{n}.ts` are sent with
+          `X-Accel-Redirect: /xc_fanout_hls/...` (:137-141).
+        - Other segments use `/xc_hls/{file}`, or `{file}.enc` when `encrypt_hls` is on
+          (:258-262), or are encrypted on the fly with AES-128-CBC (:219).
+
+        ARCHIVE token (9 fields): `TS/u/p/ip/duration/start/{id}_{YYYY-MM-DD:HH-MM}.ts_{offset}/uuid/server`.
+
+        A token minted by another server gets a 302 to `{that server}/hls/{token}` (:299-307).
+
+        Content-Type is `video/mp2t`, or `video/iso.segment` for m4s and mp4 (:190-195). The
+        response also sends `Access-Control-Allow-Origin: *` and nosniff. Range is not parsed in
+        PHP. The X-Accel internal locations pass it to nginx or the daemon
+        (nginx.conf:184-245).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathInternalToken'
+      responses:
+        '200':
+          description: One media segment.
+          content:
+            video/mp2t:
+              schema:
+                type: string
+                format: binary
+            video/iso.segment:
+              schema:
+                type: string
+                format: binary
+        '302':
+          description: Token belongs to another server. The client is sent there.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: http://lb2.example.com:8080/hls/Qm9vN2...
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /key/{token}:
+    get:
+      operationId: Stream_HlsKey
+      tags:
+        - Streaming
+      summary: AES-128 key for encrypted HLS
+      description: |
+        Rewritten to `/stream/key?token` (src/bin/nginx/conf/nginx.conf:98). Handler
+        src/Public/stream/key.php.
+        - The token decrypts to `{ip}/{stream_id}`.
+        - When `restrict_same_ip` is on, the client IP must match (`ip_subnet_match` allows a
+          subnet match).
+        - Success returns the 16 raw bytes of `STREAMS_PATH/{id}_.key` as
+          `application/octet-stream` with nosniff (:37-48).
+        - Anything else, including NodeLease refusal or no secret, is a generate404 (:28-34,52).
+      parameters:
+        - $ref: '#/components/parameters/Stream_PathInternalToken'
+      responses:
+        '200':
+          description: 16-byte AES-128 key.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /probe/{data}:
+    get:
+      operationId: Stream_Probe
+      tags:
+        - Streaming
+      summary: Restreamer probe of a running stream's codecs
+      description: |
+        Rewritten to `/stream/probe?data` (src/bin/nginx/conf/nginx.conf:125). The legacy
+        `/probe.php` gets a 302 to `/stream/probe?$args` (:172-174). Handler
+        src/Public/stream/probe.php.
+
+        `data` is the base64 encoding of a stream URL path. These forms are parsed (:23-140):
+        - `/auth/{token}`
+        - `/play/{token}[/ext]`
+        - `/live/{token}/{id}[.ext]`
+        - `/live/{u}/{p}/{id}[.ext]`
+        - `/{u}/{p}/{id}[.ext]`
+
+        The line must:
+        - exist
+        - not be expired or disabled
+        - be `is_restreamer`
+        - have the stream in its bouquet
+        The stream must also be running on this server.
+
+        Success echoes JSON `{codecs, container, bitrate}` from the stream's probe info (:193).
+        No Content-Type is set, so PHP's default `text/html` is sent. Every failure is a bare
+        404 (:156-200).
+      parameters:
+        - name: data
+          in: path
+          required: true
+          description: base64 of a stream path, e.g. base64("/live/user/pass/123.ts").
+          schema:
+            type: string
+            example: L2xpdmUvdXNlci9wYXNzLzEyMy50cw==
+      responses:
+        '200':
+          description: Probe info (sent with Content-Type text/html).
+          content:
+            text/html:
+              schema:
+                $ref: '#/components/schemas/Stream_ProbeResult'
+              examples:
+                default:
+                  $ref: '#/components/examples/Stream_ProbeResult'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /streaming/live.php:
+    get:
+      operationId: Stream_LegacyLivePhp
+      tags:
+        - Streaming
+      summary: Legacy XC live.php (302 to /stream/auth?type=live)
+      description: |
+        nginx returns `302 /stream/auth?type=live&$args` (src/bin/nginx/conf/nginx.conf:147-149).
+        The classic form is
+        `/streaming/live.php?username=U&password=P&stream=ID&extension=ts`. Because `$args` is
+        appended after `type=live`, a client `type=` overrides it. Then `Stream_StreamAuth`
+        applies. `absolute_redirect off` makes the Location relative (nginx.conf:83).
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Stream_QueryStream'
+        - $ref: '#/components/parameters/Stream_QueryExtension'
+      responses:
+        '302':
+          description: Redirect to the stream gateway.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /stream/auth?type=live&username=user&password=pass&stream=123&extension=ts
+  /streaming/vod.php:
+    get:
+      operationId: Stream_LegacyVodPhp
+      tags:
+        - Streaming
+      summary: Legacy XC vod.php (302 to /stream/auth?type=movie)
+      description: |
+        nginx returns `302 /stream/auth?type=movie&$args`
+        (src/bin/nginx/conf/nginx.conf:159-161). The stream is `{id}.{ext}`, or pass `extension`
+        separately. Then `Stream_StreamAuth` applies.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Stream_QueryStream'
+        - $ref: '#/components/parameters/Stream_QueryExtension'
+      responses:
+        '302':
+          description: Redirect to the stream gateway.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /stream/auth?type=movie&username=user&password=pass&stream=456.mp4
+  /streaming/timeshift.php:
+    get:
+      operationId: Stream_LegacyTimeshiftPhp
+      tags:
+        - Streaming
+      summary: Legacy XC timeshift.php (302 to /stream/auth?type=timeshift)
+      description: |
+        nginx returns `302 /stream/auth?type=timeshift&$args`
+        (src/bin/nginx/conf/nginx.conf:155-157). Pass `start` and `duration` (in minutes) as for
+        `Stream_TimeshiftByCredentials` (src/Public/stream/auth.php:706-776).
+      parameters:
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Stream_QueryStream'
+        - $ref: '#/components/parameters/Stream_QueryExtension'
+        - $ref: '#/components/parameters/Stream_QueryStart'
+        - $ref: '#/components/parameters/Stream_QueryDuration'
+      responses:
+        '302':
+          description: Redirect to the stream gateway.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /stream/auth?type=timeshift&username=user&password=pass&stream=123&start=2026-10-17:20-00&duration=60&extension=ts
+  /streaming/rtmp.php:
+    get:
+      operationId: Stream_LegacyRtmpPhp
+      tags:
+        - Streaming
+      summary: Legacy RTMP callback (302 to /stream/rtmp)
+      description: |
+        nginx returns `302 /stream/rtmp?$args` (src/bin/nginx/conf/nginx.conf:151-153). This exists
+        for old nginx-rtmp configs. nginx-rtmp does not follow a 3xx notify reply: for on_play it
+        treats the Location as a stream-name redirect. This alias is therefore of little use to
+        nginx-rtmp, and current configs call `/stream/rtmp` directly
+        (src/bin/nginx_rtmp/conf/live.conf:1).
+      responses:
+        '302':
+          description: Redirect to the RTMP callback.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /stream/rtmp?call=play&addr=203.0.113.9&clientid=17&app=live&name=123
+  /stream/auth:
+    get:
+      operationId: Stream_StreamAuth
+      tags:
+        - Streaming
+      summary: Stream gateway, direct query form (all public URL forms rewrite here)
+      description: |
+        This is the direct form of the gateway (src/bin/nginx/conf/nginx.conf:253-270). The
+        front controller is src/Public/stream/index.php:22-52, and the handler is
+        src/Public/stream/auth.php. `/stream/auth.php` gets a 302 here (nginx.conf:168-170).
+        POST is accepted, and its fields override GET.
+
+        Credential precedence: `token`, then `hmac`, then `username`/`password` (:254-312).
+        - A non-hex `token` is decrypted as a play token (:49-115).
+        - HMAC auth works only for live, movie and series; any other type gives
+          INVALID_TYPE_TOKEN (:266-269).
+        - The HMAC signature covers `expiry`, `stream`, `extension`, `ip` and `identifier`, and is
+          checked by AuthService::validateHMAC. An `expiry` in the past gives TOKEN_EXPIRED.
+        - An HMAC session has max_connections=`max`.
+        - Array-valued credentials give INVALID_CREDENTIALS.
+
+        With `type` = `movie`, `series` or `subtitle` and no `extension`, `stream` may be
+        `{id}.{ext}` or `{id}/segment_{n}.(ts|m4s)` (:134-144). Without any extension,
+        live and timeshift default to ts and movie and series to mp4, but NOTHING is output:
+        a blank HTTP 200 (:834-848, a quirk).
+        The type-specific flows, redirects and errors are documented on the public path forms.
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - live
+              - movie
+              - series
+              - timeshift
+              - thumb
+              - subtitle
+            default: live
+        - $ref: '#/components/parameters/Stream_QueryStream'
+        - $ref: '#/components/parameters/Stream_QueryExtension'
+        - name: username
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: password
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: token
+          in: query
+          required: false
+          description: Line access token (hex) or an encrypted play token (non-hex; may end in `.{ext}`).
+          schema:
+            type: string
+        - name: hmac
+          in: query
+          required: false
+          description: HMAC signature (live, movie or series only).
+          schema:
+            type: string
+        - name: identifier
+          in: query
+          required: false
+          description: HMAC identifier string.
+          schema:
+            type: string
+        - name: ip
+          in: query
+          required: false
+          description: IP bound into the HMAC signature.
+          schema:
+            type: string
+        - name: max
+          in: query
+          required: false
+          description: Max connections for the HMAC session (intval).
+          schema:
+            type: integer
+            default: 0
+        - name: expiry
+          in: query
+          required: false
+          description: Unix expiry for the HMAC link. Empty means no expiry.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Stream_QueryStart'
+        - $ref: '#/components/parameters/Stream_QueryDuration'
+        - name: sid
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - $ref: '#/components/parameters/Stream_QueryWebvtt'
+        - $ref: '#/components/parameters/Stream_QueryUtc'
+        - $ref: '#/components/parameters/Stream_QueryPrebuffer'
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_GatewayPlaylist'
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '403':
+          $ref: '#/components/responses/Stream_FloodBlocked'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+    post:
+      operationId: Stream_StreamAuthPost
+      tags:
+        - Streaming
+      summary: Stream gateway via POST (same as GET; POST/JSON fields override GET)
+      description: |
+        This is the same handler as `Stream_StreamAuth`. `$rRequest` merges GET, then POST, then a
+        JSON body (src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php:107-113).
+        Exception: play-token decoding and `utc` read `$_GET` only
+        (src/Public/stream/auth.php:49,117).
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                token:
+                  type: string
+                hmac:
+                  type: string
+                start:
+                  type: string
+                duration:
+                  type: string
+                sid:
+                  type: string
+                webvtt:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_GatewayPlaylist'
+        '302':
+          $ref: '#/components/responses/Stream_LiveRedirect'
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /stream/{handler}:
+    get:
+      operationId: Stream_DirectHandler
+      tags:
+        - Streaming
+      summary: Direct handler form of the internal token endpoints
+      description: |
+        `/stream/(live|vod|timeshift|thumb|subtitle|segment|key|probe)` are reachable directly
+        with `?token=` or `?data=` (src/bin/nginx/conf/nginx.conf:253-270). They are identical to
+        the following public forms:
+        - live: `/auth/{token}`
+        - vod: `/vauth/{token}`
+        - timeshift: `/tsauth/{token}`
+        - thumb: `/thauth/{token}`
+        - subtitle: `/subauth/{token}`
+        - segment: `/hls/{token}`
+        - key: `/key/{token}`
+        - probe: `/probe/{data}`
+        `/stream/{handler}.php` gets a 302 here (nginx.conf:168-170).
+        An unknown handler (only reachable via `?handler=`) gets a hard-coded nginx 404 page
+        (src/Public/stream/index.php:42-46).
+      parameters:
+        - name: handler
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - live
+              - vod
+              - timeshift
+              - thumb
+              - subtitle
+              - segment
+              - key
+              - probe
+        - name: token
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: data
+          in: query
+          required: false
+          description: probe only.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: As the corresponding public token endpoint.
+          content:
+            application/x-mpegurl:
+              schema:
+                type: string
+            video/mp2t:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '302':
+          description: segment only (token minted by another server).
+        '404':
+          $ref: '#/components/responses/Stream_NotFound'
+  /stream/{handler}.php:
+    get:
+      operationId: Stream_DirectHandlerPhpAlias
+      tags:
+        - Streaming
+      summary: Legacy .php alias of the stream handlers (302)
+      description: |
+        `^/stream/(auth|key|segment|live|vod|timeshift|thumb|subtitle|rtmp)\.php$` gets
+        `302 /stream/$1?$args` (src/bin/nginx/conf/nginx.conf:168-170). PHP is never executed
+        under these names.
+      parameters:
+        - name: handler
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - auth
+              - key
+              - segment
+              - live
+              - vod
+              - timeshift
+              - thumb
+              - subtitle
+              - rtmp
+      responses:
+        '302':
+          description: Redirect to the extensionless handler.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /stream/auth?username=user&password=pass&stream=123&extension=ts
+  /stream/rtmp:
+    get:
+      operationId: Stream_RtmpCallback
+      tags:
+        - Streaming
+      summary: nginx-rtmp on_play/on_publish/on_play_done callback
+      description: |
+        This is not called by players. nginx-rtmp (port 8880, `application live`) calls it via
+        `notify_method get` for on_play, on_publish and on_play_done
+        (src/bin/nginx_rtmp/conf/nginx.conf:15-25, live.conf:1). Handler
+        src/Public/stream/rtmp.php. The player URL is
+        `rtmp://{host}:8880/live/{stream_id}?username=U&password=P`, or `?token=T`. nginx-rtmp
+        forwards the query args plus `call`, `addr`, `clientid`, `app`, `name` and `tcurl`.
+
+        Rules:
+        - The notify args (`addr`, `clientid`, `call`, `name`) must each have exactly one value,
+          else 404 (rtmp.php:30-35; StreamAuth::notifyArguments, src/Streaming/Auth/StreamAuth.php:194).
+        - A publish from addr 127.0.0.1 is always allowed with 200 (:37,193-194).
+        - Every other call requires REMOTE_ADDR 127.0.0.1, else generate404 (:46-49).
+
+        `call=play`:
+        - Allowed without line auth when `password` equals `live_streaming_pass`, or when the IP
+          is an allowed RTMP pull IP (optionally with a password).
+        - Otherwise `tcurl` and `app` must be present. Line creds (`token`, or
+          `username`/`password`) are checked by RtmpViewerAuth on MAIN, or by RtmpOffline/agent on
+          an LB.
+        - Failure gives 404 and counts toward brute-force blocking only for AUTH_FAILED.
+        - A stream not on this server gives 404 for viewers and 200 for relays.
+        - A dead stream that is not on-demand gives 404. An on-demand stream starts its monitor
+          and sleeps 5 s.
+        - Success records the connection and enforces max connections (kicking the oldest),
+          then returns 200. An admission refusal or LINE_CREATE_FAIL gives 404 (:61-171).
+
+        `call=play_done`: closeRTMP, then 200 (:174-179).
+
+        `call=publish`: 200 when `password` is `live_streaming_pass`, or when the IP is an allowed
+        push IP. Otherwise 404 (:181-191).
+
+        Bodies are empty, and nginx-rtmp only reads the status: 2xx allows, anything else denies.
+      parameters:
+        - name: call
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - play
+              - publish
+              - play_done
+        - name: addr
+          in: query
+          required: true
+          description: Client IP as seen by nginx-rtmp.
+          schema:
+            type: string
+        - name: clientid
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: query
+          required: true
+          description: RTMP stream name = stream_id.
+          schema:
+            type: string
+            example: '123'
+        - name: app
+          in: query
+          required: false
+          schema:
+            type: string
+            example: live
+        - name: tcurl
+          in: query
+          required: false
+          schema:
+            type: string
+            example: rtmp://lb1.example.com:8880/live
+        - name: username
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: password
+          in: query
+          required: false
+          description: Line password, or `live_streaming_pass` for relays and publishers.
+          schema:
+            type: string
+        - name: token
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/Stream_EmptyOk'
+        '404':
+          description: Denied (empty body), or the nginx 404 page when the caller is not localhost.
+          content:
+            text/html:
+              schema:
+                type: string

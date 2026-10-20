@@ -1,657 +1,2279 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: XC_VM System API
-  version: "1.0.0"
+  version: 2.7.2
+  summary: Internal Server API, Legacy Admin Stream Endpoints of the Xtream Codes compatible HTTP surface, as implemented by XC_VM.
   description: |
-    Internal **System API** for the XC_VM panel — stream and VOD control, system
-    statistics, directory browsing, log viewing, process management and
-    EPG/nginx reloading.
+    A source-level reference for the **Xtream Codes (XC) API**: the de facto standard HTTP interface
+    between IPTV panels and player apps. The reference implementation is
+    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.2, an open-source continuation of Xtream UI / XC.
+    Each operation cites the XC_VM source file and line it was traced from (`src/...:line`).
 
-    - **Controller:** `src/Public/Controllers/Api/InternalApiController.php`
-    - **HTTP entry-point:** `/api.php` (routed by nginx to `Public/index.php` with `XC_API=internal`)
-    - **Authentication:** `password` query parameter matching the `live_streaming_pass` configuration
-    - **IP allow-list:** the requesting IP must be in `ServerRepository::getAllowedIPs()`
+    ## Authentication models
 
-    **Request pattern:**
-    ```
-    {protocol}://{host}:{port}/api.php?password=<live_streaming_pass>&action=<action>
-    ```
+    The panel has several independent auth schemes. Each endpoint states which one it uses.
 
-    ## Error codes
-    | Code | Description |
-    | --- | --- |
-    | `INVALID_API_PASSWORD` | Invalid API password |
-    | `API_IP_NOT_ALLOWED` | IP address not allowed |
+    | Who | How |
+    |---|---|
+    | Line (subscriber) | `username` + `password` query parameters, or `token` (32-char line access token). Also in path form: `/player_api/{u}/{p}`, `/live/{u}/{p}/...` |
+    | Activation code | The code typed as `username` (or `token`) is activated on first use and becomes a line |
+    | MAG / Stalker box | MAC address cookie + bearer token from `handshake` (`/c/portal.php`, `/stalker_portal/...`) |
+    | Enigma2 box | MAC/device registration (`enigma2.php`) |
+    | Admin / reseller REST | `api_key` query parameter (named `xct_` token or legacy per-user key) on `/{access_code}/?action=...`; the access code's IP whitelist is enforced by nginx |
+    | Load-balancer nodes | Shared cluster secret (`/cluster/v1`); signed `node.rpc` (legacy `api.php` on nodes older than 2.7.0) |
 
-    The default response for an unrecognized action is `{ "result": false }`.
+    ## Notation
+
+    OpenAPI cannot express query-string multiplexing, so action-based endpoints are written as separate
+    literal paths such as `/player_api.php?action=get_live_streams`. The request is still a single
+    `GET /player_api.php` with `action` as an ordinary query parameter.
+
+    The admin and reseller REST APIs share one URL shape, `/{access_code}/?action=...`. Each access code has a type
+    (3 = Admin API, 4 = Reseller API) and nginx routes it to that API, so `/{access_code}/...` and `/{reseller_access_code}/...` are the
+    same URL and differ only in which kind of code is used.
+  contact:
+    name: XC_VM project
+    url: https://github.com/Vateron-Media/XC_VM
+  license:
+    name: AGPL-3.0 (XC_VM source); this document describes its public interface
+    identifier: AGPL-3.0-only
 servers:
   - url: '{protocol}://{host}:{port}'
-    description: XC_VM server
+    description: Any XC compatible panel or load-balancer node
     variables:
       protocol:
         default: http
-        enum: [http, https]
+        enum:
+          - http
+          - https
       host:
-        default: your-server.com
-        description: Server IP or domain
+        default: tv.example.com
       port:
         default: '80'
-        description: HTTP port
-
-security:
-  - ApiPassword: []
-
+        description: HTTP broadcast port (often 80, 8080, 8000, 25461); HTTPS often 443 or 25463.
+externalDocs:
+  description: XC_VM source
+  url: https://github.com/Vateron-Media/XC_VM
+components:
+  parameters:
+    Username:
+      name: username
+      in: query
+      required: true
+      description: Line username. Optional when `token` is sent instead.
+      schema:
+        type: string
+        example: demo
+    Password:
+      name: password
+      in: query
+      required: true
+      description: Line password. Optional when `token` is sent instead.
+      schema:
+        type: string
+        format: password
+        example: s3cret
+    Internal_Password:
+      name: password
+      in: query
+      required: true
+      schema:
+        type: string
+      description: |
+        Legacy (pre-2.7.0 nodes) only: the panel's `live_streaming_pass`. It is also sent as a form field by ApiClient::systemRequest.
+        Not used on the `node.rpc` path.
+    LegacyAdmin_ApiPass:
+      name: api_pass
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Must equal the `api_pass` setting when that setting is non-empty (src/Public/admin/api.php:32-34).
+    LegacyAdmin_LivePassword:
+      name: password
+      in: query
+      required: false
+      schema:
+        type: string
+      description: '`live_streaming_pass` (from an allowed server IP with DATAPLANE flow off) or a loopback `lb1-...` token (127.0.0.1/::1 only).'
+    LegacyAdmin_UIToken:
+      name: uitoken
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Panel-issued AdminStreamToken (encrypted with live_streaming_pass; bound to IP/subnet; carries stream id and expiry).
+    LegacyAdmin_RelayKey:
+      name: rk
+      in: query
+      required: false
+      schema:
+        type: string
+      description: RelaySeal sealed session key (relay callers). Output is framed and encrypted under it. An invalid key gives 404.
+    LegacyAdmin_RelayTicket:
+      name: X-XCVM-Relay
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Panel-signed `rly` ticket (parent_sid, stream_id, child_sid, child_gen).
+    LegacyAdmin_RelayAuth:
+      name: X-XCVM-Relay-Auth
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Child's Ed25519 proof `<ts_ms>.<32-hex nonce>.<b64url sig>` over ticket, method and target (±90 s).
+  responses:
+    Internal_RouteRemoved:
+      description: |
+        This build: `/api` and `/api.php` have no controller, so the reply is 404 with an empty body (src/Public/index.php:185-187).
+        On pre-2.7.0 nodes, a wrong password or IP gave a 404 nginx-style page (generateError, production mode).
+    LegacyAdmin_NotFound:
+      description: '`generate404()`: 404 with an nginx-mimicking HTML page (src/Core/Error/ErrorResponder.php:119-121,235).'
+      content:
+        text/html:
+          schema:
+            type: string
+          example: "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+  schemas:
+    Internal_Result:
+      type: object
+      properties:
+        result:
+          type: boolean
+      required:
+        - result
+    Internal_Stats:
+      type: object
+      description: SystemInfo::getStats (src/Core/Util/SystemInfo.php:30-90).
+      properties:
+        cpu:
+          type: number
+        cpu_cores:
+          type: integer
+        cpu_avg:
+          type: number
+        cpu_name:
+          type: string
+        total_mem:
+          type: integer
+        total_mem_free:
+          type: integer
+        total_mem_used:
+          type: integer
+        total_mem_used_percent:
+          type: number
+        total_disk_space:
+          type: integer
+        free_disk_space:
+          type: integer
+        kernel:
+          type: string
+        uptime:
+          type: string
+        total_running_streams:
+          type: integer
+        bytes_sent:
+          type: number
+        bytes_sent_total:
+          type: number
+        bytes_received:
+          type: number
+        bytes_received_total:
+          type: number
+        network_speed:
+          type:
+            - integer
+            - string
+        interfaces:
+          type: array
+          items:
+            type: string
+        network_info:
+          type: object
+        audio_devices:
+          type: array
+        video_devices:
+          type: array
+        gpu_info:
+          type:
+            - object
+            - array
+        iostat_info:
+          type:
+            - object
+            - array
+        cpu_load_average:
+          type: number
+      example:
+        cpu: 12.5
+        cpu_cores: 8
+        cpu_avg: 10.2
+        cpu_name: Intel(R) Xeon(R) E-2288G
+        total_mem: 32768000
+        total_mem_free: 20480000
+        total_mem_used: 12288000
+        total_mem_used_percent: 37.5
+        total_disk_space: 500107862016
+        free_disk_space: 380107862016
+        kernel: 6.8.0-45-generic
+        uptime: 12d 4h 3m
+        total_running_streams: 42
+        bytes_sent: 1250000
+        bytes_sent_total: 98765432100
+        bytes_received: 900000
+        bytes_received_total: 87654321000
+        network_speed: 1000
+        interfaces:
+          - eth0
+        network_info: {}
+        audio_devices: []
+        video_devices: []
+        gpu_info: []
+        iostat_info: []
+        cpu_load_average: 0.85
 tags:
-  - name: Streams
-    description: Live stream and RTMP control
-  - name: VOD
-    description: Video-on-Demand control
-  - name: Processes
-    description: Process lifecycle management
-  - name: System
-    description: System statistics and maintenance
-  - name: Files
-    description: File download and directory browsing
-  - name: Connections
-    description: Active connection control
+  - name: Internal Server API
+    description: |
+      Server-to-server "system API" of a load balancer / node: `/api.php?action=<name>` (alias `/api`).
+      Not part of the Xtream Codes client API.
 
+      **Status in this tree (2.8.0):** Phase 10 removed `InternalApiController::index` (docs/adr/0004-cluster-api.md).
+      nginx still routes `location = /api` and `location = /api.php` to `Public/index.php` with
+      `XC_SCOPE=api`, `XC_API=internal` (src/bin/nginx/conf/nginx.conf:451-479), but `internal` is not in
+      `$rApiEndpoints`, so every HTTP request to `/api` or `/api.php` gets **404 with an empty body**
+      (src/Public/index.php:170-187).
+
+      The actions survive as the payload of the signed `node.rpc` cluster command:
+      `cluster:exec` (src/Cli/Commands/ClusterExecCommand.php:280-289) calls
+      `InternalApiController::runCommand` (src/Public/Controllers/Api/InternalApiController.php:39-41).
+      That path does no password or IP check: the panel's Ed25519 command signature replaces them.
+      The node returns the action's raw output in `ack.result`, truncated at 4194304 bytes
+      (CommandBus::MAX_RESULT, src/Domain/Cluster/CommandBus.php:59,355-359). `scandir_recursive` still pages `stat`
+      listings at 60000 bytes, per a stale comment claiming a 65536 cap (InternalApiController.php:394-399).
+
+      MAIN still sends the legacy HTTP form to nodes that are not on the cluster bus (pre-2.7.0 nodes):
+      `ApiClient::systemRequest` POSTs `http://<server_ip>:<http_broadcast_port>/api` with the fields form-encoded
+      and `password=<live_streaming_pass>` added (src/Core/Http/ApiClient.php:69-90).
+      `ApiClient::asyncRequest` POSTs to `api_url` = `http://<host>:<port>/api?password=<live_streaming_pass>`
+      (src/Core/Http/ApiClient.php:99-112, src/Domain/Server/ServerRepository.php:153-154).
+      On such nodes access also required the source IP in `ServerRepository::getAllowedIPs()`
+      (src/Domain/Server/ServerRepository.php:524). That list is 127.0.0.1, SERVER_ADDR, and every server's
+      `server_ip`, `private_ip`, `whitelist_ips` and IP-valued `domain_name`, cached 60 s.
+      Failures used the error codes `INVALID_API_PASSWORD` / `API_IP_NOT_ALLOWED` (src/Core/Error/ErrorResponder.php:35,57).
+      In production those render as a 404 nginx-style page.
+
+      Corrections to docs/_media/system-api.openapi.yaml:
+      - These actions are gone from the dispatcher and answer `{"result":false}` via `default`:
+        `view_log`, `pidsAreRunning`, `kill_watch`, `reload_epg`, `watch_force`, `plex_force`, `getFile`, `redirect_connection`.
+        `getFile` is replaced by `/xfile`; MAIN still builds `action=getFile` URLs only for pre-2.7.0 nodes
+        (src/Domain/Server/ServerRepository.php:357).
+      - `activity_id` is a string connection reference, not an integer.
+      - Callers send POST, not GET.
+  - name: Legacy Admin Stream Endpoints
+    description: |
+      `/admin/(api|live|proxy_api|thumb|timeshift|vod)` on every server. nginx
+      `location ~ ^/admin/(api|index|live|proxy_api|thumb|timeshift|vod)$` uses `limit_req zone=one burst=8`
+      and sets `XC_ADMIN=$1` for src/Public/admin/index.php (src/bin/nginx/conf/nginx.conf:306-321).
+      - The `.php` forms get a 302 to `/admin/$1?$args` (nginx.conf:323-325).
+      - `/admin/index`, or an unknown or missing handler, gets 404 with an nginx-style HTML body
+        (src/Public/admin/index.php:23-26,39-43).
+
+      Stream endpoints are admitted by `RelayGuard::admit` (src/Core/Cluster/RelayGuard.php:59-70), in one of three ways:
+      1. A relay presents `X-XCVM-Relay` (panel-signed `rly` ticket naming parent_sid, stream_id, child_sid, child_gen)
+         plus `X-XCVM-Relay-Auth`, the child's Ed25519 proof. Once these headers are present they alone decide.
+      2. A loopback `password=lb1-...` token, accepted only from 127.0.0.1 or ::1.
+      3. The legacy `password=<live_streaming_pass>` from an IP in `getAllowedIPs()`, only when that server's DATAPLANE flow
+         is off (RelayGuard.php:118-133).
+
+      Alternatively a panel `uitoken` (AdminStreamToken, decoded with live_streaming_pass, IP- or subnet-bound)
+      is accepted by live, vod, timeshift and thumb.
+      Auth failures call `generate404()`: HTTP 404 with the nginx-style HTML page (src/Core/Error/ErrorResponder.php:119,235).
 paths:
-  /api.php?action=view_log:
-    get:
-      tags: [Streams]
-      summary: View stream log
-      description: Returns the error log for a given stream or VOD. Checks `STREAMS_PATH` first, then falls back to `VOD_PATH`.
+  /api.php?action=fpm_status:
+    post:
+      operationId: Internal_fpmStatus
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Raw PHP-FPM / local status page
+      description: |
+        Echoes `file_get_contents('http://127.0.0.1:<http_broadcast_port>/status')`
+        (src/Public/Controllers/Api/InternalApiController.php:45-48). See `/status`.
+        HTTP route removed in this build: 404 (src/Public/index.php:185-187). It runs as a `node.rpc` command.
       parameters:
-        - name: stream_id
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
           in: query
           required: true
-          schema: { type: integer }
-          description: ID of the stream to retrieve the log for
+          schema:
+            type: string
+            enum:
+              - fpm_status
+          description: Action name.
       responses:
         '200':
-          description: Plain-text contents of `<stream_id>.errors` (empty if no log exists)
+          description: Body of the local `/status` request, passed through unchanged.
           content:
             text/plain:
-              schema: { type: string }
-
-  /api.php?action=streams_ramdisk:
-    get:
-      tags: [Streams]
-      summary: Streams ramdisk usage
-      description: Returns per-stream file sizes from the streams ramdisk directory. Has a 30-second time limit.
-      responses:
-        '200':
-          description: Per-stream byte sizes
-          content:
-            application/json:
               schema:
-                type: object
-                properties:
-                  result: { type: boolean }
-                  streams:
-                    type: object
-                    additionalProperties: { type: integer }
-              example:
-                result: true
-                streams: { "123": 4096000, "456": 2048000 }
-
-  /api.php?action=stream:
-    get:
-      tags: [Streams]
-      summary: Start / stop live streams
-      description: Starts or stops live streams. When starting, a 50 ms delay is applied between each stream.
-      parameters:
-        - name: stream_ids
-          in: query
-          required: true
-          description: List of stream IDs
-          schema: { type: array, items: { type: integer } }
-        - name: function
-          in: query
-          required: true
-          description: Action to perform
-          schema: { type: string, enum: [start, stop] }
-      responses:
-        '200':
-          description: Result
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ResultResponse' }
-
-  /api.php?action=force_stream:
-    get:
-      tags: [Streams]
-      summary: Force stream source
-      description: Forces a stream to use a specific source by writing a force signal file.
-      parameters:
-        - name: stream_id
-          in: query
-          required: true
-          schema: { type: integer }
-          description: ID of the stream to force
-        - name: force_id
-          in: query
-          required: true
-          schema: { type: integer }
-          description: ID of the source to force the stream to
-      responses:
-        '200':
-          description: Result
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ResultResponse' }
-
-  /api.php?action=get_archive_files:
-    get:
-      tags: [Streams]
-      summary: Get archive files
-      description: Returns a list of `.ts` archive segment files for a given stream.
-      parameters:
-        - name: stream_id
-          in: query
-          required: true
-          schema: { type: integer }
-      responses:
-        '200':
-          description: Archive segment paths
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  result: { type: boolean }
-                  data: { type: array, items: { type: string } }
-              example:
-                result: true
-                data: ["/path/to/archive/123/segment001.ts", "/path/to/archive/123/segment002.ts"]
-
-  /api.php?action=probe:
-    get:
-      tags: [Streams]
-      summary: Probe stream
-      description: Probes a stream URL using FFprobe to retrieve media information.
-      parameters:
-        - name: url
-          in: query
-          required: true
-          schema: { type: string }
-          description: URL of the stream to probe
-        - name: user_agent
-          in: query
-          required: false
-          schema: { type: string }
-          description: Custom User-Agent header
-        - name: http_proxy
-          in: query
-          required: false
-          schema: { type: string }
-          description: HTTP proxy URL
-        - name: cookies
-          in: query
-          required: false
-          schema: { type: string }
-          description: Cookie string to send with the request
-        - name: headers
-          in: query
-          required: false
-          schema: { type: string }
-          description: Additional HTTP headers
-      responses:
-        '200':
-          description: Media info
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  result: { type: boolean }
-                  data: { type: object }
-
-  /api.php?action=rtmp_stats:
-    get:
-      tags: [Streams]
-      summary: RTMP stats
-      description: Returns local RTMP server statistics.
-      responses:
-        '200':
-          description: RTMP statistics (XML/JSON depending on server)
-
-  /api.php?action=rtmp_kill:
-    get:
-      tags: [Streams]
-      summary: RTMP kill
-      description: Drops an RTMP publisher connection by name via the nginx RTMP control interface.
-      parameters:
-        - name: name
-          in: query
-          required: true
-          schema: { type: string }
-          description: RTMP stream name to drop
-      responses:
-        '200':
-          description: Result
-
-  /api.php?action=vod:
-    get:
-      tags: [VOD]
-      summary: Start / stop VOD streams
-      description: Starts or stops Video-on-Demand streams. When starting, the stream is first stopped then either force-started or queued depending on `force`.
-      parameters:
-        - name: stream_ids
-          in: query
-          required: true
-          description: List of stream IDs
-          schema: { type: array, items: { type: integer } }
-        - name: function
-          in: query
-          required: true
-          description: Action to perform
-          schema: { type: string, enum: [start, stop] }
-        - name: force
-          in: query
-          required: false
-          description: If true, starts immediately instead of queuing (start only)
-          schema: { type: boolean }
-      responses:
-        '200':
-          description: Result
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ResultResponse' }
-
-  /api.php?action=fpm_status:
-    get:
-      tags: [Processes]
-      summary: FPM status
-      description: Returns the PHP-FPM status page from the local server's HTTP broadcast port.
-      responses:
-        '200':
-          description: PHP-FPM status page
-
-  /api.php?action=kill_pid:
-    get:
-      tags: [Processes]
-      summary: Kill process by PID
-      description: Terminates a process by sending SIGKILL (signal 9) to the specified PID.
-      parameters:
-        - name: pid
-          in: query
-          required: true
-          schema: { type: integer }
-          description: Process ID to terminate
-      responses:
-        '200':
-          description: Result
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ResultResponse' }
-
-  /api.php?action=pidsAreRunning:
-    get:
-      tags: [Processes]
-      summary: Process lifecycle check
-      description: Checks whether specified PIDs are currently running and match the expected program binary.
-      parameters:
-        - name: pids
-          in: query
-          required: true
-          description: List of PIDs to verify
-          schema: { type: array, items: { type: integer } }
-        - name: program
-          in: query
-          required: true
-          schema: { type: string }
-          description: Expected program name
-      responses:
-        '200':
-          description: Per-PID running state
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: { type: boolean }
-              example: { "1234": true, "5678": false }
-
-  /api.php?action=get_pids:
-    get:
-      tags: [Processes]
-      summary: Get process list
-      description: Returns a list of all running processes with details (from `ps -e`).
-      responses:
-        '200':
-          description: Output lines from `ps -e`
-          content:
-            application/json:
-              schema: { type: array, items: { type: string } }
-
-  /api.php?action=kill_watch:
-    get:
-      tags: [Processes]
-      summary: Kill watch processes
-      description: Kills all running watch module processes (main PID and worker PIDs).
-      responses:
-        '200':
-          description: Result
-
-  /api.php?action=kill_plex:
-    get:
-      tags: [Processes]
-      summary: Kill Plex processes
-      description: Kills all running Plex module processes (main PID and worker PIDs).
-      responses:
-        '200':
-          description: Result
-
-  /api.php?action=stats:
-    get:
-      tags: [System]
-      summary: System statistics
-      description: Retrieves system statistics via `SystemInfo::getStats()`.
-      responses:
-        '200':
-          description: System stats
-          content:
-            application/json:
-              schema: { type: object }
-              example:
-                cpu: 8.32
-                cpu_cores: 56
-                cpu_avg: 8.86
-                cpu_name: "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz"
-
-  /api.php?action=reload_epg:
-    get:
-      tags: [System]
-      summary: Reload EPG
-      description: Triggers a background EPG reload by running `console.php cron:epg` asynchronously.
-      responses:
-        '200':
-          description: Accepted (runs in background)
-
+                type: string
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
   /api.php?action=restore_images:
-    get:
-      tags: [System]
-      summary: Restore images
-      description: Triggers a background image restoration by running `console.php tools images` asynchronously.
+    post:
+      operationId: Internal_restoreImages
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Re-download missing images in the background
+      description: |
+        Runs `console.php tools images` detached (src/Public/Controllers/Api/InternalApiController.php:50-53).
+        It returns no body. HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - restore_images
+          description: Action name.
       responses:
         '200':
-          description: Accepted (runs in background)
-
+          description: Empty body.
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
   /api.php?action=reload_nginx:
-    get:
-      tags: [System]
-      summary: Reload nginx
-      description: Reloads both the RTMP nginx and the main nginx processes by sending them a reload signal.
+    post:
+      operationId: Internal_reloadNginx
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Reload nginx and nginx_rtmp
+      description: |
+        Runs `nginx_rtmp -s reload` then `nginx -s reload` (src/Public/Controllers/Api/InternalApiController.php:55-59).
+        It returns no body. HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - reload_nginx
+          description: Action name.
       responses:
         '200':
-          description: Result
-
-  /api.php?action=free_temp:
-    get:
-      tags: [System]
-      summary: Clear temporary folder
-      description: Deletes all files in the `tmp/` directory and runs the cache cron job.
+          description: Empty body.
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=streams_ramdisk:
+    post:
+      operationId: Internal_streamsRamdisk
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Bytes on the streams ramdisk per stream id
+      description: |
+        Parses `ls -l STREAMS_PATH`, summing the size of files named `<id>_<x>` per stream id
+        (src/Public/Controllers/Api/InternalApiController.php:61-92). `set_time_limit(30)`.
+        Quirk: `streams` is an object keyed by stream id, but `[]` (an empty array) when nothing matches.
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - streams_ramdisk
+          description: Action name.
       responses:
         '200':
-          description: Result
-
-  /api.php?action=free_streams:
-    get:
-      tags: [System]
-      summary: Clear streams folder
-      description: Removes all files from the `content/streams/` directory.
-      responses:
-        '200':
-          description: Result
-
-  /api.php?action=get_free_space:
-    get:
-      tags: [System]
-      summary: Get free disk space
-      description: Returns disk usage information from `df -h`.
-      responses:
-        '200':
-          description: Output lines from `df -h`
+          description: Totals.
           content:
             application/json:
-              schema: { type: array, items: { type: string } }
-
-  /api.php?action=get_certificate_info:
-    get:
-      tags: [System]
-      summary: Get certificate info
-      description: Returns SSL/TLS certificate information via `DiagnosticsService::getCertificateInfo()`.
-      responses:
-        '200':
-          description: Certificate info
-
-  /api.php?action=watch_force:
-    get:
-      tags: [System]
-      summary: Force watch cron
-      description: Triggers a background watch cron job for a specific item.
-      parameters:
-        - name: id
-          in: query
-          required: true
-          schema: { type: integer }
-          description: Watch item ID
-      responses:
-        '200':
-          description: Accepted (runs in background)
-
-  /api.php?action=plex_force:
-    get:
-      tags: [System]
-      summary: Force Plex cron
-      description: Triggers a background Plex cron job for a specific item.
-      parameters:
-        - name: id
-          in: query
-          required: true
-          schema: { type: integer }
-          description: Plex item ID
-      responses:
-        '200':
-          description: Accepted (runs in background)
-
-  /api.php?action=getFile:
-    get:
-      tags: [Files]
-      summary: Get file
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                    const: true
+                  streams:
+                    description: Map of stream id to total bytes; `[]` when empty.
+                    oneOf:
+                      - type: object
+                        additionalProperties:
+                          type: integer
+                      - type: array
+                        maxItems: 0
+              examples:
+                some:
+                  value:
+                    result: true
+                    streams:
+                      '12': 4823104
+                      '57': 1310720
+                none:
+                  value:
+                    result: true
+                    streams: []
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=vod:
+    post:
+      operationId: Internal_vod
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Start or stop movie (VOD) encodes
       description: |
-        Downloads the specified file. Supports HTTP range requests for partial content.
-        Only allows files with specific extensions: `log`, `tar.gz`, `gz`, `zip`, `m3u8`,
-        `mp4`, `mkv`, `avi`, `mpg`, `flv`, `3gp`, `m4v`, `wmv`, `mov`, `ts`, `srt`, `sub`,
-        `sbv`, `jpg`, `png`, `bmp`, `jpeg`, `gif`, `tif`.
+        `function=start`: for each id, `StreamProcess::stopMovie(id, true)`. Then `startMovie` if `force` is truthy,
+        else `queueMovie`. `function=stop`: `stopMovie(id)`.
+        Source: src/Public/Controllers/Api/InternalApiController.php:94-124.
+        Quirk: when `stream_ids` or `function` is empty, or `function` is neither start nor stop, it falls through to
+        `rtmp_stats` and returns the RTMP stats JSON instead. HTTP route removed in this build: 404.
+        MAIN sends it via `NodeRpc::broadcast` from `/admin/api?action=vod`.
       parameters:
-        - name: filename
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
           in: query
           required: true
-          schema: { type: string }
-          description: Path to the file
+          schema:
+            type: string
+            enum:
+              - vod
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - stream_ids
+                - function
+              properties:
+                stream_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Movie stream ids (`stream_ids[]=`), intval'd.
+                function:
+                  type: string
+                  enum:
+                    - start
+                    - stop
+                force:
+                  type: string
+                  description: 'start only: truthy runs startMovie now instead of queueing.'
       responses:
         '200':
-          description: File contents
+          description: '`{"result":true}`, or the rtmp_stats body on fall-through.'
           content:
-            application/octet-stream:
-              schema: { type: string, format: binary }
-        '206':
-          description: Partial content (when a `Range` header is supplied)
-
-  /api.php?action=scandir_recursive:
-    get:
-      tags: [Files]
-      summary: Recursive directory scan
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=rtmp_stats:
+    post:
+      operationId: Internal_rtmpStats
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: nginx-rtmp /stat as JSON
       description: |
-        Recursively scans a directory using `find`, optionally filtering by file extension. Has a
-        30-second time limit. The directory must lie under the node's Scan Roots, and `allowed` may
-        hold only extensions (letters and digits); otherwise the answer is `{"result": false}`.
-
-        With `stat`, the node answers files only, with their modification times, a page at a time
-        (each page under 64 KB, what the cluster command queue carries): ask again with `after`
-        set to the page's `next` until `next` is null. A node from before `stat` ignores it and
-        answers the plain list.
-
-        With `stat` and `size`, and `dir` naming one file instead of a directory, the answer also
-        carries that file's size in `sizes` (MAIN's auto-upgrade compares two copies on the node
-        that holds them). A file that is gone from a folder under the Scan Roots is answered with
-        empty `files` and `sizes`. A node from before `size` answers without `sizes`.
+        `json_encode(ServerRepository::getLocalRTMPStats())`: the RTMP module's `/stat` XML converted to an array
+        (src/Public/Controllers/Api/InternalApiController.php:127-130; src/Domain/Server/ServerRepository.php:565-571).
+        The value is `null` when the stat page cannot be read. HTTP route removed in this build: 404.
       parameters:
-        - name: dir
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
           in: query
           required: true
-          schema: { type: string }
-          description: URL-encoded path to the directory
-        - name: allowed
-          in: query
-          required: false
-          schema: { type: string, pattern: '^[A-Za-z0-9]{1,16}(\\|[A-Za-z0-9]{1,16}){0,63}$' }
-          description: URL-encoded pipe-separated list of allowed extensions (e.g. `mp4|mkv`)
-        - name: stat
-          in: query
-          required: false
-          schema: { type: integer, enum: [0, 1] }
-          description: 1 to answer files with their modification times, by page
-        - name: after
-          in: query
-          required: false
-          schema: { type: string }
-          description: With `stat`, the previous page's `next` (URL-encoded); omitted for the first page
-        - name: size
-          in: query
-          required: false
-          schema: { type: integer, enum: [0, 1] }
-          description: With `stat` and a `dir` that names one file, 1 to answer its size too
+          schema:
+            type: string
+            enum:
+              - rtmp_stats
+          description: Action name.
       responses:
         '200':
-          description: |
-            Without `stat`, the paths. With `stat`, one page: `files` maps each path (in path order,
-            after `after`) to its modification time in Unix seconds, always an object (`{}` when
-            empty), and `next` is the cursor for the following page, or null on the last. With
-            `size` for one file, `sizes` maps it to its size in bytes (`{}` when it is not there).
-            `{"result": false}` when the directory or `allowed` is refused.
+          description: The XML-to-JSON tree of nginx-rtmp `/stat` (element names as keys, text values as strings).
+          content:
+            application/json:
+              schema:
+                type:
+                  - object
+                  - 'null'
+              example:
+                nginx_version: 1.24.0
+                uptime: '86400'
+                server:
+                  application:
+                    name: live
+                    live:
+                      nclients: '1'
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=kill_pid:
+    post:
+      operationId: Internal_killPid
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: SIGKILL a process
+      description: |
+        `posix_kill(intval(pid), 9)` (src/Public/Controllers/Api/InternalApiController.php:132-142).
+        It returns `{"result":false}` when pid ≤ 0. The return value of `posix_kill` is ignored.
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - kill_pid
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - pid
+              properties:
+                pid:
+                  type: integer
+      responses:
+        '200':
+          description: Result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              examples:
+                ok:
+                  value:
+                    result: true
+                badPid:
+                  value:
+                    result: false
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=rtmp_kill:
+    post:
+      operationId: Internal_rtmpKill
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Drop an RTMP publisher
+      description: |
+        Fires `wget <rtmp_mport_url>control/drop/publisher?app=live&name=<name>` in the background
+        (src/Public/Controllers/Api/InternalApiController.php:144-149). It always returns `{"result":true}`.
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - rtmp_kill
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: RTMP stream name (escapeshellcmd'd).
+      responses:
+        '200':
+          description: Always true.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=stream:
+    post:
+      operationId: Internal_stream
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Start or stop live streams
+      description: |
+        `function=start`: `StreamProcess::startMonitor(id, 1)`, sleeping 50 ms after each PHP-monitor spawn.
+        `function=stop`: `StreamProcess::stopStream(id, true)`.
+        Source: src/Public/Controllers/Api/InternalApiController.php:151-183.
+        Quirk: when `stream_ids` or `function` is empty, or `function` is unknown, it falls through to `stats` and
+        returns the system stats object. HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - stream
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - stream_ids
+                - function
+              properties:
+                stream_ids:
+                  type: array
+                  items:
+                    type: integer
+                function:
+                  type: string
+                  enum:
+                    - start
+                    - stop
+      responses:
+        '200':
+          description: '`{"result":true}`, or the `stats` object on fall-through.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=stats:
+    post:
+      operationId: Internal_stats
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Server hardware and traffic statistics
+      description: |
+        `json_encode(SystemInfo::getStats())` (src/Public/Controllers/Api/InternalApiController.php:186-189;
+        src/Core/Util/SystemInfo.php:30-90). HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - stats
+          description: Action name.
+      responses:
+        '200':
+          description: Stats.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Stats'
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=force_stream:
+    post:
+      operationId: Internal_forceStream
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Force a stream onto a given source index
+      description: |
+        For `stream_id > 0`: `FanoutClient::forceSource(stream_id, force_id)`. When that fails, it writes
+        `SIGNALS_TMP_PATH/<stream_id>.force` for the PHP monitor
+        (src/Public/Controllers/Api/InternalApiController.php:191-204). It always returns `{"result":true}`.
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - force_stream
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - stream_id
+                - force_id
+              properties:
+                stream_id:
+                  type: integer
+                force_id:
+                  type: integer
+                  description: Source index to switch to.
+      responses:
+        '200':
+          description: Always true.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=closeConnection:
+    post:
+      operationId: Internal_closeConnection
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Close a viewer connection
+      description: |
+        `ConnectionTracker::closeConnection(ConnectionTracker::reference(activity_id))`
+        (src/Public/Controllers/Api/InternalApiController.php:206-209). It always returns `{"result":true}`.
+        `activity_id` is a string reference (a connection uuid or a numeric id), not necessarily an integer.
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - closeConnection
+          description: Action name (camelCase).
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                activity_id:
+                  type: string
+                  description: Connection reference; defaults to empty string.
+      responses:
+        '200':
+          description: Always true.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=scandir_recursive:
+    post:
+      operationId: Internal_scandirRecursive
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Recursive file listing under a scan root
+      description: |
+        Source: src/Public/Controllers/Api/InternalApiController.php:211-246. `set_time_limit(30)`.
+        `dir` must exist and lie under `lb_scan_roots` (ClusterSettings::pathAllowed), else `{"result":false}`.
+        `allowed` must match `^[A-Za-z0-9]{1,16}(\|[A-Za-z0-9]{1,16}){0,63}$`, else `{"result":false}` (findCommand :383).
+
+        Response forms:
+        - Without `stat`: a JSON array of paths from `find`.
+        - With `stat`: a page `{files:{path:mtime}, next}`, paths sorted, under 60000 bytes (LISTING_PAGE_BYTES :399, findPage :411-429; sized for a 64 KiB cap that is now 4 MiB).
+          `files` is always an object (`{}` when empty). `next` is the last path of the page, or `null` on the last page.
+        - With `stat`, `size` and `dir` naming a file (or a missing file whose folder is allowed): `{files, sizes, next:null}`
+          (fileStat :437-443). Both maps are `{}` when the file is gone.
+
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - scandir_recursive
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - dir
+              properties:
+                dir:
+                  type: string
+                  description: Directory (urldecoded).
+                allowed:
+                  type: string
+                  description: Pipe-separated extensions, e.g. `mp4|mkv` (urldecoded).
+                stat:
+                  type: string
+                  description: Non-empty to get mtimes and paging.
+                after:
+                  type: string
+                  description: 'With stat: path cursor (previous `next`).'
+                size:
+                  type: string
+                  description: 'With stat: `dir` is one file; also return its size.'
+      responses:
+        '200':
+          description: Listing (one of three shapes) or failure.
           content:
             application/json:
               schema:
                 oneOf:
                   - type: array
-                    items: { type: string }
+                    items:
+                      type: string
                   - type: object
-                    required: [files, next]
+                    required:
+                      - files
+                      - next
                     properties:
                       files:
                         type: object
-                        additionalProperties: { type: integer }
-                      next:
-                        type: string
-                        nullable: true
+                        additionalProperties:
+                          type: integer
                       sizes:
                         type: object
-                        additionalProperties: { type: integer }
-                  - type: object
-                    required: [result]
-                    properties:
-                      result: { type: boolean, enum: [false] }
-
+                        additionalProperties:
+                          type: integer
+                      next:
+                        type:
+                          - string
+                          - 'null'
+                  - $ref: '#/components/schemas/Internal_Result'
+              examples:
+                plain:
+                  value:
+                    - /media/movies/a.mkv
+                    - /media/movies/b/c.mp4
+                statPage:
+                  value:
+                    files:
+                      /media/movies/a.mkv: 1760600000
+                    next: null
+                fileSize:
+                  value:
+                    files:
+                      /media/movies/a.mkv: 1760600000
+                    sizes:
+                      /media/movies/a.mkv: 1048576000
+                    next: null
+                refused:
+                  value:
+                    result: false
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
   /api.php?action=scandir:
-    get:
-      tags: [Files]
-      summary: Directory listing
-      description: Lists files and subdirectories in a given directory, optionally filtering files by extension. Has a 30-second time limit.
+    post:
+      operationId: Internal_scandir
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: One-level directory listing under a scan root
+      description: |
+        Source: src/Public/Controllers/Api/InternalApiController.php:248-280.
+        `dir` (urldecoded) must exist and be under `lb_scan_roots`, else `{"result":false}`.
+        Files are filtered by `allowed`, a pipe list compared case-sensitively against the *lowercased* extension.
+        Directories are never filtered. HTTP route removed in this build: 404.
       parameters:
-        - name: dir
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
           in: query
           required: true
-          schema: { type: string }
-          description: URL-encoded path to the directory
-        - name: allowed
-          in: query
-          required: false
-          schema: { type: string }
-          description: URL-encoded pipe-separated list of allowed file extensions (e.g. `mp4|mkv`)
+          schema:
+            type: string
+            enum:
+              - scandir
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - dir
+              properties:
+                dir:
+                  type: string
+                allowed:
+                  type: string
+                  description: e.g. `mp4|mkv|avi`
       responses:
         '200':
-          description: Directory contents
+          description: Listing.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      result:
+                        type: boolean
+                        const: true
+                      dirs:
+                        type: array
+                        items:
+                          type: string
+                      files:
+                        type: array
+                        items:
+                          type: string
+                  - $ref: '#/components/schemas/Internal_Result'
+              examples:
+                ok:
+                  value:
+                    result: true
+                    dirs:
+                      - Season 1
+                    files:
+                      - movie.mkv
+                refused:
+                  value:
+                    result: false
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=get_free_space:
+    post:
+      operationId: Internal_getFreeSpace
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: '`df -h` output lines'
+      description: |
+        `exec('df -h')`, returned as an array of raw lines including the header (src/Public/Controllers/Api/InternalApiController.php:282-286).
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_free_space
+          description: Action name.
+      responses:
+        '200':
+          description: Lines.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                - Filesystem      Size  Used Avail Use% Mounted on
+                - /dev/sda1        98G   21G   73G  23% /
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=get_pids:
+    post:
+      operationId: Internal_getPids
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Process list (redacted)
+      description: |
+        `ps -e -o user,pid,%cpu,%mem,vsz,rss,tty,stat,time,etime,command`. Each line goes through `Redactor::redact`,
+        which masks credentials in argv (src/Public/Controllers/Api/InternalApiController.php:288-294).
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_pids
+          description: Action name.
+      responses:
+        '200':
+          description: Lines, header first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                - USER         PID %CPU %MEM    VSZ   RSS TT       STAT     TIME     ELAPSED COMMAND
+                - xc_vm       1234  2.0  0.5 123456 45678 ?        Ssl  00:01:02    01:00:00 /home/xc_vm/bin/ffmpeg ...
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=free_temp:
+    post:
+      operationId: Internal_freeTemp
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Clear tmp/ and rebuild caches
+      description: |
+        `rm -rf MAIN_HOME/tmp/*` then `console.php cron:cache` (synchronous)
+        (src/Public/Controllers/Api/InternalApiController.php:296-301). HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - free_temp
+          description: Action name.
+      responses:
+        '200':
+          description: Always true.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=free_streams:
+    post:
+      operationId: Internal_freeStreams
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Delete everything in content/streams
+      description: |
+        `rm MAIN_HOME/content/streams/*` (src/Public/Controllers/Api/InternalApiController.php:303-307). Running streams lose their segments.
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - free_streams
+          description: Action name.
+      responses:
+        '200':
+          description: Always true.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=signal_send:
+    post:
+      operationId: Internal_signalSend
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Push an on-screen message to a viewer connection
+      description: |
+        When `message` and `uuid` are both non-empty, the request gets `type=signal`. It is then passed to
+        `FanoutClient::sendSignal(uuid, request)` (burned into the viewer's next segment when fanout is on), and the whole
+        request is written as JSON to `SIGNALS_PATH/<uuid>` (src/Public/Controllers/Api/InternalApiController.php:309-321).
+        It returns no body in either case. HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - signal_send
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - message
+                - uuid
+              properties:
+                message:
+                  type: string
+                uuid:
+                  type: string
+                  description: Connection uuid.
+      responses:
+        '200':
+          description: Empty body.
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=get_certificate_info:
+    post:
+      operationId: Internal_getCertificateInfo
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: TLS certificate details
+      description: |
+        `DiagnosticsService::getCertificateInfo()` (src/Public/Controllers/Api/InternalApiController.php:323-326;
+        src/Core/Diagnostics/DiagnosticsService.php:32). The value is `null` when no certificate is configured or readable.
+        HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_certificate_info
+          description: Action name.
+      responses:
+        '200':
+          description: Certificate info or null.
+          content:
+            application/json:
+              schema:
+                type:
+                  - object
+                  - 'null'
+                properties:
+                  serial:
+                    type: string
+                  expiration:
+                    type: integer
+                    description: Unix time.
+                  subject:
+                    type: string
+                  path:
+                    type: string
+              example:
+                serial: 04A1B2C3D4E5F6
+                expiration: 1768000000
+                subject: CN=panel.example.com
+                path: /home/xc_vm/bin/certificates/fullchain.pem
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=get_archive_files:
+    post:
+      operationId: Internal_getArchiveFiles
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: TV-archive segment files of a stream
+      description: |
+        `glob(ARCHIVE_PATH/<stream_id>/*.ts)` (src/Public/Controllers/Api/InternalApiController.php:328-332).
+        File names are `Y-m-d:H-i.ts` (one per minute). HTTP route removed in this build: 404.
+      parameters:
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - get_archive_files
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - stream_id
+              properties:
+                stream_id:
+                  type: integer
+      responses:
+        '200':
+          description: Absolute paths.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  result: { type: boolean }
-                  dirs: { type: array, items: { type: string } }
-                  files: { type: array, items: { type: string } }
+                  result:
+                    type: boolean
+                    const: true
+                  data:
+                    type: array
+                    items:
+                      type: string
               example:
                 result: true
-                dirs: ["subdir1", "subdir2"]
-                files: ["video.mp4", "movie.mkv"]
-
-  /api.php?action=closeConnection:
-    get:
-      tags: [Connections]
-      summary: Close connection
-      description: Closes an active connection by its activity ID.
+                data:
+                  - /home/xc_vm/content/archive/12/2026-10-17:08-00.ts
+                  - /home/xc_vm/content/archive/12/2026-10-17:08-01.ts
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=kill_plex:
+    post:
+      operationId: Internal_killPlex
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: Kill the Plex sync process group
+      description: |
+        Kills the process group in `CACHE_TMP_PATH/plex_pid` and the `WATCH_TMP_PATH/*.ppid` children
+        (src/Public/Controllers/Api/InternalApiController.php:334-337, killProcessGroup :349). It always returns true.
+        HTTP route removed in this build: 404.
       parameters:
-        - name: activity_id
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
           in: query
           required: true
-          schema: { type: integer }
-          description: Activity ID of the connection
+          schema:
+            type: string
+            enum:
+              - kill_plex
+          description: Action name.
       responses:
         '200':
-          description: Result
+          description: Always true.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /api.php?action=probe:
+    post:
+      operationId: Internal_probe
+      deprecated: true
+      tags:
+        - Internal Server API
+      summary: ffprobe a source URL from this server
+      description: |
+        `probeStream` (src/Public/Controllers/Api/InternalApiController.php:339-342, 462-501).
+        - An empty `url` gives `{"result":false}`. A target refused by `NetworkUtils::probeTargetAllowed` (SSRF guard)
+          gives `{"result":false,"error":"Invalid probe target."}`.
+        - Platform pages (YouTube, ...) are resolved first through `http_proxy`.
+        - The header `X-XC_VM-Prebuffer:1` is always appended to `headers`.
+        - `data` is ffprobe's raw JSON (`{streams, format}`) or `null` when ffprobe fails
+          (src/Streaming/Codec/FFprobeRunner.php:16, parse=false).
 
-  /api.php?action=redirect_connection:
-    get:
-      tags: [Connections]
-      summary: Redirect connection
-      description: Redirects a connection by writing a signal file identified by UUID.
+        HTTP route removed in this build: 404.
       parameters:
-        - name: uuid
+        - $ref: '#/components/parameters/Internal_Password'
+        - name: action
           in: query
           required: true
-          schema: { type: string }
-          description: UUID identifying the connection
+          schema:
+            type: string
+            enum:
+              - probe
+          description: Action name.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                http_proxy:
+                  type: string
+                user_agent:
+                  type: string
+                cookies:
+                  type: string
+                headers:
+                  type: string
+                  description: CRLF-separated extra headers.
+      responses:
+        '200':
+          description: Probe result.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  error:
+                    type: string
+                  data:
+                    type:
+                      - object
+                      - 'null'
+                    description: Raw ffprobe -print_format json output.
+              examples:
+                ok:
+                  value:
+                    result: true
+                    data:
+                      streams:
+                        - index: 0
+                          codec_name: h264
+                          codec_type: video
+                          width: 1920
+                          height: 1080
+                      format:
+                        format_name: mpegts
+                        bit_rate: '4500000'
+                refused:
+                  value:
+                    result: false
+                    error: Invalid probe target.
+                noUrl:
+                  value:
+                    result: false
+        '404':
+          $ref: '#/components/responses/Internal_RouteRemoved'
+  /status:
+    get:
+      operationId: Internal_status
+      tags:
+        - Internal Server API
+      summary: Local status probe (loopback only)
+      description: |
+        nginx `location ~ ^/status$` allows 127.0.0.1 only and gives everything else nginx's 403
+        (src/bin/nginx/conf/nginx.conf:283-297). It passes `XC_STREAM=status` to src/Public/stream/index.php:24-27,
+        which runs `StreamingRequestBootstrap::init('status')` and exits with an empty 200.
+        `status` is exempt from the fail-closed settings gate (src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php:93).
+        The FPM pools also declare `pm.status_path = /status` (src/bin/php/etc/1.conf:17). Since nginx overrides
+        `SCRIPT_NAME` to `/public/stream/index.php`, the FPM status page is probably not what answers.
+        Read by the `fpm_status` action.
+      responses:
+        '200':
+          description: Empty body (or FPM's plain-text pool status, see description).
+          content:
+            text/plain:
+              schema:
+                type: string
+        '403':
+          description: nginx 403 for non-loopback clients.
+  /xfile:
+    get:
+      operationId: Internal_xfile
+      tags:
+        - Internal Server API
+      summary: Ticketed file chunk fetch between servers (replaces api getFile)
+      description: |
+        Route: nginx `location = /xfile` (`limit_req zone=xfile burst=100`, 429) sets `XC_ADMIN=xfile`
+        (src/bin/nginx/conf/nginx.conf:330-346). It reaches src/Public/admin/xfile.php, then
+        `FileTicketController::handle` (src/Public/Controllers/Api/FileTicketController.php:16-27), then
+        `FileTicketServer::serve` (src/Core/Cluster/FileTicketServer.php:57-130).
+
+        Auth:
+        - Method must be GET.
+        - `X-XCVM-File` carries a panel-signed `fil` ticket (fetcher_sid, fetcher_gen, owner_sid = this server, ref, file, tid).
+        - `X-XCVM-File-Auth` is the fetcher's Ed25519 proof `<ts_ms>.<32-hex nonce>.<86-char b64url sig>` over ticket,
+          method and request target. It must be within ±90 s, and the nonce is single-use (src/Core/Cluster/Crypto/RelayAuth.php:40).
+
+        File checks: the file must have an allowed extension (FileTicketServer.php:44: log gz zip m3u8 mp4 mkv avi mpg flv 3gp
+        m4v wmv mov ts srt sub sbv jpg png bmp jpeg gif tif) and lie under `lb_scan_roots` (or MAIN's own sealed paths).
+
+        Any auth or path failure gives a bare 404.
+      parameters:
+        - name: o
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+          description: Byte offset.
+        - name: 'n'
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 4194304
+          description: Chunk length (≤ FileDigest::CHUNK).
+        - name: rk
+          in: query
+          required: false
+          schema:
+            type: string
+          description: RelaySeal sealed session key. When given, the chunk is framed and encrypted under it.
+        - name: X-XCVM-File
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Panel-signed `fil` ticket.
+        - name: X-XCVM-File-Auth
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: ^\d+\.[0-9a-f]{32}\.[A-Za-z0-9_-]{86}$
+          description: Fetcher proof.
+      responses:
+        '200':
+          description: The chunk (shorter than `n` at EOF; empty when `o` equals the size).
+          headers:
+            X-XCVM-File-Digest:
+              schema:
+                type: string
+              description: Server-signed digest over (tid, server, offset, total, bytes, time, nonce).
+            X-XCVM-Relay-Seal:
+              schema:
+                type: string
+                enum:
+                  - v1
+              description: Present when `rk` sealed the body.
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad `o` or `n` (empty body).
+        '404':
+          description: Ticket, proof, nonce, path or seal refused (empty body).
+        '416':
+          description: '`o` > file size. Header `Content-Range: bytes */<size>`.'
+        '429':
+          description: nginx rate limit.
+        '503':
+          description: Server cannot sign the digest (empty body).
+  /admin/api?action=server&sub=list:
+    get:
+      operationId: LegacyAdmin_serverList
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: List servers
+      description: |
+        src/Public/admin/api.php:43-56. Auth (api.php:26-34) is shared by all `/admin/api` calls:
+        the client IP must be in `getAllowedIPs()` or the `api_ips` setting, and `api_pass` must match the setting when the setting is non-empty.
+        Otherwise the reply is 404 (`generate404`). Parameters come from GET or POST (RequestManager).
+        An unknown action/sub gives an empty 200.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - server
+          description: Action.
+        - name: sub
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - list
+          description: Sub-action.
+        - $ref: '#/components/parameters/LegacyAdmin_ApiPass'
+      responses:
+        '200':
+          description: One entry per server.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    server_name:
+                      type: string
+                    online:
+                      type:
+                        - string
+                        - integer
+                      description: '`server_online` as stored (often "1"/"0").'
+                    info:
+                      type:
+                        - object
+                        - 'null'
+                      description: Decoded `server_hardware` JSON.
+              example:
+                - id: 1
+                  server_name: Main Server
+                  online: '1'
+                  info:
+                    total_ram: 16384000
+                    cores: 8
+                    kernel: 6.8.0
+                    cpu_name: Intel Xeon
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+  /admin/api?action=vod:
+    get:
+      operationId: LegacyAdmin_vodControl
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: Start/stop movies or episodes on servers
+      description: |
+        src/Public/admin/api.php:63-87. `action=movie` and `action=episode` are aliases of `vod`.
+        Ids come from `stream_ids[]`, else `stream_id`. Servers come from `servers[]`, else `server_id`, else all servers.
+        Unknown servers are dropped. The call is sent with `NodeRpc::broadcast(servers, {action:vod, function:<sub>, stream_ids[, force]})`:
+        a signed `node.rpc` to cluster nodes, the legacy `/api` POST to the rest. It always returns `{"result":true}`.
+        Same auth as server list. A `sub` other than start/stop gives an empty 200.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - vod
+              - movie
+              - episode
+          description: Action (aliases).
+        - name: sub
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - start
+              - stop
+          description: Sub-action.
+        - name: stream_ids[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: integer
+          description: Stream ids.
         - name: stream_id
           in: query
-          required: true
-          schema: { type: integer }
-          description: Target stream ID
+          required: false
+          schema:
+            type: integer
+          description: Single id when stream_ids is empty.
+        - name: servers[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: integer
+          description: Target servers.
+        - name: server_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Single server when servers is empty.
+        - name: force
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 'start only: truthy runs at once instead of queueing.'
+        - $ref: '#/components/parameters/LegacyAdmin_ApiPass'
       responses:
         '200':
-          description: Result
-
-  /api.php?action=signal_send:
+          description: Always true once dispatched.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+  /admin/api?action=stream:
     get:
-      tags: [Connections]
-      summary: Send signal
-      description: Sends a signal message to a connection identified by UUID.
+      operationId: LegacyAdmin_streamControl
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: Start/stop live streams on servers
+      description: |
+        src/Public/admin/api.php:93-107. Sends `NodeRpc::broadcast(servers, {action:stream, function:<sub>, stream_ids})`.
+        `servers[]` defaults to all servers. It always returns `{"result":true}`, even when `stream_ids` is empty
+        (the nodes then answer with stats via fall-through). Same auth as server list.
       parameters:
-        - name: message
+        - name: action
           in: query
           required: true
-          schema: { type: string }
-          description: Signal message or command
-        - name: uuid
+          schema:
+            type: string
+            enum:
+              - stream
+          description: Action.
+        - name: sub
           in: query
           required: true
-          schema: { type: string }
-          description: UUID identifying the connection
+          schema:
+            type: string
+            enum:
+              - start
+              - stop
+          description: Sub-action.
+        - name: stream_ids[]
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+          description: Stream ids.
+        - name: servers[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: integer
+          description: Target servers (default all).
+        - $ref: '#/components/parameters/LegacyAdmin_ApiPass'
       responses:
         '200':
-          description: Result
+          description: Always true.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Internal_Result'
+              example:
+                result: true
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+  /admin/api?action=stream&sub=list:
+    get:
+      operationId: LegacyAdmin_streamList
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: List non-movie streams
+      description: |
+        `SELECT id, stream_display_name FROM streams WHERE type <> 2` (src/Public/admin/api.php:109-118).
+        Values are DB strings. Same auth as server list.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - stream
+          description: Action.
+        - name: sub
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - list
+          description: Sub-action.
+        - $ref: '#/components/parameters/LegacyAdmin_ApiPass'
+      responses:
+        '200':
+          description: Streams.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type:
+                        - string
+                        - integer
+                      description: Numeric string from the DB.
+                    stream_name:
+                      type: string
+              example:
+                - id: '12'
+                  stream_name: News HD
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+  /admin/api?action=stream&sub=online:
+    get:
+      operationId: LegacyAdmin_streamStatus
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: Online or offline streams per server
+      description: |
+        `sub=online`: streams_servers rows with `pid > 0 AND stream_status = 0`. `sub=offline`: rows with `stream_status <> 0`.
+        Movies (type 2) are excluded in both (src/Public/admin/api.php:120-142).
+        The result is a map of stream id to the list of server ids. Quirk: `[]` (empty array) when there are no rows.
+        Same auth as server list.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - stream
+          description: Action.
+        - name: sub
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - online
+              - offline
+          description: Sub-action.
+        - $ref: '#/components/parameters/LegacyAdmin_ApiPass'
+      responses:
+        '200':
+          description: Map stream_id to server_ids.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type:
+                          - string
+                          - integer
+                  - type: array
+                    maxItems: 0
+              example:
+                '12':
+                  - 1
+                  - 3
+                '57':
+                  - 1
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+  /admin/api?action=line&sub=info:
+    get:
+      operationId: LegacyAdmin_lineInfo
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: Look up a line by credentials
+      description: |
+        `UserRepository::getUserInfo(false, username, password, true, true)` (src/Public/admin/api.php:147-167;
+        src/Domain/User/UserRepository.php:596-610, getUserInfo :639). `user_info` is the `lines` row (DB strings, JSON fields decoded) plus:
+        - `output_formats`
+        - `channel_ids`, `live_ids`, `vod_ids`, `radio_ids`, `series_ids`
+        - `active_cons`
+        - `category_ids`
 
-components:
-  securitySchemes:
-    ApiPassword:
-      type: apiKey
-      in: query
-      name: password
-      description: API password matching the `live_streaming_pass` configuration.
-  schemas:
-    ResultResponse:
-      type: object
-      properties:
-        result: { type: boolean }
-      example:
-        result: true
+        Same auth as server list.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - line
+          description: Action.
+        - name: sub
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - info
+          description: Sub-action.
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/LegacyAdmin_ApiPass'
+      responses:
+        '200':
+          description: Line info or error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                  user_info:
+                    type: object
+                    additionalProperties: true
+                  error:
+                    type: string
+                    enum:
+                      - NOT EXISTS
+                      - PARAMETER ERROR (user/pass)
+              examples:
+                found:
+                  value:
+                    result: true
+                    user_info:
+                      id: '5'
+                      username: john
+                      password: secret
+                      exp_date: '1767225600'
+                      max_connections: '1'
+                      is_trial: '0'
+                      enabled: '1'
+                      admin_enabled: '1'
+                      bouquet:
+                        - 1
+                        - 2
+                      allowed_outputs:
+                        - 1
+                        - 2
+                      output_formats:
+                        - m3u8
+                        - ts
+                      channel_ids:
+                        - 12
+                        - 57
+                      live_ids:
+                        - 12
+                        - 57
+                      vod_ids: []
+                      radio_ids: []
+                      series_ids: []
+                      active_cons: 0
+                      category_ids:
+                        - 3
+                missing:
+                  value:
+                    result: false
+                    error: NOT EXISTS
+                params:
+                  value:
+                    result: false
+                    error: PARAMETER ERROR (user/pass)
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+  /admin/api?action=reg_user&sub=list:
+    get:
+      operationId: LegacyAdmin_regUserList
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: List panel users (admins/resellers)
+      description: |
+        `users ⋈ users_groups` columns id, username, credits, group_id, group_name, last_login, date_registered, email, ip, status
+        (src/Public/admin/api.php:169-179). `credits` goes through `UserCredits::amounts`, so it is numeric (int, or a float
+        rounded to 4 places). The other values are DB strings. Same auth as server list.
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - reg_user
+          description: Action.
+        - name: sub
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - list
+          description: Sub-action.
+        - $ref: '#/components/parameters/LegacyAdmin_ApiPass'
+      responses:
+        '200':
+          description: Users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+              example:
+                - id: '1'
+                  username: admin
+                  credits: 0
+                  group_id: '1'
+                  group_name: Administrators
+                  last_login: '1760600000'
+                  date_registered: '1700000000'
+                  email: ''
+                  ip: 10.0.0.5
+                  status: '1'
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+  /admin/live:
+    get:
+      operationId: LegacyAdmin_live
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: Server-to-server / admin-preview live stream
+      description: |
+        src/Public/admin/live.php. Sends `Access-Control-Allow-Origin: *`.
+
+        Auth (live.php:37-62):
+        - A `uitoken` forces `stream` (from the token) and `extension=m3u8`, with prebuffer `seg_time`.
+        - Otherwise `RelayGuard::admit(stream, password)`. A relay-ticket caller asking for `m3u8` gets 404.
+        - `prebuffer` or the header `X-XC_VM-Prebuffer` prebuffers `seg_time` seconds.
+
+        The stream must be assigned to this server, else 404. If it is not running and not on-demand, 404.
+        An on-demand stream is started and waited for up to 20 s.
+
+        Output:
+        - `odstart` returns the text `1` or `0` (:164-178). Quirk: the wait loop counts to 2000 polls but the timeout check
+          compares against 200, so `0` almost never appears and `1` can come after a timeout.
+        - `extension=m3u8` returns a playlist rewritten by `StreamUtils::generateAdminHLS`, with segment URLs
+          `/admin/live?password=<pass>&extension=m3u8&segment=<n>.ts&stream=<id>` or `...&uitoken=<t>` (:185-195).
+          `segment=` returns that `.ts` file (:196-206).
+        - Otherwise a continuous MPEG-TS feed (:212-341). It is RelaySeal-framed when a relay passes `rk` (:66-72).
+      parameters:
+        - name: stream
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Stream id (required unless uitoken).
+        - name: extension
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ts
+              - m3u8
+          description: Output; anything but m3u8 is TS.
+        - name: segment
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 'With m3u8: segment file name.'
+        - name: prebuffer
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Presence enables prebuffer.
+        - name: odstart
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Presence returns 1/0 after starting.
+        - $ref: '#/components/parameters/LegacyAdmin_LivePassword'
+        - $ref: '#/components/parameters/LegacyAdmin_UIToken'
+        - $ref: '#/components/parameters/LegacyAdmin_RelayKey'
+        - $ref: '#/components/parameters/LegacyAdmin_RelayTicket'
+        - $ref: '#/components/parameters/LegacyAdmin_RelayAuth'
+        - name: X-XC_VM-Prebuffer
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Any value enables prebuffer.
+      responses:
+        '200':
+          description: TS stream, HLS playlist, segment, or `1`/`0` for odstart.
+          content:
+            video/mp2t:
+              schema:
+                type: string
+                format: binary
+            application/vnd.apple.mpegurl:
+              schema:
+                type: string
+              example: |
+                #EXTM3U
+                #EXT-X-VERSION:3
+                #EXT-X-TARGETDURATION:10
+                #EXT-X-MEDIA-SEQUENCE:120
+                #EXTINF:10.000000,
+                /admin/live?password=PASS&extension=m3u8&segment=12_120.ts&stream=12
+            text/html:
+              schema:
+                type: string
+                enum:
+                  - '0'
+                  - '1'
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+  /admin/vod:
+    get:
+      operationId: LegacyAdmin_vod
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: Movie file with Range support
+      description: |
+        src/Public/admin/vod.php. Sends `Access-Control-Allow-Origin: *`.
+        Auth: a `uitoken` rewrites `stream` to `<id>.<container>`. Otherwise `RelayGuard::admit(<id from stream>, password)` (:27-38).
+
+        Serves `VOD_PATH/<id>.<ext>` with the container mime type. It always sends `Accept-Ranges: 0-<size>` (non-standard)
+        and `Content-Range`. A single range gives 206; a bad or multi-range request gives 416 with `Content-Range` (:56-110).
+
+        Quirks:
+        - Suffix ranges (`bytes=-N`) are mis-parsed: the `$range == '-'` test never matches them, so they become start=''.
+        - An unknown movie or missing file falls through to an **empty 200**.
+      parameters:
+        - name: stream
+          in: query
+          required: false
+          schema:
+            type: string
+          description: '`<id>.<ext>`, e.g. `345.mkv` (required unless uitoken).'
+        - $ref: '#/components/parameters/LegacyAdmin_LivePassword'
+        - $ref: '#/components/parameters/LegacyAdmin_UIToken'
+        - $ref: '#/components/parameters/LegacyAdmin_RelayTicket'
+        - $ref: '#/components/parameters/LegacyAdmin_RelayAuth'
+        - name: Range
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Single `bytes=a-b` range.
+      responses:
+        '200':
+          description: Whole file (or empty body when not found).
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+            video/x-matroska:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Partial content.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+        '416':
+          description: Range not satisfiable; `Content-Range` set.
+  /admin/timeshift:
+    get:
+      operationId: LegacyAdmin_timeshift
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: TV-archive playback (HLS or concatenated TS)
+      description: |
+        src/Public/admin/timeshift.php. Sends `Access-Control-Allow-Origin: *`.
+        Auth: `uitoken`, or `RelayGuard::admit(stream, password)`. A relay asking for m3u8 gets 404 (:33-56).
+
+        Without `segment`, the first minute file `ARCHIVE_PATH/<id>/<Y-m-d:H-i>.ts` must exist, else 404. Up to `duration`
+        one-minute files are queued (missing ones skipped); none found gives 404 (:85-113).
+
+        Output:
+        - `extension=m3u8` returns a VOD playlist with `#EXTINF:60.0,` per minute. Segment URLs are
+          `/admin/timeshift?extension=m3u8&stream=<id>&segment=<file>&password=<live_streaming_pass>` or
+          `...&segment=<file>&uitoken=<t>` (:116-139). With `segment`, the file is served as video/mp2t, or 404.
+        - `extension=ts` returns the minutes concatenated, with single-range support (206/416) (:155-240).
+
+        Quirks:
+        - The uitoken branch updates RequestManager *after* `$rRequestData` was copied (:26 vs :40-49). The token's
+          stream, extension, start and duration are therefore ignored, and the caller must pass them explicitly.
+        - The stream not on this server gives 404.
+      parameters:
+        - name: stream
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Stream id.
+        - name: extension
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - m3u8
+              - ts
+          description: Output format.
+        - name: start
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Unix time, `YYYYMMDD-HH`, or `YYYY-MM-DD:HH-MM` (StreamUtils::timeshiftStartTimestamp, src/Core/Util/StreamUtils.php:566-581). Required without segment.
+        - name: duration
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Minutes. Required without segment.
+        - name: segment
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Archive file name, e.g. `2026-10-17:08-00.ts`.
+        - $ref: '#/components/parameters/LegacyAdmin_LivePassword'
+        - $ref: '#/components/parameters/LegacyAdmin_UIToken'
+        - $ref: '#/components/parameters/LegacyAdmin_RelayTicket'
+        - $ref: '#/components/parameters/LegacyAdmin_RelayAuth'
+      responses:
+        '200':
+          description: Playlist, segment or TS.
+          content:
+            application/x-mpegurl:
+              schema:
+                type: string
+              example: |-
+                #EXTM3U
+                #EXT-X-VERSION:3
+                #EXT-X-TARGETDURATION:60
+                #EXT-X-MEDIA-SEQUENCE:0
+                #EXT-X-PLAYLIST-TYPE:VOD
+                #EXTINF:60.0,
+                /admin/timeshift?extension=m3u8&stream=12&segment=2026-10-17:08-00.ts&password=PASS
+                #EXT-X-ENDLIST
+            video/mp2t:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Partial TS.
+          content:
+            video/mp2t:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+        '416':
+          description: Range not satisfiable.
+  /admin/thumb:
+    get:
+      operationId: LegacyAdmin_thumb
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: Live thumbnail
+      description: |
+        src/Public/admin/thumb.php. Auth: `uitoken`, or a relay ticket only. `password` is **not** accepted
+        (`RelayGuard::admit(..., null, ..., false)`, :28-39).
+        - On the stream's `vframes_server_id`: `STREAMS_PATH/<id>_.jpg` is returned if it is under 60 s old, with `Age`. Otherwise 404 (:52-61).
+        - On any other server: 302 to `<vframes site_url>admin/thumb?stream=<id>&aid=<aid>&uitoken=<t>&expires=<e>` (:63-66).
+      parameters:
+        - name: stream
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Stream id (from uitoken if given).
+        - name: aid
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Passed through on redirect.
+        - name: expires
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Passed through on redirect.
+        - $ref: '#/components/parameters/LegacyAdmin_UIToken'
+        - $ref: '#/components/parameters/LegacyAdmin_RelayTicket'
+        - $ref: '#/components/parameters/LegacyAdmin_RelayAuth'
+      responses:
+        '200':
+          description: JPEG (Content-Type `image/jpg` as sent).
+          headers:
+            Age:
+              schema:
+                type: integer
+              description: Seconds since the frame was written.
+          content:
+            image/jpg:
+              schema:
+                type: string
+                format: binary
+        '302':
+          description: Redirect to the vframes server.
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'
+  /admin/proxy_api:
+    post:
+      operationId: LegacyAdmin_proxyApi
+      tags:
+        - Legacy Admin Stream Endpoints
+      summary: Proxy server stats report; returns pending signals
+      description: |
+        MAIN. src/Public/admin/proxy_api.php.
+
+        Signed form (:31-40):
+        - `X-XCVM-Proxy-Auth: <ts_ms>.<32-hex nonce>.<64-hex mac>`.
+        - mac = HMAC-SHA256(K, `xcvm proxy req v1|<server_id>|<ts>|<nonce>|<sha256(body)>`), within ±90 s, nonce single-use.
+        - K = HMAC-SHA256(proxy_secret, `xcvm proxy key v1|<server_id>|<gen>`) (src/Domain/Server/ProxyKey.php).
+        - After the first signed request the proxy is marked `proxy_signed` and unsigned requests are refused.
+
+        Unsigned (legacy) form (:41-54): the source address must be a known proxy IP, and `server_id` must resolve to it
+        (ProxyIdentity::resolve).
+
+        Side effects: inserts `servers_stats` and updates `servers` (connections, users, ping, server_hardware, interfaces,
+        watchdog_data). Then it returns and **deletes** the server's pending `signals` (excluding OPENSSL_EXTRA rows) (:103-118).
+        - Unsigned reply: a JSON array of the signals' `custom_data` objects.
+        - Signed reply: `{"payload":"<that array as a JSON string>","mac":"<hex>"}`, where mac = HMAC(K, `xcvm proxy resp v1|<server_id>|<nonce>|<payload>`).
+
+        Quirk: if the signals query fails, the body is empty. Unauthorised requests get 404.
+      parameters:
+        - name: X-XCVM-Proxy-Auth
+          in: header
+          required: false
+          schema:
+            type: string
+            pattern: ^\d+\.[0-9a-f]{32}\.[0-9a-f]{64}$
+          description: Signed-mode header.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - server_id
+                - stats
+              properties:
+                server_id:
+                  type: integer
+                stats:
+                  type: object
+                  description: 'Sent as `stats[cpu]=...`. Keys used: cpu, cpu_cores, cpu_avg, total_mem, total_mem_free, total_mem_used, total_mem_used_percent, total_disk_space, uptime, total_running_streams, bytes_sent_total, bytes_received_total, cpu_load_average, kernel, cpu_name, network_speed, interfaces.'
+                  additionalProperties: true
+                addresses:
+                  description: Addresses the proxy sees itself on (telemetry, `ips_seen`).
+      responses:
+        '200':
+          description: Pending signals.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  - type: object
+                    properties:
+                      payload:
+                        type: string
+                      mac:
+                        type: string
+              examples:
+                unsigned:
+                  value:
+                    - action: block_ip
+                      ip: 203.0.113.9
+                signed:
+                  value:
+                    payload: '[]'
+                    mac: 9f2c...e1
+        '404':
+          $ref: '#/components/responses/LegacyAdmin_NotFound'

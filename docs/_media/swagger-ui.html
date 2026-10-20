@@ -214,6 +214,10 @@
             font-size: 0.9rem;
         }
 
+        #api-tabs {
+            flex-wrap: wrap;
+        }
+
         #api-tabs:empty {
             display: none;
         }
@@ -298,6 +302,7 @@
             border-radius: 6px;
             border: 1px solid var(--border-color);
             overflow-x: auto;
+            white-space: pre;
             font-family: 'Courier New', monospace;
             font-size: 0.9rem;
             margin: 1rem 0;
@@ -1052,11 +1057,17 @@
         // and add one entry below. `key` is used for deep links (?spec=key).
         // -----------------------------------------------------------------
         const API_SPECS = [
-            { key: 'admin', name: 'Admin API', url: './admin-api.openapi.yaml' },
-            { key: 'system', name: 'System API', url: './system-api.openapi.yaml' },
             { key: 'player', name: 'Player API', url: './player-api.openapi.yaml' },
             { key: 'playlist', name: 'Playlist API', url: './playlist-api.openapi.yaml' },
-            { key: 'full', name: 'Full Reference', url: './xc-api.openapi.yaml' },
+            { key: 'streaming', name: 'Streaming', url: './streaming-api.openapi.yaml' },
+            { key: 'mag', name: 'MAG Portal', url: './mag-portal-api.openapi.yaml' },
+            { key: 'enigma2', name: 'Enigma2', url: './enigma2-api.openapi.yaml' },
+            { key: 'activation', name: 'Activation', url: './activation-api.openapi.yaml' },
+            { key: 'admin', name: 'Admin API', url: './admin-api.openapi.yaml' },
+            { key: 'reseller', name: 'Reseller API', url: './reseller-api.openapi.yaml' },
+            { key: 'system', name: 'System API', url: './system-api.openapi.yaml' },
+            { key: 'cluster', name: 'Cluster API', url: './cluster-api.openapi.yaml' },
+            { key: 'monitoring', name: 'Monitoring', url: './monitoring-api.openapi.yaml' },
         ];
 
         function getRequestedSpecKey() {
@@ -1065,137 +1076,76 @@
         }
 
         function resolveSpec(key) {
-            return API_SPECS.find(s => s.key === key) || API_SPECS[0];
+            return API_SPECS.find(s => s.key === key) || API_SPECS.find(s => s.key === 'admin');
         }
 
         // -----------------------------------------------------------------
-        // Per-API documentation (Documentation tab), based on the panel docs
-        // (system_api.md, xtreamcodes_api.md, playlist.md and the Admin API).
+        // Per-API documentation (Documentation tab), condensed from the tag
+        // descriptions of each specification.
         // -----------------------------------------------------------------
+        const section = (icon, title, body) =>
+            `<div class="section"><h3 class="section-title"><span class="section-icon">${icon}</span>${title}</h3><div class="section-content">${body}</div></div>`;
+        const doc = (title, subtitle, overview, base, auth) =>
+            `<h2 class="docs-title">${title}</h2><p class="docs-subtitle">${subtitle}</p>` +
+            section('🎯', 'Overview', overview) +
+            section('🔗', 'Base URL', `<div class="code-block">${base}</div>`) +
+            section('🔐', 'Authentication', auth);
+
         const API_DOCS = {
-            admin: `
-                <h2 class="docs-title">XC_VM Admin API</h2>
-                <p class="docs-subtitle">Administration API for the XC_VM IPTV panel &mdash; 104 endpoints</p>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
-                    <div class="section-content"><p>Programmatic administration of your IPTV platform:</p>
-                        <ul class="list-styled">
-                            <li>📺 Subscriptions &mdash; Lines, MAG, Enigma2 devices, users, resellers</li>
-                            <li>🎬 Content &mdash; streams, channels, movies, series, episodes, radio</li>
-                            <li>🖥️ Infrastructure &mdash; servers and load balancers</li>
-                            <li>📊 Monitoring &mdash; connections, activity and event logs</li>
-                            <li>⚙️ System &mdash; settings and administrative functions</li>
-                        </ul></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🔗</span>Base URL pattern</h3>
-                    <div class="section-content"><div class="code-block">{protocol}://{server}:{port}/&lt;Access-Code&gt;/?api_key=&lt;API-KEY&gt;&action=ACTION</div></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
-                    <div class="section-content">
-                        <ul class="list-styled">
-                            <li><strong>API key</strong> &mdash; required on every request (<code class="code-inline">?api_key=...</code>). Panel &rarr; Profile &rarr; API Settings &rarr; Generate API Key.</li>
-                            <li><strong>Access code</strong> &mdash; Management &rarr; Access Control &rarr; Access Codes, type <em>Admin API</em>.</li>
-                        </ul>
-                        <div class="code-block">curl "http://your-server.com/&lt;Access-Code&gt;/?api_key=&lt;API-KEY&gt;&action=user_info"</div>
-                    </div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🗂️</span>Endpoint groups</h3>
-                    <div class="section-content"><ul class="list-styled">
-                        <li>Authentication &middot; Logs &amp; Events</li>
-                        <li>Line API &middot; User API &middot; MAG API &middot; Enigma API</li>
-                        <li>Streams &middot; Channel &middot; Station &middot; Movie &middot; Series &middot; Episode</li>
-                        <li>Server API &middot; Settings &amp; System</li>
-                    </ul></div></div>`,
+            player: doc('XC_VM Player API', 'player_api.php, panel_api.php and xmltv.php &mdash; 15 operations',
+                '<p>The JSON API every Xtream Codes compatible app uses to sign in and browse live TV, VOD and series, multiplexed by <code class="code-inline">action</code>. With no action it answers the sign-in payload (<code class="code-inline">user_info</code> + <code class="code-inline">server_info</code>). <code class="code-inline">panel_api.php</code> (the XC v1 API) answers only with the <code class="code-inline">legacy_panel_api</code> setting on; <code class="code-inline">xmltv.php</code> is the XMLTV guide.</p>',
+                '{protocol}://{host}:{port}/player_api.php?username=&lt;user&gt;&password=&lt;pass&gt;&action=&lt;action&gt;',
+                '<p><code class="code-inline">username</code> + <code class="code-inline">password</code>, a 32-character <code class="code-inline">token</code>, or an activation code. A failed sign-in still answers <strong>200</strong> with <code class="code-inline">user_info.auth = 0</code>.</p>'),
 
-            system: `
-                <h2 class="docs-title">XC_VM System API</h2>
-                <p class="docs-subtitle">Internal system control &mdash; /api.php (31 actions)</p>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
-                    <div class="section-content"><p>Stream and VOD control, system statistics, directory browsing, log viewing, process management and EPG/nginx reloading.</p>
-                        <p><strong>Controller:</strong> <code class="code-inline">src/Public/Controllers/Api/InternalApiController.php</code></p></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🔗</span>Base URI</h3>
-                    <div class="section-content"><div class="code-block">{protocol}://{host}:{port}/api.php?password=&lt;live_streaming_pass&gt;&action=&lt;action&gt;</div></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
-                    <div class="section-content"><ul class="list-styled">
-                        <li><strong>password</strong> &mdash; must match the <code class="code-inline">live_streaming_pass</code> configuration.</li>
-                        <li>The requesting IP must be in the allowed IPs list (<code class="code-inline">ServerRepository::getAllowedIPs()</code>).</li>
-                    </ul></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🗂️</span>Action groups</h3>
-                    <div class="section-content"><ul class="list-styled">
-                        <li><strong>Streams</strong> &mdash; view_log, streams_ramdisk, stream, force_stream, get_archive_files, probe, rtmp_stats, rtmp_kill</li>
-                        <li><strong>VOD</strong> &mdash; vod</li>
-                        <li><strong>Processes</strong> &mdash; fpm_status, kill_pid, pidsAreRunning, get_pids, kill_watch, kill_plex</li>
-                        <li><strong>System</strong> &mdash; stats, reload_epg, restore_images, reload_nginx, free_temp, free_streams, get_free_space, get_certificate_info, watch_force, plex_force</li>
-                        <li><strong>Files</strong> &mdash; getFile, scandir, scandir_recursive</li>
-                        <li><strong>Connections</strong> &mdash; closeConnection, redirect_connection, signal_send</li>
-                    </ul></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">⚠️</span>Error codes</h3>
-                    <div class="section-content"><ul class="list-styled">
-                        <li><code class="code-inline">INVALID_API_PASSWORD</code> &mdash; invalid API password</li>
-                        <li><code class="code-inline">API_IP_NOT_ALLOWED</code> &mdash; IP address not allowed</li>
-                    </ul><p>Default response for an unrecognized action: <code class="code-inline">{ "result": false }</code></p></div></div>`,
+            playlist: doc('XC_VM Playlist API', 'get.php &mdash; downloadable playlists',
+                '<p>M3U, M3U Plus, Enigma2 bouquets and set-top box formats. Also reachable as <code class="code-inline">/playlist</code>, <code class="code-inline">/playlist.php</code>, <code class="code-inline">/api/playlist</code> and <code class="code-inline">/playlist/{username}/{password}[/{type}]</code>.</p>',
+                '{protocol}://{host}:{port}/get.php?username=&lt;user&gt;&password=&lt;pass&gt;&type=m3u_plus&output=ts',
+                '<p><code class="code-inline">username</code> + <code class="code-inline">password</code> or <code class="code-inline">token</code>. Nearly every error answers a bare nginx-style 404 page; download limits answer 429.</p>'),
 
-            player: `
-                <h2 class="docs-title">XC_VM Player API</h2>
-                <p class="docs-subtitle">XtreamCodes-compatible player &mdash; Live TV, VOD, Series, EPG</p>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
-                    <div class="section-content"><p>Access to Live TV &amp; Radio, VOD (movies), Series and EPG for XtreamCodes-compatible applications.</p>
-                        <p><strong>Controllers:</strong> <code class="code-inline">PlayerApiController.php</code>, <code class="code-inline">EpgApiController.php</code> (xmltv.php)</p></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🔗</span>Base URL</h3>
-                    <div class="section-content"><div class="code-block">{protocol}://{host}:{port}/player_api?username=&lt;user&gt;&password=&lt;pass&gt;&action=&lt;action&gt;</div></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
-                    <div class="section-content"><p>Every request requires <strong>username</strong> and <strong>password</strong> query parameters. Call <code class="code-inline">/player_api</code> without an action to validate credentials and get server info.</p></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🗂️</span>Actions</h3>
-                    <div class="section-content"><ul class="list-styled">
-                        <li><strong>Live TV</strong> &mdash; get_live_categories, get_live_streams, get_short_epg, get_simple_data_table, /xmltv.php</li>
-                        <li><strong>VOD</strong> &mdash; get_vod_categories, get_vod_streams, get_vod_info</li>
-                        <li><strong>Series</strong> &mdash; get_series_categories, get_series, get_series_info</li>
-                    </ul></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">▶️</span>Media access</h3>
-                    <div class="section-content"><div class="code-block">/live/{username}/{password}/{stream_id}.ts
-/movie/{username}/{password}/{vod_id}.mp4
-/series/{username}/{password}/{episode_id}.mp4</div>
-                        <p>Output formats: <code class="code-inline">m3u8</code>, <code class="code-inline">ts</code>, <code class="code-inline">rtmp</code>. The first request redirects to <code class="code-inline">/auth/...</code> before content is served.</p></div></div>`,
+            streaming: doc('XC_VM Streaming', 'Live, VOD, series, catch-up, HLS segments and keys &mdash; 36 operations',
+                '<p>The media URL surface: every rewrite lands on <code class="code-inline">/stream/&lt;handler&gt;</code>, served by <code class="code-inline">src/Public/stream/index.php</code>.</p>',
+                '/live/{username}/{password}/{stream_id}.{ts|m3u8}\n/movie/{username}/{password}/{stream_id}.{ext}\n/series/{username}/{password}/{episode_id}.{ext}\n/timeshift/{username}/{password}/{duration}/{YYYY-MM-DD:HH-MM}/{stream_id}.ts',
+                '<p>Line credentials in the path, or a line / play token. Errors answer a bare nginx-style 404 page.</p>'),
 
-            playlist: `
-                <h2 class="docs-title">XC_VM Playlist API</h2>
-                <p class="docs-subtitle">Authentication and playlist generation &mdash; /playlist</p>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
-                    <div class="section-content"><p>Clients authenticate with a username/password pair or a token, after which a personalized playlist is generated.</p>
-                        <p><strong>Controller:</strong> <code class="code-inline">PlaylistApiController.php</code></p></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🔗</span>Base URL</h3>
-                    <div class="section-content"><div class="code-block">{protocol}://{host}:{port}/playlist</div></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
-                    <div class="section-content"><p>Provide <strong>either</strong> <code class="code-inline">username</code> + <code class="code-inline">password</code> <strong>or</strong> a <code class="code-inline">token</code>.</p></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🧩</span>Query parameters</h3>
-                    <div class="section-content"><ul class="list-styled">
-                        <li><code class="code-inline">username</code>, <code class="code-inline">password</code> &mdash; credentials (or use token)</li>
-                        <li><code class="code-inline">token</code> &mdash; auth token (alternative to username/password)</li>
-                        <li><code class="code-inline">type</code> &mdash; device type (default <code class="code-inline">m3u_plus</code>)</li>
-                        <li><code class="code-inline">key</code> &mdash; content: live &middot; movies &middot; radio_streams &middot; series</li>
-                        <li><code class="code-inline">output</code> &mdash; hls or m3u</li>
-                        <li><code class="code-inline">nocache</code> &mdash; disable caching</li>
-                    </ul>
-                    <div class="code-block">curl "http://your-domain:80/playlist/username/password/type&output=hls&key=live"</div></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">⚠️</span>Error codes</h3>
-                    <div class="section-content"><ul class="list-styled">
-                        <li>NO_CREDENTIALS &middot; INVALID_CREDENTIALS &middot; EXPIRED &middot; DISABLED &middot; BANNED</li>
-                        <li>BLOCKED_USER_AGENT &middot; EMPTY_USER_AGENT &middot; NOT_IN_ALLOWED_UAS &middot; DEVICE_NOT_ALLOWED</li>
-                        <li>NOT_IN_ALLOWED_IPS &middot; NOT_IN_ALLOWED_COUNTRY &middot; ISP_BLOCKED &middot; ASN_BLOCKED</li>
-                        <li>DOWNLOAD_LIMIT_REACHED &middot; GENERATE_PLAYLIST_FAILED</li>
-                    </ul></div></div>`,
+            mag: doc('XC_VM Stalker Portal (MAG)', 'Stalker/Ministra middleware emulation &mdash; 91 operations',
+                '<p>The portal API of MAG and other Stalker-compatible set-top boxes (<code class="code-inline">src/Ministra/PortalHandler.php</code>). Paths are written as <code class="code-inline">/portal.php?type=..&action=..</code>; substitute the real prefix.</p>',
+                '{protocol}://{host}:{port}/&lt;code&gt;/portal.php?type=stb&action=handshake\n{protocol}://{host}:{port}/c/portal.php   (only with mag_legacy_redirect)',
+                '<p><code class="code-inline">stb/handshake</code> with the MAC gives a token; <code class="code-inline">stb/get_profile</code> with <code class="code-inline">Authorization: Bearer &lt;token&gt;</code> verifies the device; every later call sends the same bearer token.</p>'),
 
-            full: `
-                <h2 class="docs-title">XC_VM Full API Reference</h2>
-                <p class="docs-subtitle">The whole Xtream Codes HTTP surface in one OpenAPI 3.1 document &mdash; 469 operations</p>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
-                    <div class="section-content"><p>Every client, streaming, portal, admin and internal endpoint, each traced from the source and citing the file and line it was read from (<code class="code-inline">src/...:line</code>).</p></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🗂️</span>Groups</h3>
-                    <div class="section-content"><ul class="list-styled">
-                        <li><strong>Clients</strong> &mdash; Player API, Panel API (legacy), Playlist, EPG, Streaming</li>
-                        <li><strong>Devices</strong> &mdash; Stalker Portal (MAG), Enigma2, XPlugin</li>
-                        <li><strong>Activation</strong> &mdash; Active Codes, Activation Portal</li>
-                        <li><strong>Management</strong> &mdash; Admin API, Reseller API, Legacy Admin Stream Endpoints</li>
-                        <li><strong>Servers</strong> &mdash; Internal Server API, Cluster API, Monitoring</li>
-                    </ul></div></div>
-                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
-                    <div class="section-content"><p>Each group has its own scheme (line credentials or token, MAC + handshake token, <code class="code-inline">api_key</code> + access code, cluster secret, metrics bearer token). Every operation states which one it uses.</p></div></div>`,
+            enigma2: doc('XC_VM Enigma2', 'enigma2.php and xplugin.php &mdash; 13 operations',
+                '<p>The XML playlist API for Enigma2 boxes (base64 titles, CDATA URLs) and the companion API of the XC Enigma2 plugin: MAC generation, device sign-in, the remote-command watchdog and screenshot upload.</p>',
+                '{protocol}://{host}:{port}/enigma2.php?username=&lt;user&gt;&password=&lt;pass&gt;&type=&lt;type&gt;',
+                '<p>enigma2.php: line <code class="code-inline">username</code> + <code class="code-inline">password</code>. xplugin.php: the device MAC, then its token.</p>'),
+
+            activation: doc('XC_VM Activation', 'active_code.php and the /portal page &mdash; 15 operations',
+                '<p>Activation codes: without an API key, the subscriber/device activation endpoint; with an admin or reseller API key, a management API for codes and batches. <code class="code-inline">/portal</code> is the public self-activation page (HTML, or JSON to AJAX).</p>',
+                '{protocol}://{host}:{port}/active_code.php?action=&lt;action&gt;',
+                '<p>The activation code itself, or an admin / reseller <code class="code-inline">api_key</code> for management actions.</p>'),
+
+            admin: doc('XC_VM Admin API', 'Administration REST API &mdash; 187 actions',
+                '<p>Lines, MAG and Enigma2 devices, users, groups, packages, streams, VOD, series, servers, settings and logs.</p>',
+                '{protocol}://{host}:{port}/&lt;access_code&gt;/?api_key=&lt;API-KEY&gt;&action=&lt;action&gt;',
+                '<p>An access code of type <em>Admin API</em> (3), and an <code class="code-inline">api_key</code>: a named <code class="code-inline">xct_</code> token or the legacy per-user key of an administrator. Click <strong>Authorize</strong> to send it with every request.</p>'),
+
+            reseller: doc('XC_VM Reseller API', 'Reseller REST API &mdash; 49 actions',
+                '<p>The reseller\'s own lines, MAG and Enigma2 devices, sub-accounts, activation codes and credits, and the packages it may sell.</p>',
+                '{protocol}://{host}:{port}/&lt;access_code&gt;/?api_key=&lt;API-KEY&gt;&action=&lt;action&gt;',
+                '<p>An access code of type <em>Reseller API</em> (4), and the <code class="code-inline">api_key</code> of a reseller. Click <strong>Authorize</strong> to send it with every request.</p>'),
+
+            system: doc('XC_VM System API', 'Node actions (api.php) and /admin/* stream endpoints &mdash; 37 operations',
+                '<p><code class="code-inline">/api.php?action=&lt;name&gt;</code> no longer answers over HTTP (<strong>404</strong>, empty body): the actions run as the payload of the signed <code class="code-inline">node.rpc</code> cluster command. MAIN still POSTs the legacy form to nodes older than 2.7.0. <code class="code-inline">/admin/(api|live|proxy_api|thumb|timeshift|vod)</code> are the server-side stream endpoints on every server.</p>',
+                '{protocol}://{host}:{port}/api.php?password=&lt;live_streaming_pass&gt;&action=&lt;action&gt;   (pre-2.7.0 nodes)\n{protocol}://{host}:{port}/admin/&lt;handler&gt;',
+                '<p>/admin/*: a signed relay ticket, a loopback token, the legacy <code class="code-inline">live_streaming_pass</code> from an allowed IP, or a panel <code class="code-inline">uitoken</code>.</p>'),
+
+            cluster: doc('XC_VM Cluster API', 'MAIN-only node-to-MAIN control plane &mdash; 22 operations',
+                '<p>Enrolment, token refresh, events, config, stream and connection reports from load balancers (<code class="code-inline">docs/adr/0004-cluster-api.md</code>).</p>',
+                '{protocol}://{host}:{port}/cluster/v1/&lt;op&gt;',
+                '<p>Signed headers (<code class="code-inline">X-XCVM-Node</code>, <code class="code-inline">-Ts</code>, <code class="code-inline">-Nonce</code>, <code class="code-inline">-Sig</code>, &hellip;): HMAC-SHA256 under the session key, bodies sealed with AES-256-GCM. Not callable from a browser.</p>'),
+
+            monitoring: doc('XC_VM Monitoring', 'Prometheus metrics and health probes &mdash; 3 operations',
+                '<p><code class="code-inline">/metrics</code> (Prometheus text format, cached 15 s), the unauthenticated <code class="code-inline">/healthz</code> probe, and <code class="code-inline">/progress</code>, the FFmpeg progress sink accepted only from 127.0.0.1.</p>',
+                '{protocol}://{host}:{port}/metrics',
+                '<p><code class="code-inline">/metrics</code> answers only when the <code class="code-inline">metrics_token</code> setting is set, to <code class="code-inline">Authorization: Bearer &lt;token&gt;</code>. Click <strong>Authorize</strong> to send it.</p>'),
         };
 
         function renderApiDocs(key) {

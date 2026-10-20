@@ -1,102 +1,324 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: XC_VM Playlist API
-  version: "1.0.0"
+  version: 2.7.2
+  summary: Playlist of the Xtream Codes compatible HTTP surface, as implemented by XC_VM.
   description: |
-    Authentication and playlist generation for XC_VM. Clients authenticate with a
-    username/password pair **or** a token, after which a personalized playlist is generated.
+    A source-level reference for the **Xtream Codes (XC) API**: the de facto standard HTTP interface
+    between IPTV panels and player apps. The reference implementation is
+    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.2, an open-source continuation of Xtream UI / XC.
+    Each operation cites the XC_VM source file and line it was traced from (`src/...:line`).
 
-    - **Controller:** `src/Public/Controllers/Api/PlaylistApiController.php`
-    - **Base URL:** `/playlist`
-    - **Authentication:** `username` + `password`, or `token`.
+    ## Authentication models
 
-    ## Error codes
-    | Code | Description |
-    | --- | --- |
-    | `NO_CREDENTIALS` | Missing authentication data |
-    | `INVALID_CREDENTIALS` | Invalid username, password or token |
-    | `BLOCKED_USER_AGENT` | User agent is blocked |
-    | `EXPIRED` | Account has expired |
-    | `DEVICE_NOT_ALLOWED` | Device type is not allowed |
-    | `BANNED` | User is banned |
-    | `DISABLED` | Account is disabled |
-    | `EMPTY_USER_AGENT` | User agent is required but missing |
-    | `NOT_IN_ALLOWED_IPS` | IP address is not allowed |
-    | `NOT_IN_ALLOWED_COUNTRY` | Country is not allowed |
-    | `NOT_IN_ALLOWED_UAS` | User agent is not allowed |
-    | `ISP_BLOCKED` | ISP is blocked |
-    | `ASN_BLOCKED` | ASN restriction applied |
-    | `DOWNLOAD_LIMIT_REACHED` | Too many requests |
-    | `GENERATE_PLAYLIST_FAILED` | Failed to generate playlist |
+    The panel has several independent auth schemes. Each endpoint states which one it uses.
+
+    | Who | How |
+    |---|---|
+    | Line (subscriber) | `username` + `password` query parameters, or `token` (32-char line access token). Also in path form: `/player_api/{u}/{p}`, `/live/{u}/{p}/...` |
+    | Activation code | The code typed as `username` (or `token`) is activated on first use and becomes a line |
+    | MAG / Stalker box | MAC address cookie + bearer token from `handshake` (`/c/portal.php`, `/stalker_portal/...`) |
+    | Enigma2 box | MAC/device registration (`enigma2.php`) |
+    | Admin / reseller REST | `api_key` query parameter (named `xct_` token or legacy per-user key) on `/{access_code}/?action=...`; the access code's IP whitelist is enforced by nginx |
+    | Load-balancer nodes | Shared cluster secret (`/cluster/v1`); signed `node.rpc` (legacy `api.php` on nodes older than 2.7.0) |
+
+    ## Error model
+
+    - `player_api.php` / `panel_api.php` **never** use HTTP status for auth failure. They answer **200** with
+      `{"user_info":{"auth":0,"status":"...","message":"..."}}`. Always check `user_info.auth`.
+    - `get.php`, `xmltv.php` and the media endpoints answer a bare **nginx-style 404 page** for nearly every
+      error (bad credentials, expired, banned, wrong type…), so apps cannot tell errors apart. With the panel
+      setting `debug_show_errors` on, the page names the error code instead.
+    - Download limits answer **429**; a blocked IP answers **403** before any controller runs;
+      maintenance mode answers **503** with optional `Retry-After` on streaming endpoints (player_api reports
+      maintenance as `status: "Maintenance"`).
+    - nginx answers `200` with an empty body for any HTTP method other than GET or POST on client routes.
+  contact:
+    name: XC_VM project
+    url: https://github.com/Vateron-Media/XC_VM
+  license:
+    name: AGPL-3.0 (XC_VM source); this document describes its public interface
+    identifier: AGPL-3.0-only
 servers:
-  - url: '{protocol}://{host}:{port}/playlist'
-    description: XC_VM playlist endpoint
+  - url: '{protocol}://{host}:{port}'
+    description: Any XC compatible panel or load-balancer node
     variables:
       protocol:
         default: http
-        enum: [http, https]
+        enum:
+          - http
+          - https
       host:
-        default: your-server.com
-        description: Server IP or domain
+        default: tv.example.com
       port:
         default: '80'
-        description: HTTP port
-
+        description: HTTP broadcast port (often 80, 8080, 8000, 25461); HTTPS often 443 or 25463.
+externalDocs:
+  description: XC_VM source
+  url: https://github.com/Vateron-Media/XC_VM
+components:
+  parameters:
+    Username:
+      name: username
+      in: query
+      required: true
+      description: Line username. Optional when `token` is sent instead.
+      schema:
+        type: string
+        example: demo
+    Password:
+      name: password
+      in: query
+      required: true
+      description: Line password. Optional when `token` is sent instead.
+      schema:
+        type: string
+        format: password
+        example: s3cret
+    Core_Token:
+      name: token
+      in: query
+      required: false
+      description: |
+        Alternative to `username` + `password`: the line's 32-character `access_token`. Used only when
+        `username` is absent. Not accepted for MAG/Enigma2 device lines. An activation code is also accepted here.
+      schema:
+        type: string
+        minLength: 32
+        maxLength: 32
+        example: 6f1ed002ab5595859014ebf0951522d9
+  responses:
+    Core_IpBlocked:
+      description: |
+        The client address is blocked (brute-force / flood protection, or the panel's IP block list).
+        Bare 403, empty body, sent before any controller runs.
+        Source: `src/Core/Bootstrap/Stage/FloodProtectionStage.php:24` (checks `FLOOD_TMP_PATH/block_<ip>`).
+    Core_PanelErrorPage:
+      description: |
+        Panel error page (`generateError`, `src/Core/Error/ErrorHandler.php:31`, `src/Core/Error/ErrorResponder.php:203`).
+        In production it is the bare nginx-style 404 page below regardless of the error code.
+        With the `debug_show_errors` setting on, it is an HTML page showing the code and its description
+        (e.g. `INVALID_CREDENTIALS` / "Username or password is invalid.").
+      content:
+        text/html:
+          schema:
+            type: string
+          examples:
+            production:
+              value: "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+            debug:
+              value: <html><head><title>XC_VM - Debug Mode</title>...</head><body><div id="notfound"><div class="notfound"><div class="notfound-404"><h1>XC_VM</h1><h2>INVALID_CREDENTIALS</h2><br/></div><p>Username or password is invalid.</p></div></div></body></html>
 tags:
   - name: Playlist
-    description: Authentication and playlist generation
-
+    description: |
+      `get.php`: downloadable playlists (M3U, M3U Plus, Enigma2 bouquets, set-top box formats).
 paths:
-  /:
+  /get.php:
     get:
-      tags: [Playlist]
-      summary: Authenticate and generate playlist
+      operationId: Core_getPlaylist
+      tags:
+        - Playlist
+      summary: Download a playlist
       description: |
-        Authenticates the client and returns a personalized playlist in the requested format.
-        Provide **either** `username` + `password` **or** `token`.
+        Builds (or serves from cache) a playlist file for the line in one of the device formats below.
+        Aliases: `/playlist.php`, `/playlist`, `/api/playlist`, `/playlist/{username}/{password}` and
+        `/playlist/{username}/{password}/{type}` (path form).
+
+        **Device formats (`type`)**, from the `output_devices` table (`src/bin/install/database.sql:1125`):
+
+        | type | filename | entry template |
+        |---|---|---|
+        | `m3u` | `playlist_{USERNAME}.m3u` | `#EXTINF:-1,{CHANNEL_NAME}` + URL |
+        | `m3u_plus` (default) | `playlist_{USERNAME}_plus.m3u` | `#EXTINF:-1 tvg-id tvg-name tvg-logo group-title,{NAME}` + URL |
+        | `simple` | `simple_{USERNAME}.txt` | `{URL} #Name: {CHANNEL_NAME}` |
+        | `ariva` | `ariva_{USERNAME}.txt` | `{CHANNEL_NAME},{URL}` |
+        | `dreambox` | `userbouquet.favourites.tv` | `#SERVICE {ESR_ID}{SID}{URL#:}` / `#DESCRIPTION` (ESR_ID 1 live, 4097 VOD) |
+        | `enigma16` | `userbouquet.favourites.tv` | `#SERVICE 4097{SID}{URL#:}` / `#DESCRIPTION` |
+        | `enigma216_script` | `iptv.sh` | shell script that downloads the `enigma16` bouquet |
+        | `enigma22_script` | `iptv.sh` | shell script that downloads the `dreambox` bouquet |
+        | `fps` | `Royal.cfg` | `IPTV: { {CHANNEL_NAME} } { {URL} }` |
+        | `gst` | `{USERNAME}_list.txt` | `I: {URL} {CHANNEL_NAME}` |
+        | `gigablue` | `userbouquet.favourites.tv` | `#SERVICE 4097:0:1:0:0:0:0:0:0:0:{URL#:}` |
+        | `mediastar` | `tvlist.txt` | `{CHANNEL_NAME} {URL}` |
+        | `octagon` | `internettv.feed` | `[TITLE]`/`[URL]`/`[DESCRIPTION]`/`[TYPE]` blocks |
+        | `octagon_script` | `iptv` | shell script that downloads the `octagon` feed |
+        | `revosun` | `network_iptv.cfg` | `IPTV: { {CHANNEL_NAME} } { {URL} }` |
+        | `spark` | `webtv_usr.xml` | `<webtv title url iconsrc … />` inside `<webtvs>` |
+        | `starlivev3` | `iptvlist.txt` | `{CHANNEL_NAME},{URL}` |
+        | `starlivev5` | `channel.jason` | JSON (see example) |
+        | `webtvlist` | `webtv list.txt` | `Channel name:` / `URL:` pairs |
+        | `zorro` | `iptv.cfg` | `IPTV: { {CHANNEL_NAME} } { {URL} } -HIDE_URL` |
+
+        **M3U header** (`m3u`, `m3u_plus`): `#EXTM3U x-tvg-url="{server}epg/{username}/{password}"`, followed by
+        `#EXT-X-SESSION-DATA:DATA-ID="com.xc_vm.<version with _>"`.
+
+        **Entry URLs:**
+        - live: `{server}{username}/{password}/{stream_id}.{ext}` (short form, no `/live/`; the `.ts` extension
+          is dropped when Cloudflare mode is on and output is `ts`)
+        - movie / episode: `{server}movie|series/{username}/{password}/{stream_id}.{container}`
+        - token login: `{server}live|movie|series/{token}/{stream_id}.{ext}`
+        - stream encryption on: `{server}play/{encrypted_token}.{ext}`
+        - Enigma2 formats: `#NAME` is the panel `server_name`; `{SID}` is the stream's `custom_sid` or `:0:1:0:0:0:0:0:0:0:`;
+          `{URL#:}` is the URL with `:` encoded as `%3A`.
+        - VOD with no container falls back to `.mp4`.
+        - RTMP output: `{rtmp_url}{stream_id}?username=…&password=…`
+        - `m3u_plus` adds `timeshift="N"` (archive days) on archived channels and `tvg-id` only on live rows.
+          Episodes are named `{Series} S01E02`. Rows repeat for each category only when the template
+          contains `{CATEGORY}`.
+
+        **Response headers:** `Content-Type: application/octet-stream` (freshly built) or `audio/mpegurl`
+        (served from cache), `Content-Disposition: attachment; filename="<device filename>"`,
+        `Access-Control-Allow-Origin: *`.
+
+        **Errors** use the panel's error page (see `Core_PanelErrorPage`): a bare nginx-style 404 in production,
+        or a debug page naming the code (`LEGACY_GET_DISABLED`, `INVALID_CREDENTIALS`, `EXPIRED`, `BANNED`,
+        `DISABLED`, `DEVICE_NOT_ALLOWED`, `BLOCKED_USER_AGENT`, `PLAYLIST_DISABLED`, `GENERATE_PLAYLIST_FAILED`,
+        and, when `restrict_playlists` is on, `EMPTY_USER_AGENT`, `NOT_IN_ALLOWED_IPS`, `NOT_IN_ALLOWED_COUNTRY`,
+        `FORCED_COUNTRY_INVALID`, `NOT_IN_ALLOWED_UAS`, `ISP_BLOCKED`, `ASN_BLOCKED`) when `debug_show_errors` is on.
+        MAG and Enigma2 device lines (`is_mag`, `is_e2`) cannot download playlists.
+
+        Sources: `src/Public/Controllers/Api/PlaylistApiController.php:29`, `src/Public/Controllers/Api/BaseApiController.php:47`
+        (auth) and `:91` (checks), `src/Domain/Stream/PlaylistGenerator.php:37`.
       parameters:
-        - name: username
-          in: query
-          required: false
-          schema: { type: string }
-          description: Username (required if `token` is not used)
-        - name: password
-          in: query
-          required: false
-          schema: { type: string }
-          description: Password (required if `token` is not used)
-        - name: token
-          in: query
-          required: false
-          schema: { type: string }
-          description: Authentication token (required if username/password are not used)
+        - $ref: '#/components/parameters/Username'
+        - $ref: '#/components/parameters/Password'
+        - $ref: '#/components/parameters/Core_Token'
         - name: type
           in: query
           required: false
-          schema: { type: string, default: m3u_plus }
-          description: Device type (default `m3u_plus`)
-        - name: key
-          in: query
-          required: false
-          schema: { type: string, enum: [live, movies, radio_streams, series] }
-          description: Content type — `live`, `movies`, `radio_streams` or `series`
+          description: Device format key.
+          schema:
+            type: string
+            default: m3u_plus
+            enum:
+              - m3u
+              - m3u_plus
+              - simple
+              - ariva
+              - dreambox
+              - enigma16
+              - enigma216_script
+              - enigma22_script
+              - fps
+              - gst
+              - gigablue
+              - mediastar
+              - octagon
+              - octagon_script
+              - revosun
+              - spark
+              - starlivev3
+              - starlivev5
+              - webtvlist
+              - zorro
         - name: output
           in: query
           required: false
-          schema: { type: string, enum: [hls, m3u] }
-          description: Output format
+          description: |
+            Stream container for live URLs. `mpegts` is accepted as `ts`, `hls` as `m3u8`. Empty uses the device's
+            default (`ts` for every built-in device). Must be one of the line's `allowed_output_formats`.
+          schema:
+            type: string
+            enum:
+              - ts
+              - m3u8
+              - rtmp
+              - mpegts
+              - hls
+        - name: key
+          in: query
+          required: false
+          description: Comma-separated stream type filter. Empty includes everything.
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - live
+                - created_live
+                - movie
+                - radio_streams
+                - series
+          example:
+            - live
+            - radio_streams
         - name: nocache
           in: query
           required: false
-          schema: { type: boolean }
-          description: If true, disables caching
+          description: Any non-empty value forces a rebuild instead of serving the cached playlist.
+          schema:
+            type: string
       responses:
         '200':
-          description: Playlist file in the requested format (M3U or HLS)
+          description: Playlist file.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              example: attachment; filename="playlist_demo_plus.m3u"
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+              example: '*'
           content:
-            application/x-mpegurl:
-              schema: { type: string }
-            audio/x-mpegurl:
-              schema: { type: string }
+            application/octet-stream:
+              schema:
+                type: string
+              examples:
+                m3u_plus:
+                  summary: type=m3u_plus&output=ts
+                  value: |
+                    #EXTM3U x-tvg-url="http://tv.example.com/epg/demo/s3cret"
+                    #EXT-X-SESSION-DATA:DATA-ID="com.xc_vm.2_7_2"
+                    #EXTINF:-1 timeshift="7" tvg-id="BBCOne.uk" tvg-name="UK: BBC One HD" tvg-logo="http://example.com/logos/bbc1.png" group-title="UK | Entertainment",UK: BBC One HD
+                    http://tv.example.com/demo/s3cret/1043.ts
+                    #EXTINF:-1 tvg-name="Inception (2010)" tvg-logo="https://image.tmdb.org/t/p/w600_and_h900_bestv2/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg" group-title="Movies | Action",Inception (2010)
+                    http://tv.example.com/movie/demo/s3cret/50012.mkv
+                    #EXTINF:-1 tvg-name="Breaking Bad S01E01" tvg-logo="https://image.tmdb.org/t/p/w600_and_h900_bestv2/ggFHVNu6YYI5L9pCfOacjizRGt.jpg" group-title="Series | Drama",Breaking Bad S01E01
+                    http://tv.example.com/series/demo/s3cret/70001.mkv
+                m3u:
+                  summary: type=m3u&output=m3u8
+                  value: |
+                    #EXTM3U x-tvg-url="http://tv.example.com/epg/demo/s3cret"
+                    #EXT-X-SESSION-DATA:DATA-ID="com.xc_vm.2_7_2"
+                    #EXTINF:-1,UK: BBC One HD
+                    http://tv.example.com/demo/s3cret/1043.m3u8
+                enigma16:
+                  summary: type=enigma16 (Enigma2 bouquet)
+                  value: |
+                    #NAME XC_VM
+                    #SERVICE 4097:0:1:0:0:0:0:0:0:0:http%3A//tv.example.com/demo/s3cret/1043.ts
+                    #DESCRIPTION UK: BBC One HD
+                simple:
+                  summary: type=simple
+                  value: |
+                    http://tv.example.com/demo/s3cret/1043.ts #Name: UK: BBC One HD
+            audio/mpegurl:
+              schema:
+                type: string
+              example: |
+                #EXTM3U x-tvg-url="http://tv.example.com/epg/demo/s3cret"
+                #EXTINF:-1,UK: BBC One HD
+                http://tv.example.com/demo/s3cret/1043.ts
+            application/json:
+              schema:
+                description: Only for `type=starlivev5`.
+                type: object
+              example:
+                iptvstreams_list:
+                  '@version': 1
+                  group:
+                    name: IPTV
+                    channel:
+                      - name: 'UK: BBC One HD'
+                        icon: http://example.com/logos/bbc1.png
+                        stream_url: http://tv.example.com/demo/s3cret/1043.ts
+                        stream_type: 0
         '403':
-          description: Authentication or access restriction error (see error codes)
+          $ref: '#/components/responses/Core_IpBlocked'
+        '404':
+          $ref: '#/components/responses/Core_PanelErrorPage'
+        '429':
+          description: More concurrent playlist/EPG downloads than `max_simultaneous_downloads`. Empty body.
