@@ -1,11 +1,11 @@
 <?php
 
-use XcVm\Core\Cluster\BlocklistChanges;
 use XcVm\Core\Config\Maintenance;
 use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\TimeUtils;
+use XcVm\Domain\Device\DeviceUserAgentPolicy;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Domain\User\UserRepository;
@@ -143,6 +143,23 @@ if (!$rSettings["disable_ministra"]) {
 		}
 
 		if ($rDevice && $rReqType == "stb" && $rReqAction == "get_profile") {
+			// Serialize first binding and later verification, including requests using an existing token.
+			$rBindingLock = @fopen(MINISTRA_TMP_PATH . "ministra_" . intval($rDevice["mag_id"]) . ".binding.lock", "c");
+			if (!$rBindingLock || !flock($rBindingLock, LOCK_EX)) {
+				http_response_code(503);
+				exit();
+			}
+			// A cached device may predate another box's first binding or an administrator's reset.
+			if (!$db->query("SELECT `sn`, `device_id`, `device_id2`, `hw_version`, `lock_device`, `lock_user_agent`, `allowed_user_agents` FROM `mag_devices` WHERE `mag_id` = ? LIMIT 1", $rDevice["mag_id"])) {
+				http_response_code(503);
+				exit();
+			}
+			$rBinding = $db->get_raw_row();
+			if (!is_array($rBinding) || !array_key_exists("sn", $rBinding)) {
+				http_response_code(503);
+				exit();
+			}
+			$rDevice = array_replace($rDevice, $rBinding);
 			$rSerialNumber = !empty($rRequest["sn"]) ? $rRequest["sn"] : null;
 			$rSTBType = !empty($rRequest["stb_type"]) ? $rRequest["stb_type"] : null;
 			$rVersion = !empty($rRequest["ver"]) ? $rRequest["ver"] : null;
@@ -159,64 +176,6 @@ if (!$rSettings["disable_ministra"]) {
 				$rVerified = false;
 			}
 
-			//MAGSCAN
-			//If No SerialNumber Is Posted
-			if (empty($rSerialNumber) && !$rDebug) {
-				$rBanData = ["ip" => $rIP, "notes" => "[MS] No Serial Number", "date" => time()];
-				touch(FLOOD_TMP_PATH . "block_" . $rIP);
-				$db->query(
-					"INSERT INTO `blocked_ips` (`ip`,`notes`,`date`) VALUES(?,?,?)",
-					$rBanData["ip"],
-					$rBanData["notes"],
-					$rBanData["date"],
-				);
-				BlocklistChanges::set('ip', [$rIP], $db);
-				http_response_code(404);
-				die();
-			}
-			//If Posted SN is different from Device
-			if (!empty($rDevice["sn"]) && $rDevice["sn"] !== $rSerialNumber && !$rDebug) {
-				$rBanData = [
-					"ip" => $rIP,
-					"notes" => "[MS] Invalid Serial Number",
-					"date" => time(),
-				];
-				touch(FLOOD_TMP_PATH . "block_" . $rIP);
-				$db->query(
-					"INSERT INTO `blocked_ips` (`ip`,`notes`,`date`) VALUES(?,?,?)",
-					$rBanData["ip"],
-					$rBanData["notes"],
-					$rBanData["date"],
-				);
-				BlocklistChanges::set('ip', [$rIP], $db);
-				http_response_code(404);
-				die();
-			}
-			//MANGSCAN
-
-			if (!$rDevice["lock_device"]) {
-			} else {
-				if (empty($rDevice["sn"]) || $rDevice["sn"] == $rSerialNumber) {
-				} else {
-					$rVerified = false;
-				}
-
-				if (empty($rDevice["device_id"]) || $rDevice["device_id"] == $rDeviceID) {
-				} else {
-					$rVerified = false;
-				}
-
-				if (empty($rDevice["device_id2"]) || $rDevice["device_id2"] == $rDeviceID2) {
-				} else {
-					$rVerified = false;
-				}
-
-				if (empty($rDevice["hw_version"]) || $rDevice["hw_version"] == $rHWVersion) {
-				} else {
-					$rVerified = false;
-				}
-			}
-
 			if (empty($rSettings["stalker_lock_images"])
 				|| in_array($rVersion, $rSettings["stalker_lock_images"])
 			) {
@@ -226,6 +185,30 @@ if (!$rSettings["disable_ministra"]) {
 
 			if ($rDebug) {
 				$rVerified = true;
+			}
+
+			// Debug mode must never authorize a missing/replaced serial or a changed locked identity.
+			$rBindingMatches = is_string($rSerialNumber) && trim($rSerialNumber) !== ""
+				&& ((string) ($rBinding["sn"] ?? "") === "" || $rBinding["sn"] === $rSerialNumber);
+			if (!empty($rBinding["lock_device"])) {
+				foreach (["device_id" => $rDeviceID, "device_id2" => $rDeviceID2, "hw_version" => $rHWVersion] as $rField => $rValue) {
+					if ((string) ($rBinding[$rField] ?? "") !== "" && $rBinding[$rField] !== $rValue) {
+						$rBindingMatches = false;
+					}
+				}
+			}
+			if (!$rBindingMatches || !empty($rDeviceMismatch)) {
+				$rVerified = false;
+			}
+
+			if ($rVerified) {
+				$rObservedAgent = DeviceUserAgentPolicy::observed();
+				// Record only a request that passed the device identity checks. Never auto-allow it.
+				if (!$db->query("UPDATE `mag_devices` SET `last_user_agent` = ? WHERE `mag_id` = ?", $rObservedAgent, $rDevice["mag_id"])) {
+					http_response_code(503);
+					exit();
+				}
+				$rVerified = DeviceUserAgentPolicy::allows($rBinding, $rObservedAgent);
 			}
 
 			// The device's own token, or a handshake's that is not the device's yet.
@@ -248,8 +231,8 @@ if (!$rSettings["disable_ministra"]) {
 				$rDevice["get_profile_vars"]["stb_type"] = $rSTBType;
 				$rDevice["get_profile_vars"]["hw_version"] = $rHWVersion;
 				$rDevice["authenticated"] = true;
-				$db->query(
-					"UPDATE `mag_devices` SET `ip` = ?, `stb_type` = ?, `sn` = ?, `ver` = ?, `image_version` = ?, `device_id` = ?, `device_id2` = ?, `hw_version` = ? WHERE `mag_id` = ?;",
+				if (!$db->query(
+					"UPDATE `mag_devices` SET `ip` = ?, `stb_type` = ?, `sn` = CASE WHEN `sn` IS NULL OR `sn` = '' THEN ? ELSE `sn` END, `ver` = ?, `image_version` = ?, `device_id` = ?, `device_id2` = ?, `hw_version` = ? WHERE `mag_id` = ?;",
 					$rIP,
 					$rSTBType,
 					$rSerialNumber,
@@ -259,7 +242,10 @@ if (!$rSettings["disable_ministra"]) {
 					$rDeviceID2,
 					$rHWVersion,
 					$rDevice["mag_id"],
-				);
+				)) {
+					http_response_code(503);
+					exit();
+				}
 				updatecache();
 			} else {
 				// Entries are named by device number, as updateCache() writes them. The
@@ -273,9 +259,23 @@ if (!$rSettings["disable_ministra"]) {
 				}
 				$rDevice = [];
 			}
+			flock($rBindingLock, LOCK_UN);
+			fclose($rBindingLock);
 		}
 
 		$rAuthenticated = !empty($rDevice["authenticated"]);
+		// Recheck the current policy for existing sessions as well as new logins.
+		if ($rAuthenticated && !($rReqType === "stb" && $rReqAction === "get_profile")) {
+			if (!$db->query("SELECT `lock_user_agent`, `allowed_user_agents` FROM `mag_devices` WHERE `mag_id` = ? LIMIT 1", $rDevice["mag_id"])) {
+				http_response_code(503);
+				exit();
+			}
+			$rAgentPolicy = $db->get_raw_row();
+			if (!$rAgentPolicy || !DeviceUserAgentPolicy::allows($rAgentPolicy, DeviceUserAgentPolicy::observed())) {
+				$rAuthenticated = false;
+				$rDevice = [];
+			}
+		}
 		$rMagID = !empty($rDevice["mag_id"]) ? intval($rDevice["mag_id"]) : 0;
 
 		if (empty($rDevice["locale"]) && !empty($_COOKIE["locale"])) {

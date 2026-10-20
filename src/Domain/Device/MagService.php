@@ -217,6 +217,7 @@ class MagService {
 	 */
 	public static function process($rData) {
 		$db = self::db();
+		unset($rData['last_user_agent']);
 		if (InputValidator::validate('processMAG', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_mag')) {
@@ -287,6 +288,19 @@ class MagService {
 				$rUserArray['is_isplock'] = 1;
 			} else {
 				$rUserArray['is_isplock'] = 0;
+			}
+
+			if (isset($rData['ua_policy_present'])) {
+				try {
+					$rAgents = DeviceUserAgentPolicy::normalize($rData['allowed_user_agents'] ?? []);
+				} catch (\InvalidArgumentException $rError) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
+				$rArray['lock_user_agent'] = isset($rData['lock_user_agent']) ? 1 : 0;
+				if ($rArray['lock_user_agent'] && !$rAgents) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
+				$rArray['allowed_user_agents'] = json_encode($rAgents);
 			}
 
 			if (isset($rData['lock_device'])) {
@@ -465,6 +479,13 @@ class MagService {
 
 		if ($db->num_rows() == 1) {
 			$rRow['paired'] = UserRepository::getLineById($rRow['user']['pair_id']);
+		}
+
+		// The allowlist is JSON and the observed header must retain its exact bytes.
+		$db->query('SELECT `allowed_user_agents`, `last_user_agent` FROM `mag_devices` WHERE `mag_id` = ?;', $rID);
+		$rAgentFields = $db->get_raw_row();
+		if ($rAgentFields) {
+			$rRow = array_replace($rRow, $rAgentFields);
 		}
 
 		return $rRow;

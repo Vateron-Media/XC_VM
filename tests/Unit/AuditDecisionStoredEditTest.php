@@ -191,6 +191,26 @@ final class AuditDecisionStoredEditTest extends TestCase {
 		}
 	}
 
+	public function testMagUserAgentAllowlistCanBeSavedAndTurnedOffWithoutLosingObservation(): void {
+		foreach (self::records()['MAG device and its line'][4] as $rQuery) {
+			$this->rDb->exec($rQuery);
+		}
+		$rAgent = 'Player/1.0 "exact" & raw';
+		$this->rDb->query('UPDATE `mag_devices` SET `last_user_agent` = ? WHERE `mag_id` = 4', $rAgent);
+		foreach ([['lock_user_agent' => '1'], []] as $rSwitch) {
+			RequestManager::set(['api_key' => self::KEY, 'action' => 'edit_mag', 'id' => '4', 'ua_policy_present' => '1', 'allowed_user_agents' => [$rAgent], 'last_user_agent' => 'FORGED'] + $rSwitch);
+			ob_start();
+			try { (new AdminApiController())->index(); }
+			finally { $rBody = (string) ob_get_clean(); }
+			$this->assertSame('STATUS_SUCCESS', json_decode($rBody, true)['status'] ?? $rBody);
+			$this->rDb->query('SELECT `lock_user_agent`, `allowed_user_agents`, `last_user_agent` FROM `mag_devices` WHERE `mag_id` = 4');
+			$rRow = $this->rDb->get_raw_row();
+			$this->assertSame($rSwitch ? 1 : 0, (int) $rRow['lock_user_agent']);
+			$this->assertSame([$rAgent], json_decode($rRow['allowed_user_agents'], true));
+			$this->assertSame($rAgent, $rRow['last_user_agent']);
+		}
+	}
+
 	/**
 	 * A stream's "Maximum Resolution" (#345, option 22): an edit that does not
 	 * send it keeps it, one that sends it stores the number alone, and one
