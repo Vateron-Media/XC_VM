@@ -42,7 +42,7 @@ final class VodItemImporterRunTest extends TestCase {
         $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, ' . implode(', ', $rColumns) . ');');
         $this->db->exec('CREATE TABLE streams_servers (stream_id INTEGER, server_id INTEGER, parent_id INTEGER);');
         $this->db->exec('CREATE TABLE streams_episodes (season_num INTEGER, series_id INTEGER, stream_id INTEGER, episode_num INTEGER);');
-        $this->db->exec('CREATE TABLE streams_series (id INTEGER PRIMARY KEY AUTO_INCREMENT, tmdb_id INTEGER, title TEXT, seasons TEXT);');
+        $this->db->exec('CREATE TABLE streams_series (id INTEGER PRIMARY KEY AUTO_INCREMENT, tmdb_id INTEGER, title TEXT, seasons TEXT, year INTEGER);');
         $this->db->exec("INSERT INTO streams_series (id, tmdb_id, title, seasons) VALUES (5, 1399, 'Les Psys', '[]');");
 
 
@@ -357,6 +357,58 @@ final class VodItemImporterRunTest extends TestCase {
 
         $this->assertCount(1, $this->results);
         $this->assertSame(VodImportResultEvent::STATUS_NO_MATCH, $this->results[0]->status);
+        $this->db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
+        $this->assertSame(0, (int) $this->db->get_col());
+    }
+
+    /** A provider's entry: tag, title in Turkish without its letters, year, the same title in Arabic. */
+    private function providerEpisode(string $rName): array {
+        return array('title' => '|TR| ' . $rName . ' - S01E02 - |TR| ' . $rName . ' - S01E02 - Épisode 2', 'duplicate_tmdb' => false) + $this->threadData();
+    }
+
+    public function testATwoLanguageProviderNameMatchesTheShowByItsLatinHalf(): void {
+        $rAsked = array();
+        $rTmdb = new FakeTmdbClient(array(
+            'searchTVShow' => function ($rTitle, $rYear) use (&$rAsked) {
+                $rAsked[] = $rTitle;
+                return $rTitle === 'Alti Ustu Istanbul' ? array(new TVShow(array('id' => 1399, 'name' => 'Altı Üstü İstanbul', 'first_air_date' => '2026-01-01'))) : array();
+            },
+            'getTVShow' => fn() => new TVShow(array('id' => 1399, 'name' => 'Altı Üstü İstanbul', 'seasons' => array(array('poster_path' => '/s1.jpg')), 'genres' => array(), 'credits' => array('cast' => array(), 'crew' => array()), 'episode_run_time' => array(45))),
+            'getSeason' => fn() => new Season(array('episodes' => array())),
+        ));
+        $this->expectOutputRegex('/Success!/');
+
+        VodItemImporter::run($this->providerEpisode('Alti Ustu Istanbul (2026) اسطنبول راسا على عقب'), 60, $rTmdb);
+
+        $this->assertSame(array('Alti Ustu Istanbul اسطنبول راسا على عقب', 'Alti Ustu Istanbul اسطنبول راسا على عقب', 'Alti Ustu Istanbul'), $rAsked);
+        $this->assertSame(VodImportResultEvent::STATUS_IMPORTED, $this->results[0]->status);
+        $this->db->query('SELECT `series_no`, `stream_display_name` FROM `streams` WHERE `id` = ?;', $this->results[0]->streamId);
+        $this->assertSame(array('series_no' => '5', 'stream_display_name' => 'Altı Üstü İstanbul - S01E02'), array_map('strval', $this->db->get_row()));
+    }
+
+    public function testAnEpisodeTmdbDoesNotKnowGoesIntoTheSeriesMadeInThePanel(): void {
+        $this->db->exec("INSERT INTO streams_series (id, title, year, seasons) VALUES (6, 'Başkalarının Hayatı', 2026, '[]');");
+        $this->expectOutputRegex('/Series in the panel: Başkalarının Hayatı.*Success!/s');
+
+        VodItemImporter::run($this->providerEpisode('Baskalarinin Hayati (2026) حياة الاخرين'), 60, $this->tmdb(array()));
+
+        $this->assertSame(VodImportResultEvent::STATUS_IMPORTED, $this->results[0]->status);
+        $rStreamID = $this->results[0]->streamId;
+        $this->db->query('SELECT `series_no`, `stream_display_name` FROM `streams` WHERE `id` = ?;', $rStreamID);
+        $this->assertSame(array('series_no' => '6', 'stream_display_name' => 'Başkalarının Hayatı - S01E02'), array_map('strval', $this->db->get_row()));
+        $this->db->query('SELECT `season_num`, `series_id`, `episode_num` FROM `streams_episodes` WHERE `stream_id` = ?;', $rStreamID);
+        $this->assertSame(array(1, 6, 2), array_map('intval', array_values($this->db->get_row())));
+    }
+
+    public function testAnEpisodeTheHandMadeSeriesHasIsADuplicate(): void {
+        $this->db->exec("INSERT INTO streams_series (id, title, year, seasons) VALUES (6, 'Başkalarının Hayatı', 2026, '[]');");
+        $this->db->exec('INSERT INTO streams_episodes (season_num, series_id, stream_id, episode_num) VALUES (1, 6, 77, 2);');
+        $this->expectOutputRegex('/Episode already in the series/');
+
+        VodItemImporter::run($this->providerEpisode('Baskalarinin Hayati (2026) حياة الاخرين'), 60, $this->tmdb(array()));
+
+        $this->assertSame(VodImportResultEvent::STATUS_DUPLICATE, $this->results[0]->status);
+        $this->assertSame(77, $this->results[0]->streamId);
         $this->db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
         $this->assertSame(0, (int) $this->db->get_col());
     }
