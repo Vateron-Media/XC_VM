@@ -137,6 +137,14 @@ final class ReplicaApply {
 	public const NODE_CRONS_FRESH_SEC = 30;
 
 	/**
+	 * The only crons the agent may take over (cutover sub-project 2): the node's
+	 * log drains and tmp sweep. A job is dropped from the node crontab only when
+	 * it is BOTH listed in the agent's marker AND in this set — so a corrupt or
+	 * buggy marker can never silence an unrelated critical cron (streams, cache).
+	 */
+	public const DROPPABLE_NODE_CRONS = ['streams_logs', 'lines_logs', 'activity', 'errors', 'tmp'];
+
+	/**
 	 * The sections whose cache an authoritative apply built (section => the
 	 * ETags applied). Beside the caches in `tmp/cache/`, so it goes with them
 	 * at a reboot.
@@ -325,7 +333,7 @@ final class ReplicaApply {
 	public static function crontabLines(array $rJobs, array $rOwned): string {
 		$rLines = [];
 		foreach ($rJobs as $rJob) {
-			if (in_array($rJob['filename'], $rOwned, true)) {
+			if (in_array($rJob['filename'], $rOwned, true) && in_array($rJob['filename'], self::DROPPABLE_NODE_CRONS, true)) {
 				continue;
 			}
 			$rLines[] = $rJob['time'] . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rJob['filename'] . ' # XC_VM';

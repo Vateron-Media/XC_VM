@@ -23,14 +23,14 @@ final class ReplicaApplyCronFilterTest extends TestCase {
 		$jobs = [
 			['filename' => 'streams_logs', 'time' => '* * * * *'],
 			['filename' => 'tmp', 'time' => '* * * * *'],
-			['filename' => 'maxmind', 'time' => '0 4 * * 2'],
+			['filename' => 'maxmind', 'time' => '0 4 * * 2'], // not ported -> kept
 			['filename' => 'certbot', 'time' => '0 3 * * *'], // not owned -> kept
 		];
-		$owned = ['streams_logs', 'lines_logs', 'activity', 'errors', 'tmp', 'maxmind'];
+		$owned = ['streams_logs', 'lines_logs', 'activity', 'errors', 'tmp'];
 		$text = ReplicaApply::crontabLines($jobs, $owned);
 		$this->assertStringNotContainsString('cron:streams_logs', $text);
 		$this->assertStringNotContainsString('cron:tmp ', $text);
-		$this->assertStringNotContainsString('cron:maxmind', $text);
+		$this->assertStringContainsString('cron:maxmind', $text);
 		$this->assertStringContainsString('cron:certbot', $text);
 	}
 
@@ -38,6 +38,14 @@ final class ReplicaApplyCronFilterTest extends TestCase {
 		$jobs = [['filename' => 'streams_logs', 'time' => '* * * * *']];
 		$text = ReplicaApply::crontabLines($jobs, []);
 		$this->assertStringContainsString('cron:streams_logs', $text);
+	}
+
+	public function testCrontabLinesIgnoresNonDroppableOwned(): void {
+		// a corrupt/buggy marker claiming a critical cron must NOT drop it
+		$jobs = [['filename' => 'streams', 'time' => '* * * * *'], ['filename' => 'cache', 'time' => '* * * * *']];
+		$text = ReplicaApply::crontabLines($jobs, ['streams', 'cache']);
+		$this->assertStringContainsString('cron:streams', $text);
+		$this->assertStringContainsString('cron:cache', $text);
 	}
 
 	public function testNodeOwnedCronsFreshStaleAbsent(): void {
