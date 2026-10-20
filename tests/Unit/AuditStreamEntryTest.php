@@ -218,7 +218,9 @@ final class AuditStreamEntryTest extends TestCase {
 	 */
 	private function worker() {
 		if (!is_file($this->rHome . 'php-fpm-worker')) {
-			copy(trim((string) shell_exec('command -v sleep')), $this->rHome . 'php-fpm-worker');
+			$rSleep = trim((string) shell_exec('command -v sleep'));
+			$this->assertNotSame('', $rSleep, 'no sleep binary on PATH to stand in for a worker');
+			$this->assertTrue(copy($rSleep, $this->rHome . 'php-fpm-worker'), 'could not copy the worker stand-in into ' . $this->rHome);
 			chmod($this->rHome . 'php-fpm-worker', 0755);
 		}
 		$rWorker = proc_open([$this->rHome . 'php-fpm-worker', '60'], [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $rPipes);
@@ -229,6 +231,11 @@ final class AuditStreamEntryTest extends TestCase {
 		for ($i = 0; $i < 200 && basename((string) @readlink('/proc/' . $rPID . '/exe')) !== 'php-fpm-worker'; $i++) {
 			usleep(5000);
 		}
+		// Fail fast with the real reason: a stand-in that exited at once, or never
+		// became the php-fpm-worker image, would otherwise surface downstream as a
+		// misleading "worker stopped" (a noexec temp, a slow exec, a missing sleep).
+		$this->assertTrue(proc_get_status($rWorker)['running'], 'the stand-in worker exited immediately (temp noexec, or sleep not copyable/execable): ' . $this->rHome);
+		$this->assertSame('php-fpm-worker', basename((string) @readlink('/proc/' . $rPID . '/exe')), 'the stand-in worker never became the php-fpm-worker image (ProcessManager::isRunning would not match it)');
 		return $rWorker;
 	}
 
