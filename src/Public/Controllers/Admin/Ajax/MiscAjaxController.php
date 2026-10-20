@@ -202,14 +202,15 @@ class MiscAjaxController extends BaseAjaxController {
 			$this->fail(['message' => Translator::get('activation_invalid_key')]);
 		}
 
-		$rPath = MAIN_HOME . 'config/activation_key';
+		// Where the extension running here reads it: licence/ from its ADR-006 on
+		// (the release that has identity_present(), and creates licence/ at start),
+		// the flat path before.
+		$rPath = MAIN_HOME . 'config/' . (method_exists('XC_VM', 'identity_present') ? 'licence/' : '') . 'activation_key';
 		$rOld = is_file($rPath) ? trim((string) @file_get_contents($rPath)) : '';
 
-		if (@file_put_contents($rPath, $rKey . "\n") === false) {
+		if (!self::writeKey($rPath, $rKey)) {
 			$this->fail(['message' => Translator::get('activation_save_failed')]);
 		}
-
-		@chmod($rPath, 0600);
 
 		// The pattern above only proves the key is shaped like one. Ask the
 		// extension whether it actually licenses THIS install before reporting
@@ -227,7 +228,7 @@ class MiscAjaxController extends BaseAjaxController {
 		$rAskServer = self::asksTheServer();
 		if (!self::keyAccepted($rAskServer)) {
 			$rRestored = $rAskServer && $rOld !== '' && $rOld !== $rKey
-				&& @file_put_contents($rPath, $rOld . "\n") !== false;
+				&& self::writeKey($rPath, $rOld);
 			ClusterAudit::log('cluster.licence_key', null, ['accepted' => false, 'restored' => $rRestored], 'admin');
 			$this->fail(['message' => Translator::get('activation_key_rejected')]);
 		}
@@ -242,6 +243,23 @@ class MiscAjaxController extends BaseAjaxController {
 		ClusterAudit::log('cluster.licence_key', null, ['accepted' => true, 'rotated' => $rRotated['queued'] ?? 0], 'admin');
 
 		$this->ok(['message' => Translator::get('activation_saved')]);
+	}
+
+	/**
+	 * Replace the key file whole: a temp file in the same directory (0600, from
+	 * tempnam), renamed over it, so a crash or a short write never leaves the
+	 * extension a truncated key.
+	 */
+	private static function writeKey(string $rPath, string $rKey): bool {
+		$rTmp = @tempnam(dirname($rPath), '.activation_key.');
+		if ($rTmp === false) {
+			return false;
+		}
+		if (@file_put_contents($rTmp, $rKey . "\n") !== strlen($rKey) + 1 || !@rename($rTmp, $rPath)) {
+			@unlink($rTmp);
+			return false;
+		}
+		return true;
 	}
 
 	/**

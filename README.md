@@ -403,7 +403,8 @@ Full detail: [Licensing & Activation](docs/en/info/licensing-and-activation.md).
 The panel source is AGPL-3.0. The bundled `xcvm_core` PHP extension is a **separate,
 closed-source binary** under its own proprietary licence. It is written in Rust. It holds the module-delivery client (one archive, already
 ionCube-encoded, inside a sealed envelope; there is no module key), the encrypted config /
-database / Redis credential layer, the cluster API keys and the licence logic above, so that keys and credentials
+database / Redis credential layer, the cluster API keys (including the signed, sealed
+load balancer configs, XCVT v2) and the licence logic above, so that keys and credentials
 never sit in readable PHP. Its whole behaviour is documented in
 [Core Extension](docs/en/info/core-extension.md). It
 also refuses to load under a debugger (`TracerPid != 0`).

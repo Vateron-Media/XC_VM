@@ -12,6 +12,7 @@ use XcVm\Core\Proxy\ProxyArchiveUpdater;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\ReleaseAsset;
 use XcVm\Core\Updates\UpdateChannels;
+use XcVm\Domain\Cluster\XcvtTargets;
 use XcVm\Domain\Server\InstallCredentials;
 use XcVm\Domain\Server\ServerRepository;
 
@@ -189,6 +190,9 @@ class ServerInstallCommand implements CommandInterface {
 		if ($rHostKey !== $rStoredHostKey) {
 			$db->query('UPDATE `servers` SET `ssh_hostkey_sha1` = ? WHERE `id` = ?;', $rHostKey, $rServerID);
 		}
+		// A key the admin confirmed (--expect-hostkey) is what server:xcvt-pin
+		// trusts without asking again; one taken on first use is not (ADR-005).
+		XcvtTargets::noteHostKey($rServerID, (string) $rHostKey, $rExpectedHostKey !== null);
 
 		// Every step below runs through sudo, and so does the node's own service
 		// script. A Debian installed with a root password has no sudo: root
@@ -288,6 +292,13 @@ class ServerInstallCommand implements CommandInterface {
 		if ($rType == 2) {
 			// An API-mode node boots from its replica, which only its enrolment brings.
 			LbInstallFlow::runStartup($rConn, $rRunSSH, !$rApiMode);
+			// As FPM sees it, before it is marked installed (ADR-005, Decision 7).
+			$rReadback = LbInstallFlow::readback($rConn, $rRunSSH, $rServerID);
+			if ($rReadback !== null) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo 'The installed node does not read back as provisioned: ' . $rReadback . ". Exiting\n";
+				return 1;
+			}
 			$rGenBefore = LbInstallFlow::nodeGen($rServerID);
 			if (!LbInstallFlow::provisionCluster($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, null, true, $rApiMode)) {
 				return 1;

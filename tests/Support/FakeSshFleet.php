@@ -11,7 +11,15 @@ use XcVm\Domain\Cluster\EnrolmentService;
  * release, keygen, probe, install).
  */
 final class FakeSshFleet extends SshSession {
-	/** @var array<string, array{hostkey: string, password: string, ready?: bool, probe?: bool, agent?: bool}> */
+	/**
+	 * xcvm_core on a node, for server:xcvt-pin (ADR-005), when `iid` is set:
+	 * its install_id, what `panel_pk()` prints (`PK <hex>`, `NONE`, `ERR`),
+	 * the fingerprint `cluster_pin` answers with (or an `ERR …`), and what
+	 * `cluster_pinned` reads (by default what cluster_pin left, else
+	 * NOT_PINNED).
+	 *
+	 * @var array<string, array{hostkey: string, password: string, ready?: bool, probe?: bool, agent?: bool, iid?: string, pk?: string, pin?: string, pinned?: string}>
+	 */
 	public array $rNodes = [];
 
 	/** @var list<string> connect/login/close events and "run <host> <cmd>" */
@@ -43,6 +51,28 @@ final class FakeSshFleet extends SshSession {
 			($this->rHook)((string) $this->rHost, $rCommand);
 		}
 		$rNode = $this->rNodes[$this->rHost];
+		if (isset($rNode['iid'])) {
+			if (str_contains($rCommand, 'sudo -n true')) {
+				return ['output' => "SUDO_OK\n", 'error' => ''];
+			}
+			if (str_contains($rCommand, 'XC_VM::install_id()')) {
+				return ['output' => $rNode['iid'] . "\n", 'error' => ''];
+			}
+			if (str_contains($rCommand, '"panel_pk"')) {
+				return ['output' => ($rNode['pk'] ?? 'NONE') . "\n", 'error' => ''];
+			}
+			if (str_contains($rCommand, 'XC_VM::cluster_pin(')) {
+				$rPin = $rNode['pin'] ?? 'ERR CRYPTO';
+				if (!str_starts_with($rPin, 'ERR')) {
+					$this->rNodes[(string) $this->rHost]['pinned'] ??= 'OK ' . $rPin;
+					$rPin = 'OK ' . $rPin;
+				}
+				return ['output' => $rPin . "\n", 'error' => ''];
+			}
+			if (str_contains($rCommand, 'cluster_pinned')) {
+				return ['output' => ($this->rNodes[(string) $this->rHost]['pinned'] ?? 'NOT_PINNED') . "\n", 'error' => ''];
+			}
+		}
 		if (str_contains($rCommand, 'echo READY')) {
 			return ['output' => ($rNode['ready'] ?? true) ? "READY\n" : '', 'error' => ''];
 		}

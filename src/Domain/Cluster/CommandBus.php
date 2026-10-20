@@ -111,75 +111,82 @@ final class CommandBus {
 		$rError = null;
 		// One enqueue per node at a time: a best-effort MariaDB user lock so two
 		// concurrent enqueues to the same node serialise instead of colliding on
-		// UNIQUE(server_id, seq) (an InnoDB deadlock each time). Not granted in
-		// 2s, the enqueue proceeds unserialised on the retry loop below.
+		// UNIQUE(server_id, seq). Never wait with a streaming request holding a
+		// connection: a busy lock uses the bounded retry loop below.
 		$rLocked = self::seqLock($rServerID);
-		for ($rAttempt = 1; $rAttempt <= self::ATTEMPTS; $rAttempt++) {
-			self::db()->query('SELECT MAX(`seq`) AS `seq` FROM `cluster_commands` WHERE `server_id` = ?;', $rServerID);
-			$rSeq = max((int) (self::db()->get_row()['seq'] ?? 0), (int) $rNode['cmd_seq']) + 1;
-			$rDoc = (string) json_encode(self::envelope($rType, $rAction, [
-				'exp' => $rNow + $rTtl, 'iat' => $rNow, 'cmd_id' => $rCmdID, 'seq' => $rSeq,
-				'node_uuid' => (string) $rNode['node_uuid'], 'gen' => (int) $rNode['gen'], 'dedupe_key' => $rDedupeKey, 'args' => (object) $rArgs,
-			]), JSON_UNESCAPED_SLASHES);
-			$rSig = $rCrypto->sign('cmd', $rDoc);
-			$rClass = $rCrypto->recordClass('cmd', $rDoc);
-			if ($rDedupeKey !== null) {
-				// A newer desired state supersedes a command not yet acked. An
-				// acked one keeps its outcome (result()), but not the key, which
-				// UNIQUE(server_id, dedupe_key) would otherwise refuse this one.
-				self::db()->query("DELETE FROM `cluster_commands` WHERE `server_id` = ? AND `dedupe_key` = ? AND `state` <> 'acked';", $rServerID, $rDedupeKey);
-				self::db()->query("UPDATE `cluster_commands` SET `dedupe_key` = NULL WHERE `server_id` = ? AND `dedupe_key` = ? AND `state` = 'acked';", $rServerID, $rDedupeKey);
-			}
-			// The panel's Database answers a refused write (the unique seq or
-			// dedupe key a concurrent enqueue took, a lost connection) with
-			// false; another handle throws. Either way the row is not there.
-			try {
-				$rStored = self::db()->query(
-					'INSERT INTO `cluster_commands` (`server_id`, `seq`, `cmd_id`, `type`, `action`, `class`, `dedupe_key`, `payload`, `sig`, `state`, `created_at`, `exp`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
-					$rServerID,
-					$rSeq,
-					$rCmdID,
-					$rType,
-					$rAction !== null ? substr($rAction, 0, 32) : null,
-					$rClass === 'R' ? 'R' : 'G',
-					$rDedupeKey,
-					$rDoc,
-					$rSig,
-					'queued',
-					$rNow,
-					$rNow + $rTtl
-				) !== false;
-			} catch (\Throwable $rE) {
-				$rStored = false;
-				$rError = $rE;
-			}
-			if ($rStored) {
-				if ($rLocked) {
-					self::seqUnlock($rServerID);
+		try {
+			for ($rAttempt = 1; $rAttempt <= self::ATTEMPTS; $rAttempt++) {
+				self::db()->query('SELECT MAX(`seq`) AS `seq` FROM `cluster_commands` WHERE `server_id` = ?;', $rServerID);
+				$rSeq = max((int) (self::db()->get_row()['seq'] ?? 0), (int) $rNode['cmd_seq']) + 1;
+				$rDoc = (string) json_encode(self::envelope($rType, $rAction, [
+					'exp' => $rNow + $rTtl, 'iat' => $rNow, 'cmd_id' => $rCmdID, 'seq' => $rSeq,
+					'node_uuid' => (string) $rNode['node_uuid'], 'gen' => (int) $rNode['gen'], 'dedupe_key' => $rDedupeKey, 'args' => (object) $rArgs,
+				]), JSON_UNESCAPED_SLASHES);
+				$rSig = $rCrypto->sign('cmd', $rDoc);
+				$rClass = $rCrypto->recordClass('cmd', $rDoc);
+				if ($rDedupeKey !== null) {
+					// A newer desired state supersedes a command not yet acked. An
+					// acked one keeps its outcome (result()), but not the key, which
+					// UNIQUE(server_id, dedupe_key) would otherwise refuse this one.
+					self::db()->query("DELETE FROM `cluster_commands` WHERE `server_id` = ? AND `dedupe_key` = ? AND `state` <> 'acked';", $rServerID, $rDedupeKey);
+					self::db()->query("UPDATE `cluster_commands` SET `dedupe_key` = NULL WHERE `server_id` = ? AND `dedupe_key` = ? AND `state` = 'acked';", $rServerID, $rDedupeKey);
 				}
-				ClusterBus::wakeNode($rServerID);
-				return $rCmdID;
+				// The panel's Database answers a refused write (the unique seq or
+				// dedupe key a concurrent enqueue took, a lost connection) with
+				// false; another handle throws. Either way the row is not there.
+				try {
+					$rStored = self::db()->query(
+						'INSERT INTO `cluster_commands` (`server_id`, `seq`, `cmd_id`, `type`, `action`, `class`, `dedupe_key`, `payload`, `sig`, `state`, `created_at`, `exp`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
+						$rServerID,
+						$rSeq,
+						$rCmdID,
+						$rType,
+						$rAction !== null ? substr($rAction, 0, 32) : null,
+						$rClass === 'R' ? 'R' : 'G',
+						$rDedupeKey,
+						$rDoc,
+						$rSig,
+						'queued',
+						$rNow,
+						$rNow + $rTtl
+					) !== false;
+				} catch (\Throwable $rE) {
+					$rStored = false;
+					$rError = $rE;
+				}
+				if ($rStored) {
+					// No database lock across the bus wake-up (which may time out).
+					if ($rLocked) {
+						self::seqUnlock($rServerID);
+						$rLocked = false;
+					}
+					ClusterBus::wakeNode($rServerID);
+					return $rCmdID;
+				}
+				if ($rAttempt < self::ATTEMPTS) {
+					// A growing random pause (2-20ms × attempt) desynchronises
+					// concurrent enqueues racing the same seq.
+					usleep(random_int(2000, 20000) * $rAttempt);
+				}
 			}
-			if ($rAttempt < self::ATTEMPTS) {
-				// A growing random pause (2-20ms × attempt) desynchronises
-				// concurrent enqueues racing the same seq.
-				usleep(random_int(2000, 20000) * $rAttempt);
+			throw new \RuntimeException('Command ' . $rType . ' for server ' . $rServerID . ' not stored after ' . self::ATTEMPTS . ' tries', 0, $rError);
+		} finally {
+			// Signing/classification may throw before a write is attempted.
+			// Release on every exit, including those exceptions.
+			if ($rLocked) {
+				self::seqUnlock($rServerID);
 			}
 		}
-		if ($rLocked) {
-			self::seqUnlock($rServerID);
-		}
-		throw new \RuntimeException('Command ' . $rType . ' for server ' . $rServerID . ' not stored after ' . self::ATTEMPTS . ' tries', 0, $rError);
 	}
 
 	/**
 	 * One enqueue per node at a time. A best-effort MariaDB user lock, taken
-	 * before the attempt loop and released on success or on giving up; granted
-	 * within 2s or the enqueue runs unserialised on the retry loop. MAIN only.
+	 * before the attempt loop and released on every exit. If busy, the enqueue
+	 * runs unserialised on the bounded retry loop. MAIN only.
 	 */
 	private static function seqLock(int $rServerID): bool {
 		try {
-			self::db()->query("SELECT GET_LOCK(CONCAT(DATABASE(), '.cmd_seq_', ?), 2);", $rServerID);
+			self::db()->query("SELECT GET_LOCK(CONCAT(DATABASE(), '.cmd_seq_', ?), 0);", $rServerID);
 			return (string) self::db()->get_col() === '1';
 		} catch (\Throwable) {
 			return false;

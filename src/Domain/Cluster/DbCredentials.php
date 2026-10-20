@@ -30,6 +30,9 @@ use XcVm\Infrastructure\Database\DatabaseAware;
 final class DbCredentials {
 	use DatabaseAware;
 
+	/** The last config sent to a node (installConfig): `install_config.<server_id>` = {credentials, repack}. */
+	private const SENT = 'install_config.';
+
 	/** @var \Closure(string): bool|null Tests: `db_revoke`. */
 	private static ?\Closure $rRevoke = null;
 
@@ -135,13 +138,17 @@ final class DbCredentials {
 	 * credential-free (`$rCredentials` false: a node in mode 2 that is to hold
 	 * none of MAIN's credentials) or with them (the plan's rollback from mode 2,
 	 * before `db_grant` and mode 0). Packed for the node's recorded install_id
-	 * (CorePins) with `XC_VM::config_pack`, which the node's extension verifies
+	 * (CorePins) through NodeConfigPack, which the node's extension verifies
 	 * before it writes anything. Null when queued, else the message key of why
 	 * not.
 	 *
+	 * What was sent is kept (`install_config.<server_id>`) for replayed(): a
+	 * node that answers `RECORD:replay` is sent a freshly packed config once.
+	 *
 	 * @param (callable(string, array<string, mixed>): (string|false))|null $rPack tests: `config_pack`
+	 * @param bool $rRepack replayed()'s one resend: never resent again
 	 */
-	public static function installConfig(int $rServerID, bool $rCredentials, string $rActor = 'admin', ?callable $rPack = null): ?string {
+	public static function installConfig(int $rServerID, bool $rCredentials, string $rActor = 'admin', ?callable $rPack = null, bool $rRepack = false): ?string {
 		$rNode = NodeRegistry::byServer($rServerID);
 		if ($rNode === null || $rNode['state'] !== 'active') {
 			return 'cluster_not_enrolled';
@@ -161,20 +168,43 @@ final class DbCredentials {
 		// As LbInstallFlow::configPackParams: MAIN's address, the node's slot.
 		$rParams = ['hostname' => $rMainIP, 'database' => 'xc_vm', 'server_id' => $rServerID, 'is_lb' => 1, 'db_credentials' => $rCredentials];
 		$rPack ??= self::$rPack;
-		if ($rPack === null) {
-			if (!class_exists('XC_VM') || !method_exists('XC_VM', 'install_config')) {
-				// An extension that has install_config also packs db_credentials.
-				return 'cluster_config_no_extension';
-			}
-			$rPack = static fn(string $rTarget, array $rP): string|false => @\XC_VM::config_pack($rTarget, $rP);
+		if ($rPack === null && (!class_exists('XC_VM') || !method_exists('XC_VM', 'install_config'))) {
+			// An extension that has install_config also packs db_credentials.
+			return 'cluster_config_no_extension';
 		}
-		$rBlob = $rPack($rID, $rParams);
+		// v2 for a node MAIN pinned with it, else v1 with a warning (ADR-005, NodeConfigPack).
+		$rBlob = NodeConfigPack::pack($rServerID, $rParams, $rPack);
 		if (!is_string($rBlob) || $rBlob === '') {
 			return 'cluster_config_not_queued';
 		}
 		$rQueued = NodeActions::installConfig($rServerID, $rBlob);
-		ClusterAudit::log('node.install_config', $rServerID, ['credentials' => $rCredentials, 'queued' => $rQueued], $rActor);
+		ClusterAudit::log('node.install_config', $rServerID, ['credentials' => $rCredentials, 'queued' => $rQueued] + ($rRepack ? ['repack' => true] : []), $rActor);
+		if ($rQueued) {
+			try {
+				ClusterMeta::set(self::SENT . $rServerID, (string) json_encode(['credentials' => $rCredentials, 'repack' => $rRepack]));
+			} catch (\Throwable) {
+				// No cluster_meta: a replay is not resent.
+			}
+		}
 		return $rQueued ? null : 'cluster_config_not_queued';
+	}
+
+	/**
+	 * The node refused the config as a replay (`RECORD:replay`, xcvm_core's
+	 * ADR-005: two MAIN processes stamped different configs with the same
+	 * millisecond): pack the last one sent again, which stamps it afresh, and
+	 * send it once. A resend refused the same way is not sent again. True when
+	 * one was queued.
+	 */
+	public static function replayed(int $rServerID): bool {
+		$rSent = json_decode((string) ClusterMeta::get(self::SENT . $rServerID), true);
+		if (!is_array($rSent) || !empty($rSent['repack']) || !is_bool($rSent['credentials'] ?? null)) {
+			ClusterAudit::log('node.install_config_replay', $rServerID, ['resent' => false], 'system');
+			return false;
+		}
+		$rWhy = self::installConfig($rServerID, $rSent['credentials'], 'system', null, true);
+		ClusterAudit::log('node.install_config_replay', $rServerID, ['resent' => $rWhy === null] + ($rWhy === null ? [] : ['why' => $rWhy]), 'system');
+		return $rWhy === null;
 	}
 
 	/**

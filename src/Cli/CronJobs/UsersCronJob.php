@@ -247,9 +247,15 @@ class UsersCronJob implements CommandInterface {
 	 * @param array<string, mixed> $rConnection
 	 * @param array<int, array<string, mixed>> $rServers
 	 */
-	private static function orphaned(array $rConnection, array $rServers, int $rNow): bool {
+	private static function orphaned(array $rConnection, array $rServers, int $rNow, bool $rRegistryOwned = false): bool {
 		if (!isset($rServers[(int) ($rConnection['server_id'] ?? 0)])) {
 			return true;
+		}
+		// API nodes own their viewer liveness. Their P2 touches may live
+		// only on the bus, so MAIN's old last_read is not a dead viewer.
+		// HlsReaping's node-level orphan purge handles an actually silent node.
+		if ($rRegistryOwned) {
+			return false;
 		}
 		$rChecksIn = ($rConnection['container'] ?? '') == 'hls' || (($rConnection['container'] ?? '') != 'rtmp' && intval($rConnection['pid'] ?? 0) !== 0);
 		return $rChecksIn && $rNow - intval($rConnection['hls_last_read'] ?? 0) >= self::ORPHAN_AFTER;
@@ -774,7 +780,7 @@ class UsersCronJob implements CommandInterface {
 							$rRetired[(int) $rConnection['server_id']][] = ['type' => 'delete_con', 'uuid' => (string) $rConnection['uuid']];
 						}
 						continue;
-					} elseif (($rServers[SERVER_ID]['is_main'] ?? 0) && self::orphaned($rConnection, $rServers, $rStartTime)) {
+					} elseif (($rServers[SERVER_ID]['is_main'] ?? 0) && self::orphaned($rConnection, $rServers, $rStartTime, HlsReaping::sweptByMain((int) $rConnection['server_id']))) {
 						// MySQL mode: each server sweeps its own rows, so a deleted one's,
 						// or a crashed one's, stayed open for good. MAIN closes them, as
 						// ended: nothing is left to kill.

@@ -4,9 +4,12 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Cluster\CredentialFreeConfig;
+use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Cluster\ClusterAudit;
 use XcVm\Domain\Cluster\ClusterCli;
 use XcVm\Domain\Cluster\ClusterMeta;
+use XcVm\Domain\Cluster\XcvtTargets;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -21,7 +24,10 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  * then switches the cluster API on, as Settings does once the root exists
  * (enable()).
  *
- * Usage: `console.php cluster:init [--enable]`
+ * The root goes through XcvtTargets::initRoot: never a new one where one was
+ * recorded (restore it with cluster:import-keys), unless `--force`.
+ *
+ * Usage: `console.php cluster:init [--enable] [--force]`
  *
  * @package XC_VM_CLI_Commands
  */
@@ -41,13 +47,9 @@ class ClusterInitCommand implements CommandInterface {
 		if ($rCrypto === null) {
 			return 1;
 		}
-		try {
-			$rOut = ClusterMeta::init($rCrypto);
-		} catch (\Throwable $rE) {
-			echo 'cluster:init failed: ' . $rE->getMessage() . "\n";
+		if (!self::root($rCrypto, in_array('--force', $rArgs, true))) {
 			return 1;
 		}
-		echo ($rOut['created'] ? 'Created' : 'Already initialised') . '; panel fingerprint ' . $rOut['panel_fp'] . "\n";
 		if (!in_array('--enable', $rArgs, true)) {
 			return 0;
 		}
@@ -58,6 +60,37 @@ class ClusterInitCommand implements CommandInterface {
 		}
 		echo 'Cluster API on; new load balancers join in mode ' . $rMode . ".\n";
 		return 0;
+	}
+
+	/**
+	 * The root, through XcvtTargets::initRoot (xcvm_core's ADR-005): a MAIN
+	 * with no root gets one only when none was ever recorded; one restored
+	 * without its root.enc is told to import it, since a new root leaves every
+	 * pinned load balancer refusing its configs. $rForce makes a new root on
+	 * purpose, audit-logged. Prints what happened; false on refusal.
+	 */
+	public static function root(ClusterCrypto $rCrypto, bool $rForce = false): bool {
+		try {
+			if ($rForce) {
+				$rOut = ClusterMeta::init($rCrypto);
+				ClusterAudit::log('cluster.init_forced', null, ['panel_fp' => $rOut['panel_fp'], 'created' => $rOut['created']], 'cli');
+				echo ($rOut['created'] ? 'Created' : 'Already initialised') . ' (--force); panel fingerprint ' . $rOut['panel_fp'] . "\n";
+				return true;
+			}
+			[$rWhy, $rCreated] = XcvtTargets::initRoot($rCrypto, $rNotice);
+		} catch (\Throwable $rE) {
+			echo 'cluster:init failed: ' . $rE->getMessage() . "\n";
+			return false;
+		}
+		if ($rWhy !== null) {
+			echo 'cluster:init refused: ' . $rWhy . "\n";
+			return false;
+		}
+		echo ($rCreated ? 'Created' : 'Already initialised') . '; panel fingerprint ' . ClusterMeta::get('panel_fp') . "\n";
+		if ($rNotice !== null) {
+			echo $rNotice . "\n";
+		}
+		return true;
 	}
 
 	/**

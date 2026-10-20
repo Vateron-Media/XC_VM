@@ -22,6 +22,11 @@ use XcVm\Domain\Cluster\DbCredentials;
 
 class BackupService {
 	private static array $ignoreTables = [
+		// Runtime transport state: a restore must not replay old commands or
+		// revive expired viewer reservations. The dump keeps table schemas.
+		'cluster_commands',
+		'cluster_nonces',
+		'cluster_reservations',
 		'detect_restream_logs',
 		'epg_data',
 		'lines_activity',

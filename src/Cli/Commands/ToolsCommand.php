@@ -8,6 +8,8 @@ use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cluster\BlocklistChanges;
+use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Cluster\ReplicaStreamCache;
 use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Config\NginxPortsFile;
 use XcVm\Core\Config\SettingsManager;
@@ -404,6 +406,24 @@ class ToolsCommand implements CommandInterface {
 	}
 
 	private function processImages(): void {
+		if (NodeRole::refusesConnects()) {
+			$rImages = [];
+			if (!ReplicaStreamCache::owned()) {
+				echo "Image restoration waits for the local stream replica.\n";
+				return;
+			}
+			foreach (ReplicaStreamCache::index() as $rID => $_) {
+				$rStream = ReplicaStreamCache::get((int) $rID)['stream'] ?? [];
+				$rProperties = json_decode((string) ($rStream['movie_properties'] ?? ''), true);
+				foreach ([$rStream['stream_icon'] ?? null, $rProperties['movie_image'] ?? null, $rProperties['cover_big'] ?? null, $rProperties['backdrop_path'][0] ?? null] as $rImage) {
+					if (is_string($rImage) && str_starts_with($rImage, 's:')) {
+						$rImages[] = $rImage;
+					}
+				}
+			}
+			$this->restoreImageReferences($rImages);
+			return;
+		}
 		$db = self::db();
 		$rImages = [];
 		$db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
@@ -461,6 +481,11 @@ class ToolsCommand implements CommandInterface {
 				}
 			}
 		}
+		$this->restoreImageReferences($rImages);
+	}
+
+	/** @param list<string> $rImages */
+	private function restoreImageReferences(array $rImages): void {
 		$rImages = array_unique($rImages);
 		foreach ($rImages as $rImage) {
 			$rSplit = explode(':', $rImage, 3);

@@ -319,11 +319,15 @@ final class ClusterOverviewTest extends TestCase {
 		// token.rotate_now (another key gives the chain another base).
 		$rSrc = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/Ajax/MiscAjaxController.php');
 		$rBody = substr($rSrc, (int) strpos($rSrc, 'function saveActivationKey'), 3000);
-		$this->assertMatchesRegularExpression('/\$rOld = .*file_put_contents\(\$rPath.*self::keyAccepted\(\$rAskServer\).*\$rOld !== \$rKey \? ClusterOverview::rotateAll\(null\) : null;/s', $rBody);
+		$this->assertMatchesRegularExpression('/\$rOld = .*self::writeKey\(\$rPath, \$rKey\).*self::keyAccepted\(\$rAskServer\).*\$rOld !== \$rKey \? ClusterOverview::rotateAll\(null\) : null;/s', $rBody);
 
 		// A key the licence server rejects on MAIN puts back the key it replaced,
 		// so a working panel does not end up unlicensed over a bad paste.
-		$this->assertMatchesRegularExpression('/if \(!self::keyAccepted\(\$rAskServer\)\) \{\s*\$rRestored = \$rAskServer && \$rOld !== \'\' && \$rOld !== \$rKey\s*&& @file_put_contents\(\$rPath, \$rOld \. "\\\\n"\) !== false;/', $rBody);
+		$this->assertMatchesRegularExpression('/if \(!self::keyAccepted\(\$rAskServer\)\) \{\s*\$rRestored = \$rAskServer && \$rOld !== \'\' && \$rOld !== \$rKey\s*&& self::writeKey\(\$rPath, \$rOld\);/', $rBody);
+
+		// The key is replaced whole: a temp file beside it, renamed over it.
+		$rWrite = substr($rSrc, (int) strpos($rSrc, 'function writeKey'), 800);
+		$this->assertMatchesRegularExpression('/tempnam\(dirname\(\$rPath\).*rename\(\$rTmp, \$rPath\)/s', $rWrite);
 
 		// Acceptance on MAIN asks the licence server now (XC_VM::license_check);
 		// a node, an unknown role or an older extension keep LicenseGate.

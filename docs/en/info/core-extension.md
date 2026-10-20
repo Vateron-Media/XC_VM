@@ -67,7 +67,7 @@ complete list of what happens then — and nothing else:
    is built into the binary (see section 8.4).
 3. **ionCube Loader presence check.** If it is not loaded, an ordinary PHP warning
    is emitted. It is only a message — the core keeps going.
-4. **Installation identifier.** If the `install_id` file does not exist yet, a
+4. **Installation identifier.** If the `keys/install_id` file does not exist yet, a
    random UUID is generated and written to the config directory with `0600`
    permissions. If it exists, it is read. The environment fingerprint is computed
    at the same time (nothing is sent).
@@ -92,16 +92,24 @@ All per-installation secrets live in the **config directory** — by default
 `XCVM_CONFIG_DIR` environment variable — the **only** environment variable the
 core reads.
 
+The core keeps its keys in `keys/` and its licence files in `licence/`, both `0700`
+([ADR-006](https://github.com/Vateron-Media/XC_VM_CoreExtention/blob/main/docs/adr/ADR-006-config-dir-layout.md)).
+A core from before that layout kept them directly in the config directory; the
+first core with it moves each file into place once, at load, and leaves a symlink
+under the old name (`install_id -> keys/install_id`), so an older core still finds
+it. Ask the core whether the identity exists with `identity_present()` rather than
+looking for the file.
+
 | File | What it is | Mode |
 |------|-----------|------|
 | `config.enc` | Panel settings (DB, Redis, server role), AES-256-GCM encrypted. The key is derived from `install_id` **and** `/etc/machine-id`, so a copy on another machine does not decrypt | `0600` |
-| `install_id` | The random UUID of your installation. Created once and never changes (survives core and PHP upgrades) | `0600` |
-| `panel.pk` / `panel.sk` | The panel's X25519 key pair. The public half is sent to the server at registration; **the private half never leaves the machine** and is stored sealed to this machine's key | sk: `0600` |
-| `activation_key` | The licence activation key (you paste it in the panel). Signed by the server, bound to your `install_id` | `0600` |
-| `license_verdict` | The cache of the server's last signed answer about the licence state | `0600` |
-| `license_checkin` | A timestamp for when the next daily check-in may happen (see section 7) | — |
-| `license_enforce_ts` / `license_revoked` | Timestamps of the last enforcement of a revoked licence, and the revocation mark itself (see section 7.4) | — |
-| `cluster/` | Cluster files: MAIN's root keys (`root.enc`), MAIN's pinned keys on an LB (`core.pin`), node revocation state (`nodes.state`), protected clocks (`clock.sealed`, `timeanchor`), LB leases (`lease`). All encrypted under this machine's key | `0600` |
+| `keys/install_id` | The random UUID of your installation. Created once and never changes (survives core and PHP upgrades) | `0600` |
+| `keys/panel.pk` / `keys/panel.sk` | The panel's X25519 key pair. The public half is sent to the server at registration (and is what MAIN seals a load balancer's config to); **the private half never leaves the machine** and is stored sealed to this machine's key | sk: `0600` |
+| `licence/activation_key` | The licence activation key (you paste it in the panel). Signed by the server, bound to your `install_id` | `0600` |
+| `licence/license_verdict` | The cache of the server's last signed answer about the licence state | `0600` |
+| `licence/license_checkin` | A timestamp for when the next daily check-in may happen (see section 7) | — |
+| `licence/license_enforce_ts` / `licence/license_revoked` | Timestamps of the last enforcement of a revoked licence, and the revocation mark itself (see section 7.4) | — |
+| `cluster/` | Cluster files: MAIN's root keys (`root.enc`), MAIN's pinned keys on an LB (`core.pin`), node revocation state (`nodes.state`), protected clocks (`clock.sealed`, `timeanchor`), LB leases (`lease`), the high-water marks of the configs an LB has installed (`xcvt.hwm`, see section 5.6). All encrypted under this machine's key | `0600` |
 
 Outside the config directory the core writes:
 
@@ -127,7 +135,8 @@ calls it.
 
 | Method | What it does | Disk | Network |
 |--------|-------------|------|---------|
-| `install_id()` | Returns the installation UUID (creates it on first call) | reads/creates `install_id` | — |
+| `install_id()` | Returns the installation UUID (creates it on first call) | reads/creates `keys/install_id` | — |
+| `identity_present()` | Whether `keys/install_id` and `keys/panel.sk` exist, **creating neither**: what the panel asks before `install_id()` or `panel_pk()` where a missing identity must stay missing | reads nothing but their presence | — |
 | `env_fingerprint()` | Returns the hash `SHA-256(install_id + /etc/machine-id + hostname)`. It is a **hash**: the hostname or machine-id cannot be recovered from it | reads `/etc/machine-id`, hostname | — |
 
 ### 5.2. Panel config
@@ -235,8 +244,9 @@ passing the DB password through PHP or leaving it on the nodes in the clear.
 
 | Method | Where it runs | What it does |
 |--------|--------------|-------------|
-| `config_pack(target_install_id, params)` | MAIN | Builds a transport blob with a config for a node: reads the DB password from its own `config.enc` **inside the core** and encrypts it under a key derived from the node's `install_id`. Can build a config **without** DB credentials (for nodes in API mode) |
-| `install_config(blob)` | node, as root | Verifies the blob (addressed to this node, at most an hour old, for an LB, for the right `server_id`) and writes it as its `config.enc`. **Never overwrites** a MAIN config. Writes nothing on refusal. Any other effective user is refused (`ARG:euid`) before the blob is read |
+| `config_pack(target_install_id, params, lb_panel_pk)` | MAIN | Builds a transport blob with a config for a node: reads the DB password from its own `config.enc` **inside the core**. With the node's panel key (XCVT v2) it signs the blob with MAIN's cluster root and seals it to that key (it needs `cluster_init` first); without one it builds the v1 blob, encrypted under a key derived from the node's `install_id`. Can build a config **without** DB credentials (for nodes in API mode). The panel packs every node config in one place, v2 for every load balancer it pinned with v2 ([XCVT v2](../administration/main-lb-cluster.md#signed-sealed-load-balancer-configs-xcvt-v2)) |
+| `panel_pk()` | node | The node's panel X25519 public key (64 hex characters), the key MAIN seals a v2 config to. Creates `panel.sk` only when there is none; never replaces one; `false` when `panel.sk` exists but does not open on this machine |
+| `install_config(blob)` | node, as root | Verifies the blob (rules below) and writes it as its `config.enc`. **Never overwrites** a MAIN config. Writes nothing on refusal. Any other effective user is refused (`ARG:euid`) before the blob is read |
 | `strip_db_credentials()` | node, as root | Removes MAIN's DB user and password from the node's `config.enc` (switching the node to API mode). Refuses to run on MAIN |
 | `cluster_info()` | any | Cluster API version, panel public keys, licence and clock state. Never refuses |
 | `cluster_init()` | MAIN | Creates the cluster root keys once (`cluster/root.enc`). Calling it again changes nothing |
@@ -245,12 +255,46 @@ passing the DB password through PHP or leaving it on the nodes in the clear.
 | `cluster_node_gen(node, gen, min_epoch)` | MAIN | Revokes a node (raises its "generation"); previously issued tokens stop working. Survives a DB restore from backup |
 | `cluster_sign` / `cluster_verify` / `cluster_record_class` | MAIN / LB | Signing and verifying cluster records (commands, denials, replicas). "Granting" records require a licence; "restricting" ones (stop, ban) are signed even without one — so an unlicensed MAIN can still stop its fleet |
 | `cluster_lease_issue` / `cluster_lease_verify` / `cluster_lease_store` / `cluster_lease_state` | MAIN → LB | A "lease" — MAIN-signed permission for an LB node to keep serving while MAIN is unreachable. On an LB, `license_valid()` follows the lease |
-| `cluster_pack` / `cluster_pin` / `cluster_pinned` | MAIN → LB | Delivering and pinning MAIN's public keys on an LB (trust on first use; a later key substitution is refused). `cluster_pin` is root-only, with or without `replace`: any other effective user is refused (`ARG:euid`) before the blob is read |
+| `cluster_pack(target_install_id, version)` | MAIN | The blob that carries MAIN's public keys to an LB. `version` 1 (default) is the v1 pin and needs a licence; `version` 2 is the v2 pin, signed with MAIN's cluster root, and needs none (the root and the clock check are still required). Any other version is refused (`ARG:version`) |
+| `cluster_pin(blob, replace)` / `cluster_pinned()` | LB, `cluster_pin` as root | Pinning MAIN's public keys on an LB (trust on first use; a different key is refused unless `replace`) and reading the pin back. `cluster_pin` is root-only, with or without `replace`: any other effective user is refused (`ARG:euid`) before the blob is read, so the first pin's trust is a root channel. A v1 pin is taken only when there is no pin yet or it has the same key, so `replace` cannot switch keys through v1; a `core.pin` dropped as an XCVT file is taken only as a v2 pin, and only when root owns it |
 | `cluster_seal_local` / `cluster_open_local` | any | Seal/open data to **this** machine's key — for the PHP panel to keep its own secrets |
 | `cluster_open_sealed(purpose, sealed)` | MAIN | Open a message addressed to the panel key (only for the node enrolment, re-keying and relay stages) |
 | `cluster_export_keys(passphrase)` / `cluster_import_keys(bundle, passphrase)` | old → new MAIN | A backup of the cluster root keys for moving MAIN to new hardware. Encrypted from your passphrase via Argon2id (1 GiB of memory, a few seconds) — hence available **from the CLI only** |
 | `cluster_kek()` | LB | A machine-bound key for encrypting the node's key file |
 | `cluster_last_error()` | any | The reason code of the last cluster call's refusal |
+
+**The load balancer's config: XCVT v1 and v2.** The blob `config_pack` builds is
+an `XCVT` file. Version 2 (a key was given) is signed by MAIN and sealed to the
+node; version 1 (no key) is kept for nodes that are not pinned yet and is readable
+and forgeable by anyone who holds the `.so` and the node's `install_id`, so it does
+not protect a pinned node. The v2 header is 110 bytes, followed by the sealed body:
+
+| Field | Bytes | Content |
+|-------|-------|---------|
+| magic | 4 | `XCVT` |
+| version | 1 | `0x02` |
+| kind | 1 | `1` config, `2` pin |
+| `created_ms` | 8 | creation time, Unix milliseconds, little-endian |
+| `main_sign_pub` | 32 | MAIN's Ed25519 signing key |
+| signature | 64 | MAIN's signature over the first 14 bytes and the body |
+| body | rest | sealed to the node's `panel_pk()`, bound to the header and the node's `install_id` |
+
+What a node accepts follows its pin state:
+
+| Node | Accepts | Refuses |
+|------|---------|---------|
+| not pinned | v1 | v2 (`NOT_PINNED`) |
+| pinned | v2 signed by the MAIN it pinned | v1 (`CRYPTO`) |
+
+On top of that, `install_config` takes a blob only if it is addressed to this node,
+is at most an hour old, is a config (not a pin), is for a load balancer (`is_lb` 1)
+and, when a config is already in place, is for that node's `server_id`. A v2 config
+older than the last one installed from the same signer (or as old with a different
+body) is refused as `RECORD:replay`; the last accepted time is kept in the sealed
+file `cluster/xcvt.hwm`, which `cluster_pin` with `replace` and an import of the
+cluster keys clear. A refusal never writes anything; its reason is available through
+`cluster_last_error()`. How an administrator pins a load balancer:
+[Signed, sealed load balancer configs](../administration/main-lb-cluster.md#signed-sealed-load-balancer-configs-xcvt-v2).
 
 What the core guarantees in the cluster regardless of what PHP does: private keys
 and token material never leave the core; node revocation survives a DB restore;
@@ -567,9 +611,10 @@ We do not claim the protection is absolute. Here is where it ends:
   more expensive and provide a kill-switch, but it is a fundamental limitation of
   any IonCube-like solution.
 - **A leak of `install_id`** by itself does not expose `config.enc` (the
-  `machine-id` is also needed). It does expose the load balancer's config blob:
-  the pepper is in every build, so the `.so` plus the node's `install_id` read and
-  forge it.
+  `machine-id` is also needed). It does expose an XCVT **v1** blob: the pepper is in
+  every build, so the `.so` plus the node's `install_id` read and forge it. A v2
+  blob is signed by MAIN and sealed to the node's own key, which is why a pinned
+  load balancer accepts only v2.
 - **The sealed API has no forward secrecy** against the server's long-lived
   transport key: compromising it would expose previously recorded exchanges, and
   recovery means shipping a new core with a new key. The address, message sizes and

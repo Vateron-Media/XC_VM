@@ -108,10 +108,12 @@ final class StreamRecords {
 		foreach (self::rows() as $rRow) {
 			$rOptions[(int) $rRow['stream_id']][] = ReplicaSections::typed($rRow, ReplicaSections::OPTION_FIELDS + ReplicaSections::ARGUMENT_FIELDS);
 		}
-		self::read('SELECT `' . implode('`, `', array_keys(ReplicaSections::STREAM_SERVER_FIELDS)) . '` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . $rIn . ') ORDER BY `server_stream_id`;', $rServerID);
+		self::read('SELECT `' . implode('`, `', array_merge(array_keys(ReplicaSections::STREAM_SERVER_FIELDS), ['pid', 'stream_status', 'to_analyze'])) . '` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . $rIn . ') ORDER BY `server_stream_id`;', $rServerID);
 		$rServers = [];
+		$rResume = [];
 		foreach (self::db()->get_rows() ?: [] as $rRow) {
 			$rServers[(int) $rRow['stream_id']] ??= ReplicaSections::typed($rRow, ReplicaSections::STREAM_SERVER_FIELDS);
+			$rResume[(int) $rRow['stream_id']] = $rRow['pid'] !== null || (int) $rRow['stream_status'] !== 0 || (int) $rRow['to_analyze'] === 1;
 		}
 		self::read('SELECT `stream_id`, `server_id` FROM `streams_servers` WHERE `parent_id` = ? AND `stream_id` IN (' . $rIn . ') ORDER BY `stream_id`, `server_id`;', $rServerID);
 		$rChildren = [];
@@ -133,6 +135,8 @@ final class StreamRecords {
 				'profile' => $rProfiles[(int) $rStream['transcode_profile_id']] ?? null,
 				'options' => $rOptions[$rID] ?? [],
 				'server' => $rServers[$rID] ?? null,
+				// Recovery intent only: never copy MAIN's old process IDs to a node.
+				'resume' => ($rTypes[(int) $rStream['type']]['live'] ?? 0) === 1 && (int) $rStream['direct_source'] === 0 && ($rServers[$rID]['on_demand'] ?? 1) === 0 && ($rResume[$rID] ?? false),
 				'children' => array_values(array_unique($rChildren[$rID] ?? [])),
 				'recordings' => $rRecordings[$rID] ?? [],
 				// Phase 8: the relay and file tickets a node pulls this stream with,

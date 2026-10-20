@@ -6,7 +6,9 @@ use XcVm\Core\Cluster\AgentPaths;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\CredentialFreeConfig;
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
+use XcVm\Core\Cluster\Crypto\ClusterCryptoFactory;
 use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
+use XcVm\Core\Cluster\NodeCorePin;
 use XcVm\Core\Cluster\ReplicaBoot;
 use XcVm\Core\Cluster\RootPin;
 use XcVm\Core\Config\SettingsManager;
@@ -22,7 +24,9 @@ use XcVm\Domain\Cluster\CorePins;
 use XcVm\Domain\Cluster\DbCredentials;
 use XcVm\Domain\Cluster\EnrolmentService;
 use XcVm\Domain\Cluster\LeaseService;
+use XcVm\Domain\Cluster\NodeConfigPack;
 use XcVm\Domain\Cluster\NodeRegistry;
+use XcVm\Domain\Cluster\XcvtTargets;
 
 class LbInstallFlow {
 	// Per-distribution package lists, mirrored from the MAIN installer (install -> PACKAGES),
@@ -297,9 +301,18 @@ class LbInstallFlow {
 	 * the extension never exposes them to PHP — producing an unreadable
 	 * config.enc on the node ("failed to read config.enc").
 	 *
+	 * The order is the extension's ADR-005 (Decision 7), all of it as root and
+	 * before config/ is handed to xc_vm: (1, 2) the config dir and the
+	 * install_id (provisionInstallId); (3, 4) the node's panel key, MAIN's
+	 * root, and the v2 pin over this verified session (provisionXcvt); (5) the
+	 * config, v2 for a node so pinned (NodeConfigPack); (6) chown and chmod.
+	 * In release N a node whose v2 pin failed gets a v1 config, only when it
+	 * holds no pin (cluster_pinned); from N+1 that is fatal.
+	 *
+	 * @param ClusterCrypto|null $rCrypto Tests: MAIN's cluster crypto (default ClusterCryptoFactory::create()).
 	 * @return bool True on success; on failure marks the server as errored (status 4).
 	 */
-	public static function provisionConfig($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db, ?bool $rApiMode = null, bool $rServeOnly = false): bool {
+	public static function provisionConfig($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db, ?bool $rApiMode = null, bool $rServeOnly = false, ?ClusterCrypto $rCrypto = null): bool {
 		echo "Generating configuration file\n";
 		$rApiMode ??= self::installsInApiMode(SettingsManager::getAll(), $rServerID);
 		if ($rApiMode && !CredentialFreeConfig::supported()) {
@@ -310,6 +323,83 @@ class LbInstallFlow {
 			return false;
 		}
 
+		$rInstallId = self::provisionInstallId($rConn, $rRunSSH, $rServerID, $db);
+		if ($rInstallId === null) {
+			return false;
+		}
+
+		// The node's panel key and the v2 pin, before the config is packed and
+		// before the chown below (ADR-005, Decision 7, steps 3 and 4).
+		$rWhyNot = self::provisionXcvt($rConn, $rRunSSH, $rServerID, $rInstallId, $rCrypto);
+		if ($rWhyNot !== null) {
+			$rPinned = self::probePinned($rConn, $rRunSSH);
+			if (!NodeConfigPack::v1Allowed() || ($rPinned !== 'NOT_PINNED' && $rPinned !== 'NONE')) {
+				// N+1, or a node that holds a pin: a v1 config would be refused there.
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo 'The node cannot be pinned for XCVT v2 (' . $rWhyNot . ')' . (NodeConfigPack::v1Allowed() ? ', and it holds a pin (' . ($rPinned === '' ? 'no answer' : $rPinned) . '), which refuses a v1 config' : '') . ". Exiting\n";
+				return false;
+			}
+			// Seen unpinned: a v1 config is what it takes (release N), and the
+			// record says so (no sticky v2), keeping the key and why there is none.
+			CorePins::unpinned($rServerID);
+			$rRec = XcvtTargets::get($rServerID, $rCrypto);
+			$rSame = $rRec !== null && $rRec['install_id'] === $rInstallId;
+			XcvtTargets::record($rServerID, $rInstallId, $rSame ? $rRec['panel_pk'] : null, null, 0, 'install', $rCrypto, false, $rSame ? $rRec['probe'] : null);
+			echo 'XCVT v2 is not used for this node (' . $rWhyNot . "): it gets a v1 config. Pin it later with console.php server:xcvt-pin\n";
+		} else {
+			echo "Panel key pinned in the node's xcvm_core (XCVT v2)\n";
+		}
+
+		// Pack config.enc targeted at the node's install_id. Credentials are
+		// read from MAIN's config.enc inside the extension, never exposed here;
+		// in API mode there are none (CredentialFreeConfig).
+		$rPackParams = self::configPackParams($rServers, $rServerID, $rServeOnly);
+		$rParams = $rApiMode ? CredentialFreeConfig::params($rPackParams) : $rPackParams;
+		$rBlob = $rParams === null ? false : NodeConfigPack::pack($rServerID, $rParams);
+		if (empty($rBlob)) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			$rWhy = error_get_last()['message'] ?? 'no warning';
+			echo 'Failed to pack node configuration (install_id ' . $rInstallId . ', hostname ' . var_export($rPackParams['hostname'], true) . ', api mode ' . ($rApiMode ? 'yes' : 'no') . ', ' . $rWhy . ")! Exiting\n";
+			return false;
+		}
+
+		// Ship the ready-to-use config.enc. Drop any stale config.ini first so the
+		// extension does not migrate it over our blob.
+		call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . CONFIG_PATH . 'config.ini');
+		$rTmp = TMP_PATH . 'config_' . $rServerID . '.enc';
+		file_put_contents($rTmp, $rBlob);
+		$rOk = call_user_func($rSendFileSSH, $rConn, $rTmp, CONFIG_PATH . 'config.enc', false);
+		@unlink($rTmp);
+		if (!$rOk) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "Failed to upload node configuration! Exiting\n";
+			return false;
+		}
+		if (!self::provisionOpensslExtra($rConn, $rRunSSH, $rSendFileSSH, CONFIG_PATH . 'openssl_extra')) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "Failed to upload OPENSSL_EXTRA! Exiting\n";
+			return false;
+		}
+		// install_id, panel.sk, panel.pk and core.pin were created by root above
+		// and SCP writes config.enc as root; hand the whole config/ dir to xc_vm
+		// so FPM can read them and re-encrypt the transport blob to at-rest
+		// format on first read (checked by readback() once the node runs).
+		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH);
+		call_user_func($rRunSSH, $rConn, 'sudo chmod 600 ' . CONFIG_PATH . 'config.enc');
+
+		// The plaintext serve_only marker that run.sh reads is written by
+		// ServerInstallCommand on a completed install (and removed on a non-serve-only
+		// one), not here — so a failure after this point never leaves the node's
+		// runtime mode disagreeing with MAIN. The config.enc serve_only above
+		// (configPackParams) is PHP-side only and inert on an incomplete install.
+		return true;
+	}
+
+	/**
+	 * The node's config dir and install_id (ADR-005, Decision 7, steps 1 and
+	 * 2), as root. Null when the node gave no install_id (status 4).
+	 */
+	public static function provisionInstallId($rConn, callable $rRunSSH, int $rServerID, $db): ?string {
 		// Generate the node's install_id AS root. At this point in the flow the
 		// bundled PHP under bin/ is still root-owned (ownership is handed to
 		// xc_vm later in the install, after provisionConfig), so running php as
@@ -338,50 +428,106 @@ class LbInstallFlow {
 					echo $rText . "\n";
 				}
 			}
-			return false;
+			return null;
 		}
+		return $rInstallId;
+	}
 
-		// Pack config.enc targeted at the node's install_id. Credentials are
-		// read from MAIN's config.enc inside the extension, never exposed here;
-		// in API mode there are none (CredentialFreeConfig).
-		$rPackParams = self::configPackParams($rServers, $rServerID, $rServeOnly);
-		$rBlob = $rApiMode ? CredentialFreeConfig::pack($rInstallId, $rPackParams) : \XC_VM::config_pack($rInstallId, $rPackParams);
-		if (empty($rBlob)) {
-			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
-			$rWhy = error_get_last()['message'] ?? 'no warning';
-			echo 'Failed to pack node configuration (install_id ' . $rInstallId . ', hostname ' . var_export($rPackParams['hostname'], true) . ', api mode ' . ($rApiMode ? 'yes' : 'no') . ', ' . $rWhy . ")! Exiting\n";
-			return false;
+	/**
+	 * Steps 3 and 4 of the extension's ADR-005 (Decision 7), as root over this
+	 * verified session: the node shows its panel key (`panel_pk()`, creating
+	 * panel.sk when there is none), MAIN's root is checked (ensureRoot), and
+	 * the v2 pin is packed for the install and pinned with replace (the trust
+	 * on first use of a fresh node, or a stale core.pin of an earlier
+	 * install). Recorded (XcvtTargets) once pinned to this panel's key; any
+	 * key the node showed is recorded either way. Null when pinned, else why
+	 * not. No licence: a pin carries public keys only (Decision 8).
+	 */
+	public static function provisionXcvt($rConn, callable $rRunSSH, int $rServerID, string $rInstallId, ?ClusterCrypto $rCrypto = null): ?string {
+		$rKey = self::probePanelPk($rConn, $rRunSSH);
+		if (!XcvtTargets::validKey($rKey)) {
+			XcvtTargets::record($rServerID, $rInstallId, null, null, 0, 'install', $rCrypto, null, $rKey === 'ext_old' ? 'ext_old' : 'no_pk');
+			return $rKey === 'ext_old' ? "the node's xcvm_core predates XCVT v2 (no panel_pk)" : "the node's panel key could not be read (panel.sk does not open)";
 		}
+		try {
+			$rCrypto ??= ClusterCryptoFactory::create();
+		} catch (\Throwable $rE) {
+			XcvtTargets::record($rServerID, $rInstallId, null, null, 0, 'install');
+			return "MAIN's cluster crypto is unavailable: " . $rE->getMessage();
+		}
+		XcvtTargets::record($rServerID, $rInstallId, $rKey, null, 0, 'install', $rCrypto);
+		$rWhy = self::pinCore($rConn, $rRunSSH, $rCrypto, $rInstallId);
+		if ($rWhy !== null) {
+			return $rWhy;
+		}
+		$rFp = (string) CorePins::panelFp();
+		if (!XcvtTargets::record($rServerID, $rInstallId, $rKey, $rFp, 2, 'install', $rCrypto) || !XcvtTargets::ready($rServerID, $rCrypto)) {
+			return 'pinned, but MAIN could not record the node\'s key';
+		}
+		return null;
+	}
 
-		// Ship the ready-to-use config.enc. Drop any stale config.ini first so the
-		// extension does not migrate it over our blob.
-		call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . CONFIG_PATH . 'config.ini');
-		$rTmp = TMP_PATH . 'config_' . $rServerID . '.enc';
-		file_put_contents($rTmp, $rBlob);
-		$rOk = call_user_func($rSendFileSSH, $rConn, $rTmp, CONFIG_PATH . 'config.enc', false);
-		@unlink($rTmp);
-		if (!$rOk) {
-			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
-			echo "Failed to upload node configuration! Exiting\n";
-			return false;
+	/**
+	 * What the node's xcvm_core says its panel key is, as root: 64 hex
+	 * characters, `ext_old` (no `panel_pk()`: an extension before ADR-005), or
+	 * `no_pk` (panel.sk does not open, or no answer).
+	 */
+	public static function probePanelPk($rConn, callable $rRunSSH): string {
+		$rAsk = 'echo !class_exists("XC_VM") || !method_exists("XC_VM", "panel_pk") ? "NONE" : (is_string($k = XC_VM::panel_pk()) ? "PK " . $k : "ERR");';
+		$rOut = self::lastLine((array) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg($rAsk)));
+		if ($rOut === 'NONE') {
+			return 'ext_old';
 		}
-		if (!self::provisionOpensslExtra($rConn, $rRunSSH, $rSendFileSSH, CONFIG_PATH . 'openssl_extra')) {
-			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
-			echo "Failed to upload OPENSSL_EXTRA! Exiting\n";
-			return false;
-		}
-		// install_id was created by root above and SCP writes config.enc as root;
-		// hand the whole config/ dir to xc_vm so FPM can read install_id and
-		// re-encrypt the transport blob to at-rest format on first read.
-		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH);
-		call_user_func($rRunSSH, $rConn, 'sudo chmod 600 ' . CONFIG_PATH . 'config.enc');
+		return str_starts_with($rOut, 'PK ') && XcvtTargets::validKey(substr($rOut, 3)) ? substr($rOut, 3) : 'no_pk';
+	}
 
-		// The plaintext serve_only marker that run.sh reads is written by
-		// ServerInstallCommand on a completed install (and removed on a non-serve-only
-		// one), not here — so a failure after this point never leaves the node's
-		// runtime mode disagreeing with MAIN. The config.enc serve_only above
-		// (configPackParams) is PHP-side only and inert on an incomplete install.
-		return true;
+	/**
+	 * What the node's xcvm_core has pinned (`cluster_pinned()`), as root or as
+	 * $rUser: `OK <sha256 of the panel signing key>`, `NOT_PINNED` (no
+	 * core.pin), `NONE` (an extension without it), `ERR <code>` (a pin that
+	 * does not open, which refuses every config), or '' (no answer).
+	 */
+	public static function probePinned($rConn, callable $rRunSSH, ?string $rUser = null): string {
+		$rAsk = 'if (!class_exists("XC_VM") || !method_exists("XC_VM", "cluster_pinned")) { echo "NONE"; } elseif (is_array($p = XC_VM::cluster_pinned())) { echo "OK " . hash("sha256", (string) $p["panel_sign_pub"]); } else { $e = (string) XC_VM::cluster_last_error(); echo $e === "NOT_PINNED" ? $e : "ERR " . $e; }';
+		return self::lastLine((array) call_user_func($rRunSSH, $rConn, ($rUser === null ? 'sudo ' : 'sudo -u ' . escapeshellarg($rUser) . ' ') . PHP_BIN . ' -r ' . escapeshellarg($rAsk)));
+	}
+
+	/**
+	 * The node as FPM sees it, once it runs (ADR-005, Decision 7): read as
+	 * xc_vm after runStartup, before the install is marked done. Its config is
+	 * a load balancer's (is_lb 1) and, for a v2 target, its panel key is the
+	 * one MAIN recorded and its pin is this panel's key; its server_id is this
+	 * node's. It also proves the
+	 * chown: a root-owned panel.sk or core.pin does not open as xc_vm. Null
+	 * when it holds, else what does not.
+	 */
+	public static function readback($rConn, callable $rRunSSH, int $rServerID, ?ClusterCrypto $rCrypto = null): ?string {
+		// config_server() would mint a new install_id over one xc_vm cannot read: asked only when it can,
+		// at the path the extension reads (its ADR-006): keys/install_id when that is there, else the flat
+		// path (an older extension, or the symlink its first ADR-006 release leaves).
+		$rKeyed = var_export(CONFIG_PATH . 'keys/install_id', true);
+		$rReadable = 'file_exists(' . $rKeyed . ') ? is_readable(' . $rKeyed . ') : is_readable(' . var_export(CONFIG_PATH . 'install_id', true) . ')';
+		$rAsk = 'if (!(' . $rReadable . ')) { echo json_encode(["error" => "install_id"]); } else { $s = XC_VM::config_server(); echo json_encode(["server_id" => is_array($s) ? (int) ($s["server_id"] ?? 0) : null, "is_lb" => is_array($s) ? (int) ($s["is_lb"] ?? 0) : null, "pk" => method_exists("XC_VM", "panel_pk") && ' . NodeCorePin::identityProbe(CONFIG_PATH, 'panel_sk') . ' ? XC_VM::panel_pk() : null]); }';
+		$rDoc = json_decode(self::lastLine((array) call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' -r ' . escapeshellarg($rAsk))), true);
+		if (is_array($rDoc) && isset($rDoc['error'])) {
+			return 'xc_vm cannot read its install_id';
+		}
+		if (!is_array($rDoc) || ($rDoc['is_lb'] ?? null) !== 1 || ($rDoc['server_id'] ?? null) !== $rServerID) {
+			return 'its config.enc does not read as this load balancer\'s as xc_vm (server_id ' . var_export(is_array($rDoc) ? ($rDoc['server_id'] ?? null) : null, true) . ', is_lb ' . var_export(is_array($rDoc) ? ($rDoc['is_lb'] ?? null) : null, true) . ')';
+		}
+		if (!XcvtTargets::ready($rServerID, $rCrypto)) {
+			return null; // a v1 config (release N): nothing pinned to check
+		}
+		$rKey = (string) (XcvtTargets::get($rServerID, $rCrypto)['panel_pk'] ?? '');
+		if (!is_string($rDoc['pk'] ?? null) || !hash_equals($rKey, $rDoc['pk'])) {
+			return 'its panel key as xc_vm (' . var_export($rDoc['pk'] ?? null, true) . ') is not the one MAIN recorded (' . $rKey . ')';
+		}
+		$rPinned = self::probePinned($rConn, $rRunSSH, 'xc_vm');
+		$rFp = (string) CorePins::panelFp();
+		if (!hash_equals('OK ' . $rFp, $rPinned)) {
+			return 'its pin as xc_vm (' . ($rPinned === '' ? 'no answer' : $rPinned) . ') is not this panel\'s key (' . $rFp . ')';
+		}
+		return null;
 	}
 
 	/**
@@ -864,10 +1010,10 @@ class LbInstallFlow {
 			. ' && sudo rm -f ' . escapeshellarg($rPinDir . 'root.seq')
 			. ' && sudo -u xc_vm mkdir -p ' . escapeshellarg(dirname(self::AGENT_STATE) . '/root-inbox') . ' && sudo chmod 0700 ' . escapeshellarg(dirname(self::AGENT_STATE) . '/root-inbox'));
 		// The extension's own pin of the panel key (core.pin), which its compiled
-		// lease verdict needs: packed for the node's install_id and pinned over this
-		// same verified session. Not fatal: MAIN pins it over the cluster API later.
-		$rWhyNot = self::pinCore($rConn, $rRunSSH, $rCrypto, $rServerID);
-		echo $rWhyNot === null ? "Panel key pinned in the node's xcvm_core\n" : 'The node\'s xcvm_core is not pinned yet (' . $rWhyNot . "); MAIN pins it once the node takes root commands\n";
+		// lease verdict needs, was written before the config (provisionConfig,
+		// ADR-005): recorded for the new row. A node it could not pin is pinned
+		// over the cluster API once it takes root commands (CorePins).
+		self::recordCorePin($rServerID);
 		// Started, and seen running: a release without run.sh, or an agent that
 		// exits at once, would otherwise leave a node that never completes.
 		$rRunSh = escapeshellarg(MAIN_HOME . 'bin/xc_agent/run.sh');
@@ -942,44 +1088,65 @@ class LbInstallFlow {
 	}
 
 	/**
-	 * Pin MAIN's panel key in the node's xcvm_core over an SSH session (plan,
-	 * section 6; the extension's ADR-002 "Pin"): read the node's install_id,
-	 * pack the pin for it (`cluster_pack`, an XCVT blob only that install
-	 * opens, for an hour) and pin it there at once, as root. The session's host
-	 * key was verified, which is what makes this the authorised re-pin path, so
-	 * a pin of an earlier MAIN is replaced. The node must answer with this
-	 * panel's key, and the pin is recorded (CorePins), as is the node's
-	 * install_id (`cluster_nodes.install_id`). Returns null when
-	 * pinned, else why not — never fatal, and an extension without the cluster
-	 * API on either side is only a reason.
+	 * Pin MAIN's panel key in the node's xcvm_core over an SSH session (the
+	 * extension's ADR-005, Decision 7, step 4): MAIN's root checked
+	 * (XcvtTargets::ensureRoot, the one owner of `cluster_init` here), the v2
+	 * pin packed for the node's install_id (`cluster_pack(…, 2)`: signed with
+	 * the root, an hour, no licence) and pinned there at once, as root, with
+	 * replace. The session's host key was verified, which is what makes this
+	 * the authorised (re-)pin path. The node must answer with this panel's key.
+	 * Returns null when pinned, else why not.
 	 */
-	public static function pinCore($rConn, callable $rRunSSH, ClusterCrypto $rCrypto, int $rServerID): ?string {
-		// install_id() would create a root-owned file were there none: ask only
-		// when it exists (provisionConfig created it).
-		$rAsk = 'echo is_file(' . var_export(CONFIG_PATH . 'install_id', true) . ') && class_exists("XC_VM") && method_exists("XC_VM", "cluster_pin") ? XC_VM::install_id() : "";';
-		$rID = self::lastLine((array) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg($rAsk)));
-		if (!CorePins::validInstallId($rID)) {
-			return 'no install_id, or an xcvm_core without the cluster API on the node';
+	public static function pinCore($rConn, callable $rRunSSH, ClusterCrypto $rCrypto, string $rInstallId): ?string {
+		if (!$rCrypto->supportsV2()) {
+			return "MAIN's xcvm_core predates XCVT v2 (no panel_pk): update it";
 		}
-		// Kept: what MAIN packs this node's pin and config for later (CorePins).
-		CorePins::rememberInstallId($rServerID, $rID);
+		try {
+			$rRoot = XcvtTargets::ensureRoot($rCrypto, $rNotice);
+			if ($rNotice !== null) {
+				echo $rNotice . "\n";
+			}
+		} catch (\Throwable $rE) {
+			$rRoot = "MAIN's cluster root could not be checked: " . $rE->getMessage();
+		}
+		if ($rRoot !== null) {
+			return $rRoot;
+		}
 		try {
 			$rPub = (string) ($rCrypto->info()['panel_sign_pub'] ?? '');
-			$rBlob = $rCrypto->pack($rID);
+			$rBlob = $rCrypto->pack($rInstallId, 2);
 		} catch (ClusterRefusedException $rE) {
 			return 'cluster_pack refused: ' . $rE->reason();
 		} catch (\Throwable $rE) {
 			return 'cluster_pack failed: ' . $rE->getMessage();
 		}
+		$rFp = hash('sha256', $rPub);
+		if (!hash_equals((string) CorePins::panelFp(), $rFp)) {
+			return "MAIN's panel key is not the one recorded at cluster:init";
+		}
 		$rPin = '$r = XC_VM::cluster_pin(base64_decode(' . var_export(base64_encode($rBlob), true) . '), true);'
 			. ' echo $r === false ? "ERR " . XC_VM::cluster_last_error() : "OK " . hash("sha256", $r["panel_sign_pub"]);';
 		$rOut = self::lastLine((array) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg($rPin)));
-		$rFp = hash('sha256', $rPub);
 		if ($rOut !== 'OK ' . $rFp) {
 			return 'cluster_pin: ' . ($rOut === '' ? 'no answer' : substr($rOut, 0, 120));
 		}
-		CorePins::recorded($rServerID, $rFp, 'install');
 		return null;
+	}
+
+	/**
+	 * After an enrolment replaced the node's row: what the install recorded
+	 * (XcvtTargets) goes to the row, the install_id and, for a node pinned
+	 * here, its pin (CorePins), so cron:cluster does not offer it again.
+	 */
+	public static function recordCorePin(int $rServerID): void {
+		$rRec = XcvtTargets::get($rServerID);
+		if ($rRec === null || $rRec['install_id'] === null) {
+			return;
+		}
+		CorePins::rememberInstallId($rServerID, $rRec['install_id']);
+		if ($rRec['pin_ver'] === 2 && $rRec['pin_fp'] !== null) {
+			CorePins::recorded($rServerID, $rRec['pin_fp'], 'install');
+		}
 	}
 
 	/** The last stdout line of an SSH command: what it echoed after any PHP warnings. */

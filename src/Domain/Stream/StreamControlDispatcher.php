@@ -98,8 +98,12 @@ final class StreamControlDispatcher {
 						$payload['force'] = !empty($request['force']);
 					}
 					// Keep the existing signed cluster transport and its licence checks.
-					$reply = NodeRpc::request($serverId, $payload, max(1, $timeout));
-					$answer = is_string($reply) ? json_decode($reply, true) : null;
+					if (!empty($request['async'])) {
+						$answer = ['result' => NodeRpc::submit($serverId, $payload)];
+					} else {
+						$reply = NodeRpc::request($serverId, $payload, max(1, $timeout));
+						$answer = is_string($reply) ? json_decode($reply, true) : null;
+					}
 					if (!is_array($answer) || ($answer['result'] ?? false) !== true) {
 						$errors[] = ['server_id' => $serverId, 'code' => 'REMOTE_CONTROL_FAILED'];
 					} else {

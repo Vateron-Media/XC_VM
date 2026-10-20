@@ -111,7 +111,7 @@ class RadioService {
 		self::saveStreamOptions($db, $rInsertID, $rData);
 
 		if ($rRestart) {
-			ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => [$rInsertID]]);
+			ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => [$rInsertID], 'async' => true]);
 		}
 
 		self::syncBouquets($rInsertID, $rBouquets, isset($rData['edit']));
@@ -506,7 +506,7 @@ class RadioService {
 				StreamProcess::updateStreams($rStreamIDs);
 				EventDispatcher::dispatch(new StreamsChangedEvent(array_values(array_map('intval', $rStreamIDs))));
 				if (isset($rData['restart_on_edit'])) {
-					ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs)]);
+					ApiClient::request(['action' => 'stream', 'sub' => 'start', 'stream_ids' => array_values($rStreamIDs), 'async' => true]);
 				}
 			}
 

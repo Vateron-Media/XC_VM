@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 /** The real dispatcher and ApiClient, with process/transport stand-ins in a child PHP. */
 final class StreamControlDispatcherTest extends TestCase {
 	private const HARNESS = <<<'PHP'
-namespace XcVm\Core\Cluster { class NodeRpc { public static function request($id,$payload,$timeout) { $GLOBALS['remote'][]=[$id,$payload,$timeout]; return $GLOBALS['reply']; } } }
+namespace XcVm\Core\Cluster { class NodeRpc { public static function request($id,$payload,$timeout) { $GLOBALS['remote'][]=[$id,$payload,$timeout]; return $GLOBALS['reply']; } public static function submit($id,$payload) { $GLOBALS['submissions'][]=[$id,$payload]; return $GLOBALS['queued']; } } }
 namespace XcVm\Core\Logging { class FileLogger { public static function log(...$args) {} } }
 namespace XcVm\Domain\Server { class ServerRepository { public static function getAll() { return [1=>['server_online'=>true],2=>['server_online'=>true],3=>['server_online'=>false]]; } } }
 namespace XcVm\Infrastructure\Database { class DatabaseFactory { public static function get() { return new class { public function query(...$args) {return true;} public function get_rows() {return $GLOBALS['assignments'];} }; } } }
@@ -26,12 +26,13 @@ namespace {
  $input=json_decode(stream_get_contents(STDIN),true);
  $GLOBALS['assignments']=[['server_id'=>1,'stream_id'=>10],['server_id'=>2,'stream_id'=>10],['server_id'=>3,'stream_id'=>10]];
  $GLOBALS['monitor']='php'; $GLOBALS['reply']='{"result":true}'; $GLOBALS['streamrow_missing']=false;
+ $GLOBALS['queued']=true; $GLOBALS['submissions']=[];
  $GLOBALS['pid']=123; $GLOBALS['queue']=true; $GLOBALS['local']=[]; $GLOBALS['remote']=[];
  foreach ($input['options'] as $key=>$value) { $GLOBALS[$key]=$value; }
  require %DISPATCHER%;
  require %CLIENT%;
  $result=\XcVm\Core\Http\ApiClient::request($input['request']);
- echo json_encode(['answer'=>json_decode($result,true),'local'=>$GLOBALS['local'],'remote'=>$GLOBALS['remote']]);
+ echo json_encode(['answer'=>json_decode($result,true),'local'=>$GLOBALS['local'],'remote'=>$GLOBALS['remote'],'submissions'=>$GLOBALS['submissions']]);
 }
 PHP;
 
@@ -63,6 +64,16 @@ PHP;
 		$this->assertTrue($rResult['answer']['result']);
 		$this->assertSame([], $rResult['local']);
 		$this->assertSame([[2, ['action' => 'stream', 'function' => 'start', 'stream_ids' => [10]], 5]], $rResult['remote']);
+	}
+
+	public function testAsyncRemoteStartSubmitsWithoutWaitingForRpc(): void {
+		$rResult = $this->dispatch(['servers' => [2], 'async' => true]);
+		$this->assertTrue($rResult['answer']['result']);
+		$this->assertSame([], $rResult['remote']);
+		$this->assertSame([[2, ['action'=>'stream','function'=>'start','stream_ids'=>[10]]]], $rResult['submissions']);
+		$rResult = $this->dispatch(['servers' => [2], 'async' => true], ['queued'=>false]);
+		$this->assertFalse($rResult['answer']['result']);
+		$this->assertSame([], $rResult['answer']['accepted']);
 	}
 
 	public function testRemoteFailureRetainsAcceptedLocalWork(): void {
