@@ -1056,6 +1056,7 @@
             { key: 'system', name: 'System API', url: './system-api.openapi.yaml' },
             { key: 'player', name: 'Player API', url: './player-api.openapi.yaml' },
             { key: 'playlist', name: 'Playlist API', url: './playlist-api.openapi.yaml' },
+            { key: 'full', name: 'Full Reference', url: './xc-api.openapi.yaml' },
         ];
 
         function getRequestedSpecKey() {
@@ -1179,6 +1180,22 @@
                         <li>NOT_IN_ALLOWED_IPS &middot; NOT_IN_ALLOWED_COUNTRY &middot; ISP_BLOCKED &middot; ASN_BLOCKED</li>
                         <li>DOWNLOAD_LIMIT_REACHED &middot; GENERATE_PLAYLIST_FAILED</li>
                     </ul></div></div>`,
+
+            full: `
+                <h2 class="docs-title">XC_VM Full API Reference</h2>
+                <p class="docs-subtitle">The whole Xtream Codes HTTP surface in one OpenAPI 3.1 document &mdash; 469 operations</p>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🎯</span>Overview</h3>
+                    <div class="section-content"><p>Every client, streaming, portal, admin and internal endpoint, each traced from the source and citing the file and line it was read from (<code class="code-inline">src/...:line</code>).</p></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🗂️</span>Groups</h3>
+                    <div class="section-content"><ul class="list-styled">
+                        <li><strong>Clients</strong> &mdash; Player API, Panel API (legacy), Playlist, EPG, Streaming</li>
+                        <li><strong>Devices</strong> &mdash; Stalker Portal (MAG), Enigma2, XPlugin</li>
+                        <li><strong>Activation</strong> &mdash; Active Codes, Activation Portal</li>
+                        <li><strong>Management</strong> &mdash; Admin API, Reseller API, Legacy Admin Stream Endpoints</li>
+                        <li><strong>Servers</strong> &mdash; Internal Server API, Cluster API, Monitoring</li>
+                    </ul></div></div>
+                <div class="section"><h3 class="section-title"><span class="section-icon">🔐</span>Authentication</h3>
+                    <div class="section-content"><p>Each group has its own scheme (line credentials or token, MAC + handshake token, <code class="code-inline">api_key</code> + access code, cluster secret, metrics bearer token). Every operation states which one it uses.</p></div></div>`,
         };
 
         function renderApiDocs(key) {

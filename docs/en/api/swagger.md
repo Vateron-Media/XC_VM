@@ -1,6 +1,6 @@
 # Interactive API Reference (Swagger)
 
-Interactive, always-in-sync Swagger UI for every XC_VM API, generated from OpenAPI 3.0 specifications. Use the **API tabs** at the top of the page to switch between APIs, or open one directly via the links below.
+Interactive, always-in-sync Swagger UI for every XC_VM API, generated from OpenAPI specifications. Use the **API tabs** at the top of the page to switch between APIs, or open one directly via the links below.
 
 | API | Description | Auth | Open |
 | --- | --- | --- | --- |
@@ -8,6 +8,7 @@ Interactive, always-in-sync Swagger UI for every XC_VM API, generated from OpenA
 | **System API** | Internal `/api.php` — stream/VOD control, stats, processes, files, connections (31 actions) | `password` (`live_streaming_pass`) | [Open ↗](../../_media/swagger-ui.html?spec=system) |
 | **Player API** | XtreamCodes player — Live TV, VOD, Series, EPG | `username` + `password` | [Open ↗](../../_media/swagger-ui.html?spec=player) |
 | **Playlist API** | `/playlist` authentication + playlist generation | `username`/`password` or `token` | [Open ↗](../../_media/swagger-ui.html?spec=playlist) |
+| **Full Reference** | The whole HTTP surface in one OpenAPI 3.1 document — player, streaming, MAG/Enigma2, activation, admin, reseller, internal and cluster APIs (469 operations), each citing its source line | Per endpoint | [Open ↗](../../_media/swagger-ui.html?spec=full) |
 
 ---
 
@@ -47,9 +48,10 @@ Interactive, always-in-sync Swagger UI for every XC_VM API, generated from OpenA
 
 ## Raw specifications
 
-Every spec can be imported into Postman, Insomnia or any OpenAPI 3.0 tooling:
+Every spec can be imported into Postman, Insomnia or any OpenAPI tooling (the full reference is OpenAPI 3.1, the others 3.0):
 
 - [`admin-api.openapi.yaml`](../../_media/admin-api.openapi.yaml)
 - [`system-api.openapi.yaml`](../../_media/system-api.openapi.yaml)
 - [`player-api.openapi.yaml`](../../_media/player-api.openapi.yaml)
 - [`playlist-api.openapi.yaml`](../../_media/playlist-api.openapi.yaml)
+- [`xc-api.openapi.yaml`](../../_media/xc-api.openapi.yaml)
