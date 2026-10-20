@@ -26,6 +26,9 @@ final class AgentPaths {
 	/** The agent's local socket (AgentClient). */
 	public const SOCKET = self::DIR . 'agent.sock';
 
+	/** The node-crons ownership marker ({"crons":[...]}) the chores loop touches. */
+	public const NODE_CRONS = self::DIR . 'node_crons';
+
 	/** The config directory when CONFIG_PATH is not defined (file()). */
 	public const INSTALL_CONFIG = '/home/xc_vm/config/';
 
