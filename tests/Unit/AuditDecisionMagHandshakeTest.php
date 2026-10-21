@@ -148,6 +148,7 @@ namespace {
 		'theme' => 'default',
 		'player' => '',
 		'mac' => $rMAC,
+		'serialAttempt' => $rSerialAttempt,
 		'ip' => $rIP,
 		'authenticated' => $rAuthenticated,
 		'gMode' => null,
@@ -306,6 +307,28 @@ PHP;
 		}
 	}
 
+	/**
+	 * Guessing the serial of a known MAC is counted like guessing MACs: each
+	 * serial that is not the bound one is an attempt of its own, so one MAC
+	 * tried with many serials reaches the MAC attempt limit. The same wrong
+	 * serial again is one attempt, as the same unknown MAC is.
+	 */
+	public function testEachSerialGuessedForABoundDeviceIsAnAttemptOfItsOwn(): void {
+		$this->rDb->query('UPDATE `mag_devices` SET `sn` = ? WHERE `mag_id` = 7', 'SN7');
+		$rTerms = [];
+		foreach (['GUESS-1', 'GUESS-2', 'GUESS-1', null] as $rSerial) {
+			$rProfile = $this->portal('stb', 'get_profile', $this->handshake(), ['sn' => $rSerial] + self::BOX);
+			$this->assertFalse($rProfile['authenticated']);
+			$this->assertSame('bruteforce', $rProfile['guard'][0][0]);
+			// MAGSCAN Settings judge the MAC: the guess is counted apart from it.
+			$this->assertSame(hash('sha256', self::MAC), $rProfile['guard'][0][1][1], 'the MAC the lists are checked against');
+			$rTerms[] = $rProfile['guard'][0][1][5];
+		}
+
+		$this->assertSame([hash('sha256', self::MAC . "\nGUESS-1"), hash('sha256', self::MAC . "\nGUESS-2"), hash('sha256', self::MAC . "\nGUESS-1"), hash('sha256', self::MAC . "\n")], $rTerms);
+		$this->assertSame([], $this->portal('stb', 'get_profile', $this->handshake(), self::BOX)['guard'], 'the bound serial was counted');
+	}
+
 	public function testDebugCannotReplaceLockedDeviceIds(): void {
 		$this->rDb->query('UPDATE `mag_devices` SET `lock_device` = 1, `sn` = ?, `device_id` = ?, `device_id2` = ? WHERE `mag_id` = 7', 'SN7', 'DEV7', 'DEV7B');
 		foreach (['device_id', 'device_id2'] as $rField) {
@@ -389,7 +412,7 @@ PHP;
 
 		$this->assertFalse($rProfile['authenticated']);
 		$this->assertSame(1, json_decode($rProfile['body'], true)['js']['status']);
-		$this->assertSame([['bruteforce', [self::IP, hash('sha256', self::MAC)]], ['flood', []]], $rProfile['guard'], 'a get_profile that was refused was not reported');
+		$this->assertSame([['bruteforce', [self::IP, hash('sha256', self::MAC), null, false, null, null]], ['flood', []]], $rProfile['guard'], 'a get_profile that was refused was not reported');
 		$this->assertSame([], $rProfile['signals']);
 		$this->assertSame($this->plain($rBox), $this->deviceToken(), 'a box get_profile refused changed the token of the device');
 		$this->assertFalse($this->served($rOther), 'a box get_profile refused was served');
@@ -480,7 +503,7 @@ PHP;
 			$rProfile = $this->portal('stb', 'get_profile', Encryption::mintToken(igbinary_serialize($rPlain), self::PASS, OPENSSL_EXTRA, true), self::BOX);
 
 			$this->assertFalse($rProfile['authenticated'], 'get_profile verified a box with a token ' . $rName);
-			$this->assertSame([['bruteforce', [self::IP, hash('sha256', self::MAC)]], ['flood', []]], $rProfile['guard'], $rName);
+			$this->assertSame([['bruteforce', [self::IP, hash('sha256', self::MAC), null, false, null, null]], ['flood', []]], $rProfile['guard'], $rName);
 		}
 		$this->assertNull($this->deviceToken(7));
 		$this->assertNull($this->deviceToken(8));

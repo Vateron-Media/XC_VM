@@ -75,6 +75,26 @@ final class AuditGuardStateTest extends TestCase {
 		}
 	}
 
+	/**
+	 * A MAC guess may be counted as something else than the MAC (a serial
+	 * guessed for the device): each different one is an attempt, while MAGSCAN
+	 * Settings still judge the MAC, so a blacklisted MAC blocks at once.
+	 */
+	public function testAGuessCountedApartFromItsMacIsStillJudgedByTheMac(): void {
+		$rMac = '00:1A:79:00:00:07';
+		$rCheck = static fn(string $rSerial): string => '\XcVm\Core\Auth\BruteforceGuard::checkBruteforce($rIP, ' . var_export(hash('sha256', $rMac), true) . ', null, false, null, ' . var_export(hash('sha256', $rMac . "\n" . $rSerial), true) . ');';
+
+		$this->guard($rCheck('A') . $rCheck('A') . $rCheck('B'));
+		$this->assertCount(2, $this->state(self::IP . '_mac')['attempts'] ?? []);
+		$this->assertFileDoesNotExist($this->rDir . 'flood/block_' . self::IP);
+		$this->guard($rCheck('C'));
+		$this->assertFileExists($this->rDir . 'flood/block_' . self::IP, 'the third serial guessed for one MAC');
+
+		unlink($this->rDir . 'flood/block_' . self::IP);
+		$this->guard('\XcVm\Core\Config\SettingsManager::set(["magscan_settings" => json_encode(["blacklist_macs" => [' . var_export($rMac, true) . ']])] + \XcVm\Core\Config\SettingsManager::getAll()); ' . $rCheck('D'));
+		$this->assertFileExists($this->rDir . 'flood/block_' . self::IP, 'a blacklisted MAC counted by its serial guess');
+	}
+
 	public function testACountFileThatDoesNotReadStartsItsCountAgain(): void {
 		// A count file that holds no state: empty, cut short, or not an array.
 		foreach (['', '{"attempts":{"some', 'null'] as $rContent) {

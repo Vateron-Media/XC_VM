@@ -168,7 +168,12 @@ class PortalHandler {
 				// guard keeps what it counts as JSON keys: it gets a digest of the MAC,
 				// whatever bytes the request carried.
 				if (!$ctx["authenticated"]) {
-					BruteforceGuard::checkBruteforce($ctx["ip"], is_string($ctx["mac"]) ? hash("sha256", $ctx["mac"]) : null);
+					// A serial guessed for a device with a bound one is counted with the MAC
+					// (portal.php): one known MAC tried with many serials is many attempts.
+					// MAGSCAN Settings still judge the MAC alone.
+					$rMac = is_string($ctx["mac"]) ? $ctx["mac"] : null;
+					$rAttempt = $rMac !== null && isset($ctx["serialAttempt"]) ? hash("sha256", $rMac . "\n" . $ctx["serialAttempt"]) : null;
+					BruteforceGuard::checkBruteforce($ctx["ip"], $rMac !== null ? hash("sha256", $rMac) : null, null, false, null, $rAttempt);
 					BruteforceGuard::checkFlood();
 					RefusalLog::record("INVALID_CREDENTIALS", is_string($ctx["ip"] ?? null) ? $ctx["ip"] : null);
 				}

@@ -273,8 +273,9 @@ class BruteforceGuard {
 	 * @param string|null $username      Username
 	 * @param bool        $useCachedMode Use signal-based blocking for streaming context
 	 * @param string|null $password      Password a refused sign-in carried for the username (none: only the username is counted)
+	 * @param string|null $macAttempt    What a MAC guess is counted as, when not as the MAC itself (a serial guessed for the device). MAGSCAN Settings still judge the MAC.
 	 */
-	public static function checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false, ?string $password = null): void {
+	public static function checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false, ?string $password = null, ?string $macAttempt = null): void {
 		if (!$mac && !$username) {
 			return;
 		}
@@ -320,7 +321,7 @@ class BruteforceGuard {
 		}
 
 		$floodType = (!is_null($mac) ? 'mac' : 'user');
-		$term = (!is_null($mac) ? $mac : $username);
+		$term = (!is_null($mac) ? ($macAttempt ?? $mac) : $username);
 		// The count is kept as JSON, which holds valid UTF-8 only: any other term is counted by its digest.
 		if (json_encode($term) === false) {
 			$term = hash('sha256', $term);

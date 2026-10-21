@@ -354,7 +354,7 @@ PHP;
 		$rReply = $this->portal('stb', 'get_profile', null, self::BOX, self::UNKNOWN_MAC);
 
 		$this->assertSame(1, json_decode($rReply['body'], true)['js']['status']);
-		$this->assertSame([['bruteforce', [self::IP, hash('sha256', self::UNKNOWN_MAC)]], ['flood', []]], $rReply['guard']);
+		$this->assertSame([['bruteforce', [self::IP, hash('sha256', self::UNKNOWN_MAC), null, false, null, null]], ['flood', []]], $rReply['guard']);
 	}
 
 	public function testTheNextPartIsTheProgrammeAfterTheOneOnScreen(): void {

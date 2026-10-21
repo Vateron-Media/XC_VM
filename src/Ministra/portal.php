@@ -142,6 +142,7 @@ if (!$rSettings["disable_ministra"]) {
 			}
 		}
 
+		$rSerialAttempt = null;
 		if ($rDevice && $rReqType == "stb" && $rReqAction == "get_profile") {
 			// Serialize first binding and later verification, including requests using an existing token.
 			$rBindingLock = @fopen(MINISTRA_TMP_PATH . "ministra_" . intval($rDevice["mag_id"]) . ".binding.lock", "c");
@@ -199,6 +200,12 @@ if (!$rSettings["disable_ministra"]) {
 			}
 			if (!$rBindingMatches || !empty($rDeviceMismatch)) {
 				$rVerified = false;
+			}
+			// A serial that is not the one bound to the device is a guess at it: it is counted
+			// by MAC and serial (handleStbPublic), so guessing the serial of one known MAC
+			// reaches the MAC attempt limit as guessing MACs does.
+			if ((string) ($rBinding["sn"] ?? "") !== "" && $rBinding["sn"] !== $rSerialNumber) {
+				$rSerialAttempt = (string) $rSerialNumber;
 			}
 
 			if ($rVerified) {
@@ -960,6 +967,7 @@ if (!$rSettings["disable_ministra"]) {
 			"forceProtocol" => $rForceProtocol,
 			"player" => "",
 			"mac" => $rMAC,
+			"serialAttempt" => $rSerialAttempt,
 			"ip" => $rIP,
 			"authenticated" => $rAuthenticated,
 			"gMode" => $rGMode,
