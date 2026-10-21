@@ -117,6 +117,30 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID, $rServeOnly)', $rCmd, 'the install threads serve_only into configureRuntime');
 	}
 
+	public function testConfigureRuntimeGatesHttpNginxAndPhpFpmForServeOnly(): void {
+		// The cutover: a serve-only node serves HTTP entirely from the Go front, so
+		// configureRuntime provisions no HTTP-nginx config and no php-fpm pools for it
+		// (the service script then starts neither). nginx_rtmp's live.conf and the Go
+		// front config (front_addr / loopback real-IP) are kept. A mode-1 node is
+		// untouched: the `!$rServeOnly` gate means every one of those calls still runs.
+		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
+
+		// The HTTP-nginx confs (custom.conf + realip_* + limit*) are gated off for serve-only.
+		$this->assertMatchesRegularExpression(
+			"/if \\(!\\\$rServeOnly\\) \\{\\s*call_user_func\\(\\\$rSendFileSSH, \\\$rConn, MAIN_HOME \\. 'bin\\/nginx\\/conf\\/custom\\.conf'/",
+			$rLb,
+			'the HTTP-nginx confs are wrapped in if (!$rServeOnly)'
+		);
+		// The php-fpm pools (rm bin/php/etc + PhpFpmPools::files loop) are gated off for serve-only.
+		$this->assertMatchesRegularExpression(
+			"/if \\(!\\\$rServeOnly\\) \\{\\s*call_user_func\\(\\\$rRunSSH, \\\$rConn, 'sudo rm ' \\. MAIN_HOME \\. 'bin\\/php\\/etc/",
+			$rLb,
+			'the php-fpm pool writes are wrapped in if (!$rServeOnly)'
+		);
+		// nginx_rtmp's auth-notify config is kept for every LB (serve-only included).
+		$this->assertStringContainsString("bin/nginx_rtmp/conf/live.conf", $rLb, 'nginx_rtmp live.conf is still written');
+	}
+
 	public function testRunShLaunchersThreadServeOnlyFlagsOnTheMarker(): void {
 		$rFanout = (string) file_get_contents(MAIN_HOME . 'bin/xc_fanout/run.sh');
 		$this->assertStringContainsString('config/cluster/serve_only', $rFanout, 'fanout run.sh gates the front on the marker');

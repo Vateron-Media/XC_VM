@@ -600,12 +600,21 @@ class LbInstallFlow {
 	}
 
 	public static function configureRuntime($rConn, callable $rSendFileSSH, callable $rRunSSH, array $rServers, int $rServerID, bool $rServeOnly = false): int {
-		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/custom.conf', MAIN_HOME . 'bin/nginx/conf/custom.conf', false);
+		// real-IP trust CIDRs: shipped for every LB — the Go front reads these too
+		// (-front-realip), and a serve-only node appends its loopback trust to
+		// realip_xc_vm.conf below, so the base files must be present.
 		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/realip_cdn.conf', MAIN_HOME . 'bin/nginx/conf/realip_cdn.conf', false);
 		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/realip_cloudflare.conf', MAIN_HOME . 'bin/nginx/conf/realip_cloudflare.conf', false);
 		call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', false);
-		call_user_func($rRunSSH, $rConn, self::sudoWrite('', '/home/xc_vm/bin/nginx/conf/limit.conf'));
-		call_user_func($rRunSSH, $rConn, self::sudoWrite('', '/home/xc_vm/bin/nginx/conf/limit_queue.conf'));
+		// HTTP-nginx-only config (the server tuning + the limit_req zones): skipped for
+		// a serve-only node, where the Go front is the sole HTTP listener (run.sh
+		// launches it; `service` starts no http-nginx) and applies its own rate limit.
+		// A mode-1 LB runs these unchanged.
+		if (!$rServeOnly) {
+			call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/nginx/conf/custom.conf', MAIN_HOME . 'bin/nginx/conf/custom.conf', false);
+			call_user_func($rRunSSH, $rConn, self::sudoWrite('', '/home/xc_vm/bin/nginx/conf/limit.conf'));
+			call_user_func($rRunSSH, $rConn, self::sudoWrite('', '/home/xc_vm/bin/nginx/conf/limit_queue.conf'));
+		}
 		$rIP = '127.0.0.1:' . $rServers[$rServerID]['http_broadcast_port'];
 		call_user_func($rRunSSH, $rConn, self::sudoWrite('on_play http://' . $rIP . '/stream/rtmp; on_publish http://' . $rIP . '/stream/rtmp; on_play_done http://' . $rIP . '/stream/rtmp;', '/home/xc_vm/bin/nginx_rtmp/conf/live.conf'));
 		if ($rServeOnly) {
@@ -633,13 +642,19 @@ class LbInstallFlow {
 			call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg(':' . intval($rServers[$rServerID]['https_broadcast_port'])) . ' | sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/front_addr > /dev/null');
 		}
 		$rServices = (intval(call_user_func($rRunSSH, $rConn, 'sudo cat /proc/cpuinfo | grep "^processor" | wc -l')['output']) ?: 4);
-		call_user_func($rRunSSH, $rConn, 'sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');
-		// The pool configs, daemons.sh and balance.conf, each through a
-		// temporary file under an unpredictable name.
-		foreach (PhpFpmPools::files($rServices, (string) file_get_contents(MAIN_HOME . 'bin/php/etc/template'), MAIN_HOME) as $rPath => $rBody) {
-			$rTmpPath = TMP_PATH . bin2hex(random_bytes(16)) . '_' . basename($rPath);
-			file_put_contents($rTmpPath, $rBody);
-			call_user_func($rSendFileSSH, $rConn, $rTmpPath, $rPath, false);
+		// The php-fpm HTTP pools: provisioned for every LB EXCEPT a serve-only one,
+		// whose HTTP surface is the Go front — `service` starts no php-fpm there, so
+		// its pool configs have nothing to run. ($rServices is still returned for
+		// servers.total_services; the PHP CLI and nginx_rtmp are unaffected.)
+		if (!$rServeOnly) {
+			call_user_func($rRunSSH, $rConn, 'sudo rm ' . MAIN_HOME . 'bin/php/etc/*.conf');
+			// The pool configs, daemons.sh and balance.conf, each through a
+			// temporary file under an unpredictable name.
+			foreach (PhpFpmPools::files($rServices, (string) file_get_contents(MAIN_HOME . 'bin/php/etc/template'), MAIN_HOME) as $rPath => $rBody) {
+				$rTmpPath = TMP_PATH . bin2hex(random_bytes(16)) . '_' . basename($rPath);
+				file_put_contents($rTmpPath, $rBody);
+				call_user_func($rSendFileSSH, $rConn, $rTmpPath, $rPath, false);
+			}
 		}
 		call_user_func($rRunSSH, $rConn, 'sudo chmod +x ' . MAIN_HOME . 'bin/daemons.sh');
 		// Only its owner writes to bin/. An update closes it to others again
