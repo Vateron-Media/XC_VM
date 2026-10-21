@@ -72,23 +72,23 @@ that never leaves the node unable to serve:
 A second re-provision is a no-op (idempotent teardown). A mode-1 node skips all
 of this.
 
-**Recovery of a cutover node (migration-slice requirement, surfaced in the
-provisioning-gate review).** The provisioning gate makes `service` skip
-http-nginx + php-fpm when the `front_sole` marker is present, and `run.sh`
-writes that marker when the binary merely *advertises* `-front-agent-sock` — not
-when the front has actually bound. `service` reads the marker only at boot, and
-nothing in the running system restarts `service` or starts http-nginx (the
-root-signals keepalive only *reloads* nginx). So a node already in sole-front
-mode has **no nginx/php-fpm fallback** if (a) its binary is *downgraded* to a
-pre-front one via the normal `fanout_binary` self-heal (which pkills + respawns
-but does not restart `service`), or (b) the full front fails to bind (bad cert,
-port in use, panic) and crash-loops. In both cases the node stays dark until a
-manual `service restart`. The migration slice must close this: either a
-root-signals safety net that reconciles a `serve_only` node whose front is not
-listening back to nginx/php-fpm without a manual restart, or a binary-downgrade
-path that triggers a `service restart` — plus a real-LB acceptance check for the
-downgrade and bind-failure cases. This is inert (no released binary carries the
-front yet), so it is scoped here, not into the fresh-install provisioning gate.
+**Recovery of a cutover node (migration-slice requirement).** The provisioning
+gate commits a serve-only node to the single Go binary: `service` skips
+http-nginx + php-fpm on the `serve_only` marker alone, with **no nginx/php-fpm
+fallback** — a serve-only node MUST run a front-capable `xc_node`, which is why
+the cutover ships with that Fanout release (the hard prerequisite). Two cases the
+migration slice still owns, inert until that release:
+- **Binary not front-capable / front fails to bind.** `service` has already
+  skipped nginx+php-fpm, so a serve-only node whose `xc_node` lacks the front
+  (an un-upgraded or *downgraded* binary — `fanout_binary` self-heals without a
+  `service` restart) or whose front crash-loops (bad cert, port in use) stays
+  dark. The migration slice must guarantee the front-capable binary is in place
+  before the `serve_only` marker exists, and/or add a root-signals reconcile that
+  restores nginx+php-fpm when a `serve_only` node has no listening front.
+- **Downgrading a node OUT of serve-only.** Clearing the `serve_only` marker must
+  be paired with re-provisioning nginx+php-fpm and a `service restart`, since the
+  gate left them unconfigured/stopped.
+This is scoped to the migration slice, not the fresh-install provisioning gate.
 
 ## Constraints
 
