@@ -74,37 +74,22 @@ while true; do
     if "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-gw-policy'; then
       GW=(-gw "$FANOUT_DIR/sockets/gw.sock" -gw-policy "$SCRIPT/tmp/gateway/policy.json")
     fi
-    # Serve-only single-binary LB (Phase A): the Go front owns the node's public
-    # HTTPS port and reverse-proxies non-serve requests to nginx on a local backend
-    # port. Gated on the serve_only marker the install writes AND on the binary
-    # knowing -front (an older daemon would exit on an unknown flag). The listen
-    # address comes from config/cluster/front_addr (the node's https_broadcast_port,
-    # written by the install), defaulting to :443.
-    #
-    # This supervisor runs as xc_vm, so it records the -front capability in
-    # config/cluster/front_capable (its own dir) — RootSignalsCronJob (root) only
-    # stat-checks that file and demotes nginx off :443 when present, rather than
-    # executing this xc_vm-owned binary as root. Removing it (no -front) reverts
-    # nginx to the public ssl listener, so the demote tracks the front's capability.
+    # Serve-only single-binary LB: the Go binary IS the whole HTTP surface — the
+    # front is the sole listener, with no nginx and no php-fpm (service starts
+    # neither on a serve_only node). Gated on the serve_only marker the install
+    # writes AND on the binary knowing -front-agent-sock (the full single-binary
+    # front: implies -front, and routes /xfile, /stream/rtmp and /admin/* to the
+    # agent; an older daemon lacking it stays a plain fanout rather than exiting on
+    # an unknown flag). The front binds the node's port set from
+    # bin/nginx/conf/ports/*.conf (its -front-ports defaults, which
+    # RootSignalsCronJob keeps at the node's public ports), terminates TLS with
+    # certbot's cert, and serves everything in-process — -front-nginx "" means no
+    # backend. FRONT_ADDR (config/cluster/front_addr) only enables the front; the
+    # listen set comes from the ports files.
     FRONT=()
-    if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-front'; then
-      touch "$SCRIPT/config/cluster/front_capable" 2>/dev/null
+    if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-front-agent-sock'; then
       FRONT_ADDR=$(cat "$SCRIPT/config/cluster/front_addr" 2>/dev/null); FRONT_ADDR=${FRONT_ADDR:-:443}
-      # A binary that also knows -front-agent-sock is the full single-binary front:
-      # run it as the SOLE listener — no nginx backend (-front-nginx ""), with /xfile,
-      # /stream/rtmp and /admin/* routed to the agent socket — and record
-      # config/cluster/front_sole so `service` skips http-nginx + php-fpm. An older
-      # -front-only binary keeps the strangler backend and leaves no front_sole marker,
-      # so `service` keeps nginx/php-fpm and the node never goes dark.
-      if "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-front-agent-sock'; then
-        FRONT=(-front "$FRONT_ADDR" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "" -front-agent-sock "$SCRIPT/config/cluster/agent.sock")
-        touch "$SCRIPT/config/cluster/front_sole" 2>/dev/null
-      else
-        FRONT=(-front "$FRONT_ADDR" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "http://127.0.0.1:8080")
-        rm -f "$SCRIPT/config/cluster/front_sole" 2>/dev/null
-      fi
-    else
-      rm -f "$SCRIPT/config/cluster/front_capable" "$SCRIPT/config/cluster/front_sole" 2>/dev/null
+      FRONT=(-front "$FRONT_ADDR" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "" -front-agent-sock "$SCRIPT/config/cluster/agent.sock")
     fi
     echo "=== $(date '+%F %T') supervisor pid=$$ spawning daemon (ffmpeg=$FF) ===" >> "$LOG"
     "$FANOUT_DIR/xc_fanout" \

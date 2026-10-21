@@ -141,16 +141,27 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString("bin/nginx_rtmp/conf/live.conf", $rLb, 'nginx_rtmp live.conf is still written');
 	}
 
+	public function testServeOnlyRequiresApiMode(): void {
+		// A serve-only node is credential-free (no DB, no php-fpm), so --serve-only
+		// must install in API mode; the gate refuses it on a mode-1 (credentialed)
+		// node, whose nginx + php-fpm the provisioning gate would otherwise strip.
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$this->assertMatchesRegularExpression('/if \(\$rServeOnly && !\$rApiMode\) \{/', $rCmd, '--serve-only is refused when the install is not API-mode');
+		$this->assertStringContainsString('--serve-only requires an API-mode', $rCmd, 'the refusal explains a serve-only node must be credential-free');
+	}
+
 	public function testRunShLaunchersThreadServeOnlyFlagsOnTheMarker(): void {
 		$rFanout = (string) file_get_contents(MAIN_HOME . 'bin/xc_fanout/run.sh');
 		$this->assertStringContainsString('config/cluster/serve_only', $rFanout, 'fanout run.sh gates the front on the marker');
-		$this->assertStringContainsString('-front', $rFanout, 'fanout run.sh launches the Go front for a serve-only node');
-		$this->assertStringContainsString('-front-nginx', $rFanout, 'the front strangler proxies non-serve requests to nginx');
-
-		$this->assertStringContainsString("grep -q -- '-front'", $rFanout, 'the front is gated on the fanout binary knowing -front');
-		$this->assertStringContainsString('config/cluster/front_addr', $rFanout, 'the front listens on the node https_broadcast_port (front_addr), not a hardcoded :443');
-		$this->assertStringContainsString('config/cluster/front_capable', $rFanout, 'the supervisor records -front capability (as xc_vm) for the root cron to stat-check');
+		$this->assertStringContainsString("grep -q -- '-front-agent-sock'", $rFanout, 'the sole front is gated on the binary being the full single-binary front (-front-agent-sock implies -front)');
+		$this->assertStringContainsString('-front-nginx ""', $rFanout, 'the sole front has no nginx backend (the Go binary is the whole HTTP surface)');
+		$this->assertStringContainsString('-front-agent-sock "$SCRIPT/config/cluster/agent.sock"', $rFanout, 'the front routes /xfile, /stream/rtmp and /admin/* to the agent socket');
+		$this->assertStringContainsString('config/cluster/front_addr', $rFanout, 'the front is enabled with the node https_broadcast_port (front_addr), not a hardcoded :443');
 		$this->assertStringContainsString('"${FRONT[@]}"', $rFanout, 'the fanout daemon invocation actually expands the FRONT flag array (not just declares it)');
+		// The Phase-A strangler machinery is retired: no nginx loopback backend, no capability/sole markers.
+		$this->assertStringNotContainsString('127.0.0.1:8080', $rFanout, 'no strangler nginx backend — the Go binary serves everything');
+		$this->assertStringNotContainsString('front_capable', $rFanout, 'the front_capable marker is retired (service gates on the serve_only marker alone)');
+		$this->assertStringNotContainsString('front_sole', $rFanout, 'the front_sole marker is retired');
 
 		$rAgent = (string) file_get_contents(MAIN_HOME . 'bin/xc_agent/run.sh');
 		$this->assertStringContainsString('config/cluster/serve_only', $rAgent, 'agent run.sh gates seeding on the marker');

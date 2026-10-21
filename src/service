@@ -8,13 +8,14 @@ if [ "$USER" != "root" ]; then
   exit 0
 fi
 
-# A serve-only node whose run.sh launched the sole Go front (it wrote the
-# front_sole marker): the Go binary is the whole HTTP surface, so http-nginx and
-# php-fpm are not started. nginx_rtmp, the fanout/agent supervisors and the PHP
-# CLI stay. A node without the marker (older binary, or not serve-only) keeps
-# nginx + php-fpm, so it never goes dark.
-sole_front() {
-  [ -f $SCRIPT/config/cluster/serve_only ] && [ -f $SCRIPT/config/cluster/front_sole ]
+# A serve-only node: the Go binary (xc_node front + agent) is the whole HTTP
+# surface, so http-nginx and php-fpm are NOT started — only nginx_rtmp, the
+# fanout/agent supervisors, redis and the PHP CLI run. The serve_only marker the
+# install writes is the single gate; a node serve-only'd by the install must run
+# a front-capable binary (the cutover ships with that xc_node release). A normal
+# (non-serve-only) LB or MAIN has no marker and keeps nginx + php-fpm.
+serve_only_node() {
+  [ -f $SCRIPT/config/cluster/serve_only ]
 }
 
 # Launch every XC_VM service. Does NOT block — shared by start (foreground) and
@@ -78,11 +79,11 @@ boot() {
       sudo -u xc_vm timeout 15 $SCRIPT/bin/php/bin/php $SCRIPT/console.php cluster:apply --from-disk >/dev/null 2>/dev/null
     fi
   fi
-  if ! sole_front; then
+  if ! serve_only_node; then
     sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
   fi
   sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp >/dev/null 2>/dev/null
-  if ! sole_front; then
+  if ! serve_only_node; then
     sudo -u xc_vm $SCRIPT/bin/daemons.sh
   fi
   # startup runs as root by design (root crontab, embedded `status 1`);
@@ -167,7 +168,7 @@ reload() {
   fi
   echo 'Reloading XC_VM...'
   # http-nginx is not running on a sole-front serve-only node; nginx_rtmp always is.
-  if ! sole_front; then
+  if ! serve_only_node; then
     sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx -s reload
   fi
   sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp -s reload
