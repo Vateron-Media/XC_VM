@@ -358,6 +358,13 @@ class ServerInstallCommand implements CommandInterface {
 				if ($rServeOnly) {
 					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm mkdir -p ' . CONFIG_PATH . 'cluster');
 					call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg((string) $rServerID) . ' | sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/serve_only > /dev/null');
+					// The service was already started during the install, BEFORE this marker
+					// existed — so that boot ran nginx + php-fpm and run.sh brought the front
+					// up alongside them (both on the public ports via SO_REUSEPORT: a split
+					// brain). Restart now that the marker is in place so `service` skips
+					// http-nginx + php-fpm and the Go front is the sole listener; without it
+					// the node stays dual-stacked until the next restart. Serve-only only.
+					call_user_func($rRunSSH, $rConn, 'sudo systemctl restart xc_vm');
 				} else {
 					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only');
 				}

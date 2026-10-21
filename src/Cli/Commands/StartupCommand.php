@@ -59,7 +59,9 @@ class StartupCommand implements CommandInterface {
 		exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status 1');
 
 		// ── Восстановление daemons.sh при повреждении ────────
-		if (filesize(MAIN_HOME . 'bin/daemons.sh') == 0) {
+		// Not on a serve-only node: it runs no php-fpm, so daemons.sh + the pool
+		// configs are intentionally absent and must not be regenerated.
+		if (filesize(MAIN_HOME . 'bin/daemons.sh') == 0 && !is_file(MAIN_HOME . 'config/cluster/serve_only')) {
 			echo "Daemons corrupted! Regenerating...\n";
 			$rNewScript = '#! /bin/bash' . "\n";
 			$rNewBalance = 'upstream php {' . "\n" . '    least_conn;' . "\n";
@@ -202,6 +204,13 @@ class StartupCommand implements CommandInterface {
 	 * so a worker whose config was lost comes back on the next boot.
 	 */
 	private function ensurePhpFpmPoolConfigs(string $rBase): void {
+		// A serve-only node runs no php-fpm (the Go front is the whole HTTP surface;
+		// `service` starts no pools), so it provisions none — recreating them here
+		// would undo configureRuntime's gate on the next startup. (CONFIG_PATH is
+		// $rBase . 'config/'; use $rBase so this holds when called with a test base.)
+		if (is_file($rBase . 'config/cluster/serve_only')) {
+			return;
+		}
 		$rTemplatePath = $rBase . 'bin/php/etc/template';
 		if (!file_exists($rTemplatePath)) {
 			return;
