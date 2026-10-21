@@ -94,6 +94,7 @@ plugins:
             Administration: Администрирование
             SSL Certificate Generation: Генерация SSL-сертификата
             Updating a Server: Обновление сервера
+            Upgrading PHP to 8.3: Обновление PHP до 8.3
             MAIN and Load Balancers: MAIN и балансировщики нагрузки
             Server Diagnostics: Диагностика сервера
             Update Mechanism: Механизм обновлений
@@ -164,6 +165,7 @@ nav:
       - Administration:
           - SSL Certificate Generation: en/administration/ssl-generation.md
           - Updating a Server: en/administration/server-update.md
+          - Upgrading PHP to 8.3: en/administration/php-8.3-upgrade.md
           - MAIN and Load Balancers: en/administration/main-lb-cluster.md
           - Server Diagnostics: en/administration/server-diagnostics.md
           - Update Mechanism: en/administration/update-system.md
