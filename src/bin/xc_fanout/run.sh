@@ -90,9 +90,21 @@ while true; do
     if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-front'; then
       touch "$SCRIPT/config/cluster/front_capable" 2>/dev/null
       FRONT_ADDR=$(cat "$SCRIPT/config/cluster/front_addr" 2>/dev/null); FRONT_ADDR=${FRONT_ADDR:-:443}
-      FRONT=(-front "$FRONT_ADDR" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "http://127.0.0.1:8080")
+      # A binary that also knows -front-agent-sock is the full single-binary front:
+      # run it as the SOLE listener — no nginx backend (-front-nginx ""), with /xfile,
+      # /stream/rtmp and /admin/* routed to the agent socket — and record
+      # config/cluster/front_sole so `service` skips http-nginx + php-fpm. An older
+      # -front-only binary keeps the strangler backend and leaves no front_sole marker,
+      # so `service` keeps nginx/php-fpm and the node never goes dark.
+      if "$FANOUT_DIR/xc_fanout" -h 2>&1 | grep -q -- '-front-agent-sock'; then
+        FRONT=(-front "$FRONT_ADDR" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "" -front-agent-sock "$SCRIPT/config/cluster/agent.sock")
+        touch "$SCRIPT/config/cluster/front_sole" 2>/dev/null
+      else
+        FRONT=(-front "$FRONT_ADDR" -front-cert "$SCRIPT/bin/nginx/conf/server.crt" -front-key "$SCRIPT/bin/nginx/conf/server.key" -front-nginx "http://127.0.0.1:8080")
+        rm -f "$SCRIPT/config/cluster/front_sole" 2>/dev/null
+      fi
     else
-      rm -f "$SCRIPT/config/cluster/front_capable" 2>/dev/null
+      rm -f "$SCRIPT/config/cluster/front_capable" "$SCRIPT/config/cluster/front_sole" 2>/dev/null
     fi
     echo "=== $(date '+%F %T') supervisor pid=$$ spawning daemon (ffmpeg=$FF) ===" >> "$LOG"
     "$FANOUT_DIR/xc_fanout" \
