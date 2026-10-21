@@ -114,6 +114,9 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/front_capable')", $rCron, 'the demote is gated on the run.sh-recorded -front capability file');
 		$this->assertStringContainsString("'backend' => true", $rCron, 'serve_only enqueues the loopback-backend https listener');
 		$this->assertStringContainsString("'listen 127.0.0.1:8080;'", $rCron, 'the backend listener is loopback plaintext :8080');
+		// The php-fpm crash watchdog is skipped on a serve-only node (php-fpm is absent
+		// by design; nginx_rtmp's master + 0 php pids would otherwise restart-loop xc_vm).
+		$this->assertStringContainsString("SettingsManager::get('restart_php_fpm') && !is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the restart_php_fpm watchdog excludes serve-only nodes');
 		// Root-boundary: the root cron must not execute the xc_vm-owned fanout binary
 		// nor write through the xc_vm-owned config/cluster path. It only stat-checks
 		// the capability file run.sh records; no shell_exec in the serve-only block.

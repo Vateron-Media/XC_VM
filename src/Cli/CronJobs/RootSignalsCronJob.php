@@ -1047,7 +1047,11 @@ class RootSignalsCronJob implements CommandInterface {
 		if ($rReload) {
 			self::$rReloadNginx = true; // once, after this pass's actions (reloadAsked())
 		}
-		if (SettingsManager::get('restart_php_fpm')) {
+			// A serve-only node runs no php-fpm by design (the Go front is the whole HTTP
+			// surface), so zero php-fpm PIDs is the intended state, not a crash — and
+			// nginx_rtmp's master still matches `nginx: master`, so without this guard the
+			// check below would see nginx>0 + php==0 and restart xc_vm every pass.
+			if (SettingsManager::get('restart_php_fpm') && !is_file(CONFIG_PATH . 'cluster/serve_only')) {
 			$rPHP = count(glob(BIN_PATH . 'php/sockets/*.pid') ?: []);
 			$rNginx = 0;
 			foreach (glob('/proc/*/cmdline') ?: [] as $rCmdFile) {
