@@ -144,6 +144,27 @@ PHP;
 		return $rProperty;
 	}
 
+	public function testResellerCanManageUserAgentPolicyOnlyForItsOwnMag(): void {
+		$this->assertSame(STATUS_SUCCESS, $this->buy('mag'));
+		$rID = $this->id('mag_devices', 'mag_id');
+		$this->rDb->query('SELECT `mac`, `user_id` FROM `mag_devices` WHERE `mag_id` = ?', $rID);
+		$rDevice = $this->rDb->get_raw_row();
+		$rData = ['edit' => $rID, 'mac' => $rDevice['mac'], 'parent_password' => '0000', 'sn' => '', 'stb_type' => '', 'image_version' => '', 'hw_version' => '', 'device_id' => '', 'device_id2' => '', 'ver' => '', 'reseller_notes' => '', 'isp_clear' => '', 'ua_policy_present' => '1', 'allowed_user_agents' => ['Player/1.0']];
+		ResellerAPI::$rPermissions['allow_restrictions'] = 1;
+		foreach ([['lock_user_agent' => '1'], []] as $rLock) {
+			$rResult = ResellerAPI::processMAG($rData + $rLock);
+			$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+			$this->rDb->query('SELECT `lock_user_agent`, `allowed_user_agents` FROM `mag_devices` WHERE `mag_id` = ?', $rID);
+			$rRow = $this->rDb->get_raw_row();
+			$this->assertSame($rLock ? 1 : 0, (int) $rRow['lock_user_agent']);
+			$this->assertSame(['Player/1.0'], json_decode($rRow['allowed_user_agents'], true));
+		}
+		$this->rDb->query('UPDATE `lines` SET `member_id` = 999 WHERE `id` = ?', $rDevice['user_id']);
+		$this->assertFalse(ResellerAPI::processMAG($rData + ['lock_user_agent' => '1']));
+		$this->rDb->query('SELECT `lock_user_agent` FROM `mag_devices` WHERE `mag_id` = ?', $rID);
+		$this->assertSame(0, (int) $this->rDb->get_col());
+	}
+
 	/** The reseller's request begins: it reads the account once, as every reseller request does. */
 	private function startRequest(): void {
 		ResellerAPI::$rUserInfo = UserRepository::getRegisteredUserById(self::RESELLER);

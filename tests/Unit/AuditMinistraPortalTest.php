@@ -82,6 +82,8 @@ namespace {
 			return $this->rResult ? $this->rResult->rowCount() : 0;
 		}
 
+		public function get_raw_row() { return $this->get_row(); }
+
 		public function get_row() {
 			if (!$this->rResult) {
 				return false;

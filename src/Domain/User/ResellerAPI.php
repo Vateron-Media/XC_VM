@@ -11,6 +11,7 @@ use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Reference\UiReference;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Device\DeviceUserAgentPolicy;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Line\ActiveCodeService;
@@ -50,7 +51,7 @@ class ResellerAPI {
 	 * @return array Action result.
 	 */
 	public static function processData(string $rType, array $rData) {
-		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'telegram', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'category_template_id'], 'mag' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
+		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'telegram', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'category_template_id'], 'mag' => ['ua_policy_present', 'lock_user_agent', 'allowed_user_agents', 'edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
 
 		foreach ($rData as $rKey => $rValue) {
 			if (!in_array($rKey, $rArray[$rType])) {
@@ -64,7 +65,7 @@ class ResellerAPI {
 			// only. Each save skips its restrictions block without it, but a new
 			// line is first filled from what was posted: it kept them.
 			if (empty(self::$rPermissions['allow_restrictions'])) {
-				unset($rData['allowed_ips'], $rData['allowed_ua'], $rData['bypass_ua'], $rData['is_isplock'], $rData['isp_clear']);
+				unset($rData['ua_policy_present'], $rData['lock_user_agent'], $rData['allowed_user_agents'], $rData['allowed_ips'], $rData['allowed_ua'], $rData['bypass_ua'], $rData['is_isplock'], $rData['isp_clear']);
 			}
 			// The bouquets chosen are a list of bouquet ids. Anything else is no
 			// choice (the line form sends an empty field when none is ticked), and
@@ -249,6 +250,19 @@ class ResellerAPI {
 				$rUserArray['password'] = AdminHelpers::generateString(32);
 				$rUserArray['created_at'] = time();
 				unset($rArray['mag_id'], $rUserArray['id']);
+			}
+
+			if (isset($rData['ua_policy_present']) && !empty(self::$rPermissions['allow_restrictions'])) {
+				try {
+					$rAgents = DeviceUserAgentPolicy::normalize($rData['allowed_user_agents'] ?? []);
+				} catch (\InvalidArgumentException $rError) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
+				$rArray['lock_user_agent'] = isset($rData['lock_user_agent']) ? 1 : 0;
+				if ($rArray['lock_user_agent'] && !$rAgents) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
+				$rArray['allowed_user_agents'] = json_encode($rAgents);
 			}
 
 			$rUserArray['is_mag'] = 1;

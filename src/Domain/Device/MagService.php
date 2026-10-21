@@ -217,6 +217,7 @@ class MagService {
 	 */
 	public static function process($rData) {
 		$db = self::db();
+		unset($rData['last_user_agent']);
 		if (InputValidator::validate('processMAG', $rData)) {
 			if (isset($rData['edit'])) {
 				if (Authorization::check('adv', 'edit_mag')) {
@@ -287,6 +288,19 @@ class MagService {
 				$rUserArray['is_isplock'] = 1;
 			} else {
 				$rUserArray['is_isplock'] = 0;
+			}
+
+			if (isset($rData['ua_policy_present'])) {
+				try {
+					$rAgents = DeviceUserAgentPolicy::normalize($rData['allowed_user_agents'] ?? []);
+				} catch (\InvalidArgumentException $rError) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
+				$rArray['lock_user_agent'] = isset($rData['lock_user_agent']) ? 1 : 0;
+				if ($rArray['lock_user_agent'] && !$rAgents) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
+				$rArray['allowed_user_agents'] = json_encode($rAgents);
 			}
 
 			if (isset($rData['lock_device'])) {
@@ -467,6 +481,13 @@ class MagService {
 			$rRow['paired'] = UserRepository::getLineById($rRow['user']['pair_id']);
 		}
 
+		// The allowlist is JSON and the observed header must retain its exact bytes.
+		$db->query('SELECT `allowed_user_agents`, `last_user_agent` FROM `mag_devices` WHERE `mag_id` = ?;', $rID);
+		$rAgentFields = $db->get_raw_row();
+		if ($rAgentFields) {
+			$rRow = array_replace($rRow, $rAgentFields);
+		}
+
 		return $rRow;
 	}
 
@@ -544,6 +565,15 @@ class MagService {
 		return true;
 	}
 
+	/** Resellers may reset only devices on lines they are authorized to manage. */
+	public static function resetSTBForReseller(int $rID): bool {
+		if (empty($GLOBALS['rPermissions']['create_mag'])) {
+			return false;
+		}
+		$rDevice = self::getById($rID);
+		return $rDevice && Authorization::check('line', $rDevice['user_id']) && self::resetSTB($rID);
+	}
+
 	/**
 	 * Reset a MAG STB (clear its bound state/keys).
 	 *
@@ -552,6 +582,29 @@ class MagService {
 	 */
 	public static function resetSTB($rID) {
 		$db = self::db();
-		return $db->query("UPDATE `mag_devices` SET `ip` = '', `ver` = '', `image_version` = '', `stb_type` = '', `sn` = '', `device_id` = '', `device_id2` = '', `hw_version` = '', `token` = '' WHERE `mag_id` = ?;", $rID);
+		$rLock = null;
+		if (defined('MINISTRA_TMP_PATH')) {
+			$rLock = @fopen(MINISTRA_TMP_PATH . 'ministra_' . intval($rID) . '.binding.lock', 'c');
+			if (!$rLock || !flock($rLock, LOCK_EX)) {
+				return false;
+			}
+		}
+		try {
+			if (!$db->query("UPDATE `mag_devices` SET `ip` = '', `ver` = '', `image_version` = '', `stb_type` = '', `sn` = '', `device_id` = '', `device_id2` = '', `hw_version` = '', `token` = '', `last_user_agent` = '' WHERE `mag_id` = ?;", $rID)) {
+				return false;
+			}
+			if (defined('MINISTRA_TMP_PATH')) {
+				$rCache = MINISTRA_TMP_PATH . 'ministra_' . intval($rID);
+				if (is_file($rCache) && !unlink($rCache)) {
+					return false;
+				}
+			}
+			return true;
+		} finally {
+			if (is_resource($rLock)) {
+				flock($rLock, LOCK_UN);
+				fclose($rLock);
+			}
+		}
 	}
 }

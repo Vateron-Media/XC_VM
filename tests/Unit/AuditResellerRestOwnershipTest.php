@@ -73,6 +73,23 @@ final class AuditResellerRestOwnershipTest extends TestCase {
 		unset($GLOBALS['db'], $GLOBALS['rUserInfo'], $GLOBALS['rPermissions']);
 	}
 
+	public function testStbResetIsLimitedToOwnedDevicesAndPreservesUserAgentPolicy(): void {
+		foreach ([self::RESELLER, self::OTHER] as $rOwner) {
+			[$rDevice] = $this->device('mag_devices', $rOwner, 1);
+			$this->rDb->query('UPDATE `mag_devices` SET `sn` = ?, `device_id` = ?, `token` = ?, `lock_user_agent` = 1, `allowed_user_agents` = ? WHERE `mag_id` = ?', 'BOUND', 'ID', 'TOKEN', '["Player"]', $rDevice);
+			$this->assertSame($rOwner === self::RESELLER, MagService::resetSTBForReseller($rDevice));
+			$this->rDb->query('SELECT `sn`, `token`, `lock_user_agent`, `allowed_user_agents` FROM `mag_devices` WHERE `mag_id` = ?', $rDevice);
+			$rRow = $this->rDb->get_raw_row();
+			$this->assertSame($rOwner === self::RESELLER ? '' : 'BOUND', $rRow['sn']);
+			$this->assertSame($rOwner === self::RESELLER ? '' : 'TOKEN', $rRow['token']);
+			$this->assertSame(1, (int) $rRow['lock_user_agent']);
+			$this->assertSame('["Player"]', $rRow['allowed_user_agents']);
+		}
+		[$rDevice] = $this->device('mag_devices', self::RESELLER, 1);
+		$GLOBALS['rPermissions']['create_mag'] = false;
+		$this->assertFalse(MagService::resetSTBForReseller($rDevice));
+	}
+
 	/** A line of $rOwner, switched on or off: its id. */
 	private function line(int $rOwner, int $rEnabled, string $rDevice = ''): int {
 		$this->rDb->query('INSERT INTO `lines` (`member_id`, `username`, `password`, `exp_date`, `enabled`, `is_mag`, `is_e2`, `bouquet`, `allowed_outputs`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', $rOwner, 'line_' . bin2hex(random_bytes(4)), 'secret', time() + 30 * 86400, $rEnabled, (int) ($rDevice === 'mag_devices'), (int) ($rDevice === 'enigma2_devices'), '[]', '[1]');

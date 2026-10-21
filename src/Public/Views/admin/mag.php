@@ -29,6 +29,8 @@ $rSelBouquets = is_array($rUser['bouquet'] ?? null)
 $rDeviceIPs   = (isset($rUser['allowed_ips']) && $rUser['allowed_ips'] !== '')
     ? (json_decode((string) $rUser['allowed_ips'], true) ?: [])
     : [];
+$rDeviceAgents = json_decode((string) ($rDevice['allowed_user_agents'] ?? '[]'), true);
+$rDeviceAgents = is_array($rDeviceAgents) ? array_filter($rDeviceAgents, 'is_string') : [];
 $rOwnerRow    = (isset($rUser['member_id']) && ($rTmp = UserRepository::getRegisteredUserById((int) $rUser['member_id']))) ? $rTmp : null;
 
 $categoryTemplates = $categoryTemplates ?? (class_exists(CategoryTemplateService::class) ? CategoryTemplateService::getTemplatesForUser(
@@ -160,6 +162,30 @@ if ($rIsEdit && !empty($rUser['custom_data'])) {
                                 <label class="form-check-label" for="lock_device"><?= $language::get('device_lock'); ?></label>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <input type="hidden" name="ua_policy_present" value="1">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="lock_user_agent" name="lock_user_agent" value="1" <?= !empty($rDevice['lock_user_agent']) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="lock_user_agent"><?= $language::get('mag_lock_user_agent'); ?></label>
+                        </div>
+                        <label class="form-label" for="detected_user_agent"><?= $language::get('mag_detected_user_agent'); ?></label>
+                        <div class="input-group mb-3">
+                            <input type="text" readonly class="form-control" id="detected_user_agent" value="<?= htmlspecialchars((string) ($rDevice['last_user_agent'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
+                            <button type="button" id="add_detected_ua" class="btn btn-primary" aria-label="<?= $language::get('add'); ?>"><i class="icon-base ti tabler-plus"></i></button>
+                        </div>
+                        <label class="form-label" for="mag_ua_field"><?= $language::get('allowed_user_agents'); ?></label>
+                        <div class="input-group mb-3">
+                            <input type="text" id="mag_ua_field" maxlength="1024" class="form-control">
+                            <button type="button" id="add_mag_ua" class="btn btn-primary" aria-label="<?= $language::get('add'); ?>"><i class="icon-base ti tabler-plus"></i></button>
+                            <button type="button" id="remove_mag_ua" class="btn btn-label-danger" aria-label="<?= $language::get('remove'); ?>"><i class="icon-base ti tabler-trash"></i></button>
+                        </div>
+                        <select id="allowed_user_agents" name="allowed_user_agents[]" size="4" class="form-select" multiple>
+                            <?php foreach ($rDeviceAgents as $rAgent): ?>
+                                <option value="<?= htmlspecialchars($rAgent, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>"><?= htmlspecialchars($rAgent, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="mb-6">
@@ -565,6 +591,25 @@ LayoutRenderer::renderFooter('admin');
             });
         });
 
+        var uaList = document.getElementById('allowed_user_agents');
+        var addAgent = function(value) {
+            if (!value || value.length > 1024) return;
+            if (!Array.prototype.some.call(uaList.options, function(o) { return o.value === value; })) {
+                uaList.add(new Option(value, value));
+            }
+        };
+        document.getElementById('add_detected_ua').addEventListener('click', function() {
+            addAgent(document.getElementById('detected_user_agent').value);
+        });
+        document.getElementById('add_mag_ua').addEventListener('click', function() {
+            var field = document.getElementById('mag_ua_field');
+            addAgent(field.value);
+            field.value = '';
+        });
+        document.getElementById('remove_mag_ua').addEventListener('click', function() {
+            Array.prototype.slice.call(uaList.selectedOptions).forEach(function(o) { o.remove(); });
+        });
+
         // Bouquet toggle-all + collect.
         document.getElementById('bqt-toggle').addEventListener('click', function() {
             var boxes = document.querySelectorAll('.mag-bouquet-cb');
@@ -594,6 +639,11 @@ LayoutRenderer::renderFooter('admin');
                 xcToast('Please enter a valid MAC address.', 'warning');
                 return;
             }
+            if (document.getElementById('lock_user_agent').checked && !uaList.options.length) {
+                xcToast(<?= json_encode($language::get('mag_user_agent_required')); ?>, 'warning');
+                return;
+            }
+            Array.prototype.forEach.call(uaList.options, function(o) { o.selected = true; });
             document.getElementById('bouquets_selected').value = collect('mag-bouquet-cb');
             Array.prototype.forEach.call(ipSel.options, function(o) {
                 o.selected = true;

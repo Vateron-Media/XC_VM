@@ -94,6 +94,8 @@ namespace {
 			return $this->rResult ? $this->rResult->rowCount() : 0;
 		}
 
+		public function get_raw_row() { return $this->get_row(); }
+
 		public function get_row() {
 			if (!$this->rResult) {
 				return false;
@@ -110,7 +112,7 @@ namespace {
 	define('SERVER_ID', 1);
 
 	$db = new PortalDb(TestDb::connect($rIn['schema']), $rIn['down']);
-	$rSettings = ['live_streaming_pass' => $rIn['pass'], 'secure_stream_tokens' => $rIn['sealed'], 'allowed_stb_types' => [], 'stalker_lock_images' => [], 'default_timezone' => 'UTC', 'mag_disable_ssl' => 0, 'mag_keep_extension' => 0, 'enable_debug_stalker' => 0];
+	$rSettings = ['live_streaming_pass' => $rIn['pass'], 'secure_stream_tokens' => $rIn['sealed'], 'allowed_stb_types' => [], 'stalker_lock_images' => [], 'default_timezone' => 'UTC', 'mag_disable_ssl' => 0, 'mag_keep_extension' => 0, 'enable_debug_stalker' => ($rIn['debug'] ?? 0)];
 	$rServers = [1 => ['site_url' => 'https://panel.test/', 'http_url' => 'http://panel.test/', 'server_protocol' => 'http']];
 	$rCached = false;
 	$rRequest = $rIn['request'];
@@ -121,6 +123,7 @@ namespace {
 	$rAuthToken = $rIn['token'];
 	$rAgo = $rIn['ago'];
 	$rDebug = $rSettings['enable_debug_stalker'];
+	$_SERVER['HTTP_USER_AGENT'] = $rIn['agent'] ?? 'TestAgent/1.0';
 	$rDevice = [];
 	$rGuard = [];
 	$rSignals = [];
@@ -201,7 +204,7 @@ PHP;
 	 * One portal request.
 	 *
 	 * @param array<string, mixed> $rRequest
-	 * @param array{ago?: int, down?: string, sealed?: int} $rWith how long ago it is made, the queries the database does not answer, and the secure_stream_tokens setting
+	 * @param array{ago?: int, down?: string, sealed?: int, debug?: int} $rWith how long ago it is made, the queries the database does not answer, and the secure_stream_tokens setting
 	 * @return array{body: string, authenticated: ?bool, guard: list<array{0: string, 1: list<mixed>}>, signals: list<array<string, mixed>>, status: int|false}
 	 */
 	private function portal(string $rType, string $rAction, ?string $rToken = null, array $rRequest = [], array $rWith = []): array {
@@ -212,7 +215,7 @@ PHP;
 	 * A portal request started, not waited for (portal()).
 	 *
 	 * @param array<string, mixed> $rRequest
-	 * @param array{ago?: int, down?: string, sealed?: int} $rWith
+	 * @param array{ago?: int, down?: string, sealed?: int, debug?: int} $rWith
 	 * @return array{0: resource, 1: array<int, resource>}
 	 */
 	private function start(string $rType, string $rAction, ?string $rToken = null, array $rRequest = [], array $rWith = []): array {
@@ -286,6 +289,80 @@ PHP;
 		$rEntry = igbinary_unserialize($this->entry());
 		$rEntry['generated'] = time() - 601;
 		file_put_contents($this->rDir . '/ministra/ministra_7', igbinary_serialize($rEntry));
+	}
+
+	public function testBoundSerialCannotBeReplacedOrClearedEvenInDebugMode(): void {
+		foreach ([0, 1] as $rDebug) {
+			foreach ([0, 1] as $rLocked) {
+				$this->rDb->query('UPDATE `mag_devices` SET `lock_device` = ?, `sn` = ?, `device_id` = ? WHERE `mag_id` = 7', $rLocked, 'SN7', 'DEV7');
+				foreach (['OTHER-SERIAL', '', null, ['SN7']] as $rSerial) {
+					$rToken = $this->handshake();
+					$rProfile = $this->portal('stb', 'get_profile', $rToken, ['sn' => $rSerial] + self::BOX, ['debug' => $rDebug]);
+					$this->assertFalse($rProfile['authenticated'], 'A missing or changed serial passed verification');
+					$this->assertSame('SN7', $this->rDb->pdo->query('SELECT `sn` FROM `mag_devices` WHERE `mag_id` = 7')->fetchColumn());
+					$this->assertFalse($this->served($rToken));
+				}
+			}
+		}
+	}
+
+	public function testDebugCannotReplaceLockedDeviceIds(): void {
+		$this->rDb->query('UPDATE `mag_devices` SET `lock_device` = 1, `sn` = ?, `device_id` = ?, `device_id2` = ? WHERE `mag_id` = 7', 'SN7', 'DEV7', 'DEV7B');
+		foreach (['device_id', 'device_id2'] as $rField) {
+			$rToken = $this->handshake();
+			$rProfile = $this->portal('stb', 'get_profile', $rToken, [$rField => 'REPLACEMENT'] + self::BOX, ['debug' => 1]);
+			$this->assertFalse($rProfile['authenticated']);
+			$this->assertSame(['sn' => 'SN7', 'device_id' => 'DEV7', 'device_id2' => 'DEV7B'], $this->rDb->pdo->query('SELECT `sn`, `device_id`, `device_id2` FROM `mag_devices` WHERE `mag_id` = 7')->fetch(PDO::FETCH_ASSOC));
+		}
+	}
+
+	public function testVerificationReadsBindingAgainInsteadOfTrustingCachedSerial(): void {
+		$rToken = $this->verifiedBox();
+		$this->rDb->query('UPDATE `mag_devices` SET `sn` = ? WHERE `mag_id` = 7', 'ADMIN-CHANGED-SERIAL');
+		$rProfile = $this->portal('stb', 'get_profile', $rToken, self::BOX);
+		$this->assertFalse($rProfile['authenticated']);
+		$this->assertSame('ADMIN-CHANGED-SERIAL', $this->rDb->pdo->query('SELECT `sn` FROM `mag_devices` WHERE `mag_id` = 7')->fetchColumn());
+	}
+
+	public function testBindingLookupFailureDoesNotAuthenticateOrReplaceSerial(): void {
+		$rToken = $this->handshake();
+		$rProfile = $this->portal('stb', 'get_profile', $rToken, self::BOX, ['down' => 'SELECT `sn`, `device_id`']);
+		$this->assertSame(503, $rProfile['status']);
+		$this->assertNotTrue($rProfile['authenticated']);
+		$this->assertEmpty($this->rDb->pdo->query('SELECT `sn` FROM `mag_devices` WHERE `mag_id` = 7')->fetchColumn());
+	}
+
+	public function testConcurrentFirstProfilesCannotReplaceTheWinningSerial(): void {
+		$rFirst = $this->start('stb', 'get_profile', $this->handshake(), self::BOX);
+		$rSecond = $this->start('stb', 'get_profile', $this->handshake(), ['sn' => 'OTHER-SERIAL'] + self::BOX);
+		$rAnswers = [$this->answer(...$rFirst), $this->answer(...$rSecond)];
+		$this->assertSame(1, count(array_filter($rAnswers, static fn(array $rAnswer): bool => $rAnswer['authenticated'] === true)));
+		$rStored = $this->rDb->pdo->query('SELECT `sn` FROM `mag_devices` WHERE `mag_id` = 7')->fetchColumn();
+		$this->assertSame($rAnswers[0]['authenticated'] ? 'SN7' : 'OTHER-SERIAL', $rStored);
+	}
+
+	public function testUserAgentAllowlistAppliesToNewAndExistingSessions(): void {
+		$rAgent = 'Player/1.0 "quoted" & exact';
+		$this->rDb->query('UPDATE `mag_devices` SET `lock_user_agent` = 1, `allowed_user_agents` = ? WHERE `mag_id` = 7', json_encode([$rAgent]));
+		$rDeniedToken = $this->handshake();
+		$rDenied = $this->portal('stb', 'get_profile', $rDeniedToken, self::BOX, ['agent' => 'OtherPlayer', 'debug' => 1]);
+		$this->assertFalse($rDenied['authenticated']);
+		$this->assertSame('OtherPlayer', $this->rDb->pdo->query('SELECT `last_user_agent` FROM `mag_devices` WHERE `mag_id` = 7')->fetchColumn());
+		$this->assertSame(json_encode([$rAgent]), $this->rDb->pdo->query('SELECT `allowed_user_agents` FROM `mag_devices` WHERE `mag_id` = 7')->fetchColumn(), 'Observed headers must never be auto-allowed');
+		$rToken = $this->handshake();
+		$rAllowed = $this->portal('stb', 'get_profile', $rToken, self::BOX, ['agent' => $rAgent]);
+		$this->assertTrue($rAllowed['authenticated']);
+		$this->assertTrue($this->portal('stb', 'get_modules', $rToken, [], ['agent' => $rAgent])['authenticated']);
+		$this->assertFalse($this->portal('stb', 'get_modules', $rToken, [], ['agent' => 'OtherPlayer'])['authenticated']);
+		$this->rDb->query('UPDATE `mag_devices` SET `allowed_user_agents` = ? WHERE `mag_id` = 7', '[]');
+		$this->assertFalse($this->portal('stb', 'get_modules', $rToken, [], ['agent' => $rAgent])['authenticated'], 'Changing the allowlist must affect existing sessions');
+	}
+
+	public function testWrongDeviceIdentityCannotReplaceObservedUserAgent(): void {
+		$this->rDb->query('UPDATE `mag_devices` SET `sn` = ?, `last_user_agent` = ? WHERE `mag_id` = 7', 'ORIGINAL', 'VerifiedPlayer');
+		$rProfile = $this->portal('stb', 'get_profile', $this->handshake(), self::BOX, ['agent' => 'Scanner', 'debug' => 1]);
+		$this->assertFalse($rProfile['authenticated']);
+		$this->assertSame('VerifiedPlayer', $this->rDb->pdo->query('SELECT `last_user_agent` FROM `mag_devices` WHERE `mag_id` = 7')->fetchColumn());
 	}
 
 	public function testAHandshakeLeavesTheDeviceItsTokenAndItsEntry(): void {

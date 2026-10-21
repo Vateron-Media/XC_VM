@@ -74,6 +74,8 @@ namespace {
 			return $this->rFailed ? 0 : $this->rDb->num_rows();
 		}
 
+		public function get_raw_row() { return $this->get_row(); }
+
 		public function get_row() {
 			return $this->rFailed ? [] : $this->rDb->get_row();
 		}

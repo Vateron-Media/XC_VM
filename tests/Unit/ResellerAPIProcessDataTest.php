@@ -59,6 +59,18 @@ final class ResellerAPIProcessDataTest extends TestCase {
 		}
 	}
 
+	public function testMagUserAgentFieldsRequireRestrictionPermissionAndNeverAcceptObservedHeader(): void {
+		$rBefore = ResellerAPI::$rPermissions;
+		$rPosted = ['ua_policy_present' => '1', 'lock_user_agent' => '1', 'allowed_user_agents' => ['Player'], 'last_user_agent' => 'FORGED'];
+		try {
+			ResellerAPI::$rPermissions = ['allow_restrictions' => 0];
+			$this->assertSame([], ResellerAPI::processData('mag', $rPosted));
+			ResellerAPI::$rPermissions = ['allow_restrictions' => 1];
+			unset($rPosted['last_user_agent']);
+			$this->assertSame($rPosted, ResellerAPI::processData('mag', $rPosted + ['last_user_agent' => 'FORGED']));
+		} finally { ResellerAPI::$rPermissions = $rBefore; }
+	}
+
 	public function testResellerCannotChangeItsOwnBouquetAllowance(): void {
 		$this->assertSame([], ResellerAPI::processData('user', ['allowed_bouquets' => [1, 2], 'bouquet_limit_enabled' => '0']));
 	}
