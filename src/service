@@ -8,6 +8,15 @@ if [ "$USER" != "root" ]; then
   exit 0
 fi
 
+# A serve-only node whose run.sh launched the sole Go front (it wrote the
+# front_sole marker): the Go binary is the whole HTTP surface, so http-nginx and
+# php-fpm are not started. nginx_rtmp, the fanout/agent supervisors and the PHP
+# CLI stay. A node without the marker (older binary, or not serve-only) keeps
+# nginx + php-fpm, so it never goes dark.
+sole_front() {
+  [ -f $SCRIPT/config/cluster/serve_only ] && [ -f $SCRIPT/config/cluster/front_sole ]
+}
+
 # Launch every XC_VM service. Does NOT block — shared by start (foreground) and
 # restart (returns to the shell).
 boot() {
@@ -69,9 +78,13 @@ boot() {
       sudo -u xc_vm timeout 15 $SCRIPT/bin/php/bin/php $SCRIPT/console.php cluster:apply --from-disk >/dev/null 2>/dev/null
     fi
   fi
-  sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
+  if ! sole_front; then
+    sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
+  fi
   sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp >/dev/null 2>/dev/null
-  sudo -u xc_vm $SCRIPT/bin/daemons.sh
+  if ! sole_front; then
+    sudo -u xc_vm $SCRIPT/bin/daemons.sh
+  fi
   # startup runs as root by design (root crontab, embedded `status 1`);
   # it delegates the cache builds to xc_vm itself.
   sudo $SCRIPT/bin/php/bin/php $SCRIPT/console.php startup
@@ -153,7 +166,10 @@ reload() {
     return 1
   fi
   echo 'Reloading XC_VM...'
-  sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx -s reload
+  # http-nginx is not running on a sole-front serve-only node; nginx_rtmp always is.
+  if ! sole_front; then
+    sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx -s reload
+  fi
   sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp -s reload
 }
 
