@@ -301,4 +301,20 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('touch "$SCRIPT/config/cluster/serve_only_active"', $rRun, 'run.sh signals the handover only when it launches a capable agent');
 		$this->assertStringContainsString('rm -f "$SCRIPT/config/cluster/serve_only_active"', $rRun, 'run.sh clears the handover for an older binary, leaving PHP to write the policy');
 	}
+
+	public function testServeOnlyNodeSelfHealsItsBinaryInGoNotRootSignals(): void {
+		// P2: once the serve-only handover is complete (serve_only_active), the Go
+		// agent self-heals its own xc_node binary, so root_signals must not also
+		// spawn console.php fanout_binary (two updaters racing the same binary).
+		// Before the handover (older agent) PHP keeps doing it; the run.sh keepalive
+		// respawn is untouched either way.
+		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
+		$this->assertMatchesRegularExpression(
+			"/&& !is_file\\(CONFIG_PATH \\. 'cluster\\/serve_only_active'\\)\\) \\{\\s*file_put_contents\\(\\\$rFanoutStamp/s",
+			$rCron,
+			'the fanout_binary self-heal spawn is gated off once the agent has taken over (serve_only_active)'
+		);
+		$this->assertStringContainsString("'console.php', 'fanout_binary']", $rCron, 'the fanout_binary self-heal stays for a non-serve-only / pre-handover node');
+		$this->assertStringContainsString('bash /home/xc_vm/bin/xc_agent/run.sh >/dev/null 2>&1 &', $rCron, 'the run.sh keepalive respawn is untouched');
+	}
 }

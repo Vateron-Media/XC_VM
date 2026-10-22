@@ -974,7 +974,12 @@ class RootSignalsCronJob implements CommandInterface {
 		$rFanoutStamp = CRONS_TMP_PATH . 'fanout_binary_check';
 		// Ten minutes while the daemon is wanted and not there yet (fanout just switched on, or a download that failed).
 		$rFanoutWait = $rFanoutEnabled && !is_executable(MAIN_HOME . 'bin/xc_fanout/xc_fanout') ? 600 : 3600;
-		if (!file_exists($rFanoutStamp) || time() - intval(@file_get_contents($rFanoutStamp) ?: 0) > $rFanoutWait) {
+		// Once the serve-only handover is complete the Go agent self-heals its own
+		// xc_node binary (both tools), so PHP must not also spawn fanout_binary —
+		// two updaters would race the same files. Before the handover (an older
+		// agent binary) PHP keeps doing it, so a fresh/serve-only node still
+		// converges. The run.sh keepalive above is untouched.
+		if ((!file_exists($rFanoutStamp) || time() - intval(@file_get_contents($rFanoutStamp) ?: 0) > $rFanoutWait) && !is_file(CONFIG_PATH . 'cluster/serve_only_active')) {
 			file_put_contents($rFanoutStamp, time());
 			ProcessRunner::start($rFanoutEnabled ? [PHP_BIN, MAIN_HOME . 'console.php', 'fanout_binary'] : [PHP_BIN, MAIN_HOME . 'console.php', 'fanout_binary', 'agent']);
 		}
