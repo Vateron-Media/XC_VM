@@ -167,6 +167,17 @@ final class GitHubReleasesTest extends TestCase {
 		array('tag_name' => '2.5.4-dev.6', 'prerelease' => true),
 	);
 
+	public function testDateTaggedReleasesKeepTheApiNewestFirstOrder() {
+		$rBinaries = array(
+			array('tag_name' => '21102026', 'prerelease' => true),
+			array('tag_name' => '01102026', 'prerelease' => true),
+			array('tag_name' => '29062026', 'prerelease' => false),
+			array('tag_name' => '24062026', 'prerelease' => false),
+		);
+		$this->assertSame('21102026', $this->clientWithReleases('beta', array('XC_VM' => $rBinaries))->getReleases()[0]);
+		$this->assertSame('29062026', $this->clientWithReleases('stable', array('XC_VM' => $rBinaries))->getReleases()[0]);
+	}
+
 	public function testIsDevVersionMatchesNightlyTagsOnly() {
 		$this->assertTrue(GitHubReleases::isDevVersion('2.5.4-dev.12'));
 		$this->assertFalse(GitHubReleases::isDevVersion('2.5.4'));

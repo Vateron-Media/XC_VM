@@ -7,7 +7,7 @@ Your panel version, database and settings do not change. Only the runtime bundle
 !!! danger "Do not skip step 1"
     Never install the PHP 8.3 bundle on a server that has not passed step 1. Without the PHP 8.3 build of `xcvm_core`, the panel does not start and cannot repair itself: you would need SSH access to roll it back.
 
-    **If your MAIN's binaries channel is already Beta** (Settings → Updates → Update Channel — Binaries), its next restart installs the PHP 8.3 bundle on its own. Run step 1 on it now, before anything restarts the panel, or set that channel to Stable.
+    **If your MAIN's binaries channel is Beta** (Settings → Updates → Update Channel — Binaries), set it to **Stable** now: on some panel versions a Beta MAIN installs the PHP 8.3 bundle on its own at its next restart, without step 1.
 
 ---
 
@@ -99,11 +99,9 @@ EOF
 
 ---
 
-## Step 2. Switch the Binaries Channel to Beta (MAIN only)
+## Step 2. Keep the Binaries Channel on Stable (MAIN only)
 
-The PHP 8.3 bundle is published on the **Beta** binaries channel. A MAIN on the Stable channel would put PHP 8.1 back on its next restart.
-
-In the admin panel, open **Settings → Updates**, set **Update Channel — Binaries** to **Beta** and save. Leave **Update Channel — Panel** as it is.
+In the admin panel, open **Settings → Updates** and check that **Update Channel — Binaries** is **Stable** (the default). If it is not, set it to Stable and save. Leave **Update Channel — Panel** as it is.
 
 Load balancers do not need this: they never update their binaries on their own.
 
@@ -114,11 +112,13 @@ Load balancers do not need this: they never update their binaries on their own.
 Run this only on a server whose step 1 printed `READY`:
 
 ```bash
-nohup sh -c 'bash /root/php83/update_binaries.sh Vateron-Media XC_VM_Binaries /home/xc_vm/bin 21102026 && { /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php root:own || true; }' > /root/php83/update.log 2>&1 &
+nohup sh -c 'bash /root/php83/update_binaries.sh Vateron-Media XC_VM_Binaries /home/xc_vm/bin 21102026 && sed -i "s/\"release\": \"21102026\"/\"release\": \"29062026\"/" /home/xc_vm/bin/bin_version.json && { /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php root:own || true; }' > /root/php83/update.log 2>&1 &
 tail -f /root/php83/update.log
 ```
 
 The update keeps going if your SSH session drops. It ends with `Binaries updated successfully` (a panel older than 2.6.6 then also prints an unknown-command line for `root:own`, which is harmless); press `Ctrl+C` to leave the log. If anything fails along the way, the script puts the previous binaries back on its own.
+
+The command records the installed bundle as `29062026`, the current Stable release. The panel checks for new binaries on every restart, and released panels rank `29062026` as the newest bundle on every channel: with the real tag recorded, the next restart would put PHP 8.1 back.
 
 ---
 
@@ -131,15 +131,15 @@ systemctl is-active xc_vm
 
 Expected output: `8.3.x xcvm_core=<version> ioncube=yes`, then `active`.
 
+**Wait two minutes and run it again**: the restart's check for new binaries runs within a minute, so the second run is the one that counts. If it shows `8.1.x`, run step 3 again and open an [issue](https://github.com/Vateron-Media/XC_VM/issues) with `/root/php83/update.log`.
+
 Then log in to the panel and play a stream served by this server. On MAIN, also open the pages of your installed modules.
 
 ---
 
 ## Rolling Back
 
-On MAIN, **first** set **Update Channel — Binaries** back to **Stable** in the panel and save. Otherwise the restart at the end of the rollback queues a binaries update, and MAIN installs PHP 8.3 again within a minute.
-
-Then put back the bundle the server had before step 1:
+This puts back the bundle the server had before step 1:
 
 ```bash
 V=$(sed -n 's/.*"release": *"\([^"]*\)".*/\1/p' /root/php83/bin_version.before.json 2>/dev/null); V=${V:-29062026}
@@ -153,7 +153,7 @@ PHP 8.1 finds its own extensions where they were: the upgrade never removes them
 
 ## After the Upgrade
 
-- **Keep the Beta binaries channel on MAIN** until a release announces PHP 8.3 on Stable. Switching back to Stable earlier installs PHP 8.1 again.
+- **Keep the Stable binaries channel on MAIN.** On Beta, some panel versions install the Beta bundle at the next restart.
 - **Panel updates** work as before; nothing needs to be repeated after them.
 - **A load balancer installed later** comes with PHP 8.1: run steps 1, 3 and 4 on it.
 
