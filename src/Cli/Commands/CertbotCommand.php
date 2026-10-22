@@ -73,7 +73,10 @@ class CertbotCommand implements CommandInterface {
 					mkdir($rCertbotWebroot, 0775, true);
 				}
 				foreach (['--dry-run ', ''] as $rDry) {
-					if (ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] == 80) {
+					// A serve-only node (marker) must use --webroot: --standalone binds its own
+					// :80 and would collide with the Go front that owns the node's ports (the
+					// front serves /.well-known/acme-challenge/ from certbot's -w directory).
+					if (is_file(CONFIG_PATH . 'cluster/serve_only') || ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] == 80) {
 						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --webroot -w ' . $rCertbotWebroot;
 					} else {
 						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --standalone';
