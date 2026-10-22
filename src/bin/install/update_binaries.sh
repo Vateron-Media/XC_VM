@@ -311,7 +311,10 @@ install_component_merge() {
         INSTALLED_PATHS+=("$component")
     fi
 
-    cp -a "$stage_path/." "$target_path/"
+    # Unlink each file before writing it: php or nginx still running from the
+    # tree (root's cron, outside the stopped service) failed the copy with
+    # "Text file busy".
+    cp -a --remove-destination "$stage_path/." "$target_path/"
 }
 
 install_component_replace() {

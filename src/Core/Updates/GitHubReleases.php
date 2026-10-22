@@ -227,7 +227,9 @@ class GitHubReleases {
 	 * in. The result is ordered by version, not by the API's order, which is
 	 * by publication: the two repositories' orders do not interleave, and a
 	 * patch build of an older release (2.6.5-p3) is published after the
-	 * release that follows it (2.6.6), which it must not hide.
+	 * release that follows it (2.6.6), which it must not hide. Date tags
+	 * (the binaries' DDMMYYYY) have no version order: version_compare() put
+	 * 29062026 above 21102026, so they keep the API's newest-first order.
 	 *
 	 * @return array<int,array<string,mixed>> Filtered GitHub release objects.
 	 * @throws \Exception If the request fails.
@@ -243,7 +245,9 @@ class GitHubReleases {
 				error_log("Failed to fetch dev releases from {$this->devRepo}: " . $e->getMessage());
 			}
 		}
-		usort($releases, static fn($a, $b) => version_compare((string) ($b['tag_name'] ?? ''), (string) ($a['tag_name'] ?? '')));
+		if (array_filter($releases, static fn($r) => !str_contains((string) ($r['tag_name'] ?? ''), '.')) === []) {
+			usort($releases, static fn($a, $b) => version_compare((string) ($b['tag_name'] ?? ''), (string) ($a['tag_name'] ?? '')));
+		}
 
 		return $releases;
 	}
