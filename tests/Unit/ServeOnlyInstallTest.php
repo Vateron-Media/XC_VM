@@ -168,11 +168,19 @@ final class ServeOnlyInstallTest extends TestCase {
 		LbInstallFlow::configureRuntime(null, $rSendFileSSH, $rRunSSH, $rServers, 1, true);
 		$rAll = implode("\n", array_merge($rRun, $rSend));
 
-		// Nothing HTTP-nginx or php-fpm is emitted for a serve-only node...
-		$this->assertStringNotContainsString('custom.conf', $rAll, 'no HTTP-nginx custom.conf for serve-only');
-		$this->assertStringNotContainsString('limit.conf', $rAll, 'no HTTP-nginx limit.conf for serve-only');
-		$this->assertStringNotContainsString('limit_queue.conf', $rAll, 'no HTTP-nginx limit_queue.conf for serve-only');
-		$this->assertStringNotContainsString('bin/php/etc', $rAll, 'no php-fpm pool configs for serve-only');
+		// The inert HTTP-nginx + php-fpm configs a migrated (pre-cutover) node still
+		// has on disk are torn down (one idempotent `rm -f`); a fresh node never had
+		// them, so rm -f is a no-op there.
+		$rRm = implode("\n", array_filter($rRun, static fn(string $rC): bool => str_contains($rC, 'rm -f')));
+		foreach (['bin/nginx/conf/custom.conf', 'bin/nginx/conf/limit.conf', 'bin/nginx/conf/limit_queue.conf', 'bin/php/etc/*.conf'] as $rPath) {
+			$this->assertStringContainsString($rPath, $rRm, "serve-only teardown removes {$rPath}");
+		}
+		// Nothing HTTP-nginx or php-fpm is PROVISIONED for a serve-only node: no config
+		// is sent, and the limit*/pool writes (distinct from the teardown rm) never run.
+		$this->assertEmpty(array_filter($rSend, static fn(string $rD): bool => str_contains($rD, 'custom.conf') || str_contains($rD, 'bin/php/etc')), 'no HTTP-nginx/php-fpm config is provisioned (sent) for serve-only');
+		$rWrites = implode("\n", array_filter($rRun, static fn(string $rC): bool => !str_contains($rC, 'rm -f')));
+		$this->assertStringNotContainsString('limit.conf', $rWrites, 'no HTTP-nginx limit.conf is written for serve-only (only removed)');
+		$this->assertStringNotContainsString('bin/php/etc', $rWrites, 'no php-fpm pool config is written for serve-only (only removed)');
 		// ...but the RTMP auth-notify, the Go-front listen address, and the realip
 		// CIDRs the front reads ARE emitted.
 		$this->assertStringContainsString('nginx_rtmp/conf/live.conf', $rAll, 'nginx_rtmp live.conf is kept');

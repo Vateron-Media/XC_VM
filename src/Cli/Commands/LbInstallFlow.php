@@ -618,6 +618,12 @@ class LbInstallFlow {
 		$rIP = '127.0.0.1:' . $rServers[$rServerID]['http_broadcast_port'];
 		call_user_func($rRunSSH, $rConn, self::sudoWrite('on_play http://' . $rIP . '/stream/rtmp; on_publish http://' . $rIP . '/stream/rtmp; on_play_done http://' . $rIP . '/stream/rtmp;', '/home/xc_vm/bin/nginx_rtmp/conf/live.conf'));
 		if ($rServeOnly) {
+			// A node migrated from the pre-cutover stack still has the HTTP-nginx +
+			// php-fpm configs on disk; `service` no longer reads them (the serve_only
+			// marker gates boot), so remove them — a serve-only node is "gone from
+			// config". Idempotent: rm -f is a no-op on a fresh node that never wrote
+			// them. The mirror of the files the !$rServeOnly branch writes above.
+			call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . MAIN_HOME . 'bin/nginx/conf/custom.conf ' . MAIN_HOME . 'bin/nginx/conf/limit.conf ' . MAIN_HOME . 'bin/nginx/conf/limit_queue.conf ' . MAIN_HOME . 'bin/php/etc/*.conf');
 			// Serve-only single-binary LB (Phase A): the Go front (xc_fanout -front)
 			// owns the node's public HTTPS port and reverse-proxies non-serve requests
 			// to nginx on a loopback backend (127.0.0.1:8080). nginx trusts the front on
