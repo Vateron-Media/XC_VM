@@ -634,6 +634,18 @@ class LbInstallFlow {
 			// plant there and escalate. xc_vm writing its own file crosses no boundary.
 			call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm mkdir -p ' . CONFIG_PATH . 'cluster');
 			call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg(':' . intval($rServers[$rServerID]['https_broadcast_port'])) . ' | sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/front_addr > /dev/null');
+			// Reset ports/https.conf to the node's PUBLIC https port(s): the Go front binds
+			// what this file says, so a node that still carried a stale `listen 127.0.0.1:8080;`
+			// from the retired demote (a pre-rethink release) would otherwise bind loopback
+			// until the port-reconcile cron corrects it. Same `listen <port> ssl;` list the cron
+			// writes (broadcast + https_ports_add); runStartup chowns the tree to xc_vm after.
+			$rHttpsPorts = [];
+			foreach (array_merge([intval($rServers[$rServerID]['https_broadcast_port'])], explode(',', (string) ($rServers[$rServerID]['https_ports_add'] ?? ''))) as $rHttpsPort) {
+				if (is_numeric($rHttpsPort) && $rHttpsPort > 0 && $rHttpsPort <= 65535) {
+					$rHttpsPorts[] = 'listen ' . intval($rHttpsPort) . ' ssl;';
+				}
+			}
+			call_user_func($rRunSSH, $rConn, self::sudoWrite(implode(' ', $rHttpsPorts), MAIN_HOME . 'bin/nginx/conf/ports/https.conf'));
 		}
 		$rServices = (intval(call_user_func($rRunSSH, $rConn, 'sudo cat /proc/cpuinfo | grep "^processor" | wc -l')['output']) ?: 4);
 		// The php-fpm HTTP pools: provisioned for every LB EXCEPT a serve-only one,

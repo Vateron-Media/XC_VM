@@ -184,6 +184,10 @@ final class ServeOnlyInstallTest extends TestCase {
 		// CIDRs the front reads ARE emitted.
 		$this->assertStringContainsString('nginx_rtmp/conf/live.conf', $rAll, 'nginx_rtmp live.conf is kept');
 		$this->assertStringContainsString('cluster/front_addr', $rAll, 'the Go front listen address is recorded');
+		// The front binds ports/https.conf, so the install resets it to the public https
+		// port(s) — undoing any stale :8080 demote a pre-rethink node may carry.
+		$this->assertStringContainsString('ports/https.conf', $rAll, 'configureRuntime resets ports/https.conf for the serve-only front');
+		$this->assertStringContainsString('listen 443 ssl;', $rAll, 'ports/https.conf is set to the public https port (undoing any stale :8080 demote)');
 		$this->assertNotEmpty(array_filter($rSend, static fn(string $rD): bool => str_contains($rD, 'realip_')), 'the realip CIDRs are shipped (the front reads them)');
 	}
 
