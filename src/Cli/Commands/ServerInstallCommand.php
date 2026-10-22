@@ -260,6 +260,18 @@ class ServerInstallCommand implements CommandInterface {
 		// password that happens to equal "--serve-only" can never arm it.
 		$rServeOnly = $rType == 2 && in_array('--serve-only', array_slice($rArgs, 5), true);
 
+		// A serve-only node is credential-free by definition: it holds no DB, mints
+		// no tokens, and runs no php-fpm — so it MUST install in API mode. Refuse
+		// --serve-only on a node that would take MAIN's credentials (a mode-1 LB),
+		// since the serve-only provisioning gate skips its nginx + php-fpm and would
+		// leave that node with no HTTP stack. installsInApiMode() is asked before the
+		// enrolment, so this is decided up front.
+		if ($rServeOnly && !$rApiMode) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "--serve-only requires an API-mode (credential-free) node, but this install is not in API mode (enable lb_new_node_mode=api or cluster mode 2). A serve-only LB holds no database and runs only the Go binary. Exiting\n";
+			return 1;
+		}
+
 		if ($rType == 2 && !LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			return 1;
@@ -346,6 +358,13 @@ class ServerInstallCommand implements CommandInterface {
 				if ($rServeOnly) {
 					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm mkdir -p ' . CONFIG_PATH . 'cluster');
 					call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg((string) $rServerID) . ' | sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/serve_only > /dev/null');
+					// The service was already started during the install, BEFORE this marker
+					// existed — so that boot ran nginx + php-fpm and run.sh brought the front
+					// up alongside them (both on the public ports via SO_REUSEPORT: a split
+					// brain). Restart now that the marker is in place so `service` skips
+					// http-nginx + php-fpm and the Go front is the sole listener; without it
+					// the node stays dual-stacked until the next restart. Serve-only only.
+					call_user_func($rRunSSH, $rConn, 'sudo systemctl restart xc_vm');
 				} else {
 					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only');
 				}

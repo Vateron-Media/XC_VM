@@ -36,24 +36,28 @@ final class ServeOnlyLauncherTest extends TestCase {
 		chmod($rPath, 0755);
 	}
 
-	public function testFanoutRunShLaunchesFrontWithTheConfiguredAddressAndRecordsCapability(): void {
+	public function testFanoutRunShLaunchesTheSoleFront(): void {
 		$rDir = $this->rHome . '/bin/xc_fanout';
 		@mkdir($rDir, 0755, true);
 		@mkdir($this->rHome . '/config/cluster', 0755, true);
 		file_put_contents($this->rHome . '/config/cluster/serve_only', '7');
 		file_put_contents($this->rHome . '/config/cluster/front_addr', ':8443');
 		$rCapture = $rDir . '/captured';
-		// -h lists -front so the gate opens; a real spawn (argv starts with -sock) is recorded.
-		$this->writeStub($rDir . '/xc_fanout', '-front -front-cert -front-key -front-nginx', $rCapture);
+		// -h lists -front-agent-sock (the full single-binary front) so the gate opens;
+		// a real spawn (argv starts with -sock) is recorded.
+		$this->writeStub($rDir . '/xc_fanout', '-front -front-cert -front-key -front-nginx -front-agent-sock', $rCapture);
 
 		shell_exec('XCVM_FANOUT_HOME=' . escapeshellarg($this->rHome)
 			. ' timeout 3 bash ' . escapeshellarg(MAIN_HOME . 'bin/xc_fanout/run.sh') . ' >/dev/null 2>&1');
 
 		$this->assertFileExists($rCapture, 'the fanout daemon was actually spawned');
 		$rArgs = (string) file_get_contents($rCapture);
-		$this->assertStringContainsString('-front :8443', $rArgs, 'the front binds the configured https_broadcast_port from front_addr, not :443');
-		$this->assertStringContainsString('-front-nginx http://127.0.0.1:8080', $rArgs, 'the front proxies non-serve requests to the nginx backend');
-		$this->assertFileExists($this->rHome . '/config/cluster/front_capable', 'the supervisor recorded -front capability for the root cron');
+		$this->assertStringContainsString('-front :8443', $rArgs, 'the front is enabled with the configured https_broadcast_port from front_addr, not :443');
+		$this->assertStringContainsString('-front-agent-sock', $rArgs, 'the sole front routes /xfile, /stream/rtmp and /admin/* to the agent socket');
+		$this->assertStringContainsString('config/cluster/agent.sock', $rArgs, 'the agent socket path is the node AgentPaths::SOCKET');
+		$this->assertStringNotContainsString('-front-nginx http://127.0.0.1:8080', $rArgs, 'no strangler nginx backend — the Go binary is the whole HTTP surface');
+		$this->assertFileDoesNotExist($this->rHome . '/config/cluster/front_capable', 'the retired front_capable marker is not written');
+		$this->assertFileDoesNotExist($this->rHome . '/config/cluster/front_sole', 'the retired front_sole marker is not written');
 	}
 
 	public function testFanoutRunShDoesNotLaunchFrontWithoutTheMarker(): void {

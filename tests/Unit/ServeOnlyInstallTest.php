@@ -23,6 +23,10 @@ final class ServeOnlyInstallTest extends TestCase {
 		if (!defined('SERVER_ID')) {
 			define('SERVER_ID', 1);
 		}
+		// configureRuntime() writes the serve-only front config under CONFIG_PATH.
+		if (!defined('CONFIG_PATH')) {
+			define('CONFIG_PATH', MAIN_HOME . 'config/');
+		}
 	}
 
 	public function testConfigPackCarriesServeOnlyMarkerOnlyWhenServeOnly(): void {
@@ -80,6 +84,10 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertMatchesRegularExpression("/if \\(\\\$rType == 2\\) \\{.*sudo -u xc_vm tee ' \\. CONFIG_PATH \\. 'cluster\\/serve_only/s", $rCmd, 'a completed serve-only install writes the marker as xc_vm');
 		$this->assertStringContainsString("sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'a non-serve-only install clears a stale marker as xc_vm');
 		$this->assertStringNotContainsString("sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'no root chown through the xc_vm-owned marker path (symlink privesc)');
+		// The service is restarted AFTER the marker is written, so the node boots
+		// sole-front (service skips nginx + php-fpm) instead of staying dual-stacked
+		// from the pre-marker boot (SO_REUSEPORT split brain). Guards finding A.
+		$this->assertMatchesRegularExpression("/tee ' \\. CONFIG_PATH \\. 'cluster\\/serve_only[^}]*sudo systemctl restart xc_vm/s", $rCmd, 'a completed serve-only install restarts the service after writing the marker');
 
 		// provisionConfig no longer writes the plaintext marker (so a mid-install
 		// failure cannot leave it); it only packs the PHP-side serve_only into config.enc.
@@ -106,6 +114,9 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/front_capable')", $rCron, 'the demote is gated on the run.sh-recorded -front capability file');
 		$this->assertStringContainsString("'backend' => true", $rCron, 'serve_only enqueues the loopback-backend https listener');
 		$this->assertStringContainsString("'listen 127.0.0.1:8080;'", $rCron, 'the backend listener is loopback plaintext :8080');
+		// The php-fpm crash watchdog is skipped on a serve-only node (php-fpm is absent
+		// by design; nginx_rtmp's master + 0 php pids would otherwise restart-loop xc_vm).
+		$this->assertStringContainsString("SettingsManager::get('restart_php_fpm') && !is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the restart_php_fpm watchdog excludes serve-only nodes');
 		// Root-boundary: the root cron must not execute the xc_vm-owned fanout binary
 		// nor write through the xc_vm-owned config/cluster path. It only stat-checks
 		// the capability file run.sh records; no shell_exec in the serve-only block.
@@ -117,16 +128,79 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('LbInstallFlow::configureRuntime($rConn, $rSendFileSSH, $rRunSSH, $rServers, $rServerID, $rServeOnly)', $rCmd, 'the install threads serve_only into configureRuntime');
 	}
 
+	public function testConfigureRuntimeGatesHttpNginxAndPhpFpmForServeOnly(): void {
+		// The cutover: a serve-only node serves HTTP entirely from the Go front, so
+		// configureRuntime provisions no HTTP-nginx config and no php-fpm pools for it
+		// (the service script then starts neither). nginx_rtmp's live.conf and the Go
+		// front config (front_addr / loopback real-IP) are kept. A mode-1 node is
+		// untouched: the `!$rServeOnly` gate means every one of those calls still runs.
+		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
+
+		// The HTTP-nginx confs (custom.conf + realip_* + limit*) are gated off for serve-only.
+		$this->assertMatchesRegularExpression(
+			"/if \\(!\\\$rServeOnly\\) \\{\\s*call_user_func\\(\\\$rSendFileSSH, \\\$rConn, MAIN_HOME \\. 'bin\\/nginx\\/conf\\/custom\\.conf'/",
+			$rLb,
+			'the HTTP-nginx confs are wrapped in if (!$rServeOnly)'
+		);
+		// The php-fpm pools (rm bin/php/etc + PhpFpmPools::files loop) are gated off for serve-only.
+		$this->assertMatchesRegularExpression(
+			"/if \\(!\\\$rServeOnly\\) \\{\\s*call_user_func\\(\\\$rRunSSH, \\\$rConn, 'sudo rm ' \\. MAIN_HOME \\. 'bin\\/php\\/etc/",
+			$rLb,
+			'the php-fpm pool writes are wrapped in if (!$rServeOnly)'
+		);
+		// nginx_rtmp's auth-notify config is kept for every LB (serve-only included).
+		$this->assertStringContainsString("bin/nginx_rtmp/conf/live.conf", $rLb, 'nginx_rtmp live.conf is still written');
+	}
+
+	public function testConfigureRuntimeServeOnlyEmitsNoHttpNginxOrPhpFpm(): void {
+		// Behavioral: exercise configureRuntime with fake SSH callables and assert the
+		// commands/files it ACTUALLY emits for a serve-only node — so a limit write or
+		// the PhpFpmPools loop moved OUTSIDE the !$rServeOnly guard is caught (the
+		// source assertion above only matches the first command in each gate). For a
+		// serve-only node the fixture-needing parts (template read, TMP_PATH writes)
+		// are gated off, so this runs clean.
+		$rRun = [];
+		$rSend = [];
+		$rRunSSH = function ($rConn, string $rCmd) use (&$rRun) { $rRun[] = $rCmd; return ['output' => '4']; };
+		$rSendFileSSH = function ($rConn, string $rSrc, string $rDst, bool $rWarn = false) use (&$rSend) { $rSend[] = $rDst; return true; };
+		$rServers = [1 => ['server_ip' => '10.0.0.1', 'http_broadcast_port' => 80, 'https_broadcast_port' => 443]];
+
+		LbInstallFlow::configureRuntime(null, $rSendFileSSH, $rRunSSH, $rServers, 1, true);
+		$rAll = implode("\n", array_merge($rRun, $rSend));
+
+		// Nothing HTTP-nginx or php-fpm is emitted for a serve-only node...
+		$this->assertStringNotContainsString('custom.conf', $rAll, 'no HTTP-nginx custom.conf for serve-only');
+		$this->assertStringNotContainsString('limit.conf', $rAll, 'no HTTP-nginx limit.conf for serve-only');
+		$this->assertStringNotContainsString('limit_queue.conf', $rAll, 'no HTTP-nginx limit_queue.conf for serve-only');
+		$this->assertStringNotContainsString('bin/php/etc', $rAll, 'no php-fpm pool configs for serve-only');
+		// ...but the RTMP auth-notify, the Go-front listen address, and the realip
+		// CIDRs the front reads ARE emitted.
+		$this->assertStringContainsString('nginx_rtmp/conf/live.conf', $rAll, 'nginx_rtmp live.conf is kept');
+		$this->assertStringContainsString('cluster/front_addr', $rAll, 'the Go front listen address is recorded');
+		$this->assertNotEmpty(array_filter($rSend, static fn(string $rD): bool => str_contains($rD, 'realip_')), 'the realip CIDRs are shipped (the front reads them)');
+	}
+
+	public function testServeOnlyRequiresApiMode(): void {
+		// A serve-only node is credential-free (no DB, no php-fpm), so --serve-only
+		// must install in API mode; the gate refuses it on a mode-1 (credentialed)
+		// node, whose nginx + php-fpm the provisioning gate would otherwise strip.
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$this->assertMatchesRegularExpression('/if \(\$rServeOnly && !\$rApiMode\) \{/', $rCmd, '--serve-only is refused when the install is not API-mode');
+		$this->assertStringContainsString('--serve-only requires an API-mode', $rCmd, 'the refusal explains a serve-only node must be credential-free');
+	}
+
 	public function testRunShLaunchersThreadServeOnlyFlagsOnTheMarker(): void {
 		$rFanout = (string) file_get_contents(MAIN_HOME . 'bin/xc_fanout/run.sh');
 		$this->assertStringContainsString('config/cluster/serve_only', $rFanout, 'fanout run.sh gates the front on the marker');
-		$this->assertStringContainsString('-front', $rFanout, 'fanout run.sh launches the Go front for a serve-only node');
-		$this->assertStringContainsString('-front-nginx', $rFanout, 'the front strangler proxies non-serve requests to nginx');
-
-		$this->assertStringContainsString("grep -q -- '-front'", $rFanout, 'the front is gated on the fanout binary knowing -front');
-		$this->assertStringContainsString('config/cluster/front_addr', $rFanout, 'the front listens on the node https_broadcast_port (front_addr), not a hardcoded :443');
-		$this->assertStringContainsString('config/cluster/front_capable', $rFanout, 'the supervisor records -front capability (as xc_vm) for the root cron to stat-check');
+		$this->assertStringContainsString("grep -q -- '-front-agent-sock'", $rFanout, 'the sole front is gated on the binary being the full single-binary front (-front-agent-sock implies -front)');
+		$this->assertStringContainsString('-front-nginx ""', $rFanout, 'the sole front has no nginx backend (the Go binary is the whole HTTP surface)');
+		$this->assertStringContainsString('-front-agent-sock "$SCRIPT/config/cluster/agent.sock"', $rFanout, 'the front routes /xfile, /stream/rtmp and /admin/* to the agent socket');
+		$this->assertStringContainsString('config/cluster/front_addr', $rFanout, 'the front is enabled with the node https_broadcast_port (front_addr), not a hardcoded :443');
 		$this->assertStringContainsString('"${FRONT[@]}"', $rFanout, 'the fanout daemon invocation actually expands the FRONT flag array (not just declares it)');
+		// The Phase-A strangler machinery is retired: no nginx loopback backend, no capability/sole markers.
+		$this->assertStringNotContainsString('127.0.0.1:8080', $rFanout, 'no strangler nginx backend — the Go binary serves everything');
+		$this->assertStringNotContainsString('front_capable', $rFanout, 'the front_capable marker is retired (service gates on the serve_only marker alone)');
+		$this->assertStringNotContainsString('front_sole', $rFanout, 'the front_sole marker is retired');
 
 		$rAgent = (string) file_get_contents(MAIN_HOME . 'bin/xc_agent/run.sh');
 		$this->assertStringContainsString('config/cluster/serve_only', $rAgent, 'agent run.sh gates seeding on the marker');
