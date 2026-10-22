@@ -48,6 +48,10 @@ class CertbotCommand implements CommandInterface {
 
 		$rData = json_decode(base64_decode($rArgs[0]), true);
 		if ($rData['action'] == 'certbot_generate') {
+			// A serve-only node (its marker) drives both the webroot authenticator choice
+			// and the front cert sync below. Guard the constant: a unit test can reach the
+			// command-build path without the full CLI bootstrap that defines CONFIG_PATH.
+			$rServeOnly = defined('CONFIG_PATH') && is_file(CONFIG_PATH . 'cluster/serve_only');
 			// The admin's regenerate cleared MAIN's record first: a node in
 			// mode 2, which cannot read it, forgets its copy of it too. It
 			// does for MAIN's renewal (NodeCertbot) as well, which keeps its
@@ -76,7 +80,7 @@ class CertbotCommand implements CommandInterface {
 					// A serve-only node (marker) must use --webroot: --standalone binds its own
 					// :80 and would collide with the Go front that owns the node's ports (the
 					// front serves /.well-known/acme-challenge/ from certbot's -w directory).
-					if (is_file(CONFIG_PATH . 'cluster/serve_only') || ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] == 80) {
+					if ($rServeOnly || ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] == 80) {
 						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --webroot -w ' . $rCertbotWebroot;
 					} else {
 						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --standalone';
@@ -105,7 +109,7 @@ class CertbotCommand implements CommandInterface {
 									$rSSLConfig = $this->buildSslConfig($rCertificate, $rPrivateKey, $rChain);
 									file_put_contents(BIN_PATH . 'nginx/conf/ssl.conf', $rSSLConfig);
 									shell_exec('chown xc_vm:xc_vm ' . BIN_PATH . 'nginx/conf/ssl.conf');
-									self::syncFrontCert(is_file(CONFIG_PATH . 'cluster/serve_only'), $rCertificate, $rPrivateKey, BIN_PATH);
+									self::syncFrontCert($rServeOnly, $rCertificate, $rPrivateKey, BIN_PATH);
 									$rInfo = DiagnosticsService::getCertificateInfo();
 									if ($rInfo['serial']) {
 										NodeStateSink::state(['certbot_ssl' => json_encode($rInfo)], $db);
@@ -179,7 +183,7 @@ class CertbotCommand implements CommandInterface {
 							$rSSLConfig = $this->buildSslConfig($rCertificate, $rPrivateKey, $rChain);
 							file_put_contents(BIN_PATH . 'nginx/conf/ssl.conf', $rSSLConfig);
 							shell_exec('chown xc_vm:xc_vm ' . BIN_PATH . 'nginx/conf/ssl.conf');
-							self::syncFrontCert(is_file(CONFIG_PATH . 'cluster/serve_only'), $rCertificate, $rPrivateKey, BIN_PATH);
+							self::syncFrontCert($rServeOnly, $rCertificate, $rPrivateKey, BIN_PATH);
 							NodeStateSink::state(['certbot_ssl' => json_encode($rSelectedDomain[1])], $db);
 							$rResult = true;
 						}
