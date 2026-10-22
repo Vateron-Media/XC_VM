@@ -624,21 +624,13 @@ class LbInstallFlow {
 			// config". Idempotent: rm -f is a no-op on a fresh node that never wrote
 			// them. The mirror of the files the !$rServeOnly branch writes above.
 			call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . MAIN_HOME . 'bin/nginx/conf/custom.conf ' . MAIN_HOME . 'bin/nginx/conf/limit.conf ' . MAIN_HOME . 'bin/nginx/conf/limit_queue.conf ' . MAIN_HOME . 'bin/php/etc/*.conf');
-			// Serve-only single-binary LB (Phase A): the Go front (xc_fanout -front)
-			// owns the node's public HTTPS port and reverse-proxies non-serve requests
-			// to nginx on a loopback backend (127.0.0.1:8080). nginx trusts the front on
-			// loopback for the viewer IP (the front sets X-Real-IP / X-Forwarded-For and
-			// nginx's real_ip_header is already X-Forwarded-For). php-fpm and the rest of
-			// the node stay; removing them is Phase 5.
-			//
-			// The :443->:8080 demote itself is NOT written here. RootSignalsCronJob owns
-			// the serve-only https listener: it demotes only once the node's fanout is
-			// -front-capable (else it keeps nginx on the public port, so a node whose
-			// binary lacks -front has no outage), and it never reconciles the demoted
-			// listener back to ssl. An unconditional install-time demote created an
-			// outage on a -front-less binary and was reverted by that cron within ~60s.
-			// Here we only set the loopback real-IP trust (static, inert when not
-			// demoted) and record the front's listen address for run.sh — the node's
+			// Serve-only single-binary LB: the Go front (xc_fanout -front) is the whole
+			// HTTP surface and binds the node's public HTTPS port(s) directly — there is
+			// no nginx loopback backend and no :443->:8080 demote (the rethink dropped the
+			// nginx fallback; http-nginx + php-fpm are not provisioned and their configs
+			// are removed above). Here we only keep the loopback real-IP trust (the front
+			// sets X-Real-IP / X-Forwarded-For on anything it still proxies to the agent)
+			// and record the front's listen address for run.sh — the node's
 			// https_broadcast_port, not a hardcoded :443.
 			call_user_func($rRunSSH, $rConn, self::sudoWrite("\nset_real_ip_from 127.0.0.1;\nset_real_ip_from ::1;\n", MAIN_HOME . 'bin/nginx/conf/realip_xc_vm.conf', true));
 			// Written AS xc_vm (never root): config/cluster is xc_vm-owned, so a root

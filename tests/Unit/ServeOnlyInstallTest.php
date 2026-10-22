@@ -97,12 +97,11 @@ final class ServeOnlyInstallTest extends TestCase {
 
 	public function testServeOnlyNginxListenerIsOwnedByRootSignalsNotTheInstall(): void {
 		// The :443->:8080 demote is NOT written at install: an unconditional
-		// install-time demote caused an outage on a -front-less binary and was
-		// reverted by the node's port-reconcile cron within ~60s. configureRuntime
-		// only sets the loopback real-IP trust and records the front's listen
-		// address; RootSignalsCronJob owns the serve-only https listener — it demotes
-		// to the loopback backend only once the fanout is -front-capable (else keeps
-		// the public ssl port, so no outage) and never reconciles the demote to ssl.
+		// install-time demote caused an outage on a -front-less binary. configureRuntime
+		// only sets the loopback real-IP trust and records the front's listen address.
+		// The capability-gated runtime demote in RootSignalsCronJob is now retired too
+		// (the rethink dropped the nginx fallback; front_capable is never written): a
+		// serve-only node keeps its public https ports, which the Go front binds.
 		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
 		$this->assertStringContainsString('bool $rServeOnly = false', $rLb, 'configureRuntime takes the serve_only flag');
 		$this->assertStringNotContainsString("sudoWrite('listen 8080", $rLb, 'the demote is NOT written at install — the cron owns it');
@@ -110,10 +109,14 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString("sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/front_addr", $rLb, 'configureRuntime records the front listen address (https_broadcast_port) as xc_vm, not a root write');
 
 		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
-		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the cron is serve_only-aware, strictly gated on the marker');
-		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/front_capable')", $rCron, 'the demote is gated on the run.sh-recorded -front capability file');
-		$this->assertStringContainsString("'backend' => true", $rCron, 'serve_only enqueues the loopback-backend https listener');
-		$this->assertStringContainsString("'listen 127.0.0.1:8080;'", $rCron, 'the backend listener is loopback plaintext :8080');
+		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the cron is still serve_only-aware (the php-fpm watchdog excludes serve-only)');
+		// The capability-gated :8080 demote is retired: the rethink committed serve-only
+		// to the single Go binary with no nginx fallback, so front_capable is never
+		// written and the demote was dead code. A serve-only node keeps its public https
+		// ports (the Go front binds them from ports/https.conf), like a normal LB.
+		$this->assertStringNotContainsString('front_capable', $rCron, 'the dead front_capable-gated demote is retired');
+		$this->assertStringNotContainsString("'backend' => true", $rCron, 'no loopback-backend https listener is enqueued');
+		$this->assertStringNotContainsString("'listen 127.0.0.1:8080;'", $rCron, 'no :8080 demote — a serve-only node keeps its public ports');
 		// The php-fpm crash watchdog is skipped on a serve-only node (php-fpm is absent
 		// by design; nginx_rtmp's master + 0 php pids would otherwise restart-loop xc_vm).
 		$this->assertStringContainsString("SettingsManager::get('restart_php_fpm') && !is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the restart_php_fpm watchdog excludes serve-only nodes');
