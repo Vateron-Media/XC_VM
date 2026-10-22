@@ -143,6 +143,12 @@ while true; do
     # serve-only) still enrols and the flags activate once a capable binary lands.
     if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$AGENT_DIR/xc_agent" run -h 2>&1 | grep -q -- '-serve-only'; then
       SEED+=(-serve-only -gateway-policy "$SCRIPT/tmp/gateway/policy.json")
+      # Signal the handover: this agent owns the replica apply + policy.json, so
+      # `service` boot and cron:cache step aside. If the binary is NOT capable
+      # the marker is cleared, leaving PHP to apply + refresh policy.json (no gap).
+      touch "$SCRIPT/config/cluster/serve_only_active" 2>/dev/null
+    else
+      rm -f "$SCRIPT/config/cluster/serve_only_active" 2>/dev/null
     fi
     pkill -u xc_vm -x xc_agent 2>/dev/null
     started=$(date +%s)

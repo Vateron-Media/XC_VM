@@ -18,6 +18,14 @@ serve_only_node() {
   [ -f $SCRIPT/config/cluster/serve_only ]
 }
 
+# The serve-only handover: run.sh writes this marker only once the installed
+# agent advertises -serve-only (it then owns the replica apply and writes
+# policy.json). Until then PHP keeps applying + writing the policy, so there is
+# no window with a stale/missing gateway policy on an older agent binary.
+serve_only_active() {
+  [ -f $SCRIPT/config/cluster/serve_only_active ]
+}
+
 # Launch every XC_VM service. Does NOT block — shared by start (foreground) and
 # restart (returns to the shell).
 boot() {
@@ -75,9 +83,10 @@ boot() {
   if [ -f $SCRIPT/config/cluster/flows.json ]; then
     FLOWS=$(sed -n 's/.*"flows":\([0-9]*\).*/\1/p' $SCRIPT/config/cluster/flows.json)
     MODE=$(sed -n 's/.*"mode":\([0-9]*\).*/\1/p' $SCRIPT/config/cluster/flows.json)
-    # A serve-only node applies the replica in Go (the agent), not console.php:
-    # its gateway reads tmp/gateway/policy.json the agent writes, not PHP caches.
-    if [ -n "$FLOWS" ] && [ -n "$MODE" ] && [ "$MODE" -ge 1 ] && [ $((FLOWS & 32)) -ne 0 ] && ! serve_only_node; then
+    # Once the serve-only handover is complete the agent applies the replica in
+    # Go (not console.php). Until then (older agent) PHP still applies, so the
+    # gateway's inputs + policy keep refreshing.
+    if [ -n "$FLOWS" ] && [ -n "$MODE" ] && [ "$MODE" -ge 1 ] && [ $((FLOWS & 32)) -ne 0 ] && ! serve_only_active; then
       sudo -u xc_vm timeout 15 $SCRIPT/bin/php/bin/php $SCRIPT/console.php cluster:apply --from-disk >/dev/null 2>/dev/null
     fi
   fi
