@@ -82,7 +82,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		// escalate).
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertMatchesRegularExpression("/if \\(\\\$rType == 2\\) \\{.*sudo -u xc_vm tee ' \\. CONFIG_PATH \\. 'cluster\\/serve_only/s", $rCmd, 'a completed serve-only install writes the marker as xc_vm');
-		$this->assertStringContainsString("sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'a non-serve-only install clears a stale marker as xc_vm');
+		$this->assertStringContainsString("if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm", $rCmd, 'a non-serve-only install clears a stale marker as xc_vm, then restarts to boot nginx + php-fpm (downgrade)');
 		$this->assertStringNotContainsString("sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'no root chown through the xc_vm-owned marker path (symlink privesc)');
 		// The service is restarted AFTER the marker is written, so the node boots
 		// sole-front (service skips nginx + php-fpm) instead of staying dual-stacked
@@ -97,12 +97,11 @@ final class ServeOnlyInstallTest extends TestCase {
 
 	public function testServeOnlyNginxListenerIsOwnedByRootSignalsNotTheInstall(): void {
 		// The :443->:8080 demote is NOT written at install: an unconditional
-		// install-time demote caused an outage on a -front-less binary and was
-		// reverted by the node's port-reconcile cron within ~60s. configureRuntime
-		// only sets the loopback real-IP trust and records the front's listen
-		// address; RootSignalsCronJob owns the serve-only https listener — it demotes
-		// to the loopback backend only once the fanout is -front-capable (else keeps
-		// the public ssl port, so no outage) and never reconciles the demote to ssl.
+		// install-time demote caused an outage on a -front-less binary. configureRuntime
+		// only sets the loopback real-IP trust and records the front's listen address.
+		// The capability-gated runtime demote in RootSignalsCronJob is now retired too
+		// (the rethink dropped the nginx fallback; front_capable is never written): a
+		// serve-only node keeps its public https ports, which the Go front binds.
 		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
 		$this->assertStringContainsString('bool $rServeOnly = false', $rLb, 'configureRuntime takes the serve_only flag');
 		$this->assertStringNotContainsString("sudoWrite('listen 8080", $rLb, 'the demote is NOT written at install — the cron owns it');
@@ -110,10 +109,14 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString("sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/front_addr", $rLb, 'configureRuntime records the front listen address (https_broadcast_port) as xc_vm, not a root write');
 
 		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
-		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the cron is serve_only-aware, strictly gated on the marker');
-		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/front_capable')", $rCron, 'the demote is gated on the run.sh-recorded -front capability file');
-		$this->assertStringContainsString("'backend' => true", $rCron, 'serve_only enqueues the loopback-backend https listener');
-		$this->assertStringContainsString("'listen 127.0.0.1:8080;'", $rCron, 'the backend listener is loopback plaintext :8080');
+		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the cron is still serve_only-aware (the php-fpm watchdog excludes serve-only)');
+		// The capability-gated :8080 demote is retired: the rethink committed serve-only
+		// to the single Go binary with no nginx fallback, so front_capable is never
+		// written and the demote was dead code. A serve-only node keeps its public https
+		// ports (the Go front binds them from ports/https.conf), like a normal LB.
+		$this->assertStringNotContainsString('front_capable', $rCron, 'the dead front_capable-gated demote is retired');
+		$this->assertStringNotContainsString("'backend' => true", $rCron, 'no loopback-backend https listener is enqueued');
+		$this->assertStringNotContainsString("'listen 127.0.0.1:8080;'", $rCron, 'no :8080 demote — a serve-only node keeps its public ports');
 		// The php-fpm crash watchdog is skipped on a serve-only node (php-fpm is absent
 		// by design; nginx_rtmp's master + 0 php pids would otherwise restart-loop xc_vm).
 		$this->assertStringContainsString("SettingsManager::get('restart_php_fpm') && !is_file(CONFIG_PATH . 'cluster/serve_only')", $rCron, 'the restart_php_fpm watchdog excludes serve-only nodes');
@@ -168,15 +171,23 @@ final class ServeOnlyInstallTest extends TestCase {
 		LbInstallFlow::configureRuntime(null, $rSendFileSSH, $rRunSSH, $rServers, 1, true);
 		$rAll = implode("\n", array_merge($rRun, $rSend));
 
-		// Nothing HTTP-nginx or php-fpm is emitted for a serve-only node...
+		// Nothing HTTP-nginx or php-fpm is emitted for a serve-only node: configureRuntime
+		// provisions neither. (The inert configs a migrated node still has are torn down by
+		// the install AFTER the serve_only marker is committed — ServerInstallCommand — not
+		// here, so a crash before the marker leaves a working nginx stack.)
 		$this->assertStringNotContainsString('custom.conf', $rAll, 'no HTTP-nginx custom.conf for serve-only');
 		$this->assertStringNotContainsString('limit.conf', $rAll, 'no HTTP-nginx limit.conf for serve-only');
 		$this->assertStringNotContainsString('limit_queue.conf', $rAll, 'no HTTP-nginx limit_queue.conf for serve-only');
+		$this->assertStringNotContainsString('balance.conf', $rAll, 'no php-fpm balance.conf for serve-only');
 		$this->assertStringNotContainsString('bin/php/etc', $rAll, 'no php-fpm pool configs for serve-only');
 		// ...but the RTMP auth-notify, the Go-front listen address, and the realip
 		// CIDRs the front reads ARE emitted.
 		$this->assertStringContainsString('nginx_rtmp/conf/live.conf', $rAll, 'nginx_rtmp live.conf is kept');
 		$this->assertStringContainsString('cluster/front_addr', $rAll, 'the Go front listen address is recorded');
+		// The front binds ports/https.conf, so the install resets it to the public https
+		// port(s) — undoing any stale :8080 demote a pre-rethink node may carry.
+		$this->assertStringContainsString('ports/https.conf', $rAll, 'configureRuntime resets ports/https.conf for the serve-only front');
+		$this->assertStringContainsString('listen 443 ssl;', $rAll, 'ports/https.conf is set to the public https port (undoing any stale :8080 demote)');
 		$this->assertNotEmpty(array_filter($rSend, static fn(string $rD): bool => str_contains($rD, 'realip_')), 'the realip CIDRs are shipped (the front reads them)');
 	}
 
@@ -217,5 +228,57 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('-streams "$SCRIPT/content/streams/"', $rAgent, 'serve streams resolve to STREAMS_PATH (content/streams/)');
 		$this->assertStringContainsString('-logs "$SCRIPT/tmp/logs/"', $rAgent, 'logs resolve to LOGS_TMP_PATH (tmp/logs/)');
 		$this->assertStringContainsString('"${SEED[@]}"', $rAgent, 'the agent run invocation actually expands the SEED flag array (not just declares it)');
+	}
+
+	public function testDowngradeOutOfServeOnlyRestoresHttpNginxAndPhpFpm(): void {
+		// The install boots the service (finalizeHostAfterRuntime) BEFORE the serve_only
+		// marker is touched, so a downgrade out of serve-only must restart AFTER removing the
+		// marker — else the node keeps booting sole-front (no nginx/php-fpm). The downgrade
+		// path removes the marker and restarts, only when the marker was present (a normal
+		// non-serve-only install does not recycle a second time); configureRuntime's
+		// !$rServeOnly branch has already re-written the nginx + php-fpm configs.
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$this->assertMatchesRegularExpression(
+			"/sudo test -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only; then sudo -u xc_vm rm -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only && sudo systemctl restart xc_vm/",
+			$rCmd,
+			'a downgrade removes the marker AND restarts xc_vm (only when the marker was present), so the node boots nginx + php-fpm'
+		);
+		// The serve-only config teardown is committed AFTER the marker (and before the
+		// restart), so a crash mid-convert leaves the configs intact and the node boots the
+		// normal nginx stack; it is NOT in configureRuntime, so a mode-1 node never strips
+		// its own HTTP configs.
+		$this->assertMatchesRegularExpression(
+			"/tee ' \\. CONFIG_PATH \\. 'cluster\\/serve_only > \\/dev\\/null'\\);.*sudo rm -f ' \\. MAIN_HOME \\. 'bin\\/nginx\\/conf\\/custom\\.conf.*sudo systemctl restart xc_vm/s",
+			$rCmd,
+			'the config teardown runs after the serve_only marker is committed and before the restart'
+		);
+		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
+		$this->assertStringNotContainsString("sudo rm -f ' . MAIN_HOME . 'bin/nginx/conf/custom.conf", $rLb, 'the config teardown is NOT in configureRuntime — the install commits it post-marker, so a mode-1 node / failed convert keeps its nginx configs');
+	}
+
+	public function testServeOnlyCronSkipsHttpNginxAndPhpFpmReconcile(): void {
+		// A serve-only node runs no http-nginx or php-fpm, so RootSignalsCronJob must not
+		// reconcile their configs: the rate-limit (limit*.conf) reconcile is gated off (else
+		// it warns on the removed files and re-creates inert ones), the set_services reconcile
+		// is not self-enqueued and its handler ignores a pushed one (else it would stop/start
+		// xc_vm, dropping streams, and re-create the pools/balance.conf the install removed),
+		// and a legacy :8080 `backend` set_port is ignored, never written as a public listener.
+		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
+		$this->assertMatchesRegularExpression(
+			"/if \\(!is_file\\(CONFIG_PATH \\. 'cluster\\/serve_only'\\)\\) \\{.*file_put_contents\\(BIN_PATH \\. 'nginx\\/conf\\/limit\\.conf'/s",
+			$rCron,
+			'the rate-limit (limit.conf) reconcile is gated on !serve_only'
+		);
+		$this->assertStringContainsString("if (\$rCheck['services'] && !is_file(CONFIG_PATH . 'cluster/serve_only')) {", $rCron, 'a serve-only node does not self-enqueue a set_services reconcile');
+		$this->assertMatchesRegularExpression(
+			"/if \\(is_file\\(CONFIG_PATH \\. 'cluster\\/serve_only'\\)\\) \\{\\s*break;\\s*\\}\\s*echo 'Setting PHP Services'/s",
+			$rCron,
+			'the set_services handler short-circuits on a serve-only node before stopping xc_vm or regenerating pools'
+		);
+		$this->assertMatchesRegularExpression(
+			"/if \\(!empty\\(\\\$rData\\['backend'\\]\\)\\) \\{\\s*break;/s",
+			$rCron,
+			'a legacy backend set_port is ignored, not written as a public ssl listener'
+		);
 	}
 }

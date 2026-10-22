@@ -1022,27 +1022,33 @@ class RootSignalsCronJob implements CommandInterface {
 			ProcessRunner::start(['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'ffmpeg']);
 		}
 
-		if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
-			$rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval(($rServers[SERVER_ID]['limit_requests'] ?? 0)) . 'r/s;';
-		} else {
-			$rLimitConf = '';
-		}
-		$rCurrentConf = (trim(file_get_contents(BIN_PATH . 'nginx/conf/limit.conf')) ?: '');
-		if ($rLimitConf != $rCurrentConf) {
-			echo 'Updating rate limit...' . "\n";
-			file_put_contents(BIN_PATH . 'nginx/conf/limit.conf', $rLimitConf);
-			$rReload = true;
-		}
-		if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
-			$rLimitConf = 'limit_req zone=two burst=' . intval(($rServers[SERVER_ID]['limit_burst'] ?? 0)) . ';';
-		} else {
-			$rLimitConf = '';
-		}
-		$rCurrentConf = (trim(file_get_contents(BIN_PATH . 'nginx/conf/limit_queue.conf')) ?: '');
-		if ($rLimitConf != $rCurrentConf) {
-			echo 'Updating rate limit queue...' . "\n";
-			file_put_contents(BIN_PATH . 'nginx/conf/limit_queue.conf', $rLimitConf);
-			$rReload = true;
+		// A serve-only node runs no http-nginx, so skip the rate-limit (limit_req) config
+		// reconcile: nginx never reads it, and after the install removed limit*.conf this
+		// would only warn on the missing files and re-create inert ones (the Go front
+		// applies its own rate limit).
+		if (!is_file(CONFIG_PATH . 'cluster/serve_only')) {
+			if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
+				$rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval(($rServers[SERVER_ID]['limit_requests'] ?? 0)) . 'r/s;';
+			} else {
+				$rLimitConf = '';
+			}
+			$rCurrentConf = (trim(file_get_contents(BIN_PATH . 'nginx/conf/limit.conf')) ?: '');
+			if ($rLimitConf != $rCurrentConf) {
+				echo 'Updating rate limit...' . "\n";
+				file_put_contents(BIN_PATH . 'nginx/conf/limit.conf', $rLimitConf);
+				$rReload = true;
+			}
+			if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
+				$rLimitConf = 'limit_req zone=two burst=' . intval(($rServers[SERVER_ID]['limit_burst'] ?? 0)) . ';';
+			} else {
+				$rLimitConf = '';
+			}
+			$rCurrentConf = (trim(file_get_contents(BIN_PATH . 'nginx/conf/limit_queue.conf')) ?: '');
+			if ($rLimitConf != $rCurrentConf) {
+				echo 'Updating rate limit queue...' . "\n";
+				file_put_contents(BIN_PATH . 'nginx/conf/limit_queue.conf', $rLimitConf);
+				$rReload = true;
+			}
 		}
 		if ($rReload) {
 			self::$rReloadNginx = true; // once, after this pass's actions (reloadAsked())
@@ -1111,7 +1117,7 @@ class RootSignalsCronJob implements CommandInterface {
 						break;
 				}
 			}
-			if ($rCheck['services']) {
+			if ($rCheck['services'] && !is_file(CONFIG_PATH . 'cluster/serve_only')) {
 				$rCurServices = 0;
 				$rStartScript = explode("\n", file_get_contents(MAIN_HOME . 'bin/daemons.sh'));
 				foreach ($rStartScript as $rLine) {
@@ -1131,37 +1137,21 @@ class RootSignalsCronJob implements CommandInterface {
 						$rPorts['http'][] = intval($rPort);
 					}
 				}
-				// Serve-only node (strictly gated on the marker — a normal LB or MAIN
-				// has none and takes the unchanged ssl path): the Go front owns the
-				// public HTTPS port and nginx is demoted to a loopback backend, but only
-				// once the node's fanout is -front-capable (else nginx keeps the public
-				// port, so a binary without -front causes no outage). RootSignals owns
-				// this listener, so the demote is never reverted while -front holds; if a
-				// running front later loses -front, it reverts to the public ssl listener.
-				$rServeOnly = is_file(CONFIG_PATH . 'cluster/serve_only');
-				// -front capability is recorded by the fanout supervisor (run.sh, as
-				// xc_vm) in cluster/front_capable, NOT probed by executing the
-				// xc_vm-owned binary from this root cron (that would be a local root RCE
-				// if the binary were tampered with). The cron only stat-checks the file,
-				// so no root exec or write touches an xc_vm-controlled path. The front's
-				// listen address (front_addr) is written by the install, not here.
-				$rFrontReady = $rServeOnly && is_file(CONFIG_PATH . 'cluster/front_capable');
-				if (!$rFrontReady) {
-					foreach (array_merge([intval($rServers[SERVER_ID]['https_broadcast_port'])], explode(',', $rServers[SERVER_ID]['https_ports_add'])) as $rPort) {
-						if (is_numeric($rPort) && $rPort > 0 && $rPort <= 65535) {
-							$rListen['https'][] = 'listen ' . intval($rPort) . ' ssl;';
-							$rPorts['https'][] = intval($rPort);
-						}
+				// Serve-only node: the Go front owns the public HTTPS port(s) and binds
+				// them from ports/https.conf, so the cron reconciles those files to the
+				// node's public ports exactly as for a normal LB (http-nginx is not
+				// running). The rethink dropped the nginx fallback, so there is no :8080
+				// loopback-backend demote — the capability marker that gated it is gone.
+				foreach (array_merge([intval($rServers[SERVER_ID]['https_broadcast_port'])], explode(',', $rServers[SERVER_ID]['https_ports_add'])) as $rPort) {
+					if (is_numeric($rPort) && $rPort > 0 && $rPort <= 65535) {
+						$rListen['https'][] = 'listen ' . intval($rPort) . ' ssl;';
+						$rPorts['https'][] = intval($rPort);
 					}
 				}
 				if (trim(implode(' ', $rListen['http'])) != trim(file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/http.conf'))) {
 					array_unshift($rRows, ['custom_data' => json_encode(['action' => 'set_port', 'type' => 0, 'ports' => $rPorts['http'], 'reload' => true])]);
 				}
-				if ($rFrontReady) {
-					if ('listen 127.0.0.1:8080;' !== trim(file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'))) {
-						array_unshift($rRows, ['custom_data' => json_encode(['action' => 'set_port', 'type' => 1, 'backend' => true, 'ports' => [8080], 'reload' => true])]);
-					}
-				} elseif (trim(implode(' ', $rListen['https'])) != trim(file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'))) {
+				if (trim(implode(' ', $rListen['https'])) != trim(file_get_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'))) {
 					array_unshift($rRows, ['custom_data' => json_encode(['action' => 'set_port', 'type' => 1, 'ports' => $rPorts['https'], 'reload' => true])]);
 				}
 				if ('listen ' . intval($rServers[SERVER_ID]['rtmp_port']) . ';' != trim(file_get_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/port.conf'))) {
@@ -1449,6 +1439,11 @@ class RootSignalsCronJob implements CommandInterface {
 				echo $rSeedLine . "\n";
 				break;
 			case 'set_services':
+				// Serve-only node runs no php-fpm: ignore a set_services action (it would
+				// restart xc_vm and re-create the pools/balance.conf the install removed).
+				if (is_file(CONFIG_PATH . 'cluster/serve_only')) {
+					break;
+				}
 				echo 'Setting PHP Services' . "\n";
 				$rServices = intval($rData['count']);
 				if ($rData['reload']) {
@@ -1509,19 +1504,18 @@ class RootSignalsCronJob implements CommandInterface {
 						self::$rReloadNginx = true;
 					}
 				} elseif (intval($rData['type']) == 1) {
+					// Legacy safety: a stale `backend` set_port (the retired :8080 demote) must not
+					// be written as a public ssl listener. Nothing enqueues it anymore; ignore it.
 					if (!empty($rData['backend'])) {
-						// Serve-only node: nginx is the Go front's loopback backend, not a
-						// public ssl listener. The front owns the public HTTPS port.
-						NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', 'listen 127.0.0.1:8080;');
-					} else {
-						$rListen = [];
-						foreach ($rData['ports'] as $rPort) {
-							if (is_numeric($rPort) && $rPort >= 80 && $rPort <= 65535) {
-								$rListen[] = 'listen ' . intval($rPort) . ' ssl;';
-							}
-						}
-						NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', implode(' ', $rListen));
+						break;
 					}
+					$rListen = [];
+					foreach ($rData['ports'] as $rPort) {
+						if (is_numeric($rPort) && $rPort >= 80 && $rPort <= 65535) {
+							$rListen[] = 'listen ' . intval($rPort) . ' ssl;';
+						}
+					}
+					NginxPortsFile::write(MAIN_HOME . 'bin/nginx/conf/ports/https.conf', implode(' ', $rListen));
 					if (NodeRole::isMain() && class_exists(ClusterNginxConfig::class)) {
 						shell_exec('sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cluster:nginx --no-reload');
 					}

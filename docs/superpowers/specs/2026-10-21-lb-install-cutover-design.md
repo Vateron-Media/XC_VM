@@ -34,10 +34,16 @@ explicitly out of scope — its nginx + php-fpm stay.
   plugin), and the native `/status` + `/progress` the installer/panel poll.
 - **In-place migration:** re-provisioning (an update over SSH, the same
   `ServerInstallCommand` path) an **already-provisioned API-mode LB** tears down
-  its now-dead HTTP nginx + php-fpm — stop + disable the services, remove their
-  configs and any serve-only crontab entries the agent now owns — and brings up
-  the Go-only run-config, **without dropping active viewer/relay connections**
-  (the front re-binds gracefully; nginx_rtmp and the fanout keep running).
+  its now-dead HTTP nginx + php-fpm — remove their configs and any serve-only
+  crontab entries the agent now owns — and brings up the Go-only run-config.
+  **(Slice-2 correction, 2026-10-22:** `server:install` is a hard stop+restart of
+  the whole node — it opens with `systemctl stop xc_vm` + `killall -9 -u xc_vm`
+  and ends with the same — so a re-provision already drops every stream on that
+  node, as every LB update does. The "no dropped streams / front re-binds
+  gracefully" goal is therefore unachievable via re-provision and is not a
+  regression: the running nginx/php-fpm are torn down by the slice-1 `serve_only`
+  marker + that restart (`boot()` skips them), so slice 2 only removes the
+  leftover config files and the dead demote code.**)
 - **`nginx_rtmp` stays** installed and running (the RTMP byte server); only its
   HTTP auth-notify moved to Go (already done).
 - A node is correctly classified every run, so a re-provision never strips a
@@ -52,8 +58,10 @@ explicitly out of scope — its nginx + php-fpm stay.
   (the php-removal track — several CLI pieces have no Go replacement yet).
 - Not redoing the Go-front listener/route work (done in the prior design) — this
   phase only changes what the installer provisions and what an update strips.
-- Dropping a live stream during the in-place migration (an update must be
-  additive/graceful, like `nginx -s reload`).
+- ~~Dropping a live stream during the in-place migration (an update must be
+  additive/graceful, like `nginx -s reload`).~~ **(SUPERSEDED — see the slice-2
+  correction above: `server:install` is a hard restart, so this cannot be met via
+  re-provision and was never met by any LB update.)**
 
 ## The migration — the risky half (design carefully)
 
@@ -82,9 +90,16 @@ migration slice still owns, inert until that release:
   skipped nginx+php-fpm, so a serve-only node whose `xc_node` lacks the front
   (an un-upgraded or *downgraded* binary — `fanout_binary` self-heals without a
   `service` restart) or whose front crash-loops (bad cert, port in use) stays
-  dark. The migration slice must guarantee the front-capable binary is in place
-  before the `serve_only` marker exists, and/or add a root-signals reconcile that
-  restores nginx+php-fpm when a `serve_only` node has no listening front.
+  dark. **(Slice-2 correction, 2026-10-22:** the "reconcile that restores
+  nginx+php-fpm" is a pre-rethink remnant — the rethink dropped the nginx
+  fallback, so a serve-only node has no nginx/php-fpm configs to restore (a fresh
+  one never got them). The accepted posture is that a serve-only node MUST run a
+  front-capable `xc_node`, shipped as the hard prerequisite with the Fanout
+  release; the reactive safety net that applies already exists and is unchanged:
+  the fanout keepalive supervisor + `fanout_binary` self-heal in
+  `RootSignalsCronJob`. No install-time binary probe is added — the LB archive is
+  built from the same release, so the deployed binary is front-capable by
+  construction.**)
 - **Downgrading a node OUT of serve-only.** Clearing the `serve_only` marker must
   be paired with re-provisioning nginx+php-fpm and a `service restart`, since the
   gate left them unconfigured/stopped.
