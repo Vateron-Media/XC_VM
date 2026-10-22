@@ -6,6 +6,7 @@ use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Cluster\SignalSink;
+use XcVm\Core\Process\ProcessRunner;
 
 /**
  * MAIN → node calls go through two catalogued seams: NodeRpc (system API
@@ -18,6 +19,32 @@ final class NodeRpcActionsTest extends TestCase {
 	protected function tearDown(): void {
 		NodeRpc::useTransport(null);
 		SignalDispatcher::useSink(null);
+		ProcessRunner::useCapturer(null);
+	}
+
+	/**
+	 * MAIN asking itself has no /api to reach since the legacy link went
+	 * (2.7.0): the action runs in `cluster:exec --local`, handed over on stdin.
+	 */
+	public function testMainAsksItselfInAConsoleProcess(): void {
+		defined('SERVER_ID') || define('SERVER_ID', 1);
+		$rCalls = [];
+		ProcessRunner::useCapturer(function (array $rArgv, ?string $rInput) use (&$rCalls) {
+			$rCalls[] = [$rArgv, $rInput];
+			return [0, '["USER PID"]'];
+		});
+		$this->assertSame('["USER PID"]', NodeRpc::request(SERVER_ID, ['action' => 'get_pids'], 7));
+		$this->assertSame(['timeout', '7', PHP_BIN, MAIN_HOME . 'console.php', 'cluster:exec', '--local'], array_slice($rCalls[0][0], -6));
+		$this->assertSame(['action' => 'get_pids'], json_decode((string) $rCalls[0][1], true), 'on stdin, not in argv');
+		$this->assertSame(['result' => true], NodeRpc::broadcast([SERVER_ID], ['action' => 'reload_nginx']));
+		$this->assertCount(2, $rCalls);
+	}
+
+	public function testALocalActionThatFailsAnswersNothing(): void {
+		defined('SERVER_ID') || define('SERVER_ID', 1);
+		ProcessRunner::useCapturer(fn() => [124, '']);
+		$this->assertNull(NodeRpc::request(SERVER_ID, ['action' => 'get_pids']));
+		$this->assertFalse(NodeRpc::submit(SERVER_ID, ['action' => 'free_temp']));
 	}
 
 	private function captureSignals(): object {

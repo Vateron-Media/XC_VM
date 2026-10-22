@@ -5,7 +5,6 @@ namespace XcVm\Domain\Server;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\ClusterHealth;
-use XcVm\Core\Cluster\DataPlane;
 use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Cluster\ReplicaApply;
 use XcVm\Core\Cluster\ReplicaBoot;
@@ -331,56 +330,16 @@ class ServerRepository {
 	}
 
 	/**
-	 * Check/probe a source file on a server.
-	 *
-	 * @param array  $rServers  Servers configuration.
-	 * @param mixed  $rFFProbe  ffprobe path/config.
-	 * @param int    $rServerID Server id.
-	 * @param string $rFilename Source file/path.
-	 * @return mixed Probe result.
-	 */
-	public static function checkSource(array $rServers, mixed $rFFProbe, int $rServerID, string $rFilename) {
-		$rAPI = self::fileUrl($rServers, $rServerID, $rFilename);
-		$rCommand = 'timeout 10 ' . $rFFProbe . ' -user_agent "Mozilla/5.0" -show_streams -v quiet "' . $rAPI . '" -of json';
-		return json_decode(shell_exec($rCommand), true);
-	}
-
-	/**
-	 * The URL MAIN reads another server's file with: through its own agent
-	 * while MAIN's data-plane client is on (DataPlane::fileUrl, ADR 0004,
-	 * Phase 9's eighth increment), else `getFile` of that server's `/api`
-	 * with its IP, as before.
-	 *
-	 * @param array<int, array<string, mixed>> $rServers
-	 */
-	private static function fileUrl(array $rServers, int $rServerID, string $rPath): string {
-		$rLegacy = ($rServers[$rServerID]['api_url_ip'] ?? '') . '&action=getFile&filename=' . urlencode($rPath);
-		if (!DataPlane::on()) {
-			return $rLegacy;
-		}
-		$rUrl = DataPlane::fileUrl($rServers, $rServerID, $rPath);
-		// DataPlane's own legacy URL is the api_url (the server's domain); keep the IP one.
-		return str_starts_with($rUrl, 'http://' . DataPlane::HOST . ':' . DataPlane::PORT . '/') ? $rUrl : $rLegacy;
-	}
-
-	/**
-	 * Get the SSL/certbot log for a server.
+	 * The server's last certbot run (CertbotCommand's log), from the server
+	 * itself: its `/api` `getFile` this was read with is gone (PR #392).
 	 *
 	 * @param int $rServerID Server id.
-	 * @return mixed SSL log contents.
+	 * @return array<string, mixed>|null The decoded log, or null without one.
 	 */
 	public static function getSSLLog(int $rServerID) {
-		global $rServers;
-		$rServer = $rServers[intval($rServerID)] ?? null;
-		if (!$rServer || empty($rServer['api_url_ip'])) {
-			return null;
-		}
-		$rAPI = self::fileUrl($rServers, intval($rServerID), BIN_PATH . 'certbot/logs/xc_vm.log');
-		$rResponse = @file_get_contents($rAPI);
-		if ($rResponse === false) {
-			return null;
-		}
-		return json_decode($rResponse, true);
+		$rLog = NodeRpc::request($rServerID, ['action' => 'ssl_log']);
+		$rLog = is_string($rLog) ? json_decode($rLog, true) : null;
+		return is_array($rLog) ? $rLog : null;
 	}
 
 	/**

@@ -3,6 +3,7 @@
 namespace XcVm\Core\Cluster;
 
 use XcVm\Core\Http\ApiClient;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Domain\Cluster\ClusterRoute;
 
 /**
@@ -26,7 +27,7 @@ final class NodeRpc {
 		'get_archive_files', 'get_certificate_info', 'get_free_space', 'get_pids',
 		'kill_pid', 'kill_plex', 'probe', 'reload_nginx', 'restore_images',
 		'rtmp_kill', 'rtmp_stats', 'scandir', 'scandir_recursive', 'signal_send',
-		'stats', 'stream', 'streams_ramdisk', 'vod',
+		'ssl_log', 'stats', 'stream', 'streams_ramdisk', 'vod',
 	];
 
 	/** @var (callable(string, array<int>, array<string, mixed>, int): mixed)|null */
@@ -42,6 +43,9 @@ final class NodeRpc {
 		self::check($rData);
 		if (self::$rTransport !== null) {
 			return (self::$rTransport)('request', [$rServerID], $rData, $rTimeout);
+		}
+		if (self::isSelf($rServerID)) {
+			return self::local($rData, $rTimeout);
 		}
 		// A node with the COMMANDS flow gets a signed node.rpc command (MAIN only).
 		if (class_exists(ClusterRoute::class)) {
@@ -66,7 +70,7 @@ final class NodeRpc {
 				return $rQueued;
 			}
 		}
-		$rReply = ApiClient::systemRequest($rServerID, $rData, 5);
+		$rReply = self::isSelf($rServerID) ? self::local($rData, 5) : ApiClient::systemRequest($rServerID, $rData, 5);
 		$rAnswer = is_string($rReply) ? json_decode($rReply, true) : null;
 		return is_array($rAnswer) && ($rAnswer['result'] ?? false) === true;
 	}
@@ -84,6 +88,15 @@ final class NodeRpc {
 		if (self::$rTransport !== null) {
 			return (self::$rTransport)('broadcast', array_map('intval', $rServerIDs), $rData, 0);
 		}
+		// MAIN's own share runs here and is waited for (local()); the nodes' is not.
+		$rOthers = array_values(array_filter($rServerIDs, static fn($rServerID): bool => !self::isSelf((int) $rServerID)));
+		if (count($rOthers) !== count($rServerIDs)) {
+			self::local($rData, 5);
+			if ($rOthers === []) {
+				return ['result' => true];
+			}
+			$rServerIDs = $rOthers;
+		}
 		if (class_exists(ClusterRoute::class)) {
 			$rLegacy = [];
 			foreach ($rServerIDs as $rServerID) {
@@ -97,6 +110,31 @@ final class NodeRpc {
 			$rServerIDs = $rLegacy;
 		}
 		return ApiClient::asyncRequest($rServerIDs, $rData);
+	}
+
+	/** The most a local action may answer: a recursive directory scan. */
+	private const LOCAL_MAX = 16 << 20;
+
+	private static function isSelf(int $rServerID): bool {
+		return defined('SERVER_ID') && $rServerID === (int) SERVER_ID;
+	}
+
+	/**
+	 * MAIN asking itself. It has no agent to take a signed command, and its own
+	 * /api went with the load balancers' (PR #392), so the action runs here: in
+	 * a console process, since its handler ends with exit(), and as xc_vm, the
+	 * php-fpm user /api ran it as.
+	 *
+	 * @param array<string, mixed> $rData
+	 * @return string|null the action's response body; null when it failed or outran $rTimeout
+	 */
+	private static function local(array $rData, int $rTimeout): ?string {
+		$rArgv = ['timeout', (string) max(1, $rTimeout), PHP_BIN, MAIN_HOME . 'console.php', 'cluster:exec', '--local'];
+		if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+			$rArgv = ['runuser', '-u', 'xc_vm', '--', ...$rArgv];
+		}
+		[$rStatus, $rOut] = ProcessRunner::capture($rArgv, self::LOCAL_MAX, (string) json_encode($rData));
+		return $rStatus === 0 ? $rOut : null;
 	}
 
 	/** Replace the transport (tests; later the cluster API). Null restores the HTTP transport. */

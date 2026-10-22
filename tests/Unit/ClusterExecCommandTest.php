@@ -112,6 +112,12 @@ final class ClusterExecCommandTest extends TestCase {
 		$this->assertSame(0, $rExit);
 	}
 
+	public function testLocalRunsOnMainOnlyAndOnlyCataloguedActions(): void {
+		$this->assertSame(2, ClusterExecCommand::local(['action' => 'get_pids'], false), 'a load balancer takes signed commands only');
+		$this->assertSame(2, ClusterExecCommand::local(['action' => 'view_log'], true), 'not in NodeRpc::ACTIONS');
+		$this->assertSame(2, ClusterExecCommand::local([], true), 'no action');
+	}
+
 	public function testUnknownTypesAndActionsDoNothing(): void {
 		$this->assertSame(2, ClusterExecCommand::run(['type' => 'node.root', 'action' => 'reboot', 'args' => []]));
 		$this->assertSame(2, ClusterExecCommand::run(['type' => 'node.rpc', 'action' => 'view_log', 'args' => []]), 'not in NodeRpc::ACTIONS');

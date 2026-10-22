@@ -102,6 +102,12 @@ final class ProcessRunnerTest extends TestCase {
 		$this->assertFileExists($rProgram . '.done');
 	}
 
+	/** capture() writes its input to the program's stdin; without one, stdin is /dev/null. */
+	public function testCaptureWritesItsInputToStdin(): void {
+		$this->assertSame([0, 'payload'], ProcessRunner::capture(['cat'], 100, 'payload'));
+		$this->assertSame([0, ''], ProcessRunner::capture(['cat']));
+	}
+
 	/** Its stdin is /dev/null, never this process's. */
 	public function testItsStdinIsDevNull(): void {
 		$rProgram = $this->program('reader', 'cat > "$0.stdin"');

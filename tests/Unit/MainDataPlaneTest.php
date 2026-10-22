@@ -251,12 +251,14 @@ final class MainDataPlaneTest extends TestCase {
 		$this->assertSame(['owners' => [7, 9], 'silent' => 0], ClusterOverview::digestN1([['state' => 'active', 'digest_n1' => '[7]']]));
 	}
 
-	/** Where MAIN reads another server's file: its agent while on, getFile with the server's IP otherwise. */
-	public function testTheSourceProbeAndTheCertbotLogUseTheAgent(): void {
+	/**
+	 * A server's certbot log comes from the server itself (NodeRpc `ssl_log`),
+	 * and no `/api` getFile URL is left to read a file with: it went with PR #392.
+	 */
+	public function testTheCertbotLogComesThroughNodeRpc(): void {
 		$rSrc = (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerRepository.php');
-		$this->assertStringContainsString('$rAPI = self::fileUrl($rServers, $rServerID, $rFilename);', $rSrc);
-		$this->assertStringContainsString("\$rAPI = self::fileUrl(\$rServers, intval(\$rServerID), BIN_PATH . 'certbot/logs/xc_vm.log');", $rSrc);
-		$this->assertStringNotContainsString("['api_url_ip'] . '&action=getFile", str_replace("(\$rServers[\$rServerID]['api_url_ip'] ?? '') . '&action=getFile", '', $rSrc), 'no other getFile URL');
+		$this->assertStringContainsString("NodeRpc::request(\$rServerID, ['action' => 'ssl_log'])", $rSrc);
+		$this->assertStringNotContainsString('action=getFile', $rSrc, 'no getFile URL');
 
 		$rDp = (string) file_get_contents(MAIN_HOME . 'Core/Cluster/DataPlane.php');
 		$this->assertStringContainsString('return NodeFlows::on(NodeFlows::DATAPLANE) || (DataPlaneTrust::main() && MainAgentFiles::on());', $rDp);

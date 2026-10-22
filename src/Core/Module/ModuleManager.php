@@ -81,10 +81,8 @@ class ModuleManager {
 	 * Absolute path of the stored archive for a custom (non-store) module.
 	 *
 	 * MAIN keeps a copy of every uploaded module archive named
-	 * {name}_{version}.zip so LB servers can pull it back over the internal
-	 * system API (action=getFile). Because every server shares the same
-	 * MAIN_HOME layout, the LB can reconstruct this exact path from the name +
-	 * version carried in the install_module signal.
+	 * {name}_{version}.zip: the artefact a load balancer is granted with
+	 * install_module (ArtefactRegistry `module/<name>/<version>`).
 	 */
 	public function archivePathFor(string $name, string $version): string {
 		$name    = $this->sanitizeModuleName($name);
@@ -1311,7 +1309,7 @@ class ModuleManager {
 				$resolvedVer    = (string) ($fresh['version'] ?? $version);
 				$this->recordAvailableVersion($name, null);
 
-				// Keep a local archive so LB nodes can pull it (getFile), then fan out.
+				// Keep a local archive, the artefact LB nodes are granted, then fan out.
 				$this->storeModuleArchive($archive, $name, $resolvedVer);
 				$this->distributeToLoadBalancers($name, $fresh, 'local', $resolvedVer);
 
@@ -1697,10 +1695,9 @@ class ModuleManager {
 
 	/**
 	 * The install_module payload a load balancer gets. A custom module's
-	 * carries its archive's size and SHA-256, so a node that pulls the
-	 * archive the legacy way (getFile) installs only these bytes.
+	 * archive goes with it as the artefact MAIN grants (ArtefactGrants::forRoot).
 	 *
-	 * @return array{action: string, source: string, name: string, version: string, size?: int, sha256?: string}
+	 * @return array{action: string, source: string, name: string, version: string, store_id?: string}
 	 */
 	public function lbInstallPayload(string $name, string $source, string $version): array {
 		$rPayload = [
@@ -1712,11 +1709,6 @@ class ModuleManager {
 		if ($rPayload['source'] === 'platform') {
 			// The LB pulls from the store, which knows the module by its store id.
 			$rPayload['store_id'] = $this->storeIdOf($name);
-		}
-		$rArchive = $this->archivePathFor($name, $version);
-		if ($rPayload['source'] === 'local' && is_file($rArchive)) {
-			$rPayload['size']   = (int) filesize($rArchive);
-			$rPayload['sha256'] = (string) hash_file('sha256', $rArchive);
 		}
 		return $rPayload;
 	}
