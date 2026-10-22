@@ -43,6 +43,8 @@ final class CertbotServeOnlyTest extends TestCase {
 		CertbotCommand::syncFrontCert(true, $rCert, $rKey, $rBase);
 		$this->assertSame('CERT', file_get_contents($rBase . 'nginx/conf/server.crt'), 'serve-only: server.crt becomes the certbot fullchain');
 		$this->assertSame('KEY', file_get_contents($rBase . 'nginx/conf/server.key'), 'serve-only: server.key becomes the certbot privkey');
+		$this->assertFileDoesNotExist($rBase . 'nginx/conf/server.crt.tmp', 'the staged cert temp is renamed into place, not left behind');
+		$this->assertFileDoesNotExist($rBase . 'nginx/conf/server.key.tmp', 'the staged key temp is renamed into place, not left behind');
 
 		file_put_contents($rBase . 'nginx/conf/server.crt', 'KEEP');
 		CertbotCommand::syncFrontCert(true, $rBase . 'absent.pem', $rKey, $rBase);

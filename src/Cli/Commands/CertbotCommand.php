@@ -235,20 +235,42 @@ class CertbotCommand implements CommandInterface {
 	}
 
 	/**
-	 * Copy the certbot cert to the files the Go front reads (server.crt/server.key),
+	 * Install the certbot cert into the files the Go front reads (server.crt/server.key),
 	 * so a serve-only node's front picks up a renewal (its CertReloader watches their
-	 * mtime). A no-op on a non-serve-only node — nginx reads ssl.conf, which still
-	 * points at the certbot live paths — and when either live file is missing, so a
-	 * failed run never clobbers the pair. Chown to xc_vm only when running as root.
-	 * $rBinPath is BIN_PATH (a parameter so the copy is testable).
+	 * mtime). A no-op on a non-serve-only node — nginx reads ssl.conf, which still points
+	 * at the certbot live paths. Both files are staged to a temp and renamed into place,
+	 * so a mid-write failure never leaves a new cert beside an old key (that would break
+	 * the front's only HTTPS surface); a read/stage failure leaves the live pair untouched
+	 * and is logged. Chown to xc_vm only when running as root. $rBinPath is BIN_PATH (a
+	 * parameter so the copy is testable).
 	 */
 	public static function syncFrontCert(bool $rServeOnly, string $rCert, string $rKey, string $rBinPath): void {
-		if (!$rServeOnly || !is_file($rCert) || !is_file($rKey)) {
+		if (!$rServeOnly) {
+			return;
+		}
+		$rCertData = is_file($rCert) ? @file_get_contents($rCert) : false;
+		$rKeyData = is_file($rKey) ? @file_get_contents($rKey) : false;
+		if ($rCertData === false || $rKeyData === false) {
+			error_log('syncFrontCert: cannot read the certbot cert/key (' . $rCert . ', ' . $rKey . '); the front cert is unchanged');
 			return;
 		}
 		$rCrt = $rBinPath . 'nginx/conf/server.crt';
 		$rKeyDst = $rBinPath . 'nginx/conf/server.key';
-		if (@copy($rCert, $rCrt) && @copy($rKey, $rKeyDst) && posix_geteuid() === 0) {
+		// Stage both before touching the live pair: the front must never reload a new cert
+		// beside an old key. A stage failure aborts with the live pair intact.
+		if (@file_put_contents($rCrt . '.tmp', $rCertData) === false || @file_put_contents($rKeyDst . '.tmp', $rKeyData) === false) {
+			@unlink($rCrt . '.tmp');
+			@unlink($rKeyDst . '.tmp');
+			error_log('syncFrontCert: cannot stage the front cert temp files under ' . $rBinPath . 'nginx/conf/; the front cert is unchanged');
+			return;
+		}
+		if (!@rename($rCrt . '.tmp', $rCrt) || !@rename($rKeyDst . '.tmp', $rKeyDst)) {
+			@unlink($rCrt . '.tmp');
+			@unlink($rKeyDst . '.tmp');
+			error_log('syncFrontCert: cannot install the front cert into ' . $rBinPath . 'nginx/conf/; the front cert may be stale');
+			return;
+		}
+		if (posix_geteuid() === 0) {
 			shell_exec('chown xc_vm:xc_vm ' . escapeshellarg($rCrt) . ' ' . escapeshellarg($rKeyDst));
 		}
 	}
