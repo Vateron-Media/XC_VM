@@ -491,14 +491,18 @@ final class ClusterArtefactTest extends TestCase {
 		$this->assertCount(3, $this->commands($rKeys));
 	}
 
-	/** Today's agent never names `artefact` at hello: its root commands stay as they were. */
-	public function testANodeWithoutTheFeatureKeepsTheLegacyPaths(): void {
+	/**
+	 * An agent that does not name `artefact` at hello cannot be granted a
+	 * custom module's archive, and there is no other way to it since the
+	 * legacy `/api` getFile went: nothing is queued. A store module still is.
+	 */
+	public function testANodeWithoutTheFeatureGetsNoCustomModule(): void {
 		$rKeys = $this->activeNode(null);
 		file_put_contents($this->rDir . 'modules_archives/radio_2.0.1.zip', 'PK');
-		$this->assertTrue(NodeActions::send(self::SID, ['action' => 'install_module', 'source' => 'local', 'name' => 'radio', 'version' => '2.0.1']));
-		$rCommands = $this->commands($rKeys);
-		$this->assertCount(1, $rCommands);
-		$this->assertSame(['install_module', ['source' => 'local', 'name' => 'radio', 'version' => '2.0.1']], [$rCommands[0]['action'], $rCommands[0]['args']], 'as before: the node pulls the archive the legacy way');
+		$this->assertFalse(NodeActions::send(self::SID, ['action' => 'install_module', 'source' => 'local', 'name' => 'radio', 'version' => '2.0.1']));
+		$this->assertCount(0, $this->commands($rKeys));
+		$this->assertTrue(NodeActions::send(self::SID, ['action' => 'install_module', 'source' => 'platform', 'name' => 'radio', 'version' => '2.0.1']));
+		$this->assertSame('install_module', $this->commands($rKeys)[0]['action']);
 	}
 
 	/** A grant is a granting command: signed only under a licence, like every other. */

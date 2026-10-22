@@ -392,6 +392,15 @@ final class ArtefactHashRefusalTest extends TestCase {
 	}
 
 	/** The actions that use an artefact take it only from root's stage, checked: never from a signals row or a path a payload names. */
+	/** A custom module without MAIN's grant installs nothing: no `/api` getFile is left to pull it with. */
+	public function testACustomModuleWithoutAGrantIsRefused(): void {
+		ob_start();
+		$rExit = (new ModuleInstallCommand())->execute([base64_encode((string) json_encode(['action' => 'install_module', 'source' => 'local', 'name' => 'radio', 'version' => '1.0']))]);
+		$rOut = (string) ob_get_clean();
+		$this->assertSame(1, $rExit);
+		$this->assertStringContainsString("no archive granted for 'radio' v1.0", $rOut);
+	}
+
 	public function testActionsTakeOnlyAStagedArtefact(): void {
 		$rDb = new class {
 			public function query(string $rQuery, mixed ...$rArgs): bool {

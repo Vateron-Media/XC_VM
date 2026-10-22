@@ -470,7 +470,13 @@ final class ClusterRoute {
 		return self::rowless($rServerID, 'node.root', self::command($rServerID, 'node.root', static function (ClusterCrypto $rCrypto) use ($rServerID, $rPayload): bool {
 			// A strip does not wait a day for its node: it was judged as it was queued (DbCredentials::strip).
 			$rTtl = ($rPayload['action'] ?? null) === NodeCredentials::STRIP ? DbCredentials::STRIP_TTL : null;
-			CommandBus::enqueue($rCrypto, $rServerID, 'node.root', ArtefactGrants::forRoot($rServerID, $rPayload), null, $rTtl);
+			$rArgs = ArtefactGrants::forRoot($rServerID, $rPayload);
+			// A custom module's archive reaches a node only as its artefact.
+			if (($rArgs['action'] ?? null) === 'install_module' && ($rArgs['source'] ?? null) === 'local' && !isset($rArgs['artefact'])) {
+				FileLogger::log('cluster', 'install_module ' . (string) ($rArgs['name'] ?? '') . ' v' . (string) ($rArgs['version'] ?? '') . ' for server ' . $rServerID . ' not queued (no artefact grant)');
+				return false;
+			}
+			CommandBus::enqueue($rCrypto, $rServerID, 'node.root', $rArgs, null, $rTtl);
 			return true;
 		}, false, true), (string) ($rPayload['action'] ?? ''));
 	}

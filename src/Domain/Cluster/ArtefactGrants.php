@@ -90,8 +90,8 @@ final class ArtefactGrants {
 	 * A root action's payload with the grant for the artefact it needs: a
 	 * custom module's archive (install_module from `local`). Unchanged for
 	 * the other actions, and for install_module when the node does not take
-	 * artefacts or MAIN has no such archive (the node then pulls it the
-	 * legacy way).
+	 * artefacts or MAIN has no such archive: ClusterRoute::root() then queues
+	 * nothing, since no other way to the archive is left.
 	 *
 	 * @param array<string, mixed> $rPayload {action, …}
 	 * @return array<string, mixed>
