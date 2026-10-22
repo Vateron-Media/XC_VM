@@ -22,8 +22,14 @@ final class CertbotServeOnlyTest extends TestCase {
 		// bind its own :80 and collide with the Go front that owns the node ports.
 		// The webroot arm is taken for a serve-only node OR when the http port is 80.
 		$rSrc = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/CertbotCommand.php');
-		$this->assertStringContainsString("is_file(CONFIG_PATH . 'cluster/serve_only') || ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] == 80", $rSrc, 'the --webroot arm is taken for a serve-only node (or http port 80)');
-		$this->assertStringContainsString('--webroot -w', $rSrc, 'the webroot authenticator is used');
+		// Pin --webroot to the serve-only / port-80 TRUE arm and --standalone to the else,
+		// so a swapped branch (standalone in the true arm) cannot pass on the text alone.
+		$this->assertMatchesRegularExpression(
+			"/if \\(is_file\\(CONFIG_PATH \\. 'cluster\\/serve_only'\\) \\|\\| ServerRepository::getAll\\(\\)\\[SERVER_ID\\]\\['http_broadcast_port'\\] == 80\\) \\{[^}]*--webroot -w/",
+			$rSrc,
+			'the serve-only / port-80 branch selects --webroot'
+		);
+		$this->assertMatchesRegularExpression("/\\} else \\{[^}]*--standalone/", $rSrc, 'the other branch keeps --standalone');
 	}
 
 	public function testSyncFrontCertCopiesForServeOnlyOnly(): void {

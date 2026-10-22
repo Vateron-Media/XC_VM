@@ -272,7 +272,10 @@ class CertbotCommand implements CommandInterface {
 			error_log('syncFrontCert: cannot stage the front cert under ' . $rDir . '; the front cert is unchanged');
 			return;
 		}
-		if (!@rename($rCrtTmp, $rDir . 'server.crt') || !@rename($rKeyTmp, $rDir . 'server.key')) {
+		// Rename the KEY first, then the CERT: the front's CertReloader reloads on the
+		// cert's mtime, so putting the key in place before the cert means a reload is never
+		// triggered until the matching key is already present.
+		if (!@rename($rKeyTmp, $rDir . 'server.key') || !@rename($rCrtTmp, $rDir . 'server.crt')) {
 			@unlink($rCrtTmp);
 			@unlink($rKeyTmp);
 			error_log('syncFrontCert: cannot install the front cert into ' . $rDir . '; the front cert may be stale');
@@ -289,13 +292,14 @@ class CertbotCommand implements CommandInterface {
 		if ($rTmp === false) {
 			return null;
 		}
-		if (@file_put_contents($rTmp, $rData) === false || !@chmod($rTmp, $rMode)) {
+		// Mirror StartupCommand::replace: a short write (truncation), a failed chmod, or —
+		// as root — a failed chown/chgrp to xc_vm all abort, so a truncated or
+		// front-unreadable file is never renamed into place.
+		if (@file_put_contents($rTmp, $rData) !== strlen($rData) || !@chmod($rTmp, $rMode)
+			|| (posix_geteuid() === 0 && posix_getpwnam('xc_vm') !== false && (!@chown($rTmp, 'xc_vm') || !@chgrp($rTmp, 'xc_vm')))
+		) {
 			@unlink($rTmp);
 			return null;
-		}
-		if (posix_geteuid() === 0) {
-			@chown($rTmp, 'xc_vm');
-			@chgrp($rTmp, 'xc_vm');
 		}
 		return $rTmp;
 	}
