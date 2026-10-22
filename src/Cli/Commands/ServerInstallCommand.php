@@ -358,6 +358,12 @@ class ServerInstallCommand implements CommandInterface {
 				if ($rServeOnly) {
 					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm mkdir -p ' . CONFIG_PATH . 'cluster');
 					call_user_func($rRunSSH, $rConn, 'echo ' . escapeshellarg((string) $rServerID) . ' | sudo -u xc_vm tee ' . CONFIG_PATH . 'cluster/serve_only > /dev/null');
+					// Now that serve_only is committed, remove the now-inert http-nginx + php-fpm
+					// configs the node no longer reads (a serve-only node is "gone from config").
+					// Done AFTER the marker on purpose: a crash before the marker leaves these
+					// intact, so a failed convert still boots the normal nginx stack. Idempotent
+					// (rm -f); bin/daemons.sh is kept (it ships + is chmod'd for every node).
+					call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . MAIN_HOME . 'bin/nginx/conf/custom.conf ' . MAIN_HOME . 'bin/nginx/conf/limit.conf ' . MAIN_HOME . 'bin/nginx/conf/limit_queue.conf ' . MAIN_HOME . 'bin/nginx/conf/balance.conf ' . MAIN_HOME . 'bin/php/etc/*.conf');
 					// The service was already started during the install, BEFORE this marker
 					// existed — so that boot ran nginx + php-fpm and run.sh brought the front
 					// up alongside them (both on the public ports via SO_REUSEPORT: a split
@@ -366,7 +372,12 @@ class ServerInstallCommand implements CommandInterface {
 					// the node stays dual-stacked until the next restart. Serve-only only.
 					call_user_func($rRunSSH, $rConn, 'sudo systemctl restart xc_vm');
 				} else {
-					call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only');
+					// Downgrade out of serve-only: the service already (re)started above
+					// (finalizeHostAfterRuntime) while the marker was still present, so it booted
+					// sole-front (no nginx/php-fpm). Remove the marker and restart so the node boots
+					// its nginx + php-fpm — but only when the marker was actually there (a real
+					// downgrade), so a normal non-serve-only install does not recycle a second time.
+					call_user_func($rRunSSH, $rConn, 'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm; fi');
 				}
 			}
 		} else {

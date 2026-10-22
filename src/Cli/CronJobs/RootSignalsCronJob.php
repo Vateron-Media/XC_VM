@@ -1022,27 +1022,33 @@ class RootSignalsCronJob implements CommandInterface {
 			ProcessRunner::start(['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'ffmpeg']);
 		}
 
-		if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
-			$rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval(($rServers[SERVER_ID]['limit_requests'] ?? 0)) . 'r/s;';
-		} else {
-			$rLimitConf = '';
-		}
-		$rCurrentConf = (trim(file_get_contents(BIN_PATH . 'nginx/conf/limit.conf')) ?: '');
-		if ($rLimitConf != $rCurrentConf) {
-			echo 'Updating rate limit...' . "\n";
-			file_put_contents(BIN_PATH . 'nginx/conf/limit.conf', $rLimitConf);
-			$rReload = true;
-		}
-		if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
-			$rLimitConf = 'limit_req zone=two burst=' . intval(($rServers[SERVER_ID]['limit_burst'] ?? 0)) . ';';
-		} else {
-			$rLimitConf = '';
-		}
-		$rCurrentConf = (trim(file_get_contents(BIN_PATH . 'nginx/conf/limit_queue.conf')) ?: '');
-		if ($rLimitConf != $rCurrentConf) {
-			echo 'Updating rate limit queue...' . "\n";
-			file_put_contents(BIN_PATH . 'nginx/conf/limit_queue.conf', $rLimitConf);
-			$rReload = true;
+		// A serve-only node runs no http-nginx, so skip the rate-limit (limit_req) config
+		// reconcile: nginx never reads it, and after the install removed limit*.conf this
+		// would only warn on the missing files and re-create inert ones (the Go front
+		// applies its own rate limit).
+		if (!is_file(CONFIG_PATH . 'cluster/serve_only')) {
+			if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
+				$rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval(($rServers[SERVER_ID]['limit_requests'] ?? 0)) . 'r/s;';
+			} else {
+				$rLimitConf = '';
+			}
+			$rCurrentConf = (trim(file_get_contents(BIN_PATH . 'nginx/conf/limit.conf')) ?: '');
+			if ($rLimitConf != $rCurrentConf) {
+				echo 'Updating rate limit...' . "\n";
+				file_put_contents(BIN_PATH . 'nginx/conf/limit.conf', $rLimitConf);
+				$rReload = true;
+			}
+			if (($rServers[SERVER_ID]['limit_requests'] ?? 0) > 0) {
+				$rLimitConf = 'limit_req zone=two burst=' . intval(($rServers[SERVER_ID]['limit_burst'] ?? 0)) . ';';
+			} else {
+				$rLimitConf = '';
+			}
+			$rCurrentConf = (trim(file_get_contents(BIN_PATH . 'nginx/conf/limit_queue.conf')) ?: '');
+			if ($rLimitConf != $rCurrentConf) {
+				echo 'Updating rate limit queue...' . "\n";
+				file_put_contents(BIN_PATH . 'nginx/conf/limit_queue.conf', $rLimitConf);
+				$rReload = true;
+			}
 		}
 		if ($rReload) {
 			self::$rReloadNginx = true; // once, after this pass's actions (reloadAsked())
@@ -1111,7 +1117,7 @@ class RootSignalsCronJob implements CommandInterface {
 						break;
 				}
 			}
-			if ($rCheck['services']) {
+			if ($rCheck['services'] && !is_file(CONFIG_PATH . 'cluster/serve_only')) {
 				$rCurServices = 0;
 				$rStartScript = explode("\n", file_get_contents(MAIN_HOME . 'bin/daemons.sh'));
 				foreach ($rStartScript as $rLine) {
@@ -1433,6 +1439,11 @@ class RootSignalsCronJob implements CommandInterface {
 				echo $rSeedLine . "\n";
 				break;
 			case 'set_services':
+				// Serve-only node runs no php-fpm: ignore a set_services action (it would
+				// restart xc_vm and re-create the pools/balance.conf the install removed).
+				if (is_file(CONFIG_PATH . 'cluster/serve_only')) {
+					break;
+				}
 				echo 'Setting PHP Services' . "\n";
 				$rServices = intval($rData['count']);
 				if ($rData['reload']) {
@@ -1493,6 +1504,11 @@ class RootSignalsCronJob implements CommandInterface {
 						self::$rReloadNginx = true;
 					}
 				} elseif (intval($rData['type']) == 1) {
+					// Legacy safety: a stale `backend` set_port (the retired :8080 demote) must not
+					// be written as a public ssl listener. Nothing enqueues it anymore; ignore it.
+					if (!empty($rData['backend'])) {
+						break;
+					}
 					$rListen = [];
 					foreach ($rData['ports'] as $rPort) {
 						if (is_numeric($rPort) && $rPort >= 80 && $rPort <= 65535) {

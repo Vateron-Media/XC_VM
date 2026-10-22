@@ -618,18 +618,13 @@ class LbInstallFlow {
 		$rIP = '127.0.0.1:' . $rServers[$rServerID]['http_broadcast_port'];
 		call_user_func($rRunSSH, $rConn, self::sudoWrite('on_play http://' . $rIP . '/stream/rtmp; on_publish http://' . $rIP . '/stream/rtmp; on_play_done http://' . $rIP . '/stream/rtmp;', '/home/xc_vm/bin/nginx_rtmp/conf/live.conf'));
 		if ($rServeOnly) {
-			// A node migrated from the pre-cutover stack still has the HTTP-nginx +
-			// php-fpm configs on disk; `service` no longer reads them (the serve_only
-			// marker gates boot), so remove them — a serve-only node is "gone from
-			// config". Idempotent: rm -f is a no-op on a fresh node that never wrote
-			// them. (bin/daemons.sh is left — it ships in the archive and is chmod'd
-			// for every node below; it is simply never executed on a serve-only node.)
-			call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . MAIN_HOME . 'bin/nginx/conf/custom.conf ' . MAIN_HOME . 'bin/nginx/conf/limit.conf ' . MAIN_HOME . 'bin/nginx/conf/limit_queue.conf ' . MAIN_HOME . 'bin/nginx/conf/balance.conf ' . MAIN_HOME . 'bin/php/etc/*.conf');
 			// Serve-only single-binary LB: the Go front (xc_fanout -front) is the whole
 			// HTTP surface and binds the node's public HTTPS port(s) directly — there is
 			// no nginx loopback backend and no :443->:8080 demote (the rethink dropped the
-			// nginx fallback; http-nginx + php-fpm are not provisioned and their configs
-			// are removed above). Here we only keep the loopback real-IP trust (the front
+			// nginx fallback; http-nginx + php-fpm are not provisioned here, and their now-
+			// inert configs are removed by the install AFTER the serve_only marker is
+			// committed — see ServerInstallCommand — so a failed convert still boots the
+			// normal nginx stack). Here we only keep the loopback real-IP trust (the front
 			// sets X-Real-IP / X-Forwarded-For on anything it still proxies to the agent)
 			// and record the front's listen address for run.sh — the node's
 			// https_broadcast_port, not a hardcoded :443.
