@@ -35,6 +35,25 @@ final class CertbotServeOnlyTest extends TestCase {
 		$this->assertMatchesRegularExpression("/\\} else \\{[^}]*--standalone/", $rSrc, 'the other branch keeps --standalone');
 	}
 
+	public function testServeOnlyCutoverQueuesACertbotSyncForTheFront(): void {
+		// A node converted to serve-only while it already holds a valid cert would serve the
+		// installer's self-signed server.crt until the cert is next due (the daily cron sends
+		// no certbot_generate while it is valid). The cutover queues one certbot_generate so
+		// the node's existing-cert path runs syncFrontCert within the minute; skipped when the
+		// node has only an IP (no http-01 name).
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$this->assertMatchesRegularExpression(
+			"/if \\(\\\$rServeOnly\\) \\{.*NodeActions::certbot\\(\\\$rServerID, \\\$rCertDomains, \\\$db\\)/s",
+			$rCmd,
+			'the serve-only cutover queues a certbot_generate so an existing cert reaches the front'
+		);
+		$this->assertMatchesRegularExpression(
+			"/if \\(\\\$rCertDomains !== \\[\\]\\) \\{\\s*NodeActions::certbot/",
+			$rCmd,
+			'the certbot dispatch is skipped when the node has no domain name (IP-only)'
+		);
+	}
+
 	public function testSyncFrontCertCopiesForServeOnlyOnly(): void {
 		// On a serve-only node the Go front reads server.crt/server.key, so a renewed
 		// certbot cert must be copied there (its CertReloader hot-reloads on mtime).
