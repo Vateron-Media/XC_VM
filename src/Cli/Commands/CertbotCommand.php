@@ -48,6 +48,10 @@ class CertbotCommand implements CommandInterface {
 
 		$rData = json_decode(base64_decode($rArgs[0]), true);
 		if ($rData['action'] == 'certbot_generate') {
+			// A serve-only node (its marker) drives both the webroot authenticator choice
+			// and the front cert sync below. Guard the constant: a unit test can reach the
+			// command-build path without the full CLI bootstrap that defines CONFIG_PATH.
+			$rServeOnly = defined('CONFIG_PATH') && is_file(CONFIG_PATH . 'cluster/serve_only');
 			// The admin's regenerate cleared MAIN's record first: a node in
 			// mode 2, which cannot read it, forgets its copy of it too. It
 			// does for MAIN's renewal (NodeCertbot) as well, which keeps its
@@ -73,7 +77,10 @@ class CertbotCommand implements CommandInterface {
 					mkdir($rCertbotWebroot, 0775, true);
 				}
 				foreach (['--dry-run ', ''] as $rDry) {
-					if (ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] == 80) {
+					// A serve-only node (marker) must use --webroot: --standalone binds its own
+					// :80 and would collide with the Go front that owns the node's ports (the
+					// front serves /.well-known/acme-challenge/ from certbot's -w directory).
+					if ($rServeOnly || ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] == 80) {
 						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --webroot -w ' . $rCertbotWebroot;
 					} else {
 						$rCommand = 'sudo certbot ' . $rDry . '--config-dir ' . BIN_PATH . 'certbot/config --work-dir ' . BIN_PATH . 'certbot/work --logs-dir ' . BIN_PATH . 'certbot/logs certonly --agree-tos --expand --non-interactive --register-unsafely-without-email --standalone';
@@ -102,6 +109,7 @@ class CertbotCommand implements CommandInterface {
 									$rSSLConfig = $this->buildSslConfig($rCertificate, $rPrivateKey, $rChain);
 									file_put_contents(BIN_PATH . 'nginx/conf/ssl.conf', $rSSLConfig);
 									shell_exec('chown xc_vm:xc_vm ' . BIN_PATH . 'nginx/conf/ssl.conf');
+									self::syncFrontCert($rServeOnly, $rCertificate, $rPrivateKey, BIN_PATH);
 									$rInfo = DiagnosticsService::getCertificateInfo();
 									if ($rInfo['serial']) {
 										NodeStateSink::state(['certbot_ssl' => json_encode($rInfo)], $db);
@@ -175,6 +183,7 @@ class CertbotCommand implements CommandInterface {
 							$rSSLConfig = $this->buildSslConfig($rCertificate, $rPrivateKey, $rChain);
 							file_put_contents(BIN_PATH . 'nginx/conf/ssl.conf', $rSSLConfig);
 							shell_exec('chown xc_vm:xc_vm ' . BIN_PATH . 'nginx/conf/ssl.conf');
+							self::syncFrontCert($rServeOnly, $rCertificate, $rPrivateKey, BIN_PATH);
 							NodeStateSink::state(['certbot_ssl' => json_encode($rSelectedDomain[1])], $db);
 							$rResult = true;
 						}
@@ -227,5 +236,75 @@ class CertbotCommand implements CommandInterface {
 			. 'ssl_session_timeout 10m;' . "\n"
 			. 'ssl_session_cache shared:MozSSL:10m;' . "\n"
 			. 'ssl_session_tickets off;';
+	}
+
+	/**
+	 * Install the certbot cert into the files the Go front reads (server.crt/server.key),
+	 * so a serve-only node's front picks up a renewal (its CertReloader watches their
+	 * mtime). A no-op on a non-serve-only node — nginx reads ssl.conf, which still points
+	 * at the certbot live paths. Both files are staged to a temp and renamed into place,
+	 * so a mid-write failure never leaves a new cert beside an old key (that would break
+	 * the front's only HTTPS surface); a read/stage failure leaves the live pair untouched
+	 * and is logged. Chown to xc_vm only when running as root. $rBinPath is BIN_PATH (a
+	 * parameter so the copy is testable).
+	 */
+	public static function syncFrontCert(bool $rServeOnly, string $rCert, string $rKey, string $rBinPath): void {
+		if (!$rServeOnly) {
+			return;
+		}
+		$rCertData = is_file($rCert) ? @file_get_contents($rCert) : false;
+		$rKeyData = is_file($rKey) ? @file_get_contents($rKey) : false;
+		if ($rCertData === false || $rKeyData === false) {
+			error_log('syncFrontCert: cannot read the certbot cert/key (' . $rCert . ', ' . $rKey . '); the front cert is unchanged');
+			return;
+		}
+		$rDir = $rBinPath . 'nginx/conf/';
+		// Stage both to randomly-named owner-only temp files (tempnam creates with O_EXCL,
+		// so a local user cannot pre-plant a symlink at a predictable `.tmp` path for this
+		// root process to follow), the private key 0600, both handed to xc_vm (the front
+		// reads them). Rename into place only once both are staged, so the front never
+		// reloads a new cert beside an old key.
+		$rCrtTmp = self::stageFrontFile($rDir, $rCertData, 0644);
+		$rKeyTmp = self::stageFrontFile($rDir, $rKeyData, 0600);
+		if ($rCrtTmp === null || $rKeyTmp === null) {
+			if ($rCrtTmp !== null) {
+				@unlink($rCrtTmp);
+			}
+			if ($rKeyTmp !== null) {
+				@unlink($rKeyTmp);
+			}
+			error_log('syncFrontCert: cannot stage the front cert under ' . $rDir . '; the front cert is unchanged');
+			return;
+		}
+		// Rename the KEY first, then the CERT: the front's CertReloader reloads on the
+		// cert's mtime, so putting the key in place before the cert means a reload is never
+		// triggered until the matching key is already present.
+		if (!@rename($rKeyTmp, $rDir . 'server.key') || !@rename($rCrtTmp, $rDir . 'server.crt')) {
+			@unlink($rCrtTmp);
+			@unlink($rKeyTmp);
+			error_log('syncFrontCert: cannot install the front cert into ' . $rDir . '; the front cert may be stale');
+		}
+	}
+
+	/**
+	 * Stage $rData in a fresh owner-only temp file in $rDir — a random name (tempnam is
+	 * O_EXCL, so no pre-planted symlink at a predictable path is followed) — set $rMode,
+	 * and hand it to xc_vm when running as root. Returns the temp path, or null on failure.
+	 */
+	private static function stageFrontFile(string $rDir, string $rData, int $rMode): ?string {
+		$rTmp = @tempnam($rDir, '.cert_');
+		if ($rTmp === false) {
+			return null;
+		}
+		// Mirror StartupCommand::replace: a short write (truncation), a failed chmod, or —
+		// as root — a failed chown/chgrp to xc_vm all abort, so a truncated or
+		// front-unreadable file is never renamed into place.
+		if (@file_put_contents($rTmp, $rData) !== strlen($rData) || !@chmod($rTmp, $rMode)
+			|| (posix_geteuid() === 0 && posix_getpwnam('xc_vm') !== false && (!@chown($rTmp, 'xc_vm') || !@chgrp($rTmp, 'xc_vm')))
+		) {
+			@unlink($rTmp);
+			return null;
+		}
+		return $rTmp;
 	}
 }

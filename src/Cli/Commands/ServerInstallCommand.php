@@ -4,6 +4,7 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Backup\BackupService;
+use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\StreamRecords;
 use XcVm\Core\Cluster\StreamVersions;
 use XcVm\Core\Config\SettingsManager;
@@ -371,6 +372,22 @@ class ServerInstallCommand implements CommandInterface {
 					// http-nginx + php-fpm and the Go front is the sole listener; without it
 					// the node stays dual-stacked until the next restart. Serve-only only.
 					call_user_func($rRunSSH, $rConn, 'sudo systemctl restart xc_vm');
+					// Sync the node's real cert to the Go front now: a node converted to
+					// serve-only while it already holds a valid cert would otherwise serve the
+					// installer's self-signed server.crt until the cert is next due (the daily
+					// cron sends no certbot_generate while it is valid). Queue one — the node's
+					// existing-cert path runs syncFrontCert (a fresh node issues via webroot).
+					// Skipped when the node has only an IP (no http-01 name).
+					$rCertDomains = [];
+					foreach (explode(',', (string) ($rServers[$rServerID]['domain_name'] ?? '')) as $rCertDomain) {
+						$rCertDomain = trim($rCertDomain);
+						if ($rCertDomain !== '' && !filter_var($rCertDomain, FILTER_VALIDATE_IP)) {
+							$rCertDomains[] = $rCertDomain;
+						}
+					}
+					if ($rCertDomains !== []) {
+						NodeActions::certbot($rServerID, $rCertDomains, $db);
+					}
 				} else {
 					// Downgrade out of serve-only: the service already (re)started above
 					// (finalizeHostAfterRuntime) while the marker was still present, so it booted
