@@ -281,4 +281,22 @@ final class ServeOnlyInstallTest extends TestCase {
 			'a legacy backend set_port is ignored, not written as a public ssl listener'
 		);
 	}
+
+	public function testServeOnlyAppliesTheReplicaInGoNotConsolePhp(): void {
+		// P1: a serve-only node is authoritative over its own config/apply. The Go
+		// agent materialises the replica and writes tmp/gateway/policy.json from the
+		// MAIN-sealed `policy` section itself, so: `service` boot skips console.php
+		// cluster:apply, cron:cache skips GatewayPolicy::write (one writer of
+		// policy.json — the agent), and run.sh passes -serve-only + -gateway-policy
+		// to xc_agent (gated on the binary advertising -serve-only, self-healing).
+		$rService = (string) file_get_contents(MAIN_HOME . 'service');
+		$this->assertStringContainsString('[ $((FLOWS & 32)) -ne 0 ] && ! serve_only_node; then', $rService, 'the boot cluster:apply --from-disk is gated off on a serve-only node (the agent applies in Go)');
+
+		$rCache = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/CacheCronJob.php');
+		$this->assertMatchesRegularExpression("/if \\(!is_file\\(CONFIG_PATH \\. 'cluster\\/serve_only'\\)\\) \\{\\s*GatewayPolicy::write\\(\\);/s", $rCache, 'cron:cache writes policy.json only when NOT serve-only — the agent writes it otherwise');
+
+		$rRun = (string) file_get_contents(MAIN_HOME . 'bin/xc_agent/run.sh');
+		$this->assertStringContainsString("grep -q -- '-serve-only'", $rRun, 'run.sh gates the serve-only agent flags on the binary advertising -serve-only');
+		$this->assertStringContainsString('SEED+=(-serve-only -gateway-policy "$SCRIPT/tmp/gateway/policy.json")', $rRun, 'run.sh passes -serve-only and the gateway-policy path to xc_agent');
+	}
 }

@@ -157,8 +157,12 @@ class CacheCronJob implements CommandInterface {
 		}
 
 		// The segment gateway's policy, from the settings and servers caches just
-		// written: xc_fanout's gateway reads it, never these caches.
-		GatewayPolicy::write();
+		// written: xc_fanout's gateway reads it, never these caches. A serve-only
+		// node's Go agent writes policy.json itself (from the MAIN-sealed policy
+		// section, re-stamped to the node's clock), so PHP must not also write it.
+		if (!is_file(CONFIG_PATH . 'cluster/serve_only')) {
+			GatewayPolicy::write();
+		}
 		// Its counts and shadow comparison reach MAIN with the node's audit, five minutes old at most.
 		if (GatewayPolicy::mode(SettingsManager::getAll()) !== 'off') {
 			SettingsAudit::publishIfDue(false, time(), 300);

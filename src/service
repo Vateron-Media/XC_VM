@@ -75,7 +75,9 @@ boot() {
   if [ -f $SCRIPT/config/cluster/flows.json ]; then
     FLOWS=$(sed -n 's/.*"flows":\([0-9]*\).*/\1/p' $SCRIPT/config/cluster/flows.json)
     MODE=$(sed -n 's/.*"mode":\([0-9]*\).*/\1/p' $SCRIPT/config/cluster/flows.json)
-    if [ -n "$FLOWS" ] && [ -n "$MODE" ] && [ "$MODE" -ge 1 ] && [ $((FLOWS & 32)) -ne 0 ]; then
+    # A serve-only node applies the replica in Go (the agent), not console.php:
+    # its gateway reads tmp/gateway/policy.json the agent writes, not PHP caches.
+    if [ -n "$FLOWS" ] && [ -n "$MODE" ] && [ "$MODE" -ge 1 ] && [ $((FLOWS & 32)) -ne 0 ] && ! serve_only_node; then
       sudo -u xc_vm timeout 15 $SCRIPT/bin/php/bin/php $SCRIPT/console.php cluster:apply --from-disk >/dev/null 2>/dev/null
     fi
   fi

@@ -136,6 +136,14 @@ while true; do
         -ffprobe "$([ -x "$FP" ] && echo "$FP" || echo ffprobe)" \
         -streams "$SCRIPT/content/streams/" -logs "$SCRIPT/tmp/logs/")
     fi
+    # The serve-only node is authoritative over its own config/apply: pass
+    # -serve-only (the agent skips console.php cluster:apply) and the
+    # gateway-policy path it writes from the MAIN-sealed policy section. Gated on
+    # the agent advertising -serve-only, so an older binary (seed-fanout but not
+    # serve-only) still enrols and the flags activate once a capable binary lands.
+    if [ -f "$SCRIPT/config/cluster/serve_only" ] && "$AGENT_DIR/xc_agent" run -h 2>&1 | grep -q -- '-serve-only'; then
+      SEED+=(-serve-only -gateway-policy "$SCRIPT/tmp/gateway/policy.json")
+    fi
     pkill -u xc_vm -x xc_agent 2>/dev/null
     started=$(date +%s)
     "$AGENT_DIR/xc_agent" run -state "$STATE" "${SEED[@]}" >> "$LOG" 2>&1 &
