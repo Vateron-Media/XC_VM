@@ -175,7 +175,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		// has on disk are torn down (one idempotent `rm -f`); a fresh node never had
 		// them, so rm -f is a no-op there.
 		$rRm = implode("\n", array_filter($rRun, static fn(string $rC): bool => str_contains($rC, 'rm -f')));
-		foreach (['bin/nginx/conf/custom.conf', 'bin/nginx/conf/limit.conf', 'bin/nginx/conf/limit_queue.conf', 'bin/php/etc/*.conf'] as $rPath) {
+		foreach (['bin/nginx/conf/custom.conf', 'bin/nginx/conf/limit.conf', 'bin/nginx/conf/limit_queue.conf', 'bin/nginx/conf/balance.conf', 'bin/php/etc/*.conf'] as $rPath) {
 			$this->assertStringContainsString($rPath, $rRm, "serve-only teardown removes {$rPath}");
 		}
 		// Nothing HTTP-nginx or php-fpm is PROVISIONED for a serve-only node: no config

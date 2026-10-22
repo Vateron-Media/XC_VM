@@ -622,8 +622,9 @@ class LbInstallFlow {
 			// php-fpm configs on disk; `service` no longer reads them (the serve_only
 			// marker gates boot), so remove them — a serve-only node is "gone from
 			// config". Idempotent: rm -f is a no-op on a fresh node that never wrote
-			// them. The mirror of the files the !$rServeOnly branch writes above.
-			call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . MAIN_HOME . 'bin/nginx/conf/custom.conf ' . MAIN_HOME . 'bin/nginx/conf/limit.conf ' . MAIN_HOME . 'bin/nginx/conf/limit_queue.conf ' . MAIN_HOME . 'bin/php/etc/*.conf');
+			// them. (bin/daemons.sh is left — it ships in the archive and is chmod'd
+			// for every node below; it is simply never executed on a serve-only node.)
+			call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . MAIN_HOME . 'bin/nginx/conf/custom.conf ' . MAIN_HOME . 'bin/nginx/conf/limit.conf ' . MAIN_HOME . 'bin/nginx/conf/limit_queue.conf ' . MAIN_HOME . 'bin/nginx/conf/balance.conf ' . MAIN_HOME . 'bin/php/etc/*.conf');
 			// Serve-only single-binary LB: the Go front (xc_fanout -front) is the whole
 			// HTTP surface and binds the node's public HTTPS port(s) directly — there is
 			// no nginx loopback backend and no :443->:8080 demote (the rethink dropped the
