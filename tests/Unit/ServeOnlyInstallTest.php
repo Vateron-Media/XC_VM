@@ -229,4 +229,21 @@ final class ServeOnlyInstallTest extends TestCase {
 		$this->assertStringContainsString('-logs "$SCRIPT/tmp/logs/"', $rAgent, 'logs resolve to LOGS_TMP_PATH (tmp/logs/)');
 		$this->assertStringContainsString('"${SEED[@]}"', $rAgent, 'the agent run invocation actually expands the SEED flag array (not just declares it)');
 	}
+
+	public function testDowngradeOutOfServeOnlyRestoresHttpNginxAndPhpFpm(): void {
+		// Clearing serve-only (a non-serve-only re-provision) restores the PHP stack
+		// with no dedicated recovery code: the install removes the marker, so the next
+		// `service` boot (no marker) starts nginx + php-fpm, and configureRuntime's
+		// !$rServeOnly branch has already re-written their configs. The serve-only
+		// config teardown must stay INSIDE the serve-only branch, so a mode-1 or
+		// downgraded node never strips its own HTTP stack.
+		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
+		$this->assertMatchesRegularExpression(
+			"/if \\(\\\$rServeOnly\\) \\{.*sudo rm -f ' \\. MAIN_HOME \\. 'bin\\/nginx\\/conf\\/custom\\.conf/s",
+			$rLb,
+			'the serve-only config teardown is gated inside if ($rServeOnly) — a mode-1 node never tears down its nginx/php-fpm'
+		);
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$this->assertStringContainsString("sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'a non-serve-only install removes the marker (downgrade-out), so service boot restores nginx + php-fpm');
+	}
 }
