@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Cluster;
 
+use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
 use XcVm\Core\Cluster\Crypto\Seal;
@@ -11,6 +12,7 @@ use XcVm\Core\Cluster\StrictQuery;
 use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\StreamSecret;
+use XcVm\Core\Gateway\GatewayPolicy;
 use XcVm\Core\Util\AtomicFile;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
@@ -122,7 +124,7 @@ final class ReplicaBuilder {
 	 */
 	public const REPLY_ORDER = [
 		ReplicaSections::SETTINGS, ReplicaSections::SERVERS, ReplicaSections::NODE, ReplicaSections::CRONTAB, ReplicaSections::CLUSTER,
-		ReplicaSections::SECRETS, ReplicaSections::BOUQUETS, ReplicaSections::CATEGORIES,
+		ReplicaSections::SECRETS, ReplicaSections::BOUQUETS, ReplicaSections::CATEGORIES, ReplicaSections::POLICY,
 	];
 
 	/**
@@ -344,7 +346,7 @@ final class ReplicaBuilder {
 			return ['etag' => self::etag($rData), 'data' => $rData];
 		}
 		$rKey = match ($rSection) {
-			ReplicaSections::NODE => $rSection . '.' . (int) $rNode['server_id'],
+			ReplicaSections::NODE, ReplicaSections::POLICY => $rSection . '.' . (int) $rNode['server_id'],
 			default => $rSection,
 		};
 		$rNow = ClusterClock::nowMs();
@@ -361,6 +363,7 @@ final class ReplicaBuilder {
 			ReplicaSections::CLUSTER => self::clusterData($rCrypto, $rSettings, $rMain),
 			ReplicaSections::BOUQUETS => self::bouquetsData(),
 			ReplicaSections::CATEGORIES => self::categoriesData(),
+			ReplicaSections::POLICY => self::policyData((int) $rNode['server_id']),
 			default => throw new \InvalidArgumentException('Not a whole replica section: ' . $rSection),
 		};
 		$rData = self::canonical($rData);
@@ -381,6 +384,36 @@ final class ReplicaBuilder {
 	 *
 	 * @return array{servers: list<array<string, int|string|null>>, nodes: list<array{sid: int, gen: int, state: string, ed_pub: string, dataplane: bool}>, reseller_dns: list<string>}
 	 */
+
+	/**
+	 * The `policy` section: this node's gateway policy (GatewayPolicy::build), so
+	 * a serve-only node writes tmp/gateway/policy.json from it with no PHP. Built
+	 * with the node's OWN viewer key K_n (ViewerKey::entry for $rServerID, as the
+	 * secrets section derives it), not MAIN's held() key; the shared and context
+	 * keys are the fleet's, which MAIN holds. The node overlays written_at and
+	 * serve_until on its own clock when it writes the file.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function policyData(int $rServerID): array {
+		$rNow = ClusterClock::now();
+		$rLive = (string) (self::settingsRow('`live_streaming_pass`')['live_streaming_pass'] ?? '');
+		$rPrevious = StreamSecret::previousEntry($rNow);
+		$rEntry = ViewerKey::entry($rLive, $rServerID, $rPrevious);
+		// held()-style: the current key, and the previous one while still accepted.
+		$rViewerKeys = [['value' => $rEntry['current'], 'until' => null]];
+		if ($rEntry['previous'] !== null && $rNow <= (int) ($rEntry['previous_valid_until'] ?? 0)) {
+			$rViewerKeys[] = ['value' => (string) $rEntry['previous'], 'until' => (int) $rEntry['previous_valid_until']];
+		}
+		// The node's own settings (the settings section it applies), plus the fleet
+		// secret build() needs for the shared keys (settingsData strips secrets).
+		$rSettings = self::settingsData();
+		$rSettings['live_streaming_pass'] = $rLive;
+		$rServers = FileCache::getCache('servers');
+		$rDomains = FileCache::getCache('allowed_domains');
+		return GatewayPolicy::build($rSettings, is_array($rServers) ? $rServers : [], $rServerID, $rNow, is_array($rDomains) ? $rDomains : [], $rViewerKeys);
+	}
+
 	public static function serversData(): array {
 		self::read('SELECT * FROM `servers` ORDER BY `id` ASC;');
 		$rServers = [];

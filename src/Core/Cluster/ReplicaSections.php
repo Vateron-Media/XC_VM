@@ -86,6 +86,10 @@ final class ReplicaSections {
 	public const SECRETS = 'secrets';
 	public const BOUQUETS = 'bouquets';
 	public const CATEGORIES = 'categories';
+	// The per-node gateway policy (GatewayPolicy::build), sealed to the node. Not
+	// in WHOLE: PHP never applies it (the Go agent writes tmp/gateway/policy.json
+	// from it); it is served on request via REPLY_ORDER.
+	public const POLICY = 'policy';
 
 	/**
 	 * The R2 section on the node: `replica/streams.json` (the agent's cursor)
