@@ -105,6 +105,7 @@ class CertbotCommand implements CommandInterface {
 									$rSSLConfig = $this->buildSslConfig($rCertificate, $rPrivateKey, $rChain);
 									file_put_contents(BIN_PATH . 'nginx/conf/ssl.conf', $rSSLConfig);
 									shell_exec('chown xc_vm:xc_vm ' . BIN_PATH . 'nginx/conf/ssl.conf');
+									self::syncFrontCert(is_file(CONFIG_PATH . 'cluster/serve_only'), $rCertificate, $rPrivateKey, BIN_PATH);
 									$rInfo = DiagnosticsService::getCertificateInfo();
 									if ($rInfo['serial']) {
 										NodeStateSink::state(['certbot_ssl' => json_encode($rInfo)], $db);
@@ -178,6 +179,7 @@ class CertbotCommand implements CommandInterface {
 							$rSSLConfig = $this->buildSslConfig($rCertificate, $rPrivateKey, $rChain);
 							file_put_contents(BIN_PATH . 'nginx/conf/ssl.conf', $rSSLConfig);
 							shell_exec('chown xc_vm:xc_vm ' . BIN_PATH . 'nginx/conf/ssl.conf');
+							self::syncFrontCert(is_file(CONFIG_PATH . 'cluster/serve_only'), $rCertificate, $rPrivateKey, BIN_PATH);
 							NodeStateSink::state(['certbot_ssl' => json_encode($rSelectedDomain[1])], $db);
 							$rResult = true;
 						}
@@ -230,5 +232,24 @@ class CertbotCommand implements CommandInterface {
 			. 'ssl_session_timeout 10m;' . "\n"
 			. 'ssl_session_cache shared:MozSSL:10m;' . "\n"
 			. 'ssl_session_tickets off;';
+	}
+
+	/**
+	 * Copy the certbot cert to the files the Go front reads (server.crt/server.key),
+	 * so a serve-only node's front picks up a renewal (its CertReloader watches their
+	 * mtime). A no-op on a non-serve-only node — nginx reads ssl.conf, which still
+	 * points at the certbot live paths — and when either live file is missing, so a
+	 * failed run never clobbers the pair. Chown to xc_vm only when running as root.
+	 * $rBinPath is BIN_PATH (a parameter so the copy is testable).
+	 */
+	public static function syncFrontCert(bool $rServeOnly, string $rCert, string $rKey, string $rBinPath): void {
+		if (!$rServeOnly || !is_file($rCert) || !is_file($rKey)) {
+			return;
+		}
+		$rCrt = $rBinPath . 'nginx/conf/server.crt';
+		$rKeyDst = $rBinPath . 'nginx/conf/server.key';
+		if (@copy($rCert, $rCrt) && @copy($rKey, $rKeyDst) && posix_geteuid() === 0) {
+			shell_exec('chown xc_vm:xc_vm ' . escapeshellarg($rCrt) . ' ' . escapeshellarg($rKeyDst));
+		}
 	}
 }
