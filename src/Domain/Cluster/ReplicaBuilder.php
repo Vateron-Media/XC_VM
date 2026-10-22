@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Cluster;
 
+use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Cluster\Crypto\ClusterRefusedException;
 use XcVm\Core\Cluster\Crypto\Seal;
@@ -11,7 +12,9 @@ use XcVm\Core\Cluster\StrictQuery;
 use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\StreamSecret;
+use XcVm\Core\Gateway\GatewayPolicy;
 use XcVm\Core\Util\AtomicFile;
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
@@ -122,7 +125,7 @@ final class ReplicaBuilder {
 	 */
 	public const REPLY_ORDER = [
 		ReplicaSections::SETTINGS, ReplicaSections::SERVERS, ReplicaSections::NODE, ReplicaSections::CRONTAB, ReplicaSections::CLUSTER,
-		ReplicaSections::SECRETS, ReplicaSections::BOUQUETS, ReplicaSections::CATEGORIES,
+		ReplicaSections::SECRETS, ReplicaSections::POLICY, ReplicaSections::BOUQUETS, ReplicaSections::CATEGORIES,
 	];
 
 	/**
@@ -323,7 +326,9 @@ final class ReplicaBuilder {
 	 * @param array<string, mixed> $rNode cluster_nodes row (state, mode)
 	 */
 	public static function serves(array $rNode, string $rSection): bool {
-		if ($rSection !== ReplicaSections::SECRETS) {
+		// SECRETS and POLICY both carry viewer-key material: only an active,
+		// enrolled (mode >= 1) node is eligible — a restricted node gets neither.
+		if ($rSection !== ReplicaSections::SECRETS && $rSection !== ReplicaSections::POLICY) {
 			return true;
 		}
 		return ($rNode['state'] ?? null) === 'active' && (int) ($rNode['mode'] ?? 0) >= 1;
@@ -339,8 +344,14 @@ final class ReplicaBuilder {
 	 * @return array{etag: string, data: array<mixed>}
 	 */
 	public static function section(ClusterCrypto $rCrypto, array $rNode, string $rSection, array $rSettings, array $rMain): array {
-		if ($rSection === ReplicaSections::SECRETS) {
-			$rData = self::canonical(self::secretsData((int) $rNode['server_id'], $rNode));
+		// SECRETS and POLICY both carry viewer-key material, so they are read
+		// fresh each time and never kept unsealed in the TMP_PATH ETag cache.
+		if ($rSection === ReplicaSections::SECRETS || $rSection === ReplicaSections::POLICY) {
+			$rData = self::canonical(
+				$rSection === ReplicaSections::SECRETS
+					? self::secretsData((int) $rNode['server_id'], $rNode)
+					: self::policyData($rNode)
+			);
 			return ['etag' => self::etag($rData), 'data' => $rData];
 		}
 		$rKey = match ($rSection) {
@@ -381,6 +392,48 @@ final class ReplicaBuilder {
 	 *
 	 * @return array{servers: list<array<string, int|string|null>>, nodes: list<array{sid: int, gen: int, state: string, ed_pub: string, dataplane: bool}>, reseller_dns: list<string>}
 	 */
+
+	/**
+	 * The `policy` section: this node's gateway policy (GatewayPolicy::build), so
+	 * a serve-only node writes tmp/gateway/policy.json from it with no PHP. Built
+	 * with the node's OWN viewer key K_n (ViewerKey::entry for $rServerID, as the
+	 * secrets section derives it), not MAIN's held() key; the shared and context
+	 * keys are the fleet's, which MAIN holds. The node overlays written_at and
+	 * serve_until on its own clock when it writes the file.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function policyData(array $rNode): array {
+		$rServerID = (int) $rNode['server_id'];
+		$rNow = ClusterClock::now();
+		$rLive = (string) (self::settingsRow('`live_streaming_pass`')['live_streaming_pass'] ?? '');
+		$rPrevious = StreamSecret::previousEntry($rNow);
+		$rEntry = ViewerKey::entry($rLive, $rServerID, $rPrevious);
+		// held()-style: the current key, and the previous one while still accepted.
+		$rViewerKeys = [['value' => $rEntry['current'], 'until' => null]];
+		if ($rEntry['previous'] !== null && $rNow <= (int) ($rEntry['previous_valid_until'] ?? 0)) {
+			$rViewerKeys[] = ['value' => (string) $rEntry['previous'], 'until' => (int) $rEntry['previous_valid_until']];
+		}
+		// The node's own settings (the settings section it applies). A locked-down
+		// mode-2 node that withholds the stream pass must not get it in keys.shared
+		// either (secretsData omits it for such a node); match that here. Otherwise
+		// add the fleet secret build() needs for the shared keys (settingsData strips it).
+		$rSettings = self::settingsData();
+		if (!self::withholdsStreamPass($rNode, $rLive)) {
+			$rSettings['live_streaming_pass'] = $rLive;
+		}
+		// Fresh servers (DB-rebuilt, the same source + shape the servers section
+		// reads), so the policy's ports/redirects/serve_only stay consistent with it.
+		$rServers = ServerRepository::getAll(true);
+		$rDomains = FileCache::getCache('allowed_domains');
+		$rPolicy = GatewayPolicy::build($rSettings, is_array($rServers) ? $rServers : [], $rServerID, $rNow, is_array($rDomains) ? $rDomains : [], $rViewerKeys);
+		// build() read MAIN's own flow/connection state; the policy is the TARGET
+		// node's, so set its admission (active) and conn store from the node row.
+		$rPolicy['live']['admission'] = ($rNode['state'] ?? '') === 'active';
+		$rPolicy['conn_store'] = ((int) ($rNode['flows'] ?? 0) & NodeRegistry::FLOW_CONNECTIONS) !== 0 ? 'agent' : 'php';
+		return $rPolicy;
+	}
+
 	public static function serversData(): array {
 		self::read('SELECT * FROM `servers` ORDER BY `id` ASC;');
 		$rServers = [];

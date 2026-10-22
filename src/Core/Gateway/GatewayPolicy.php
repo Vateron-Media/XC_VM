@@ -109,9 +109,12 @@ final class GatewayPolicy {
 	 * @param list<string> $rAllowedDomains verify_host's list (the allowed_domains cache), [] for none
 	 * @return array<string, mixed>
 	 */
-	public static function build(array $rSettings, array $rServers, int $rServerID, int $rNow, array $rAllowedDomains = []): array {
+	public static function build(array $rSettings, array $rServers, int $rServerID, int $rNow, array $rAllowedDomains = [], ?array $rViewerKeys = null): array {
 		$rHex = static fn(string $rValue, ?int $rUntil): array => ['hex' => bin2hex($rValue), 'until' => $rUntil];
-		$rViewer = array_map(static fn(array $rKey): array => $rHex($rKey['value'], $rKey['until']), ViewerKey::held($rNow));
+		// The node's own viewer keys: locally this node's held() set; when MAIN
+		// builds another node's policy section (ReplicaBuilder::policyData) it
+		// passes that node's K_n, so the sealed policy carries the node's key, not MAIN's.
+		$rViewer = array_map(static fn(array $rKey): array => $rHex($rKey['value'], $rKey['until']), $rViewerKeys ?? ViewerKey::held($rNow));
 		// readToken tries the replaced secret only after the current one: none without it.
 		$rShared = [];
 		$rSecret = (string) ($rSettings['live_streaming_pass'] ?? '');
