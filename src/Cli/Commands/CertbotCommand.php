@@ -254,24 +254,49 @@ class CertbotCommand implements CommandInterface {
 			error_log('syncFrontCert: cannot read the certbot cert/key (' . $rCert . ', ' . $rKey . '); the front cert is unchanged');
 			return;
 		}
-		$rCrt = $rBinPath . 'nginx/conf/server.crt';
-		$rKeyDst = $rBinPath . 'nginx/conf/server.key';
-		// Stage both before touching the live pair: the front must never reload a new cert
-		// beside an old key. A stage failure aborts with the live pair intact.
-		if (@file_put_contents($rCrt . '.tmp', $rCertData) === false || @file_put_contents($rKeyDst . '.tmp', $rKeyData) === false) {
-			@unlink($rCrt . '.tmp');
-			@unlink($rKeyDst . '.tmp');
-			error_log('syncFrontCert: cannot stage the front cert temp files under ' . $rBinPath . 'nginx/conf/; the front cert is unchanged');
+		$rDir = $rBinPath . 'nginx/conf/';
+		// Stage both to randomly-named owner-only temp files (tempnam creates with O_EXCL,
+		// so a local user cannot pre-plant a symlink at a predictable `.tmp` path for this
+		// root process to follow), the private key 0600, both handed to xc_vm (the front
+		// reads them). Rename into place only once both are staged, so the front never
+		// reloads a new cert beside an old key.
+		$rCrtTmp = self::stageFrontFile($rDir, $rCertData, 0644);
+		$rKeyTmp = self::stageFrontFile($rDir, $rKeyData, 0600);
+		if ($rCrtTmp === null || $rKeyTmp === null) {
+			if ($rCrtTmp !== null) {
+				@unlink($rCrtTmp);
+			}
+			if ($rKeyTmp !== null) {
+				@unlink($rKeyTmp);
+			}
+			error_log('syncFrontCert: cannot stage the front cert under ' . $rDir . '; the front cert is unchanged');
 			return;
 		}
-		if (!@rename($rCrt . '.tmp', $rCrt) || !@rename($rKeyDst . '.tmp', $rKeyDst)) {
-			@unlink($rCrt . '.tmp');
-			@unlink($rKeyDst . '.tmp');
-			error_log('syncFrontCert: cannot install the front cert into ' . $rBinPath . 'nginx/conf/; the front cert may be stale');
-			return;
+		if (!@rename($rCrtTmp, $rDir . 'server.crt') || !@rename($rKeyTmp, $rDir . 'server.key')) {
+			@unlink($rCrtTmp);
+			@unlink($rKeyTmp);
+			error_log('syncFrontCert: cannot install the front cert into ' . $rDir . '; the front cert may be stale');
+		}
+	}
+
+	/**
+	 * Stage $rData in a fresh owner-only temp file in $rDir — a random name (tempnam is
+	 * O_EXCL, so no pre-planted symlink at a predictable path is followed) — set $rMode,
+	 * and hand it to xc_vm when running as root. Returns the temp path, or null on failure.
+	 */
+	private static function stageFrontFile(string $rDir, string $rData, int $rMode): ?string {
+		$rTmp = @tempnam($rDir, '.cert_');
+		if ($rTmp === false) {
+			return null;
+		}
+		if (@file_put_contents($rTmp, $rData) === false || !@chmod($rTmp, $rMode)) {
+			@unlink($rTmp);
+			return null;
 		}
 		if (posix_geteuid() === 0) {
-			shell_exec('chown xc_vm:xc_vm ' . escapeshellarg($rCrt) . ' ' . escapeshellarg($rKeyDst));
+			@chown($rTmp, 'xc_vm');
+			@chgrp($rTmp, 'xc_vm');
 		}
+		return $rTmp;
 	}
 }
