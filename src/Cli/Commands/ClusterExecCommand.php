@@ -94,6 +94,9 @@ class ClusterExecCommand implements CommandInterface {
 			return 0;
 		}
 		$rIn = json_decode((string) stream_get_contents(STDIN), true);
+		if (in_array('--local', $rArgs, true)) {
+			return self::local(is_array($rIn) ? $rIn : [], !empty(ServerRepository::getAll()[SERVER_ID]['is_main']));
+		}
 		$rCmd = self::verify(is_array($rIn) ? $rIn : [], AgentPaths::readState(), time());
 		if (is_string($rCmd)) {
 			self::fail($rCmd);
@@ -103,6 +106,23 @@ class ClusterExecCommand implements CommandInterface {
 			return self::handToRoot($rIn, (int) ($rCmd['seq'] ?? 0), isset($rCmd['args']['artefact']) ? self::ROOT_WAIT_ARTEFACT : self::ROOT_WAIT);
 		}
 		return self::run($rCmd);
+	}
+
+	/**
+	 * `--local`: a NodeRpc call MAIN makes to itself (NodeRpc::local()), from
+	 * the panel on the same host, so unsigned. A load balancer takes signed
+	 * commands only.
+	 *
+	 * @param array<string, mixed> $rIn {action, ...arguments}
+	 */
+	public static function local(array $rIn, bool $rMain): int {
+		if (!$rMain) {
+			self::fail('--local runs on MAIN only');
+			return 2;
+		}
+		$rAction = $rIn['action'] ?? null;
+		unset($rIn['action']);
+		return self::run(['type' => 'node.rpc', 'action' => $rAction, 'args' => $rIn]);
 	}
 
 	/** Seconds cluster:exec waits for cluster:root's result before acking "queued". */

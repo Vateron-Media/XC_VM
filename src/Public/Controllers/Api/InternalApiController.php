@@ -325,6 +325,12 @@ class InternalApiController {
 
 				exit();
 
+			case 'ssl_log':
+				// CertbotCommand's JSON log of the last run, as written.
+				echo (string) @file_get_contents(BIN_PATH . 'certbot/logs/xc_vm.log');
+
+				exit();
+
 			case 'get_archive_files':
 				$rStreamID = intval($rRequest['stream_id']);
 				echo json_encode(['result' => true, 'data' => glob(ARCHIVE_PATH . $rStreamID . '/*.ts')]);
