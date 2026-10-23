@@ -94,20 +94,21 @@ final class ReplicaPolicySectionTest extends TestCase {
 		$this->assertFalse(defined('SERVER_ID'), 'premise: the cluster API boots without SERVER_ID');
 		$rHome = sys_get_temp_dir() . '/xcvm-policy-' . bin2hex(random_bytes(4)) . '/';
 		mkdir($rHome . 'tmp/cache/', 0777, true);
-		if (!defined('MAIN_HOME')) {
-			define('MAIN_HOME', $rHome);
-		}
-		// Exactly what Public/cluster/index.php runs before any op: the path
-		// constants build() emits (CONS_TMP_PATH, STREAMS_PATH, …), but not SERVER_ID.
-		ConstantsInitializer::init();
+		// Pass $rHome explicitly: the suite bootstrap has already defined MAIN_HOME
+		// to the repo, so init() would otherwise derive CACHE_TMP_PATH there and
+		// getAll()'s servers cache would leak into other tests. This is what
+		// Public/cluster/index.php runs before any op (the path constants build()
+		// emits: CONS_TMP_PATH, STREAMS_PATH, …), but never SERVER_ID.
+		ConstantsInitializer::init($rHome);
 
-		// The isolated process re-runs the suite bootstrap for the panel code, but
-		// the committed vendor is production-only, so the test doubles are loaded by
-		// file (as tests/bootstrap.php does); load the two this test needs.
 		$rDb = new \TestDb();
 		$rDb->exec(InstallSchema::serversTable());
 		$rDb->exec(InstallSchema::table('settings'));
 		$rDb->query("INSERT INTO `servers` (`id`, `server_name`, `server_ip`, `is_main`, `enabled`) VALUES (7, 'LB', '10.0.0.7', 0, 1)");
+		// An OFFLINE MAIN row (status 0, no routing health): getAll() must still
+		// mark it online by is_main when SERVER_ID is absent, or the policy would
+		// carry MAIN as unavailable.
+		$rDb->query("INSERT INTO `servers` (`id`, `server_name`, `server_ip`, `is_main`, `enabled`, `status`, `last_check_ago`) VALUES (1, 'MAIN', '10.0.0.1', 1, 1, 0, 0)");
 		$rDb->query("INSERT INTO `settings` (`id`, `live_streaming_pass`) VALUES (1, 'fleet-pass')");
 		DatabaseFactory::set($rDb);
 		SettingsManager::set(['cluster_api_enabled' => 1]);
@@ -116,6 +117,11 @@ final class ReplicaPolicySectionTest extends TestCase {
 		$this->assertArrayHasKey('keys', $rPolicy, 'the node got a built policy, not a 503');
 		$this->assertArrayHasKey('paths', $rPolicy);
 		$this->assertSame(7, $rPolicy['server_id']);
+
+		// MAIN's own row stays online though its stored status is offline — the
+		// is_main self-match standing in for the absent SERVER_ID.
+		$rServers = \XcVm\Domain\Server\ServerRepository::getAll(true);
+		$this->assertTrue((bool) $rServers[1]['server_online'], 'offline MAIN row is online by is_main without SERVER_ID');
 
 		DatabaseFactory::reset();
 		exec('rm -rf ' . escapeshellarg($rHome));

@@ -57,10 +57,11 @@ class ServerRepository {
 		if (!$rSettings) {
 			$rSettings = SettingsRepository::loaded();
 		}
-		// This node's own id marks its row always-online. Not every context that
-		// reads the server list defines it: MAIN's cluster API (ReplicaBuilder
-		// builds a node's policy section there) boots without SERVER_ID, so fall
-		// back to 0 — no row is id 0, which is right, MAIN is not in its own list.
+		// The server building this list marks its own row always-online. That is
+		// SERVER_ID — but not every context defines it: MAIN's cluster API
+		// (ReplicaBuilder builds a node's policy section there) boots without it.
+		// 0 means "resolve self by the is_main row instead" (done per row below),
+		// so MAIN is still treated as online when it builds another node's policy.
 		$rSelf = defined('SERVER_ID') ? (int) SERVER_ID : 0;
 		$rReplica = ReplicaApply::owns(ReplicaSections::SERVERS);
 		if (!$rForce || $rReplica) {
@@ -94,11 +95,14 @@ class ServerRepository {
 				$rLastCheckTime = 90;
 			}
 
-			$rRow['server_online'] = $rRow['enabled'] && in_array($rRow['status'], $rOnlineStatus) && time() - $rRow['last_check_ago'] <= $rLastCheckTime || $rSelf == $rRow['id'];
+			// Self is SERVER_ID where defined, else the is_main row (the cluster API
+			// runs on MAIN with no SERVER_ID): either way its own row stays online.
+			$rIsSelf = $rSelf !== 0 ? ($rSelf === (int) $rRow['id']) : (int) ($rRow['is_main'] ?? 0) === 1;
+			$rRow['server_online'] = $rRow['enabled'] && in_array($rRow['status'], $rOnlineStatus) && time() - $rRow['last_check_ago'] <= $rLastCheckTime || $rIsSelf;
 			// A node whose agent reports its telemetry is judged by MAIN's
 			// liveness loop instead (offline after 30 s of silence, not 90 s).
 			$rRow['cluster_health'] = ClusterHealth::state(intval($rRow['id']));
-			if ($rRow['cluster_health'] !== null && $rSelf != $rRow['id']) {
+			if ($rRow['cluster_health'] !== null && !$rIsSelf) {
 				$rRow['server_online'] = $rRow['enabled'] && in_array($rRow['status'], $rOnlineStatus) && !in_array($rRow['cluster_health'], ClusterHealth::NO_ROUTING, true);
 			}
 			if (!isset($rRow['order'])) {
