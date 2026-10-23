@@ -100,7 +100,7 @@ class LbInstallFlow {
 		return preg_match('~^/tmp/xcvm\.[A-Za-z0-9]{10}\z~', $rDir) ? $rDir : null;
 	}
 
-	public static function installArchive($rConn, callable $rRunSSH, string $rInstallFiles, string $rHash, int $rServerID, $db, bool $rServeOnly = false): bool {
+	public static function installArchive($rConn, callable $rRunSSH, string $rInstallFiles, string $rHash, int $rServerID, $db): bool {
 		echo "Download archive\n";
 		$rDir = self::privateDir($rConn, $rRunSSH);
 		if ($rDir === null) {
@@ -129,14 +129,6 @@ class LbInstallFlow {
 			return false;
 		}
 
-		// A serve-only node runs no PHP (P6): drop console.php once the extract is
-		// verified, so it can never boot the PHP CLI and the Go agent's PHP-free
-		// gates (self-heal, ffmpeg, certbot, node.root) go live. The PHP interpreter
-		// and http-nginx are stripped in installDistributionBinaries; nginx_rtmp stays.
-		if ($rServeOnly) {
-			call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
-		}
-
 		return true;
 	}
 
@@ -148,9 +140,9 @@ class LbInstallFlow {
 	 * node without its ramdisks go to disk, and a sysctl.conf that was asked
 	 * for and not written would be recorded as applied.
 	 */
-	public static function runPostExtractSteps($rConn, callable $rRunSSH, callable $rSendFileSSH, string $rDistID, string $rVersion, int $rUpdateSysctl, string $rSysCtl, int $rServerID, bool $rServeOnly = false): bool {
+	public static function runPostExtractSteps($rConn, callable $rRunSSH, callable $rSendFileSSH, string $rDistID, string $rVersion, int $rUpdateSysctl, string $rSysCtl, int $rServerID): bool {
 		echo "Installing distribution-specific binaries\n";
-		if (!self::installDistributionBinaries($rConn, $rRunSSH, $rDistID, $rVersion, $rServeOnly)) {
+		if (!self::installDistributionBinaries($rConn, $rRunSSH, $rDistID, $rVersion)) {
 			echo "Failed to install the distribution binaries (PHP, nginx) from GitHub. Exiting\n";
 			return false;
 		}
@@ -755,7 +747,7 @@ class LbInstallFlow {
 		return '';
 	}
 
-	private static function installDistributionBinaries($rConn, callable $rRunSSH, string $rDistID, string $rVersion, bool $rServeOnly = false): bool {
+	private static function installDistributionBinaries($rConn, callable $rRunSSH, string $rDistID, string $rVersion): bool {
 		$rBinaryName = ReleaseAsset::bundleFor($rDistID, $rVersion);
 		if ($rBinaryName === null) {
 			echo "Unsupported distribution for binaries: {$rDistID} {$rVersion}\n";
@@ -894,14 +886,6 @@ class LbInstallFlow {
 		}
 
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
-
-		// A serve-only node (P6) keeps nginx_rtmp (the RTMP byte server) but runs no
-		// PHP and no http-nginx — the Go binary is its whole HTTP surface. Drop the
-		// PHP interpreter and the http-nginx build the bundle just placed.
-		if ($rServeOnly) {
-			call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'bin/php ' . MAIN_HOME . 'bin/nginx');
-		}
-
 		echo "Distribution-specific binaries installed successfully\n";
 		return true;
 	}
