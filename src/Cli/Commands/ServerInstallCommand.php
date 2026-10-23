@@ -375,12 +375,18 @@ class ServerInstallCommand implements CommandInterface {
 					// (installExtension's xcvm_core probe, readback's XC_VM::config_server, and
 					// the first `service` boot's console.php startup) — removing PHP earlier
 					// aborts the install. console.php gone flips the agent's PHP-free gates
-					// (self-heal, ffmpeg, certbot, node.root); bin/php + bin/nginx (http) go
-					// too, keeping bin/nginx_rtmp. The restart below then boots PHP-free (the
-					// service skips every PHP startup/cron via php_available). The node's
-					// steady state is owned by the Go agent (replica apply P1, binary self-heal
-					// P2, certbot P3, ffmpeg/maintenance P4, essential node.root P6B).
-					call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php ' . MAIN_HOME . 'bin/nginx');
+					// (self-heal, ffmpeg, certbot, node.root); bin/php goes too. The restart
+					// below then boots PHP-free (the service skips every PHP startup/cron via
+					// php_available). The node's steady state is owned by the Go agent (replica
+					// apply P1, binary self-heal P2, certbot P3, ffmpeg/maintenance P4, node.root
+					// P5/P6B).
+					//
+					// bin/nginx is KEPT (the http-nginx binary stays dormant — the service never
+					// starts it on a serve-only node): the Go front reads its listen ports from
+					// bin/nginx/conf/ports (http.conf and https.conf — fanoutcmd -front-ports
+					// defaults; LbInstallFlow writes https.conf there), so deleting the tree would
+					// leave the front with no ports and the node serving nothing.
+					call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php');
 					// The service was already started during the install, BEFORE this marker
 					// existed — so that boot ran nginx + php-fpm and run.sh brought the front
 					// up alongside them (both on the public ports via SO_REUSEPORT: a split

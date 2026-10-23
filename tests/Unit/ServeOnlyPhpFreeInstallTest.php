@@ -17,10 +17,12 @@ final class ServeOnlyPhpFreeInstallTest extends TestCase {
 	public function testPhpIsRemovedOnlyAtTheEndOfAServeOnlyInstall(): void {
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 
-		// The PHP-free transition removes console.php + bin/php + the http-nginx build.
-		$this->assertStringContainsString("'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php ' . MAIN_HOME . 'bin/nginx'", $rCmd, 'the serve-only install removes console.php, bin/php and http-nginx');
-		// nginx_rtmp is kept (the removal names bin/nginx, never bin/nginx_rtmp).
-		$this->assertStringNotContainsString("MAIN_HOME . 'bin/nginx_rtmp'", $this->removalLine($rCmd), 'nginx_rtmp is NOT removed');
+		// The PHP-free transition removes console.php + bin/php only.
+		$this->assertStringContainsString("'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php'", $rCmd, 'the serve-only install removes console.php and bin/php');
+		// bin/nginx is KEPT: the Go front reads its listen ports from
+		// bin/nginx/conf/ports/*, so deleting it would leave the front with no
+		// ports. (nginx_rtmp is a different tree and also stays.)
+		$this->assertStringNotContainsString("MAIN_HOME . 'bin/nginx'", $this->removalLine($rCmd), 'bin/nginx is NOT removed (the Go front reads its ports from bin/nginx/conf/ports)');
 
 		// It is INSIDE the serve-only completion block and AFTER readback — so the
 		// install's PHP steps (installExtension, readback) run with PHP present and
