@@ -365,6 +365,17 @@ class ServerInstallCommand implements CommandInterface {
 					// intact, so a failed convert still boots the normal nginx stack. Idempotent
 					// (rm -f); bin/daemons.sh is kept (it ships + is chmod'd for every node).
 					call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . MAIN_HOME . 'bin/nginx/conf/custom.conf ' . MAIN_HOME . 'bin/nginx/conf/limit.conf ' . MAIN_HOME . 'bin/nginx/conf/limit_queue.conf ' . MAIN_HOME . 'bin/nginx/conf/balance.conf ' . MAIN_HOME . 'bin/php/etc/*.conf');
+					// P6: make the node PHP-free. Done here, at the very end of a successful
+					// install, AFTER every PHP-dependent install step has run with PHP present
+					// (installExtension's xcvm_core probe, readback's XC_VM::config_server, and
+					// the first `service` boot's console.php startup) — removing PHP earlier
+					// aborts the install. console.php gone flips the agent's PHP-free gates
+					// (self-heal, ffmpeg, certbot, node.root); bin/php + bin/nginx (http) go
+					// too, keeping bin/nginx_rtmp. The restart below then boots PHP-free (the
+					// service skips every PHP startup/cron via php_available). The node's
+					// steady state is owned by the Go agent (replica apply P1, binary self-heal
+					// P2, certbot P3, ffmpeg/maintenance P4, essential node.root P6B).
+					call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php ' . MAIN_HOME . 'bin/nginx');
 					// The service was already started during the install, BEFORE this marker
 					// existed — so that boot ran nginx + php-fpm and run.sh brought the front
 					// up alongside them (both on the public ports via SO_REUSEPORT: a split

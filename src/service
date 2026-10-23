@@ -10,10 +10,12 @@ fi
 
 # A serve-only node: the Go binary (xc_node front + agent) is the whole HTTP
 # surface, so http-nginx and php-fpm are NOT started — only nginx_rtmp, the
-# fanout/agent supervisors, redis and the PHP CLI run. The serve_only marker the
-# install writes is the single gate; a node serve-only'd by the install must run
-# a front-capable binary (the cutover ships with that xc_node release). A normal
-# (non-serve-only) LB or MAIN has no marker and keeps nginx + php-fpm.
+# fanout/agent supervisors and redis run. From P6 the install also removes PHP
+# (bin/php + console.php), so such a node runs no PHP at all and the PHP
+# startup/crons below are skipped (php_available); the Go agent covers them. The
+# serve_only marker the install writes is the single gate; a node serve-only'd by
+# the install must run a front-capable binary (the cutover ships with that
+# xc_node release). A normal (non-serve-only) LB or MAIN keeps nginx + php-fpm.
 serve_only_node() {
   [ -f $SCRIPT/config/cluster/serve_only ]
 }
@@ -24,6 +26,15 @@ serve_only_node() {
 # no window with a stale/missing gateway policy on an older agent binary.
 serve_only_active() {
   [ -f $SCRIPT/config/cluster/serve_only_active ]
+}
+
+# A PHP-free serve-only node (P6): the install removed bin/php and console.php,
+# so the agent runs the replica apply, node maintenance and the essential
+# node.root commands in Go. Every PHP startup/cron below is gated on the
+# interpreter still being present, so such a node skips them cleanly while a node
+# that still has PHP is unchanged.
+php_available() {
+  [ -x $SCRIPT/bin/php/bin/php ]
 }
 
 # Launch every XC_VM service. Does NOT block — shared by start (foreground) and
@@ -86,7 +97,7 @@ boot() {
     # Once the serve-only handover is complete the agent applies the replica in
     # Go (not console.php). Until then (older agent) PHP still applies, so the
     # gateway's inputs + policy keep refreshing.
-    if [ -n "$FLOWS" ] && [ -n "$MODE" ] && [ "$MODE" -ge 1 ] && [ $((FLOWS & 32)) -ne 0 ] && ! serve_only_active; then
+    if [ -n "$FLOWS" ] && [ -n "$MODE" ] && [ "$MODE" -ge 1 ] && [ $((FLOWS & 32)) -ne 0 ] && ! serve_only_active && php_available; then
       sudo -u xc_vm timeout 15 $SCRIPT/bin/php/bin/php $SCRIPT/console.php cluster:apply --from-disk >/dev/null 2>/dev/null
     fi
   fi
@@ -97,18 +108,21 @@ boot() {
   if ! serve_only_node; then
     sudo -u xc_vm $SCRIPT/bin/daemons.sh
   fi
-  # startup runs as root by design (root crontab, embedded `status 1`);
-  # it delegates the cache builds to xc_vm itself.
-  sudo $SCRIPT/bin/php/bin/php $SCRIPT/console.php startup
   sudo chown xc_vm:xc_vm $SCRIPT/config/config.enc 2>/dev/null
-  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php signals >/dev/null 2>/dev/null &
-  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php watchdog >/dev/null 2>/dev/null &
-  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php queue >/dev/null 2>/dev/null &
-  # MAIN only: LB builds strip the command (the cron revives it on MAIN).
-  if [ -f $SCRIPT/Cli/Commands/CacheHandlerCommand.php ]; then
-    sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php cache_handler >/dev/null 2>/dev/null &
+  # startup runs as root by design (root crontab, embedded `status 1`); it
+  # delegates the cache builds to xc_vm itself. A PHP-free serve-only node has no
+  # bin/php, so it skips every PHP startup/cron — the Go agent covers them.
+  if php_available; then
+    sudo $SCRIPT/bin/php/bin/php $SCRIPT/console.php startup
+    sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php signals >/dev/null 2>/dev/null &
+    sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php watchdog >/dev/null 2>/dev/null &
+    sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php queue >/dev/null 2>/dev/null &
+    # MAIN only: LB builds strip the command (the cron revives it on MAIN).
+    if [ -f $SCRIPT/Cli/Commands/CacheHandlerCommand.php ]; then
+      sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php cache_handler >/dev/null 2>/dev/null &
+    fi
+    sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php fanout_sync >/dev/null 2>/dev/null &
   fi
-  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php fanout_sync >/dev/null 2>/dev/null &
 }
 
 # At power-on the clock comes from the hardware clock until NTP first sets it:
@@ -135,7 +149,11 @@ clock_sync() {
 # keeps tracking the unit. Holds the terminal BY DESIGN — for a manual,
 # non-blocking restart use `restart` (or `systemctl restart|reload xc_vm`).
 start() {
-  pids=$(pgrep -u xc_vm nginx | wc -l)
+  # Recognise a serve-only node as running too: it has no http-nginx, but runs
+  # the Go front (xc_fanout) and nginx_rtmp. Matching only "nginx" would miss a
+  # future rename of the rtmp binary and read a running serve-only node as
+  # stopped (reload refusing, repeated starts duplicating).
+  pids=$(pgrep -u xc_vm 'nginx|xc_fanout' | wc -l)
   if [ $pids != 0 ]; then
     echo 'XC_VM is already running'
     return 1
@@ -172,7 +190,11 @@ restart() {
 }
 
 reload() {
-  pids=$(pgrep -u xc_vm nginx | wc -l)
+  # Recognise a serve-only node as running too: it has no http-nginx, but runs
+  # the Go front (xc_fanout) and nginx_rtmp. Matching only "nginx" would miss a
+  # future rename of the rtmp binary and read a running serve-only node as
+  # stopped (reload refusing, repeated starts duplicating).
+  pids=$(pgrep -u xc_vm 'nginx|xc_fanout' | wc -l)
   if [ $pids = 0 ]; then
     echo 'XC_VM is not running'
     return 1

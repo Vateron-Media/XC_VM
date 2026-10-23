@@ -290,7 +290,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		// policy.json from the MAIN-sealed section). Until then (older binary) PHP
 		// keeps applying + refreshing the policy, so there is no stale-policy gap.
 		$rService = (string) file_get_contents(MAIN_HOME . 'service');
-		$this->assertStringContainsString('[ $((FLOWS & 32)) -ne 0 ] && ! serve_only_active; then', $rService, 'the boot cluster:apply --from-disk is gated on the handover (serve_only_active), not the install marker');
+		$this->assertStringContainsString('[ $((FLOWS & 32)) -ne 0 ] && ! serve_only_active && php_available; then', $rService, 'the boot cluster:apply --from-disk is gated on the handover (serve_only_active) and, from P6, on PHP still being present (php_available) so a PHP-free node skips it');
 
 		$rCache = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/CacheCronJob.php');
 		$this->assertMatchesRegularExpression("/if \\(!is_file\\(CONFIG_PATH \\. 'cluster\\/serve_only_active'\\)\\) \\{\\s*GatewayPolicy::write\\(\\);/s", $rCache, 'cron:cache keeps writing policy.json until the agent takes over (serve_only_active)');
