@@ -383,10 +383,14 @@ class ServerService {
 			}
 
 			$db->query('UPDATE `servers` SET `status` = 3, `parent_id` = ? WHERE `id` = ?;', '[' . implode(',', $rParentIDs) . ']', $rServer['id']);
+			// Reinstalling an existing node keeps its own mode: preserve the
+			// serve_only state recorded at its first install (ServerInstallCommand),
+			// not the current global new-node mode, which may have changed since.
+			$rServeOnlyTail = (intval($rData['type']) === 2 && !empty($rServer['serve_only'])) ? ['--serve-only'] : [];
 			if ($rData['type'] == 1) {
 				$rCommand = InstallCredentials::command(intval($rData['type']), intval($rServer['id']), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], [(string) intval($rData['http_broadcast_port']), (string) intval($rData['https_broadcast_port']), (string) intval($rUpdateSysctl), (string) intval($rPrivateIP), escapeshellarg(json_encode($rParentIDs))], (string) ($rData['expected_hostkey'] ?? ''), !empty($rData['forget_hostkey']));
 			} else {
-				$rCommand = InstallCredentials::command(intval($rData['type']), intval($rServer['id']), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], ['80', '443', (string) intval($rUpdateSysctl)], (string) ($rData['expected_hostkey'] ?? ''), !empty($rData['forget_hostkey']));
+				$rCommand = InstallCredentials::command(intval($rData['type']), intval($rServer['id']), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], ['80', '443', (string) intval($rUpdateSysctl), ...$rServeOnlyTail], (string) ($rData['expected_hostkey'] ?? ''), !empty($rData['forget_hostkey']));
 			}
 			shell_exec($rCommand);
 			return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rServer['id']]];
@@ -428,10 +432,15 @@ class ServerService {
 			BackupService::grantPrivileges($rArray['server_ip']);
 		}
 
+		// A brand-new LB installs serve-only (PHP-free Go node) when the global
+		// new-node mode says so; the flag is valueless and only armed for a
+		// type-2 LB. ServerInstallCommand records serve_only on the row, so a
+		// later reinstall preserves it (above) regardless of the mode then.
+		$rServeOnlyTail = (intval($rData['type']) === 2 && ClusterSettings::newNodesServeOnly(SettingsManager::getAll())) ? ['--serve-only'] : [];
 		if ($rData['type'] == 1) {
 			$rCommand = InstallCredentials::command(intval($rData['type']), intval($rInsertID), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], [(string) intval($rData['http_broadcast_port']), (string) intval($rData['https_broadcast_port']), (string) intval($rUpdateSysctl), (string) intval($rPrivateIP), escapeshellarg(json_encode($rParentIDs))], (string) ($rData['expected_hostkey'] ?? ''));
 		} else {
-			$rCommand = InstallCredentials::command(intval($rData['type']), intval($rInsertID), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], ['80', '443', (string) intval($rUpdateSysctl)], (string) ($rData['expected_hostkey'] ?? ''));
+			$rCommand = InstallCredentials::command(intval($rData['type']), intval($rInsertID), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], ['80', '443', (string) intval($rUpdateSysctl), ...$rServeOnlyTail], (string) ($rData['expected_hostkey'] ?? ''));
 		}
 
 		shell_exec($rCommand);
