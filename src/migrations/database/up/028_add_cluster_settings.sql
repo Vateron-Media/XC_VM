@@ -16,7 +16,7 @@ ALTER TABLE `settings`
       ADD COLUMN IF NOT EXISTS `lb_offline_admission` varchar(8) DEFAULT 'local',
       ADD COLUMN IF NOT EXISTS `cluster_kill_on_line_disable` tinyint(1) DEFAULT '1',
       ADD COLUMN IF NOT EXISTS `cluster_ingest_concurrency` int(11) DEFAULT '6',
-      ADD COLUMN IF NOT EXISTS `lb_new_node_mode` varchar(8) DEFAULT 'legacy',
+      ADD COLUMN IF NOT EXISTS `lb_new_node_mode` varchar(16) DEFAULT 'legacy',
       ADD COLUMN IF NOT EXISTS `lb_scan_roots` varchar(1024) DEFAULT '["/home/xc_vm/content","/mnt","/media"]',
       ADD COLUMN IF NOT EXISTS `servers_stats_retention_days` int(11) DEFAULT '30',
       ADD COLUMN IF NOT EXISTS `cluster_audit_retention_days` int(11) DEFAULT '30',
