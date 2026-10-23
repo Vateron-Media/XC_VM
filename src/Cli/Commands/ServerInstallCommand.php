@@ -237,12 +237,20 @@ class ServerInstallCommand implements CommandInterface {
 		$this->installUbuntu20Compatibility($rConn, $rRunSSH, $rVersion);
 		$this->prepareInstallRoot($rConn, $rRunSSH, $rType);
 
+		// A single-binary serve-only LB (server:install --serve-only): MAIN directs
+		// its streams and it runs xc_node with no nginx/php-fpm and, from P6, no PHP
+		// at all. --serve-only is a valueless flag kept in the positional list, so
+		// match only the tail (index >= 5, after type/id/port/username/password) —
+		// a root password equal to "--serve-only" can never arm it. Computed before
+		// the archive so installArchive/runPostExtractSteps can strip PHP + http-nginx.
+		$rServeOnly = $rType == 2 && in_array('--serve-only', array_slice($rArgs, 5), true);
+
 		if ($rType == 1) {
 			if (!ProxyInstallFlow::installArchive($rConn, $rSendFileSSH, $rRunSSH, $rInstallDir, $rInstallFiles, $rServerID, $db)) {
 				return 1;
 			}
 		} else {
-			if (!LbInstallFlow::installArchive($rConn, $rRunSSH, $rInstallFiles, $rHash, $rServerID, $db)) {
+			if (!LbInstallFlow::installArchive($rConn, $rRunSSH, $rInstallFiles, $rHash, $rServerID, $db, $rServeOnly)) {
 				return 1;
 			}
 		}
@@ -251,15 +259,6 @@ class ServerInstallCommand implements CommandInterface {
 		// keeps free of its credentials — gets no grant and a credential-free
 		// config.enc. Decided once, before the enrolment replaces the node's row.
 		$rApiMode = $rType == 2 && LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID);
-
-		// A single-binary serve-only LB (server:install --serve-only): MAIN directs
-		// its streams and it runs xc_node with no nginx/php-fpm. Only an LB can be one.
-		// --serve-only is a valueless flag, so it stays in the positional list
-		// (splitOptions only lifts --name=value into $rOptions) and is matched
-		// there, as cluster:reenrol does with --all/--dry-run/--pending. Match only
-		// the tail (index >= 5, after type/id/port/username/password) so a root
-		// password that happens to equal "--serve-only" can never arm it.
-		$rServeOnly = $rType == 2 && in_array('--serve-only', array_slice($rArgs, 5), true);
 
 		// A serve-only node is credential-free by definition: it holds no DB, mints
 		// no tokens, and runs no php-fpm — so it MUST install in API mode. Refuse
@@ -273,7 +272,7 @@ class ServerInstallCommand implements CommandInterface {
 			return 1;
 		}
 
-		if ($rType == 2 && !LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID)) {
+		if ($rType == 2 && !LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID, $rServeOnly)) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			return 1;
 		}
