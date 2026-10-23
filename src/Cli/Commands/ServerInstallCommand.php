@@ -250,7 +250,12 @@ class ServerInstallCommand implements CommandInterface {
 		// An LB in API mode — a new one under lb_new_node_mode=api, or one MAIN
 		// keeps free of its credentials — gets no grant and a credential-free
 		// config.enc. Decided once, before the enrolment replaces the node's row.
-		$rApiMode = $rType == 2 && LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID);
+		// The row's serve_only, persisted by ServerService before this worker was
+		// launched, is the request's captured decision: honour it even if the
+		// global mode changed between queue and start, so a serve-only install the
+		// admin asked for is not rejected by the guard below (which re-reads the
+		// live setting). A serve-only node is credential-free/API-mode by construction.
+		$rApiMode = $rType == 2 && (LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID) || !empty($rServers[$rServerID]['serve_only']));
 
 		// A single-binary serve-only LB (server:install --serve-only): MAIN directs
 		// its streams and it runs xc_node with no nginx/php-fpm. Only an LB can be one.

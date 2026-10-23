@@ -1766,7 +1766,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `cluster_kill_on_line_disable` tinyint(1) DEFAULT '1',
   `cluster_conn_binding` varchar(8) DEFAULT 'observe',
   `cluster_ingest_concurrency` int(11) DEFAULT '6',
-  `lb_new_node_mode` varchar(8) DEFAULT 'legacy',
+  `lb_new_node_mode` varchar(16) DEFAULT 'legacy',
   `lb_scan_roots` varchar(1024) DEFAULT '["/home/xc_vm/content","/mnt","/media"]',
   `servers_stats_retention_days` int(11) DEFAULT '30',
   `cluster_audit_retention_days` int(11) DEFAULT '30',

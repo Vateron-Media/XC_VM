@@ -416,6 +416,15 @@ class ServerService {
 			$rArray['server_type'] = 0;
 		}
 
+		// Decide and PERSIST the serve-only mode now, on the row, before the
+		// background installer is launched. The install records serve_only only
+		// near its end, so without this a retry/reinstall started meanwhile (which
+		// reads servers.serve_only) would read 0 and silently install a PHP LB; and
+		// the worker reads the row to stay serve-only even if the global mode
+		// changes between this queue and the worker's start.
+		$rServeOnly = intval($rData['type']) === 2 && ClusterSettings::newNodesServeOnly(SettingsManager::getAll());
+		$rArray['serve_only'] = $rServeOnly ? 1 : 0;
+
 		$rArray['network_interface'] = 'auto';
 		$rPrepare = QueryHelper::prepareArray($rArray);
 		$rQuery = 'INSERT INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
@@ -432,11 +441,9 @@ class ServerService {
 			BackupService::grantPrivileges($rArray['server_ip']);
 		}
 
-		// A brand-new LB installs serve-only (PHP-free Go node) when the global
-		// new-node mode says so; the flag is valueless and only armed for a
-		// type-2 LB. ServerInstallCommand records serve_only on the row, so a
-		// later reinstall preserves it (above) regardless of the mode then.
-		$rServeOnlyTail = (intval($rData['type']) === 2 && ClusterSettings::newNodesServeOnly(SettingsManager::getAll())) ? ['--serve-only'] : [];
+		// Arm --serve-only from the same decision just persisted on the row, so
+		// the queued command and the stored mode cannot disagree.
+		$rServeOnlyTail = $rServeOnly ? ['--serve-only'] : [];
 		if ($rData['type'] == 1) {
 			$rCommand = InstallCredentials::command(intval($rData['type']), intval($rInsertID), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], [(string) intval($rData['http_broadcast_port']), (string) intval($rData['https_broadcast_port']), (string) intval($rUpdateSysctl), (string) intval($rPrivateIP), escapeshellarg(json_encode($rParentIDs))], (string) ($rData['expected_hostkey'] ?? ''));
 		} else {

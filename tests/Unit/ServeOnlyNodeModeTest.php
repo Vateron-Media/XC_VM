@@ -44,8 +44,8 @@ final class ServeOnlyNodeModeTest extends TestCase {
 
 	public function testNewInstallArmsServeOnlyFromTheGlobalMode(): void {
 		$rService = (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerService.php');
-		// A brand-new type-2 LB takes --serve-only from the global new-node mode.
-		$this->assertStringContainsString("\$rServeOnlyTail = (intval(\$rData['type']) === 2 && ClusterSettings::newNodesServeOnly(SettingsManager::getAll())) ? ['--serve-only'] : [];", $rService);
+		// A brand-new type-2 LB arms --serve-only from the mode persisted on the row.
+		$this->assertStringContainsString("\$rServeOnlyTail = \$rServeOnly ? ['--serve-only'] : [];", $rService);
 		// An edit/reinstall instead preserves the node's own recorded mode.
 		$this->assertStringContainsString("\$rServeOnlyTail = (intval(\$rData['type']) === 2 && !empty(\$rServer['serve_only'])) ? ['--serve-only'] : [];", $rService);
 		// The flag rides the type-2 tail (positional, after the ports; the command reads --serve-only from args 6+).
@@ -61,5 +61,71 @@ final class ServeOnlyNodeModeTest extends TestCase {
 	public function testTheSettingsUiOffersServeOnly(): void {
 		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/settings.php');
 		$this->assertStringContainsString("['lb_new_node_mode', ['legacy', 'api', 'serve_only'],", $rView);
+	}
+
+	public function testIsApiModeClassifierCoversBothFlavours(): void {
+		// The one classifier the ad-hoc `=== 'api'` sites now route through.
+		$this->assertTrue(ClusterSettings::isApiMode('api'));
+		$this->assertTrue(ClusterSettings::isApiMode('serve_only'));
+		$this->assertFalse(ClusterSettings::isApiMode('legacy'));
+		$this->assertFalse(ClusterSettings::isApiMode(null));
+		$this->assertFalse(ClusterSettings::isApiMode(''));
+	}
+
+	public function testSchemaAndMigrationHoldServeOnly(): void {
+		// `serve_only` is 10 chars; a varchar(8) column could not store it.
+		$rSchema = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
+		$this->assertMatchesRegularExpression('/`lb_new_node_mode` varchar\((1[0-9]|[2-9][0-9]|[1-9]\d{2,})\)/', $rSchema, 'the install schema holds >= 10 chars');
+		$this->assertStringNotContainsString('`lb_new_node_mode` varchar(8)', $rSchema);
+		$rMig = (string) @file_get_contents(MAIN_HOME . 'migrations/database/up/101_widen_lb_new_node_mode.sql');
+		$this->assertStringContainsString('MODIFY COLUMN `lb_new_node_mode` varchar(16)', $rMig, 'a migration widens the existing column');
+	}
+
+	public function testClusterInitPreservesAChosenServeOnly(): void {
+		// Enabling the cluster API must not rewrite a chosen serve_only to api.
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ClusterInitCommand.php');
+		$this->assertStringContainsString('$rApi = ClusterSettings::isApiMode($rExisting) || (empty($rRow[\'redis_handler\']) && CredentialFreeConfig::supported());', $rCmd);
+		$this->assertStringContainsString('$rNewMode = ClusterSettings::isApiMode($rExisting) ? $rExisting : ($rApi ? \'api\' : ($rExisting ?: \'legacy\'));', $rCmd);
+	}
+
+	public function testEnrolmentPutsServeOnlyInModeTwo(): void {
+		// Both enrolment paths (install, approved code) go through begin(), which
+		// must treat serve_only as mode 2, not only the literal 'api'.
+		$rEnrol = (string) file_get_contents(MAIN_HOME . 'Domain/Cluster/EnrolmentService.php');
+		$this->assertStringContainsString("\$rMode = ClusterSettings::isApiMode(ClusterSettings::enum('lb_new_node_mode', \$rSettings['lb_new_node_mode'] ?? null)) ? 2 : 1;", $rEnrol);
+		$this->assertStringNotContainsString("=== 'api' ? 2 : 1", $rEnrol, 'the literal api-only mode-2 test is gone');
+	}
+
+	public function testNewInstallPersistsServeOnlyBeforeLaunch(): void {
+		// The row carries the intended mode before the worker starts, so a retry
+		// (which reads the row) and the worker both see serve-only.
+		$rService = (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerService.php');
+		$this->assertStringContainsString('$rServeOnly = intval($rData[\'type\']) === 2 && ClusterSettings::newNodesServeOnly(SettingsManager::getAll());', $rService);
+		$this->assertStringContainsString('$rArray[\'serve_only\'] = $rServeOnly ? 1 : 0;', $rService);
+		// The persist sits before the INSERT (so the row is set when the worker launches).
+		// Anchor on strings unique to install(): the serve_only compute and the INSERT query.
+		$this->assertLessThan(strpos($rService, 'INSERT INTO `servers`('), strpos($rService, '$rServeOnly = intval($rData[\'type\']) === 2 && ClusterSettings::newNodesServeOnly(SettingsManager::getAll());'));
+	}
+
+	public function testWorkerHonoursThePersistedMode(): void {
+		// A global-mode change between queue and worker start cannot abort a
+		// serve-only install: the worker reads the row's serve_only too.
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$this->assertStringContainsString('$rApiMode = $rType == 2 && (LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID) || !empty($rServers[$rServerID][\'serve_only\']));', $rCmd);
+	}
+
+	public function testReinstallKeepsPortsBeforeServeOnly(): void {
+		// --serve-only is positional after the ports; the reinstall must not let it
+		// become the first argument (parsed as port 0) when metadata has no ports.
+		$rCtrl = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Admin/Ajax/ServerAjaxController.php');
+		$this->assertStringContainsString('if ($rTail === []) {', $rCtrl);
+		$this->assertStringContainsString("\$rTail = [(string) intval(\$rServers[\$rServerID]['http_broadcast_port']), (string) intval(\$rServers[\$rServerID]['https_broadcast_port'])];", $rCtrl);
+		// the fallback precedes the flag append
+		$this->assertLessThan(strpos($rCtrl, "\$rTail[] = '--serve-only';"), strpos($rCtrl, 'if ($rTail === []) {'));
+	}
+
+	public function testDocsPublishServeOnly(): void {
+		$rDocs = (string) file_get_contents(MAIN_HOME . '../docs/en/development/cluster-api.md');
+		$this->assertStringContainsString('legacy \| api \| serve_only', $rDocs);
 	}
 }

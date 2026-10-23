@@ -175,12 +175,12 @@ final class ClusterSettings {
 		}
 		// serve_only is an API-mode flavour (credential-free, no DB) that also
 		// drops PHP, so it carries the same two prerequisites as api.
-		if (in_array($rOut['lb_new_node_mode'] ?? null, ['api', 'serve_only'], true) && empty($rOut['cluster_api_enabled'] ?? $rCurrent['cluster_api_enabled'] ?? 0)) {
+		if (self::isApiMode($rOut['lb_new_node_mode'] ?? null) && empty($rOut['cluster_api_enabled'] ?? $rCurrent['cluster_api_enabled'] ?? 0)) {
 			// Mode 2 is the cluster API's: with it off (as this save leaves it), a
 			// new node installs in legacy mode whatever is stored (newNodesInApiMode()).
 			$rErrors[] = ['lb_new_node_mode', 'cluster_error_api_mode_api_off'];
 			unset($rOut['lb_new_node_mode']);
-		} elseif (in_array($rOut['lb_new_node_mode'] ?? null, ['api', 'serve_only'], true) && empty($rEnv['credential_free_config'])) {
+		} elseif (self::isApiMode($rOut['lb_new_node_mode'] ?? null) && empty($rEnv['credential_free_config'])) {
 			// An API-mode node is installed without MAIN's credentials: an
 			// extension that cannot pack such a config would hand them over.
 			$rErrors[] = ['lb_new_node_mode', 'cluster_error_api_mode_extension'];
@@ -199,7 +199,18 @@ final class ClusterSettings {
 	 * @param array<string, mixed> $rSettings
 	 */
 	public static function newNodesInApiMode(array $rSettings): bool {
-		return !empty($rSettings['cluster_api_enabled']) && in_array(self::enum('lb_new_node_mode', $rSettings['lb_new_node_mode'] ?? null), ['api', 'serve_only'], true);
+		return !empty($rSettings['cluster_api_enabled']) && self::isApiMode(self::enum('lb_new_node_mode', $rSettings['lb_new_node_mode'] ?? null));
+	}
+
+	/**
+	 * Does an `lb_new_node_mode` value mean an API-mode node (mode 2,
+	 * credential-free)? Both `api` and its PHP-free `serve_only` flavour do;
+	 * `legacy` does not. The single place that classifies the enum, so adding a
+	 * flavour is one edit here — not at every `=== 'api'` caller (enrolment mode,
+	 * cluster:init, the install guard, normalize).
+	 */
+	public static function isApiMode(?string $rMode): bool {
+		return in_array($rMode, ['api', 'serve_only'], true);
 	}
 
 	/**

@@ -183,7 +183,7 @@ final class ApiModeInstallTest extends TestCase {
 		$rService = (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerService.php');
 		$this->assertMatchesRegularExpression('/if \(\$rArray\[\'server_type\'\] == 0 && !ClusterSettings::newNodesInApiMode\(SettingsManager::getAll\(\)\)\) \{\s*BackupService::grantPrivileges/', $rService);
 		$rInstall = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
-		$this->assertStringContainsString('$rApiMode = $rType == 2 && LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID);', $rInstall);
+		$this->assertStringContainsString('$rApiMode = $rType == 2 && (LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID) || !empty($rServers[$rServerID][\'serve_only\']));', $rInstall);
 		$this->assertStringContainsString('$this->finalizeHostAfterRuntime($rConn, $rRunSSH, $rHost, !$rApiMode);', $rInstall);
 		$this->assertStringContainsString('provisionConfig($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, $rApiMode, $rServeOnly)', $rInstall);
 		$this->assertStringContainsString('provisionCluster($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, null, true, $rApiMode)', $rInstall);
