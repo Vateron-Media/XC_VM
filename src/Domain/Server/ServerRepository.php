@@ -57,11 +57,16 @@ class ServerRepository {
 		if (!$rSettings) {
 			$rSettings = SettingsRepository::loaded();
 		}
+		// This node's own id marks its row always-online. Not every context that
+		// reads the server list defines it: MAIN's cluster API (ReplicaBuilder
+		// builds a node's policy section there) boots without SERVER_ID, so fall
+		// back to 0 — no row is id 0, which is right, MAIN is not in its own list.
+		$rSelf = defined('SERVER_ID') ? (int) SERVER_ID : 0;
 		$rReplica = ReplicaApply::owns(ReplicaSections::SERVERS);
 		if (!$rForce || $rReplica) {
 			$rCache = $rReplica ? FileCache::getCache('servers') : FileCache::getCache('servers', 10);
 			if (empty($rCache) && $rReplica) {
-				ReplicaApply::servers(true, (int) SERVER_ID);
+				ReplicaApply::servers(true, $rSelf);
 				$rCache = ReplicaApply::owns(ReplicaSections::SERVERS) ? FileCache::getCache('servers') : false;
 			}
 			if (!empty($rCache)) {
@@ -89,11 +94,11 @@ class ServerRepository {
 				$rLastCheckTime = 90;
 			}
 
-			$rRow['server_online'] = $rRow['enabled'] && in_array($rRow['status'], $rOnlineStatus) && time() - $rRow['last_check_ago'] <= $rLastCheckTime || SERVER_ID == $rRow['id'];
+			$rRow['server_online'] = $rRow['enabled'] && in_array($rRow['status'], $rOnlineStatus) && time() - $rRow['last_check_ago'] <= $rLastCheckTime || $rSelf == $rRow['id'];
 			// A node whose agent reports its telemetry is judged by MAIN's
 			// liveness loop instead (offline after 30 s of silence, not 90 s).
 			$rRow['cluster_health'] = ClusterHealth::state(intval($rRow['id']));
-			if ($rRow['cluster_health'] !== null && SERVER_ID != $rRow['id']) {
+			if ($rRow['cluster_health'] !== null && $rSelf != $rRow['id']) {
 				$rRow['server_online'] = $rRow['enabled'] && in_array($rRow['status'], $rOnlineStatus) && !in_array($rRow['cluster_health'], ClusterHealth::NO_ROUTING, true);
 			}
 			if (!isset($rRow['order'])) {
