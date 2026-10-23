@@ -208,7 +208,7 @@ readers use (a shadow diff before the flow is on, so an operator sees what would
 | `cluster_kill_on_line_disable` | 0/1 (1) | a disabled, locked or expired line loses its sessions; a reseller's disable (panel or Reseller API) counts too |
 | `cluster_conn_binding` | observe \| enforce (observe); Settings → Cluster, *Viewer Record Proof*, and the Cluster Nodes page's *Viewer record proof* card (which nodes prove, the day's counts, ready or not: `ClusterOverview::binding`) | a node's record of a viewer, and its `conn_admit`, must prove MAIN minted the viewer's token; `observe` counts those that do not (`conn.unproven` in the audit), `enforce` refuses such a record from a node whose stream secret MAIN withholds (mode 2, locked down, on its own viewer key), and reserves and cuts nothing for such a `conn_admit` (ADR 0004, "The line a node names") |
 | `cluster_ingest_concurrency` | 1–64 (6) | MAIN's ingest permits; half reserved for P0 |
-| `lb_new_node_mode` | legacy \| api | the mode a newly installed LB enrols at |
+| `lb_new_node_mode` | legacy \| api \| serve_only | the mode a newly installed LB enrols at; `api` and `serve_only` both join in mode 2 (credential-free), and `serve_only` additionally installs the node PHP-free — one Go binary (xc_fanout + xc_agent), no http-nginx (nginx_rtmp kept). Both need the cluster API on |
 | `cluster_auto_mode_down_min` | 0–1440 (0, off) | minutes a node in mode 2 may say it no longer reads its streams on itself before MAIN moves it to mode 1 |
 | `servers_stats_retention_days` | 1–365 (30) | `cron:cleanup` prunes `servers_stats` |
 | `cluster_audit_retention_days` | 1–365 (30) | `cron:cleanup` prunes `cluster_audit` |
