@@ -3,6 +3,7 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\CredentialFreeConfig;
 use XcVm\Core\Cluster\Crypto\ClusterCrypto;
 use XcVm\Core\Config\SettingsManager;
@@ -108,8 +109,14 @@ class ClusterInitCommand implements CommandInterface {
 			return null;
 		}
 		$rRow = $db->get_row() ?: [];
-		$rApi = ($rRow['lb_new_node_mode'] ?? '') === 'api' || (empty($rRow['redis_handler']) && CredentialFreeConfig::supported());
-		if (!$db->query('UPDATE `settings` SET `cluster_api_enabled` = 1, `lb_new_node_mode` = ?;', $rApi ? 'api' : ((string) ($rRow['lb_new_node_mode'] ?? '') ?: 'legacy'))) {
+		// Keep a mode the admin already chose — api OR its serve_only flavour — so
+		// enabling the cluster API does not silently rewrite serve_only to api
+		// (which would install new LBs with PHP). Otherwise promote an eligible
+		// legacy to api, else leave legacy.
+		$rExisting = (string) ($rRow['lb_new_node_mode'] ?? '');
+		$rApi = ClusterSettings::isApiMode($rExisting) || (empty($rRow['redis_handler']) && CredentialFreeConfig::supported());
+		$rNewMode = ClusterSettings::isApiMode($rExisting) ? $rExisting : ($rApi ? 'api' : ($rExisting ?: 'legacy'));
+		if (!$db->query('UPDATE `settings` SET `cluster_api_enabled` = 1, `lb_new_node_mode` = ?;', $rNewMode)) {
 			return null;
 		}
 		if (defined('CACHE_TMP_PATH')) {

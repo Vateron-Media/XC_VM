@@ -59,7 +59,10 @@ final class EnrolmentService {
 	 * @return array{0: int, 1: array<string, mixed>, 2: int} [gen, TokenService::issue()'s answer, mode]
 	 */
 	public static function begin(ClusterCrypto $rCrypto, int $rServerID, string $rNodeUuid, string $rSignPub, string $rBoxPub, string $rAgentEphPub, array $rSettings): array {
-		$rMode = ClusterSettings::enum('lb_new_node_mode', $rSettings['lb_new_node_mode'] ?? null) === 'api' ? 2 : 1;
+		// api and its serve_only flavour both enrol in mode 2 (credential-free,
+		// the mode-2 flows); only legacy is mode 1. Both enrolment paths (install
+		// and an approved code) route through here.
+		$rMode = ClusterSettings::isApiMode(ClusterSettings::enum('lb_new_node_mode', $rSettings['lb_new_node_mode'] ?? null)) ? 2 : 1;
 		// A node born in mode 2 has no DB grant and no credentials to fall back
 		// on: every flow but the data plane is on from its first hello, as the
 		// mode gate asks of a promoted one (ClusterAdmin::MODE2_FLOWS).

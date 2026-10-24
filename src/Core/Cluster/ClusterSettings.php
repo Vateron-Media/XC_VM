@@ -61,7 +61,7 @@ final class ClusterSettings {
 		'cluster_transport' => ['auto', ['auto', 'http', 'https_preferred', 'https_required']],
 		'lb_revocation_mode' => ['graceful', ['graceful', 'hard']],
 		'lb_offline_admission' => ['local', ['allow', 'local', 'deny']],
-		'lb_new_node_mode' => ['legacy', ['legacy', 'api']],
+		'lb_new_node_mode' => ['legacy', ['legacy', 'api', 'serve_only']],
 		// A node's viewer records must prove MAIN's mint (ConnectionAdmission): counted
 		// under observe, refused under enforce where MAIN withholds the node's secret.
 		'cluster_conn_binding' => ['observe', ['observe', 'enforce']],
@@ -173,12 +173,14 @@ final class ClusterSettings {
 			$rErrors[] = ['cluster_api_enabled', 'cluster_error_extension'];
 			unset($rOut['cluster_api_enabled']);
 		}
-		if (($rOut['lb_new_node_mode'] ?? null) === 'api' && empty($rOut['cluster_api_enabled'] ?? $rCurrent['cluster_api_enabled'] ?? 0)) {
+		// serve_only is an API-mode flavour (credential-free, no DB) that also
+		// drops PHP, so it carries the same two prerequisites as api.
+		if (self::isApiMode($rOut['lb_new_node_mode'] ?? null) && empty($rOut['cluster_api_enabled'] ?? $rCurrent['cluster_api_enabled'] ?? 0)) {
 			// Mode 2 is the cluster API's: with it off (as this save leaves it), a
 			// new node installs in legacy mode whatever is stored (newNodesInApiMode()).
 			$rErrors[] = ['lb_new_node_mode', 'cluster_error_api_mode_api_off'];
 			unset($rOut['lb_new_node_mode']);
-		} elseif (($rOut['lb_new_node_mode'] ?? null) === 'api' && empty($rEnv['credential_free_config'])) {
+		} elseif (self::isApiMode($rOut['lb_new_node_mode'] ?? null) && empty($rEnv['credential_free_config'])) {
 			// An API-mode node is installed without MAIN's credentials: an
 			// extension that cannot pack such a config would hand them over.
 			$rErrors[] = ['lb_new_node_mode', 'cluster_error_api_mode_extension'];
@@ -197,7 +199,30 @@ final class ClusterSettings {
 	 * @param array<string, mixed> $rSettings
 	 */
 	public static function newNodesInApiMode(array $rSettings): bool {
-		return !empty($rSettings['cluster_api_enabled']) && self::enum('lb_new_node_mode', $rSettings['lb_new_node_mode'] ?? null) === 'api';
+		return !empty($rSettings['cluster_api_enabled']) && self::isApiMode(self::enum('lb_new_node_mode', $rSettings['lb_new_node_mode'] ?? null));
+	}
+
+	/**
+	 * Does an `lb_new_node_mode` value mean an API-mode node (mode 2,
+	 * credential-free)? Both `api` and its PHP-free `serve_only` flavour do;
+	 * `legacy` does not. The single place that classifies the enum, so adding a
+	 * flavour is one edit here — not at every `=== 'api'` caller (enrolment mode,
+	 * cluster:init, the install guard, normalize).
+	 */
+	public static function isApiMode(?string $rMode): bool {
+		return in_array($rMode, ['api', 'serve_only'], true);
+	}
+
+	/**
+	 * Is a new load balancer installed serve-only (the API-mode flavour that
+	 * also runs PHP-free: one Go binary, no http-nginx — server:install
+	 * --serve-only)? A subset of newNodesInApiMode(): every serve-only node is
+	 * credential-free, but an api-mode node keeps PHP.
+	 *
+	 * @param array<string, mixed> $rSettings
+	 */
+	public static function newNodesServeOnly(array $rSettings): bool {
+		return !empty($rSettings['cluster_api_enabled']) && self::enum('lb_new_node_mode', $rSettings['lb_new_node_mode'] ?? null) === 'serve_only';
 	}
 
 	/** Why a cluster API port is refused, or null when it is usable (0 = share http_broadcast_port). */

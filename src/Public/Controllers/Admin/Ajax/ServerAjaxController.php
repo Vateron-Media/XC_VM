@@ -483,6 +483,19 @@ class ServerAjaxController extends BaseAjaxController {
 			$rTail = isset($rParams['http_broadcast_port'])
 				? [(string) intval($rParams['http_broadcast_port']), (string) intval($rParams['https_broadcast_port'])]
 				: [];
+			// Reinstall keeps the node's recorded mode: re-arm --serve-only for a
+			// serve-only LB so its reinstall stays the PHP-free Go node.
+			if ($rType === 2 && !empty($rServers[$rServerID]['serve_only'])) {
+				// --serve-only is a positional argument that follows the broadcast
+				// ports; if the saved metadata carried none, the tail would be empty
+				// and ServerInstallCommand would parse --serve-only as the HTTP port
+				// (intval 0). Fall back to the node's recorded ports so the flag is
+				// always last, never first.
+				if ($rTail === []) {
+					$rTail = [(string) intval($rServers[$rServerID]['http_broadcast_port']), (string) intval($rServers[$rServerID]['https_broadcast_port'])];
+				}
+				$rTail[] = '--serve-only';
+			}
 			$rCommand = InstallCredentials::command($rType, intval($rServerID), intval($rParams['ssh_port']), (string) $rParams['root_username'], $rPassword, $rTail, (string) RequestManager::get('expected_hostkey'), !empty(RequestManager::get('forget_hostkey')));
 
 			shell_exec($rCommand);

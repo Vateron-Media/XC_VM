@@ -82,7 +82,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		// escalate).
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertMatchesRegularExpression("/if \\(\\\$rType == 2\\) \\{.*sudo -u xc_vm tee ' \\. CONFIG_PATH \\. 'cluster\\/serve_only/s", $rCmd, 'a completed serve-only install writes the marker as xc_vm');
-		$this->assertStringContainsString("if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm", $rCmd, 'a non-serve-only install clears a stale marker as xc_vm, then restarts to boot nginx + php-fpm (downgrade)');
+		$this->assertStringContainsString("if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo rm -f ' . LbInstallFlow::NODE_ROOT_SUDOERS . ' ' . LbInstallFlow::NODE_ROOT_HELPER . '; sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm", $rCmd, 'a non-serve-only install clears a stale marker as xc_vm, then restarts to boot nginx + php-fpm (downgrade)');
 		$this->assertStringNotContainsString("sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'no root chown through the xc_vm-owned marker path (symlink privesc)');
 		// The service is restarted AFTER the marker is written, so the node boots
 		// sole-front (service skips nginx + php-fpm) instead of staying dual-stacked
@@ -239,7 +239,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		// !$rServeOnly branch has already re-written the nginx + php-fpm configs.
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertMatchesRegularExpression(
-			"/sudo test -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only; then sudo -u xc_vm rm -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only && sudo systemctl restart xc_vm/",
+			"/sudo test -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only; then sudo rm -f ' \\. LbInstallFlow::NODE_ROOT_SUDOERS \\. ' ' \\. LbInstallFlow::NODE_ROOT_HELPER \\. '; sudo -u xc_vm rm -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only && sudo systemctl restart xc_vm/",
 			$rCmd,
 			'a downgrade removes the marker AND restarts xc_vm (only when the marker was present), so the node boots nginx + php-fpm'
 		);
@@ -280,5 +280,25 @@ final class ServeOnlyInstallTest extends TestCase {
 			$rCron,
 			'a legacy backend set_port is ignored, not written as a public ssl listener'
 		);
+	}
+
+	public function testServeOnlyAppliesTheReplicaInGoNotConsolePhp(): void {
+		// P1: a serve-only node is authoritative over its own config/apply ONCE the
+		// handover is complete — the agent advertises -serve-only, run.sh writes the
+		// serve_only_active marker, and from then on `service` boot skips console.php
+		// cluster:apply and cron:cache skips GatewayPolicy::write (the agent writes
+		// policy.json from the MAIN-sealed section). Until then (older binary) PHP
+		// keeps applying + refreshing the policy, so there is no stale-policy gap.
+		$rService = (string) file_get_contents(MAIN_HOME . 'service');
+		$this->assertStringContainsString('[ $((FLOWS & 32)) -ne 0 ] && ! serve_only_active && php_available; then', $rService, 'the boot cluster:apply --from-disk is gated on the handover (serve_only_active) and, from P6, on PHP still being present (php_available) so a PHP-free node skips it');
+
+		$rCache = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/CacheCronJob.php');
+		$this->assertMatchesRegularExpression("/if \\(!is_file\\(CONFIG_PATH \\. 'cluster\\/serve_only_active'\\)\\) \\{\\s*GatewayPolicy::write\\(\\);/s", $rCache, 'cron:cache keeps writing policy.json until the agent takes over (serve_only_active)');
+
+		$rRun = (string) file_get_contents(MAIN_HOME . 'bin/xc_agent/run.sh');
+		$this->assertStringContainsString("grep -q -- '-serve-only'", $rRun, 'run.sh gates the serve-only agent flags on the binary advertising -serve-only');
+		$this->assertStringContainsString('SEED+=(-serve-only -gateway-policy "$SCRIPT/tmp/gateway/policy.json")', $rRun, 'run.sh passes -serve-only and the gateway-policy path to xc_agent');
+		$this->assertStringContainsString('touch "$SCRIPT/config/cluster/serve_only_active"', $rRun, 'run.sh signals the handover only when it launches a capable agent');
+		$this->assertStringContainsString('rm -f "$SCRIPT/config/cluster/serve_only_active"', $rRun, 'run.sh clears the handover for an older binary, leaving PHP to write the policy');
 	}
 }

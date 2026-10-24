@@ -12,6 +12,7 @@ use XcVm\Core\Cluster\NodeCorePin;
 use XcVm\Core\Cluster\ReplicaBoot;
 use XcVm\Core\Cluster\RootPin;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Process\PhpFpmPools;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\ReleaseAsset;
@@ -85,6 +86,78 @@ class LbInstallFlow {
 	 */
 	public static function sudoWrite(string $rText, string $rPath, bool $rAppend = false): string {
 		return 'echo ' . escapeshellarg($rText) . ' | sudo tee ' . ($rAppend ? '-a ' : '') . escapeshellarg($rPath) . ' > /dev/null';
+	}
+
+	/** The sudoers drop-in a serve-only node carries for the agent's node.root/ban ops. */
+	public const NODE_ROOT_SUDOERS = '/etc/sudoers.d/xcvm-noderoot';
+
+	/**
+	 * The shell line that makes what root runs on a PHP-free serve-only node root's
+	 * (TreeOwnership::ROOT_OWNED, group xc_vm kept so it still reads), as rootOwn()
+	 * does on MAIN: the node has no PHP to run it, and xc_vm.service starts
+	 * `bash service` as root, so xc_vm must not be able to replace it. Run it after
+	 * the blanket chown to xc_vm and after PHP is removed (console.php, bin/php are
+	 * skipped); entries absent on the node are skipped, links never followed.
+	 */
+	public static function rootOwnPhpFreeCommand(): string {
+		$rAlone = $rTrees = [];
+		foreach (TreeOwnership::ROOT_OWNED as $rPath => $rTree) {
+			if ($rPath === 'console.php' || $rPath === 'bin/php' || str_starts_with($rPath, 'bin/php/')) {
+				continue;
+			}
+			$rFull = rtrim(MAIN_HOME . $rPath, '/');
+			if ($rTree) {
+				$rTrees[] = escapeshellarg($rFull);
+			} else {
+				$rAlone[] = escapeshellarg($rFull);
+			}
+		}
+		$rOwner = 'root:' . TreeOwnership::USER;
+		$rLoop = static fn(string $rFlags, array $rPaths): string => 'for p in ' . implode(' ', $rPaths) . '; do if [ -e "$p" ] || [ -L "$p" ]; then sudo chown ' . $rFlags . ' ' . $rOwner . ' "$p"; fi; done';
+		return $rLoop('-h', $rAlone) . '; ' . $rLoop('-hR', $rTrees);
+	}
+
+	/** Where the root-owned node.root helper lives on a serve-only node (outside xc_vm's reach). */
+	public const NODE_ROOT_HELPER = '/usr/local/sbin/xcvm-noderoot';
+
+	/**
+	 * Install the node.root helper as root:root 0755, sent from MAIN's own trusted
+	 * copy: the node's /home/xc_vm/bin/install copy is xc_vm-writable, so copying
+	 * it would let a compromised xc_vm plant what root then runs. True only when
+	 * the send, chown and chmod all succeeded.
+	 */
+	public static function provisionNodeRootHelper($rConn, callable $rRunSSH, callable $rSendFileSSH): bool {
+		if (!call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/install/xcvm-noderoot', self::NODE_ROOT_HELPER, false)) {
+			return false;
+		}
+		foreach (['sudo chown root:root ', 'sudo chmod 0755 '] as $rCmd) {
+			$rOut = call_user_func($rRunSSH, $rConn, $rCmd . self::NODE_ROOT_HELPER . ' && echo __NODEROOT_HELPER_OK__');
+			if (strpos((string) ($rOut['output'] ?? ''), '__NODEROOT_HELPER_OK__') === false) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Grant the xc_vm agent ONE NOPASSWD rule: the root-owned helper. Every raw
+	 * command (tee, chmod, systemctl, mount ...) is a confused-deputy root for a
+	 * compromised xc_vm, so the privileged ops live in the helper, which validates
+	 * its own arguments. No env_keep: sudo's env_reset strips XCVM_NODEROOT_ROOT
+	 * and TMPDIR, which a caller must not control.
+	 *
+	 * Written to a root temp file outside /etc/sudoers.d, validated with visudo,
+	 * and only then installed: the live included dir never holds an unvalidated
+	 * file, so a bad write cannot lock sudo out. True only on the validated install.
+	 */
+	public static function provisionNodeRootSudoers($rConn, callable $rRunSSH): bool {
+		$rContent = "Defaults:xc_vm !requiretty\nxc_vm ALL=(root) NOPASSWD: " . self::NODE_ROOT_HELPER . "\n";
+		$rCmd = 't=$(sudo mktemp /tmp/xcvm-sudoers.XXXXXXXXXX) && printf %s ' . escapeshellarg($rContent) . ' | sudo tee "$t" > /dev/null'
+			. ' && sudo chown root:root "$t" && sudo chmod 0440 "$t"'
+			. ' && sudo visudo -cf "$t" > /dev/null && sudo install -m0440 -o root -g root "$t" ' . self::NODE_ROOT_SUDOERS
+			. ' && echo __NODEROOT_SUDOERS_OK__; sudo rm -f "$t"';
+		$rOut = call_user_func($rRunSSH, $rConn, $rCmd);
+		return strpos((string) ($rOut['output'] ?? ''), '__NODEROOT_SUDOERS_OK__') !== false;
 	}
 
 	/**

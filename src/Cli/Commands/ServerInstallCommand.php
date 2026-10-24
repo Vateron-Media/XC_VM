@@ -250,7 +250,12 @@ class ServerInstallCommand implements CommandInterface {
 		// An LB in API mode — a new one under lb_new_node_mode=api, or one MAIN
 		// keeps free of its credentials — gets no grant and a credential-free
 		// config.enc. Decided once, before the enrolment replaces the node's row.
-		$rApiMode = $rType == 2 && LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID);
+		// The row's serve_only, persisted by ServerService before this worker was
+		// launched, is the request's captured decision: honour it even if the
+		// global mode changed between queue and start, so a serve-only install the
+		// admin asked for is not rejected by the guard below (which re-reads the
+		// live setting). A serve-only node is credential-free/API-mode by construction.
+		$rApiMode = $rType == 2 && (LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID) || !empty($rServers[$rServerID]['serve_only']));
 
 		// A single-binary serve-only LB (server:install --serve-only): MAIN directs
 		// its streams and it runs xc_node with no nginx/php-fpm. Only an LB can be one.
@@ -301,6 +306,23 @@ class ServerInstallCommand implements CommandInterface {
 		}
 
 		$this->finalizeHostAfterRuntime($rConn, $rRunSSH, $rHost, !$rApiMode);
+
+		if ($rType == 2 && $rServeOnly) {
+			// The agent runs as xc_vm and reaches root for node.root + viewer bans via
+			// `sudo -n` (XC_VM_Fanout privCmd/privWriteFile). Grant its scoped NOPASSWD
+			// helper BEFORE serve_only is exposed (DB row + cluster/serve_only marker):
+			// an agent that comes up the moment the node is serve-only must find the grant
+			// already in place, and a node that cannot get it is never marked serve-only.
+			// Neither target (/usr/local/sbin, /etc/sudoers.d) is under MAIN_HOME, so the
+			// blanket chown above leaves them alone.
+			$rHelperOK = LbInstallFlow::provisionNodeRootHelper($rConn, $rRunSSH, $rSendFileSSH);
+			$rSudoersOK = $rHelperOK && LbInstallFlow::provisionNodeRootSudoers($rConn, $rRunSSH);
+			if (!$rSudoersOK) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo "The node.root helper / sudoers grant could not be installed on the node. Exiting\n";
+				return 1;
+			}
+		}
 
 		if ($rType == 2) {
 			// An API-mode node boots from its replica, which only its enrolment brings.
@@ -365,6 +387,27 @@ class ServerInstallCommand implements CommandInterface {
 					// intact, so a failed convert still boots the normal nginx stack. Idempotent
 					// (rm -f); bin/daemons.sh is kept (it ships + is chmod'd for every node).
 					call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . MAIN_HOME . 'bin/nginx/conf/custom.conf ' . MAIN_HOME . 'bin/nginx/conf/limit.conf ' . MAIN_HOME . 'bin/nginx/conf/limit_queue.conf ' . MAIN_HOME . 'bin/nginx/conf/balance.conf ' . MAIN_HOME . 'bin/php/etc/*.conf');
+					// P6: make the node PHP-free. Done here, at the very end of a successful
+					// install, AFTER every PHP-dependent install step has run with PHP present
+					// (installExtension's xcvm_core probe, readback's XC_VM::config_server, and
+					// the first `service` boot's console.php startup) — removing PHP earlier
+					// aborts the install. console.php gone flips the agent's PHP-free gates
+					// (self-heal, ffmpeg, certbot, node.root); bin/php goes too. The restart
+					// below then boots PHP-free (the service skips every PHP startup/cron via
+					// php_available). The node's steady state is owned by the Go agent (replica
+					// apply P1, binary self-heal P2, certbot P3, ffmpeg/maintenance P4, node.root
+					// P5/P6B).
+					//
+					// bin/nginx is KEPT (the http-nginx binary stays dormant — the service never
+					// starts it on a serve-only node): the Go front reads its listen ports from
+					// bin/nginx/conf/ports (http.conf and https.conf — fanoutcmd -front-ports
+					// defaults; LbInstallFlow writes https.conf there), so deleting the tree would
+					// leave the front with no ports and the node serving nothing.
+					call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php');
+					// xc_vm.service runs `bash service` as root and the blanket chown made it (and
+					// its directory) xc_vm's: root-own what root runs, as rootOwn() does on MAIN.
+					// This node has no PHP to run rootOwn(), so it is done here, last.
+					call_user_func($rRunSSH, $rConn, LbInstallFlow::rootOwnPhpFreeCommand());
 					// The service was already started during the install, BEFORE this marker
 					// existed — so that boot ran nginx + php-fpm and run.sh brought the front
 					// up alongside them (both on the public ports via SO_REUSEPORT: a split
@@ -394,7 +437,7 @@ class ServerInstallCommand implements CommandInterface {
 					// sole-front (no nginx/php-fpm). Remove the marker and restart so the node boots
 					// its nginx + php-fpm — but only when the marker was actually there (a real
 					// downgrade), so a normal non-serve-only install does not recycle a second time.
-					call_user_func($rRunSSH, $rConn, 'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm; fi');
+					call_user_func($rRunSSH, $rConn, 'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo rm -f ' . LbInstallFlow::NODE_ROOT_SUDOERS . ' ' . LbInstallFlow::NODE_ROOT_HELPER . '; sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm; fi');
 				}
 			}
 		} else {
