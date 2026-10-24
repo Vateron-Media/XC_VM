@@ -125,6 +125,21 @@ final class ErrorResponderTest extends TestCase {
 		}
 	}
 
+	/**
+	 * The status is set before the body: after a body that left the buffer the
+	 * headers were sent, the status was lost, and PHP 8.3 printed a warning
+	 * into the page.
+	 */
+	public function testEmitSetsTheStatusBeforeTheBodyLeaves(): void {
+		$rCode = 'require ' . var_export(MAIN_HOME . 'vendor/autoload.php', true) . ';'
+			. ' XcVm\Core\Error\ErrorResponder::emit(new XcVm\Core\Error\ErrorResponseException("X", 404, str_repeat("b", 10), false, false));'
+			. ' echo "\nstatus ", var_export(http_response_code(), true);';
+		exec(escapeshellarg(PHP_BINARY) . ' -n -d output_buffering=0 -d display_errors=1 -r ' . escapeshellarg($rCode) . ' 2>&1', $rOut);
+		$rText = implode("\n", $rOut);
+		$this->assertStringNotContainsString('Warning', $rText);
+		$this->assertStringEndsWith('status 404', $rText);
+	}
+
 	public function testEmitIsSilentForNonTerminatingOutcome(): void {
 		ErrorResponder::$throwInsteadOfExit = true;
 		$outcome = ErrorResponder::respondError('BANNED', ['debug_show_errors' => false], false, null);

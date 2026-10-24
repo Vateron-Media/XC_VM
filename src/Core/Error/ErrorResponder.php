@@ -240,16 +240,17 @@ class ErrorResponder {
 	 * Apply an outcome: echo the body, set the HTTP status, then terminate.
 	 *
 	 * The ONE side-effecting method. In test mode a terminating outcome throws the
-	 * exception instead of calling exit(). Ordering (echo -> http_response_code ->
-	 * exit) mirrors the legacy generate404() exactly.
+	 * exception instead of calling exit(). The status goes first: once a body
+	 * larger than the output buffer (the debug page is) is out, the headers are
+	 * sent, the status was lost, and PHP 8.3 warns into the response besides.
 	 */
 	public static function emit(ErrorResponseException $outcome): void {
-		if ($outcome->body !== '') {
-			echo $outcome->body;
-		}
-
 		if ($outcome->httpCode !== null) {
 			http_response_code($outcome->httpCode);
+		}
+
+		if ($outcome->body !== '') {
+			echo $outcome->body;
 		}
 
 		if ($outcome->shouldExit) {
