@@ -8,6 +8,7 @@ use XcVm\Core\Cluster\AgentPaths;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeLease;
+use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\StreamSecret;
@@ -31,9 +32,11 @@ use XcVm\Streaming\Fanout\FanoutMode;
  * {"v": 1, "server_id": 3, "written_at": 1759900000, "mode": "shadow",
  *  "keys": {"viewer": [{"hex": "…", "until": null}], "shared": […], "context": […], "accept_legacy_cbc": false},
  *  "restrict_same_ip": true, "ip_subnet_match": false, "encrypt_hls": true,
- *  "headers": {"server": "", "protection": true, "altsvc_port": 0, "unique_header": false},
- *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "vod": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
- *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0, "unique_header": false,
+ *  "headers": {"server": "", "protection": true, "altsvc_port": 0, "unique_header_name": "", "unique_header_domain": ""},
+ *  "serve_until": 0, "serve_only": false,
+ *  "off_air": {"video_path": "…", "paths": {"not_on_air_video_path": "…"}, "show": {"connected": false, "not_on_air": true, "banned": false, "expired": false, "expiring": false}},
+ *  "paths": {"cons": "…", "streams": "…", "archive": "…", "vod": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
+ *  "live": {"use_buffer": true, "api_container": "ts", "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0,
  *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10, "create_expiration": 5, "admission": true},
  *  "verify_host": false, "allowed_domains": [],
  *  "conn_store": "agent", "time_offset": 0, "vod_limit_perc": 0, "vod_bitrate_plus": 0, "default_timezone": "", "redirect": {"5": ["http://lb5.example:8080"]}}
@@ -144,9 +147,10 @@ final class GatewayPolicy {
 				'server' => (string) ($rSettings['send_server_header'] ?? ''),
 				'protection' => !empty($rSettings['send_protection_headers']),
 				'altsvc_port' => !empty($rSettings['send_altsvc_header']) ? (int) ($rOwn['https_broadcast_port'] ?? 0) : 0,
-				// thumb.php and subtitle.php write a fresh random cookie per response
-				// that the gateway does not reproduce: with it set, they stay PHP's.
-				'unique_header' => !empty($rSettings['send_unique_header']),
+				// send_unique_header: the name of the per-response anti-restream cookie
+				// (empty: off) and its configured domain (empty: the request host).
+				'unique_header_name' => (string) ($rSettings['send_unique_header'] ?? ''),
+				'unique_header_domain' => (string) ($rSettings['send_unique_header_domain'] ?? ''),
 			],
 			'serve_until' => self::serveUntil($rSettings, $rNow),
 			// A serve-only LB (no PHP/nginx behind the Go gateway): the gateway
@@ -154,6 +158,16 @@ final class GatewayPolicy {
 			// deferring not-on-air to a backend that is not there. Read from this
 			// node's own server row; absent (a transition node) is false.
 			'serve_only' => !empty($rOwn['serve_only']),
+			// live.php's off-air clip: VIDEO_PATH and the configured clip paths
+			// (ReplicaSections::OFF_AIR's settings), resolved by the Go gateway.
+			'off_air' => [
+				'video_path' => \defined('VIDEO_PATH') ? VIDEO_PATH : '',
+				// lb-settings: connected_video_path, not_on_air_video_path, banned_video_path, expired_video_path, expiring_video_path
+				'paths' => array_map(static fn($rKey) => (string) ($rSettings[$rKey] ?? ''), array_combine(ReplicaSections::OFF_AIR, ReplicaSections::OFF_AIR)),
+				// showVideoServer's show_*_video switches, by off_air name.
+				// lb-settings: show_connected_video, show_not_on_air_video, show_banned_video, show_expired_video, show_expiring_video
+				'show' => array_map(static fn($rName) => !empty($rSettings['show_' . $rName . '_video'] ?? null), array_combine(array_keys(ReplicaSections::OFF_AIR), array_keys(ReplicaSections::OFF_AIR))),
+			],
 			'paths' => [
 				'cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'vod' => VOD_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH,
 				'agent_sock' => AgentPaths::file(AgentPaths::SOCKET), 'spool' => AgentPaths::file(AgentPaths::DIR . 'spool/'), 'flows' => AgentPaths::file(AgentPaths::DIR . 'flows.json'),
@@ -161,10 +175,11 @@ final class GatewayPolicy {
 			// What live.php reads for a playlist refresh or a TS reconnect, its comparisons made here.
 			'live' => [
 				'use_buffer' => !(($rSettings['use_buffer'] ?? null) == 0),
+				// live.php's fallback for an unknown token extension.
+				'api_container' => (string) ($rSettings['api_container'] ?? ''),
 				'on_demand_instant_off' => !empty($rSettings['on_demand_instant_off']),
 				'disallow_2nd_ip_con' => !empty($rSettings['disallow_2nd_ip_con']),
 				'disallow_2nd_ip_max' => (int) ($rSettings['disallow_2nd_ip_max'] ?? 0),
-				'unique_header' => !empty($rSettings['send_unique_header']),
 				'ts' => true,
 				'client_prebuffer' => (int) ($rSettings['client_prebuffer'] ?? 0),
 				'restreamer_prebuffer' => (int) ($rSettings['restreamer_prebuffer'] ?? 0),
