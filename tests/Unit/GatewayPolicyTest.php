@@ -103,6 +103,11 @@ final class GatewayPolicyTest extends TestCase {
 		$this->assertSame([], GatewayPolicy::build($this->settings(['live_streaming_pass' => '']), $this->servers(), 1, self::NOW)['keys']['shared']);
 	}
 
+	public function testOffAirShowSwitchesAreKeyedByOffAirName(): void {
+		$rShow = GatewayPolicy::build($this->settings(['show_not_on_air_video' => '1', 'show_banned_video' => 0]), $this->servers(), 1, self::NOW)['off_air']['show'];
+		$this->assertSame(['connected' => false, 'not_on_air' => true, 'banned' => false, 'expired' => false, 'expiring' => false], $rShow);
+	}
+
 	public function testTheRestIsWhatSegmentPhpReads(): void {
 		$rPolicy = GatewayPolicy::build($this->settings(['send_altsvc_header' => 1]), $this->servers(), 1, self::NOW);
 		$this->assertSame(['v', 'server_id', 'written_at', 'mode', 'keys', 'restrict_same_ip', 'ip_subnet_match', 'encrypt_hls', 'headers', 'serve_until', 'serve_only', 'off_air', 'paths', 'live', 'verify_host', 'allowed_domains', 'conn_store', 'time_offset', 'vod_limit_perc', 'vod_bitrate_plus', 'default_timezone', 'redirect'], array_keys($rPolicy), 'nothing else, no other secret');

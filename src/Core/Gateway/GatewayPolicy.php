@@ -33,7 +33,9 @@ use XcVm\Streaming\Fanout\FanoutMode;
  *  "keys": {"viewer": [{"hex": "…", "until": null}], "shared": […], "context": […], "accept_legacy_cbc": false},
  *  "restrict_same_ip": true, "ip_subnet_match": false, "encrypt_hls": true,
  *  "headers": {"server": "", "protection": true, "altsvc_port": 0, "unique_header_name": "", "unique_header_domain": ""},
- *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "vod": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
+ *  "serve_until": 0, "serve_only": false,
+ *  "off_air": {"video_path": "…", "paths": {"not_on_air_video_path": "…"}, "show": {"connected": false, "not_on_air": true, "banned": false, "expired": false, "expiring": false}},
+ *  "paths": {"cons": "…", "streams": "…", "archive": "…", "vod": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
  *  "live": {"use_buffer": true, "api_container": "ts", "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0,
  *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10, "create_expiration": 5, "admission": true},
  *  "verify_host": false, "allowed_domains": [],
@@ -162,6 +164,9 @@ final class GatewayPolicy {
 				'video_path' => \defined('VIDEO_PATH') ? VIDEO_PATH : '',
 				// lb-settings: connected_video_path, not_on_air_video_path, banned_video_path, expired_video_path, expiring_video_path
 				'paths' => array_map(static fn($rKey) => (string) ($rSettings[$rKey] ?? ''), array_combine(ReplicaSections::OFF_AIR, ReplicaSections::OFF_AIR)),
+				// showVideoServer's show_*_video switches, by off_air name.
+				// lb-settings: show_connected_video, show_not_on_air_video, show_banned_video, show_expired_video, show_expiring_video
+				'show' => array_map(static fn($rName) => !empty($rSettings['show_' . $rName . '_video'] ?? null), array_combine(array_keys(ReplicaSections::OFF_AIR), array_keys(ReplicaSections::OFF_AIR))),
 			],
 			'paths' => [
 				'cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'vod' => VOD_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH,
