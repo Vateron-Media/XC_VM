@@ -437,7 +437,7 @@ class ServerInstallCommand implements CommandInterface {
 					// sole-front (no nginx/php-fpm). Remove the marker and restart so the node boots
 					// its nginx + php-fpm — but only when the marker was actually there (a real
 					// downgrade), so a normal non-serve-only install does not recycle a second time.
-					call_user_func($rRunSSH, $rConn, 'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm; fi');
+					call_user_func($rRunSSH, $rConn, 'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo rm -f ' . LbInstallFlow::NODE_ROOT_SUDOERS . ' ' . LbInstallFlow::NODE_ROOT_HELPER . '; sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm; fi');
 				}
 			}
 		} else {

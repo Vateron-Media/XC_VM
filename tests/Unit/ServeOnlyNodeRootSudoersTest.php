@@ -39,4 +39,15 @@ final class ServeOnlyNodeRootSudoersTest extends TestCase {
 		$this->assertStringContainsString('visudo -cf', $rLb);
 		$this->assertStringContainsString('install -m0440 -o root -g root', $rLb);
 	}
+
+	public function testDowngradeRevokesTheNodeRootGrantInsideTheMarkerGuard(): void {
+		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$rPos = strpos($rCmd, "'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then ");
+		$this->assertNotFalse($rPos);
+		$rLine = substr($rCmd, $rPos, strpos($rCmd, "\n", $rPos) - $rPos);
+		$this->assertStringContainsString("sudo rm -f ' . LbInstallFlow::NODE_ROOT_SUDOERS . ' ' . LbInstallFlow::NODE_ROOT_HELPER", $rLine, 'root-owned grant removed via plain sudo rm -f');
+		$this->assertStringContainsString('sudo -u xc_vm rm -f ', $rLine, 'marker removal kept');
+		$this->assertLessThan(strpos($rLine, 'systemctl restart'), strpos($rLine, 'LbInstallFlow::NODE_ROOT_SUDOERS'), 'grant is gone before the restart');
+		$this->assertLessThan(strpos($rLine, '; fi'), strpos($rLine, 'LbInstallFlow::NODE_ROOT_HELPER'), 'inside the guard');
+	}
 }
