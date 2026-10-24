@@ -12,6 +12,7 @@ use XcVm\Core\Cluster\NodeCorePin;
 use XcVm\Core\Cluster\ReplicaBoot;
 use XcVm\Core\Cluster\RootPin;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Process\PhpFpmPools;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\ReleaseAsset;
@@ -89,6 +90,32 @@ class LbInstallFlow {
 
 	/** The sudoers drop-in a serve-only node carries for the agent's node.root/ban ops. */
 	public const NODE_ROOT_SUDOERS = '/etc/sudoers.d/xcvm-noderoot';
+
+	/**
+	 * The shell line that makes what root runs on a PHP-free serve-only node root's
+	 * (TreeOwnership::ROOT_OWNED, group xc_vm kept so it still reads), as rootOwn()
+	 * does on MAIN: the node has no PHP to run it, and xc_vm.service starts
+	 * `bash service` as root, so xc_vm must not be able to replace it. Run it after
+	 * the blanket chown to xc_vm and after PHP is removed (console.php, bin/php are
+	 * skipped); entries absent on the node are skipped, links never followed.
+	 */
+	public static function rootOwnPhpFreeCommand(): string {
+		$rAlone = $rTrees = [];
+		foreach (TreeOwnership::ROOT_OWNED as $rPath => $rTree) {
+			if ($rPath === 'console.php' || $rPath === 'bin/php' || str_starts_with($rPath, 'bin/php/')) {
+				continue;
+			}
+			$rFull = rtrim(MAIN_HOME . $rPath, '/');
+			if ($rTree) {
+				$rTrees[] = escapeshellarg($rFull);
+			} else {
+				$rAlone[] = escapeshellarg($rFull);
+			}
+		}
+		$rOwner = 'root:' . TreeOwnership::USER;
+		$rLoop = static fn(string $rFlags, array $rPaths): string => 'for p in ' . implode(' ', $rPaths) . '; do if [ -e "$p" ] || [ -L "$p" ]; then sudo chown ' . $rFlags . ' ' . $rOwner . ' "$p"; fi; done';
+		return $rLoop('-h', $rAlone) . '; ' . $rLoop('-hR', $rTrees);
+	}
 
 	/**
 	 * Grant the xc_vm agent a NOPASSWD sudo allowlist for the node.root and

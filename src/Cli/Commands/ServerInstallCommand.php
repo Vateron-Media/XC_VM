@@ -391,6 +391,10 @@ class ServerInstallCommand implements CommandInterface {
 					// via `sudo -n` (XC_VM_Fanout privCmd/privWriteFile); grant its scoped
 					// NOPASSWD allowlist before the restart below launches it.
 					LbInstallFlow::provisionNodeRootSudoers($rConn, $rRunSSH);
+					// xc_vm.service runs `bash service` as root and the blanket chown made it (and
+					// its directory) xc_vm's: root-own what root runs, as rootOwn() does on MAIN.
+					// This node has no PHP to run rootOwn(), so it is done here, last.
+					call_user_func($rRunSSH, $rConn, LbInstallFlow::rootOwnPhpFreeCommand());
 					// The service was already started during the install, BEFORE this marker
 					// existed — so that boot ran nginx + php-fpm and run.sh brought the front
 					// up alongside them (both on the public ports via SO_REUSEPORT: a split
