@@ -72,6 +72,12 @@ final class XcvmNoderootHelperTest extends TestCase {
 			'usermodehelper' => ["kernel.usermodehelper.bset = 1\n"],
 			'poweroff' => ["kernel.poweroff_cmd = /x\n"],
 			'mixed net fs vm + core_pattern' => ["net.core.somaxconn = 1\nfs.file-max = 5\nvm.max_map_count = 6\nkernel.core_pattern = |/x\n"],
+			'suid_dumpable' => ["fs.suid_dumpable = 2\n"],
+			'protected_symlinks' => ["fs.protected_symlinks = 0\n"],
+			'mmap_min_addr' => ["vm.mmap_min_addr = 0\n"],
+			'userfaultfd' => ["vm.unprivileged_userfaultfd = 1\n"],
+			'drop_caches' => ["vm.drop_caches = 3\n"],
+			'mixed with stray vm' => ["net.core.somaxconn = 1\nvm.mmap_min_addr = 0\n"],
 			'bare fs' => ["fs = 1\n"],
 			'continuation' => ["net.core.x = 1\\\nkernel.core_pattern = x\n"],
 		];

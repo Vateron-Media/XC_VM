@@ -85,16 +85,16 @@ ramdisk)
 sysctl)
 	[ $# -eq 0 ] || die "usage: sysctl"
 	stage sysctl.pending
-	# Only net.*, fs.*, vm.*, kernel.shmmax/shmall key = value lines (plus blank/# comments) pass; the whole body
+	# Only net.* plus the exact fs/vm/kernel keys MAIN sends, as key = value lines (plus blank/# comments) pass; the whole body
 	# is rejected on the first other line. Re-emit just the validated pairs.
 	awk '
 		{ sub(/[ \t\r]+$/, "") }
 		$0 == "" || $0 ~ /^[ \t]*#/ { next }
-		$0 ~ /^((net|fs|vm)(\.[A-Za-z0-9_-]+)+|kernel\.shmmax|kernel\.shmall)[ \t]*=[ \t]*[A-Za-z0-9_. \t-]+$/ {
+		$0 ~ /^(net(\.[A-Za-z0-9_-]+)+|fs\.file-max|fs\.aio-max-nr|fs\.nr_open|vm\.max_map_count|vm\.overcommit_memory|kernel\.shmmax|kernel\.shmall)[ \t]*=[ \t]*[A-Za-z0-9_. \t-]+$/ {
 			i = index($0, "="); k = substr($0, 1, i - 1); v = substr($0, i + 1)
 			gsub(/[ \t]+/, "", k); sub(/^[ \t]+/, "", v)
 			print k " = " v; next }
-		{ exit 1 }' "$T/in" >"$T/sysctl" || die "sysctl body rejected: only net./fs./vm. keys and kernel.shmmax/shmall allowed"
+		{ exit 1 }' "$T/in" >"$T/sysctl" || die "sysctl body rejected: only net.* and the fixed fs/vm/kernel.shm keys allowed"
 	cat "$T/sysctl" >"$SYSCTL_CONF.xcvm-new" && chmod 644 "$SYSCTL_CONF.xcvm-new" && mv "$SYSCTL_CONF.xcvm-new" "$SYSCTL_CONF"
 	run modprobe ip_conntrack || true
 	run sysctl -p
