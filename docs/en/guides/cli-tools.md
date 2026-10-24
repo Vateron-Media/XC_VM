@@ -166,7 +166,8 @@ never replaces a working one). Runs on every node (main **and** LB).
 | Binary | Command | Source | Verify | Poll |
 | --- | --- | --- | --- | --- |
 | `xc_fanout` daemon and `xc_agent` | `fanout_binary` | `XC_VM_Fanout` release assets | `SHA256SUMS` (+ the agent's trial in `run.sh`) | ~hourly |
-| `xcvm_core` extension | `xcvm_core` | `XC_VM_Binaries` repo tree (`bin/xcvm_core/`) | `SHA256SUMS` + load-test | ~hourly |
+| `xcvm_core` extension | `xcvm_core` | `XC_VM_Binaries` repo tree (`bin/xcvm_extention/`) | `SHA256SUMS` + load-test | ~hourly |
+| Runtime bundle (PHP, nginx), load balancers | `binaries` (MAIN runs it at every `status`) | `XC_VM_Binaries` release, this distribution's bundle | `hashes.md5` + the `xcvm_core` load-test | daily |
 | `yt-dlp` | `ytdlp` | upstream `yt-dlp/yt-dlp` release | `SHA2-256SUMS` + `--version` | daily |
 | `ffmpeg`/`ffprobe` 4.4, 7.1, 8.1 | `ffmpeg` (as xc_vm) | `XC_VM_FFMPEG` release, this distribution's builds | `hashes.md5` + both binaries must start | daily |
 

@@ -118,6 +118,8 @@ SENSITIVE=(
 	# Admin / reseller APIs and the MAIN-only endpoints (the LB nginx routes none
 	# of them; auth.php and probe.php need the stripped Domain/User).
 	"Public/admin/api.php"
+	# MAIN's install schema; the binaries updaters beside it ship.
+	"bin/install/database.sql"
 	"Public/admin/proxy_api.php"
 	"Public/stream/auth.php"
 	"Public/stream/probe.php"

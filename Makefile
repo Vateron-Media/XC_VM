@@ -37,7 +37,6 @@ LB_ROOT_FILES := bootstrap.php console.php service update
 
 # Directories to remove from LB (admin-only content)
 LB_DIRS_TO_REMOVE := \
-	bin/install \
 	bin/redis \
 	bin/cluster_bus \
 	bin/nginx/conf/codes \
@@ -69,6 +68,7 @@ LB_DIRS_TO_REMOVE := \
 # (they need the stripped Domain/User). They go together with those routes in a
 # later phase (§3 of the MAIN <-> LB API communication design).
 LB_FILES_TO_REMOVE := \
+	bin/install/database.sql \
 	Public/admin/api.php \
 	Public/admin/proxy_api.php \
 	Public/stream/auth.php \

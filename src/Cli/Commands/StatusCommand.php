@@ -363,11 +363,10 @@ class StatusCommand implements CommandInterface {
 	private function broadcastUpdateBinaries(array $rServers): void {
 		$db = self::db();
 		// Drop whatever an earlier run left queued, once — the same statement ran
-		// per server before. Only MAIN is queued: `binaries` needs
-		// bin/install/update_binaries.sh, which the LB build strips, so every LB
-		// answered "Updater script not found" and wrote a syslog row for it. LB
-		// runtimes are refreshed by the install flow, and fanout_binary/xcvm_core
-		// keep themselves current on every node (UpdateCommand).
+		// per server before. Only MAIN is queued: a load balancer polls
+		// `binaries` itself (cron:root_signals) once its panel update has brought
+		// the updater, which LBs of older releases lack: queued to them, every one
+		// answered "Updater script not found" and wrote a syslog row for it.
 		$db->query('DELETE FROM `signals` WHERE `custom_data` = ?;', json_encode(['action' => 'update_binaries']));
 		NodeActions::updateBinaries(SERVER_ID, $db);
 	}
