@@ -387,6 +387,10 @@ class ServerInstallCommand implements CommandInterface {
 					// defaults; LbInstallFlow writes https.conf there), so deleting the tree would
 					// leave the front with no ports and the node serving nothing.
 					call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php');
+					// The agent runs as xc_vm and reaches root for node.root + viewer bans
+					// via `sudo -n` (XC_VM_Fanout privCmd/privWriteFile); grant its scoped
+					// NOPASSWD allowlist before the restart below launches it.
+					LbInstallFlow::provisionNodeRootSudoers($rConn, $rRunSSH);
 					// The service was already started during the install, BEFORE this marker
 					// existed — so that boot ran nginx + php-fpm and run.sh brought the front
 					// up alongside them (both on the public ports via SO_REUSEPORT: a split
