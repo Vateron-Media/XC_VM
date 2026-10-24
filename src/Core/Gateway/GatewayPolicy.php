@@ -34,7 +34,7 @@ use XcVm\Streaming\Fanout\FanoutMode;
  *  "restrict_same_ip": true, "ip_subnet_match": false, "encrypt_hls": true,
  *  "headers": {"server": "", "protection": true, "altsvc_port": 0, "unique_header_name": "", "unique_header_domain": ""},
  *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "vod": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
- *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0,
+ *  "live": {"use_buffer": true, "api_container": "ts", "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0,
  *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10, "create_expiration": 5, "admission": true},
  *  "verify_host": false, "allowed_domains": [],
  *  "conn_store": "agent", "time_offset": 0, "vod_limit_perc": 0, "vod_bitrate_plus": 0, "default_timezone": "", "redirect": {"5": ["http://lb5.example:8080"]}}
@@ -170,6 +170,8 @@ final class GatewayPolicy {
 			// What live.php reads for a playlist refresh or a TS reconnect, its comparisons made here.
 			'live' => [
 				'use_buffer' => !(($rSettings['use_buffer'] ?? null) == 0),
+				// live.php's fallback for an unknown token extension.
+				'api_container' => (string) ($rSettings['api_container'] ?? ''),
 				'on_demand_instant_off' => !empty($rSettings['on_demand_instant_off']),
 				'disallow_2nd_ip_con' => !empty($rSettings['disallow_2nd_ip_con']),
 				'disallow_2nd_ip_max' => (int) ($rSettings['disallow_2nd_ip_max'] ?? 0),
