@@ -17,16 +17,10 @@ final class ServeOnlyNodeRootSudoersTest extends TestCase {
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertStringContainsString('LbInstallFlow::provisionNodeRootSudoers($rConn, $rRunSSH)', $rCmd);
 
-		// Ordering: written in the serve-only completion AFTER PHP is removed and
-		// BEFORE the restart that (re)launches the agent as xc_vm — so the allowlist
-		// is already in place when the agent first runs sudo -n.
-		$rRm = strpos($rCmd, "console.php ' . MAIN_HOME . 'bin/php");
-		$rSudoers = strpos($rCmd, 'provisionNodeRootSudoers');
-		$this->assertNotFalse($rRm);
-		$this->assertNotFalse($rSudoers);
-		$this->assertLessThan($rRm, $rSudoers, 'the sudoers is written before PHP removal');
-		$rRestartAfter = strpos($rCmd, 'systemctl restart xc_vm', $rSudoers);
-		$this->assertNotFalse($rRestartAfter, 'a restart follows the sudoers provisioning');
+		// Ordering is pinned in ServeOnlyProvisionOrderTest; here only that a restart
+		// (which relaunches the agent as xc_vm) still follows the grant.
+		$rSudoers = strpos($rCmd, 'LbInstallFlow::provisionNodeRootSudoers(');
+		$this->assertNotFalse(strpos($rCmd, 'systemctl restart xc_vm', (int) $rSudoers), 'a restart follows the sudoers provisioning');
 	}
 
 	public function testSudoersGrantsOnlyTheHelperValidatedAndInstalledAtomically(): void {
@@ -45,7 +39,11 @@ final class ServeOnlyNodeRootSudoersTest extends TestCase {
 		$rPos = strpos($rCmd, "'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then ");
 		$this->assertNotFalse($rPos);
 		$rLine = substr($rCmd, $rPos, strpos($rCmd, "\n", $rPos) - $rPos);
-		$this->assertStringContainsString("sudo rm -f ' . LbInstallFlow::NODE_ROOT_SUDOERS . ' ' . LbInstallFlow::NODE_ROOT_HELPER", $rLine, 'root-owned grant removed via plain sudo rm -f');
+		$this->assertSame(
+			"'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo rm -f ' . LbInstallFlow::NODE_ROOT_SUDOERS . ' ' . LbInstallFlow::NODE_ROOT_HELPER . '; sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm; fi');",
+			trim($rLine),
+			'exact downgrade command: revoke (plain sudo, root-owned) then marker removal then restart, all inside the marker guard'
+		);
 		$this->assertStringContainsString('sudo -u xc_vm rm -f ', $rLine, 'marker removal kept');
 		$this->assertLessThan(strpos($rLine, 'systemctl restart'), strpos($rLine, 'LbInstallFlow::NODE_ROOT_SUDOERS'), 'grant is gone before the restart');
 		$this->assertLessThan(strpos($rLine, '; fi'), strpos($rLine, 'LbInstallFlow::NODE_ROOT_HELPER'), 'inside the guard');

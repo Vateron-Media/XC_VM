@@ -39,9 +39,24 @@ final class ServeOnlyProvisionOrderTest extends TestCase {
 		$this->assertGreaterThan($rOwn, $this->pos("'sudo systemctl restart xc_vm');"));
 	}
 
-	public function testFailureAbortsWithStatus4BeforeCommit(): void {
-		$rBlock = substr($this->src, $this->pos('$rHelperOK = '), 700);
-		$this->assertStringContainsString('$rHelperOK && LbInstallFlow::provisionNodeRootSudoers(', $rBlock);
-		$this->assertMatchesRegularExpression('/if \(!\$rSudoersOK\) \{\s+\$db->query\(\'UPDATE `servers` SET `status` = 4 WHERE `id` = \?;\', \$rServerID\);.*?return 1;/s', $rBlock);
+	public function testFailureAbortsWithStatus4InsideTheFalseBranch(): void {
+		$rStart = $this->pos('$rHelperOK = ');
+		$rIf = $this->pos('if (!$rSudoersOK) {');
+		$rEnd = strpos($this->src, "return 1;\n\t\t\t}\n\t\t}", $rIf);
+		$this->assertNotFalse($rEnd);
+		// Nothing but the two provisioning assignments sits between them and the guard.
+		$this->assertSame(
+			"\$rHelperOK = LbInstallFlow::provisionNodeRootHelper(\$rConn, \$rRunSSH, \$rSendFileSSH);\n\t\t\t"
+			. "\$rSudoersOK = \$rHelperOK && LbInstallFlow::provisionNodeRootSudoers(\$rConn, \$rRunSSH);\n\t\t\t",
+			substr($this->src, $rStart, $rIf - $rStart)
+		);
+		// The guard's whole body: mark the server failed, say so, stop. No other statement.
+		$this->assertSame(
+			"if (!\$rSudoersOK) {\n\t\t\t\t\$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', \$rServerID);\n"
+			. "\t\t\t\techo \"The node.root helper / sudoers grant could not be installed on the node. Exiting\\n\";\n\t\t\t\t",
+			substr($this->src, $rIf, $rEnd - $rIf)
+		);
+		// ...and the abort is the guard's only exit: the commit comes strictly after it.
+		$this->assertGreaterThan($rEnd, $this->pos("SET `status` = 1, `http_broadcast_port`"));
 	}
 }
