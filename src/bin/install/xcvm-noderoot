@@ -1,0 +1,173 @@
+#!/bin/sh
+# xcvm-noderoot - root-owned trust boundary for a serve-only XC_VM node.
+# Installed root:root 0755 at /usr/local/sbin/xcvm-noderoot (never run from the
+# xc_vm-writable /home/xc_vm). The xc_vm user may sudo ONLY this file. The caller
+# is assumed fully compromised: argv, env and the staging files are hostile, so
+# every path and set name is hardcoded and every value is validated. No eval, no
+# caller string reaches a shell, no caller bytes reach root unvalidated.
+#
+#   xcvm-noderoot service <start|stop|restart> | reboot | ramdisk <on|off>
+#                 sysctl | governor <gov> | ban-sync | ban-flush
+#
+# Exit 0 on success; non-zero and NO change on any invalid input.
+# Test seam: XCVM_NODEROOT_ROOT (only when non-empty) prefixes /etc and /home and
+# turns every system command into a line in $ROOT/calls.log.
+set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+TMPDIR=/tmp # sticky, root-owned: never a caller-chosen (xc_vm-owned) parent
+export PATH TMPDIR
+IFS=' 	
+'
+umask 022
+
+R=${XCVM_NODEROOT_ROOT:-}
+FSTAB=$R/etc/fstab
+SYSCTL_CONF=$R/etc/sysctl.conf
+STAGE=$R/home/xc_vm/tmp/cluster
+STREAMS=/home/xc_vm/content/streams
+FSTAB_LINE="tmpfs $STREAMS"
+SET4=xcvm_block4
+SET6=xcvm_block6
+MAXSTAGE=33554432
+
+die() { echo "xcvm-noderoot: $*" >&2; exit 1; }
+
+# run CMD ARGS...: the only place a system command executes.
+run() {
+	if [ -n "$R" ]; then echo "$*" >>"$R/calls.log"; else "$@"; fi
+}
+have() { [ -n "$R" ] || command -v "$1" >/dev/null 2>&1; }
+
+T=$(mktemp -d /tmp/xcvm-noderoot.XXXXXX)
+trap 'rm -rf "$T"' EXIT HUP INT TERM
+
+# stage NAME: copy a caller-written staging file once into root-owned $T/in
+# (bounded, regular file, not a symlink); everything after works on that copy.
+stage() {
+	f=$STAGE/$1
+	[ -f "$f" ] && [ ! -L "$f" ] || die "missing staging file $1"
+	head -c "$MAXSTAGE" "$f" >"$T/in"
+}
+
+verb=${1:-}
+[ $# -ge 1 ] || die "usage: verb [arg]"
+shift
+
+case $verb in
+service)
+	[ $# -eq 1 ] || die "usage: service <start|stop|restart>"
+	case $1 in start | stop | restart) run systemctl "$1" xc_vm ;; *) die "bad action" ;; esac
+	;;
+reboot)
+	[ $# -eq 0 ] || die "usage: reboot"
+	run reboot
+	;;
+ramdisk)
+	[ $# -eq 1 ] || die "usage: ramdisk <on|off>"
+	case $1 in on | off) mode=$1 ;; *) die "bad mode" ;; esac
+	[ -f "$FSTAB" ] && [ ! -L "$FSTAB" ] || die "no fstab"
+	awk -v mode="$mode" -v pfx="$FSTAB_LINE" '
+		{ l = $0; c = 0
+		  if (substr(l, 1, 1) == "#") { c = 1; l = substr(l, 2) }
+		  if (substr(l, 1, length(pfx)) == pfx && (length(l) == length(pfx) || substr(l, length(pfx) + 1, 1) ~ /[ \t]/)) {
+			n++
+			if (mode == "on" && c) $0 = l
+			else if (mode == "off" && !c) $0 = "#" l
+		  }
+		  print }
+		END { if (n != 1) exit 1 }' "$FSTAB" >"$T/fstab" || die "fstab must hold exactly one $FSTAB_LINE line"
+	chmod 644 "$T/fstab"
+	cat "$T/fstab" >"$FSTAB.xcvm-new" && mv "$FSTAB.xcvm-new" "$FSTAB"
+	if [ "$mode" = on ]; then run mount "$STREAMS"; else run umount -l "$STREAMS"; fi
+	[ -n "$R" ] || { [ -d "$STREAMS" ] && [ ! -L "$STREAMS" ] || die "no streams dir"; }
+	run chown -hR xc_vm:xc_vm "$STREAMS"
+	;;
+sysctl)
+	[ $# -eq 0 ] || die "usage: sysctl"
+	stage sysctl.pending
+	# Only net.* plus the exact fs/vm/kernel keys MAIN sends, as key = value lines (plus blank/# comments) pass; the whole body
+	# is rejected on the first other line. Re-emit just the validated pairs.
+	awk '
+		{ sub(/[ \t\r]+$/, "") }
+		$0 == "" || $0 ~ /^[ \t]*#/ { next }
+		$0 ~ /^(net(\.[A-Za-z0-9_-]+)+|fs\.file-max|fs\.aio-max-nr|fs\.nr_open|vm\.max_map_count|vm\.overcommit_memory|kernel\.shmmax|kernel\.shmall)[ \t]*=[ \t]*[A-Za-z0-9_. \t-]+$/ {
+			i = index($0, "="); k = substr($0, 1, i - 1); v = substr($0, i + 1)
+			gsub(/[ \t]+/, "", k); sub(/^[ \t]+/, "", v)
+			print k " = " v; next }
+		{ exit 1 }' "$T/in" >"$T/sysctl" || die "sysctl body rejected: only net.* and the fixed fs/vm/kernel.shm keys allowed"
+	cat "$T/sysctl" >"$SYSCTL_CONF.xcvm-new" && chmod 644 "$SYSCTL_CONF.xcvm-new" && mv "$SYSCTL_CONF.xcvm-new" "$SYSCTL_CONF"
+	run modprobe ip_conntrack || true
+	run sysctl -p
+	;;
+governor)
+	[ $# -eq 1 ] || die "usage: governor <gov>"
+	case $1 in '' | *[!a-z_]*) die "bad governor" ;; esac
+	gov=$1
+	if [ -n "$R" ]; then avail=$(cat "$R/cpufreq-info.out" 2>/dev/null || true)
+	else have cpufreq-info || exit 0; avail=$(cpufreq-info -g 2>/dev/null || true); fi
+	ok=0
+	for g in $avail; do [ "$g" = "$gov" ] && ok=1; done
+	[ $ok -eq 1 ] || exit 0
+	n=$(nproc)
+	i=0
+	while [ "$i" -lt "$n" ]; do run cpufreq-set -c "$i" -g "$gov"; i=$((i + 1)); done
+	;;
+ban-sync)
+	[ $# -eq 0 ] || die "usage: ban-sync"
+	have ipset || exit 0
+	stage bans.pending
+	# One address or CIDR per line. IPv4: octets 0-255 without leading zeros,
+	# optional /16-/31 (matches the agent). IPv6: plain address only. Anything
+	# else rejects the whole file. The helper writes the restore stream itself
+	# with the two hardcoded set names; no file text is ever copied into it
+	# except a validated address.
+	awk -v s4="$SET4" -v s6="$SET6" '
+	function v4(s,   a, n, i, p) {
+		p = index(s, "/")
+		if (p) { n = substr(s, p + 1); s = substr(s, 1, p - 1)
+			if (n !~ /^[0-9]+$/ || n + 0 < 16 || n + 0 > 31 || (length(n) > 1 && n ~ /^0/)) return 0 }
+		if (split(s, a, ".") != 4) return 0
+		for (i = 1; i <= 4; i++)
+			if (a[i] !~ /^[0-9]+$/ || a[i] + 0 > 255 || (length(a[i]) > 1 && a[i] ~ /^0/)) return 0
+		return 1 }
+	function v6(s,   n, a, i, g, nd) {
+		if (s !~ /^[0-9A-Fa-f:]+$/ || s ~ /:::/) return 0
+		nd = gsub(/::/, "::", s); if (nd > 1) return 0
+		if (s ~ /^:[^:]/ || s ~ /[^:]:$/) return 0
+		n = split(s, a, ":")
+		for (i = 1; i <= n; i++) { if (length(a[i]) > 4) return 0; if (a[i] != "") g++ }
+		if (nd == 0 && g != 8) return 0
+		if (nd == 1 && g > 7) return 0
+		return 1 }
+	function hdr(s, fam) {
+		print "create " s " hash:ip family " fam " maxelem 1048576 -exist"
+		print "create " s "_new hash:ip family " fam " maxelem 1048576 -exist"
+		print "flush " s "_new" }
+	function ftr(s) { print "swap " s "_new " s; print "destroy " s "_new" }
+	{ sub(/\r$/, "") }
+	$0 == "" { next }
+	v4($0) { if (!($0 in seen)) { seen[$0] = 1; a4[++n4] = $0 } next }
+	v6($0) { l = tolower($0); if (!(l in seen)) { seen[l] = 1; a6[++n6] = l } next }
+	{ exit 1 }
+	END { hdr(s4, "inet"); for (i = 1; i <= n4; i++) print "add " s4 "_new " a4[i]; ftr(s4)
+	      hdr(s6, "inet6"); for (i = 1; i <= n6; i++) print "add " s6 "_new " a6[i]; ftr(s6) }
+	' "$T/in" >"$T/restore" || die "ban list rejected"
+	if [ -n "$R" ]; then cp "$T/restore" "$R/ipset.restore"; echo "ipset restore" >>"$R/calls.log"
+	else ipset restore <"$T/restore"; fi
+	if ! run iptables -C INPUT -m set --match-set "$SET4" src -j DROP 2>/dev/null; then
+		run iptables -I INPUT -m set --match-set "$SET4" src -j DROP
+	fi
+	if ! run ip6tables -C INPUT -m set --match-set "$SET6" src -j DROP 2>/dev/null; then
+		run ip6tables -I INPUT -m set --match-set "$SET6" src -j DROP
+	fi
+	;;
+ban-flush)
+	[ $# -eq 0 ] || die "usage: ban-flush"
+	have ipset || exit 0
+	run ipset flush "$SET4"
+	run ipset flush "$SET6"
+	;;
+*)
+	die "unknown verb"
+	;;
+esac

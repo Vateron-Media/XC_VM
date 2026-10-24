@@ -307,6 +307,23 @@ class ServerInstallCommand implements CommandInterface {
 
 		$this->finalizeHostAfterRuntime($rConn, $rRunSSH, $rHost, !$rApiMode);
 
+		if ($rType == 2 && $rServeOnly) {
+			// The agent runs as xc_vm and reaches root for node.root + viewer bans via
+			// `sudo -n` (XC_VM_Fanout privCmd/privWriteFile). Grant its scoped NOPASSWD
+			// helper BEFORE serve_only is exposed (DB row + cluster/serve_only marker):
+			// an agent that comes up the moment the node is serve-only must find the grant
+			// already in place, and a node that cannot get it is never marked serve-only.
+			// Neither target (/usr/local/sbin, /etc/sudoers.d) is under MAIN_HOME, so the
+			// blanket chown above leaves them alone.
+			$rHelperOK = LbInstallFlow::provisionNodeRootHelper($rConn, $rRunSSH, $rSendFileSSH);
+			$rSudoersOK = $rHelperOK && LbInstallFlow::provisionNodeRootSudoers($rConn, $rRunSSH);
+			if (!$rSudoersOK) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo "The node.root helper / sudoers grant could not be installed on the node. Exiting\n";
+				return 1;
+			}
+		}
+
 		if ($rType == 2) {
 			// An API-mode node boots from its replica, which only its enrolment brings.
 			LbInstallFlow::runStartup($rConn, $rRunSSH, !$rApiMode);
@@ -387,6 +404,10 @@ class ServerInstallCommand implements CommandInterface {
 					// defaults; LbInstallFlow writes https.conf there), so deleting the tree would
 					// leave the front with no ports and the node serving nothing.
 					call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php');
+					// xc_vm.service runs `bash service` as root and the blanket chown made it (and
+					// its directory) xc_vm's: root-own what root runs, as rootOwn() does on MAIN.
+					// This node has no PHP to run rootOwn(), so it is done here, last.
+					call_user_func($rRunSSH, $rConn, LbInstallFlow::rootOwnPhpFreeCommand());
 					// The service was already started during the install, BEFORE this marker
 					// existed — so that boot ran nginx + php-fpm and run.sh brought the front
 					// up alongside them (both on the public ports via SO_REUSEPORT: a split
@@ -416,7 +437,7 @@ class ServerInstallCommand implements CommandInterface {
 					// sole-front (no nginx/php-fpm). Remove the marker and restart so the node boots
 					// its nginx + php-fpm — but only when the marker was actually there (a real
 					// downgrade), so a normal non-serve-only install does not recycle a second time.
-					call_user_func($rRunSSH, $rConn, 'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm; fi');
+					call_user_func($rRunSSH, $rConn, 'if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo rm -f ' . LbInstallFlow::NODE_ROOT_SUDOERS . ' ' . LbInstallFlow::NODE_ROOT_HELPER . '; sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm; fi');
 				}
 			}
 		} else {

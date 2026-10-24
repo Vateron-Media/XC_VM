@@ -82,7 +82,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		// escalate).
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertMatchesRegularExpression("/if \\(\\\$rType == 2\\) \\{.*sudo -u xc_vm tee ' \\. CONFIG_PATH \\. 'cluster\\/serve_only/s", $rCmd, 'a completed serve-only install writes the marker as xc_vm');
-		$this->assertStringContainsString("if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm", $rCmd, 'a non-serve-only install clears a stale marker as xc_vm, then restarts to boot nginx + php-fpm (downgrade)');
+		$this->assertStringContainsString("if sudo test -f ' . CONFIG_PATH . 'cluster/serve_only; then sudo rm -f ' . LbInstallFlow::NODE_ROOT_SUDOERS . ' ' . LbInstallFlow::NODE_ROOT_HELPER . '; sudo -u xc_vm rm -f ' . CONFIG_PATH . 'cluster/serve_only && sudo systemctl restart xc_vm", $rCmd, 'a non-serve-only install clears a stale marker as xc_vm, then restarts to boot nginx + php-fpm (downgrade)');
 		$this->assertStringNotContainsString("sudo chown xc_vm:xc_vm ' . CONFIG_PATH . 'cluster/serve_only'", $rCmd, 'no root chown through the xc_vm-owned marker path (symlink privesc)');
 		// The service is restarted AFTER the marker is written, so the node boots
 		// sole-front (service skips nginx + php-fpm) instead of staying dual-stacked
@@ -239,7 +239,7 @@ final class ServeOnlyInstallTest extends TestCase {
 		// !$rServeOnly branch has already re-written the nginx + php-fpm configs.
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 		$this->assertMatchesRegularExpression(
-			"/sudo test -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only; then sudo -u xc_vm rm -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only && sudo systemctl restart xc_vm/",
+			"/sudo test -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only; then sudo rm -f ' \\. LbInstallFlow::NODE_ROOT_SUDOERS \\. ' ' \\. LbInstallFlow::NODE_ROOT_HELPER \\. '; sudo -u xc_vm rm -f ' \\. CONFIG_PATH \\. 'cluster\\/serve_only && sudo systemctl restart xc_vm/",
 			$rCmd,
 			'a downgrade removes the marker AND restarts xc_vm (only when the marker was present), so the node boots nginx + php-fpm'
 		);
