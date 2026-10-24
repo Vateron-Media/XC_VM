@@ -40,6 +40,7 @@ class TmpCronJob implements CommandInterface {
 		'xcvm_core_check' => 172800,
 		'ytdlp_check' => 172800,
 		'ffmpeg_check' => 172800,
+		'binaries_check' => 172800,
 		// "At most once" for each change of the servers (replicaChecks).
 		'replica_servers_checked' => 172800,
 		// The updater's archive: post-update reads it again after the chown of

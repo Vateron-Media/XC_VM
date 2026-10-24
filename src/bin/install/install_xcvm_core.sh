@@ -6,7 +6,10 @@
 # installer, a load balancer by LbInstallFlow over SSH) runs this once;
 # `console.php xcvm_core` keeps it current afterwards.
 #
-#   install_xcvm_core.sh [owner] [repo] [bin_dir]
+#   install_xcvm_core.sh [owner] [repo] [bin_dir] [ext_dir]
+#
+# ext_dir defaults to the PHP's own; update_binaries.sh passes a staged
+# bundle's, which the PHP does not report from outside its install path.
 set -euo pipefail
 
 OWNER="${1:-Vateron-Media}"
@@ -16,7 +19,7 @@ PHP="${BIN_DIR%/}/php/bin/php"
 BASE="https://raw.githubusercontent.com/${OWNER}/${REPO}/main/bin/xcvm_extention"
 
 ASSET="xcvm_core-php$("$PHP" -n -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;').tar.gz"
-EXT_DIR="$("$PHP" -n -r 'echo PHP_EXTENSION_DIR;')"
+EXT_DIR="${4:-$("$PHP" -n -r 'echo PHP_EXTENSION_DIR;')}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 

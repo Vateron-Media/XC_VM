@@ -231,9 +231,9 @@ final class ClusterArtefactTest extends TestCase {
 		// Anything else: never a path, never outside the registry.
 		foreach ([
 			'offair/../../etc/passwd', 'offair/unknown', 'module/../../../etc/passwd/1', 'module/radio/../../x', 'module/Radio/1.2.0',
-			'module/radio/1..2', 'agent/../../bin/sh', 'agent/sparc', 'fanout/sparc', 'fanout/../x', 'core/php', 'core/php8', 'core/../x', 'core/php8.1/x',
+			'module/radio/1..2', 'agent/../../bin/sh', 'agent/sparc', 'fanout/sparc', 'fanout/../x', 'core/php', 'core/php8', 'core/../x', 'core/php8.3/x',
 			// The binaries every node takes from GitHub: MAIN serves none of them.
-			'agent/amd64', 'agent/arm64', 'fanout/amd64', 'core/php8.1', '/etc/passwd', 'file:///etc/passwd', '', 'offair/not_on_air/', 'offair/not_on_air/x',
+			'agent/amd64', 'agent/arm64', 'fanout/amd64', 'core/php8.3', '/etc/passwd', 'file:///etc/passwd', '', 'offair/not_on_air/', 'offair/not_on_air/x',
 		] as $rId) {
 			$this->assertNull(ArtefactRegistry::locate($rId, $this->rSettings), $rId);
 			$this->assertFalse(ArtefactStage::validId($rId), $rId);

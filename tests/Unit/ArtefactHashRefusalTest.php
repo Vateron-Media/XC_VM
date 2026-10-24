@@ -408,7 +408,7 @@ final class ArtefactHashRefusalTest extends TestCase {
 			}
 		};
 		// The binaries an older MAIN pushed: no action of root's installs them (every node takes them from GitHub).
-		foreach ([['action' => 'agent_binary', 'arch' => 'amd64', 'artefact_path' => $this->rBase . 'etc/x'], ['action' => 'fanout_binary', 'arch' => 'amd64'], ['action' => 'xcvm_core', 'group' => 'php8.1']] as $rAction) {
+		foreach ([['action' => 'agent_binary', 'arch' => 'amd64', 'artefact_path' => $this->rBase . 'etc/x'], ['action' => 'fanout_binary', 'arch' => 'amd64'], ['action' => 'xcvm_core', 'group' => 'php8.3']] as $rAction) {
 			$this->assertNotContains($rAction['action'], NodeActions::ROOT_ACTIONS);
 			ob_start();
 			(new RootSignalsCronJob())->executeAction($rAction, [], $rDb);

@@ -40,7 +40,7 @@ daemon need a free activation key — see [Licensing & Activation](info/licensin
 ## Technologies
 
 - **Nginx** — reverse proxy & web server  
-- **PHP 8.1** — core backend  
+- **PHP 8.3** — core backend  
 - **MariaDB** — database  
 - **KeyDB** — cache/session engine  
 - **FFmpeg 8.0** — transcoding  

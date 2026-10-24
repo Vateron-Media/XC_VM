@@ -6,7 +6,7 @@ How to set up the project locally, run the quality checks, and deploy code to a 
 
 ## Local Setup
 
-**Prerequisites:** PHP **8.1** (the codebase pins `php: 8.1.33`; newer majors are not supported) with `pdo_mysql`, and Composer available locally. The unit tests also need a MariaDB/MySQL server: without one, `make test-db` starts a throwaway MariaDB in Docker (see [Unit Tests](phpunit-phar.md#2-database)).
+**Prerequisites:** PHP **8.3** (the codebase pins `php: 8.3.36`) with `pdo_mysql`, and Composer available locally. The unit tests also need a MariaDB/MySQL server: without one, `make test-db` starts a throwaway MariaDB in Docker (see [Unit Tests](phpunit-phar.md#2-database)).
 
 The committed `src/vendor/` is **production-only**, so the dev tools (PHPStan,
 phpcs) are not in the tree. Install them once from the committed lock:

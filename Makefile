@@ -37,7 +37,6 @@ LB_ROOT_FILES := bootstrap.php console.php service update
 
 # Directories to remove from LB (admin-only content)
 LB_DIRS_TO_REMOVE := \
-	bin/install \
 	bin/redis \
 	bin/cluster_bus \
 	bin/nginx/conf/codes \
@@ -69,6 +68,7 @@ LB_DIRS_TO_REMOVE := \
 # (they need the stripped Domain/User). They go together with those routes in a
 # later phase (§3 of the MAIN <-> LB API communication design).
 LB_FILES_TO_REMOVE := \
+	bin/install/database.sql \
 	Public/admin/api.php \
 	Public/admin/proxy_api.php \
 	Public/stream/auth.php \
@@ -161,16 +161,18 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 dev-tools:
 	@cd src && composer install --no-interaction
 
-# System PHP 8.1 + the extensions the code, PHPStan and the test suite need
-# (Ubuntu/Debian). Adds packages.sury.org when the distro has no php8.1-* (the
-# ondrej PPA dropped new Ubuntu releases). Only versioned php8.1-* packages:
+# System PHP, the runtime the panel ships, + the extensions the code, PHPStan
+# and the test suite need (Ubuntu/Debian). Adds packages.sury.org when the
+# distro has no php$(DEV_PHP)-* (the ondrej PPA dropped new Ubuntu releases).
+# Only versioned php$(DEV_PHP)-* packages:
 # unversioned ones (php-pcov, composer) pull the newest PHP and take over /usr/bin/php,
 # so composer comes from getcomposer.org's installer (checksum-verified) instead.
+DEV_PHP ?= 8.3
 DEV_PHP_PACKAGES := cli mysql mbstring curl xml intl zip gd gmp bcmath redis igbinary pcov
 SUDO := $(if $(filter 0,$(shell id -u)),,sudo)
 
 dev-php:
-	@if ! apt-cache show php8.1-cli >/dev/null 2>&1; then \
+	@if ! apt-cache show php$(DEV_PHP)-cli >/dev/null 2>&1; then \
 		d=$$(mktemp -d) && \
 		curl -sSLo $$d/keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb && \
 		$(SUDO) dpkg -i $$d/keyring.deb && \
@@ -179,8 +181,8 @@ dev-php:
 		$(SUDO) apt-get update; \
 		rc=$$?; rm -rf "$$d"; [ $$rc -eq 0 ] || exit $$rc; \
 	fi
-	$(SUDO) apt-get install -y $(addprefix php8.1-,$(DEV_PHP_PACKAGES))
-	$(SUDO) update-alternatives --set php /usr/bin/php8.1
+	$(SUDO) apt-get install -y $(addprefix php$(DEV_PHP)-,$(DEV_PHP_PACKAGES))
+	$(SUDO) update-alternatives --set php /usr/bin/php$(DEV_PHP)
 	@php -v | head -1
 	@command -v composer >/dev/null 2>&1 || { \
 		d=$$(mktemp -d) && \

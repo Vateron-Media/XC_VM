@@ -992,6 +992,20 @@ class RootSignalsCronJob implements CommandInterface {
 			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'xcvm_core']);
 		}
 
+		// The runtime bundle (PHP, nginx) of a load balancer. MAIN updates its own
+		// at every `status`, and nothing reached the nodes, so a load balancer kept
+		// the PHP it was installed with, PHP 8.1 among them. `binaries` is
+		// idempotent (the installed release against the newest, and only one with
+		// this distribution's bundle), so it is safe to poll daily; the first pass
+		// runs right away, so a node takes a new bundle within a minute of the
+		// panel update that brings its updater. A new bundle stops the node's
+		// service for a minute or two.
+		$rBinariesStamp = CRONS_TMP_PATH . 'binaries_check';
+		if (!NodeRole::isMain() && (!file_exists($rBinariesStamp) || time() - intval(@file_get_contents($rBinariesStamp) ?: 0) > 86400)) {
+			file_put_contents($rBinariesStamp, time());
+			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'binaries']);
+		}
+
 		// yt-dlp — same self-heal rationale. It is a static bundled binary that
 		// resolves media URLs (StreamUtils) and nothing else keeps it current, so
 		// it goes stale between panel releases and breaks extraction. The `ytdlp`

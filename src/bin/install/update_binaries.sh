@@ -6,6 +6,7 @@ REPO="${2:-XC_VM_Binaries}"
 TARGET_BIN_DIR="${3:-/home/xc_vm/bin}"
 TARGET_RELEASE_TAG="${4:-}"
 VERSION_FILE="${TARGET_BIN_DIR}/bin_version.json"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 TMP_ROOT=""
 EXTRACT_DIR=""
@@ -353,6 +354,31 @@ for installed_ext in "$TARGET_BIN_DIR"/php/lib/php/extensions/*/xcvm_core.so; do
         cp -a "$installed_ext" "$staged_ext"
     fi
 done
+
+# A bundle on another ABI (a new PHP minor) brings no xcvm_core, and the new
+# PHP could not run `console.php xcvm_core` to fetch one: fetch the build for
+# the bundle's PHP now, before the service stops. If none loads, this exits
+# and the running binaries are kept.
+for staged_dir in "$STAGE_DIR"/php/lib/php/extensions/*/; do
+    [[ -d "$staged_dir" && ! -f "${staged_dir}xcvm_core.so" ]] || continue
+    echo "The bundle's PHP has no xcvm_core: fetching its build into ${staged_dir}"
+    bash "$SCRIPT_DIR/install_xcvm_core.sh" "$OWNER" "$REPO" "$STAGE_DIR" "${staged_dir%/}"
+done
+
+# php.ini is kept across a binaries update, and names the ionCube loader of
+# the PHP it was written for: point it at the one this bundle ships. The
+# rollback restores the old php.ini.
+staged_loader=""
+for staged_file in "$STAGE_DIR"/php/lib/php/extensions/*/ioncube_loader_lin_*.so; do
+    [[ -f "$staged_file" ]] || continue
+    staged_loader="${staged_file##*/}"
+done
+if [[ -n "$staged_loader" && -f "$TARGET_BIN_DIR/php/lib/php.ini" && ! -e "$STAGE_DIR/php/lib/php.ini" ]]; then
+    mkdir -p "$STAGE_DIR/php/lib"
+    cp -a "$TARGET_BIN_DIR/php/lib/php.ini" "$STAGE_DIR/php/lib/php.ini"
+    sed -i -E "s/^(zend_extension *= *)ioncube_loader_lin_[0-9.]+\.so/\1${staged_loader}/" "$STAGE_DIR/php/lib/php.ini"
+    echo "php.ini loads ${staged_loader}"
+fi
 
 # The service stops only now, with the new binaries downloaded, checked and
 # staged: a release without this distribution's asset (a 404), a bad

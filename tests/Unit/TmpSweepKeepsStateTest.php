@@ -15,7 +15,7 @@ final class TmpSweepKeepsStateTest extends TestCase {
 		// A stamp, and the longest period the lines right after it compare its age with.
 		preg_match_all("/CRONS_TMP_PATH \. '(\w+)';\n(?:[^\n]*\n){0,2}?[^\n]*\b(86400|3600)\b/", $rSource, $rStamps, PREG_SET_ORDER);
 		$rFound = array_column($rStamps, 2, 1);
-		$this->assertSame(['fanout_binary_check', 'ffmpeg_check', 'xcvm_core_check', 'ytdlp_check'], (static function (array $rNames): array {
+		$this->assertSame(['binaries_check', 'fanout_binary_check', 'ffmpeg_check', 'xcvm_core_check', 'ytdlp_check'],(static function (array $rNames): array {
 			sort($rNames);
 			return $rNames;
 		})(array_keys($rFound)), 'the stamps the root cron throttles its checks with');
@@ -24,6 +24,7 @@ final class TmpSweepKeepsStateTest extends TestCase {
 		}
 		$this->assertGreaterThan(86400, TmpCronJob::maxAge('ytdlp_check'), 'a daily check');
 		$this->assertGreaterThan(86400, TmpCronJob::maxAge('ffmpeg_check'), 'a daily check');
+		$this->assertGreaterThan(86400, TmpCronJob::maxAge('binaries_check'), 'a daily check');
 	}
 
 	public function testTheUpdatersArchiveOutlivesASlowUpdateAndLeftoversDoNot(): void {

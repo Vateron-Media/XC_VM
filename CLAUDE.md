@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-XC_VM is an open-source, Xtream-Codes-style IPTV management panel (PHP 8.1+, AGPL-3.0). It is a modular monolith that has been migrated to Composer PSR-4. The application lives under `src/` and is deployed verbatim to `/home/xc_vm/` (so `src/` is the deploy root and `MAIN_HOME` maps to it).
+XC_VM is an open-source, Xtream-Codes-style IPTV management panel (PHP 8.3+, AGPL-3.0). It is a modular monolith that has been migrated to Composer PSR-4. The application lives under `src/` and is deployed verbatim to `/home/xc_vm/` (so `src/` is the deploy root and `MAIN_HOME` maps to it).
 
 ## Layout essentials
 
@@ -14,7 +14,7 @@ XC_VM is an open-source, Xtream-Codes-style IPTV management panel (PHP 8.1+, AGP
 Everything is driven from the **repo root via the `Makefile`**. Static-analysis/style tools are `require-dev` packages and are NOT in the committed `vendor/`; install them first.
 
 ```bash
-make dev-php          # apt: system PHP 8.1 + needed extensions (adds packages.sury.org if the distro lacks php8.1) + composer if missing; sudo
+make dev-php          # apt: system PHP 8.3 + needed extensions (adds packages.sury.org if the distro lacks it) + composer if missing; sudo
 make dev-tools        # composer install in src/ — adds PHPStan + phpcs (Slevomat) to src/vendor (do this first)
 make phpstan          # static analysis (phpstan.dist.neon, --memory-limit=2G)
 make cs               # code-style check (dry-run, fails on diff)
