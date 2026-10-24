@@ -24,7 +24,7 @@ final class ServeOnlyNodeRootSudoersTest extends TestCase {
 		$rSudoers = strpos($rCmd, 'provisionNodeRootSudoers');
 		$this->assertNotFalse($rRm);
 		$this->assertNotFalse($rSudoers);
-		$this->assertGreaterThan($rRm, $rSudoers, 'the sudoers is written after PHP removal');
+		$this->assertLessThan($rRm, $rSudoers, 'the sudoers is written before PHP removal');
 		$rRestartAfter = strpos($rCmd, 'systemctl restart xc_vm', $rSudoers);
 		$this->assertNotFalse($rRestartAfter, 'a restart follows the sudoers provisioning');
 	}
