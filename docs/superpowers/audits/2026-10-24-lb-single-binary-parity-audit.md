@@ -1,17 +1,21 @@
 # Serve-only single-binary LB — parity & working-status audit (2026-10-24)
 
 Audits the serve-only load-balancer (`xc_node` = `xc_fanout` front + `xc_agent`) against the
-old PHP+nginx LB, per the north star in the one-binary design spec
-(`docs/superpowers/specs/2026-10-22-lb-one-binary-design.md`, a local design note) and the parity
-rule "the Go LB must contain everything the PHP+nginx LB did — never leave a path behind as rare".
+old PHP+nginx LB, per the north star in
+[`specs/2026-10-22-lb-one-binary-design.md`](../specs/2026-10-22-lb-one-binary-design.md) and the
+parity rule "the Go LB must contain everything the PHP+nginx LB did — never leave a path behind as rare".
 Method: 6 parallel per-surface reviews reading both repos across all slice branches; every claim
 grounded in code. Target release: 2.7.2 (the LB work merges to `main`; the `2.8.0` branch is shelved).
 
 ## Verdict
 
-- **A single binary? No.** Not nginx-free (R1 Go RTMP server unbuilt → `nginx_rtmp` + a dormant
-  http-nginx remain) and not PHP-absent (the install still ships the PHP tree + nginx and runs
-  `console.php` on the node during provisioning). Best achieved today: *PHP-free steady-state serving*.
+- **A single binary? No.** The successfully-provisioned node's **runtime is PHP-free** — the
+  serve-only install removes `console.php` + `bin/php` and restarts the service with no PHP and no
+  http-nginx (ServerInstallCommand.php:389/:406/:417). What is NOT yet achieved: the node still runs
+  `nginx_rtmp` (R1 Go RTMP server unbuilt), and PHP/nginx are not eliminated from the **archive** or
+  **provisioning** (`make lb` ships the PHP tree + nginx; the install runs `console.php` transiently
+  before removing it). Best achieved today: a PHP-free, http-nginx-free steady state that still
+  depends on `nginx_rtmp`.
 - **Everything working / full parity? No.** The common serving path is live-verified PHP-free, but a
   tail of data-plane settings hard-502s where the PHP LB served content, management slices P3/P4/P5
   are unintegrated, and a cross-repo merge skew currently breaks node.root + bans on a build from
@@ -83,10 +87,14 @@ hand-assembled mix, not a merged tip.
   (LbInstallFlow.php:692/:938), started + reloaded (src/service:107/:207), and shipped
   (Makefile:430/:537). The Go side is only the on_play/on_publish/on_play_done callback
   (rtmpnotify.go).
-- **PHP still present:** install runs the full PHP+nginx bundle and `console.php` during provisioning
-  (ServerInstallCommand runPostExtractSteps ~:281); no separate PHP-free archive — `make lb` ships
-  `console.php` (Makefile:36), `bin/php`, `bin/nginx`. A dormant http-nginx is kept because the Go
-  front reads its listen ports from `bin/nginx/conf/ports` (ServerInstallCommand:401-405).
+- **Archive + provisioning still carry PHP/nginx — the provisioned node's runtime does not.** The
+  node is PHP-free at runtime (above: `console.php` + `bin/php` removed, ServerInstallCommand.php:406;
+  restart PHP-free :417; http-nginx + php-fpm configs removed :389). The remaining, non-runtime gaps:
+  there is no separate PHP-free archive — `make lb` ships `console.php` (Makefile:36), `bin/php`,
+  `bin/nginx` — and provisioning runs the full PHP+nginx bundle + `console.php` transiently
+  (ServerInstallCommand runPostExtractSteps ~:281) before removing PHP. The `bin/nginx` tree is kept
+  on disk (dormant; http-nginx never started) because the Go front reads its listen ports from
+  `bin/nginx/conf/ports` (ServerInstallCommand:401-405).
 
 ### P2 — management / recording parity
 - **P3 (certbot), P4 (node maintenance), P5 (node.root) not integrated** into the serve-only line.
