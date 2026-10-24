@@ -29,44 +29,14 @@ final class ServeOnlyNodeRootSudoersTest extends TestCase {
 		$this->assertNotFalse($rRestartAfter, 'a restart follows the sudoers provisioning');
 	}
 
-	public function testSudoersIsArgumentRestrictedValidatedAndFailsSafe(): void {
+	public function testSudoersGrantsOnlyTheHelperValidatedAndInstalledAtomically(): void {
 		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
-		// Scoped NOPASSWD for xc_vm — never the whole-root NOPASSWD: ALL.
-		$this->assertStringContainsString('xc_vm ALL=(root) NOPASSWD: ', $rLb);
 		$this->assertStringNotContainsString('NOPASSWD: ALL', $rLb);
-		// Every rule is pinned to the EXACT command + arguments the agent issues —
-		// not the bare binary — so the grant cannot become arbitrary root.
-		foreach ([
-			'/usr/sbin/ipset restore',
-			'/usr/sbin/ipset flush xcvm_block4',
-			'/usr/sbin/iptables -C INPUT -m set --match-set xcvm_block4 src -j DROP',
-			'/usr/sbin/ip6tables -I INPUT -m set --match-set xcvm_block6 src -j DROP',
-			'/usr/bin/systemctl stop xc_vm',
-			'/usr/bin/systemctl start xc_vm',
-			'/usr/sbin/reboot',
-			'/usr/bin/umount -l ',
-			'/usr/sbin/modprobe ip_conntrack',
-			'/usr/sbin/sysctl -p',
-			'/usr/bin/cpufreq-set -c * -g *',
-			'/usr/bin/tee /etc/fstab',
-			'/usr/bin/tee /etc/sysctl.conf',
-			'/usr/bin/chmod [0-7][0-7][0-7] /etc/fstab',
-			'content/streams', // mount/umount/chown pinned to the streams path
-		] as $rNeedle) {
-			$this->assertStringContainsString($rNeedle, $rLb, "sudoers pins: $rNeedle");
+		$this->assertSame(1, substr_count($rLb, 'NOPASSWD: "'), 'a single grant');
+		foreach (['/usr/bin/tee', '/usr/bin/chmod', '/usr/bin/chown', '/usr/bin/systemctl', 'cpufreq-set', 'ipset restore'] as $rOld) {
+			$this->assertStringNotContainsString($rOld, $rLb);
 		}
-		// The dangerous vectors are NOT granted as bare binaries (no arbitrary
-		// root file write / service control): no allowlist entry is a bare tee,
-		// chmod, chown or systemctl (each would be the binary followed immediately
-		// by the array element's closing quote).
-		$this->assertStringNotContainsString("/usr/bin/tee'", $rLb);
-		$this->assertStringNotContainsString("/usr/bin/chmod'", $rLb);
-		$this->assertStringNotContainsString("/usr/bin/chown'", $rLb);
-		$this->assertStringNotContainsString("/usr/bin/systemctl'", $rLb);
-		// Root-owned path, 0440, validated with visudo, removed on any syntax error.
-		$this->assertStringContainsString('/etc/sudoers.d/xcvm-noderoot', $rLb);
-		$this->assertStringContainsString('chmod 0440', $rLb);
 		$this->assertStringContainsString('visudo -cf', $rLb);
-		$this->assertStringContainsString('|| sudo rm -f', $rLb);
+		$this->assertStringContainsString('install -m0440 -o root -g root', $rLb);
 	}
 }

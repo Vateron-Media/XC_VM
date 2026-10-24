@@ -117,50 +117,47 @@ class LbInstallFlow {
 		return $rLoop('-h', $rAlone) . '; ' . $rLoop('-hR', $rTrees);
 	}
 
+	/** Where the root-owned node.root helper lives on a serve-only node (outside xc_vm's reach). */
+	public const NODE_ROOT_HELPER = '/usr/local/sbin/xcvm-noderoot';
+
 	/**
-	 * Grant the xc_vm agent a NOPASSWD sudo allowlist for the node.root and
-	 * viewer-ban commands. On a serve-only node the agent runs AS xc_vm (so the
-	 * xc_vm front keeps owning the files they share) and reaches root for these
-	 * few privileged ops through `sudo -n` (XC_VM_Fanout privCmd/privWriteFile).
-	 *
-	 * Each rule is restricted to the EXACT command + arguments the agent issues
-	 * (XC_VM_Fanout noderoot.go/bansync.go), not the bare binary — so a compromised
-	 * xc_vm cannot turn the grant into arbitrary root (no `tee /etc/sudoers`, no
-	 * arbitrary `chmod`/`chown`, no arbitrary `systemctl` unit). tee/chmod are
-	 * pinned to /etc/fstab + /etc/sysctl.conf, chown/mount/umount to the streams
-	 * path, systemctl to the xc_vm unit. Written to a root-owned path (xc_vm cannot
-	 * tamper with it), chmod 0440, validated with `visudo -c`, and removed again on
-	 * any syntax error so a bad write can never lock sudo out. Paths are the
-	 * usr-merged canonical ones every supported distribution uses (Ubuntu 20/22/24,
-	 * Debian 12/13); an absent optional binary (ipset, cpufreq-set) just leaves an
-	 * unused rule. Serve-only nodes only. The rule set is a contract with the Go
-	 * agent's invocations — changing an invocation there means changing a rule here.
+	 * Install the node.root helper as root:root 0755, sent from MAIN's own trusted
+	 * copy: the node's /home/xc_vm/bin/install copy is xc_vm-writable, so copying
+	 * it would let a compromised xc_vm plant what root then runs. True only when
+	 * the send, chown and chmod all succeeded.
 	 */
-	public static function provisionNodeRootSudoers($rConn, callable $rRunSSH): void {
-		$rStreams = MAIN_HOME . 'content/streams';
-		$rCmds = [
-			'/usr/sbin/ipset restore',                                                    // bansync: ipset restore (stdin)
-			'/usr/sbin/ipset flush xcvm_block4', '/usr/sbin/ipset flush xcvm_block6',      // flushBans
-			'/usr/sbin/iptables -C INPUT -m set --match-set xcvm_block4 src -j DROP',      // applyBanFamily (inet)
-			'/usr/sbin/iptables -I INPUT -m set --match-set xcvm_block4 src -j DROP',
-			'/usr/sbin/ip6tables -C INPUT -m set --match-set xcvm_block6 src -j DROP',     // applyBanFamily (inet6)
-			'/usr/sbin/ip6tables -I INPUT -m set --match-set xcvm_block6 src -j DROP',
-			'/usr/bin/systemctl stop xc_vm', '/usr/bin/systemctl start xc_vm',             // restart_services / stop_services
-			'/usr/sbin/reboot',                                                            // reboot
-			'/usr/bin/mount ' . $rStreams, '/usr/bin/umount -l ' . $rStreams,              // enable/disable_ramdisk
-			'/usr/bin/chown -R xc_vm\\:xc_vm ' . $rStreams,                                // ramdisk hand-back (\\: escapes the sudoers field separator)
-			'/usr/sbin/modprobe ip_conntrack', '/usr/sbin/sysctl -p',                      // set_sysctl
-			'/usr/bin/cpufreq-set -c * -g *',                                              // set_governor (per-core, any governor)
-			'/usr/bin/tee /etc/fstab', '/usr/bin/tee /etc/sysctl.conf',                    // privWriteFile targets
-			'/usr/bin/chmod [0-7][0-7][0-7] /etc/fstab', '/usr/bin/chmod [0-7][0-7][0-7] /etc/sysctl.conf',
-		];
-		$rLines = ['Defaults:xc_vm !requiretty'];
-		foreach ($rCmds as $rC) {
-			$rLines[] = 'xc_vm ALL=(root) NOPASSWD: ' . $rC;
+	public static function provisionNodeRootHelper($rConn, callable $rRunSSH, callable $rSendFileSSH): bool {
+		if (!call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/install/xcvm-noderoot', self::NODE_ROOT_HELPER, false)) {
+			return false;
 		}
-		$rContent = implode("\n", $rLines) . "\n";
-		call_user_func($rRunSSH, $rConn, self::sudoWrite($rContent, self::NODE_ROOT_SUDOERS));
-		call_user_func($rRunSSH, $rConn, 'sudo chmod 0440 ' . self::NODE_ROOT_SUDOERS . '; sudo visudo -cf ' . self::NODE_ROOT_SUDOERS . ' || sudo rm -f ' . self::NODE_ROOT_SUDOERS);
+		foreach (['sudo chown root:root ', 'sudo chmod 0755 '] as $rCmd) {
+			$rOut = call_user_func($rRunSSH, $rConn, $rCmd . self::NODE_ROOT_HELPER . ' && echo __NODEROOT_HELPER_OK__');
+			if (strpos((string) ($rOut['output'] ?? ''), '__NODEROOT_HELPER_OK__') === false) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Grant the xc_vm agent ONE NOPASSWD rule: the root-owned helper. Every raw
+	 * command (tee, chmod, systemctl, mount ...) is a confused-deputy root for a
+	 * compromised xc_vm, so the privileged ops live in the helper, which validates
+	 * its own arguments. No env_keep: sudo's env_reset strips XCVM_NODEROOT_ROOT
+	 * and TMPDIR, which a caller must not control.
+	 *
+	 * Written to a root temp file outside /etc/sudoers.d, validated with visudo,
+	 * and only then installed: the live included dir never holds an unvalidated
+	 * file, so a bad write cannot lock sudo out. True only on the validated install.
+	 */
+	public static function provisionNodeRootSudoers($rConn, callable $rRunSSH): bool {
+		$rContent = "Defaults:xc_vm !requiretty\nxc_vm ALL=(root) NOPASSWD: " . self::NODE_ROOT_HELPER . "\n";
+		$rCmd = 't=$(sudo mktemp /tmp/xcvm-sudoers.XXXXXXXXXX) && printf %s ' . escapeshellarg($rContent) . ' | sudo tee "$t" > /dev/null'
+			. ' && sudo chown root:root "$t" && sudo chmod 0440 "$t"'
+			. ' && sudo visudo -cf "$t" > /dev/null && sudo install -m0440 -o root -g root "$t" ' . self::NODE_ROOT_SUDOERS
+			. ' && echo __NODEROOT_SUDOERS_OK__; sudo rm -f "$t"';
+		$rOut = call_user_func($rRunSSH, $rConn, $rCmd);
+		return strpos((string) ($rOut['output'] ?? ''), '__NODEROOT_SUDOERS_OK__') !== false;
 	}
 
 	/**

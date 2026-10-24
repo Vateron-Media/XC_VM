@@ -389,7 +389,8 @@ class ServerInstallCommand implements CommandInterface {
 					call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php');
 					// The agent runs as xc_vm and reaches root for node.root + viewer bans
 					// via `sudo -n` (XC_VM_Fanout privCmd/privWriteFile); grant its scoped
-					// NOPASSWD allowlist before the restart below launches it.
+					// NOPASSWD helper grant before the restart below launches it.
+					LbInstallFlow::provisionNodeRootHelper($rConn, $rRunSSH, $rSendFileSSH);
 					LbInstallFlow::provisionNodeRootSudoers($rConn, $rRunSSH);
 					// xc_vm.service runs `bash service` as root and the blanket chown made it (and
 					// its directory) xc_vm's: root-own what root runs, as rootOwn() does on MAIN.
