@@ -62,13 +62,31 @@ final class XcvmNoderootHelperTest extends TestCase {
 			'core_pattern' => ["kernel.core_pattern=|/x\n"],
 			'mixed' => ["net.ipv4.ip_forward = 1\nkernel.core_pattern = |/x\n"],
 			'modprobe' => ["kernel.modprobe = /evil\n"],
-			'vm' => ["vm.swappiness = 1\n"],
 			'dotdot' => ["net..x = 1\n"],
 			'slash' => ["net/../kernel/core_pattern = 1\n"],
 			'pipe value' => ["net.core.x = 1|/evil\n"],
 			'prefix trick' => ["network.x = 1\n"],
+			'hotplug' => ["kernel.hotplug = /x\n"],
+			'other kernel' => ["kernel.shmmni = 1\n"],
+			'kernel.shmmax prefix' => ["kernel.shmmax.evil = 1\n"],
+			'usermodehelper' => ["kernel.usermodehelper.bset = 1\n"],
+			'poweroff' => ["kernel.poweroff_cmd = /x\n"],
+			'mixed net fs vm + core_pattern' => ["net.core.somaxconn = 1\nfs.file-max = 5\nvm.max_map_count = 6\nkernel.core_pattern = |/x\n"],
+			'bare fs' => ["fs = 1\n"],
 			'continuation' => ["net.core.x = 1\\\nkernel.core_pattern = x\n"],
 		];
+	}
+
+	public function testSysctlAcceptsMainsRealBody(): void {
+		$body = implode("\n", ['# XC_VM', '', 'net.core.somaxconn = 655350', 'net.ipv4.route.flush=1', 'fs.file-max = 6815744', 'fs.aio-max-nr = 6815744', 'fs.nr_open = 6815744', 'net.ipv4.ip_local_port_range = 1024 65000', 'net.ipv4.tcp_rmem = 10000000 10000000 10000000', 'net.netfilter.nf_conntrack_max=1215196608', 'vm.max_map_count = 655300', 'net.ipv6.conf.all.disable_ipv6 = 1', 'kernel.shmmax=134217728', 'kernel.shmall=134217728', 'vm.overcommit_memory = 1', 'net.ipv4.tcp_tw_reuse=1']);
+		$this->stage('sysctl.pending', $body);
+		[$rc] = $this->helper(['sysctl']);
+		$this->assertSame(0, $rc);
+		$w = (string) file_get_contents($this->root . '/etc/sysctl.conf');
+		foreach (['fs.file-max = 6815744', 'vm.max_map_count = 655300', 'kernel.shmmax = 134217728', 'kernel.shmall = 134217728', 'vm.overcommit_memory = 1', 'net.core.somaxconn = 655350'] as $l) {
+			$this->assertStringContainsString($l . "\n", $w);
+		}
+		$this->assertStringNotContainsString('core_pattern', $w);
 	}
 
 	public function testBanSyncBuildsRestoreNamingOnlyTheTwoSets(): void {
