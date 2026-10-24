@@ -14,7 +14,8 @@
 # turns every system command into a line in $ROOT/calls.log.
 set -eu
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
-export PATH
+TMPDIR=/tmp # sticky, root-owned: never a caller-chosen (xc_vm-owned) parent
+export PATH TMPDIR
 IFS=' 	
 '
 umask 022
@@ -37,7 +38,7 @@ run() {
 }
 have() { [ -n "$R" ] || command -v "$1" >/dev/null 2>&1; }
 
-T=$(mktemp -d)
+T=$(mktemp -d /tmp/xcvm-noderoot.XXXXXX)
 trap 'rm -rf "$T"' EXIT HUP INT TERM
 
 # stage NAME: copy a caller-written staging file once into root-owned $T/in

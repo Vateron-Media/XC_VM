@@ -25,9 +25,9 @@ final class XcvmNoderootHelperTest extends TestCase {
 	}
 
 	/** @return array{0:int,1:string} */
-	private function helper(array $args): array {
+	private function helper(array $args, array $env = []): array {
 		$cmd = array_merge(['/bin/sh', MAIN_HOME . 'bin/install/xcvm-noderoot'], $args);
-		$p = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, ['XCVM_NODEROOT_ROOT' => $this->root, 'PATH' => '/usr/bin:/bin']);
+		$p = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, ['XCVM_NODEROOT_ROOT' => $this->root, 'PATH' => '/usr/bin:/bin'] + $env);
 		$out = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
 		return [proc_close($p), $out];
 	}
@@ -172,6 +172,17 @@ final class XcvmNoderootHelperTest extends TestCase {
 			'sysctl extra' => [['sysctl', '/etc/passwd']],
 			'ramdisk extra' => [['ramdisk', 'on', 'off']],
 		];
+	}
+
+	public function testHostileTmpdirIsIgnored(): void {
+		// Nonexistent: a helper that honors TMPDIR fails its mktemp; one that pins /tmp does not.
+		$evil = $this->root . '/evil-tmp-missing';
+		$this->stage('sysctl.pending', "net.core.somaxconn = 9\n");
+		$this->stage('bans.pending', "1.2.3.4\n");
+		foreach ([['sysctl'], ['ban-sync']] as $a) {
+			$this->assertSame(0, $this->helper($a, ['TMPDIR' => $evil])[0]);
+		}
+		$this->assertDirectoryDoesNotExist($evil);
 	}
 
 	public function testServiceAndRebootRunTheirFixedCommands(): void {
