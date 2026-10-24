@@ -88,8 +88,8 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          # Matches phpVersion (80100) the analysis targets: the minimum PHP.
-          php-version: '8.1'
+          # Matches phpVersion (80300) the analysis targets.
+          php-version: '8.3'
           coverage: none
           tools: composer:v2
 
@@ -114,7 +114,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.3'
           coverage: none
           tools: composer:v2
 
@@ -142,7 +142,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.3'
           coverage: none
 
       # check-procedural-use: procedural/view files must import every migrated
@@ -164,7 +164,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.3'
           coverage: none
           tools: composer:v2
 
@@ -213,7 +213,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.3'
           coverage: pcov
           extensions: pdo_mysql, redis, igbinary
 
@@ -286,7 +286,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.3'
           extensions: pdo_mysql, redis, igbinary
 
       # The cluster-bus contract tests start a redis-server of their own.

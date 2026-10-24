@@ -1,7 +1,7 @@
 # Contributing to XC_VM
 
 Thank you for considering contributing! XC_VM is an open-source,
-Xtream-Codes-style IPTV management panel (PHP 8.1+, AGPL-3.0) — a modular
+Xtream-Codes-style IPTV management panel (PHP 8.3+, AGPL-3.0) — a modular
 monolith migrated to Composer PSR-4. This guide covers the layout, the local dev
 loop, the checks CI enforces, and how to open a good pull request.
 
@@ -55,7 +55,7 @@ repo `CLAUDE.md`.
 
 ## 🛠️ Local Setup
 
-You need PHP 8.1+, `git`, `make`, and Composer.
+You need PHP 8.3+, `git`, `make`, and Composer.
 
 ```sh
 git clone https://github.com/Vateron-Media/XC_VM.git
@@ -202,7 +202,7 @@ reports). Key points:
 
 ## 🧪 Tests
 
-**Unit tests** (PHPUnit 10.5 on PHP 8.1, config `tests/phpunit.xml.dist`). They run
+**Unit tests** (PHPUnit 10.5 on PHP 8.3, config `tests/phpunit.xml.dist`). They run
 on MariaDB/MySQL, as production does: PHP needs `pdo_mysql`, and a machine without a
 server gets one from `make test-db` (Docker, `127.0.0.1:3306`).
 

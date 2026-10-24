@@ -3,7 +3,7 @@ applyTo: "**/*.php"
 ---
 # PHP Conventions — XC_VM
 
-XC_VM is a PHP 8.1+ modular monolith **migrated to Composer PSR-4** (`XcVm\` → `src/`).
+XC_VM is a PHP 8.3+ modular monolith **migrated to Composer PSR-4** (`XcVm\` → `src/`).
 The application root is `src/` (composer.json, vendor/, bootstrap.php all live there).
 `short_open_tag=1` is on — view templates use `<?` / `<?=`.
 

@@ -1122,7 +1122,7 @@ class ModuleLoader {
 	 *   1. getEventSubscribers() — legacy array API:
 	 *        ['EventClass' => callable]  or  ['EventClass' => [callable, $priority]]
 	 *
-	 *   2. #[ListensTo] attribute — declarative PHP 8.1 attribute on public methods:
+	 *   2. #[ListensTo] attribute — declarative PHP attribute on public methods:
 	 *        #[ListensTo(SomeEvent::class, priority: 10)]
 	 *        public function onSome(SomeEvent $e): void { ... }
 	 *

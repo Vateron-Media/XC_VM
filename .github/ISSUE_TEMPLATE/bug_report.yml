@@ -112,7 +112,7 @@ body:
       description: Provide your environment details.
       placeholder: |
         OS: Ubuntu 22.04
-        PHP: 8.1.x
+        PHP: 8.3.x
         Database: MySQL 8.0
         Browser (if UI bug): Chrome 120
       render: text

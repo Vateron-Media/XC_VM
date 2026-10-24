@@ -1,6 +1,6 @@
 # Unit Tests (PHPUnit)
 
-The unit suite is PHPUnit 10.5 over PHP 8.1, the minimum PHP the panel supports. Everything it needs is in the repository:
+The unit suite is PHPUnit 10.5 over PHP 8.3, the PHP the panel ships. Everything it needs is in the repository:
 
 | File | Role |
 | --- | --- |
@@ -15,7 +15,7 @@ The committed production `src/vendor/` is enough to run the tests; `make dev-too
 
 ## 1. Run the tests
 
-You need PHP 8.1 with `pdo_mysql`, and a MariaDB/MySQL server (section 2). On a machine without one:
+You need PHP 8.3 with `pdo_mysql`, and a MariaDB/MySQL server (section 2). On a machine without one:
 
 ```bash
 make test-db                                                         # MariaDB in Docker, once per boot
@@ -36,7 +36,7 @@ What a dev machine skips, and how to bring it in:
 
 `TimeUtilsTest` assumes PHP's default time zone is UTC, as on a panel host and in CI. Without `date.timezone` PHP takes the system's zone, so on a machine set to another zone run the suite with `TZ=UTC` (or `-d date.timezone=UTC`).
 
-CI (`.github/workflows/ci.yml`, job `PHPUnit`) runs the same command on PHP 8.1 with a `mariadb:11.4` service.
+CI (`.github/workflows/ci.yml`, job `PHPUnit`) runs the same command on PHP 8.3 with a `mariadb:11.4` service.
 
 ## 2. Database
 

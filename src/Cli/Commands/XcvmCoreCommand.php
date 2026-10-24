@@ -13,7 +13,7 @@ use XcVm\Core\Updates\UpdateChannels;
  * The extension is built in a private repo and mirrored — decoupled from the
  * heavy per-distro runtime bundle — into the PUBLIC binaries repo tree at fixed
  * paths under `bin/xcvm_extention/` (the repo's spelling):
- *   - `xcvm_core-php8.1.tar.gz` / `xcvm_core-php8.4.tar.gz` — the `.so` built per
+ *   - `xcvm_core-php8.3.tar.gz` / `xcvm_core-php8.4.tar.gz` — the `.so` built per
  *     PHP minor version, since an extension only loads into the ABI it was
  *     compiled against;
  *   - `version.json` — the single source of truth for the current version;
@@ -238,7 +238,7 @@ class XcvmCoreCommand implements CommandInterface {
 
 	/** True if a fresh php (as xc_vm) loads xcvm_core and it is the new API build. */
 
-	/** This PHP's group (php8.1, php8.4, …). */
+	/** This PHP's group (php8.3, php8.4, …). */
 	public static function group(): string {
 		return 'php' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 	}

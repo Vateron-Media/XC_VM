@@ -3,7 +3,7 @@
 namespace XcVm\Core\Events;
 
 /**
- * Declarative listener registration via PHP 8.1 attribute.
+ * Declarative listener registration via a PHP attribute.
  *
  * Attach to any public module method to register it as a typed event listener
  * without adding the method to getEventSubscribers().

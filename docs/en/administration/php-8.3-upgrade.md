@@ -4,6 +4,9 @@ PHP 8.1 has reached end of life and gets no fix for the **php2shell** vulnerabil
 
 Your panel version, database and settings do not change. Only the runtime bundle (PHP and nginx) and the `xcvm_core` extension are replaced.
 
+!!! info "Panel 2.7.2 and newer"
+    From 2.7.2, MAIN moves to PHP 8.3 on its own, at its next binaries update: the updater fetches the PHP 8.3 build of `xcvm_core` and points `php.ini` at the PHP 8.3 ionCube Loader before it stops the panel, and leaves the server as it is if either is missing. A load balancer updated to 2.7.2 or newer does the same within a minute of its panel update, and one installed from such a panel comes with PHP 8.3. On a load balancer that stays on an older panel, run this guide.
+
 !!! danger "Do not skip step 1"
     Never install the PHP 8.3 bundle on a server that has not passed step 1. Without the PHP 8.3 build of `xcvm_core`, the panel does not start and cannot repair itself: you would need SSH access to roll it back.
 
@@ -38,7 +41,7 @@ PHP=$B/php/bin/php
 INI=$B/php/lib/php.ini
 EXT83=$B/php/lib/php/extensions/no-debug-non-zts-20230831
 REL=https://github.com/Vateron-Media/XC_VM_Binaries/releases/download/21102026
-CORE=https://raw.githubusercontent.com/Vateron-Media/XC_VM_Binaries/main/bin/xcvm_extention
+CORE=https://raw.githubusercontent.com/Vateron-Media/XC_VM_Binaries/4021565ebcbd51357d25e0547d4c970c3fbf1a65/bin/xcvm_extention
 W=/root/php83
 
 [ "$(id -u)" = 0 ] || { echo "STOP: run as root"; exit 1; }
@@ -49,7 +52,6 @@ case "$A" in
     *) echo "STOP: there is no PHP 8.3 build for $PRETTY_NAME"; exit 1 ;;
 esac
 rm -rf "$W"; mkdir -p "$W/rt"
-cp -a "$B/bin_version.json" "$W/bin_version.before.json" 2>/dev/null || true
 
 # xcvm_core built for PHP 8.3
 curl -fsSL "$CORE/SHA256SUMS" -o "$W/SHA256SUMS"
@@ -103,7 +105,7 @@ EOF
 
 In the admin panel, open **Settings → Updates** and check that **Update Channel — Binaries** is **Stable** (the default). If it is not, set it to Stable and save. Leave **Update Channel — Panel** as it is.
 
-Load balancers do not need this: they never update their binaries on their own.
+Load balancers do not need this: before 2.7.2 they never update their binaries on their own.
 
 ---
 
@@ -137,34 +139,8 @@ Then log in to the panel and play a stream served by this server. On MAIN, also 
 
 ---
 
-## Rolling Back
-
-This puts back the bundle the server had before step 1:
-
-```bash
-V=$(sed -n 's/.*"release": *"\([^"]*\)".*/\1/p' /root/php83/bin_version.before.json 2>/dev/null); V=${V:-29062026}
-nohup sh -c "bash /root/php83/update_binaries.sh Vateron-Media XC_VM_Binaries /home/xc_vm/bin $V && { /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php root:own || true; }" > /root/php83/rollback.log 2>&1 &
-tail -f /root/php83/rollback.log
-```
-
-PHP 8.1 finds its own extensions where they were: the upgrade never removes them. Check the result with step 4 (expect `8.1.x`).
-
----
-
 ## After the Upgrade
 
 - **Keep the Stable binaries channel on MAIN.** On Beta, some panel versions install the Beta bundle at the next restart.
 - **Panel updates** work as before; nothing needs to be repeated after them.
-- **A load balancer installed later** comes with PHP 8.1: run steps 1, 3 and 4 on it.
-
-## If You Cannot Upgrade Yet
-
-Turning off PHP's session upload progress closes **part** of php2shell. The panel does not use this feature. It is not a substitute for the upgrade. The restart below also checks for new binaries: on MAIN, make sure **Update Channel — Binaries** is **Stable** first.
-
-```bash
-INI=/home/xc_vm/bin/php/lib/php.ini
-grep -q '^session.upload_progress.enabled' "$INI" || echo 'session.upload_progress.enabled = 0' >> "$INI"
-systemctl restart xc_vm
-```
-
-A panel update replaces `php.ini`, so add the line again after each one.
+- **A load balancer installed later** comes with PHP 8.3 from a panel 2.7.2 or newer. Installed from an older panel, it needs steps 1, 3 and 4.
