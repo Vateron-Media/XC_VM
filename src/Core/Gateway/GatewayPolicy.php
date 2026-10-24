@@ -8,6 +8,7 @@ use XcVm\Core\Cluster\AgentPaths;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeLease;
+use XcVm\Core\Cluster\ReplicaSections;
 use XcVm\Core\Cluster\ViewerKey;
 use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\StreamSecret;
@@ -155,6 +156,13 @@ final class GatewayPolicy {
 			// deferring not-on-air to a backend that is not there. Read from this
 			// node's own server row; absent (a transition node) is false.
 			'serve_only' => !empty($rOwn['serve_only']),
+			// live.php's off-air clip: VIDEO_PATH and the configured clip paths
+			// (ReplicaSections::OFF_AIR's settings), resolved by the Go gateway.
+			'off_air' => [
+				'video_path' => \defined('VIDEO_PATH') ? VIDEO_PATH : '',
+				// lb-settings: connected_video_path, not_on_air_video_path, banned_video_path, expired_video_path, expiring_video_path
+				'paths' => array_map(static fn($rKey) => (string) ($rSettings[$rKey] ?? ''), array_combine(ReplicaSections::OFF_AIR, ReplicaSections::OFF_AIR)),
+			],
 			'paths' => [
 				'cons' => CONS_TMP_PATH, 'streams' => STREAMS_PATH, 'archive' => ARCHIVE_PATH, 'vod' => VOD_PATH, 'flood' => FLOOD_TMP_PATH, 'signals' => SIGNALS_TMP_PATH,
 				'agent_sock' => AgentPaths::file(AgentPaths::SOCKET), 'spool' => AgentPaths::file(AgentPaths::DIR . 'spool/'), 'flows' => AgentPaths::file(AgentPaths::DIR . 'flows.json'),

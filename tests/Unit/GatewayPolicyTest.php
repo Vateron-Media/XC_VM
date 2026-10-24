@@ -105,7 +105,7 @@ final class GatewayPolicyTest extends TestCase {
 
 	public function testTheRestIsWhatSegmentPhpReads(): void {
 		$rPolicy = GatewayPolicy::build($this->settings(['send_altsvc_header' => 1]), $this->servers(), 1, self::NOW);
-		$this->assertSame(['v', 'server_id', 'written_at', 'mode', 'keys', 'restrict_same_ip', 'ip_subnet_match', 'encrypt_hls', 'headers', 'serve_until', 'serve_only', 'paths', 'live', 'verify_host', 'allowed_domains', 'conn_store', 'time_offset', 'vod_limit_perc', 'vod_bitrate_plus', 'default_timezone', 'redirect'], array_keys($rPolicy), 'nothing else, no other secret');
+		$this->assertSame(['v', 'server_id', 'written_at', 'mode', 'keys', 'restrict_same_ip', 'ip_subnet_match', 'encrypt_hls', 'headers', 'serve_until', 'serve_only', 'off_air', 'paths', 'live', 'verify_host', 'allowed_domains', 'conn_store', 'time_offset', 'vod_limit_perc', 'vod_bitrate_plus', 'default_timezone', 'redirect'], array_keys($rPolicy), 'nothing else, no other secret');
 		$this->assertSame([1, self::NOW, 'shadow'], [$rPolicy['server_id'], $rPolicy['written_at'], $rPolicy['mode']]);
 		$this->assertSame([true, false, true], [$rPolicy['restrict_same_ip'], $rPolicy['ip_subnet_match'], $rPolicy['encrypt_hls']]);
 		$this->assertSame(['server' => 'XC', 'protection' => true, 'altsvc_port' => 8443, 'unique_header_name' => '', 'unique_header_domain' => ''], $rPolicy['headers']);
