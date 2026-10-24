@@ -31,9 +31,9 @@ use XcVm\Streaming\Fanout\FanoutMode;
  * {"v": 1, "server_id": 3, "written_at": 1759900000, "mode": "shadow",
  *  "keys": {"viewer": [{"hex": "…", "until": null}], "shared": […], "context": […], "accept_legacy_cbc": false},
  *  "restrict_same_ip": true, "ip_subnet_match": false, "encrypt_hls": true,
- *  "headers": {"server": "", "protection": true, "altsvc_port": 0, "unique_header": false},
+ *  "headers": {"server": "", "protection": true, "altsvc_port": 0, "unique_header_name": "", "unique_header_domain": ""},
  *  "serve_until": 0, "paths": {"cons": "…", "streams": "…", "archive": "…", "vod": "…", "flood": "…", "signals": "…", "agent_sock": "…", "spool": "…", "flows": "…"},
- *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0, "unique_header": false,
+ *  "live": {"use_buffer": true, "on_demand_instant_off": false, "disallow_2nd_ip_con": false, "disallow_2nd_ip_max": 0,
  *           "ts": true, "client_prebuffer": 30, "restreamer_prebuffer": 0, "seg_time": 10, "create_expiration": 5, "admission": true},
  *  "verify_host": false, "allowed_domains": [],
  *  "conn_store": "agent", "time_offset": 0, "vod_limit_perc": 0, "vod_bitrate_plus": 0, "default_timezone": "", "redirect": {"5": ["http://lb5.example:8080"]}}
@@ -144,9 +144,10 @@ final class GatewayPolicy {
 				'server' => (string) ($rSettings['send_server_header'] ?? ''),
 				'protection' => !empty($rSettings['send_protection_headers']),
 				'altsvc_port' => !empty($rSettings['send_altsvc_header']) ? (int) ($rOwn['https_broadcast_port'] ?? 0) : 0,
-				// thumb.php and subtitle.php write a fresh random cookie per response
-				// that the gateway does not reproduce: with it set, they stay PHP's.
-				'unique_header' => !empty($rSettings['send_unique_header']),
+				// send_unique_header: the name of the per-response anti-restream cookie
+				// (empty: off) and its configured domain (empty: the request host).
+				'unique_header_name' => (string) ($rSettings['send_unique_header'] ?? ''),
+				'unique_header_domain' => (string) ($rSettings['send_unique_header_domain'] ?? ''),
 			],
 			'serve_until' => self::serveUntil($rSettings, $rNow),
 			// A serve-only LB (no PHP/nginx behind the Go gateway): the gateway
@@ -164,7 +165,6 @@ final class GatewayPolicy {
 				'on_demand_instant_off' => !empty($rSettings['on_demand_instant_off']),
 				'disallow_2nd_ip_con' => !empty($rSettings['disallow_2nd_ip_con']),
 				'disallow_2nd_ip_max' => (int) ($rSettings['disallow_2nd_ip_max'] ?? 0),
-				'unique_header' => !empty($rSettings['send_unique_header']),
 				'ts' => true,
 				'client_prebuffer' => (int) ($rSettings['client_prebuffer'] ?? 0),
 				'restreamer_prebuffer' => (int) ($rSettings['restreamer_prebuffer'] ?? 0),
