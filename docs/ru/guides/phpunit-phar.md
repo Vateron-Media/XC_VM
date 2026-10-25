@@ -1,6 +1,6 @@
 # <a id="unit-tests-phpunit"></a>Модульные тесты (PHPUnit)
 
-Модульный пакет - это PHPUnit 10.5 поверх PHP 8.1, минимального уровня PHP, который поддерживает панель. Все, что для этого нужно, находится в репозитории:
+Модульный пакет - это PHPUnit 10.5, а не PHP 8.3, который поставляется с PHP панелью. Все, что для этого нужно, находится в репозитории:
 
 |Файл|Роль|
 | --- | --- |
@@ -15,7 +15,7 @@
 
 ## <a id="1-run-the-tests"></a>1. Запустите тесты
 
-Вам нужен PHP 8.1 с `pdo_mysql` и сервер MariaDB/MySQL (раздел 2). На компьютере без сервера:
+Вам нужен PHP 8.3 с `pdo_mysql` и сервер MariaDB/MySQL (раздел 2). На машине без такового:
 
 ```bash
 make test-db                                                         # MariaDB in Docker, once per boot
@@ -36,7 +36,7 @@ php tests/phpunit.phar -c tests/phpunit.xml.dist --debug --no-progress  # name e
 
 `TimeUtilsTest` предполагается, что часовой пояс PHP по умолчанию - UTC, как на панельном хосте, так и в CI. Без `date.timezone` PHP использует системный пояс, поэтому на компьютере, настроенном на другую зону, запустите пакет с `TZ=UTC` (или `-d date.timezone=UTC`).
 
-CI (`.github/workflows/ci.yml`, job `PHPUnit`) выполняет ту же команду в PHP 8.1 с помощью сервиса `mariadb:11.4`.
+CI (`.github/workflows/ci.yml`, задание `PHPUnit`) выполняет ту же команду в PHP версии 8.3 со службой `mariadb:11.4`.
 
 ## <a id="2-database"></a>2. База данных
 

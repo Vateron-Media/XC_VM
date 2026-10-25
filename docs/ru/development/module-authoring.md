@@ -336,7 +336,7 @@ class MyModuleModule extends BaseModule {
 > и водяной знак `installed_version` сначала читается как `module.json`, и только потом возвращается
 > to `getVersion()` — so a stale `getVersion()` silently drifts out of sync and is a
 > распространенный источник ошибок типа "выполнена /не выполнена неправильная миграция". Если модуль отправляет файл
-> migrations, `database.sql` (master schema) and the highest `migrations/<semver>.sql`
+> миграции, `database.sql` (основная схема) и самый высокий `migrations/<semver>.sql`
 > дельта также должна соответствовать этой версии.
 
 ---

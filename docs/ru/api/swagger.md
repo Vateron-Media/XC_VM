@@ -1,13 +1,20 @@
 # <a id="interactive-api-reference-swagger"></a>Интерактивный справочник по API (Swagger)
 
-Интерактивный, всегда синхронизированный интерфейс Swagger для каждого API XC_VM, созданный на основе спецификаций OpenAPI 3.0. Используйте значок **Вкладки API** в верхней части страницы для переключения между API или откройте один из них напрямую по ссылкам ниже.
+Интерактивный, всегда синхронизированный Swagger Пользовательский интерфейс для каждого XC_VM API, созданный на основе спецификаций OpenAPI 3.1, взятых из исходного кода: каждая операция ссылается на файл и строку, из которых она была считана (`src/...:line`). Используйте **Вкладки API** в верхней части страницы для переключения между API-интерфейсами или откройте один из них напрямую по ссылкам ниже.
 
 |интерфейс прикладного программирования|Описание|Автор|Открыть|
 | --- | --- | --- | --- |
-| **Admin API** |Администрирование, совместимое с XUI.ONE - линии, пользователи, потоки, VOD, сериалы, серверы, настройки (104 конечные точки)|`api_key` + код доступа|[Открыть ↗](../../_media/swagger-ui.html?spec=admin)|
-| **System API** |Внутренний `/api.php` — управление потоками/VOD, статистикой, процессами, файлами, подключениями (31 действие)|`password` (`live_streaming_pass`)|[Открыть ↗](../../_media/swagger-ui.html?spec=system)|
-| **Player API** |Проигрыватель XtreamCodes — Прямые трансляции, VOD, сериалы, EPG|`username` + `password`|[Открыть ↗](../../_media/swagger-ui.html?spec=player)|
-| **Playlist API** |`/playlist` аутентификация + создание списка воспроизведения|`username`/`password` или `token`|[Открыть ↗](../../_media/swagger-ui.html?spec=playlist)|
+| **Player API** |`player_api.php` вход в систему, прямой эфир, VOD, сериалы и EPG; устаревшее руководство `panel_api.php`; `xmltv.php` (15 операций)|`username` + `password`, `token` или код активации|[Открыть ↗](../../_media/swagger-ui.html?spec=player)|
+| **Playlist API** | `get.php` playlists — M3U, M3U Plus, Enigma2 bouquets, set-top box formats; also `/playlist` |`username` + `password` или `token`|[Открыть ↗](../../_media/swagger-ui.html?spec=playlist)|
+| **Streaming** |Прямой эфир, VOD, серия, продолжение, HLS сегменты и клавиши, миниатюры, субтитры (36 операций)|Учетные данные строки в пути или токен строки / воспроизведения|[Открыть ↗](../../_media/swagger-ui.html?spec=streaming)|
+| **MAG Portal** |Stalker/Ministra портал для MAG и совместимых с ним телеприставок (91 операция)|Рукопожатие MAC + токен на предъявителя|[Открыть ↗](../../_media/swagger-ui.html?spec=mag)|
+| **Enigma2** |`enigma2.php` XML-плейлисты и `xplugin.php` сопутствующий API (13 операций)|`username` + `password`; MAC устройства + токен|[Открыть ↗](../../_media/swagger-ui.html?spec=enigma2)|
+| **Activation** |`active_code.php` активация и управление кодом, а также страница самоактивации `/portal` (15 операций)|Код активации или администратор / реселлер `api_key`|[Открыть ↗](../../_media/swagger-ui.html?spec=activation)|
+| **Admin API** |Администрирование — строки, устройства, пользователи, группы, пакеты, потоки, VOD, серии, серверы, настройки, журналы (187 действий)|`api_key` + Код доступа к API администратора|[Открыть ↗](../../_media/swagger-ui.html?spec=admin)|
+| **Reseller API** |Линии, устройства, субсчета, коды активации и кредиты реселлера (49 действий)|`api_key` + Код доступа к API реселлера|[Открыть ↗](../../_media/swagger-ui.html?spec=reseller)|
+| **System API** |Действия узла `/api.php` (теперь выполняются по шине кластера; HTTP отвечает на 404) и конечных точек потока `/admin/*` (37 операций)|Подписано `node.rpc`; повторный билет или `live_streaming_pass`|[Открыть ↗](../../_media/swagger-ui.html?spec=system)|
+| **Cluster API** |Только от главного узла к ГЛАВНОЙ плоскости управления `/cluster/v1/<op>` (22 операции)|Подписанные заголовки `X-XCVM-*`|[Открыть ↗](../../_media/swagger-ui.html?spec=cluster)|
+| **Monitoring** |`/metrics` (Операции "Прометей"), `/healthz`, `/progress` (3)|`metrics_token` предъявитель для `/metrics`|[Открыть ↗](../../_media/swagger-ui.html?spec=monitoring)|
 
 ---
 
@@ -15,7 +22,7 @@
 
 1. Откройте спецификацию, затем используйте **Вкладки API** для переключения API и вкладки **Документация / Интерактивность (развязность)** для каждого API.
 2. Разверните любую конечную точку → **Попробуйте это сделать** → параметры заполнения → **Выполнять**, чтобы увидеть реальный URL-адрес запроса, команду cURL и оперативный ответ.
-3. Для доступа к API администратора нажмите **Авторизовать 🔓** и вставьте свой API—ключ - затем он автоматически прикрепляется к каждому запросу.
+3. Для API—интерфейсов администратора, реселлера и мониторинга нажмите **Авторизовать 🔓** и вставьте свой ключ API или токен metrics - затем он автоматически прикрепляется к каждому запросу.
 
 > **Примечание CORS:** прямые вызовы "Попробуйте" из браузера на ваш сервер могут быть заблокированы CORS. Это ожидаемо — вместо этого используйте сгенерированную команду cURL, Postman или Insomnia. Ошибка не означает, что API не работает.
 
@@ -47,9 +54,16 @@
 
 ## <a id="raw-specifications"></a>Исходные технические характеристики
 
-Каждая спецификация может быть импортирована в Postman, Insomnia или любой другой инструментарий OpenAPI 3.0:
+Каждая спецификация может быть импортирована в Postman, Insomnia или любой другой инструментарий OpenAPI 3.1:
 
-- [`admin-api.openapi.yaml`](../../_media/admin-api.openapi.yaml)
-- [`system-api.openapi.yaml`](../../_media/system-api.openapi.yaml)
 - [`player-api.openapi.yaml`](../../_media/player-api.openapi.yaml)
 - [`playlist-api.openapi.yaml`](../../_media/playlist-api.openapi.yaml)
+- [`streaming-api.openapi.yaml`](../../_media/streaming-api.openapi.yaml)
+- [`mag-portal-api.openapi.yaml`](../../_media/mag-portal-api.openapi.yaml)
+- [`enigma2-api.openapi.yaml`](../../_media/enigma2-api.openapi.yaml)
+- [`activation-api.openapi.yaml`](../../_media/activation-api.openapi.yaml)
+- [`admin-api.openapi.yaml`](../../_media/admin-api.openapi.yaml)
+- [`reseller-api.openapi.yaml`](../../_media/reseller-api.openapi.yaml)
+- [`system-api.openapi.yaml`](../../_media/system-api.openapi.yaml)
+- [`cluster-api.openapi.yaml`](../../_media/cluster-api.openapi.yaml)
+- [`monitoring-api.openapi.yaml`](../../_media/monitoring-api.openapi.yaml)

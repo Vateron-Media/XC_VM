@@ -1,8 +1,26 @@
 {
-	"version": "2.7.1",
-	"changes": [
-		"Manage Servers: fixed a DataTables console warning (\"Requested unknown parameter 14\") on the cluster-nodes table — a stale column target left over from the servers/cluster unification.",
-		"Manage Servers: the rolling-update progress card no longer stays on screen for good. A run that finished before the page was opened is no longer re-shown on every load; the card appears only while a rolling update is running or being watched to its result.",
-		"Redis resilience: the reseller API's \"kill connection\" action and the signals daemon no longer fail hard (a 500, or a daemon crash) when Redis is briefly unreachable — they skip or fail gracefully, as the rest of the panel already does during a short Redis outage."
-	]
+  "version": "2.7.2",
+  "changes": [
+    "Added PHP-free serve-only mode for load balancers, using a standalone Go frontend as the sole HTTP listener.",
+    "Removed HTTP nginx and PHP-FPM runtime dependencies from serve-only nodes while preserving RTMP, supervisor, and CLI functionality.",
+    "Improved serve-only installation, capability detection, rollback, downgrade, and recovery behavior.",
+    "Added a root-owned node helper with restricted arguments and narrowly scoped sudo permissions.",
+    "Introduced signed and sealed per-node gateway policy replicas and XCVT v2 support for pinned load-balancer configurations.",
+    "Added portable transcoding specifications and runtime directives to reduce dependencies on MAIN-specific state.",
+    "Improved cluster node identity, activation-key persistence, admission handling, lifecycle recovery, and runtime reconciliation.",
+    "Improved recovery of missing stream runtime state, deleted-server enrollments, and persistent configuration drift.",
+    "Added gateway integration work for VOD, timeshift, subtitles, and thumbnails.",
+    "Added provider channel previews, source probing, and an optional Ministra playlist block.",
+    "Improved multilingual VOD series matching using normalized names and TMDb metadata.",
+    "Improved stream restart scheduling, segment handling, viewer statistics, and runtime recovery.",
+    "Hardened certificate synchronization with temporary files, restrictive permissions, validation, and atomic replacement.",
+    "Restricted privileged sysctl operations and node crontab changes to explicitly authorized operations.",
+    "Improved Ministra device binding, user-agent allowlists, reseller authorization, and serial-number guessing protection.",
+    "Fixed nginx port updates, duplicate listeners, configuration repair concurrency, and serve-only startup edge cases.",
+    "Improved dashboard active-user counts, reseller stream-client counts, administration menus, and EPG reload behavior.",
+    "Updated the required PHP version to 8.3 to match the shipped runtime.",
+    "Improved binary update handling, release artifact ordering, and nightly cleanup.",
+    "Added the Xtream Codes OpenAPI 3.1 reference and expanded documentation for PHP 8.3, cluster provisioning, serve-only load balancers, XCVT v2, and xcvm_core.",
+    "Expanded automated tests for serve-only provisioning, privilege boundaries, downgrade recovery, cluster behavior, and nginx configuration."
+  ]
 }

@@ -59,6 +59,8 @@
 | `server:install` | `ServerInstallCommand` |Установка/настройка сервера (Proxy/LB) через SSH|корень|
 | `server:diagnose` | `ServerDiagnoseCommand` |Диагностируйте, почему прокси-узел/LB-узел не подключен к главному (частота сердечных сокращений, доступность, iptables, служба, состояние кластера).|корень|
 | `server:sync-openssl-extra` | `ServerSyncOpensslExtraCommand` |Отправьте значение main `OPENSSL_EXTRA` подсистемам балансировки нагрузки, которые сообщают о другом (только для MAIN).|корень/xc_vm|
+| `server:xcvt-pin` | `ServerXcvtPinCommand` | Pin an installed load balancer for XCVT v2 configs over host-key-verified SSH: `<serverID> [sshPort] --cred-file=<path> [--expect-hostkey=<sha1>]` (MAIN only; see [XCVT v2](../administration/main-lb-cluster.md#signed-sealed-load-balancer-configs-xcvt-v2)) |xc_vm|
+| `server:xcvt-report` | `ServerXcvtReportCommand` |Какие подсистемы балансировки нагрузки получают конфигурации XCVT версии 2 и почему другие этого не делают; завершите работу с 0, если ни одна из них не обнаружена (переход к следующему выпуску). `--waive=<id> --reason=<text>`, `--unwaive=<id>` (только для MAIN)|xc_vm|
 
 > **`server:install` учетные данные и ключ хоста.** Панель не передает SSH
 > пароль в командной строке или в `bin/install/<id>.json`: он записывает 0600
@@ -164,7 +166,8 @@
 |Двоичный|Команда|Источник|Проверить|Опрос|
 | --- | --- | --- | --- | --- |
 |`xc_fanout` демон и `xc_agent`| `fanout_binary` |`XC_VM_Fanout` высвобождение активов|`SHA256SUMS` (+ испытание агента в `run.sh`)|~ежечасно|
-|`xcvm_core` расширение| `xcvm_core` |`XC_VM_Binaries` дерево репозиториев (`bin/xcvm_core/`)|`SHA256SUMS` + нагрузочный тест|~ежечасно|
+|`xcvm_core` расширение| `xcvm_core` |`XC_VM_Binaries` дерево репозиториев (`bin/xcvm_extention/`)|`SHA256SUMS` + нагрузочный тест|~ежечасно|
+|Пакет средств выполнения (PHP, nginx), средства балансировки нагрузки|`binaries` (MAIN запускает его при каждом `status`)|`XC_VM_Binaries` релиз, пакет этого дистрибутива|`hashes.md5` + нагрузочный тест `xcvm_core`|ежедневный|
 | `yt-dlp` | `ytdlp` |вышестоящий `yt-dlp/yt-dlp` релиз|`SHA2-256SUMS` + `--version`|ежедневный|
 |`ffmpeg`/`ffprobe` 4.4, 7.1, 8.1|`ffmpeg` (как xc_vm)|`XC_VM_FFMPEG` релиз, сборки этого дистрибутива|`hashes.md5` + оба двоичных файла должны быть запущены|ежедневный|
 
