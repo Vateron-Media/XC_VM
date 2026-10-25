@@ -1,0 +1,4694 @@
+
+<!doctype html>
+<html lang="ru" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.7.2/ru/info/core-extension/">
+      
+      
+        <link rel="prev" href="../licensing-and-activation/">
+      
+      
+        <link rel="next" href="../migration_guide/">
+      
+      
+        
+          <link rel="alternate" href="../../../info/core-extension/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Ядро (xcvm_core) - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#xcvm_core" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Верхний колонтитул">
+    <a href="../../" title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Ядро (xcvm_core)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Выберите язык">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../info/core-extension/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Поиск" placeholder="Поиск" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Поиск">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Очистить" aria-label="Очистить" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Инициализация поиска
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Вкладки" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Главная
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  Руководство пользователя
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Руководство разработчика
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Навигация" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Главная
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство пользователя
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство пользователя
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Администрирование
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Администрирование
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Генерация SSL-сертификата
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обновление сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/php-8.3-upgrade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обновление PHP до 8.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/main-lb-cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAIN и балансировщики нагрузки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Механизм обновлений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/panel-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система реселлеров
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-bouquets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reseller Bouquets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/user-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Стратегия резервного копирования
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эксплуатация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Справочник API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Справочник API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интерактивный API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кастомизация
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Кастомизация
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Переводы интерфейса
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Диагностика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сервис диагностики
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Информация и FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Информация и FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../licensing-and-activation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Лицензирование и активация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ядро (xcvm_core)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ядро (xcvm_core)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Вкратце: что это такое
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Почему ядро является двоичным
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Что происходит при загрузке PHP
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Что ядро хранит на вашем диске
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Полный список действий ядра
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Полный список действий ядра">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Идентификация установки
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2. Настройка панели управления
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3. База данных и Redis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4. Модули: хранение, установка, лицензия на модуль
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5. Лицензия на установку и указание авторства
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56-lb-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6. Мультисерверность: ОСНОВНЫЕ ↔ LB-узлы
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Сеть: каждый запрос и то, что он несет
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Сеть: каждый запрос и то, что он несет">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. Как строится каждый запрос
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. Полная таблица запросов
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3. Чего никогда нет в запросе
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Лицензирование: как это работает и что происходит при отзыве лицензии
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Лицензирование: как это работает и что происходит при отзыве лицензии">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1. Ключ активации
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2. Требование об атрибуции
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3. Проверка и поведение сервера без подключения к сети
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4. Что именно происходит при отзыве (приведении в исполнение)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#75-lb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5. Лицензия на узел LB
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Защитные механизмы, которые обычно вызывают вопросы
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Защитные механизмы, которые обычно вызывают вопросы">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1. Защита от отладки
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2. Скрытые строки в двоичном коде
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-env_fp-hw_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3. Машинная привязка: env_fp и hw_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4. Невозможно изменить адрес сервера
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5. Самоочищающиеся клавиши
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Чего нет в ядре
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Как убедиться во всем этом самостоятельно
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Честно говоря, о границах дозволенного
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Часто задаваемые вопросы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство по миграции
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Отслеживаемая папка
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../youtube-restream/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рестрим YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom-ffmpeg-command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Свои команды FFmpeg
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../custom-ffmpeg-build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Своя сборка FFmpeg
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Архитектура
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Архитектура
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обзор архитектуры
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автозагрузка (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Контексты бутстрапа
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и регистрация ядра
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Создание модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Жизненный цикл модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Точки расширения модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/source-drivers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Драйверы источников
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка HTTP-запросов
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AJAX-API админки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Подсистема стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/ts-delivery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Доставка MPEG-TS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/cluster-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API кластера (MAIN ↔ LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/cluster-seams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Швы кластера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система событий
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Иерархия исключений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кэширование и Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рендеринг навбара
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рабочий процесс разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Рабочий процесс разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Процесс разработки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI-инструменты и консоль
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Миграции базы данных
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Юнит-тесты
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автоматический рефакторинг (Rector)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Флаги функций
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Управление процессами
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Безопасность и доступ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Безопасность и доступ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Аутентификация и сессии
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Права и RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Валидация ввода
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка ошибок
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграции
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Интеграции
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP и гео-маршрутизация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Определение устройств и STB-блокировки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эмуляция Ministra STB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграция UCS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и релиз
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Сборка и релиз
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система сборки (MAIN и LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Чеклист перед релизом
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/patch_builds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Патч-сборки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Вкратце: что это такое
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Почему ядро является двоичным
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Что происходит при загрузке PHP
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Что ядро хранит на вашем диске
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Полный список действий ядра
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Полный список действий ядра">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1. Идентификация установки
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2. Настройка панели управления
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3. База данных и Redis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4. Модули: хранение, установка, лицензия на модуль
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5. Лицензия на установку и указание авторства
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56-lb-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6. Мультисерверность: ОСНОВНЫЕ ↔ LB-узлы
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Сеть: каждый запрос и то, что он несет
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Сеть: каждый запрос и то, что он несет">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1. Как строится каждый запрос
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2. Полная таблица запросов
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3. Чего никогда нет в запросе
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Лицензирование: как это работает и что происходит при отзыве лицензии
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Лицензирование: как это работает и что происходит при отзыве лицензии">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1. Ключ активации
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2. Требование об атрибуции
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3. Проверка и поведение сервера без подключения к сети
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4. Что именно происходит при отзыве (приведении в исполнение)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#75-lb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5. Лицензия на узел LB
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Защитные механизмы, которые обычно вызывают вопросы
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Защитные механизмы, которые обычно вызывают вопросы">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1. Защита от отладки
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2. Скрытые строки в двоичном коде
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-env_fp-hw_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3. Машинная привязка: env_fp и hw_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4. Невозможно изменить адрес сервера
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5. Самоочищающиеся клавиши
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Чего нет в ядре
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Как убедиться во всем этом самостоятельно
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Честно говоря, о границах дозволенного
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Часто задаваемые вопросы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="xcvm_core"><a id="core-extension-xcvm_core-what-it-does-stores-sends-and-what-it-doesnt"></a>Основное расширение (xcvm_core): Что оно делает, хранит, отправляет — и чего не делает<a class="headerlink" href="#xcvm_core" title="Permanent link">&para;</a></h1>
+<p>Эта страница предназначена для XC_VM пользователей и администраторов. Основная часть (<code>xcvm_core.so</code>)
+поставляется в виде скомпилированного двоичного файла без исходного кода, и это является законной причиной для
+задавать вопросы. Итак, на этой странице описано <strong>все его поведение</strong>: что происходит при
+время загрузки, какие файлы он создает, каждое действие, которое он может выполнить, каждая сеть
+запрос и что именно содержит каждый из них, как работает лицензирование и что именно
+происходит, когда лицензия отзывается, а также что делает ядро <strong>нет</strong> и как это сделать
+<strong>проверяйте каждое утверждение самостоятельно</strong> со стандартными инструментами Linux, без исходных текстов.</p>
+<p>Страница является самодостаточной: она не отсылает вас больше никуда.</p>
+<hr />
+<h2 id="1"><a id="1-in-short-what-it-is"></a>1. Вкратце: что это такое<a class="headerlink" href="#1" title="Permanent link">&para;</a></h2>
+<p><code>xcvm_core</code> - это собственное расширение PHP (написанное на Rust), которое загружается в PHP
+процессы панели XC_VM и регистры класса <strong>один</strong>, <code>XC_VM</code> со статическим
+методы. Он не добавляет никаких глобальных функций и не устанавливает никаких перехватчиков в код PHP
+исполнение.</p>
+<p>Это решает ровно три проблемы:</p>
+<table>
+<thead>
+<tr>
+<th>Проблема</th>
+<th>Что он делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Config, DB, Redis</strong></td>
+<td>Сохраняет настройки панели в зашифрованном виде, используя машинные <code>config.enc</code> и ручные PHP готовые MySQL/Redis соединения, чтобы пароли никогда не появлялись в коде PHP.</td>
+</tr>
+<tr>
+<td><strong>Modules</strong></td>
+<td>Загружает модуль из хранилища в виде одного архива в запечатанном конверте, распаковывает его и выполняет атомарную замену. Все <code>*.php</code> в нем уже закодированы в ionCube; стандартный загрузчик ionCube выполняет это. Ключа модуля нет, и расшифровывать нечего</td>
+</tr>
+<tr>
+<td><strong>Licence and cluster</strong></td>
+<td>Проверяет лицензию на установку и позволяет главному серверу передавать конфигурации и токены узлов LB без передачи паролей</td>
+</tr>
+</tbody>
+</table>
+<p>Это <strong>нет</strong>: черный ход, канал дистанционного управления, средство сбора телеметрии, способ
+для эксфильтрации ваших данных или механизма выполнения кода, отправленного извне. То
+ниже приводится подробная информация по каждому из этих утверждений.</p>
+<hr />
+<h2 id="2"><a id="2-why-the-core-is-a-binary"></a>2. Почему ядро является двоичным<a class="headerlink" href="#2" title="Permanent link">&para;</a></h2>
+<p>Код панели PHP открыт и может быть прочитан любым пользователем, имеющим доступ к серверу. Если
+пароли к базам данных, закрытые ключи или логика лицензирования хранились в нем, они отправлялись
+первому, кто открыл файл. Таким образом, именно эти данные будут перенесены в
+скомпилированный код:</p>
+<ol>
+<li><strong>Пароли к базе данных и Redis</strong> никогда не появляются в PHP: ядро считывает их из
+<code>config.enc</code> сам по себе и сам открывает соединение.</li>
+<li><strong>Ключевой материал</strong> никогда не отображается в PHP: закрытый ключ панели, кластер MAIN
+root и материал токена cluster API остаются запечатанными на компьютере и доступны
+используется только внутри ядра. (Модулям вообще не нужен ключ: их код защищен
+лицензия ionCube, а не что-либо из того, что содержится в ядре.)</li>
+<li><strong>Проверка лицензий</strong> нельзя закомментировать, отредактировав PHP.</li>
+</ol>
+<p>В этом весь смысл закрытого двоичного файла. Его поведение не является секретом —
+это описано здесь.</p>
+<hr />
+<h2 id="3-php"><a id="3-what-happens-when-php-loads"></a>3. Что происходит при загрузке PHP<a class="headerlink" href="#3-php" title="Permanent link">&para;</a></h2>
+<p>В начале каждого процесса PHP (php-fpm, CLI) ядро инициализируется. Это
+полный список того, что произойдет потом — и ничего больше:</p>
+<ol>
+<li><strong>Проверка с помощью отладчика.</strong> Файл <code>/proc/self/status</code> прочитан. Если процесс завершен
+отслеживается прямо сейчас (<code>TracerPid</code> ненулевое значение - например, подключен gdb),
+ядро <strong>отказывается загружаться</strong>. Больше ничего не происходит: ничего не удаляется, ничего
+отправляется куда угодно, сервер не останавливается — класс <code>XC_VM</code> просто
+недоступен в этом процессе.</li>
+<li><strong>Нет директивы <code>php.ini</code>.</strong> Ядро не регистрирует none и не считывает none; каждая настройка
+встроен в двоичный файл (см. раздел 8.4).</li>
+<li><strong>Проверка наличия загрузчика ionCube.</strong> Если он не загружен, выдается обычное PHP предупреждение
+передается. Это всего лишь сообщение — ядро продолжает работать.</li>
+<li><strong>Идентификатор установки.</strong> Если файл <code>keys/install_id</code> еще не существует,
+генерируется случайный UUID и записывается в каталог конфигурации с <code>0600</code>
+разрешения. Если он существует, он считывается. Вычисляется отпечаток среды
+в то же время (ничего не отправляется).</li>
+<li><strong>Автоматическая миграция конфигурации.</strong> Если в конфигурации есть старый открытый текст <code>config.ini</code>
+каталог, а <code>config.enc</code> - нет, ini считывается, шифруется в <code>config.enc</code>,
+и <code>config.ini</code> тогда равно <strong>удаленный</strong> (таким образом, пароли в виде открытого текста не сохраняются
+диск). Если <code>config.enc</code> уже существует, ничего не происходит. Если не существует ни того, ни другого,
+ничего не происходит.</li>
+</ol>
+<p><strong>Ядро не выполняет никаких сетевых запросов во время загрузки.</strong> Каждый запрос к
+сервер работает только внутри вызовов методов, перечисленных в разделе 5.</p>
+<p>Ядро не создает фоновых потоков, таймеров, демонов или заданий cron. Все, что в нем есть
+это происходит внутри вызова метода, созданного панелью, и заканчивается этим вызовом.</p>
+<hr />
+<h2 id="4"><a id="4-what-the-core-keeps-on-your-disk"></a>4. Что ядро хранит на вашем диске<a class="headerlink" href="#4" title="Permanent link">&para;</a></h2>
+<p>Все секретные данные для каждой установки хранятся в <strong>каталог конфигурации</strong> — по умолчанию
+<code>/home/xc_vm/config</code> (разрешения <code>0700</code>). Путь может быть переопределен с помощью
+<code>XCVM_CONFIG_DIR</code> переменная окружения — переменная окружения <strong>только</strong>, которая
+ядро считывает данные.</p>
+<p>Ядро хранит свои ключи в <code>keys/</code>, а файлы лицензий - в <code>licence/</code>, оба <code>0700</code>
+(<a href="https://github.com/Vateron-Media/XC_VM_CoreExtention/blob/main/docs/adr/ADR-006-config-dir-layout.md">ADR-006</a>).
+Ядро, существовавшее до этого макета, хранило их непосредственно в каталоге конфигурации;
+первое ядро с его помощью перемещает каждый файл на место один раз, при загрузке, и оставляет символическую ссылку
+под старым именем (<code>install_id -&gt; keys/install_id</code>), так что старое ядро все еще находит
+оно. Спросите ядро, существует ли идентификатор с <code>identity_present()</code>, а не с
+ищу файл.</p>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Что это такое</th>
+<th>Режим</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config.enc</code></td>
+<td>Настройки панели (база данных, Redis, роль сервера), шифрование AES-256-GCM. Ключ получен из <code>install_id</code> <strong>и</strong> <code>/etc/machine-id</code>, таким образом, копия на другом компьютере не расшифровывается</td>
+<td><code>0600</code></td>
+</tr>
+<tr>
+<td><code>keys/install_id</code></td>
+<td>Случайный UUID вашей установки. Создается один раз и никогда не изменяется (несмотря на обновления ядра и PHP)</td>
+<td><code>0600</code></td>
+</tr>
+<tr>
+<td><code>keys/panel.pk</code> / <code>keys/panel.sk</code></td>
+<td>The panel's X25519 key pair. The public half is sent to the server at registration (and is what MAIN seals a load balancer's config to); <strong>the private half never leaves the machine</strong> and is stored sealed to this machine's key</td>
+<td>ск: <code>0600</code></td>
+</tr>
+<tr>
+<td><code>licence/activation_key</code></td>
+<td>Лицензионный ключ активации (вы вставляете его в панель). Подписан сервером, привязан к вашему <code>install_id</code></td>
+<td><code>0600</code></td>
+</tr>
+<tr>
+<td><code>licence/license_verdict</code></td>
+<td>Кэш последнего подписанного ответа сервера о состоянии лицензии</td>
+<td><code>0600</code></td>
+</tr>
+<tr>
+<td><code>licence/license_checkin</code></td>
+<td>Временная метка, указывающая, когда может состояться следующая ежедневная регистрация заезда (см. раздел 7).</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>licence/license_enforce_ts</code> / <code>licence/license_revoked</code></td>
+<td>Временные метки последнего применения отозванной лицензии и сама отметка об отзыве (см. раздел 7.4)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>cluster/</code></td>
+<td>Файлы кластера: корневые ключи MAIN (<code>root.enc</code>), закрепленные ключи MAIN на LB (<code>core.pin</code>), состояние отзыва узла (<code>nodes.state</code>), защищенные часы (<code>clock.sealed</code>, <code>timeanchor</code>), аренда LB (<code>lease</code>), основные показатели из конфигураций, установленных LB (<code>xcvt.hwm</code>, см. раздел 5.6). Все зашифровано с помощью ключа этой машины</td>
+<td><code>0600</code></td>
+</tr>
+</tbody>
+</table>
+<p>За пределами каталога конфигурации ядро записывает:</p>
+<ul>
+<li>to <code>/home/xc_vm/Modules/&lt;module&gt;/</code> — файлы установленных модулей (путь указан следующим образом
+исправлено);</li>
+<li>временный файл в <code>/tmp</code> с разрешениями <code>0600</code> — параметры подключения для
+<code>mysqldump</code>/<code>mysql</code> во время дампа/восстановления базы данных; файл ** удаляется сразу после
+операция**.</li>
+</ul>
+<p>Что записывает ядро <strong>нет</strong>: что-либо за пределами этих путей, скрытые файлы или
+изменяется на <code>php.ini</code>, cron, systemd или автозапуск.</p>
+<hr />
+<h2 id="5"><a id="5-the-complete-list-of-the-cores-actions"></a>5. Полный список действий ядра<a class="headerlink" href="#5" title="Permanent link">&para;</a></h2>
+<p>Ниже приведены <strong>все</strong> методов класса <code>XC_VM</code>. Для каждого из них: что он делает, что он
+касается диска, базы данных и сети. Знак "—" в столбце "Сеть" означает, что
+метод не выполняет сетевых запросов. Ни один метод не запускается сам по себе — только когда панель
+называет это.</p>
+<h3 id="51"><a id="51-installation-identity"></a>5.1. Идентификация установки<a class="headerlink" href="#51" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Что он делает</th>
+<th>Диск</th>
+<th>Сеть</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>install_id()</code></td>
+<td>Возвращает установочный UUID (создает его при первом вызове)</td>
+<td>считывает/создает <code>keys/install_id</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>identity_present()</code></td>
+<td>Независимо от того, существуют ли <code>keys/install_id</code> и <code>keys/panel.sk</code>, <strong>не создавая ни того, ни другого</strong>: что запрашивает панель перед <code>install_id()</code> или <code>panel_pk()</code>, где отсутствующий идентификатор должен оставаться отсутствующим</td>
+<td>не воспринимает ничего, кроме их присутствия</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>env_fingerprint()</code></td>
+<td>Возвращает хэш <code>SHA-256(install_id + /etc/machine-id + hostname)</code>. Это <strong>хэш</strong>: имя хоста или идентификатор компьютера не могут быть восстановлены из него</td>
+<td>считывает <code>/etc/machine-id</code>, имя хоста</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52"><a id="52-panel-config"></a>5.2. Настройка панели управления<a class="headerlink" href="#52" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Что он делает</th>
+<th>Диск</th>
+<th>Сеть</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config_init(data)</code></td>
+<td>Записывает <code>config.enc</code> во время установки панели (база данных, Redis, роль сервера). Затем удаляет старый открытый текст <code>config.ini</code></td>
+<td>записывает <code>config.enc</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>config_set_redis(host, port, auth)</code></td>
+<td>Обновляет <strong>только</strong> раздел Redis раздела <code>config.enc</code> (требуется при изменении пароля Redis)</td>
+<td>записывает <code>config.enc</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>config_server()</code></td>
+<td>Возвращает раздел <code>server</code> (идентификатор сервера, независимо от того, является ли он LB). Возвращает ли <strong>нет</strong> пароли</td>
+<td>считывает <code>config.enc</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>config_set_db(pass)</code></td>
+<td>На узле LB от имени root: заменяет пароль базы данных на <code>config.enc</code> и ничего больше (половина смены пароля узла). Отказывает в ГЛАВНОМ</td>
+<td>записывает <code>config.enc</code></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Каждая запись <code>config.enc</code> является атомарной: записывается временный файл, который затем переименовывается
+поверх старого. В случае сбоя в любой момент остается либо старый файл, либо новый,
+никогда не бывает пустым или испорченным.</p>
+<h3 id="53-redis"><a id="53-database-and-redis"></a>5.3. База данных и Redis<a class="headerlink" href="#53-redis" title="Permanent link">&para;</a></h3>
+<p>Все методы считывают учетные данные из <code>config.enc</code> внутри ядра; ** они никогда не
+достичь PHP**.</p>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Что он делает</th>
+<th>Диск</th>
+<th>Сеть</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>db_connect()</code></td>
+<td>Возвращает готовое PDO-соединение с вашей базой данных</td>
+<td>считывает <code>config.enc</code></td>
+<td>только ваша база данных</td>
+</tr>
+<tr>
+<td><code>redis_connect()</code></td>
+<td>Возвращает готовое соединение Redis</td>
+<td>считывает <code>config.enc</code></td>
+<td>только для вашего Redis</td>
+</tr>
+<tr>
+<td><code>db_dump(file, ignore_tables)</code></td>
+<td>Выгружает базу данных через <code>mysqldump</code> (структура, затем данные) в данный файл</td>
+<td>записывает данный файл; временный <code>.cnf</code> в <code>/tmp</code>, после чего удаляется</td>
+<td>только ваша база данных</td>
+</tr>
+<tr>
+<td><code>db_restore(file, dbname)</code></td>
+<td><strong>Отбрасывает и воссоздает заново</strong> в целевую базу данных, затем импортирует файл. Операция уничтожения, но она выполняется <strong>только по явному вызову</strong> с панели (восстановление из резервной копии)</td>
+<td>временный <code>.cnf</code> в <code>/tmp</code>, впоследствии удаленный</td>
+<td>только ваша база данных</td>
+</tr>
+<tr>
+<td><code>db_grant(host)</code></td>
+<td>Предоставляет привилегии пользователя панели управления базой данных при подключении с указанного адреса (для узла LB).</td>
+<td>—</td>
+<td>только ваша база данных</td>
+</tr>
+<tr>
+<td><code>db_revoke(host)</code></td>
+<td>Отменяет привилегии для данного адреса. <strong>Отказывается</strong> для отмены адресов MAIN сам может подключаться через (<code>localhost</code>, loopback, хост базы данных из конфигурации) — таким образом, MAIN никогда не будет отключен от своей собственной базы данных</td>
+<td>—</td>
+<td>только ваша база данных</td>
+</tr>
+<tr>
+<td><code>db_set_password(new)</code></td>
+<td>На ГЛАВНОЙ: изменяет пароль пользователя панели в базе данных, затем в <code>config.enc</code>, затем в разрешениях узлов. Если запись конфигурации завершается неудачно, пароль базы данных отменяется</td>
+<td>записывает <code>config.enc</code></td>
+<td>только ваша база данных</td>
+</tr>
+</tbody>
+</table>
+<p>Адрес в <code>db_grant</code>/<code>db_revoke</code> строго проверен (допустимы только символы
+в хосте MySQL), и значения заключаются в кавычки с помощью PDO — SQL-инъекции через эти
+методы невозможны.</p>
+<h3 id="54"><a id="54-modules-store-installation-module-licence"></a>5.4. Модули: хранение, установка, лицензия на модуль<a class="headerlink" href="#54" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Что он делает</th>
+<th>Диск</th>
+<th>Сеть</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>panel_register(api_key)</code></td>
+<td>Регистрирует панель на сервере: создает (или считывает) пару ключей панели и отправляет <code>install_id</code>, <strong>общественный</strong>, <code>env_fp</code> и <code>hw_id</code></td>
+<td>создает <code>panel.pk</code>/<code>panel.sk</code></td>
+<td><code>panel/register</code></td>
+</tr>
+<tr>
+<td><code>plugins_check(plugin, install_id, api_key)</code></td>
+<td>Запрашивает у сервера, доступен ли модуль для установки</td>
+<td>—</td>
+<td><code>plugins/check</code></td>
+</tr>
+<tr>
+<td><code>plugins_token(plugin, install_id, api_key)</code></td>
+<td>Получает с сервера кратковременный (5-минутный) токен доступа к модулю</td>
+<td>—</td>
+<td><code>plugins/token</code></td>
+</tr>
+<tr>
+<td><code>extensions_list(env, api_key, options)</code></td>
+<td>Возвращает каталог магазина (постраничный, с поиском и сортировкой)</td>
+<td>—</td>
+<td><code>extensions</code></td>
+</tr>
+<tr>
+<td><code>extensions_check_update(list, api_key)</code></td>
+<td>Запрашивает, существуют ли обновления для списка установленных модулей</td>
+<td>—</td>
+<td><code>extensions/check-update</code></td>
+</tr>
+<tr>
+<td><code>module_install(slug, version, api_key)</code></td>
+<td>Полный цикл установки модуля (см. ниже)</td>
+<td>записывает <code>Modules/&lt;slug&gt;/</code></td>
+<td><code>plugins/token</code>, <code>plugins/download</code></td>
+</tr>
+<tr>
+<td><code>module_license(slug, server_data, api_key)</code></td>
+<td>Запрашивает файл лицензии ionCube <code>.lic</code> для модуля, подключенного к вашему компьютеру</td>
+<td>— (панель записывает файл)</td>
+<td><code>plugins/token</code>, <code>plugins/license</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Как устанавливается модуль (<code>module_install</code>)</strong>, шаг за шагом:</p>
+<ol>
+<li>С сервера запрашивается токен доступа к модулю. Сервер проверяет, является ли
+владелец ключа API имеет право на доступ к этому модулю. Для модуля <strong>свободный</strong>
+не требуется ни API-ключ, ни регистрация в панели управления. Пустая версия означает "the
+последний одобренный вариант".</li>
+<li>Архив модуля (<code>tar.gz</code>) загружен. Ответ сервера приходит внутри
+запечатанный конверт (см. раздел 6.1), и архив ** используется только в том случае, если
+конверт открывается** — т.е. доказано, что он пришел с сервера и отвечает на это
+очень прошу. Любой сбой на этом шаге = установка невозможна, ничего не записывается в
+диск.</li>
+<li>Архив извлекается в промежуточный каталог, расположенный рядом с каталогом модуля.
+(<code>/home/xc_vm/Modules/.&lt;slug&gt;.new.&lt;random&gt;/</code>). Архив, содержащий символический
+ссылка или любой файл в зашифрованном формате, который был удален для каждого файла (<code>*.xcvm</code>), отклоняются.</li>
+<li>Промежуточный каталог заменяется на <code>/home/xc_vm/Modules/&lt;slug&gt;/</code> атомарно
+(<code>renameat2</code> с <code>RENAME_EXCHANGE</code>; обычный <code>rename</code> при первой установке), и
+предыдущее дерево удалено. Каталог модуля заменен целиком: файлы в новом
+версия, которая больше не поставляется, удалена. Установка осуществляется последовательно с помощью блокировки модулей
+каталог.</li>
+</ol>
+<p>Сбой на любом этапе приводит к удалению промежуточного каталога и сохранению предыдущей версии
+нетронутый. Нет ключа модуля и нет расшифровки: модуль - это те же файлы, что и на
+каждая машина, и то, что заставляет ее работать только там, где она была лицензирована, - это ionCube
+лицензия (ниже).</p>
+<p>After that the core <strong>has nothing to do with the module</strong>: the files on disk are
+обычные файлы в кодировке ionCube <code>.php</code>, выполняемые стандартным загрузчиком ionCube через
+PHP обычный механизм. Ядро ничего не расшифровывает за запрос, не перехватывает PHP
+компиляция и не выполняет никакого кода.</p>
+<p>What is in a module archive: <code>module.json</code> (the manifest — the panel reads it), the
+файлы модуля <code>*.php</code> (все в кодировке ionCube) и все остальные файлы разработчика
+отправил его.</p>
+<p><strong>Лицензия на модуль (<code>module_license</code>).</strong> Необязательный шаг для платных модулей. Панель
+передает ядру машинный отпечаток пальца, созданный самой ionCube
+(<code>ioncube_server_data()</code>); ядро отправляет его на сервер; сервер отчеканивает
+<code>.lic</code> Файл, привязанный к этому компьютеру, имеет ограниченный срок службы. Файл находится рядом с
+модуль; без совпадения <code>.lic</code> загрузчик ionCube не расшифровывает код модуля.
+файлы — эта лицензия обеспечивает защиту модуля от копирования. Если лицензирование модуля
+отключено на сервере или права доступа отсутствуют, панель просто пишет "нет".
+<code>.lic</code>.</p>
+<h3 id="55"><a id="55-installation-licence-and-attribution"></a>5.5. Лицензия на установку и указание авторства<a class="headerlink" href="#55" title="Permanent link">&para;</a></h3>
+<p><code>verify_branding()</code> никогда не подключается к сети; <code>license_valid()</code> делает это только для
+обновите устаревший вердикт (раздел 7). <code>license_check()</code> специально запрашивает сервер.</p>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Что он делает</th>
+<th>Диск</th>
+<th>Сеть</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>license_valid()</code></td>
+<td>Отвечает на вопрос, может ли данная установка использовать лицензионные функции (например, разветвление и чеканку кластерных токенов). Подробности в разделе 7</td>
+<td>считывает <code>activation_key</code>, <code>license_verdict</code> файлы атрибуции</td>
+<td>не чаще одного раза в день — <code>activation/status</code> / <code>activation/checkin</code> (раздел 7.3)</td>
+</tr>
+<tr>
+<td><code>license_check()</code></td>
+<td>MAIN, сразу после сохранения ключа активации: запрашивает сервер лицензий <strong>сейчас</strong>, даже если кэшированный вердикт свежий, и возвращает тот же вердикт, что и <code>license_valid()</code> на MAIN. Нет ключа = <code>false</code> без сетевого вызова; недоступный сервер никогда не считывается как отклоненный ключ. В LB он не просматривает аренду и считывает <code>false</code> (используйте там <code>license_valid()</code>)</td>
+<td>считывает <code>activation_key</code>, <code>license_verdict</code> файлы атрибуции</td>
+<td><code>activation/status</code></td>
+</tr>
+<tr>
+<td><code>verify_branding()</code></td>
+<td>Отвечает на вопрос, установлена ли атрибуция группы (см. раздел 7.2).</td>
+<td>считывает 6 файлов панели</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="56-lb-"><a id="56-multiserver-main-lb-nodes"></a>5.6. Мультисерверность: ОСНОВНЫЕ ↔ LB-узлы<a class="headerlink" href="#56-lb-" title="Permanent link">&para;</a></h3>
+<p>Эти методы позволяют ГЛАВНОМУ серверу передавать узлам LB/proxy конфигурацию и токены без необходимости
+передавая пароль базы данных через PHP или оставляя его на узлах в открытом доступе.</p>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Где он проходит</th>
+<th>Что он делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config_pack(target_install_id, params, lb_panel_pk)</code></td>
+<td>главный</td>
+<td>Создает транспортный большой двоичный объект с конфигурацией для узла: считывает пароль базы данных из своего собственного <code>config.enc</code> <strong>внутри ядра</strong>. С помощью ключа панели узла (XCVT версии 2) он подписывает blob-объект с помощью корня кластера MAIN и привязывает его к этому ключу (сначала требуется <code>cluster_init</code>); без него он создает blob-объект версии 1, зашифрованный с помощью ключа, полученного из ключа узла <code>install_id</code>. Может создать конфигурацию <strong>без</strong> учетных данных базы данных (для узлов в режиме API). Панель объединяет все конфигурации узлов в одном месте, v2 для каждого load balancer, который закреплен с помощью v2 (<a href="../../administration/main-lb-cluster/#signed-sealed-load-balancer-configs-xcvt-v2">XCVT v2</a>)</td>
+</tr>
+<tr>
+<td><code>panel_pk()</code></td>
+<td>узел</td>
+<td>Открытый ключ node panel X25519 (64 шестнадцатеричных символа), который является ключом MAIN для конфигурации версии 2. Создает <code>panel.sk</code> только в том случае, если его нет; никогда не заменяет его; <code>false</code> когда <code>panel.sk</code> существует, но не открывается на этом компьютере</td>
+</tr>
+<tr>
+<td><code>install_config(blob)</code></td>
+<td>узел, как корневой</td>
+<td>Проверяет большой двоичный объект (правила приведены ниже) и записывает его как <code>config.enc</code>. <strong>Никогда не перезаписывает</strong> ОСНОВНАЯ конфигурация. При отказе ничего не записывается. Любой другой действующий пользователь получает отказ (<code>ARG:euid</code>) до того, как большой двоичный объект будет прочитан</td>
+</tr>
+<tr>
+<td><code>strip_db_credentials()</code></td>
+<td>узел, как корневой</td>
+<td>Удаляет пользователя и пароль базы данных MAIN из <code>config.enc</code> узла (переключая узел в режим API). Отказывается запускаться на MAIN</td>
+</tr>
+<tr>
+<td><code>cluster_info()</code></td>
+<td>какой-нибудь</td>
+<td>Версия Cluster API, открытые ключи панели, лицензия и состояние часов. Никогда не отказывает</td>
+</tr>
+<tr>
+<td><code>cluster_init()</code></td>
+<td>главный</td>
+<td>Создает корневые ключи кластера один раз (<code>cluster/root.enc</code>). Повторный вызов ничего не меняет</td>
+</tr>
+<tr>
+<td><code>cluster_token_issue(params)</code></td>
+<td>главный</td>
+<td>Отчеканивает токен для узла LB. <strong>Требуется действующая лицензия</strong></td>
+</tr>
+<tr>
+<td><code>cluster_session(record, node, hard)</code></td>
+<td>главный</td>
+<td>Возвращает ключи сеанса текущей эпохи для проверки запросов узла</td>
+</tr>
+<tr>
+<td><code>cluster_node_gen(node, gen, min_epoch)</code></td>
+<td>главный</td>
+<td>Отзывает узел (запускает его "генерацию"); ранее выданные токены перестают работать. Сохраняется после восстановления базы данных из резервной копии</td>
+</tr>
+<tr>
+<td><code>cluster_sign</code> / <code>cluster_verify</code> / <code>cluster_record_class</code></td>
+<td>ОСНОВНОЙ / ФУНТ</td>
+<td>Подписание и проверка записей кластера (команды, отказы, реплики). Для "предоставления" записей требуется лицензия; "ограничивающие" записи (остановка, бан) подписываются даже без лицензии, поэтому нелицензированный главный сервер все равно может остановить свой парк</td>
+</tr>
+<tr>
+<td><code>cluster_lease_issue</code> / <code>cluster_lease_verify</code> / <code>cluster_lease_store</code> / <code>cluster_lease_state</code></td>
+<td>ГЛАВНАЯ → LB</td>
+<td>Разрешение "аренды", подписанное MAIN, позволяет узлу LB продолжать обслуживание, пока MAIN недоступен. На LB <code>license_valid()</code> следует за арендой</td>
+</tr>
+<tr>
+<td><code>cluster_pack(target_install_id, version)</code></td>
+<td>главный</td>
+<td>Большой двоичный объект, который переносит открытые ключи MAIN в LB. <code>version</code> 1 (по умолчанию) - это pin-код версии 1, для которого требуется лицензия; <code>version</code> 2 - это pin-код версии 2, подписанный корневым пользователем кластера MAIN, и не требуется (root и проверка часов по-прежнему требуются). Любая другая версия отклоняется (<code>ARG:version</code>)</td>
+</tr>
+<tr>
+<td><code>cluster_pin(blob, replace)</code> / <code>cluster_pinned()</code></td>
+<td>LB, <code>cluster_pin</code> как корень</td>
+<td>Закрепление открытых ключей MAIN на LB (доверие при первом использовании; использование другого ключа отклоняется, если только <code>replace</code>) и повторное считывание pin-кода. <code>cluster_pin</code> доступен только для root, с <code>replace</code> или без него: любому другому действующему пользователю будет отказано (<code>ARG:euid</code>) до того, как будет прочитан большой двоичный объект, поэтому доверие первого pin-кода является корневым каналом. Pin-код версии 1 берется только в том случае, если pin-кода еще нет или у него тот же ключ, поэтому <code>replace</code> не может переключать ключи через v1; <code>core.pin</code>, сброшенный как файл XCVT, берется только как pin-код версии 2 и только в том случае, если он принадлежит root</td>
+</tr>
+<tr>
+<td><code>cluster_seal_local</code> / <code>cluster_open_local</code></td>
+<td>какой-нибудь</td>
+<td>Запечатывайте/открывайте данные с помощью ключа машины <strong>этот</strong> — чтобы панель PHP сохраняла свои собственные секреты</td>
+</tr>
+<tr>
+<td><code>cluster_open_sealed(purpose, sealed)</code></td>
+<td>главный</td>
+<td>Открыть сообщение, адресованное кнопке панели (только для этапов регистрации узла, повторного ввода и ретрансляции)</td>
+</tr>
+<tr>
+<td><code>cluster_export_keys(passphrase)</code> / <code>cluster_import_keys(bundle, passphrase)</code></td>
+<td>старый → новый ГЛАВНЫЙ</td>
+<td>Резервная копия корневых ключей кластера для переноса основного на новое оборудование. Зашифровано с помощью вашей парольной фразы с помощью Argon2id (1 гигабайт памяти, несколько секунд) — следовательно, доступно <strong>только из командной строки</strong></td>
+</tr>
+<tr>
+<td><code>cluster_kek()</code></td>
+<td>фунт</td>
+<td>Машинный ключ для шифрования ключевого файла узла</td>
+</tr>
+<tr>
+<td><code>cluster_last_error()</code></td>
+<td>какой-нибудь</td>
+<td>Код причины отказа от последнего кластерного вызова</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Конфигурация load balancer: XCVT v1 и v2.</strong> Большой двоичный объект <code>config_pack</code> создается следующим образом
+файл <code>XCVT</code>. Версия 2 (был предоставлен ключ) подписана MAIN и запечатана в
+узел; версия 1 (без ключа) сохраняется для узлов, которые еще не закреплены и доступны для чтения
+и поддается подделке любым, у кого есть <code>.so</code> и <code>install_id</code> узла, так что это делает
+не защищает закрепленный узел. Заголовок версии 2 имеет размер 110 байт, за которым следует запечатанный текст:</p>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Байты</th>
+<th>Содержание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>магия</td>
+<td>4</td>
+<td><code>XCVT</code></td>
+</tr>
+<tr>
+<td>версия</td>
+<td>1</td>
+<td><code>0x02</code></td>
+</tr>
+<tr>
+<td>добрый</td>
+<td>1</td>
+<td><code>1</code> конфигурация, <code>2</code> вывод</td>
+</tr>
+<tr>
+<td><code>created_ms</code></td>
+<td>8</td>
+<td>время создания, миллисекунды в Unix, порядок строк в нижнем конце</td>
+</tr>
+<tr>
+<td><code>main_sign_pub</code></td>
+<td>32</td>
+<td>Ключ подписи Ed25519 от MAIN</td>
+</tr>
+<tr>
+<td>подпись</td>
+<td>64</td>
+<td>Подпись MAIN в течение первых 14 байт и текст</td>
+</tr>
+<tr>
+<td>тело</td>
+<td>остальное</td>
+<td>привязан к узлу <code>panel_pk()</code>, привязан к заголовку и узлу <code>install_id</code></td>
+</tr>
+</tbody>
+</table>
+<p>То, что принимает узел, соответствует его состоянию pin-кода:</p>
+<table>
+<thead>
+<tr>
+<th>Узел</th>
+<th>Принимает</th>
+<th>Отказывается</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>не закреплен</td>
+<td>в1</td>
+<td>v2 (<code>NOT_PINNED</code>)</td>
+</tr>
+<tr>
+<td>закрепленный</td>
+<td>v2, подписанный ОСНОВНЫМ, к которому он прикреплен</td>
+<td>v1 (<code>CRYPTO</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Кроме того, <code>install_config</code> принимает большой двоичный объект только в том случае, если он адресован этому узлу,
+имеет возраст не более часа, это конфигурация (не pin-код), предназначена для load balancer (<code>is_lb</code> 1)
+и, когда конфигурация уже создана, она предназначена для этого узла <code>server_id</code>. Конфигурация версии 2
+более старый, чем последний, установленный с того же подписчика (или такой же старый с другим
+тело) отклоняется как <code>RECORD:replay</code>; последнее принятое время сохраняется в запечатанном
+файл <code>cluster/xcvt.hwm</code>, который содержит <code>cluster_pin</code> с <code>replace</code> и импорт из
+ключи кластера очищаются. При отказе ничего не записывается; его причина доступна через
+<code>cluster_last_error()</code>. Как администратор закрепляет load balancer:
+<a href="../../administration/main-lb-cluster/#signed-sealed-load-balancer-configs-xcvt-v2">Подписанные, запечатанные конфигурации load balancer</a>.</p>
+<p>Что гарантирует ядро в кластере независимо от того, что делает PHP: закрытые ключи
+и материал токена никогда не покидает ядро; отзыв узла сохраняется после восстановления базы данных;
+перевод часов назад (на основной или на LB) ничего не меняет; узел, переключенный на
+в режиме API без использования учетных данных учетные данные не возвращаются без явного указания
+действие администратора.</p>
+<hr />
+<h2 id="6"><a id="6-network-every-request-and-what-it-carries"></a>6. Сеть: каждый запрос и то, что он несет<a class="headerlink" href="#6" title="Permanent link">&para;</a></h2>
+<p>Ядро взаимодействует с <strong>только один внешний адрес</strong> — хранилищем и сервером лицензий
+<code>https://www.xcvm.tech</code> (каждый путь из <code>/api/v1/</code>). Он больше нигде не соединяется,
+кроме <strong>твой</strong> DB и <strong>твой</strong> Redis по адресам из вашей собственной конфигурации.</p>
+<h3 id="61"><a id="61-how-every-request-is-built"></a>6.1. Как строится каждый запрос<a class="headerlink" href="#61" title="Permanent link">&para;</a></h3>
+<p>Каждый запрос к серверу представляет собой <code>POST</code>, тело которого равно <strong>запечатанный</strong> для сервера.
+открытый ключ поверх TLS (конверт "XCVM-API-v1"). Внутри конверта находится
+временная метка, одноразовый идентификатор запроса, ключ API (при необходимости) и само тело запроса.
+Ответ сервера привязан к одноразовому ключу, известному только вашей панели, например
+это единственная просьба.</p>
+<p>Почему: чтобы тела запроса и ответа не могли быть прочитаны или заменены даже
+где TLS завершается на промежуточном этапе (прокси-сервер, load balancer,
+nginx→переход php-fpm на стороне сервера). Эта защита работает <strong>в вашу пользу</strong>:
+ваш API-ключ не передается в HTTP-заголовке и невидим на промежуточном сервере
+переходы, и загруженный модуль не может быть заменен при передаче.</p>
+<p>Параметры клиента:</p>
+<ul>
+<li>Только HTTPS; включена проверка цепочки сертификатов и имени хоста, и ** не может быть
+отключено в любом месте** — в используемой библиотеке просто нет такой настройки;</li>
+<li>в перенаправлении отказано (301/302 = ошибка);</li>
+<li>нет прокси-сервера: <code>HTTPS_PROXY</code> и его родственники в среде PHP игнорируются, каждый
+запрос отправляется непосредственно на сервер;</li>
+<li>тайм-ауты: обычный запрос - 15 секунд, загрузка архива - 120 секунд, подключение - 10 секунд;</li>
+<li>размер архива не более 100 МБ;</li>
+<li>ни на клиенте, ни на сервере нет режима открытого текста (незапечатанного).</li>
+</ul>
+<h3 id="62"><a id="62-the-complete-request-table"></a>6.2. Полная таблица запросов<a class="headerlink" href="#62" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Конечная точка</th>
+<th>Когда</th>
+<th>Что отправляется</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>panel/register</code></td>
+<td>регистрация панели в магазине</td>
+<td><code>install_id</code>; ключ панели <strong>общественный</strong>; <code>env_fp</code> (хэш); <code>hw_id</code> (хэш из <code>install_id + machine-id</code>); API-ключ</td>
+</tr>
+<tr>
+<td><code>plugins/check</code></td>
+<td>перед установкой модуля</td>
+<td><code>plugin_id</code>; <code>install_id</code>; Ключ API (необязательно)</td>
+</tr>
+<tr>
+<td><code>plugins/token</code></td>
+<td>установка/лицензирование модуля</td>
+<td><code>plugin_id</code>; <code>install_id</code>; Ключ API (необязательный для бесплатных модулей)</td>
+</tr>
+<tr>
+<td><code>plugins/download</code></td>
+<td>установка модуля</td>
+<td>пуля, версия, токен</td>
+</tr>
+<tr>
+<td><code>plugins/license</code></td>
+<td>запрашивает <code>.lic</code> для модуля</td>
+<td>токен; отпечаток пальца машины ionCube (<code>ioncube_server_data()</code>)</td>
+</tr>
+<tr>
+<td><code>extensions</code></td>
+<td>просмотр каталога магазина</td>
+<td>фильтры: среда, страница, поиск, сортировка; API-ключ (необязательно)</td>
+</tr>
+<tr>
+<td><code>extensions/check-update</code></td>
+<td>проверка наличия обновлений</td>
+<td>список <code>{slug, version}</code> установленных модулей; ключ API (необязательно)</td>
+</tr>
+<tr>
+<td><code>activation/status</code></td>
+<td>обновление кэша результатов проверки лицензии (раздел 7.3)</td>
+<td><code>jti</code> (идентификатор ключа активации); <code>install_id</code>; <code>env_fp</code>; одноразовый</td>
+</tr>
+<tr>
+<td><code>activation/checkin</code></td>
+<td>ежедневная регистрация на ГЛАВНОЙ странице (раздел 7.3)</td>
+<td>тот же</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63"><a id="63-what-is-never-in-a-request"></a>6.3. Чего никогда нет в запросе<a class="headerlink" href="#63" title="Permanent link">&para;</a></h3>
+<ul>
+<li>❌ данные о ваших пользователях, подписчиках, плейлистах, потоках, EPG;</li>
+<li>❌ содержимое вашей базы данных или Redis;</li>
+<li>❌ пароли — база данных, Redis или система;</li>
+<li>❌ закрытые ключи, <code>config.enc</code>;</li>
+<li>❌ имя хоста или <code>/etc/machine-id</code> в открытом виде — только их хэш;</li>
+<li>❌ статистика использования, журналы, списки IP-адресов ваших клиентов, данные о загрузке;</li>
+<li>❌ все, что находится "в фоновом режиме": каждый запрос в таблице выполняется внутри
+вызов метода с помощью панели, и ни один из них не выполняется во время загрузки PHP или по основному таймеру.</li>
+</ul>
+<p>Единственный "регулярный" контакт — проверка прав, не чаще одного раза в день — также происходит
+<strong>внутри</strong> вызов <code>license_valid()</code>, сделанный панелью, а не самим ядром
+инициатива; что она несет в себе, указано в таблице выше.</p>
+<hr />
+<h2 id="7"><a id="7-licensing-how-it-works-and-what-happens-on-revocation"></a>7. Лицензирование: как это работает и что происходит при отзыве лицензии<a class="headerlink" href="#7" title="Permanent link">&para;</a></h2>
+<p>Да, ядро проверяет лицензию. В этом разделе подробно описано, как и что происходит
+без доступа к сети и что происходит при отзыве. Ничего из этого не скрыто.</p>
+<h3 id="71"><a id="71-the-activation-key"></a>7.1. Ключ активации<a class="headerlink" href="#71" title="Permanent link">&para;</a></h3>
+<p>Лицензия на установку представляет собой текстовый ключ формы <code>XCVM1.&lt;data&gt;.&lt;signature&gt;</code>, который
+администратор вставляет данные в панель; они сохраняются в файле <code>activation_key</code>.
+Ключ имеет значение <strong>подписанный сервером</strong> (Ed25519) и содержит:</p>
+<ul>
+<li><code>hwid</code> — ваш <code>install_id</code>: ключ работает только при той установке, при которой он был выдан
+для;</li>
+<li><code>jti</code> — идентификатор ключа;</li>
+<li><code>iat</code> — время выдачи;</li>
+<li><code>exp</code> — срок действия (может отсутствовать = бессрочный).</li>
+</ul>
+<p>Подпись, привязка и срок действия проверяются <strong>не в сети</strong> без подключения к сети.</p>
+<h3 id="72"><a id="72-the-attribution-requirement"></a>7.2. Требование об атрибуции<a class="headerlink" href="#72" title="Permanent link">&para;</a></h3>
+<p>Панель XC_VM распространяется под лицензией AGPL-3.0, и условия использования
+в лицензионных функциях сохраняется авторская принадлежность. Ядро проверяет это: оно
+считывает шесть собственных файлов панели (<code>Core/Util/AdminHelpers.php</code> и пять
+нижний колонтитул/шаблоны входа в систему на панелях администратора, реселлера и игрока) и следит за тем, чтобы
+строки атрибуции на месте (<code>github.com/Vateron-Media/XC_VM</code>,
+<code>Vateron Media</code>, ссылка на AGPL-3.0) и что вызов рендеринга нижнего колонтитула не является
+закомментировано.</p>
+<ul>
+<li>The check is <strong>purely file-based</strong>: no network, no cryptography.</li>
+<li>Если количество файлов равно <strong>отсутствовать</strong> (нестандартная компоновка, разработка), то проверка
+считается равным <strong>пройденный</strong>: ядро не блокирует установку из-за отсутствующих файлов.</li>
+<li>Если атрибуция была удалена, <code>license_valid()</code> возвращает <code>false</code>, т.е.
+<strong>лицензированный</strong> функции (разветвление, чеканка кластерных токенов) отключены. Панель
+сами по себе ваши потоки, база данных и пользователи продолжают работать.</li>
+<li>Вердикт кэшируется в течение 1 секунды, поэтому файлы не считываются при каждом запросе.</li>
+</ul>
+<h3 id="73"><a id="73-the-server-check-and-behaviour-without-network"></a>7.3. Проверка и поведение сервера без подключения к сети<a class="headerlink" href="#73" title="Permanent link">&para;</a></h3>
+<p>На ГЛАВНОЙ странице <code>license_valid()</code> = "атрибуция установлена" <strong>и</strong> "ключ активации действителен".
+Срок действия включает в себя отзыв, и именно так ядро узнает об этом:</p>
+<ul>
+<li>Ответ сервера о состоянии ключа кэшируется в <code>license_verdict</code>
+файл. Кэш подписан сервером и не может быть подделан.</li>
+<li>Когда кэш устарел (или отсутствует), ядро внутри <code>license_valid()</code> вызывает —
+отправляет запрос <code>activation/status</code>; ответ проверяется подписью, с помощью
+однократно <code>nonce</code> и по <code>jti</code>, и только затем сохраняются в кэше.</li>
+<li>На ОСНОВНОМ, дополнительно, один раз в день (20 часов плюс случайный сдвиг на 8 часов,
+чтобы избежать скачков нагрузки) вводится значение <code>activation/checkin</code> — те же данные. Узлы LB
+не проводите регистрацию заезда.</li>
+</ul>
+<p><strong>Behaviour without server access — the key point:</strong></p>
+<ul>
+<li>Ключ, который сервер подтвердил хотя бы один раз <strong>, остается действительным в автономном режиме
+бессрочно</strong>. Недоступный сервер лицензий<strong>никогда</strong> не превращает оплаченный
+установка в неоплачиваемый режим.</li>
+<li>Ключ, который сервер никогда не подтверждал (например, просто вставил, пока нет
+сеть) работает в течение <strong>14 дней</strong> с момента его выпуска.</li>
+<li>A licence is considered invalid in exactly two cases: the <code>exp</code> recorded in the
+сам ключ был передан, <strong>или</strong> сервер отправил ответ <strong>подписанный</strong> "ключ отозван".
+Сетевая ошибка, тайм-аут или неразборчивый ответ - это <strong>нет</strong> аннулирование.</li>
+</ul>
+<h3 id="74"><a id="74-what-exactly-happens-on-revocation-enforcement"></a>7.4. Что именно происходит при отзыве (приведении в исполнение)<a class="headerlink" href="#74" title="Permanent link">&para;</a></h3>
+<p>Об этом стоит знать заранее. Если лицензия недействительна <strong>подтвержденный</strong> (то
+два случая выше), и только на сервере <strong>главный</strong> ядро выполняет две функции:</p>
+<ol>
+<li>Записывает файл маркера <code>license_revoked</code> с временной меткой в конфигурацию
+каталог.</li>
+<li>Отменяет в вашей базе данных права доступа пользователя панели <strong>для LB/proxy
+адреса узлов</strong> (берется список адресов из вашей таблицы <code>servers</code>
+где <code>is_main = 0</code> и выполняется <code>REVOKE ALL PRIVILEGES</code> для каждого). Каждый адрес
+сначала выполняется строгая проверка символов, чтобы исключить SQL-инъекцию через таблицу.</li>
+</ol>
+<p>Это выполняется максимум <strong>раз в час</strong>. Что он делает <strong>нет</strong>:</p>
+<ul>
+<li>❌ он не удаляет и не изменяет ваши данные — ни одной строки, ни одной таблицы;</li>
+<li>❌ это не затрагивает собственный доступ MAIN к своей базе данных;</li>
+<li>❌ это не останавливает PHP, nginx или потоки и не удаляет модули или файлы;</li>
+<li>❌ он ничего не отправляет на сервер;</li>
+<li>❌ Узлы LB <strong>никогда</strong> обеспечивают принудительное выполнение, что бы ни случилось.</li>
+</ul>
+<p>Цель: отозванная лицензия лишает установку возможности <strong>мультисерверный</strong>
+возможности (узлы теряют доступ к центральной базе данных), но не нарушает работу ни панели, ни
+данные. Доступ может быть повторно предоставлен с помощью обычного <code>db_grant</code> после истечения срока действия лицензии.
+восстановленный.</p>
+<h3 id="75-lb"><a id="75-the-licence-on-an-lb-node"></a>7.5. Лицензия на узел LB<a class="headerlink" href="#75-lb" title="Permanent link">&para;</a></h3>
+<p>Узел LB не содержит ключа активации. Для него <code>license_valid()</code> = "атрибуция в
+оформить" <strong>и</strong> "действительную аренду у MAIN" — разрешение, подписанное MAIN, с ограниченным сроком действия.
+срок службы, проверяемый по закрепленному ключу MAIN и оцениваемый по времени работы MAIN (время поворота
+обратный отсчет времени узла ничего не дает). Аренда позволяет узлу продолжать работать, пока основной
+временно недоступен.</p>
+<hr />
+<h2 id="8"><a id="8-the-protective-mechanisms-that-usually-raise-questions"></a>8. Защитные механизмы, которые обычно вызывают вопросы<a class="headerlink" href="#8" title="Permanent link">&para;</a></h2>
+<h3 id="81"><a id="81-anti-debugging"></a>8.1. Защита от отладки<a class="headerlink" href="#81" title="Permanent link">&para;</a></h3>
+<p>Описано в пункте 1 раздела 3. Повторим ключевой момент: это всего лишь отказ от
+загружается с помощью отладчика — без побочных эффектов. Его цель - остановить ключ
+материал (закрытый ключ панели, корень кластера, расшифрованная конфигурация), являющийся
+извлечен из памяти запущенного процесса.</p>
+<h3 id="82"><a id="82-hidden-strings-in-the-binary"></a>8.2. Скрытые строки в двоичном коде<a class="headerlink" href="#82" title="Permanent link">&para;</a></h3>
+<p>Адрес сервера, пути к API и один внутренний "локальный pepper" (константа, которая
+принимает участие в получении ключей, которые запечатывают локальные файлы) хранятся в двоичном коде
+XOR-кодируется, поэтому <code>strings xcvm_core.so</code> их не показывает. Цель состоит в том, чтобы остановить
+ядро просто переназначается на поддельный сервер. Суть одна и та же в каждом
+сборка: это запутывание, а не секрет — что привязывает закрытый файл к вашему компьютеру
+равно <code>/etc/machine-id</code>. Это <strong>скрывает константы, а не поведение</strong> — поведение таково
+полностью описано здесь. Ключевые доменные имена, такие как <code>xcvm_cfg_v1</code>, отображаются в
+<code>strings</code>, и это прекрасно.</p>
+<h3 id="83-env_fp-hw_id"><a id="83-machine-binding-env_fp-and-hw_id"></a>8.3. Машинная привязка: <code>env_fp</code> и <code>hw_id</code><a class="headerlink" href="#83-env_fp-hw_id" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>env_fp</code> = <code>SHA-256(install_id + /etc/machine-id + hostname)</code>. "Мягкий" переплет:
+сервер замечает клонирование или миграцию из-за изменения хэша, но измененный
+<code>env_fp</code> <strong>ничего не блокирует</strong>. Если идентификатор компьютера или имя хоста недоступны, это
+заменено пустой строкой.</li>
+<li><code>hw_id</code> = <code>SHA-256(install_id + /etc/machine-id)</code>. Сервер сначала закрепляет его
+регистрация. Если то же самое <code>install_id</code> появится с другого компьютера, <strong>оплачиваемый</strong>
+модули перестают выдаваться с ошибкой <code>panel_moved</code> до тех пор, пока хранилище
+администратор сбрасывает привязку. Это защищает от копирования одного платного
+установка на множество серверов.</li>
+</ul>
+<p>Оба значения являются хэшами; по ним невозможно восстановить имя вашего хоста или идентификатор компьютера.</p>
+<h3 id="84"><a id="84-no-way-to-change-the-server-address"></a>8.4. Невозможно изменить адрес сервера<a class="headerlink" href="#84" title="Permanent link">&para;</a></h3>
+<p>Адрес фиксирован в двоичном коде. <code>php.ini</code> вообще не считывается, и ядро
+не регистрирует директиву <code>xcvm_core.*</code> (в <code>php --ri xcvm_core</code> она отсутствует); a
+<code>xcvm_core.server_url</code> строка, оставшаяся в <code>php.ini</code>, игнорируется, как и все остальные
+переменная среды, за исключением <code>XCVM_CONFIG_DIR</code>. Цель состоит в том, чтобы остановить ядро
+быть перенаправленным, изменив одну строку, в поддельный магазин, обслуживающий поддельные модули.
+Адрес должен быть <code>https://</code>.</p>
+<h3 id="85"><a id="85-self-wiping-keys"></a>8.5. Самоочищающиеся клавиши<a class="headerlink" href="#85" title="Permanent link">&para;</a></h3>
+<p>Закрытые ключи, производные ключи, пароли баз данных и другие ключевые материалы хранятся в
+ядро в буферах, которые обнуляются в памяти при освобождении — на каждом пути выхода,
+включая ошибки.</p>
+<hr />
+<h2 id="9"><a id="9-what-the-core-does-not-contain"></a>9. Чего нет в ядре<a class="headerlink" href="#9" title="Permanent link">&para;</a></h2>
+<ul>
+<li>❌ <strong>Черный ход или пульт дистанционного управления.</strong> Не существует метода, который выполнял бы команды или
+код, отправленный сервером. Сервер может ответить данными только на запрос, который
+составлена панель: каталог, жетон, архив, лицензионный вердикт.</li>
+<li>❌ <strong>Выполнение поставляемого кода ядром.</strong> Единственное, что приходит из
+сервер, а затем выполняется, является модулями, и они выполняются на складе
+Загрузчик ionCube с помощью обычного механизма PHP, после того как вы сами запустили
+установка. Ядро не устанавливает никаких перехватчиков для компиляции или выполнения PHP.</li>
+<li>❌ <strong>Телеметрия, шпионаж, утечка данных.</strong> Полное содержание каждого запроса
+находятся в разделе 6.2; там нет ничего, кроме идентификаторов установки и
+параметры запрашиваемой операции.</li>
+<li>❌ <strong>Фоновая активность.</strong> Нет потоков, таймеров, демонов или заданий cron. Ядро - это
+активен только внутри вызова метода.</li>
+<li>❌ <strong>Самообновляющийся.</strong> Ядро не загружает и не заменяет свой собственный двоичный файл.</li>
+<li>❌ <strong>Отключение проверки по протоколу TLS.</strong> Проверка сертификата включена всегда;
+в библиотеке нет настроек, позволяющих отключить его.</li>
+<li>❌ <strong>Разрушительные действия без вашего ведома.</strong> Единственная разрушительная операция на
+ваши данные — <code>db_restore</code> (воссоздание базы данных из резервной копии) — выполняются только на
+явный вызов с панели управления. Принудительное применение лицензии не затрагивает данные.</li>
+<li>❌ <strong>Читаю что-нибудь лишнее.</strong> За пределами каталога конфигурации ядро выполняет только чтение
+<code>/etc/machine-id</code>, <code>/proc/self/status</code>, имя хоста, шесть файлов панели для
+проверка авторства и файлы, которые вы явно передали (дамп для восстановления).</li>
+<li>❌ <strong>Небезопасный для памяти код.</strong> Ядро написано на Rust; используется только небезопасный код
+на границе с PHP.</li>
+</ul>
+<hr />
+<h2 id="10"><a id="10-how-to-verify-all-of-this-yourself"></a>10. Как убедиться во всем этом самостоятельно<a class="headerlink" href="#10" title="Permanent link">&para;</a></h2>
+<p>Ни для одного из приведенных ниже шагов не нужны исходные тексты или наши секреты.</p>
+<p><strong>Список методов.</strong> Подтвердите, что класс содержит именно то, что указано в разделе 5
+описывает, и никаких глобальных функций:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>php<span class="w"> </span>--rc<span class="w"> </span>XC_VM<span class="w">          </span><span class="c1"># every method of the class</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>php<span class="w"> </span>--re<span class="w"> </span>xcvm_core<span class="w">      </span><span class="c1"># everything the extension registers: the class, and no ini directives</span>
+</code></pre></div></p>
+<p><strong>Сетевые адреса и время, когда с ними связываются.</strong> Захват трафика и подтверждение
+ядро отправляется только по одному адресу и только при выполнении явных действий в панели:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-n<span class="w"> </span>-i<span class="w"> </span>any<span class="w"> </span><span class="s1">'port 443 and not host &lt;your DB IP&gt;'</span>
+</code></pre></div>
+При загрузке PHP, во время нормальной работы потоков и пользователей, нет
+запросы. Они отображаются при регистрации, установке модуля, просмотре каталога —
+и не чаще одного раза в день для проверки водительских прав.</p>
+<p><strong>Системные вызовы.</strong> Подтвердите отсутствие сетевой активности при запуске PHP и отсутствие доступа к
+неожиданные файлы. Примечание: <code>strace</code> started from scratch отслеживает процесс с самого начала.
+первая инструкция, поэтому под ней находится ядро <strong>не будет загружаться</strong> (то есть
+anti-debugging from section 3 — <code>class_exists("XC_VM")</code> returns <code>false</code>, which also
+подтверждает, что проверка действительно существует). Поэтому используйте инструменты без <code>ptrace</code>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># a fresh process, via eBPF (linux-tools / perf package):</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>sudo<span class="w"> </span>perf<span class="w"> </span>trace<span class="w"> </span>-e<span class="w"> </span><span class="s1">'connect,openat'</span><span class="w"> </span>php<span class="w"> </span>-r<span class="w"> </span><span class="s1">'var_dump(class_exists("XC_VM"));'</span>
+</code></pre></div>
+Вы увидите результаты чтения файлов <code>/proc/self/status</code>, <code>/etc/machine-id</code> в конфигурации
+каталог — и ни одного <code>connect()</code>.</p>
+<p>Чтобы посмотреть поведение <strong>во время выполнения</strong>, подключитесь к уже запущенному рабочему файлу php-fpm —
+проверка отладчика выполняется только при загрузке, и рабочий процесс уже прошел ее:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>strace<span class="w"> </span>-f<span class="w"> </span>-e<span class="w"> </span><span class="nv">trace</span><span class="o">=</span>network,openat<span class="w"> </span>-p<span class="w"> </span><span class="k">$(</span>pgrep<span class="w"> </span>-f<span class="w"> </span><span class="s1">'php-fpm: pool'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
+</code></pre></div>
+Выполняйте действия на панели и наблюдайте: подключения идут только к вашей базе данных/Redis и —
+при установке модуля или проверке лицензии — значение <code>www.xcvm.tech</code>.</p>
+<p><strong>Что находится в каталоге конфигурации.</strong> Сравните с таблицей, приведенной в разделе 4:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>sudo<span class="w"> </span>ls<span class="w"> </span>-la<span class="w"> </span>/home/xc_vm/config/<span class="w"> </span>/home/xc_vm/config/cluster/<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</code></pre></div></p>
+<p><strong>Что записано в двоичный файл.</strong> Никаких секретов или паролей в открытом доступе:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>strings<span class="w"> </span>xcvm_core.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-iE<span class="w"> </span><span class="s1">'password|secret|xcvm\.tech'</span>
+</code></pre></div></p>
+<p><strong>Что такое основные раздачи PHP.</strong> <code>config_server()</code> не возвращает пароли:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>php<span class="w"> </span>-r<span class="w"> </span><span class="s1">'var_dump(XC_VM::config_server());'</span>
+</code></pre></div></p>
+<p><strong>Поведение без подключения к сети.</strong> Ограничить доступ к серверу до <code>www.xcvm.tech</code> —
+panel, streams, DB and modules keep working; <code>license_valid()</code> for a confirmed key
+остается <code>true</code>.</p>
+<p><strong>Определение.</strong> <code>php -r 'var_dump(XC_VM::verify_branding());'</code> — <code>true</code> на
+нетронутая панель.</p>
+<hr />
+<h2 id="11"><a id="11-honestly-about-the-limits"></a>11. Честно говоря, о границах дозволенного<a class="headerlink" href="#11" title="Permanent link">&para;</a></h2>
+<p>Мы не утверждаем, что защита является абсолютной. На этом все заканчивается:</p>
+<ul>
+<li><strong>Кодер PHP не является абсолютным.</strong> Пользователь Root на своем собственном лицензированном компьютере может в
+теория извлекает ключевую фразу из закодированного файла, открывает свой собственный <code>.lic</code> и
+получите ключ декодирования. Машинная привязка и короткий срок службы <code>.lic</code> делают это
+более дорогие и снабжены выключателем, но это является фундаментальным ограничением
+любое решение, похожее на ионный куб.</li>
+<li><strong>Утечка <code>install_id</code></strong> сам по себе не раскрывает <code>config.enc</code> (значение
+также требуется <code>machine-id</code>). Это действительно открывает большой двоичный объект XCVT <strong>в1</strong>: перец находится в
+при каждой сборке, таким образом, <code>.so</code> плюс <code>install_id</code> узла считываются и подделываются. Версия 2
+большой двоичный объект подписан MAIN и привязан к собственному ключу узла, поэтому закрепленный
+load balancer принимает только версию 2.</li>
+<li><strong>Закрытый API не имеет прямой секретности</strong> против долгоживущего сервера
+транспортный ключ: его компрометация приведет к раскрытию ранее зарегистрированных обменов данными, и
+восстановление означает отправку нового ядра с новым ключом. Адрес, размеры сообщений и
+хронометраж виден на проводе в любом случае — оболочка скрывает корпус, а не
+метаданные.</li>
+<li><strong>Проверка авторства осуществляется на основе файлов</strong> и, следовательно, его можно обойти путем редактирования
+файлы на собственном компьютере; это скорее отпугивает, чем делает невозможным.</li>
+<li><strong>Правоприменение осуществляется на уровне грантов БД</strong>, и ГЛАВНЫЙ администратор может
+переиздайте их. Это сделано намеренно: ядро не должно нарушать ваш
+установка, даже по команде владельца платформы.</li>
+</ul>
+<p>Вот что означает прозрачность: описание не только того, что защищено, но и
+там, где заканчивается защита.</p>
+<hr />
+<h2 id="12"><a id="12-frequently-asked-questions"></a>12. Часто задаваемые вопросы<a class="headerlink" href="#12" title="Permanent link">&para;</a></h2>
+<p><strong>Can the core delete or corrupt my data?</strong>
+Только <code>db_restore</code> воссоздает базу данных заново, и только тогда, когда вы сами начинаете восстановление из
+резервная копия. Ничто другое, включая отзыв лицензии, не затрагивает данные.</p>
+<p><strong>What if the licence server shuts down or becomes unreachable?</strong>
+Подтвержденная лицензия продолжает работать в автономном режиме неограниченное время; панель управления, потоки, база данных и
+модули работают. Единственное, что останавливается, - это загрузка новых модулей и обновлений
+из хранилища и создаем новый <code>.lic</code> для модуля (существующие <code>.lic</code> файлы работают
+до истечения срока их действия).</p>
+<p><strong>Does the core see my users, streams, traffic?</strong>
+Это открывает соединение с вашей базой данных по запросу панели, как это сделал бы код PHP, но
+отправляет эти данные в никуда. Содержание каждого внешнего запроса приведено в разделе 6.2.</p>
+<p><strong>Can the platform owner "switch off" my panel?</strong>
+Нет. Самое большее, что происходит при отзыве лицензии, описано в разделе 7.4: узлы
+потеряйте доступ к центральной базе данных, и ГЛАВНЫЙ администратор может повторно предоставить этот доступ.
+ГЛАВНОЕ, что данные, потоки и пользователи остаются незатронутыми.</p>
+<p><strong>Why not just open the sources?</strong>
+Поскольку ядро - это то место, где хранятся пароли базы данных, а также ключи панели управления и кластера; его
+причина их существования заключается в том, что они не могут быть прочитаны из PHP. Вместо источников мы предоставляем
+полное описание поведения (на этой странице) и способы его проверки с помощью
+снаружи (раздел 10).</p>
+<p><strong>Can I run the core under a debugger or profiler?</strong>
+Если процесс PHP равен <strong>начатый</strong> в рамках инструмента <code>ptrace</code> (gdb, <code>strace php ...</code>),
+ядро не загружается в этом процессе — это проверяется один раз при запуске. Присоединение
+к уже запущенному процессу возможно (<code>strace -p</code>, <code>gdb -p</code>): отсутствует
+повторите проверку, и это будет сделано намеренно — цель защиты состоит в том, чтобы остановить ввод ключа.
+материал считывается из памяти с помощью отладчика * во время его использования*, чтобы не
+чтобы вы не наблюдали за своим собственным сервером. Инструменты без <code>ptrace</code> (<code>perf</code>, eBPF, <code>tcpdump</code>)
+на них это никак не влияет.</p>
+<hr />
+<p><strong>Резюме.</strong> <code>xcvm_core</code> выполняет именно то, что нужно панели: сохраняет конфигурацию и
+предоставляет доступ к базе данных/Redis без паролей в PHP, предоставляет модули (защита от копирования обеспечивается лицензией ionCube),
+проверяет лицензию и обслуживает кластер. Он связывается с одним сервером, только когда
+панель вызывает его и отправляет только идентификаторы установки и рабочие параметры.
+Он не содержит бэкдора, не собирает телеметрию, не затрагивает ваши данные и не может
+быть отключенным извне. Каждое из этих утверждений на этой странице сопровождается
+способ убедиться в этом самому.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  К началу
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
