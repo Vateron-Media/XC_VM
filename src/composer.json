@@ -5,7 +5,7 @@
     "license": "AGPL-3.0-or-later",
     "require": {
         "php": ">=8.3",
-        "gemorroj/m3u-parser": "6.0.1",
+        "gemorroj/m3u-parser": "6.2.0",
         "chrisyue/php-m3u8": "^4",
         "mobiledetect/mobiledetectlib": "^4.9",
         "geoip2/geoip2": "~3.0"

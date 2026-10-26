@@ -905,17 +905,13 @@ class StreamService {
 		$rParser->addDefaultTags();
 		$rEntries = $rFile ? $rParser->parseFile($rData) : $rParser->parse($rData);
 
-		// The parser emits an entry for an #EXTINF with no following URL line; its
-		// path stays null while getPath() is typed `string`, so reading it throws a
-		// TypeError. Drop those so every caller can read getPath() safely.
+		// The parser emits an entry for an #EXTINF with no following URL line, with
+		// an empty path (m3u-parser >= 6.2; older versions threw a TypeError instead).
 		$rValid = [];
 		foreach ($rEntries as $rEntry) {
-			try {
-				$rEntry->getPath();
-			} catch (\TypeError $rError) {
-				continue;
+			if ($rEntry->getPath() !== '') {
+				$rValid[] = $rEntry;
 			}
-			$rValid[] = $rEntry;
 		}
 
 		return $rValid;

@@ -76,8 +76,6 @@ class M3uParserTest extends TestCase
         /** @var ExtTagInterface[] $extTags */
         $extTags = $entry->getExtTags();
         self::assertCount(2, $extTags);
-
-        self::assertContainsOnlyInstancesOf(ExtTagInterface::class, $extTags);
     }
 
     public function testParseFileExtCustomTag(): void

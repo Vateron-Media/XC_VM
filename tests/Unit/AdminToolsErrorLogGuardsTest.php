@@ -15,7 +15,7 @@ final class AdminToolsErrorLogGuardsTest extends TestCase {
 		return (string) file_get_contents(MAIN_HOME . $rRel);
 	}
 
-	/** A trailing #EXTINF with no URL yields an entry whose getPath():string returns null and throws. */
+	/** A trailing #EXTINF with no URL yields an entry with an empty path; parseM3U drops it. */
 	public function testParseM3uDropsEntriesWithNoUrl(): void {
 		$rM3u = "#EXTM3U\n#EXTINF:-1,Has URL\nhttp://example.com/one.ts\n#EXTINF:-1,No URL\n";
 		$rEntries = StreamService::parseM3U($rM3u, false);

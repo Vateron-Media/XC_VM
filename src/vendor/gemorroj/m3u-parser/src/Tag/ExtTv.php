@@ -106,8 +106,8 @@ example:
         $split = \explode(';', $tmp, 4);
 
         $this->setTags(\array_map('trim', \explode(',', $split[0])));
-        $this->setLanguage(\trim($split[1]));
-        $this->setXmlTvId(\trim($split[2]));
+        $this->setLanguage(isset($split[1]) ? \trim($split[1]) : '');
+        $this->setXmlTvId(isset($split[2]) ? \trim($split[2]) : '');
         if (isset($split[3])) {
             $this->setIconUrl(\trim($split[3]));
         }

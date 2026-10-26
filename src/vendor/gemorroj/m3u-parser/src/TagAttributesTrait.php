@@ -62,7 +62,7 @@ trait TagAttributesTrait
         $out = '';
 
         foreach ($this->getAttributes() as $name => $value) {
-            $escapedValue = \addcslashes($value, '"');
+            $escapedValue = \addcslashes($value, '"\\');
             $out .= "$name=\"$escapedValue\" ";
         }
 
@@ -75,7 +75,8 @@ trait TagAttributesTrait
 
         foreach ($matches as $matchPair) {
             $key = $matchPair[1];
-            $value = \stripslashes(\trim($matchPair[2], '"'));
+            $value = \trim($matchPair[2], '"');
+            $value = \preg_replace('/\\\\(["\\\\])/', '$1', $value) ?? $value;
 
             $this->setAttribute($key, $value);
         }

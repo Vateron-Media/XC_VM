@@ -19,7 +19,7 @@
  * @author  Nick Ilyin <nick.ilyin@gmail.com>
  * @author: Victor Stanciu <vic.stanciu@gmail.com> (original author)
  *
- * @version 4.9.0
+ * @version 4.11.0
  */
 
 declare(strict_types=1);
@@ -242,7 +242,7 @@ class MobileDetect
     /**
      * Stores the version number of the current release.
      */
-    protected string $VERSION = '4.9.0';
+    protected string $VERSION = '4.11.0';
 
     protected array $config = [
         // Auto-initialization on HTTP headers from $_SERVER['HTTP...']
@@ -1047,6 +1047,14 @@ class MobileDetect
 
     /**
      * Construct an instance of this class.
+     *
+     * The bundled in-memory `Detection\Cache\Cache` is bounded by default
+     * (see `Cache::DEFAULT_MAX_ENTRIES`) to prevent unbounded growth in
+     * long-running PHP runtimes where one instance is reused across many
+     * distinct User-Agents (see GHSA-mgj4-qjmw-v56v). To tune the cap, pass
+     * `new Cache($n)` explicitly. To use a different backend (Redis, APCu,
+     * Memcached, Filesystem), inject any PSR-16 `CacheInterface`; the
+     * adapter's eviction policy is then the operator's responsibility.
      */
     public function __construct(
         ?CacheInterface $cache = null,

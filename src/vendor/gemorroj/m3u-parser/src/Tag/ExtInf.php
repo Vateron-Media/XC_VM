@@ -73,22 +73,37 @@ EXTINF format:
 example:
 #EXTINF:-1 tvg-name=Первый_HD tvg-logo="Первый канал" deinterlace=4 group-title="Эфирные каналы",Первый канал HD
          */
-        $dataLineStr = \substr($lineStr, \strlen('#EXTINF:'));
-        $dataLineStr = \trim($dataLineStr);
+        [$meta, $title] = $this->splitTitle(\trim(\substr($lineStr, \strlen('#EXTINF:'))));
+        $meta = \ltrim($meta);
 
-        // Parse duration and title with regex
-        \preg_match('/^(-?[\d\.]+)\s*(?:(?:[^=]+=["][^"]*["])|(?:[^=]+=[^ ]*))*\s*,\s*(.*)$/', $dataLineStr, $matches);
-
-        $this->setDuration((float) $matches[1]);
-        $this->setTitle(\trim($matches[2]));
-
-        // Attributes are remaining string after remove duration and title
-        $attributes = \preg_replace('/^'.\preg_quote($matches[1], '/').'(.*)'.\preg_quote($matches[2], '/').'$/', '$1', $dataLineStr);
-
-        $splitAttributes = \explode(' ', $attributes, 2);
-
-        if (isset($splitAttributes[1]) && $trimmedAttributes = \trim($splitAttributes[1])) {
-            $this->initAttributes($trimmedAttributes);
+        if (\preg_match('/^(-?[\d.]+)/', $meta, $matches)) {
+            $this->setDuration((float) $matches[1]);
+            $meta = \ltrim(\substr($meta, \strlen($matches[1])));
+        } else {
+            $this->setDuration(0);
         }
+
+        $this->setTitle(\trim($title));
+
+        if ('' !== $meta) {
+            $this->initAttributes($meta);
+        }
+    }
+
+    /**
+     * Split the line into the "<duration> <attributes-list>" part and the "<title>" part.
+     *
+     * The title starts right after the first comma that is not inside double quotes,
+     * so commas inside quoted attribute values (e.g. tvg-name="Test, comma") are ignored.
+     *
+     * @return array{string, string}
+     */
+    private function splitTitle(string $str): array
+    {
+        // [^",]                 - a regular char (stops at the separator comma)
+        // "(?:\\.|[^"\\])*"     - a quoted value, supporting the escaped \" sequence
+        $meta = \preg_match('/^(?:[^",]|"(?:\\\\.|[^"\\\\])*")*/', $str, $matches) ? $matches[0] : '';
+
+        return [$meta, \substr($str, \strlen($meta) + 1)];
     }
 }

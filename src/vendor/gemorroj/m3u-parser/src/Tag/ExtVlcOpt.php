@@ -69,6 +69,13 @@ example:
         $dataLineStr = \substr($lineStr, \strlen('#EXTVLCOPT:'));
         $dataLineStr = \trim($dataLineStr);
 
+        if (!\str_contains($dataLineStr, '=')) {
+            $this->setKey($dataLineStr);
+            $this->setValue('');
+
+            return;
+        }
+
         [$key, $value] = \explode('=', $dataLineStr, 2);
 
         $this->setKey($key);

@@ -59,4 +59,20 @@ class ExtTvTest extends TestCase
 
         self::assertEquals($expectedString, (string) $data);
     }
+
+    public function testParseMalformedExtTv(): void
+    {
+        $extTv = new ExtTv('#EXTTV:foo');
+
+        self::assertEquals(['foo'], $extTv->getTags());
+        self::assertEquals('', $extTv->getLanguage());
+        self::assertEquals('', $extTv->getXmlTvId());
+        self::assertNull($extTv->getIconUrl());
+
+        $extTv = new ExtTv('#EXTTV:a;b');
+
+        self::assertEquals(['a'], $extTv->getTags());
+        self::assertEquals('b', $extTv->getLanguage());
+        self::assertEquals('', $extTv->getXmlTvId());
+    }
 }

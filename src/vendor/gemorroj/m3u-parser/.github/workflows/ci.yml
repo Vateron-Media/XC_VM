@@ -9,64 +9,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: ['ubuntu-latest']
+        php: ['8.2', '8.3', '8.4', '8.5']
+        deps: ['', '--prefer-lowest']
         include:
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.0'
-            job-description: 'Ubuntu; PHP 8.0; latest-deps'
+          - os: 'windows-latest'
+            php: '8.5'
+          - os: 'macos-latest'
+            php: '8.5'
 
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.0'
-            composer-flags: '--prefer-lowest'
-            job-description: 'Ubuntu; PHP 8.0; lowest-deps'
+    name: ${{ matrix.os }}; PHP ${{ matrix.php }}; ${{ matrix.deps && 'lowest' || 'latest' }}-deps
 
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.1'
-            job-description: 'Ubuntu; PHP 8.1; latest-deps'
-
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.1'
-            composer-flags: '--prefer-lowest'
-            job-description: 'Ubuntu; PHP 8.1; lowest-deps'
-
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.2'
-            job-description: 'Ubuntu; PHP 8.2; latest-deps'
-
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.2'
-            composer-flags: '--prefer-lowest'
-            job-description: 'Ubuntu; PHP 8.2; lowest-deps'
-
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.3'
-            job-description: 'Ubuntu; PHP 8.3; latest-deps'
-
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.3'
-            composer-flags: '--prefer-lowest'
-            job-description: 'Ubuntu; PHP 8.3; lowest-deps'
-
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.4'
-            job-description: 'Ubuntu; PHP 8.4; latest-deps'
-
-          - operating-system: 'ubuntu-latest'
-            php-version: '8.4'
-            composer-flags: '--prefer-lowest'
-            job-description: 'Ubuntu; PHP 8.4; lowest-deps'
-
-          - operating-system: 'windows-latest'
-            php-version: '8.4'
-            job-description: 'Windows; PHP 8.4; latest-deps'
-
-          - operating-system: 'macos-latest'
-            php-version: '8.4'
-            job-description: 'MacOS; PHP 8.4; latest-deps'
-
-
-    name: ${{ matrix.job-description }}
-
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Set git to use LF
@@ -75,23 +29,23 @@ jobs:
           git config --global core.eol lf
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: ${{ matrix.php }}
           coverage: none
           tools: composer:v2
 
       - name: Install dependencies
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 5
           max_attempts: 5
           retry_wait_seconds: 30
           command: |
-            composer update --optimize-autoloader --no-interaction --ansi --no-progress --prefer-dist ${{ matrix.composer-flags }}
+            composer update --optimize-autoloader --no-interaction --ansi --no-progress --prefer-dist ${{ matrix.deps }}
             composer info -D
 
       - name: Tests

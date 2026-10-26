@@ -13,7 +13,7 @@ class M3uEntry implements \Stringable
      * @var ExtTagInterface[]
      */
     private array $extTags = [];
-    private ?string $path = null;
+    private string $path = '';
 
     public function __toString(): string
     {
