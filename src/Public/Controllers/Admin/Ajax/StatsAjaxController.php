@@ -8,6 +8,7 @@ use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\User\UiPrefs;
 
 /**
  * Admin-ajax controller for the "Stats & Graphs" group.
@@ -425,7 +426,7 @@ class StatsAjaxController extends BaseAjaxController {
 			$this->fail();
 		}
 
-		global $db, $rUserInfo;
+		global $rUserInfo;
 		if (empty($rUserInfo['id'])) {
 			$this->fail();
 		}
@@ -435,43 +436,9 @@ class StatsAjaxController extends BaseAjaxController {
 			$this->fail();
 		}
 
-		// Customizer "Reset" — drop the saved prefs so the panel falls back to the
-		// project defaults (XC_VM_UIDefaults) on the next load.
-		if (!empty($rIn['__reset'])) {
-			$db->query('UPDATE `users` SET `ui_prefs` = NULL WHERE `id` = ?;', intval($rUserInfo['id']));
-			$this->ok();
-		}
-
-		// Whitelist + validate — never store arbitrary keys/values.
-		$rClean = [];
-		$rEnum = static function ($rVal, array $rAllowed) {
-			return in_array($rVal, $rAllowed, true) ? $rVal : null;
-		};
-		$rBool = static function ($rVal) {
-			return ($rVal === true || $rVal === 'true') ? true : (($rVal === false || $rVal === 'false') ? false : null);
-		};
-		$rMap = [
-			'theme'           => static fn($v) => $rEnum($v, ['light', 'dark', 'system']),
-			'skin'            => static fn($v) => in_array($v, ['default', 'bordered'], true) ? $v : null,
-			'semiDark'        => $rBool,
-			'layoutCollapsed' => $rBool,
-			'rtl'             => $rBool,
-			'navbar'          => static fn($v) => $rEnum($v, ['sticky', 'static', 'hidden']),
-			'headerType'      => static fn($v) => $rEnum($v, ['static', 'fixed']),
-			'contentLayout'   => static fn($v) => $rEnum($v, ['compact', 'wide']),
-			'color'           => static fn($v) => (is_string($v) && preg_match('/^#[0-9a-fA-F]{6}$/', $v)) ? $v : null,
-			'lang'            => static fn($v) => (is_string($v) && preg_match('/^[a-z]{2,8}$/', $v)) ? $v : null,
-		];
-		foreach ($rMap as $rKey => $rValidator) {
-			if (array_key_exists($rKey, $rIn)) {
-				$rVal = $rValidator($rIn[$rKey]);
-				if ($rVal !== null) {
-					$rClean[$rKey] = $rVal;
-				}
-			}
-		}
-
-		$db->query('UPDATE `users` SET `ui_prefs` = ? WHERE `id` = ?;', json_encode($rClean), intval($rUserInfo['id']));
+		// Also handles the customizer "Reset" (`__reset`): the saved prefs are dropped
+		// and the panel falls back to XC_VM_UIDefaults.
+		UiPrefs::save(intval($rUserInfo['id']), $rIn);
 		$this->ok();
 	}
 }

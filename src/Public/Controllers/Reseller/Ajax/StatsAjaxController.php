@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Reseller\Ajax;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\ResellerAPI;
+use XcVm\Domain\User\UiPrefs;
 use XcVm\Domain\User\UserCredits;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
@@ -57,6 +58,28 @@ class StatsAjaxController extends BaseResellerAjaxController {
 		$rReturn['credits'] = ResellerAPI::amount($db->get_row()['credits']);
 		$rReturn['credits_assigned'] = ($rReturn['credits'] - intval($rUserInfo['credits']) ?: 0);
 		echo json_encode($rReturn);
+		exit();
+	}
+
+	/**
+	 * action=save_ui_prefs — persist the signed-in reseller's customizer state.
+	 * Writes only the reseller's own row, never a client-supplied id.
+	 */
+	public function saveUiPrefs(): void {
+		[$rUserInfo] = $this->begin();
+		if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+			echo json_encode(['result' => false]);
+			exit();
+		}
+
+		$rIn = json_decode((string) file_get_contents('php://input'), true);
+		if (!is_array($rIn)) {
+			echo json_encode(['result' => false]);
+			exit();
+		}
+
+		UiPrefs::save(intval($rUserInfo['id']), $rIn);
+		echo json_encode(['result' => true]);
 		exit();
 	}
 

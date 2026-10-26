@@ -81,6 +81,7 @@ $router->post('api', [ResellerApiController::class, 'index']);
 $router->api('dashboard', [StatsAjaxController::class, 'dashboard']);
 $router->api('header_stats', [StatsAjaxController::class, 'headerStats']);
 $router->api('stats', [StatsAjaxController::class, 'stats']);
+$router->api('save_ui_prefs', [StatsAjaxController::class, 'saveUiPrefs']);
 
 $router->api('line', [LineAjaxController::class, 'line']);
 $router->api('line_activity', [LineAjaxController::class, 'lineActivity']);

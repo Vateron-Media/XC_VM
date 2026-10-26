@@ -15,24 +15,15 @@
 
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Enum\Theme;
 use XcVm\Core\Module\NavbarItem;
 use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Domain\User\UiPrefs;
 
 if (count(get_included_files()) == 1) {
     exit();
 }
 
 $rUpdate  = (json_decode((string) SettingsManager::getAll()['update_data'], true) ?: []);
-$xmIsDark = Theme::fromId($rUserInfo['theme'] ?? 0)->isDark();
-
-// Per-user Bootstrap 5 customizer state (see config.js + StatsAjaxController::saveUiPrefs).
-// The stored theme wins for the initial data-bs-theme paint; 'system'/unset falls
-// back to the legacy per-user theme column so there is no flash.
-$xmUiPrefs   = json_decode($rUserInfo['ui_prefs'] ?? '', true) ?: [];
-$xmThemePref = $xmUiPrefs['theme'] ?? null;
-$xmBsTheme   = $xmThemePref === 'dark' ? 'dark' : ($xmThemePref === 'light' ? 'light' : ($xmIsDark ? 'dark' : 'light'));
-
 /**
  * Shared navbar helpers (identical contract to legacy header.php). Guarded so a
  * single request only ever defines them once regardless of which header ran.
@@ -67,10 +58,8 @@ if (!function_exists('_xc_nav_label')) {
 }
 $xmCurrentLang = \XcVm\Core\Localization\Translator::current();
 $xmIsRtl       = \XcVm\Core\Localization\Translator::isRtl($xmCurrentLang);
-// The Vuexy customizer (config.js) derives the text direction from the per-user
-// `rtl` pref, not the language. Bind it to the language so an RTL language
-// mirrors the layout and switching back to an LTR language clears it.
-$xmUiPrefs['rtl'] = $xmIsRtl;
+// Customizer prefs; see UiPrefs::pageState() and layouts/ui_prefs_head.php.
+[$xmUiPrefs, $xmBsTheme] = UiPrefs::pageState($rUserInfo, $xmIsRtl);
 ?>
 <!doctype html>
 <html
@@ -115,16 +104,7 @@ $xmUiPrefs['rtl'] = $xmIsRtl;
         <link rel="stylesheet" href="assets/xcvm/rtl.css">
     <?php endif; ?>
 
-    <!-- Helpers + template customizer must precede config.js -->
-    <script src="assets/vendor/js/helpers.js"></script>
-    <script src="assets/vendor/js/template-customizer.js"></script>
-    <!-- Per-user customizer state (server-authoritative) consumed by config.js -->
-    <script>
-        window.XC_VM = window.XC_VM || {};
-        window.XC_VM.uiPrefsUrl = './api?action=save_ui_prefs';
-        window.XC_VM_UIPrefs = <?= json_encode($xmUiPrefs, JSON_UNESCAPED_SLASHES); ?>;
-    </script>
-    <script src="assets/js/config.js"></script>
+    <?php require __DIR__ . '/../layouts/ui_prefs_head.php'; ?>
 </head>
 
 <?php if (!empty($GLOBALS['_SETUP'])): /* setup wizard — branded bare shell: no sidebar / navbar / menu, and never touches $rUserInfo */ ?>
