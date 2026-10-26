@@ -215,18 +215,64 @@ final class XcvmNoderootHelperTest extends TestCase {
 		$this->assertSame("systemctl restart xc_vm\nreboot\n", $this->calls());
 	}
 
-	// certbot verb (XC_VM_Fanout#129): runs certbot --webroot with fixed paths,
-	// one -d per validated domain; the sudoers grants the helper, never `sudo
-	// certbot`.
+	/** Stage a certbot live/ dir the (logged, not executed) certbot run would produce. */
+	private function stageLive(string $domain, string $cert, string $key): void {
+		$live = $this->root . '/etc/letsencrypt/live/' . $domain;
+		mkdir($live, 0755, true);
+		file_put_contents($live . '/fullchain.pem', $cert);
+		file_put_contents($live . '/privkey.pem', $key);
+	}
+
+	// certbot verb (XC_VM_Fanout#129): runs certbot --webroot, one -d per validated
+	// domain, under certbot's ROOT-OWNED default dirs — never a --config-dir under
+	// the xc_vm-writable /home/xc_vm, so a compromised xc_vm cannot plant certbot
+	// config/hooks for root to read. The cert is then installed for the xc_vm front.
 	public function testCertbotRunsWithFixedPathsAndValidatedDomains(): void {
+		$this->stageLive('cdn1.example.com', 'CERTDATA', 'KEYDATA');
 		[$rc, $out] = $this->helper(['certbot', 'cdn1.example.com', 'cdn2.example.com']);
 		$this->assertSame(0, $rc, $out);
 		$c = $this->calls();
 		$this->assertStringContainsString('certbot certonly', $c);
-		$this->assertStringContainsString('--config-dir /home/xc_vm/bin/certbot/config', $c);
 		$this->assertStringContainsString('--webroot -w /home/xc_vm/certbot-webroot', $c);
 		$this->assertStringContainsString('-d cdn1.example.com -d cdn2.example.com', $c);
 		$this->assertStringContainsString('--non-interactive', $c);
+	}
+
+	public function testCertbotUsesRootOwnedDefaultDirsNotTheXcVmTree(): void {
+		// Critical (Sourcery): root certbot must not read xc_vm-writable config.
+		$this->stageLive('cdn1.example.com', 'CERTDATA', 'KEYDATA');
+		[$rc] = $this->helper(['certbot', 'cdn1.example.com']);
+		$this->assertSame(0, $rc);
+		$c = $this->calls();
+		$this->assertStringNotContainsString('/home/xc_vm/bin/certbot', $c, 'certbot config must not live under the xc_vm-writable tree');
+		$this->assertStringNotContainsString('--config-dir', $c, 'use certbot root-owned defaults');
+	}
+
+	public function testCertbotClearsAStaleLockFirst(): void {
+		// Medium (Sourcery): a stale lock from a killed run makes certbot refuse.
+		$this->stageLive('cdn1.example.com', 'CERTDATA', 'KEYDATA');
+		[$rc] = $this->helper(['certbot', 'cdn1.example.com']);
+		$this->assertSame(0, $rc);
+		$this->assertStringContainsString('.certbot.lock', $this->calls(), 'the stale lock is removed before certbot runs');
+	}
+
+	public function testCertbotInstallsTheIssuedCertForTheXcVmFront(): void {
+		// High (Sourcery): certbot's files are root-owned; the xc_vm front cannot
+		// read the key. The helper must hand server.{crt,key} to xc_vm.
+		$this->stageLive('cdn1.example.com', 'CERTDATA', 'KEYDATA');
+		[$rc, $out] = $this->helper(['certbot', 'cdn1.example.com']);
+		$this->assertSame(0, $rc, $out);
+		$conf = $this->root . '/home/xc_vm/bin/nginx/conf/';
+		$this->assertSame('CERTDATA', (string) @file_get_contents($conf . 'server.crt'), 'the front cert is installed');
+		$this->assertSame('KEYDATA', (string) @file_get_contents($conf . 'server.key'), 'the front key is installed');
+		$this->assertSame(0600, fileperms($conf . 'server.key') & 0777, 'the key is private (0600)');
+		$this->assertStringContainsString('chown xc_vm:xc_vm', $this->calls(), 'the cert is handed to the xc_vm agent');
+	}
+
+	public function testCertbotFailsWhenNoLiveCertWasProduced(): void {
+		// No live dir (issuance really failed): the helper must not report success.
+		[$rc] = $this->helper(['certbot', 'cdn1.example.com']);
+		$this->assertNotSame(0, $rc);
 	}
 
 	public function testCertbotNeedsAtLeastOneDomain(): void {

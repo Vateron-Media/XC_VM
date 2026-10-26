@@ -7,7 +7,7 @@
 # caller string reaches a shell, no caller bytes reach root unvalidated.
 #
 #   xcvm-noderoot service <start|stop|restart> | reboot | ramdisk <on|off>
-#                 sysctl | governor <gov> | ban-sync | ban-flush
+#                 sysctl | governor <gov> | ban-sync | ban-flush | certbot <domain>...
 #
 # Exit 0 on success; non-zero and NO change on any invalid input.
 # Test seam: XCVM_NODEROOT_ROOT (only when non-empty) prefixes /etc and /home and
@@ -168,24 +168,42 @@ ban-flush)
 	run ipset flush "$SET6"
 	;;
 certbot)
-	# certbot --webroot for this node's domains (one -d each). The sudoers grants
-	# this helper only, never `sudo certbot` (which could run hooks as root), so
-	# every path and flag is fixed here and only validated domains reach root — a
-	# domain cannot start an option (-*), traverse (..) or carry a shell/space.
+	# Issue/renew this node's TLS cert and hand it to the xc_vm front. certbot runs
+	# under its ROOT-OWNED default dirs (/etc/letsencrypt, /var/lib/letsencrypt,
+	# /var/log/letsencrypt) — never a --config-dir under the xc_vm-writable
+	# /home/xc_vm, so a compromised xc_vm cannot plant certbot config or renewal
+	# hooks for root to read. The sudoers grants THIS helper only, never `sudo
+	# certbot`. Only validated domains reach root — a domain cannot start an option
+	# (-*), traverse (..) or carry a shell/space.
 	[ $# -ge 1 ] || die "usage: certbot <domain>..."
 	for d in "$@"; do
 		case $d in '' | -* | *..* | *[!A-Za-z0-9.-]*) die "bad domain" ;; esac
 	done
 	have certbot || die "certbot not installed"
+	primary=$1
+	# A stale lock from a killed run makes certbot refuse; clear it first, as the
+	# PHP CertbotCommand does.
+	run rm -f /etc/letsencrypt/.certbot.lock /var/lib/letsencrypt/.certbot.lock /var/log/letsencrypt/.certbot.lock
 	# Re-stack the validated domains as "-d <domain>" pairs (IFS = space/tab/nl,
-	# and a domain carries none of those), then run with the fixed paths.
+	# and a domain carries none of those), then run with certbot's defaults.
 	set -- $(for d in "$@"; do printf -- '-d\n%s\n' "$d"; done)
 	run certbot certonly \
-		--config-dir /home/xc_vm/bin/certbot/config \
-		--work-dir /home/xc_vm/bin/certbot/work \
-		--logs-dir /home/xc_vm/bin/certbot/logs \
 		--agree-tos --expand --non-interactive --register-unsafely-without-email \
 		--webroot -w /home/xc_vm/certbot-webroot "$@"
+	# Hand the issued cert to the xc_vm front (bin/nginx/conf/server.{crt,key});
+	# certbot's own files stay root-owned. Pick the newest live dir (certbot's
+	# -NNNN suffix on a domain-set change).
+	live=$(ls -1dt "$R/etc/letsencrypt/live/$primary"*/ 2>/dev/null | head -n1 || true)
+	[ -n "$live" ] || die "certbot: no live cert for $primary"
+	conf=$R/home/xc_vm/bin/nginx/conf
+	mkdir -p "$conf"
+	cp "${live}fullchain.pem" "$conf/server.crt.xcvm-new"
+	cp "${live}privkey.pem" "$conf/server.key.xcvm-new"
+	chmod 644 "$conf/server.crt.xcvm-new"
+	chmod 600 "$conf/server.key.xcvm-new"
+	run chown xc_vm:xc_vm "$conf/server.crt.xcvm-new" "$conf/server.key.xcvm-new"
+	mv "$conf/server.key.xcvm-new" "$conf/server.key"
+	mv "$conf/server.crt.xcvm-new" "$conf/server.crt"
 	;;
 *)
 	die "unknown verb"
