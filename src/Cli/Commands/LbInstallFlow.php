@@ -192,8 +192,24 @@ class LbInstallFlow {
 		}
 
 		echo "Extracting to directory\n";
+		// A reinstall re-extracts the archive over MAIN_HOME, whose shipped defaults
+		// would reset the node's tuned fanout config and empty its certbot config
+		// (XC_VM #477). Stash both across the extraction and restore them after; a
+		// first install has neither, so nothing is preserved and the defaults stand.
+		$rKeep = $rDir . '/keep';
+		call_user_func($rRunSSH, $rConn, 'sudo sh -c ' . escapeshellarg(
+			'mkdir -p "' . $rKeep . '/xc_fanout" "' . $rKeep . '/certbot"; '
+			. '[ -f "' . MAIN_HOME . 'bin/xc_fanout/config.json" ] && cp -a "' . MAIN_HOME . 'bin/xc_fanout/config.json" "' . $rKeep . '/xc_fanout/"; '
+			. '[ -e "' . MAIN_HOME . 'bin/certbot/config" ] && cp -a "' . MAIN_HOME . 'bin/certbot/config" "' . $rKeep . '/certbot/"; '
+			. 'true'
+		));
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
 		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf ' . $rArchive . ' -C "' . MAIN_HOME . '"');
+		call_user_func($rRunSSH, $rConn, 'sudo sh -c ' . escapeshellarg(
+			'[ -f "' . $rKeep . '/xc_fanout/config.json" ] && { rm -f "' . MAIN_HOME . 'bin/xc_fanout/config.json"; cp -a "' . $rKeep . '/xc_fanout/config.json" "' . MAIN_HOME . 'bin/xc_fanout/config.json"; }; '
+			. '[ -e "' . $rKeep . '/certbot/config" ] && { rm -rf "' . MAIN_HOME . 'bin/certbot/config"; cp -a "' . $rKeep . '/certbot/config" "' . MAIN_HOME . 'bin/certbot/config"; }; '
+			. 'true'
+		));
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
 		$rRemoteCheck = trim(call_user_func($rRunSSH, $rConn, 'test -f ' . MAIN_HOME . 'console.php && echo OK')['output']);
 		if ($rRemoteCheck !== 'OK') {
