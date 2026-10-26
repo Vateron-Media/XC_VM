@@ -68,12 +68,19 @@ if (SettingsManager::get('enable_cache') || SettingsManager::get('redis_handler'
                         [$rMinute, $rHour] = array_pad(explode(' ', (string) ($db->get_row()['time'] ?? '')), 2, '*');
                         $db->query('SELECT `id` FROM `lines`;');
                         $rLineCount = $db->result->rowCount();
-                        $db->query('SELECT `id` FROM `streams`;');
-                        $rStreamCount = $db->result->rowCount();
+                        // Every row of `streams` is cached, episodes and movies included: one tile per type so the total is not read as live channels only.
+                        $rCachedIDs = array_flip(array_map(static fn(string $rPath): string => substr(basename($rPath), 7), glob(STREAMS_TMP_PATH . 'stream_*') ?: []));
+                        $rStreamTypes = [1 => [0, 0], 2 => [0, 0], 5 => [0, 0]];
+                        $db->query('SELECT `id`, `type` FROM `streams`;');
+                        foreach ($db->get_rows() as $rRow) {
+                            $rStreamTypes[(int) $rRow['type']] ??= [0, 0];
+                            $rStreamTypes[(int) $rRow['type']][0] += (int) isset($rCachedIDs[$rRow['id']]);
+                            $rStreamTypes[(int) $rRow['type']][1]++;
+                        }
+                        ksort($rStreamTypes);
                         $db->query('SELECT `id` FROM `streams_series`;');
                         $rSeriesCount = $db->result->rowCount();
                         $rLineCountR = count(glob(LINES_TMP_PATH . 'line_i_*'));
-                        $rStreamCountR = count(glob(STREAMS_TMP_PATH . 'stream_*'));
                         $rSeriesCountR = max(count(glob(SERIES_TMP_PATH . 'series_*')) - 2, 0);
                         $rFreeCache = 100 - (int) (disk_free_space(MAIN_HOME . 'tmp') / disk_total_space(MAIN_HOME . 'tmp') * 100);
                         ?>
@@ -98,12 +105,20 @@ if (SettingsManager::get('enable_cache') || SettingsManager::get('redis_handler'
                         </div>
                         <div class="row g-3 mb-4">
                             <?php
-                            $rTiles = [
-                                ['tabler-player-play', 'Streams', number_format($rStreamCountR) . ' <span class="text-body-secondary">/ ' . number_format($rStreamCount) . '</span>', 'info'],
+                            $rTypeTiles = [1 => ['tabler-player-play', 'live_streams'], 2 => ['tabler-movie', 'movies'], 3 => ['tabler-video-plus', 'created_channels'], 4 => ['tabler-radio', 'radio_stations'], 5 => ['tabler-list-numbers', 'episodes']];
+                            $rTiles = [];
+                            foreach ($rStreamTypes as $rType => [$rCached, $rTotal]) {
+                                // A type outside streams_types is a leftover of a migration: no page lists it, so flag it.
+                                $rTiles[] = isset($rTypeTiles[$rType])
+                                    ? [$rTypeTiles[$rType][0], $language::get($rTypeTiles[$rType][1]), number_format($rCached) . ' <span class="text-body-secondary">/ ' . number_format($rTotal) . '</span>', 'info']
+                                    : ['tabler-alert-triangle', 'Unknown type ' . $rType, number_format($rCached) . ' <span class="text-body-secondary">/ ' . number_format($rTotal) . '</span>', 'warning'];
+                            }
+                            array_push(
+                                $rTiles,
                                 ['tabler-users', 'Lines', number_format($rLineCountR) . ' <span class="text-body-secondary">/ ' . number_format($rLineCount) . '</span>', 'primary'],
                                 ['tabler-device-tv', 'Series', number_format($rSeriesCountR) . ' <span class="text-body-secondary">/ ' . number_format($rSeriesCount) . '</span>', 'success'],
                                 ['tabler-clock', 'Time Taken', TimeUtils::secondsToTime($rSettings['last_cache_taken']), 'secondary'],
-                            ];
+                            );
                             foreach ($rTiles as $rTile):
                             ?>
                                 <div class="col-6 col-lg-3">
