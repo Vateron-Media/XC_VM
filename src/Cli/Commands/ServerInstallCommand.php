@@ -235,6 +235,18 @@ class ServerInstallCommand implements CommandInterface {
 
 		$this->updateSystemAndInstallPackages($rConn, $rRunSSH, $rPackages, $rType);
 		$this->installUbuntu20Compatibility($rConn, $rRunSSH, $rVersion);
+
+		// A reinstall must keep an LB node's tuned fanout config, its certbot config
+		// (the real certificate) and the front's server.{crt,key}: prepareInstallRoot
+		// wipes BIN_PATH and installArchive re-extracts the archive's defaults over it
+		// (XC_VM #477). Stash them first — before anything is destroyed — so a failed
+		// stash stops the install with nothing lost; a fresh node has none (no-op).
+		if ($rType == 2 && !LbInstallFlow::stashNodeConfig($rConn, $rRunSSH)) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "Could not preserve the node's configuration before reinstall! Exiting\n";
+			return 1;
+		}
+
 		$this->prepareInstallRoot($rConn, $rRunSSH, $rType);
 
 		if ($rType == 1) {
@@ -245,6 +257,8 @@ class ServerInstallCommand implements CommandInterface {
 			if (!LbInstallFlow::installArchive($rConn, $rRunSSH, $rInstallFiles, $rHash, $rServerID, $db)) {
 				return 1;
 			}
+			// Restore the stashed config over the archive's defaults (no-op on a fresh node).
+			LbInstallFlow::restoreNodeConfig($rConn, $rRunSSH);
 		}
 
 		// An LB in API mode — a new one under lb_new_node_mode=api, or one MAIN
