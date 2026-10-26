@@ -30,3 +30,21 @@ updates:
       composer:
         patterns:
           - "*"
+
+  # Playwright e2e suite (tests/e2e). Browsers are installed at run time by
+  # `npx playwright install`, so a bump of @playwright/test also moves the
+  # browser build. Grouped so the Playwright packages open a single PR.
+  - package-ecosystem: "npm"
+    directory: "/tests/e2e"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "test"
+    labels:
+      - "dependencies"
+      - "e2e"
+    groups:
+      playwright:
+        patterns:
+          - "@playwright/*"
+          - "playwright*"
