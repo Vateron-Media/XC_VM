@@ -200,8 +200,9 @@ class BlocklistService {
 		}
 
 		// An agent with nothing in it is contained in every agent: saved, it
-		// blocked every client (checkBlockedUAs()).
-		if (trim((string) ($rArray['blocked_ua'] ?? '')) === '') {
+		// blocked every client (checkBlockedUAs()). The column (and the form field)
+		// is user_agent; blocked_ua is only the alias getBlockedUA() reads it under.
+		if (trim((string) ($rArray['user_agent'] ?? '')) === '') {
 			return ['status' => STATUS_INVALID_NAME, 'data' => $rData];
 		}
 

@@ -29,10 +29,31 @@ final class BlockedUserAgentEmptyTest extends TestCase {
 		$GLOBALS['db'] = $rDb;
 		try {
 			foreach (['', '   '] as $rAgent) {
-				$this->assertNotSame(STATUS_SUCCESS, BlocklistService::processUA(['blocked_ua' => $rAgent])['status'] ?? null);
+				$this->assertSame(STATUS_INVALID_NAME, BlocklistService::processUA(['user_agent' => $rAgent])['status'] ?? null);
 			}
 			$rDb->query('SELECT COUNT(*) AS `n` FROM `blocked_uas`;');
 			$this->assertSame(0, (int) $rDb->get_row()['n']);
+		} finally {
+			$rOwn->setValue(null, $rOwnBefore);
+			$GLOBALS['db'] = $rBefore;
+		}
+	}
+
+	/** The form posts `user_agent`; a real agent must be saved under that column. */
+	public function testANamedEntryIsSaved(): void {
+		defined('STATUS_SUCCESS') || define('STATUS_SUCCESS', 0);
+		$rDb = new TestDb();
+		$rDb->exec(InstallSchema::table('blocked_uas'));
+		$rOwn = new ReflectionProperty(BlocklistService::class, 'db');
+		$rOwnBefore = $rOwn->getValue();
+		$rOwn->setValue(null, $rDb);
+		$rBefore = $GLOBALS['db'] ?? null;
+		$GLOBALS['db'] = $rDb;
+		try {
+			$rResult = BlocklistService::processUA(['user_agent' => 'e2e-agent/1.0', 'exact_match' => '1']);
+			$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+			$rDb->query('SELECT `user_agent`, `exact_match` FROM `blocked_uas`;');
+			$this->assertSame('e2e-agent/1.0', $rDb->get_row()['user_agent']);
 		} finally {
 			$rOwn->setValue(null, $rOwnBefore);
 			$GLOBALS['db'] = $rBefore;
