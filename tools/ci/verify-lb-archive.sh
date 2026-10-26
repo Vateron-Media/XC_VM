@@ -83,6 +83,18 @@ manifest=$(awk -v dirs="$RM_DIRS" -v files="$RM_FILES" '
 # the whole dirs. Each entry must be removed by the Makefile's LB_DIRS_TO_REMOVE /
 # LB_FILES_TO_REMOVE; this asserts the removal actually took effect (catches a
 # silent rm miss after a rename — security blocker 1).
+#
+# "No privileged code on an LB" is not "no code that ever runs as root": the rule
+# bars MAIN-only admin/reseller/install/cluster-API code, not the constrained edge
+# operations an LB legitimately performs (certbot renewal, cache/cleanup crons).
+# bin/install/xcvm-noderoot is deliberately NOT listed here. It is the serve-only
+# root trust-boundary helper, and its verbs (service/ramdisk/sysctl/bans and now
+# certbot) are exactly those constrained edge operations. Its archive copy lands in
+# the xc_vm-writable /home/xc_vm/bin/install and is never run as root; the copy root
+# runs is installed to /usr/local/sbin only on a serve-only node, over SSH from
+# MAIN's own trusted copy (LbInstallFlow::provisionNodeRootHelper, gated on
+# $rServeOnly) — never from the archive. So the certbot verb adds no LB privilege a
+# regular LB did not already run.
 SENSITIVE=(
 	# Admin / reseller / player UI + the privileged domains (dir-level removes).
 	"Public/Controllers/Admin"
