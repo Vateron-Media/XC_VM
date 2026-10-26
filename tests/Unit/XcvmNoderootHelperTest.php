@@ -214,4 +214,35 @@ final class XcvmNoderootHelperTest extends TestCase {
 		$this->assertSame(0, $this->helper(['reboot'])[0]);
 		$this->assertSame("systemctl restart xc_vm\nreboot\n", $this->calls());
 	}
+
+	// certbot verb (XC_VM_Fanout#129): runs certbot --webroot with fixed paths,
+	// one -d per validated domain; the sudoers grants the helper, never `sudo
+	// certbot`.
+	public function testCertbotRunsWithFixedPathsAndValidatedDomains(): void {
+		[$rc, $out] = $this->helper(['certbot', 'cdn1.example.com', 'cdn2.example.com']);
+		$this->assertSame(0, $rc, $out);
+		$c = $this->calls();
+		$this->assertStringContainsString('certbot certonly', $c);
+		$this->assertStringContainsString('--config-dir /home/xc_vm/bin/certbot/config', $c);
+		$this->assertStringContainsString('--webroot -w /home/xc_vm/certbot-webroot', $c);
+		$this->assertStringContainsString('-d cdn1.example.com -d cdn2.example.com', $c);
+		$this->assertStringContainsString('--non-interactive', $c);
+	}
+
+	public function testCertbotNeedsAtLeastOneDomain(): void {
+		[$rc] = $this->helper(['certbot']);
+		$this->assertNotSame(0, $rc);
+		$this->assertSame('', $this->calls());
+	}
+
+	/** @dataProvider badDomains */
+	public function testCertbotRejectsBadDomainsAndRunsNothing(string $bad): void {
+		[$rc] = $this->helper(['certbot', 'good.example', $bad]);
+		$this->assertNotSame(0, $rc);
+		$this->assertSame('', $this->calls(), 'a bad domain must run certbot with nothing');
+	}
+
+	public static function badDomains(): array {
+		return [['-x'], ['--server=evil'], ['a;rm -rf /'], ['a b'], ['a/../b'], ['a..b'], ['$(id)'], ['a`id`'], ['a|b'], ['']];
+	}
 }

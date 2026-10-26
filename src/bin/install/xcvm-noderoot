@@ -167,6 +167,26 @@ ban-flush)
 	run ipset flush "$SET4"
 	run ipset flush "$SET6"
 	;;
+certbot)
+	# certbot --webroot for this node's domains (one -d each). The sudoers grants
+	# this helper only, never `sudo certbot` (which could run hooks as root), so
+	# every path and flag is fixed here and only validated domains reach root — a
+	# domain cannot start an option (-*), traverse (..) or carry a shell/space.
+	[ $# -ge 1 ] || die "usage: certbot <domain>..."
+	for d in "$@"; do
+		case $d in '' | -* | *..* | *[!A-Za-z0-9.-]*) die "bad domain" ;; esac
+	done
+	have certbot || die "certbot not installed"
+	# Re-stack the validated domains as "-d <domain>" pairs (IFS = space/tab/nl,
+	# and a domain carries none of those), then run with the fixed paths.
+	set -- $(for d in "$@"; do printf -- '-d\n%s\n' "$d"; done)
+	run certbot certonly \
+		--config-dir /home/xc_vm/bin/certbot/config \
+		--work-dir /home/xc_vm/bin/certbot/work \
+		--logs-dir /home/xc_vm/bin/certbot/logs \
+		--agree-tos --expand --non-interactive --register-unsafely-without-email \
+		--webroot -w /home/xc_vm/certbot-webroot "$@"
+	;;
 *)
 	die "unknown verb"
 	;;
