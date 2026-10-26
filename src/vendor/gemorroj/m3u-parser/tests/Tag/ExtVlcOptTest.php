@@ -55,4 +55,12 @@ class ExtVlcOptTest extends TestCase
 
         self::assertEquals($expectedString, (string) $data);
     }
+
+    public function testParseExtVlcOptWithoutValue(): void
+    {
+        $extVlcOpt = new ExtVlcOpt('#EXTVLCOPT:novalue');
+
+        self::assertEquals('novalue', $extVlcOpt->getKey());
+        self::assertEquals('', $extVlcOpt->getValue());
+    }
 }

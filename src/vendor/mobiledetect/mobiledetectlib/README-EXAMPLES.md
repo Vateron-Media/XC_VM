@@ -161,12 +161,17 @@ $detect->is('tablet');     // Same as $detect->isTablet()
 
 ```php
 use Detection\MobileDetect;
+use Detection\Cache\Cache;
 use Psr\SimpleCache\CacheInterface;
 
 // Use any PSR-16 compatible cache
 $redisCache = new YourRedisCacheAdapter();
 
 $detect = new MobileDetect($redisCache);
+
+// Or tune the bundled in-memory cache's max entries
+// (default is 1000; entries beyond the cap are evicted FIFO).
+$detect = new MobileDetect(new Cache(5000));
 ```
 
 ### Custom Cache Key Function
@@ -204,7 +209,16 @@ $detect = new MobileDetect(null, [
 
 ## Long-Running Processes
 
-When using MobileDetect in CLI scripts, workers, or daemons that process many different User-Agents, you should periodically clean up expired cache entries to prevent memory growth.
+When using MobileDetect in CLI scripts, workers, or daemons (RoadRunner, Laravel Octane, FrankenPHP worker mode, Swoole, 
+ReactPHP, queue workers) that reuse a single `MobileDetect` instance across many distinct User-Agents, 
+the in-memory cache would otherwise grow without bound.
+
+**Default-safe since 4.11.0**: the bundled `Detection\Cache\Cache` enforces a hard cap (1000 entries by default, FIFO eviction).  
+Tune via `new Cache($n)` for higher legitimate UA cardinality, or inject a different PSR-16 adapter (Redis, APCu, Memcached, Filesystem) — 
+that adapter's eviction policy is then the operator's responsibility. Note that `evictExpired()` only removes entries whose TTL has elapsed; 
+under the default 86 400 s TTL it does **not** bound cache size by cardinality.  
+
+Use the `$maxEntries` cap (or `clear()`) for that.
 
 ### Worker Example
 
@@ -228,10 +242,10 @@ while ($userAgent = getNextUserAgentFromQueue()) {
 
     $iterationCount++;
 
-    // Periodically clean up expired cache entries
+    // The bundled Cache is bounded by default (1000 entries, FIFO).
+    // Optionally reset it periodically as a belt-and-braces measure.
     if ($iterationCount % 1000 === 0 && $cache instanceof Cache) {
-        $evicted = $cache->evictExpired();
-        echo "Evicted $evicted expired cache entries\n";
+        $cache->clear();
     }
 }
 ```
@@ -244,7 +258,9 @@ use Detection\Cache\Cache;
 
 $detect = new MobileDetect();
 
-// Process a large batch of User-Agents
+// Process a large batch of User-Agents. The bundled Cache caps itself
+// at 1000 entries by default, so memory stays bounded even if the file
+// contains millions of unique UAs.
 $userAgents = file('user-agents.txt', FILE_IGNORE_NEW_LINES);
 
 foreach ($userAgents as $index => $ua) {
@@ -257,11 +273,9 @@ foreach ($userAgents as $index => $ua) {
     ];
 }
 
-// Clean up after batch processing
+// Optional: drop the cache entirely once the batch is done.
 $cache = $detect->getCache();
 if ($cache instanceof Cache) {
-    $cache->evictExpired();
-    // Or clear entirely if you're done
     $cache->clear();
 }
 ```

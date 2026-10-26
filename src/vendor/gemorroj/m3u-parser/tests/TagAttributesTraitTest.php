@@ -17,7 +17,6 @@ class TagAttributesTraitTest extends TestCase
 
         $result = $this->getAttributes();
 
-        self::assertIsArray($result);
         self::assertEquals([
             'tvg-ID' => '',
             'tvg-name' => 'MEDI 1 SAT',
@@ -38,7 +37,28 @@ class TagAttributesTraitTest extends TestCase
 
         $result = $this->getAttributesString();
 
-        self::assertIsString($result);
         self::assertSame('tvg-ID="" ext-tag="some\"quoted" tvg-name-custom="Первый HD"', $result);
+    }
+
+    public function testParseBackslashInAttribute(): void
+    {
+        $this->initAttributes('tvg-logo="C:\\logos\\1.png"');
+
+        self::assertSame('C:\\logos\\1.png', $this->getAttribute('tvg-logo'));
+    }
+
+    public function testAttributesRoundTripWithBackslash(): void
+    {
+        $this->setAttribute('path', 'C:\\path');
+        $this->setAttribute('quote', 'a"b');
+
+        $result = $this->getAttributesString();
+
+        self::assertSame('path="C:\\\\path" quote="a\\"b"', $result);
+
+        $this->initAttributes($result);
+
+        self::assertSame('C:\\path', $this->getAttribute('path'));
+        self::assertSame('a"b', $this->getAttribute('quote'));
     }
 }

@@ -1,5 +1,49 @@
 # Change log
 
+# 4.11.0
+
+## Security
+- [x] **GHSA-mgj4-qjmw-v56v** — the bundled `Detection\Cache\Cache` is now bounded (default 1000 entries, FIFO eviction). Prevents unbounded in-memory growth when one `MobileDetect` instance is reused across many distinct User-Agents in a long-running PHP runtime (RoadRunner, Laravel Octane, FrankenPHP worker mode, Swoole, ReactPHP, queue workers). **Not applicable** to classic PHP-FPM / mod_php deployments — the cache dies with the request. Custom PSR-16 adapters (Redis, APCu, Memcached, Filesystem) are out of scope; their eviction policy is the operator's responsibility.
+
+## Added
+- [x] `Detection\Cache\Cache::__construct(int $maxEntries = Cache::DEFAULT_MAX_ENTRIES)` — tune the in-memory cap via `new MobileDetect(new Cache($n))`.
+- [x] `Cache::DEFAULT_MAX_ENTRIES` constant (1000) and `Cache::getMaxEntries()` accessor.
+
+## Changed
+- [x] `README-EXAMPLES.md` "Long-Running Processes" — worker example now uses `clear()` (was `evictExpired()`, which is a no-op against fresh entries under the default 86 400 s TTL); added explicit note framing in-memory cache bounding as a systems-level concern with the bundled cap, and pointing operators at their own adapter's eviction for custom PSR-16 backends.
+- [x] `Cache::evictExpired()` docblock — clarified that it bounds by *expiration*, not by *cardinality*. Method behavior is unchanged.
+
+# 4.10.0
+
+## Changed
+- [x] `Detection\Cache\Cache` method signatures widened to be Liskov-compatible with `psr/simple-cache` v1, v2, and v3 simultaneously. Resolves [#989](https://github.com/serbanghita/Mobile-Detect/issues/989) — the class no longer fatals at load time on hosts where another package has already registered an older `CacheInterface` (common in WordPress stacks).
+- [x] `composer.json`: `psr/simple-cache` constraint widened to `^1.0 || ^2.0 || ^3.0`.
+- [x] **Minimum PHP version raised to 8.2** in `composer.json` (was `>=8.0`). PHP 8.0 and 8.1 are both end-of-life and had already been dropped from CI in 4.9.0 because `phpbench/phpbench: 1.6.1` requires PHP ^8.2.
+
+## Added
+- [x] `psr16-compat` CI matrix that verifies Cache remains LSP-compatible with every supported major of `psr/simple-cache` (1.x, 2.x, 3.x).
+
+## BC note
+- Subclasses of `Detection\Cache\Cache` that overrode `get`/`set`/`has`/`delete`/`getMultiple`/`setMultiple`/`deleteMultiple` (or protected `checkKey`) with narrowed parameter types (e.g. `function get(string $key, …)`) will fatal at class load on this version. Drop the scalar type from the override, or widen to `mixed`, to restore LSP compatibility.
+
+# 4.9.0
+
+## Added
+- [x] Lenovo: broad `Lenovo TB` prefix match for modern tablets (#1013).
+- [x] Samsung: 2025 tablet models (Tab S11, S10 Lite, A11).
+- [x] `MobileDetect::VERSION_TYPE_STRING` and `VERSION_TYPE_FLOAT` constants promoted to `public` (#991).
+
+## Changed
+- [x] Consistent late static binding for subclass extensibility (#1012).
+- [x] Dropped PHP 8.0 and 8.1 from the CI matrix.
+
+## Fixed
+- [x] PHP 8.4 compatibility: explicit type hints where the engine now requires them.
+- [x] `Cache::getTimestamp()` method name typo (was `getTimeStamp`) (#1007).
+- [x] Version regex now accepts multi-char pre-release suffixes.
+- [x] Pinned composer dependencies to exact versions.
+- [x] GitHub Actions workflow actions updated to their latest versions.
+
 # 4.8.10
 
 ## Fixed

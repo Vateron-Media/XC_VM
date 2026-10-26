@@ -9,6 +9,7 @@ use M3uParser\M3uEntry;
 use M3uParser\M3uParser;
 use M3uParser\Tag\ExtInf;
 use M3uParser\Tag\ExtTagInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ExtInfTest extends TestCase
@@ -34,8 +35,6 @@ class ExtInfTest extends TestCase
         $data = $m3uParser->parseFile(__DIR__.'/../fixtures/extinf.m3u');
 
         self::assertCount(6, $data);
-
-        self::assertContainsOnlyInstancesOf(M3uEntry::class, $data);
 
         // basic
         /** @var M3uEntry $firstEntry */
@@ -193,5 +192,144 @@ class ExtInfTest extends TestCase
         $extInf = new ExtInf($testString);
 
         self::assertEquals($testString, (string) $extInf);
+    }
+
+    public function testParseUnquotedAttributeBeforeComma(): void
+    {
+        $extInf = new ExtInf('#EXTINF:-1 tvg-name=Первый_HD,Первый канал HD');
+
+        self::assertEquals(-1, $extInf->getDuration());
+        self::assertEquals('Первый канал HD', $extInf->getTitle());
+        self::assertEquals(['tvg-name' => 'Первый_HD'], $extInf->getAttributes());
+        self::assertSame('#EXTINF:-1 tvg-name="Первый_HD",Первый канал HD', (string) $extInf);
+    }
+
+    /**
+     * @param array<string, string> $attributes
+     */
+    #[DataProvider('provideParse')]
+    public function testParse(string $line, float $duration, string $title, array $attributes): void
+    {
+        $extInf = new ExtInf($line);
+
+        self::assertSame($duration, $extInf->getDuration());
+        self::assertSame($title, $extInf->getTitle());
+        self::assertSame($attributes, $extInf->getAttributes());
+    }
+
+    /**
+     * @return iterable<string, array{string, float, string, array<string, string>}>
+     */
+    public static function provideParse(): iterable
+    {
+        yield 'basic' => [
+            '#EXTINF:233,Everclear - So Much For The Afterglow',
+            233.0, 'Everclear - So Much For The Afterglow', [],
+        ];
+        yield 'negative duration' => [
+            '#EXTINF:-1,Первый канал HD',
+            -1.0, 'Первый канал HD', [],
+        ];
+        yield 'float duration' => [
+            '#EXTINF:5.279,title',
+            5.279, 'title', [],
+        ];
+        yield 'zero duration' => [
+            '#EXTINF:0,title',
+            0.0, 'title', [],
+        ];
+        yield 'duration with surrounding spaces' => [
+            '#EXTINF: -1 tvg-name="Test with space" , Test with space',
+            -1.0, 'Test with space', ['tvg-name' => 'Test with space'],
+        ];
+        yield 'unquoted attribute right before comma' => [
+            '#EXTINF:-1 tvg-name=Первый_HD,Первый канал HD',
+            -1.0, 'Первый канал HD', ['tvg-name' => 'Первый_HD'],
+        ];
+        yield 'mixed quoted and unquoted attributes' => [
+            '#EXTINF:-1 tvg-name=Первый_HD tvg-logo="Первый канал" deinterlace=4 group-title="Эфирные каналы",Первый канал HD',
+            -1.0, 'Первый канал HD', [
+                'tvg-name' => 'Первый_HD',
+                'tvg-logo' => 'Первый канал',
+                'deinterlace' => '4',
+                'group-title' => 'Эфирные каналы',
+            ],
+        ];
+        yield 'comma inside quoted attribute value' => [
+            '#EXTINF:-1 tvg-name="Test with, comma 1/2" group-title="===test group title 1/2",Test with, comma 1/2',
+            -1.0, 'Test with, comma 1/2', [
+                'tvg-name' => 'Test with, comma 1/2',
+                'group-title' => '===test group title 1/2',
+            ],
+        ];
+        yield 'comma in title' => [
+            '#EXTINF:-1,Hello, world',
+            -1.0, 'Hello, world', [],
+        ];
+        yield 'escaped quote inside attribute value' => [
+            '#EXTINF:-1 group-title="some\"quoted",title',
+            -1.0, 'title', ['group-title' => 'some"quoted'],
+        ];
+        yield 'equals sign inside quoted attribute value' => [
+            '#EXTINF:-1 ext-tag="a=b",title',
+            -1.0, 'title', ['ext-tag' => 'a=b'],
+        ];
+        yield 'backslash inside attribute value' => [
+            '#EXTINF:-1 tvg-logo="C:\logos\1.png",title',
+            -1.0, 'title', ['tvg-logo' => 'C:\logos\1.png'],
+        ];
+        yield 'empty title with attribute' => [
+            '#EXTINF:-1 tvg-name="Test empty name",',
+            -1.0, '', ['tvg-name' => 'Test empty name'],
+        ];
+        yield 'empty title without attributes' => [
+            '#EXTINF:-1,',
+            -1.0, '', [],
+        ];
+        yield 'equals sign in title' => [
+            '#EXTINF:100,a=b c=d',
+            100.0, 'a=b c=d', [],
+        ];
+        yield 'empty payload' => [
+            '#EXTINF:',
+            0.0, '', [],
+        ];
+        yield 'non-numeric duration' => [
+            '#EXTINF:no-duration,title',
+            0.0, 'title', [],
+        ];
+        yield 'no comma at all' => [
+            '#EXTINF:-1',
+            -1.0, '', [],
+        ];
+    }
+
+    #[DataProvider('provideRoundTrip')]
+    public function testRoundTrip(string $line): void
+    {
+        $first = new ExtInf($line);
+        $second = new ExtInf((string) $first);
+
+        self::assertSame($first->getDuration(), $second->getDuration());
+        self::assertSame($first->getTitle(), $second->getTitle());
+        self::assertSame($first->getAttributes(), $second->getAttributes());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideRoundTrip(): iterable
+    {
+        yield 'basic' => ['#EXTINF:233,Everclear - So Much For The Afterglow'];
+        yield 'negative duration' => ['#EXTINF:-1,Первый канал HD'];
+        yield 'float duration' => ['#EXTINF:5.279,title'];
+        yield 'zero duration' => ['#EXTINF:0,'];
+        yield 'quoted attribute' => ['#EXTINF:-1 tvg-name="Первый_HD",Первый канал HD'];
+        yield 'unquoted attribute' => ['#EXTINF:-1 tvg-name=Первый_HD,Первый канал HD'];
+        yield 'comma in quoted attribute' => ['#EXTINF:-1 tvg-name="Test with, comma 1/2",Test with, comma 1/2'];
+        yield 'comma in title' => ['#EXTINF:-1,Hello, world'];
+        yield 'escaped quote' => ['#EXTINF:-1 group-title="some\"quoted",title'];
+        yield 'backslash' => ['#EXTINF:-1 tvg-logo="C:\logos\1.png",title'];
+        yield 'empty title' => ['#EXTINF:-1 tvg-name="Test empty name",'];
     }
 }

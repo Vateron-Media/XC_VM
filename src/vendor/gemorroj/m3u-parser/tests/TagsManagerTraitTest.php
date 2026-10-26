@@ -19,7 +19,6 @@ class TagsManagerTraitTest extends TestCase
 
         $result = $this->getTags();
 
-        self::assertIsArray($result);
         self::assertEquals([ExtInf::class], $result);
     }
 
@@ -30,7 +29,6 @@ class TagsManagerTraitTest extends TestCase
 
         $result = $this->getTags();
 
-        self::assertIsArray($result);
         self::assertEquals([], $result);
     }
 
