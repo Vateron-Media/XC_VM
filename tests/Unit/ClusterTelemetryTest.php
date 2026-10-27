@@ -175,6 +175,20 @@ final class ClusterTelemetryTest extends TestCase {
 		}
 	}
 
+	/**
+	 * A serve-only node has no watchdog writing local.json: the fanout status
+	 * PHP left at install time stayed for good, and ReleaseCanary read the
+	 * daemon as down on it forever (#478).
+	 */
+	public function testTheFanoutStatusIsNeverTheLastValue(): void {
+		$rPrev = ['fanout' => ['running' => false, 'socket' => false, 'connections' => null, 'memory' => null]];
+		$this->assertNull(HeartbeatService::toWatchdogData(['local' => null] + self::SAMPLE, $rPrev)['fanout'], 'no local.json: no status, not the stale one');
+
+		$rAgent = ['running' => true, 'socket' => true, 'connections' => 3, 'memory' => 1024];
+		$this->assertSame($rAgent, HeartbeatService::toWatchdogData(['local' => null, 'fanout' => $rAgent] + self::SAMPLE, $rPrev)['fanout'], 'as the agent reads the daemon');
+		$this->assertSame($rAgent, HeartbeatService::toWatchdogData(['fanout' => $rAgent] + self::SAMPLE, $rPrev)['fanout'], "the agent's reading before the watchdog's");
+	}
+
 	public function testDeviceSectionsAreCheckedForShape(): void {
 		$rData = HeartbeatService::toWatchdogData(self::withLocal([
 			'audio_devices' => [7, 'hw:CARD=A,DEV=0', ['x']],
@@ -361,7 +375,7 @@ final class ClusterTelemetryTest extends TestCase {
 		HeartbeatService::record(NodeRegistry::byServer(5), ['telemetry' => self::withLocal($rLocal)], $this->rT0 + 60000);
 		$rWd = json_decode($this->server()['watchdog_data'], true);
 		$this->assertSame([[], [], [], []], [$rWd['audio_devices'], $rWd['video_devices'], $rWd['gpu_info'], $rWd['iostat_info']]);
-		$this->assertSame([0, 7], [(int) $this->server()['requests_per_second'], $rWd['fanout']['connections']], 'no requests per second; the last fanout status');
+		$this->assertSame([0, null], [(int) $this->server()['requests_per_second'], $rWd['fanout']], 'no requests per second, no fanout status (never the last one, #478)');
 		$this->rDb->query('SELECT `gpu_info`, `iostat_info` FROM `servers_stats` ORDER BY `id` DESC LIMIT 1');
 		$this->assertSame(['gpu_info' => '[]', 'iostat_info' => '[]'], $this->rDb->get_row(), 'nothing of it is kept in servers_stats');
 	}

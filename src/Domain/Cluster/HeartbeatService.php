@@ -618,7 +618,11 @@ final class HeartbeatService {
 		$rHistory = is_array($rPrev['cpu_average_array'] ?? null) ? array_values($rPrev['cpu_average_array']) : [];
 		$rHistory[] = $rOut['cpu'];
 		$rOut['cpu_average_array'] = array_slice($rHistory, -self::CPU_HISTORY);
-		$rOut['fanout'] = is_array($rLocal['fanout'] ?? null) ? $rLocal['fanout'] : ($rPrev['fanout'] ?? null);
+		// The daemon's status as the agent reads it (a PHP-free node has no
+		// watchdog writing local.json), else as the watchdog does. Never the last
+		// value: a serve-only node kept the one PHP left at install time for good,
+		// and ReleaseCanary held the release back on it.
+		$rOut['fanout'] = is_array($rTel['fanout'] ?? null) ? $rTel['fanout'] : (is_array($rLocal['fanout'] ?? null) ? $rLocal['fanout'] : null);
 		return $rOut;
 	}
 
