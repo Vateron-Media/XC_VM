@@ -14,23 +14,14 @@
  */
 
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Enum\Theme;
 use XcVm\Core\Module\NavbarItem;
 use XcVm\Core\Module\ResellerNavbarRegistry;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\User\UiPrefs;
 
 if (count(get_included_files()) == 1) {
     exit();
 }
-
-$xmIsDark = Theme::fromId($rUserInfo['theme'] ?? 0)->isDark();
-
-// Per-user Bootstrap 5 customizer state (shared config.js contract). The stored
-// theme wins for the initial data-bs-theme paint; 'system'/unset falls back to
-// the legacy per-user theme column so there is no flash.
-$xmUiPrefs   = json_decode($rUserInfo['ui_prefs'] ?? '', true) ?: [];
-$xmThemePref = $xmUiPrefs['theme'] ?? null;
-$xmBsTheme   = $xmThemePref === 'dark' ? 'dark' : ($xmThemePref === 'light' ? 'light' : ($xmIsDark ? 'dark' : 'light'));
 
 /**
  * Shared reseller navbar helpers (same contract as admin/header.php's
@@ -68,10 +59,8 @@ if (!function_exists('_xc_reseller_nav_label')) {
 }
 $xmCurrentLang = \XcVm\Core\Localization\Translator::current();
 $xmIsRtl       = \XcVm\Core\Localization\Translator::isRtl($xmCurrentLang);
-// The Vuexy customizer (config.js) derives the text direction from the per-user
-// `rtl` pref, not the language. Bind it to the language so an RTL language
-// mirrors the layout and switching back to an LTR language clears it.
-$xmUiPrefs['rtl'] = $xmIsRtl;
+// Customizer prefs; see UiPrefs::pageState() and ui_prefs_head.php.
+[$xmUiPrefs, $xmBsTheme] = UiPrefs::pageState($rUserInfo, $xmIsRtl);
 ?>
 <!doctype html>
 <html
@@ -116,16 +105,7 @@ $xmUiPrefs['rtl'] = $xmIsRtl;
         <link rel="stylesheet" href="assets/xcvm/rtl.css">
     <?php endif; ?>
 
-    <!-- Helpers + template customizer must precede config.js -->
-    <script src="assets/vendor/js/helpers.js"></script>
-    <script src="assets/vendor/js/template-customizer.js"></script>
-    <!-- Per-user customizer state (theme persists in localStorage via the
-         customizer; the reseller api exposes no save_ui_prefs endpoint yet). -->
-    <script>
-        window.XC_VM = window.XC_VM || {};
-        window.XC_VM_UIPrefs = <?= json_encode($xmUiPrefs, JSON_UNESCAPED_SLASHES); ?>;
-    </script>
-    <script src="assets/js/config.js"></script>
+    <?php require __DIR__ . '/../ui_prefs_head.php'; ?>
 </head>
 
 <?php if (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
