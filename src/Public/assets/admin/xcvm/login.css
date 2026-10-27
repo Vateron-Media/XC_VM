@@ -66,6 +66,20 @@ body {
 .input-wrapper input::placeholder {
 	color: var(--bs-body-color);
 }
+/* The panel reduces focused/validated field padding for its thicker border.
+   Login fields contain icons, so keep their gutters and border width stable. */
+.login-panel form .input-wrapper input:focus,
+.login-panel form .input-wrapper input.form-control.is-valid,
+.login-panel form .input-wrapper input.form-control.is-invalid,
+.login-panel form.was-validated .input-wrapper input.form-control:valid,
+.login-panel form.was-validated .input-wrapper input.form-control:invalid {
+	padding-block: 10px;
+	padding-inline: 42px;
+	border-width: 1px;
+}
+.login-panel .input-wrapper input.form-control:focus::placeholder {
+	transform: none;
+}
 .input-wrapper input:focus {
 	border-color: var(--bs-primary);
 	outline: 0;

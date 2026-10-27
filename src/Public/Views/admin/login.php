@@ -107,7 +107,7 @@ if (!isset($_SESSION['hash'])) {
 
         <link rel="stylesheet" href="assets/vendor/css/bootstrap.css">
         <link rel="stylesheet" href="assets/vendor/css/custom.css">
-        <link rel="stylesheet" href="assets/xcvm/login.css?v=2">
+        <link rel="stylesheet" href="assets/xcvm/login.css?v=3">
         <script src="assets/xcvm/login-theme.js?v=2"></script>
         <?php if ($rIsRtl): ?>
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap">
