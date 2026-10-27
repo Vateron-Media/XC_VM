@@ -27,24 +27,24 @@ $rIsRtl = Translator::isRtl($rCurrentLang);
     <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" href="assets/vendor/css/bootstrap.css">
-    <link rel="stylesheet" href="assets/vendor/css/custom.css">
-    <link rel="stylesheet" href="assets/xcvm/login.css?v=3">
-    <script src="assets/xcvm/login-theme.js?v=2"></script>
-    <?php if ($rIsRtl): ?>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap">
-        <link rel="stylesheet" href="assets/xcvm/rtl.css">
-    <?php endif; ?>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
+	<link rel="stylesheet" href="assets/vendor/css/bootstrap.css">
+	<link rel="stylesheet" href="assets/vendor/css/custom.css">
+	<link rel="stylesheet" href="assets/xcvm/login.css?v=3">
+	<script src="assets/xcvm/login-theme.js?v=3"></script>
+	<?php if ($rIsRtl): ?>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap">
+		<link rel="stylesheet" href="assets/xcvm/rtl.css">
+	<?php endif; ?>
 </head>
 
 <body>
     <div class="page">
         <div class="stage">
-            <section class="login-panel card">
+			<section class="login-panel card">
 
                 <div class="panel-logo">
-                    <h1 class="panel-logo-main"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?></h1>
+					<h1 class="panel-logo-main"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?></h1>
                     <div class="panel-title"><?= $language::get('reseller_access') ?></div>
                 </div>
 
@@ -73,7 +73,7 @@ $rIsRtl = Translator::isRtl($rCurrentLang);
                     <input type="hidden" name="referrer" value="<?= $referrer ?? '' ?>">
 
                     <div class="form-group">
-                        <label class="form-label" for="username"><?= $language::get('username'); ?></label>
+						<label class="form-label" for="username"><?= $language::get('username'); ?></label>
                         <div class="input-wrapper">
                             <span class="input-icon user" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -81,11 +81,11 @@ $rIsRtl = Translator::isRtl($rCurrentLang);
                                     <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
                                 </svg>
                             </span>
-                            <input type="text" name="username" id="username" class="form-control" autocomplete="username" required autofocus
+							<input type="text" name="username" id="username" class="form-control" autocomplete="username" required autofocus
                                 placeholder="<?= htmlspecialchars($language::get('username'), ENT_QUOTES) ?>">
                         </div>
 
-                        <label class="form-label" for="password"><?= $language::get('password'); ?></label>
+						<label class="form-label" for="password"><?= $language::get('password'); ?></label>
                         <div class="input-wrapper">
                             <span class="input-icon password" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -93,7 +93,7 @@ $rIsRtl = Translator::isRtl($rCurrentLang);
                                     <path d="M8 11V8a4 4 0 0 1 8 0v3" />
                                 </svg>
                             </span>
-                            <input type="password" name="password" id="password" class="form-control" autocomplete="current-password" required
+							<input type="password" name="password" id="password" class="form-control" autocomplete="current-password" required
                                 placeholder="<?= htmlspecialchars($language::get('password'), ENT_QUOTES) ?>">
 
                             <button type="button" class="show-password" id="showPassword" aria-label="Show password">
@@ -116,7 +116,7 @@ $rIsRtl = Translator::isRtl($rCurrentLang);
                         </div>
                     <?php endif; ?>
 
-                    <button class="login-button btn btn-primary w-100" type="submit" id="login_button" name="login" <?= $rRecaptcha ? 'disabled' : '' ?>>
+					<button class="login-button btn btn-primary w-100" type="submit" id="login_button" name="login" <?= $rRecaptcha ? 'disabled' : '' ?>>
                         <?= $language::get('login') ?>
                         <span class="arrow">→</span>
                     </button>
