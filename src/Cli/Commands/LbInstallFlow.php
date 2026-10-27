@@ -966,6 +966,7 @@ class LbInstallFlow {
 	/** Where the agent and its state live on the node. */
 	public const AGENT_BIN = MAIN_HOME . 'bin/xc_agent/xc_agent';
 	public const AGENT_STATE = CONFIG_PATH . AgentPaths::STATE;
+	public const FANOUT_BIN = MAIN_HOME . 'bin/xc_fanout/xc_fanout';
 
 	/**
 	 * Enrol the new LB in the cluster API (MAIN ↔ LB plan, section 6), over the
@@ -992,8 +993,9 @@ class LbInstallFlow {
 	 * node.
 	 *
 	 * @param bool $rMarkFailed Set status 4 on failure (a fresh install); false for `server:enrol` on a live node.
+	 * @param bool $rServeOnly The node is installed serve-only: it takes the fanout daemon here too, and the install stops without it.
 	 */
-	public static function provisionCluster($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db, ?ClusterCrypto $rCrypto = null, bool $rMarkFailed = true, ?bool $rApiMode = null): bool {
+	public static function provisionCluster($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db, ?ClusterCrypto $rCrypto = null, bool $rMarkFailed = true, ?bool $rApiMode = null, bool $rServeOnly = false): bool {
 		$rSettings = SettingsManager::getAll();
 		if (empty($rSettings['cluster_api_enabled'])) {
 			return true;
@@ -1028,7 +1030,9 @@ class LbInstallFlow {
 		// The node takes the agent from its GitHub release itself, as it keeps it current.
 		// An API-mode node cannot reach MAIN's database, and has no replica yet:
 		// it boots from the empty one and is handed MAIN's channel and canary.
-		$rFetch = 'fanout_binary agent' . ($rApiMode ? ' ' . ReplicaBoot::OPTION . FanoutBinaryCommand::mainOptions($rSettings) : '');
+		// A serve-only node takes the daemon now as well: it loses PHP at the end of
+		// the install, and with it cron:root_signals, which fetches it on every other node.
+		$rFetch = 'fanout_binary' . ($rServeOnly ? '' : ' agent') . ($rApiMode ? ' ' . ReplicaBoot::OPTION . FanoutBinaryCommand::mainOptions($rSettings) : '');
 		$rGot = trim((string) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . $rFetch . ' 2>&1; sudo test -x ' . escapeshellarg(self::AGENT_BIN) . ' && echo AGENT_OK')['output']);
 		if (!str_ends_with($rGot, 'AGENT_OK')) {
 			$rWhy = trim((string) strrchr("\n" . $rGot, "\n")) ?: 'it could not install one';
@@ -1037,6 +1041,9 @@ class LbInstallFlow {
 			}
 			echo 'No xc_agent on the node (' . $rWhy . "); the node stays legacy and can be enrolled later\n";
 			return true;
+		}
+		if ($rServeOnly && self::lastLine((array) call_user_func($rRunSSH, $rConn, 'sudo test -x ' . escapeshellarg(self::FANOUT_BIN) . ' && echo FANOUT_OK')) !== 'FANOUT_OK') {
+			return $rFail('No xc_fanout on the node: a serve-only node serves nothing without it. Exiting');
 		}
 		$rAgent = 'sudo -u xc_vm ' . escapeshellarg(self::AGENT_BIN);
 

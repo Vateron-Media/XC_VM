@@ -335,7 +335,7 @@ class ServerInstallCommand implements CommandInterface {
 				return 1;
 			}
 			$rGenBefore = LbInstallFlow::nodeGen($rServerID);
-			if (!LbInstallFlow::provisionCluster($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, null, true, $rApiMode)) {
+			if (!LbInstallFlow::provisionCluster($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, null, true, $rApiMode, $rServeOnly)) {
 				return 1;
 			}
 			$rFlows = LbInstallFlow::flowsOn($rServerID, $rGenBefore);
@@ -497,7 +497,20 @@ class ServerInstallCommand implements CommandInterface {
 		echo "Creating XC_VM system user\n";
 		call_user_func($rRunSSH, $rConn, 'sudo adduser --system --shell /bin/false --group --disabled-login xc_vm');
 		call_user_func($rRunSSH, $rConn, 'sudo mkdir ' . MAIN_HOME);
-		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . BIN_PATH);
+		call_user_func($rRunSSH, $rConn, 'sudo sh -c ' . escapeshellarg(self::binResetCommand(BIN_PATH)));
+	}
+
+	/**
+	 * Empties bin/ for the archive and the binaries bundle, keeping what a
+	 * reinstall over a live node must not lose: the issued certificates
+	 * (bin/certbot), without which the node comes back on the self-signed
+	 * server.crt, and the fanout daemon's config.json, which holds keys the
+	 * panel does not write.
+	 */
+	public static function binResetCommand(string $rBin): string {
+		$rBin = rtrim($rBin, '/');
+		return 'find ' . escapeshellarg($rBin) . ' -mindepth 1 -maxdepth 1 ! -name certbot ! -name xc_fanout -exec rm -rf {} + 2>/dev/null; '
+			. 'find ' . escapeshellarg($rBin . '/xc_fanout') . ' -mindepth 1 -maxdepth 1 ! -name config.json -exec rm -rf {} + 2>/dev/null; true';
 	}
 
 	private function installSystemdService($rConn, callable $rRunSSH, callable $rSendFileSSH, int $rServerID): void {

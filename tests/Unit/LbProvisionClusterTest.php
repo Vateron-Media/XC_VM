@@ -39,6 +39,9 @@ final class LbProvisionClusterTest extends TestCase {
 	/** Does the node install the agent from its release (`fanout_binary agent`)? */
 	private bool $rAgentInstalls = true;
 
+	/** Is the fanout daemon executable on the node after `fanout_binary`? */
+	private bool $rFanoutInstalls = true;
+
 	/** How the node answers the agent's start: STARTED, NO_RUNSH, or '' (it did not start). */
 	private string $rAgentStart = 'STARTED';
 
@@ -93,8 +96,11 @@ final class LbProvisionClusterTest extends TestCase {
 				]) . "\n", 'error' => ''
 				];
 			}
-			if (str_contains($rCmd, 'console.php fanout_binary agent')) {
+			if (str_contains($rCmd, 'console.php fanout_binary')) {
 				return ['output' => $this->rAgentInstalls ? "xc_agent 1.5.0 installed.\nAGENT_OK\n" : "Failed to download xc_agent-linux-amd64\n", 'error' => ''];
+			}
+			if (str_contains($rCmd, 'echo FANOUT_OK')) {
+				return ['output' => $this->rFanoutInstalls ? "FANOUT_OK\n" : '', 'error' => ''];
 			}
 			if (str_contains($rCmd, ' probe ')) {
 				return ['output' => $this->rProbeOk ? "OK http://10.0.0.1:25461/cluster/v1/\n" : "xc_agent probe: connection refused\n", 'error' => ''];
@@ -319,6 +325,37 @@ final class LbProvisionClusterTest extends TestCase {
 		$this->assertSame(ReplicaBoot::ALWAYS, ReplicaBoot::forArgv($rArgv));
 		$this->assertSame(['update_channel_fanout' => 'beta', 'lb_binary_canary_server' => '4', 'lb_release_pin' => '1.5.0'], FanoutBinaryCommand::mainSettings(array_slice($rArgv, 2)));
 		$this->assertSame([], FanoutBinaryCommand::mainSettings(['agent', 'force', '--pin', '--other=1']), 'a bare option, or another, is no setting');
+	}
+
+	/** @return array{0: bool, 1: string} a serve-only install's enrolment: whether it succeeded, and what it printed */
+	private function provisionServeOnly(): array {
+		SettingsManager::set(['cluster_api_enabled' => 1, 'lb_token_rotation_min' => 60, 'lb_new_node_mode' => 'api']);
+		[$rRun, $rSend] = $this->fakeSsh();
+		ob_start();
+		$rOk = LbInstallFlow::provisionCluster(null, $rRun, $rSend, $this->servers(), self::SID, $this->rDb, $this->rCrypto, true, null, true);
+		return [$rOk, (string) ob_get_clean()];
+	}
+
+	/**
+	 * A serve-only node loses PHP at the end of its install, and with it
+	 * cron:root_signals, which fetches the daemon on every other node: it takes
+	 * both binaries here (#477).
+	 */
+	public function testAServeOnlyNodeTakesTheFanoutDaemonWithTheAgent(): void {
+		[$rOk, $rLog] = $this->provisionServeOnly();
+		$this->assertTrue($rOk, $rLog);
+		$rFetch = array_values(array_filter($this->rCommands, static fn($c) => str_contains($c, 'console.php fanout_binary')));
+		$this->assertStringContainsString('console.php fanout_binary --replica', $rFetch[0], 'both binaries, not the agent alone');
+		$this->assertNotNull(NodeRegistry::byServer(self::SID));
+	}
+
+	public function testAServeOnlyInstallStopsWithoutTheFanoutDaemon(): void {
+		$this->rFanoutInstalls = false;
+		[$rOk, $rLog] = $this->provisionServeOnly();
+		$this->assertFalse($rOk);
+		$this->assertStringContainsString('No xc_fanout on the node', $rLog);
+		$this->assertNull(NodeRegistry::byServer(self::SID), 'stopped before any token');
+		$this->assertSame(4, $this->serverStatus());
 	}
 
 	/** An API-mode node starts once its replica is built: XC_VM restarted, then the startup's commands; never before. */

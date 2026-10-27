@@ -186,7 +186,7 @@ final class ApiModeInstallTest extends TestCase {
 		$this->assertStringContainsString('$rApiMode = $rType == 2 && (LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID) || !empty($rServers[$rServerID][\'serve_only\']));', $rInstall);
 		$this->assertStringContainsString('$this->finalizeHostAfterRuntime($rConn, $rRunSSH, $rHost, !$rApiMode);', $rInstall);
 		$this->assertStringContainsString('provisionConfig($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, $rApiMode, $rServeOnly)', $rInstall);
-		$this->assertStringContainsString('provisionCluster($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, null, true, $rApiMode)', $rInstall);
+		$this->assertStringContainsString('provisionCluster($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db, null, true, $rApiMode, $rServeOnly)', $rInstall);
 		$this->assertMatchesRegularExpression('/if \(\$rGrant\) \{\s*BackupService::grantPrivileges\(\$rHost\);/', $rInstall);
 		// Nothing boots on it before its enrolment brings its replica: its startup waits for that.
 		$this->assertStringContainsString('LbInstallFlow::runStartup($rConn, $rRunSSH, !$rApiMode);', $rInstall);
