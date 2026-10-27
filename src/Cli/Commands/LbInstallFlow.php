@@ -192,6 +192,9 @@ class LbInstallFlow {
 		}
 
 		echo "Extracting to directory\n";
+		// The node's config is preserved across this extraction by stashNodeConfig /
+		// restoreNodeConfig (ServerInstallCommand), which bracket prepareInstallRoot —
+		// it wipes BIN_PATH before this runs — and the extraction below.
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
 		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf ' . $rArchive . ' -C "' . MAIN_HOME . '"');
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
@@ -203,6 +206,75 @@ class LbInstallFlow {
 		}
 
 		return true;
+	}
+
+	/** Sentinel the stash/restore scripts print on a clean run, so the SSH runner
+	 *  (which sees only stdout, not an exit code) can tell success from a `set -e`
+	 *  abort. */
+	private const PRESERVE_SENTINEL = 'XCVM_PRESERVE_OK';
+
+	/** Where a node's config is stashed across a reinstall: under MAIN_HOME but
+	 *  outside BIN_PATH, so prepareInstallRoot's `rm -rf BIN_PATH` and the archive
+	 *  extraction both leave it alone. */
+	private static function preserveDir(): string {
+		return rtrim(MAIN_HOME, '/') . '/.preserve';
+	}
+
+	/**
+	 * The shell that stashes the node's tuned fanout config, its certbot config (the
+	 * real certificate) and the front's server.{crt,key} before a reinstall wipes
+	 * BIN_PATH and re-extracts the archive's defaults over it (XC_VM #477). A fresh
+	 * node (no bin/) stashes nothing; an unconsumed snapshot from an interrupted
+	 * retry is kept rather than overwritten with the just-extracted defaults. `set -e`
+	 * makes a real copy failure abort (non-zero) instead of being swallowed by a
+	 * trailing `true`. $rHome stands in for MAIN_HOME, $rKeep for preserveDir() —
+	 * parameters so the script is testable without the constants.
+	 */
+	public static function stashConfigScript(string $rHome, string $rKeep): string {
+		$rH = rtrim($rHome, '/');
+		$rK = rtrim($rKeep, '/');
+		return 'set -e' . "\n"
+			. 'if [ ! -e "' . $rH . '/bin" ] && [ ! -d "' . $rK . '" ]; then echo ' . self::PRESERVE_SENTINEL . '; exit 0; fi' . "\n"
+			. 'if [ -d "' . $rK . '" ]; then echo ' . self::PRESERVE_SENTINEL . '; exit 0; fi' . "\n"
+			. 'mkdir -p "' . $rK . '"' . "\n"
+			. 'if [ -e "' . $rH . '/bin/xc_fanout/config.json" ]; then cp -a "' . $rH . '/bin/xc_fanout/config.json" "' . $rK . '/fanout.json"; fi' . "\n"
+			. 'if [ -e "' . $rH . '/bin/certbot/config" ]; then cp -a "' . $rH . '/bin/certbot/config" "' . $rK . '/certbot"; fi' . "\n"
+			. 'if [ -e "' . $rH . '/bin/nginx/conf/server.crt" ]; then cp -a "' . $rH . '/bin/nginx/conf/server.crt" "' . $rK . '/server.crt"; fi' . "\n"
+			. 'if [ -e "' . $rH . '/bin/nginx/conf/server.key" ]; then cp -a "' . $rH . '/bin/nginx/conf/server.key" "' . $rK . '/server.key"; fi' . "\n"
+			. 'echo ' . self::PRESERVE_SENTINEL;
+	}
+
+	/**
+	 * The shell that restores what stashConfigScript saved, after extraction, then
+	 * consumes the snapshot. Each item is restored only if it was stashed (so a
+	 * first install keeps the archive defaults), and `set -e` makes a real failure
+	 * abort instead of leaving defaults silently in place.
+	 */
+	public static function restoreConfigScript(string $rHome, string $rKeep): string {
+		$rH = rtrim($rHome, '/');
+		$rK = rtrim($rKeep, '/');
+		return 'set -e' . "\n"
+			. 'if [ -e "' . $rK . '/fanout.json" ]; then mkdir -p "' . $rH . '/bin/xc_fanout"; rm -f "' . $rH . '/bin/xc_fanout/config.json"; cp -a "' . $rK . '/fanout.json" "' . $rH . '/bin/xc_fanout/config.json"; fi' . "\n"
+			. 'if [ -e "' . $rK . '/certbot" ]; then mkdir -p "' . $rH . '/bin/certbot"; rm -rf "' . $rH . '/bin/certbot/config"; cp -a "' . $rK . '/certbot" "' . $rH . '/bin/certbot/config"; fi' . "\n"
+			. 'if [ -e "' . $rK . '/server.crt" ]; then mkdir -p "' . $rH . '/bin/nginx/conf"; rm -f "' . $rH . '/bin/nginx/conf/server.crt"; cp -a "' . $rK . '/server.crt" "' . $rH . '/bin/nginx/conf/server.crt"; fi' . "\n"
+			. 'if [ -e "' . $rK . '/server.key" ]; then mkdir -p "' . $rH . '/bin/nginx/conf"; rm -f "' . $rH . '/bin/nginx/conf/server.key"; cp -a "' . $rK . '/server.key" "' . $rH . '/bin/nginx/conf/server.key"; fi' . "\n"
+			. 'rm -rf "' . $rK . '"' . "\n"
+			. 'echo ' . self::PRESERVE_SENTINEL;
+	}
+
+	/**
+	 * Stash the node's config before a reinstall destroys it (prepareInstallRoot +
+	 * installArchive). False if the stash did not complete — the caller must then
+	 * abort, before anything is wiped. Call only for an LB (type 2).
+	 */
+	public static function stashNodeConfig($rConn, callable $rRunSSH): bool {
+		$rOut = call_user_func($rRunSSH, $rConn, 'sudo sh -c ' . escapeshellarg(self::stashConfigScript(MAIN_HOME, self::preserveDir())));
+		return strpos((string) ($rOut['output'] ?? ''), self::PRESERVE_SENTINEL) !== false;
+	}
+
+	/** Restore the stashed config after a successful extraction, then drop the snapshot. */
+	public static function restoreNodeConfig($rConn, callable $rRunSSH): void {
+		call_user_func($rRunSSH, $rConn, 'sudo sh -c ' . escapeshellarg(self::restoreConfigScript(MAIN_HOME, self::preserveDir())));
 	}
 
 	/**
