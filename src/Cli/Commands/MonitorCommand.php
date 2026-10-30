@@ -83,6 +83,23 @@ class MonitorCommand implements CommandInterface {
 
 		global $db;
 
+		// Serialize concurrent (re)starts for this stream. Two monitors racing
+		// through the take-over below — checkRunning(), the kill, the
+		// `rm -f <id>_*`, the _.monitor rewrite — would both kill the producer and
+		// delete its files, interrupting the stream and leaving watchdogs racing.
+		// A non-blocking per-stream lock lets only the first startup through; a
+		// concurrent retry stands down instead of fighting it. The lock name uses
+		// a dot (not `<id>_`) so the restart wipe does not remove it mid-hold, and
+		// it is released before the watch loop so a later restart can take over.
+		$rStartLock = fopen(STREAMS_PATH . $rStreamID . '.monitor.lock', 'c');
+		if ($rStartLock !== false && !flock($rStartLock, LOCK_EX | LOCK_NB)) {
+			fclose($rStartLock);
+			echo "Another monitor is already starting this stream; standing down.\n";
+			return 0;
+		}
+		// A lock file we could not open at all (rare) is not fatal: fall through
+		// and monitor the stream anyway rather than refuse to run over it.
+
 		$this->checkRunning($rStreamID);
 		set_time_limit(0);
 		cli_set_process_title('XC_VM[' . $rStreamID . ']');
@@ -159,6 +176,13 @@ class MonitorCommand implements CommandInterface {
 					shell_exec('kill -9 ' . $rRoguePID . ';');
 				}
 			}
+		}
+
+		// Take-over is done; release the start lock so a later restart can acquire
+		// it and take over in turn. (An early return above frees it automatically.)
+		if (is_resource($rStartLock)) {
+			flock($rStartLock, LOCK_UN);
+			fclose($rStartLock);
 		}
 
 		// ── Supervisor + monitor loop (restructured from goto state machine) ──
