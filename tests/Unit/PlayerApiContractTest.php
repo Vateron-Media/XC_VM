@@ -178,10 +178,9 @@ PHP;
 					$rValue = \XcVm\Core\Database\Database::parseCleanValue($rValue);
 				}
 			});
-			// 2. A live channel's `added`: a number from the cache, a string from the database.
-			if ($rAction === 'get_live_streams') {
-				$rRow['added'] = (string) $rRow['added'];
-			}
+			// 2. A live channel's `added` used to be a number from the cache and a
+			//    string from the database; it is now a string from both (matching
+			//    the VOD and series lists), so it needs no reconciliation here.
 			if ($rAction === 'get_series') {
 				// 3. No year: null from the database, '' from the cache. No run time: 0 and '0'.
 				$rRow['year'] = (string) $rRow['year'];
@@ -220,13 +219,15 @@ PHP;
 		$this->assertSame(['News 24', 'Sport & News <HD>', ' Radio One '], array_column(json_decode($this->answer(true, $rRequest), true), 'name'));
 	}
 
-	public function testALiveChannelsAddedTimeIsAStringFromTheDatabaseAndANumberFromTheCache(): void {
+	public function testALiveChannelsAddedTimeIsAStringFromBothTheDatabaseAndTheCache(): void {
 		$rRequest = ['action' => 'get_live_streams', 'category_id' => '1'];
 		$this->assertSame('1700000000', json_decode($this->answer(false, $rRequest), true)[0]['added']);
 		$rFromCache = json_decode($this->answer(true, $rRequest), true)[0];
-		$this->assertSame(1700000000, $rFromCache['added']);
+		// Was a number from the cache; now a string, matching the database and the
+		// VOD/series lists, so strict Xtream clients get a consistent type.
+		$this->assertSame('1700000000', $rFromCache['added']);
 		// The cache answer, the one an app normally gets: every field and its type.
-		$this->assertSame(['num' => 1, 'name' => 'News 24', 'stream_type' => 'live', 'stream_id' => 1, 'stream_icon' => 'http://images.test/n.png', 'epg_channel_id' => 'news.24', 'added' => 1700000000, 'custom_sid' => '', 'tv_archive' => 0, 'direct_source' => '', 'tv_archive_duration' => 0, 'category_id' => '1', 'category_ids' => [1], 'thumbnail' => ''], $rFromCache);
+		$this->assertSame(['num' => 1, 'name' => 'News 24', 'stream_type' => 'live', 'stream_id' => 1, 'stream_icon' => 'http://images.test/n.png', 'epg_channel_id' => 'news.24', 'added' => '1700000000', 'custom_sid' => '', 'tv_archive' => 0, 'direct_source' => '', 'tv_archive_duration' => 0, 'category_id' => '1', 'category_ids' => [1], 'thumbnail' => ''], $rFromCache);
 	}
 
 	public function testASeriesWithoutAYearOrARunTimeIsAnsweredDifferently(): void {

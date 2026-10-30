@@ -16,6 +16,7 @@ $rTabs = [
         ['restart_online_streams', 'restart_online_streams'],
         ['restart_abnormal_progress', 'restart_abnormal_progress'],
         ['restart_missing_codecs', 'restart_missing_codecs'],
+        ['restart_high_memory', 'restart_high_memory'],
         ['start_offline_streams', 'start_offline_streams'],
         ['stop_online_streams', 'stop_online_streams'],
         ['stop_down_streams', 'stop_down_streams'],

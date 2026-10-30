@@ -466,7 +466,7 @@ if (1 < $rICount) { ?>
 			case 'quick_tools':
 				set_time_limit(0);
 
-				foreach ([\XcVm\Domain\Stream\LiveStreamQuickTools::PROGRESS, \XcVm\Domain\Stream\LiveStreamQuickTools::CODECS, \XcVm\Domain\Stream\LiveStreamQuickTools::ONLINE, \XcVm\Domain\Stream\LiveStreamQuickTools::DOWN] as $rTool) {
+				foreach ([\XcVm\Domain\Stream\LiveStreamQuickTools::PROGRESS, \XcVm\Domain\Stream\LiveStreamQuickTools::CODECS, \XcVm\Domain\Stream\LiveStreamQuickTools::MEMORY, \XcVm\Domain\Stream\LiveStreamQuickTools::ONLINE, \XcVm\Domain\Stream\LiveStreamQuickTools::DOWN] as $rTool) {
 					if (isset($rData[$rTool])) {
 						$rResult = \XcVm\Domain\Stream\LiveStreamQuickTools::restart($db, $rTool);
 						$rResult['status'] = $rResult['result'] ? STATUS_SUCCESS : STATUS_FAILURE;
