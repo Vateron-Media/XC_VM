@@ -1,5 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
+namespace XcVm\Tests\Unit;
+
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Backup\BackupService;
 
@@ -50,5 +54,15 @@ final class BackupServiceTest extends TestCase {
 
 	public function testMissingDirectoryReturnsEmpty(): void {
 		$this->assertSame([], BackupService::getLocal($this->dir . 'does-not-exist/'));
+	}
+
+	/**
+	 * A blank or slash-only argument must list nothing — never fall through to
+	 * scanning the filesystem root and returning unrelated /*.sql files.
+	 */
+	public function testBlankOrRootDirectoryListsNothing(): void {
+		$this->assertSame([], BackupService::getLocal(''));
+		$this->assertSame([], BackupService::getLocal('/'));
+		$this->assertSame([], BackupService::getLocal('///'));
 	}
 }

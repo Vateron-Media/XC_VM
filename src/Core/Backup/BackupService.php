@@ -151,11 +151,21 @@ class BackupService {
 	/**
 	 * List local SQL backups with metadata, oldest first.
 	 *
+	 * @param string|null $rDir Directory to scan, with or without a trailing
+	 *                          slash; null uses MAIN_HOME.'backups/'. A blank or
+	 *                          slash-only value lists nothing (never the FS root).
 	 * @return array[] Each entry: filename, timestamp, date, filesize.
 	 */
 	public static function getLocal(?string $rDir = null) {
 		$rBackups = [];
-		$rDir = rtrim($rDir ?? MAIN_HOME . 'backups', '/') . '/';
+		$rDir = rtrim($rDir ?? MAIN_HOME . 'backups', '/');
+		// null resolves to the default above; an empty or slash-only argument
+		// trims to '' here — treat that as "nothing", never a scan of the
+		// filesystem root (which is_dir('/') would otherwise accept).
+		if ($rDir === '') {
+			return $rBackups;
+		}
+		$rDir .= '/';
 		if (!is_dir($rDir)) {
 			return $rBackups;
 		}
