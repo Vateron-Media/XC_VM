@@ -153,14 +153,24 @@ class BackupService {
 	 *
 	 * @return array[] Each entry: filename, timestamp, date, filesize.
 	 */
-	public static function getLocal() {
+	public static function getLocal(?string $rDir = null) {
 		$rBackups = [];
+		$rDir = rtrim($rDir ?? MAIN_HOME . 'backups', '/') . '/';
+		if (!is_dir($rDir)) {
+			return $rBackups;
+		}
 
-		foreach (scandir(MAIN_HOME . 'backups/') as $rBackup) {
-			$rInfo = pathinfo(MAIN_HOME . 'backups/' . $rBackup);
+		foreach (scandir($rDir) as $rBackup) {
+			// scandir() lists '.', '..' and any sub-directories; none has a
+			// '.sql' extension, and a name without one makes pathinfo() omit the
+			// 'extension' key — reaching for it raised an undefined-key E_WARNING
+			// on PHP 8 (AlertsCronJob reads the newest backup every minute).
+			if ($rBackup === '.' || $rBackup === '..' || is_dir($rDir . $rBackup)) {
+				continue;
+			}
 
-			if ($rInfo['extension'] == 'sql') {
-				$rBackups[] = ['filename' => $rBackup, 'timestamp' => filemtime(MAIN_HOME . 'backups/' . $rBackup), 'date' => date('Y-m-d H:i:s', filemtime(MAIN_HOME . 'backups/' . $rBackup)), 'filesize' => filesize(MAIN_HOME . 'backups/' . $rBackup)];
+			if (pathinfo($rBackup, PATHINFO_EXTENSION) === 'sql') {
+				$rBackups[] = ['filename' => $rBackup, 'timestamp' => filemtime($rDir . $rBackup), 'date' => date('Y-m-d H:i:s', filemtime($rDir . $rBackup)), 'filesize' => filesize($rDir . $rBackup)];
 			}
 		}
 		usort(
@@ -227,7 +237,7 @@ class BackupService {
 
 		foreach ($rFiles as $rFile) {
 			try {
-				if (!$rFile->isDir && strtolower(pathinfo($rFile->name)['extension']) == 'sql' && 0 < $rFile->size) {
+				if (!$rFile->isDir && strtolower(pathinfo($rFile->name, PATHINFO_EXTENSION)) === 'sql' && 0 < $rFile->size) {
 					$rJSON = json_decode(json_encode($rFile, JSON_UNESCAPED_UNICODE), true);
 					$rJSON['time'] = strtotime($rFile->server_modified);
 					$rBackups[] = $rJSON;
