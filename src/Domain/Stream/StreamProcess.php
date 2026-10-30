@@ -1111,7 +1111,13 @@ class StreamProcess {
 				// (ffmpegReal — the same build the target resolves the token to),
 				// never the placeholder. Off-portable, ffmpegReal is null → unchanged.
 				$rNoFix = FfmpegPaths::fixDts($data['ffmpegReal'] ?? $rFFMPEG_CPU) ? '-nofix_dts' : '';
-				$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
+				// -max_interleave_delta caps how long the muxer buffers one stream
+				// waiting to interleave another. 0 removes the cap: a source with a
+				// sparse or stalled audio track makes ffmpeg hold video packets in
+				// memory with no bound, so RSS climbs into the gigabytes until the
+				// OOM killer fires. 10s (10_000_000 us) keeps A/V sync across normal
+				// jitter while bounding the buffer.
+				$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 10000000';
 			}
 
 			$container = (isset($rFFProbeOutput) && is_array($rFFProbeOutput)) ? ($rFFProbeOutput['container'] ?? null) : null;
