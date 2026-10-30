@@ -1225,67 +1225,73 @@ table.dataTable.dtr-column > thead > tr > th.dtr-control::before {
  * Sneat's label badges pair a faint tint with same-hue text; at the small size
  * tables use (credits, connection counts, statuses) they are hard to read in
  * both themes. Scope the bump to `.table` so badges elsewhere keep the theme's
- * look; raise the weight and set a readable text colour per data-bs-theme.
+ * look, and set a readable background/text per data-bs-theme. The colour
+ * declarations are !important because Sneat sets the label background and text
+ * with !important, which a plainly-weighted rule cannot override. The sheet
+ * only loads on pages whose root emits data-bs-theme, so the light rules match
+ * [data-bs-theme="light"] directly, with no no-attribute fallback.
  */
 .table .badge[class*="bg-label-"] {
 	font-weight: 600;
 	letter-spacing: 0.2px;
 }
 
-:root[data-bs-theme="light"] .table .badge.bg-label-primary,
-:root:not([data-bs-theme="dark"]) .table .badge.bg-label-primary {
-	background-color: #d4e3ff;
-	color: #0a3d91;
+:root[data-bs-theme="light"] .table .badge.bg-label-primary {
+	background-color: #d4e3ff !important;
+	color: #0a3d91 !important;
 }
-:root[data-bs-theme="light"] .table .badge.bg-label-info,
-:root:not([data-bs-theme="dark"]) .table .badge.bg-label-info {
-	background-color: #cdeef3;
-	color: #0b5a66;
+:root[data-bs-theme="light"] .table .badge.bg-label-info {
+	background-color: #cdeef3 !important;
+	color: #0b5a66 !important;
 }
-:root[data-bs-theme="light"] .table .badge.bg-label-success,
-:root:not([data-bs-theme="dark"]) .table .badge.bg-label-success {
-	background-color: #d7f0dd;
-	color: #15603a;
+:root[data-bs-theme="light"] .table .badge.bg-label-success {
+	background-color: #d7f0dd !important;
+	color: #15603a !important;
 }
-:root[data-bs-theme="light"] .table .badge.bg-label-warning,
-:root:not([data-bs-theme="dark"]) .table .badge.bg-label-warning {
-	background-color: #fdeecb;
-	color: #7a5200;
+:root[data-bs-theme="light"] .table .badge.bg-label-warning {
+	background-color: #fdeecb !important;
+	color: #7a5200 !important;
 }
-:root[data-bs-theme="light"] .table .badge.bg-label-danger,
-:root:not([data-bs-theme="dark"]) .table .badge.bg-label-danger {
-	background-color: #fbdcdc;
-	color: #8a1c1c;
+:root[data-bs-theme="light"] .table .badge.bg-label-danger {
+	background-color: #fbdcdc !important;
+	color: #8a1c1c !important;
 }
-:root[data-bs-theme="light"] .table .badge.bg-label-secondary,
-:root:not([data-bs-theme="dark"]) .table .badge.bg-label-secondary {
-	background-color: #e2e4e8;
-	color: #3a4150;
+:root[data-bs-theme="light"] .table .badge.bg-label-secondary {
+	background-color: #e2e4e8 !important;
+	color: #3a4150 !important;
+}
+:root[data-bs-theme="light"] .table .badge.bg-label-dark {
+	background-color: #d6d8dd !important;
+	color: #1b1e27 !important;
 }
 
 :root[data-bs-theme="dark"] .table .badge.bg-label-primary {
-	background-color: rgba(105, 108, 255, 0.28);
-	color: #b4b7ff;
+	background-color: rgba(105, 108, 255, 0.28) !important;
+	color: #b4b7ff !important;
 }
 :root[data-bs-theme="dark"] .table .badge.bg-label-info {
-	background-color: rgba(3, 195, 236, 0.28);
-	color: #8fe3f5;
+	background-color: rgba(3, 195, 236, 0.28) !important;
+	color: #8fe3f5 !important;
 }
 :root[data-bs-theme="dark"] .table .badge.bg-label-success {
-	background-color: rgba(40, 199, 111, 0.28);
-	color: #86e5ad;
+	background-color: rgba(40, 199, 111, 0.28) !important;
+	color: #86e5ad !important;
 }
 :root[data-bs-theme="dark"] .table .badge.bg-label-warning {
-	background-color: rgba(255, 171, 0, 0.28);
-	color: #ffd37a;
+	background-color: rgba(255, 171, 0, 0.28) !important;
+	color: #ffd37a !important;
 }
 :root[data-bs-theme="dark"] .table .badge.bg-label-danger {
-	background-color: rgba(255, 62, 29, 0.28);
-	color: #ff9a8a;
+	background-color: rgba(255, 62, 29, 0.28) !important;
+	color: #ff9a8a !important;
 }
 :root[data-bs-theme="dark"] .table .badge.bg-label-secondary {
-	background-color: rgba(133, 146, 163, 0.28);
-	color: #c3cad6;
+	background-color: rgba(133, 146, 163, 0.28) !important;
+	color: #c3cad6 !important;
+}
+:root[data-bs-theme="dark"] .table .badge.bg-label-dark {
+	background-color: rgba(190, 196, 208, 0.22) !important;
+	color: #d4d8e1 !important;
 }
 
 
