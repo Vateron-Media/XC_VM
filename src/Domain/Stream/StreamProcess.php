@@ -753,8 +753,8 @@ class StreamProcess {
 	/**
 	 * Resolve ffprobe/analysis timing for a live stream start.
 	 *
-	 * On-demand streams use a small (LLOD) or medium analysis window and the
-	 * per-stream probesize; everything else uses the global settings. The read
+	 * On-demand streams use the configured analysis window (capped for LLOD)
+	 * and a per-stream or global probesize. The read
 	 * timeout is derived from the analysis window plus the configured slack.
 	 * Extracted from startStream.
 	 *
@@ -762,12 +762,13 @@ class StreamProcess {
 	 * @param mixed $rProbesizeOndemand Per-stream on-demand probesize (0 → default).
 	 * @param bool  $rLLOD              Live-on-demand (shorter analysis window).
 	 * @param array $rSettings          Global settings (analyze/probesize/slack).
-	 * @return array{0:int,1:int|string,2:int} [probesize, analyzeDuration, timeout]
+	 * @return array{0:int,1:int,2:int} [probesize, analyzeDuration, timeout]
 	 */
 	private static function resolveProbeSettings(mixed $rOnDemand, mixed $rProbesizeOndemand, bool $rLLOD, array $rSettings) {
 		if ($rOnDemand == 1) {
-			$rProbesize = intval($rProbesizeOndemand) ?: 1000000;
-			$rAnalyseDuration = ($rLLOD ? '500000' : '10000000');
+			$rProbesize = max(0, intval($rProbesizeOndemand)) ?: (max(0, intval($rSettings['probesize_ondemand'] ?? 0)) ?: 1000000);
+			$rConfiguredAnalyze = abs(intval($rSettings['stream_max_analyze'] ?? 0)) ?: 10000000;
+			$rAnalyseDuration = $rLLOD ? min(500000, $rConfiguredAnalyze) : $rConfiguredAnalyze;
 		} else {
 			$rAnalyseDuration = abs(intval($rSettings['stream_max_analyze']));
 			$rProbesize = abs(intval($rSettings['probesize']));

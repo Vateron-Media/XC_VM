@@ -403,6 +403,20 @@ class LineService {
 		}
 	}
 
+	/** Refresh bulk-edited lines on the next read without loading the whole cache listing into memory. */
+	public static function invalidateCachedLines(string $rPath = LINES_TMP_PATH): void {
+		$rDirectory = @opendir($rPath);
+		if ($rDirectory === false) {
+			return;
+		}
+		while (($rFile = readdir($rDirectory)) !== false) {
+			if (str_starts_with($rFile, 'line_i_')) {
+				@unlink($rPath . $rFile);
+			}
+		}
+		closedir($rDirectory);
+	}
+
 	/**
 	 * `cluster_kill_on_line_disable` (on by default): a line that is now
 	 * disabled, locked by the admin or expired loses its live sessions, wherever
