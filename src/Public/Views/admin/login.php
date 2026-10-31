@@ -78,10 +78,7 @@ if (!isset($_SESSION['hash'])) {
     }
     $rTwoFactor = $rRecovery === null ? TwoFactor::pending('admin') : null;
 
-    // Bootstrap 5 (new-UI) login — XC_VM "Core Access" HUD: a full-bleed sci-fi
-    // backdrop with a single angular, red-accented sign-in console in the centre.
-    // Deliberately single-look (dark + red), so it does not follow the theme/hue
-    // cookies the rest of the panel uses.
+	// The sign-in surface uses the same Bootstrap theme as the panel.
     $rBrand  = $rSettings['server_name'] ?: 'XC_VM';
     $rStatusMessages = [
         STATUS_FAILURE         => 'login_message_1',
@@ -96,7 +93,7 @@ if (!isset($_SESSION['hash'])) {
     $rIsRtl       = Translator::isRtl($rCurrentLang);
 ?>
     <!DOCTYPE html>
-    <html lang="<?= htmlspecialchars($rCurrentLang, ENT_QUOTES); ?>" dir="<?= $rIsRtl ? 'rtl' : 'ltr'; ?>">
+	<html lang="<?= htmlspecialchars($rCurrentLang, ENT_QUOTES); ?>" dir="<?= $rIsRtl ? 'rtl' : 'ltr'; ?>" data-bs-theme="light">
 
     <head>
         <meta charset="UTF-8">
@@ -106,9 +103,12 @@ if (!isset($_SESSION['hash'])) {
         <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
 
-        <link rel="stylesheet" href="assets/xcvm/login.css">
+		<link rel="stylesheet" href="assets/vendor/css/bootstrap.css">
+		<link rel="stylesheet" href="assets/vendor/css/custom.css">
+		<link rel="stylesheet" href="assets/xcvm/login.css?v=3">
+		<script src="assets/xcvm/login-theme.js?v=3"></script>
         <?php if ($rIsRtl): ?>
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap">
             <link rel="stylesheet" href="assets/xcvm/rtl.css">
@@ -116,16 +116,12 @@ if (!isset($_SESSION['hash'])) {
     </head>
 
     <body>
-        <div class="background"></div>
-        <div class="grid"></div>
-
         <div class="page">
             <div class="stage">
-                <section class="login-panel">
-                    <span class="panel-frame" aria-hidden="true"></span>
+				<section class="login-panel card">
 
                     <div class="panel-logo">
-                        <div class="panel-logo-main"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?></div>
+						<h1 class="panel-logo-main"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?></h1>
                         <div class="panel-title"><?= $language::get('admin_access') ?></div>
                     </div>
 
@@ -146,6 +142,7 @@ if (!isset($_SESSION['hash'])) {
                         <input type="hidden" name="referrer" value="<?= htmlspecialchars(RequestManager::get('referrer') ?? '', ENT_QUOTES) ?>">
 
                         <div class="form-group">
+							<label class="form-label" for="username"><?= $language::get('username'); ?></label>
                             <div class="input-wrapper">
                                 <span class="input-icon user" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -153,10 +150,11 @@ if (!isset($_SESSION['hash'])) {
                                         <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
                                     </svg>
                                 </span>
-                                <input type="text" name="username" id="username" autocomplete="username" required autofocus
+								<input type="text" name="username" id="username" class="form-control" autocomplete="username" required autofocus
                                     placeholder="<?= htmlspecialchars($language::get('username'), ENT_QUOTES) ?>">
                             </div>
 
+							<label class="form-label" for="password"><?= $language::get('password'); ?></label>
                             <div class="input-wrapper">
                                 <span class="input-icon password" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -164,7 +162,7 @@ if (!isset($_SESSION['hash'])) {
                                         <path d="M8 11V8a4 4 0 0 1 8 0v3" />
                                     </svg>
                                 </span>
-                                <input type="password" name="password" id="password" autocomplete="current-password" required
+								<input type="password" name="password" id="password" class="form-control" autocomplete="current-password" required
                                     placeholder="<?= htmlspecialchars($language::get('password'), ENT_QUOTES) ?>">
 
                                 <button type="button" class="show-password" id="showPassword" aria-label="Show password">
@@ -187,7 +185,7 @@ if (!isset($_SESSION['hash'])) {
                             </div>
                         <?php endif; ?>
 
-                        <button class="login-button" type="submit" id="login_button" name="login" <?= $rRecaptcha ? 'disabled' : '' ?>>
+						<button class="login-button btn btn-primary w-100" type="submit" id="login_button" name="login" <?= $rRecaptcha ? 'disabled' : '' ?>>
                             <?= $language::get('login') ?>
                             <span class="arrow">→</span>
                         </button>
@@ -200,27 +198,6 @@ if (!isset($_SESSION['hash'])) {
                         &copy; <?= $rYears ?> <?= AdminHelpers::getAttribution() ?>
                     </div>
                 </section>
-
-                <div class="panel-glow" aria-hidden="true">
-                    <span class="g-left"></span>
-                    <span class="g-top"></span>
-                    <span class="g-bl"></span>
-                    <span class="g-blh"></span>
-                    <span class="g-br"></span>
-                    <span class="g-brh"></span>
-                    <span class="g-ticks"><i></i><i></i><i></i><i></i></span>
-                    <span class="g-plus p1"></span>
-                    <span class="g-plus p2"></span>
-
-                    <span class="g-tl"></span>
-                    <span class="g-tr"></span>
-                    <span class="e e-topl"></span>
-                    <span class="e e-topr"></span>
-                    <span class="e e-lv1"></span>
-                    <span class="e e-rv1"></span>
-                    <span class="e e-rv2"></span>
-                    <span class="e e-botl"></span>
-                </div>
             </div>
         </div>
 
