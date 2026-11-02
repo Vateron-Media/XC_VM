@@ -115,7 +115,7 @@ if ($rIsEdit && !empty($rLine['custom_data'])) {
                     <div class="row mb-6">
                         <div class="col-md-8">
                             <label class="form-label" for="exp_date"><?= $language::get('expiry'); ?></label>
-                            <input type="text" class="form-control" id="exp_date" name="exp_date" value="<?= $rIsEdit ? (is_null($rLine['exp_date']) ? '' : date('Y-m-d H:i:s', (int) $rLine['exp_date'])) : date('Y-m-d H:i:s', time() + 2592000); ?>">
+                            <input type="text" class="form-control" id="exp_date" name="exp_date" step="1" value="<?= $rIsEdit ? (is_null($rLine['exp_date']) ? '' : date('Y-m-d H:i:s', (int) $rLine['exp_date'])) : date('Y-m-d H:i:s', time() + 2592000); ?>">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label d-block">&nbsp;</label>
@@ -446,6 +446,10 @@ LayoutRenderer::renderFooter('admin');
             expDate = document.getElementById('exp_date');
         var applyExpire = function() {
             expDate.disabled = noExpire.checked;
+            // Flatpickr creates a separate native date-time input on mobile.
+            if (expDate._flatpickr && expDate._flatpickr.mobileInput) {
+                expDate._flatpickr.mobileInput.disabled = noExpire.checked;
+            }
         };
         noExpire.addEventListener('change', applyExpire);
         applyExpire();
