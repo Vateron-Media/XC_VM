@@ -98,12 +98,39 @@ class MigrateCommand implements CommandInterface {
 		return ProcessManager::isNamedProcessRunning($pid, 'XC_VM', 'Migration');
 	}
 
+	/** Journal the destructive cleanup before the first source table is dropped. */
+	public static function beginCleanup(): void {
+		$file = @fopen(TMP_PATH . '.migration.cleanup', 'x');
+		if ($file === false) {
+			throw new \RuntimeException('Cannot journal migration source cleanup.');
+		}
+		try {
+			if (fwrite($file, 'Source cleanup started after a successful import.' . "\n") === false || !fflush($file) || !fsync($file)) {
+				throw new \RuntimeException('Cannot flush the migration source cleanup journal.');
+			}
+		} finally {
+			fclose($file);
+		}
+	}
+
 	public function execute(array $rArgs): int {
 		global $argc, $argv;
+		$lock = @fopen(TMP_PATH . '.migration.lock', 'c');
+		if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+			if (is_resource($lock)) {
+				fclose($lock);
+			}
+			echo 'A migration is already running, or its lock cannot be opened.' . "\n";
+			return 1;
+		}
 		cli_set_process_title('XC_VM[Migration]');
 		$rResult = 1;
 		$odb = null;
 		try {
+			if (file_exists(TMP_PATH . '.migration.cleanup')) {
+				echo 'Previous source cleanup was interrupted. The target is protected from reimport. Restore the complete source or finish cleanup, then remove ' . TMP_PATH . '.migration.cleanup before retrying.' . "\n";
+				return 1;
+			}
 			$odb = $this->source ?? new DatabaseHandler(migrate: true);
 			$rResult = require __DIR__ . '/../migration_logic.php';
 		} catch (\Throwable $error) {
@@ -114,6 +141,7 @@ class MigrateCommand implements CommandInterface {
 			if ((int) @file_get_contents(TMP_PATH . '.migration.pid') === getmypid()) {
 				@unlink(TMP_PATH . '.migration.pid');
 			}
+			fclose($lock);
 		}
 		return $rResult === 0 ? 0 : 1;
 	}

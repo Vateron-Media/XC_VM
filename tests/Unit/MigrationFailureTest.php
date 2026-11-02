@@ -39,6 +39,10 @@ if (in_array($argv[4], ['seed_failure', 'version_failure'], true)) {
 	$db = new XcVm\Tests\Support\QueryLogDb($db);
 	$db->rRefuse = $argv[4] === 'seed_failure' ? '/INSERT INTO `cluster_stream_ver`/' : '/cluster_meta/';
 }
+if ($argv[4] === 'cleanup_failure') {
+	$source = new XcVm\Tests\Support\QueryLogDb($source);
+	$source->rRefuse = '/DROP TABLE IF EXISTS `lines`/';
+}
 $source->connected = $argv[4] !== 'disconnected';
 XcVm\Core\Events\Migration\LegacyTableMigrationEvent::useDir(TMP_PATH . 'module-backups/');
 XcVm\Infrastructure\Database\DatabaseFactory::set($db);
@@ -112,6 +116,40 @@ PHP);
 			$this->assertStringNotContainsString('Migration has been completed!', $result['output']);
 			$this->source->query('SELECT COUNT(*) FROM `lines`');
 			$this->assertSame(1, (int) $this->source->get_col());
+		}
+	}
+
+	public function testAnInterruptedCleanupBlocksReimportAndKeepsTheImportedTarget(): void {
+		$this->source->exec("INSERT INTO `lines` VALUES (1, 'first', 'secret'), (2, 'second', 'secret')");
+		$result = $this->runImport('cleanup_failure');
+		$this->assertSame(1, $result['code'], $result['output']);
+		$this->assertSame('3', $result['status']);
+		$this->assertFileExists($this->dir . '/.migration.cleanup');
+		$this->assertStringNotContainsString('Migration has been completed!', $result['output']);
+		// A retry must not import a backup whose earlier tables have already gone.
+		$this->source->query('DELETE FROM `lines` WHERE `id` = 2');
+		$result = $this->runImport();
+		$this->assertSame(1, $result['code']);
+		$this->assertStringContainsString('target is protected from reimport', $result['output']);
+		$this->target->query('SELECT `username` FROM `lines` ORDER BY `id`');
+		$this->assertSame(['first', 'second'], $this->target->get_column());
+	}
+
+	public function testAConcurrentImportCannotOverwriteTheActiveRunsStatus(): void {
+		$this->source->exec("INSERT INTO `lines` VALUES (1, 'first', 'secret')");
+		$lock = fopen($this->dir . '/.migration.lock', 'c');
+		$this->assertIsResource($lock);
+		$this->assertTrue(flock($lock, LOCK_EX | LOCK_NB));
+		file_put_contents($this->dir . '/.migration.status', '1');
+		try {
+			$result = $this->runImport();
+			$this->assertSame(1, $result['code']);
+			$this->assertSame('1', $result['status']);
+			$this->assertStringContainsString('already running', $result['output']);
+			$this->source->query('SELECT COUNT(*) FROM `lines`');
+			$this->assertSame(1, (int) $this->source->get_col());
+		} finally {
+			fclose($lock);
 		}
 	}
 

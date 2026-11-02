@@ -1701,6 +1701,10 @@ if (!MigrateCommand::onItsOwnSchema($odb, $db)) {
 if (!saveModuleTables($odb, $rMigration)) {
 	return 1;
 }
+MigrateCommand::beginCleanup();
 clearMigrationDatabase($odb, $rMigration);
+if (!@unlink(TMP_PATH . '.migration.cleanup')) {
+	throw new RuntimeException('Cannot finalize migration source cleanup.');
+}
 echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
 return 0;
