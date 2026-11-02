@@ -48,6 +48,7 @@ final class LegacyTableMigrationEvent {
 		public readonly string $format,
 		private readonly DatabaseHandler $rSource,
 		private readonly string $rSourceTable,
+		public readonly int $exportedRows = 0,
 	) {
 	}
 
@@ -88,27 +89,40 @@ final class LegacyTableMigrationEvent {
 	 * @throws \RuntimeException when the file could not be written: the backup
 	 *         must then not be emptied
 	 */
-	public static function dump(DatabaseHandler $source, string $table, string $format): ?self {
+	public static function dump(DatabaseHandler $source, string $table, string $format, ?string $destination = null, bool $original = false): ?self {
+		if ($original && !preg_match('/^[a-zA-Z0-9_]+$/D', $table)) {
+			throw new \RuntimeException('Unsupported source table name for a recovery backup.');
+		}
+		$destination ??= self::sqlFile($table);
 		self::query($source, 'SHOW TABLES LIKE ?;', $table);
 		if ($source->num_rows() === 0) {
 			return null;
 		}
-		$rName = '`' . self::name($table) . '`';
+		$rName = '`' . ($original ? $table : self::name($table)) . '`';
 		self::query($source, 'SHOW CREATE TABLE ' . $rName . ';');
 		$rCreate = (string) (array_values((array) $source->get_row())[1] ?? '');
 		if ($rCreate === '') {
 			throw new \RuntimeException('Cannot read the definition of ' . $table);
 		}
-		if (!is_dir(self::dir()) && !@mkdir(self::dir(), 0750, true) && !is_dir(self::dir())) {
-			throw new \RuntimeException('Cannot create ' . self::dir());
+		if (!is_dir(dirname($destination)) && !@mkdir(dirname($destination), 0750, true) && !is_dir(dirname($destination))) {
+			throw new \RuntimeException('Cannot create ' . dirname($destination));
 		}
-		$rStaging = '`' . self::stagingTable($table) . '`';
-		$rTemp = self::sqlFile($table) . '.tmp';
+		$rStaging = '`' . ($original ? $table : self::stagingTable($table)) . '`';
+		$rTemp = $destination . '.tmp';
 		$rOut = @fopen($rTemp, 'w');
 		if ($rOut === false) {
 			throw new \RuntimeException('Cannot write ' . $rTemp);
 		}
-		$rWrite = static function (string $rLine) use ($rOut, $rTemp): void {
+		if ($original) {
+			chmod($rTemp, 0600);
+		}
+		$rWrite = static function (string $rLine) use ($rOut, $rTemp, $original): void {
+			if ($original) {
+				$free = disk_free_space(dirname($rTemp));
+				if ($free === false || $free < strlen($rLine) + 64 * 1024 * 1024) {
+					throw new \RuntimeException('Not enough space for the source recovery copy.');
+				}
+			}
 			if (fwrite($rOut, $rLine . "\n") !== strlen($rLine) + 1) {
 				throw new \RuntimeException('Cannot write ' . $rTemp . ' (disk full?)');
 			}
@@ -120,7 +134,11 @@ final class LegacyTableMigrationEvent {
 			// The backup's definition, on one line, under the staging name, without
 			// its foreign keys: they name the backup's other tables, which the
 			// panel's database may not have.
-			$rCreate = preg_replace('/,\s*CONSTRAINT `[^`]+` FOREIGN KEY \([^)]*\) REFERENCES `[^`]+` \([^)]*\)(\s+ON (DELETE|UPDATE) (CASCADE|SET NULL|SET DEFAULT|RESTRICT|NO ACTION))*/i', '', str_replace(["\r", "\n"], ' ', $rCreate));
+			if (!$original) {
+				$rCreate = preg_replace('/,\s*CONSTRAINT `[^`]+` FOREIGN KEY \([^)]*\) REFERENCES `[^`]+` \([^)]*\)(\s+ON (DELETE|UPDATE) (CASCADE|SET NULL|SET DEFAULT|RESTRICT|NO ACTION))*/i', '', str_replace(["\r", "\n"], ' ', $rCreate));
+			} else {
+				$rCreate = str_replace(["\r", "\n"], ' ', $rCreate);
+			}
 			$rWrite(preg_replace('/^CREATE TABLE `[^`]+`/', 'CREATE TABLE ' . $rStaging, $rCreate) . ';');
 			for ($rOffset = 0;; $rOffset += self::CHUNK) {
 				// ORDER BY 1: the same order for every chunk, whatever the table's key.
@@ -148,15 +166,15 @@ final class LegacyTableMigrationEvent {
 		} finally {
 			fclose($rOut);
 		}
-		if ($rRows === 0) {
+		if ($rRows === 0 && !$original) {
 			@unlink($rTemp);
 			return null;
 		}
-		if (!@rename($rTemp, self::sqlFile($table))) {
+		if (!@rename($rTemp, $destination)) {
 			@unlink($rTemp);
-			throw new \RuntimeException('Cannot save ' . self::sqlFile($table));
+			throw new \RuntimeException('Cannot save ' . $destination);
 		}
-		return new self($table, $format, $source, self::name($table));
+		return new self($table, $format, $source, $original ? $table : self::name($table), $rRows);
 	}
 
 	/**

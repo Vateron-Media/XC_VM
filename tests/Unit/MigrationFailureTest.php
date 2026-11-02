@@ -39,25 +39,23 @@ if (in_array($argv[4], ['seed_failure', 'version_failure'], true)) {
 	$db = new XcVm\Tests\Support\QueryLogDb($db);
 	$db->rRefuse = $argv[4] === 'seed_failure' ? '/INSERT INTO `cluster_stream_ver`/' : '/cluster_meta/';
 }
-if ($argv[4] === 'cleanup_failure') {
+if (in_array($argv[4], ['cleanup_failure', 'cleanup_restore_failure'], true)) {
 	$source = new XcVm\Tests\Support\QueryLogDb($source);
-	$source->rRefuse = '/DROP TABLE IF EXISTS `lines`/';
+	$source->rRefuse = $argv[4] === 'cleanup_failure' ? '/DROP TABLE IF EXISTS `lines`/' : '/^(?:DROP TABLE IF EXISTS `lines`|CREATE TABLE `access_codes`)/';
 }
 $source->connected = $argv[4] !== 'disconnected';
 XcVm\Core\Events\Migration\LegacyTableMigrationEvent::useDir(TMP_PATH . 'module-backups/');
 XcVm\Infrastructure\Database\DatabaseFactory::set($db);
-$result = (new XcVm\Cli\Commands\MigrateCommand($source))->execute([]);
+$result = (new XcVm\Cli\Commands\MigrateCommand($source, TMP_PATH . 'source-backups/'))->execute([]);
 echo "\n#RESULT#", json_encode(['result' => $result, 'status' => trim(file_get_contents(TMP_PATH . '.migration.status')), 'pid_file' => file_exists(TMP_PATH . '.migration.pid')]);
 exit($result);
 PHP);
 	}
 
 	protected function tearDown(): void {
-		foreach (glob($this->dir . '/*') ?: [] as $file) {
-			unlink($file);
-		}
-		foreach (glob($this->dir . '/.migration.*') ?: [] as $file) {
-			unlink($file);
+		$files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+		foreach ($files as $file) {
+			$file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
 		}
 		rmdir($this->dir);
 	}
@@ -121,10 +119,10 @@ PHP);
 
 	public function testAnInterruptedCleanupBlocksReimportAndKeepsTheImportedTarget(): void {
 		$this->source->exec("INSERT INTO `lines` VALUES (1, 'first', 'secret'), (2, 'second', 'secret')");
-		$result = $this->runImport('cleanup_failure');
+		$result = $this->runImport('cleanup_restore_failure');
 		$this->assertSame(1, $result['code'], $result['output']);
 		$this->assertSame('3', $result['status']);
-		$this->assertFileExists($this->dir . '/.migration.cleanup');
+		$this->assertFileExists($this->dir . '/.migration.cleanup', $result['output']);
 		$this->assertStringNotContainsString('Migration has been completed!', $result['output']);
 		// A retry must not import a backup whose earlier tables have already gone.
 		$this->source->query('DELETE FROM `lines` WHERE `id` = 2');
@@ -151,6 +149,20 @@ PHP);
 		} finally {
 			fclose($lock);
 		}
+	}
+
+	public function testAFailedCleanupRestoresTablesAlreadyDroppedForACompleteRetry(): void {
+		$this->source->exec("INSERT INTO `lines` VALUES (1, 'first', 'secret'), (2, 'second', 'secret')");
+		$result = $this->runImport('cleanup_failure');
+		$this->assertSame(1, $result['code'], $result['output']);
+		$this->assertStringContainsString('complete migration source was restored', $result['output']);
+		$this->assertFileDoesNotExist($this->dir . '/.migration.cleanup');
+		$this->source->query('SHOW TABLES');
+		$this->assertCount(3, $this->source->get_rows(), 'including the access_codes table already dropped before failure');
+		$this->source->query('SELECT COUNT(*) FROM `lines`');
+		$this->assertSame(2, (int) $this->source->get_col());
+		$result = $this->runImport();
+		$this->assertSame(0, $result['code'], $result['output']);
 	}
 
 }

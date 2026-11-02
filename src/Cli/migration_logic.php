@@ -9,6 +9,7 @@ use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Migration\LegacyTableMigrationEvent;
 use XcVm\Cli\Commands\MigrateCommand;
 use XcVm\Cli\Commands\MigrationGuard;
+use XcVm\Cli\Commands\MigrationSourceBackup;
 
 /**
  * Database migration logic
@@ -1701,10 +1702,24 @@ if (!MigrateCommand::onItsOwnSchema($odb, $db)) {
 if (!saveModuleTables($odb, $rMigration)) {
 	return 1;
 }
-MigrateCommand::beginCleanup();
-clearMigrationDatabase($odb, $rMigration);
+$rRecovery = MigrationSourceBackup::create($odb, $rMigration, $rBackupRoot ?? MAIN_HOME . 'backups/');
+MigrateCommand::beginCleanup($rRecovery->directory);
+try {
+	clearMigrationDatabase($odb, $rMigration);
+} catch (\Throwable $cleanupError) {
+	echo 'Source cleanup failed; the complete recovery copy is in ' . $rRecovery->directory . "\n";
+	try {
+		$rRecovery->restoreMissing($odb, $rMigration);
+		@unlink(TMP_PATH . '.migration.cleanup');
+		echo 'The complete migration source was restored for retry.' . "\n";
+	} catch (\Throwable $restoreError) {
+		echo 'Automatic source recovery failed; reimport remains blocked. Recovery files: ' . $rRecovery->directory . "\n";
+	}
+	throw $cleanupError;
+}
 if (!@unlink(TMP_PATH . '.migration.cleanup')) {
 	throw new RuntimeException('Cannot finalize migration source cleanup.');
 }
+$rRecovery->discard();
 echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
 return 0;

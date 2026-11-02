@@ -86,6 +86,7 @@ LB_FILES_TO_REMOVE := \
 	Cli/migration_logic.php \
 	Cli/Commands/MigrateCommand.php \
 	Cli/Commands/MigrationGuard.php \
+	Cli/Commands/MigrationSourceBackup.php \
 	Cli/Commands/DbMigrateCommand.php \
 	Cli/Commands/ModuleMigrateCommand.php \
 	Cli/Commands/ModuleJobCommand.php \

@@ -90,7 +90,7 @@ class MigrateCommand implements CommandInterface {
 		return $rNames[0] !== '' && $rNames[0] !== $rNames[1];
 	}
 
-	public function __construct(private ?DatabaseHandler $source = null) {
+	public function __construct(private ?DatabaseHandler $source = null, private ?string $backupRoot = null) {
 	}
 
 	/** A PID file alone must never identify an unrelated process as a migration. */
@@ -99,13 +99,13 @@ class MigrateCommand implements CommandInterface {
 	}
 
 	/** Journal the destructive cleanup before the first source table is dropped. */
-	public static function beginCleanup(): void {
+	public static function beginCleanup(string $recoveryDirectory = ''): void {
 		$file = @fopen(TMP_PATH . '.migration.cleanup', 'x');
 		if ($file === false) {
 			throw new \RuntimeException('Cannot journal migration source cleanup.');
 		}
 		try {
-			if (fwrite($file, 'Source cleanup started after a successful import.' . "\n") === false || !fflush($file) || !fsync($file)) {
+			if (fwrite($file, 'Source cleanup started after a successful import. Recovery copy: ' . $recoveryDirectory . "\n") === false || !fflush($file) || !fsync($file)) {
 				throw new \RuntimeException('Cannot flush the migration source cleanup journal.');
 			}
 		} finally {
@@ -132,6 +132,7 @@ class MigrateCommand implements CommandInterface {
 				return 1;
 			}
 			$odb = $this->source ?? new DatabaseHandler(migrate: true);
+			$rBackupRoot = $this->backupRoot ?? MAIN_HOME . 'backups/';
 			$rResult = require __DIR__ . '/../migration_logic.php';
 		} catch (\Throwable $error) {
 			echo 'Migration failed: ' . $error->getMessage() . '. The migration database is kept.' . "\n";
