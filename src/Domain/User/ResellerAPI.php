@@ -1337,6 +1337,10 @@ class ResellerAPI {
 				if (self::storeLine($rArray, $rExpDate, $rOriginalLine)) {
 					$rInsertID = ($rArray['id'] ?? $db->last_insert_id());
 					MagService::syncLineDevices($rInsertID);
+					if (SettingsManager::get('enable_cache')) {
+						LineService::updateLineSignal($rInsertID);
+					}
+
 					if (isset($rPackage)) {
 						$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
 
