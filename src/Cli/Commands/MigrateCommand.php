@@ -89,13 +89,22 @@ class MigrateCommand implements CommandInterface {
 		return $rNames[0] !== '' && $rNames[0] !== $rNames[1];
 	}
 
+	public function __construct(private ?DatabaseHandler $source = null) {
+	}
+
 	public function execute(array $rArgs): int {
-		// migrate requires admin bootstrap (CONTEXT_ADMIN) for $_INFO credentials
-		// Expose $argc/$argv for migration_logic.php compatibility
 		global $argc, $argv;
-
-		require __DIR__ . '/../migration_logic.php';
-
-		return 0;
+		$rResult = 1;
+		$odb = null;
+		try {
+			$odb = $this->source ?? new DatabaseHandler(migrate: true);
+			$rResult = require __DIR__ . '/../migration_logic.php';
+		} catch (\Throwable $error) {
+			echo 'Migration failed: ' . $error->getMessage() . '. The migration database is kept.' . "\n";
+		} finally {
+			file_put_contents(TMP_PATH . '.migration.status', $rResult === 0 ? 2 : 3);
+			$odb?->close_mysql();
+		}
+		return $rResult === 0 ? 0 : 1;
 	}
 }
