@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Module\SourceDriverRegistry;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSource;
 
@@ -57,6 +58,7 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		SourceDriverRegistry::reset();
 		StreamSource::useLoader(null);
 		SettingsManager::set([]);
 		foreach (['7_.key', '7_.iv', '7.errors', '7_.source_0', '7_.source_1'] as $rF) {
@@ -155,6 +157,29 @@ final class BuildSupervisorSpecPortableTest extends TestCase {
 		$this->assertStringContainsString('{ingest_sock}', $rSpec['sources'][0]['cmd'], 'ingest socket stayed a token — registerIngest not called');
 		$this->assertFileDoesNotExist(STREAMS_PATH . '7_.key', 'portable mode writes no key file');
 		$this->assertFileDoesNotExist(STREAMS_PATH . '7_.iv', 'portable mode writes no IV file');
+	}
+
+	public function testOptedInDriverIsComposedForLbWithoutBuildingItsArgvOnMain(): void {
+		SourceDriverRegistry::reset();
+		SourceDriverRegistry::register(new TestSourceDriver(['acmedash']), 45, true);
+		StreamSource::useLoader(function (string $rWhat, int $rID, array $rOpts) {
+			if ($rWhat === 'stream') {
+				return $this->streamInfo(['stream_source' => json_encode(['acmedash://p/c'])]);
+			}
+			if ($rWhat === 'server') {
+				return ['parent_id' => 0, 'server_id' => 5, 'on_demand' => 0];
+			}
+			return [];
+		});
+		$rSpec = StreamProcess::buildSupervisorSpec(7, ['features' => [], 'server_id' => 5]);
+		$this->assertNotNull($rSpec);
+		$this->assertStringContainsString('source:run', $rSpec['sources'][0]['cmd']);
+		$this->assertStringContainsString('{ingest_sock}', $rSpec['sources'][0]['cmd']);
+		$this->assertStringNotContainsString('/opt/xcvm-test', $rSpec['sources'][0]['cmd']);
+		$this->assertGreaterThanOrEqual(45, $rSpec['policy']['start_timeout_sec']);
+		SourceDriverRegistry::reset();
+		SourceDriverRegistry::register(new TestSourceDriver(['acmedash']));
+		$this->assertNull(StreamProcess::buildSupervisorSpec(7, ['features' => [], 'server_id' => 5]), 'default drivers remain main-only');
 	}
 
 	public function testPortableRemuxGatedOnTargetFeatures(): void {

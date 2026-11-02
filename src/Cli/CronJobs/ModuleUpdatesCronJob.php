@@ -45,7 +45,7 @@ class ModuleUpdatesCronJob implements CommandInterface {
 			}
 		});
 
-		// Modules are MAIN-only; so is checking the marketplace for their updates.
+		// MAIN checks updates and distributes LB-targeted modules to the nodes.
 		if (!NodeRole::isMain()) {
 			return 0;
 		}

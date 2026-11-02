@@ -32,7 +32,7 @@ final class SourceDriverRegistry {
 		'sftp', 'smb', 'srt', 'srtp', 'subfile', 'tcp', 'tee', 'tls', 'udp', 'udplite', 'unix', 'zmq',
 	];
 
-	/** @var array<string, array{driver: SourceDriverInterface, start_timeout: int}>|null scheme => entry */
+	/** @var array<string, array{driver: SourceDriverInterface, start_timeout: int, lb: bool}>|null scheme => entry */
 	private static ?array $drivers = null;
 
 	/** The driver owning this URL's scheme, or null (a core source, or no driver here). */
@@ -60,6 +60,12 @@ final class SourceDriverRegistry {
 		return $scheme === null ? 0 : (self::all()[$scheme]['start_timeout'] ?? 0);
 	}
 
+	/** A module explicitly permits this source driver to produce on an LB. */
+	public static function supportsLoadBalancer(string $url): bool {
+		$scheme = self::scheme($url);
+		return $scheme !== null && (self::all()[$scheme]['lb'] ?? false);
+	}
+
 	/** @return string[] Engine executable basenames of every registered driver. */
 	public static function binaries(): array {
 		return array_values(array_unique(array_map(static fn(array $entry): string => $entry['driver']->binary(), self::all())));
@@ -71,7 +77,7 @@ final class SourceDriverRegistry {
 	 *
 	 * @return string[]
 	 */
-	public static function register(SourceDriverInterface $driver, int $startTimeout = 0): array {
+	public static function register(SourceDriverInterface $driver, int $startTimeout = 0, bool $lb = false): array {
 		self::$drivers ??= [];
 		$rejected = [];
 		foreach ($driver->schemes() as $scheme) {
@@ -80,7 +86,7 @@ final class SourceDriverRegistry {
 				$rejected[] = $scheme;
 				continue;
 			}
-			self::$drivers[$scheme] = ['driver' => $driver, 'start_timeout' => max(0, $startTimeout)];
+			self::$drivers[$scheme] = ['driver' => $driver, 'start_timeout' => max(0, $startTimeout), 'lb' => $lb];
 		}
 		return $rejected;
 	}
@@ -93,8 +99,8 @@ final class SourceDriverRegistry {
 		self::$drivers = [];
 		$owners = [];
 		$contested = [];
-		foreach (self::declaredDrivers($modulesDir) as [$module, $driver, $startTimeout]) {
-			foreach (self::register($driver, $startTimeout) as $scheme) {
+		foreach (self::declaredDrivers($modulesDir) as [$module, $driver, $startTimeout, $lb]) {
+			foreach (self::register($driver, $startTimeout, $lb) as $scheme) {
 				if (isset($owners[$scheme])) {
 					$contested[$scheme] = true;
 					error_log("SourceDriverRegistry: {$scheme}:// is claimed by both '{$owners[$scheme]}' and '{$module}'; neither gets it");
@@ -115,7 +121,7 @@ final class SourceDriverRegistry {
 		self::$drivers = null;
 	}
 
-	/** @return array<string, array{driver: SourceDriverInterface, start_timeout: int}> */
+	/** @return array<string, array{driver: SourceDriverInterface, start_timeout: int, lb: bool}> */
 	private static function all(): array {
 		if (self::$drivers === null) {
 			self::discover();
@@ -126,7 +132,7 @@ final class SourceDriverRegistry {
 	/**
 	 * Every driver the loaded modules declare, instantiated.
 	 *
-	 * @return list<array{0: string, 1: SourceDriverInterface, 2: int}> [module, driver, start_timeout]
+	 * @return list<array{0: string, 1: SourceDriverInterface, 2: int, 3: bool}> [module, driver, start_timeout, lb]
 	 */
 	private static function declaredDrivers(?string $modulesDir): array {
 		$loader = new ModuleLoader();
@@ -141,7 +147,7 @@ final class SourceDriverRegistry {
 			foreach ($manifest['source_drivers'] ?? [] as $class) {
 				$driver = self::instantiate($module, (string) $class);
 				if ($driver !== null) {
-					$declared[] = [$module, $driver, (int) ($manifest['start_timeout'] ?? 0)];
+					$declared[] = [$module, $driver, (int) ($manifest['start_timeout'] ?? 0), (bool) ($manifest['lb_source_drivers'] ?? false)];
 				}
 			}
 		}

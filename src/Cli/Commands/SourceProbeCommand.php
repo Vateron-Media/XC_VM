@@ -29,7 +29,10 @@ class SourceProbeCommand implements CommandInterface {
 	}
 
 	public function execute(array $rArgs): int {
-		$rSource = base64_decode((string) ($rArgs[1] ?? ''), true);
+		$rArg = (string) ($rArgs[1] ?? '');
+		$rSource = preg_match('/^@(0|[1-9][0-9]*)$/', $rArg)
+			? StreamProcess::lbDriverSource(intval($rArgs[0] ?? 0), (int) substr($rArg, 1))
+			: base64_decode($rArg, true);
 		return StreamProcess::driverProbe(intval($rArgs[0] ?? 0), (string) $rSource) ? 0 : 1;
 	}
 }

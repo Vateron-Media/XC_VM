@@ -65,6 +65,14 @@ final class StreamServiceDriverConflictTest extends TestCase {
 		$this->assertNull(StreamService::driverSourceConflict(['acmedash://p/c'], [], null, self::main()), 'servers unchanged');
 	}
 
+	public function testOptedInDriverMayFeedAnLbDirectly(): void {
+		SourceDriverRegistry::reset();
+		SourceDriverRegistry::register(new TestSourceDriver(['acmedash']), 0, true);
+		$this->assertNull(StreamService::driverSourceConflict(['acmedash://p/c'], [], self::tree([[5, 'source']]), self::main()));
+		SourceDriverRegistry::register(new TestSourceDriver(['otherdash']));
+		$this->assertSame('source_driver_main_only', StreamService::driverSourceConflict(['acmedash://p/c', 'otherdash://p/c'], [], self::tree([[5, 'source']]), self::main()));
+	}
+
 	public function testImportChecksEveryStreamWithItsOwnValues(): void {
 		$rStreams = [['stream_source' => ['http://a/b.ts']], ['stream_source' => ['acmedash://p/c'], 'direct_source' => 1]];
 		$this->assertSame('source_driver_no_direct', self::call('importDriverConflict', $rStreams, ['direct_source' => 0], null, self::main()));

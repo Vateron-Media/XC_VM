@@ -77,7 +77,7 @@ class ModuleInstallCommand implements CommandInterface {
 				// The store knows the module by its store id (hash_id); a payload
 				// from an older MAIN carries only the name, then taken as the id.
 				$rStoreId = (string) ($rPayload['store_id'] ?? '') ?: $rName;
-				$rManager->deployFromPlatformFilesOnly($rStoreId, $rVersion, $rApiKey);
+				$rInstalledName = $rManager->deployFromPlatformFilesOnly($rStoreId, $rVersion, $rApiKey);
 			} elseif (isset($rPayload['archive'])) {
 				// Staged by cluster:root from MAIN's grant: only that copy, only its bytes.
 				$rStaged = (string) $rPayload['archive'];
@@ -88,13 +88,13 @@ class ModuleInstallCommand implements CommandInterface {
 					return 1;
 				}
 				echo "Installing custom module '{$rName}' v{$rVersion} from the archive MAIN granted...\n";
-				$rManager->deployFromArchiveFilesOnly($rStaged);
+				$rInstalledName = $rManager->deployFromArchiveFilesOnly($rStaged);
 			} else {
 				echo "module:install: no archive granted for '{$rName}' v{$rVersion} (a custom module reaches a load balancer only as a cluster artefact: COMMANDS, root_ready, agent feature 'artefact').\n";
 				return 1;
 			}
 
-			$this->fixOwnership($rName);
+			$this->fixOwnership($rInstalledName);
 			echo "module:install: '{$rName}' installed.\n";
 			return 0;
 		} catch (\Throwable $e) {
@@ -125,9 +125,24 @@ class ModuleInstallCommand implements CommandInterface {
 		if (!preg_match('/^[a-z0-9][a-z0-9\-]*$/', $rName)) {
 			return;
 		}
-		$rDir = (defined('MAIN_HOME') ? MAIN_HOME : '') . 'Modules/' . $rName;
-		if (is_dir($rDir)) {
-			shell_exec('sudo chown -R xc_vm:xc_vm ' . escapeshellarg($rDir) . ' 2>/dev/null');
+		$rBase = (defined('MAIN_HOME') ? MAIN_HOME : '') . 'Modules/';
+		$rOwned = false;
+		foreach (array_merge([$rBase . $rName], glob($rBase . $rName . '_[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]', GLOB_ONLYDIR) ?: []) as $rDir) {
+			if (!is_dir($rDir) || is_link($rDir)) {
+				continue;
+			}
+			$rMeta = json_decode((string) @file_get_contents($rDir . '/module.json'), true);
+			if (!is_array($rMeta) || ($rMeta['name'] ?? null) !== $rName) {
+				continue;
+			}
+			exec('sudo chown -R xc_vm:xc_vm ' . escapeshellarg($rDir) . ' 2>/dev/null', $rOutput, $rStatus);
+			if ($rStatus !== 0) {
+				throw new \RuntimeException('Cannot set ownership of ' . $rDir);
+			}
+			$rOwned = true;
+		}
+		if (!$rOwned) {
+			throw new \RuntimeException('Installed module directory not found for ' . $rName);
 		}
 	}
 }

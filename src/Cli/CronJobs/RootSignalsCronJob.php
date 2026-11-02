@@ -1383,7 +1383,11 @@ class RootSignalsCronJob implements CommandInterface {
 					echo $rOutput . "\n";
 					break;
 				}
-				self::run(self::moduleInstallArgv($rData, null));
+				[$rCode, $rOutput] = self::run(self::moduleInstallArgv($rData, null));
+				if ($rCode !== 0) {
+					throw new \RuntimeException(trim($rOutput) !== '' ? trim($rOutput) : 'module:install exited ' . $rCode);
+				}
+				echo $rOutput . "\n";
 				break;
 			case 'strip_db_credentials':
 			case 'install_config':

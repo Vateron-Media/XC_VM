@@ -998,10 +998,9 @@ class StreamService {
 
 	/**
 	 * The language key of why a stream save can't carry a module source-driver
-	 * URL, or null. A driver's engine runs on the main server as the stream's
+	 * URL, or null. A driver's engine runs on each assigned producer node as the stream's
 	 * producer, so the URL must never reach a client (direct source / proxy),
-	 * the PHP LLOD v2 reader, or a load balancer fed directly from the source
-	 * (the module is main-only; an LB child of main pulls over the loopback).
+	 * the PHP LLOD v2 reader, or an LB without an opted-in driver.
 	 *
 	 * @param string[]   $rSources    The stream's source URLs.
 	 * @param array      $rStream     direct_source / direct_proxy / llod as saved.
@@ -1013,7 +1012,7 @@ class StreamService {
 		if ($rDriven === []) {
 			return null;
 		}
-		return self::driverSettingsConflict($rStream) ?? self::driverTreeConflict($rServerTree ?? [], $rMainIDs);
+		return self::driverSettingsConflict($rStream) ?? self::driverTreeConflict($rServerTree ?? [], $rMainIDs, $rDriven);
 	}
 
 	private static function driverSettingsConflict(array $rStream): ?string {
@@ -1023,9 +1022,10 @@ class StreamService {
 		return intval($rStream['llod'] ?? 0) === 2 ? 'source_driver_no_llod2' : null;
 	}
 
-	private static function driverTreeConflict(array $rServerTree, callable $rMainIDs): ?string {
+	private static function driverTreeConflict(array $rServerTree, callable $rMainIDs, array $rDriven): ?string {
 		foreach ($rServerTree as $rNode) {
-			if (($rNode['parent'] ?? '') === 'source' && !in_array(intval($rNode['id'] ?? 0), $rMainIDs(), true)) {
+			if (($rNode['parent'] ?? '') === 'source' && !in_array(intval($rNode['id'] ?? 0), $rMainIDs(), true)
+				&& count(array_filter($rDriven, static fn($rURL): bool => !SourceDriverRegistry::supportsLoadBalancer((string) $rURL))) > 0) {
 				return 'source_driver_main_only';
 			}
 		}

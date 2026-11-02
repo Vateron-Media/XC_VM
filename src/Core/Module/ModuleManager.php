@@ -2065,8 +2065,9 @@ class ModuleManager {
 	 * @param string      $storeId hash_id (or legacy store slug) of the module.
 	 * @param string      $version Exact version string.
 	 * @param string|null $apiKey  Shared platform API key (from settings).
+	 * @return string Installed module name from its manifest.
 	 */
-	public function deployFromPlatformFilesOnly(string $storeId, string $version, ?string $apiKey = null): void {
+	public function deployFromPlatformFilesOnly(string $storeId, string $version, ?string $apiKey = null): string {
 		$result     = $this->pullFilesFromPlatform($storeId, $version, $apiKey);
 		$name       = $this->placeModuleFiles($result['path']);
 		$modulePath = $this->modulePathFor($name);
@@ -2081,6 +2082,7 @@ class ModuleManager {
 		$this->recordInstalledVersion($name, (string) ($result['version'] ?: $version));
 		$this->setState($name, ModuleState::Enabled);
 		$this->hotReloadSafe($name, $modulePath);
+		return $name;
 	}
 
 	/**
