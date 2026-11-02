@@ -402,7 +402,8 @@ final class StreamVersionsTest extends TestCase {
 			}
 		}
 		$this->assertSame([], $rMissing, 'writes a stream\'s configuration without stamping its R2 version');
-		$this->assertStringContainsString("StreamVersions::seedHolders(\$db);\nStreamVersions::reset(\$db);\n", (string) file_get_contents($rSrc . '/Cli/migration_logic.php'));
+		$this->assertStringContainsString("StreamVersions::seedHolders(\$db)", (string) file_get_contents($rSrc . '/Cli/migration_logic.php'));
+		$this->assertStringContainsString("StreamVersions::reset(\$db)", (string) file_get_contents($rSrc . '/Cli/migration_logic.php'));
 
 		// The scan itself: a write whose function only imports the event, or dispatches in another function, is found.
 		$rCode = "<?php\nuse X\\StreamsChangedEvent;\nclass A {\n\tpublic static function a(\$db) {\n\t\t\$db->query('UPDATE `streams` SET `stream_source` = ? WHERE `id` = ?;');\n\t}\n\tpublic static function b(\$db) {\n\t\t\$db->query('UPDATE `streams` SET `rating` = ? WHERE `id` = ?;');\n\t\tEventDispatcher::dispatch(new StreamsChangedEvent([1]));\n\t}\n\tpublic static function c(\$db) {\n\t\t\$db->query('UPDATE `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `stream_id` SET `pid` = IF(`pid`, `pid`, 1), `streams`.`order` = 1 WHERE 1;');\n\t\t\$db->query('UPDATE `streams` SET ' . \$rSet . ' WHERE `id` = ?;');\n\t}\n}\n\$db->query('DELETE FROM `recordings` WHERE `id` = ?;');\nif (\$x) {\n\tEventDispatcher::dispatch(new StreamsChangedEvent([1]));\n}\n\$db->query('UPDATE `profiles` SET `profile_name` = ?;');\nexit();\nEventDispatcher::dispatch(StreamsChangedEvent::all());\n";

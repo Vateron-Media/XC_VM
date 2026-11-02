@@ -3,6 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use XcVm\Cli\Commands\MigrateCommand;
 use XcVm\Core\Events\Migration\LegacyTableMigrationEvent;
+use XcVm\Tests\Support\QueryLogDb;
 
 /**
  * Backup tables the core does not own (MigrateCommand::moduleTables(), no list
@@ -115,4 +116,59 @@ final class MigrateModuleTablesTest extends TestCase {
 			unlink(rtrim($this->rDir, '/'));
 		}
 	}
+	public function testAFailedTableProbeCannotBeTreatedAsAnEmptyTable(): void {
+		$db = new QueryLogDb(new TestDb());
+		$db->rRefuse = '/SHOW TABLES LIKE/';
+		$this->expectException(RuntimeException::class);
+		LegacyTableMigrationEvent::dump($db, 'watch_folders', 'xui');
+	}
+
+	public function testAFailedSecondChunkKeepsThePreviousCompleteBackup(): void {
+		$inner = new TestDb();
+		$inner->exec('CREATE TABLE `watch_folders` (`id` int PRIMARY KEY)');
+		$inner->exec('INSERT INTO `watch_folders` VALUES ' . implode(',', array_map(static fn(int $id): string => '(' . $id . ')', range(1, 1500))));
+		$db = new QueryLogDb($inner);
+		LegacyTableMigrationEvent::dump($db, 'watch_folders', 'xui');
+		$before = file_get_contents(LegacyTableMigrationEvent::sqlFile('watch_folders'));
+		$db->rRefuse = '/OFFSET 1000/';
+		try {
+			LegacyTableMigrationEvent::dump($db, 'watch_folders', 'xui');
+			$this->fail('The failed second chunk must not publish a partial export.');
+		} catch (RuntimeException $error) {
+			$this->assertSame($before, file_get_contents(LegacyTableMigrationEvent::sqlFile('watch_folders')));
+			$this->assertFileDoesNotExist(LegacyTableMigrationEvent::sqlFile('watch_folders') . '.tmp');
+		}
+		$inner->query('SELECT COUNT(*) FROM `watch_folders`');
+		$this->assertSame(1500, (int) $inner->get_col());
+	}
+
+	public function testFailedModuleRowReadsCannotReportAnEarlyEndOfTheTable(): void {
+		$inner = new TestDb();
+		$inner->exec('CREATE TABLE `watch_folders` (`id` int PRIMARY KEY)');
+		$inner->query('INSERT INTO `watch_folders` VALUES (1)');
+		$db = new QueryLogDb($inner);
+		$event = LegacyTableMigrationEvent::dump($db, 'watch_folders', 'xui');
+		$this->assertNotNull($event);
+		$db->rRefuse = '/SELECT \*/';
+		$this->expectException(RuntimeException::class);
+		iterator_to_array($event->rows());
+	}
+
+	public function testAStagingDropFailureRetainsTheSavedSql(): void {
+		$inner = new TestDb();
+		$inner->exec('CREATE TABLE `watch_folders` (`id` int PRIMARY KEY)');
+		$inner->query('INSERT INTO `watch_folders` VALUES (1)');
+		LegacyTableMigrationEvent::dump($inner, 'watch_folders', 'xui');
+		$db = new QueryLogDb($inner);
+		$event = LegacyTableMigrationEvent::fromBackup('watch_folders', $db);
+		$this->assertNotNull($event);
+		$db->rRefuse = '/DROP TABLE/';
+		try {
+			$event->discard();
+			$this->fail('A failed staging-table cleanup must not discard the SQL backup.');
+		} catch (RuntimeException $error) {
+			$this->assertFileExists(LegacyTableMigrationEvent::sqlFile('watch_folders'));
+		}
+	}
+
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use PHPUnit\Framework\TestCase;
 use XcVm\Cli\Commands\MigrationGuard;
 use XcVm\Core\Database\DatabaseHandler;

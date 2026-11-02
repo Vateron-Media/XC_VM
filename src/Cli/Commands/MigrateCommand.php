@@ -4,6 +4,7 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Process\ProcessManager;
 
 /**
  * MigrateCommand — migrate command
@@ -92,8 +93,14 @@ class MigrateCommand implements CommandInterface {
 	public function __construct(private ?DatabaseHandler $source = null) {
 	}
 
+	/** A PID file alone must never identify an unrelated process as a migration. */
+	public static function isRunning(int $pid): bool {
+		return ProcessManager::isNamedProcessRunning($pid, 'XC_VM', 'Migration');
+	}
+
 	public function execute(array $rArgs): int {
 		global $argc, $argv;
+		cli_set_process_title('XC_VM[Migration]');
 		$rResult = 1;
 		$odb = null;
 		try {
@@ -104,6 +111,9 @@ class MigrateCommand implements CommandInterface {
 		} finally {
 			file_put_contents(TMP_PATH . '.migration.status', $rResult === 0 ? 2 : 3);
 			$odb?->close_mysql();
+			if ((int) @file_get_contents(TMP_PATH . '.migration.pid') === getmypid()) {
+				@unlink(TMP_PATH . '.migration.pid');
+			}
 		}
 		return $rResult === 0 ? 0 : 1;
 	}

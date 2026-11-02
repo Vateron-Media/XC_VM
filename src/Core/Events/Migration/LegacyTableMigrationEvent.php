@@ -12,7 +12,7 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  * Core no longer writes module tables, and keeps no list of them. After the
  * core tables, the migration (`console.php migrate`) dumps every backup table
  * the core does not own (MigrateCommand::moduleTables()) to an SQL file of its
- * own in Modules/migration/, dispatches this, drops the table, and at the end
+ * own in Modules/migration/, dispatches this, and only at the successful end
  * empties the backup database (`xc_vm_migrate`): a backup can weigh gigabytes.
  * The module that owns the table copies the rows and says how many in
  * `copied`; a table nobody took (its module is not installed) stays in its
@@ -75,7 +75,7 @@ final class LegacyTableMigrationEvent {
 	 * The format of the backup in $source: an XUI.one backup has `access_codes`.
 	 */
 	public static function formatOf(DatabaseHandler $source): string {
-		$source->query("SHOW TABLES LIKE 'access_codes';");
+		self::query($source, "SHOW TABLES LIKE 'access_codes';");
 		return $source->num_rows() > 0 ? 'xui' : 'xc';
 	}
 
@@ -89,12 +89,12 @@ final class LegacyTableMigrationEvent {
 	 *         must then not be emptied
 	 */
 	public static function dump(DatabaseHandler $source, string $table, string $format): ?self {
-		$source->query('SHOW TABLES LIKE ?;', $table);
+		self::query($source, 'SHOW TABLES LIKE ?;', $table);
 		if ($source->num_rows() === 0) {
 			return null;
 		}
 		$rName = '`' . self::name($table) . '`';
-		$source->query('SHOW CREATE TABLE ' . $rName . ';');
+		self::query($source, 'SHOW CREATE TABLE ' . $rName . ';');
 		$rCreate = (string) (array_values((array) $source->get_row())[1] ?? '');
 		if ($rCreate === '') {
 			throw new \RuntimeException('Cannot read the definition of ' . $table);
@@ -109,43 +109,51 @@ final class LegacyTableMigrationEvent {
 			throw new \RuntimeException('Cannot write ' . $rTemp);
 		}
 		$rWrite = static function (string $rLine) use ($rOut, $rTemp): void {
-			if (fwrite($rOut, $rLine . "\n") === false) {
-				fclose($rOut);
-				@unlink($rTemp);
+			if (fwrite($rOut, $rLine . "\n") !== strlen($rLine) + 1) {
 				throw new \RuntimeException('Cannot write ' . $rTemp . ' (disk full?)');
 			}
 		};
-		$rWrite(self::HEADER . json_encode(['table' => $table, 'format' => $format]));
-		$rWrite('DROP TABLE IF EXISTS ' . $rStaging . ';');
-		// The backup's definition, on one line, under the staging name, without
-		// its foreign keys: they name the backup's other tables, which the
-		// panel's database may not have.
-		$rCreate = preg_replace('/,\s*CONSTRAINT `[^`]+` FOREIGN KEY \([^)]*\) REFERENCES `[^`]+` \([^)]*\)(\s+ON (DELETE|UPDATE) (CASCADE|SET NULL|SET DEFAULT|RESTRICT|NO ACTION))*/i', '', str_replace(["\r", "\n"], ' ', $rCreate));
-		$rWrite(preg_replace('/^CREATE TABLE `[^`]+`/', 'CREATE TABLE ' . $rStaging, $rCreate) . ';');
 		$rRows = 0;
-		for ($rOffset = 0;; $rOffset += self::CHUNK) {
-			// ORDER BY 1: the same order for every chunk, whatever the table's key.
-			$source->query('SELECT * FROM ' . $rName . ' ORDER BY 1 LIMIT ' . self::CHUNK . ' OFFSET ' . $rOffset . ';');
-			$rChunk = $source->get_rows();
-			if ($rChunk !== []) {
-				$rColumns = '`' . implode('`, `', array_map(static fn($c): string => str_replace('`', '', (string) $c), array_keys($rChunk[0]))) . '`';
-				$rValues = [];
-				foreach ($rChunk as $rRow) {
-					$rValues[] = '(' . implode(', ', array_map(static fn($v): string => $v === null ? 'NULL' : (string) $source->escape((string) $v), $rRow)) . ')';
+		try {
+			$rWrite(self::HEADER . json_encode(['table' => $table, 'format' => $format]));
+			$rWrite('DROP TABLE IF EXISTS ' . $rStaging . ';');
+			// The backup's definition, on one line, under the staging name, without
+			// its foreign keys: they name the backup's other tables, which the
+			// panel's database may not have.
+			$rCreate = preg_replace('/,\s*CONSTRAINT `[^`]+` FOREIGN KEY \([^)]*\) REFERENCES `[^`]+` \([^)]*\)(\s+ON (DELETE|UPDATE) (CASCADE|SET NULL|SET DEFAULT|RESTRICT|NO ACTION))*/i', '', str_replace(["\r", "\n"], ' ', $rCreate));
+			$rWrite(preg_replace('/^CREATE TABLE `[^`]+`/', 'CREATE TABLE ' . $rStaging, $rCreate) . ';');
+			for ($rOffset = 0;; $rOffset += self::CHUNK) {
+				// ORDER BY 1: the same order for every chunk, whatever the table's key.
+				self::query($source, 'SELECT * FROM ' . $rName . ' ORDER BY 1 LIMIT ' . self::CHUNK . ' OFFSET ' . $rOffset . ';');
+				$rChunk = $source->get_rows();
+				if ($rChunk !== []) {
+					$rColumns = '`' . implode('`, `', array_map(static fn($c): string => str_replace('`', '', (string) $c), array_keys($rChunk[0]))) . '`';
+					$rValues = [];
+					foreach ($rChunk as $rRow) {
+						$rValues[] = '(' . implode(', ', array_map(static fn($v): string => $v === null ? 'NULL' : (string) $source->escape((string) $v), $rRow)) . ')';
+					}
+					$rWrite('INSERT INTO ' . $rStaging . ' (' . $rColumns . ') VALUES ' . implode(', ', $rValues) . ';');
+					$rRows += count($rChunk);
 				}
-				$rWrite('INSERT INTO ' . $rStaging . ' (' . $rColumns . ') VALUES ' . implode(', ', $rValues) . ';');
-				$rRows += count($rChunk);
+				if (count($rChunk) < self::CHUNK) {
+					break;
+				}
 			}
-			if (count($rChunk) < self::CHUNK) {
-				break;
+			if (!@fflush($rOut) || !@fsync($rOut)) {
+				throw new \RuntimeException('Cannot flush ' . $rTemp . ' (disk full?)');
 			}
+		} catch (\Throwable $error) {
+			@unlink($rTemp);
+			throw $error;
+		} finally {
+			fclose($rOut);
 		}
-		fclose($rOut);
 		if ($rRows === 0) {
 			@unlink($rTemp);
 			return null;
 		}
-		if (!rename($rTemp, self::sqlFile($table))) {
+		if (!@rename($rTemp, self::sqlFile($table))) {
+			@unlink($rTemp);
 			throw new \RuntimeException('Cannot save ' . self::sqlFile($table));
 		}
 		return new self($table, $format, $source, self::name($table));
@@ -189,7 +197,7 @@ final class LegacyTableMigrationEvent {
 	public function rows(): \Generator {
 		$rName = '`' . self::name($this->rSourceTable) . '`';
 		for ($rOffset = 0;; $rOffset += self::CHUNK) {
-			$this->rSource->query('SELECT * FROM ' . $rName . ' ORDER BY 1 LIMIT ' . self::CHUNK . ' OFFSET ' . $rOffset . ';');
+			self::query($this->rSource, 'SELECT * FROM ' . $rName . ' ORDER BY 1 LIMIT ' . self::CHUNK . ' OFFSET ' . $rOffset . ';');
 			$rChunk = $this->rSource->get_rows();
 			foreach ($rChunk as $rRow) {
 				yield $rRow;
@@ -202,9 +210,15 @@ final class LegacyTableMigrationEvent {
 
 	/** Remove the table's file, and its staging table, once its module has taken it. */
 	public function discard(): void {
-		@unlink(self::sqlFile($this->table));
 		if ($this->rSourceTable === self::stagingTable($this->table)) {
-			$this->rSource->query('DROP TABLE IF EXISTS `' . $this->rSourceTable . '`;');
+			self::query($this->rSource, 'DROP TABLE IF EXISTS `' . $this->rSourceTable . '`;');
+		}
+		@unlink(self::sqlFile($this->table));
+	}
+
+	private static function query(DatabaseHandler $db, string $sql, mixed ...$args): void {
+		if (!$db->query($sql, ...$args)) {
+			throw new \RuntimeException('Cannot read or preserve the migration module table.');
 		}
 	}
 
