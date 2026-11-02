@@ -3,6 +3,7 @@
 namespace XcVm\Core\Module;
 
 use XcVm\Cli\CommandRegistry;
+use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Enum\ModuleState;
 use XcVm\Core\Enum\ServerEnvironment;
@@ -739,10 +740,10 @@ class ModuleLoader {
 	/**
 	 * Detects the current environment (main or load-balancer).
 	 *
-	 * Checks SERVER_TYPE constant. Returns LoadBalancer if set to 'lb' (case-insensitive), else Main.
+	 * The encrypted server config is available before modules are loaded.
 	 */
 	protected function getCurrentEnvironment(): ServerEnvironment {
-		if (defined('SERVER_TYPE') && strtolower((string) constant('SERVER_TYPE')) === 'lb') {
+		if (class_exists(\XC_VM::class, false) && ConfigReader::get('is_lb')) {
 			return ServerEnvironment::LoadBalancer;
 		}
 		return ServerEnvironment::Main;
@@ -792,6 +793,10 @@ class ModuleLoader {
 		if (!in_array($environment, ['main', 'lb', 'any'], true)) {
 			throw new ModuleManifestException("ModuleLoader: invalid environment in module.json for module {$name}");
 		}
+		if ((array_key_exists('lb_source_drivers', $manifest) && !is_bool($manifest['lb_source_drivers']))
+			|| (!empty($manifest['lb_source_drivers']) && $environment !== 'any')) {
+			throw new ModuleManifestException("ModuleLoader: lb_source_drivers requires a boolean and environment any for module {$name}");
+		}
 
 		return [
 			'name'                  => $manifest['name'] ?? $name,
@@ -811,6 +816,7 @@ class ModuleLoader {
 			'stream_routing'        => self::normalizeStreamRouting($manifest['stream_routing'] ?? null, $name),
 			// SourceDriverRegistry: driver FQCNs and the first-output wait they need.
 			'source_drivers'        => array_values(array_filter((array) ($manifest['source_drivers'] ?? []), 'is_string')),
+			'lb_source_drivers'     => $manifest['lb_source_drivers'] ?? false,
 			'start_timeout'         => max(0, (int) ($manifest['start_timeout'] ?? 0)),
 		];
 	}

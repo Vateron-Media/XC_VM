@@ -6,7 +6,7 @@ namespace XcVm\Core\Enum;
  * Server deployment environment.
  *
  * Used by ModuleLoader to filter modules by their target environment.
- * Determined from SERVER_TYPE constant at runtime.
+ * Determined from the encrypted server configuration at runtime.
  *
  * @package XC_VM_Core_Enum
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -17,6 +17,6 @@ enum ServerEnvironment: string {
 	/** Standard panel installation. */
 	case Main = 'main';
 
-	/** Load-balancer node (SERVER_TYPE=lb). */
+	/** Load-balancer node (is_lb=1). */
 	case LoadBalancer = 'lb';
 }

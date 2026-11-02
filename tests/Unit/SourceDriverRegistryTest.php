@@ -62,6 +62,12 @@ final class SourceDriverRegistryTest extends TestCase {
 		$this->assertSame(['xcvm-test'], SourceDriverRegistry::binaries());
 	}
 
+	public function testLbSupportRequiresOptIn(): void {
+		$this->assertFalse(SourceDriverRegistry::supportsLoadBalancer('acmedash://p/c'));
+		SourceDriverRegistry::register(new TestSourceDriver(['lbdash']), 0, true);
+		$this->assertTrue(SourceDriverRegistry::supportsLoadBalancer('lbdash://p/c'));
+	}
+
 	public function testDiscoverReadsDriversFromModuleManifests(): void {
 		$root = $this->modulesRoot();
 		$this->createModule($root, 'dash-one', ['onedash'], 45);

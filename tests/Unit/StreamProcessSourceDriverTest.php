@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Module\SourceDriverRegistry;
+use XcVm\Domain\Stream\StreamSource;
 use XcVm\Domain\Stream\StreamProcess;
 
 /**
@@ -30,6 +31,7 @@ final class StreamProcessSourceDriverTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		StreamSource::useLoader(null);
 		SourceDriverRegistry::reset();
 	}
 
@@ -56,6 +58,28 @@ final class StreamProcessSourceDriverTest extends TestCase {
 	public function testDriverRunsItsOwnSource(): void {
 		$this->assertSame($this->driver, self::call('sourceDriverFor', self::live(), [], 'acmedash://p/c'));
 		$this->assertNull(self::call('sourceDriverFor', self::live(), [], 'http://src/live.ts'), 'core runs it');
+	}
+
+	public function testLbDriverBuildsArgvOnTheNode(): void {
+		SourceDriverRegistry::reset();
+		SourceDriverRegistry::register($this->driver, 0, true);
+		StreamSource::useLoader(static fn(string $rWhat): array => $rWhat === 'stream' ? ['stream_source' => json_encode(['acmedash://p/c'])] : []);
+		$this->assertSame(['/opt/xcvm-test', '-i', 'acmedash://p/c', '-o', STREAMS_PATH . '42_.m3u8'], StreamProcess::lbDriverArgv(42, 0, '/run/lb/42.sock'));
+		SourceDriverRegistry::reset();
+		SourceDriverRegistry::register($this->driver);
+		$this->expectException(UnexpectedValueException::class);
+		StreamProcess::lbDriverArgv(42, 0, '/run/lb/42.sock');
+	}
+
+	public function testPortableDriverEntryDefersArgvBuildToLb(): void {
+		SourceDriverRegistry::reset();
+		SourceDriverRegistry::register($this->driver, 0, true);
+		$rEntry = self::call('driverSpecEntries', 42, self::live(), [], 'acmedash://p/c', '0', ['seg_time' => 6, 'seg_list_size' => 8, 'seg_delete_threshold' => 4], '{ingest_sock}', true);
+		$this->assertCount(1, $rEntry);
+		$this->assertStringContainsString('source:run', $rEntry[0]['cmd']);
+		$this->assertStringContainsString('source:probe', $rEntry[0]['probe_cmd']);
+		$this->assertStringNotContainsString('/opt/xcvm-test', $rEntry[0]['cmd']);
+		$this->assertStringNotContainsString('acmedash://p/c', $rEntry[0]['cmd'] . $rEntry[0]['probe_cmd']);
 	}
 
 	public function testSourceNobodyReadsIsRefused(): void {

@@ -22,9 +22,8 @@ EXCLUDES := \
 	.git
 
 # Directories to copy from MAIN to LB
-# NOTE: Modules/ is intentionally excluded — all modules are MAIN-only
-# (e.g. the ministra portal, whose ~50 MB of assets must not ship to LB nodes).
-LB_DIRS := bin Cli config content Core Domain\
+# The tracked Modules/ skeleton ships; installed modules are distributed separately.
+LB_DIRS := bin Cli config content Core Domain Modules\
 	Infrastructure Public signals Streaming tmp vendor
 
 # Former LB_DIRS entries that no longer exist under src/. Nothing is copied from
@@ -489,7 +488,7 @@ lb_delete_files_list:
 			grep -v '^#' "$(MAIN_DIR)/migrations/deleted_files.txt" | grep -v '^$$' \
 				| awk -v dirs="$(LB_DIRS) $(LB_RETIRED_DIRS)" -v files="$(LB_ROOT_FILES)" ' \
 					BEGIN { n=split(dirs,d," "); m=split(files,f," ") } \
-					{ ok=0; for(i=1;i<=n;i++) if(index($$0,d[i]"/")==1){ok=1;break} \
+					{ if(index($$0,"Modules/")==1) next; ok=0; for(i=1;i<=n;i++) if(index($$0,d[i]"/")==1){ok=1;break} \
 					  if(!ok) for(i=1;i<=m;i++) if($$0==f[i]){ok=1;break} \
 					  if(ok) print }'; \
 		fi; \

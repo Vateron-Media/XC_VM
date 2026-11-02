@@ -43,6 +43,8 @@ final class AuditModuleManifestTest extends TestCase {
 	public static function unusableManifests(): array {
 		return [
 			'an environment that is not main, lb or any' => ['env', ['environment' => 'cloud']],
+			'LB driver opt-in on a main-only module' => ['lb-main', ['lb_source_drivers' => true]],
+			'LB driver opt-in that is not boolean' => ['lb-bool', ['environment' => 'any', 'lb_source_drivers' => 'yes']],
 			'dependencies that are not a list'           => ['deps', ['dependencies' => 'watch']],
 			'a dependency that is not a name'            => ['depname', ['dependencies' => [['watch']]]],
 			'optional dependencies that are not a list'  => ['optdeps', ['optional_dependencies' => 'watch']],
