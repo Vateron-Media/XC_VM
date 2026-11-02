@@ -1025,7 +1025,8 @@ class StreamService {
 	private static function driverTreeConflict(array $rServerTree, callable $rMainIDs, array $rDriven): ?string {
 		foreach ($rServerTree as $rNode) {
 			if (($rNode['parent'] ?? '') === 'source' && !in_array(intval($rNode['id'] ?? 0), $rMainIDs(), true)
-				&& count(array_filter($rDriven, static fn($rURL): bool => !SourceDriverRegistry::supportsLoadBalancer((string) $rURL))) > 0) {
+				&& count(array_filter($rDriven, static fn($rURL): bool => !SourceDriverRegistry::supportsLoadBalancer((string) $rURL))) > 0
+			) {
 				return 'source_driver_main_only';
 			}
 		}
