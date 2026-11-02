@@ -145,7 +145,8 @@ Do not install it under `/home/xc_vm/bin/`, which belongs to core.
 | --- | --- |
 | `source_drivers` | Fully-qualified class names implementing `XcVm\Core\Module\SourceDriverInterface`. A module may declare several. |
 | `start_timeout` | Optional, in seconds. How long core waits for your first playlist before it counts the start as failed. Leave it out for the core default (20–30 s). Set it when a cold start includes key acquisition. |
-| `environment` | Must be `main`. Your engine runs on the main server only; see [Main server only](#main-server-only). |
+| `environment` | Use `any` when the module runs on both main and LBs. Omit it for a main-only module. |
+| `lb_source_drivers` | Optional boolean, default `false`. Set to `true` with `environment: any` to allow direct-source LB assignments for this module's drivers. |
 
 ### 3. The driver class
 
@@ -422,9 +423,9 @@ read disk HLS, so write it even when `ingest` is set.
 | --- | --- |
 | Stream start | Asks `available()`. When it returns `true`, runs your argv as the producer; otherwise tries the next source. |
 | Failover | Moves to the next source in the list when your engine exits. That source can be yours or core's. |
-| Priority return | Every 5 minutes, asks `available()` for higher-priority sources and switches back when one answers. The PHP monitor calls it directly; the supervisor runs `console.php source:probe <id> <base64 url>`, which calls it. |
+| Priority return | Every 5 minutes, asks `available()` for higher-priority sources and switches back when one answers. The PHP monitor calls it directly; the supervisor runs `console.php source:probe` (with a base64 URL on main or a local source index on a serve-only LB). |
 | Source checks | The probe button on the stream form, the stream tools check and the on-demand scanner report your source as "Module source available / unavailable" from `available()`, since it has no codecs to show before your engine runs. |
-| Saving a stream | Rejects Direct Source, Direct Proxy and LLOD v2 on a stream with your source, and a load balancer fed directly from the source rather than as a child of main. The same checks apply to imports and mass edits. |
+| Saving a stream | Rejects Direct Source, Direct Proxy and LLOD v2 on a stream with your source. A direct-source LB requires every module driver in that stream to opt in. The same checks apply to imports and mass edits. |
 | Forced source switch | Asks `available()` before switching to your source. |
 | Stop / Restart | Kills the process found by pid and playlist, then clears `<id>_*`. |
 | Supervisor restart | Re-adopts your running engine by its playlist path instead of starting a second one. |
@@ -452,12 +453,23 @@ fails to start. Core never runs ffmpeg on a URL with your scheme. On a node wher
 module is not installed, your sources are refused with `no source driver for acmedash://
 on this node`.
 
-## Main server only
+## Load balancers
 
-Modules are installed only on the main server, so your engine runs there. To serve a
-driver stream from a load balancer, assign the LB as a **child of the main server**. The
-LB then pulls the stream from main over the loopback like any other child stream, and
-never sees your URL.
+For a driver that can run from node-local data, set `"environment": "any"` and
+`"lb_source_drivers": true` in its manifest. The sample driver above uses a module
+database table, so adapt that lookup before opting it in.
+
+An opted-in module is installed separately on each LB with its own files and license.
+Its cron entries run there. On a direct-source LB, the driver builds its command and
+starts its engine on that LB; the stream uses that node's CPU, RAM and upstream bandwidth.
+On a serve-only LB, main sends a source index in the portable supervisor spec. The LB
+reads the source and options from its local stream replica before calling `buildArgv()`.
+The command line never carries those values from main. The driver must resolve its own
+settings and secrets on the LB; serve-only nodes cannot query main's database. Keep
+node-specific state in local files or another source the LB can access. `available()`
+and module crons must work under the same constraint. A module without the opt-in keeps
+the main-only rule; an LB child of main still pulls the parent's stream. Required
+module dependencies must also target the LB.
 
 ## Provider scripts and secrets
 

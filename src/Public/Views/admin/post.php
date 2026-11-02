@@ -466,7 +466,7 @@ if (1 < $rICount) { ?>
 			case 'quick_tools':
 				set_time_limit(0);
 
-				foreach ([\XcVm\Domain\Stream\LiveStreamQuickTools::PROGRESS, \XcVm\Domain\Stream\LiveStreamQuickTools::CODECS, \XcVm\Domain\Stream\LiveStreamQuickTools::ONLINE, \XcVm\Domain\Stream\LiveStreamQuickTools::DOWN] as $rTool) {
+				foreach ([\XcVm\Domain\Stream\LiveStreamQuickTools::PROGRESS, \XcVm\Domain\Stream\LiveStreamQuickTools::CODECS, \XcVm\Domain\Stream\LiveStreamQuickTools::MEMORY, \XcVm\Domain\Stream\LiveStreamQuickTools::ONLINE, \XcVm\Domain\Stream\LiveStreamQuickTools::DOWN] as $rTool) {
 					if (isset($rData[$rTool])) {
 						$rResult = \XcVm\Domain\Stream\LiveStreamQuickTools::restart($db, $rTool);
 						$rResult['status'] = $rResult['result'] ? STATUS_SUCCESS : STATUS_FAILURE;
@@ -515,18 +515,21 @@ if (1 < $rICount) { ?>
 
 				if (isset($rData['flush_isp'])) {
 					$db->query("UPDATE `lines` SET `isp_desc` = '', `as_number` = NULL WHERE `is_mag` = 0 AND `is_e2` = 0;");
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['enable_isp'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 1 WHERE `is_mag` = 0 AND `is_e2` = 0;');
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['disable_isp'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 0 WHERE `is_mag` = 0 AND `is_e2` = 0;');
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -569,18 +572,21 @@ if (1 < $rICount) { ?>
 
 				if (isset($rData['flush_isp_mag'])) {
 					$db->query("UPDATE `lines` SET `isp_desc` = '', `as_number` = NULL WHERE `is_mag` = 1 AND `is_e2` = 0;");
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['enable_isp_mag'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 1 WHERE `is_mag` = 1 AND `is_e2` = 0;');
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['disable_isp_mag'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 0 WHERE `is_mag` = 1 AND `is_e2` = 0;');
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -641,18 +647,21 @@ if (1 < $rICount) { ?>
 
 				if (isset($rData['flush_isp_e2'])) {
 					$db->query("UPDATE `lines` SET `isp_desc` = '', `as_number` = NULL WHERE `is_mag` = 0 AND `is_e2` = 1;");
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['enable_isp_e2'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 1 WHERE `is_mag` = 0 AND `is_e2` = 1;');
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['disable_isp_e2'])) {
 					$db->query('UPDATE `lines` SET `is_isplock` = 0 WHERE `is_mag` = 0 AND `is_e2` = 1;');
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -719,12 +728,14 @@ if (1 < $rICount) { ?>
 
 				if (isset($rData['block_trial_lines'])) {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `is_trial` = 1;');
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
 
 				if (isset($rData['unblock_trial_lines'])) {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 1 WHERE `is_trial` = 1;');
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}
@@ -756,6 +767,7 @@ if (1 < $rICount) { ?>
 
 				if (isset($rData['flush_country_lock'])) {
 					$db->query("UPDATE `lines` SET `forced_country` = '';");
+					LineService::invalidateCachedLines();
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 					exit();
 				}

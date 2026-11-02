@@ -136,20 +136,25 @@ final class StreamProcessMovieOutputTest extends TestCase {
 
 	// ── resolveProbeSettings (first startStream extraction) ────
 
-	private const PROBE_SETTINGS = ['stream_max_analyze' => 5000000, 'probesize' => 3000000, 'probe_extra_wait' => 5];
+	private const PROBE_SETTINGS = ['stream_max_analyze' => 5000000, 'probesize' => 3000000, 'probesize_ondemand' => 256000, 'probe_extra_wait' => 5];
 
 	public function testProbeSettingsOnDemandLlod(): void {
 		[$probe, $analyze, $timeout] = $this->call('resolveProbeSettings', 1, 2000000, true, self::PROBE_SETTINGS);
 		$this->assertSame(2000000, $probe);
-		$this->assertSame('500000', $analyze);
+		$this->assertSame(500000, $analyze);
 		$this->assertSame(5, $timeout); // intval(500000/1e6)=0 + 5
 	}
 
 	public function testProbeSettingsOnDemandDefaultProbesize(): void {
 		[$probe, $analyze, $timeout] = $this->call('resolveProbeSettings', 1, 0, false, self::PROBE_SETTINGS);
-		$this->assertSame(1000000, $probe); // intval(0) ?: 1000000
-		$this->assertSame('10000000', $analyze);
-		$this->assertSame(15, $timeout); // intval(1e7/1e6)=10 + 5
+		$this->assertSame(256000, $probe);
+		$this->assertSame(5000000, $analyze);
+		$this->assertSame(10, $timeout);
+	}
+
+	public function testProbeSettingsOnDemandKeepsLegacyFallbackWhenGlobalValuesAreZero(): void {
+		[$probe, $analyze, $timeout] = $this->call('resolveProbeSettings', 1, 0, false, ['stream_max_analyze' => 0, 'probesize_ondemand' => 0, 'probe_extra_wait' => 5]);
+		$this->assertSame([1000000, 10000000, 15], [$probe, $analyze, $timeout]);
 	}
 
 	public function testProbeSettingsGlobalWhenNotOnDemand(): void {

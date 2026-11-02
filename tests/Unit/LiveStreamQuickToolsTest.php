@@ -19,6 +19,24 @@ final class LiveStreamQuickToolsTest extends TestCase {
 		$this->assertSame($expected, LiveStreamQuickTools::matches(['progress_info' => json_encode(['speed' => $speed])], LiveStreamQuickTools::PROGRESS));
 	}
 
+	public static function memories(): array {
+		$limit = 750 * 1024 * 1024;
+		return [
+			[60 * 1024 * 1024, false],   // a healthy producer
+			[$limit, false],             // exactly the bar does not match (strict >)
+			[$limit + 1, true],          // one byte over
+			[2 * 1024 * 1024 * 1024, true],
+			['805306368', true],         // numeric string (768 MB)
+			[null, false], ['N/A', false], [[], false],
+		];
+	}
+
+	#[DataProvider('memories')]
+	public function testOnlyRunawayMemoryMatches(mixed $mem, bool $expected): void {
+		$this->assertSame($expected, LiveStreamQuickTools::matches(['progress_info' => json_encode(['mem' => $mem])], LiveStreamQuickTools::MEMORY));
+		$this->assertFalse(LiveStreamQuickTools::matches(['progress_info' => ''], LiveStreamQuickTools::MEMORY), 'no progress means no match');
+	}
+
 	public function testTargetsDoNotRestartHealthyReplicasOrDuplicatePairs(): void {
 		$rows = [
 			['server_id' => 1, 'stream_id' => 10, 'audio_codec' => '', 'video_codec' => 'h264'],

@@ -753,8 +753,8 @@ class StreamProcess {
 	/**
 	 * Resolve ffprobe/analysis timing for a live stream start.
 	 *
-	 * On-demand streams use a small (LLOD) or medium analysis window and the
-	 * per-stream probesize; everything else uses the global settings. The read
+	 * On-demand streams use the configured analysis window (capped for LLOD)
+	 * and a per-stream or global probesize. The read
 	 * timeout is derived from the analysis window plus the configured slack.
 	 * Extracted from startStream.
 	 *
@@ -762,12 +762,13 @@ class StreamProcess {
 	 * @param mixed $rProbesizeOndemand Per-stream on-demand probesize (0 → default).
 	 * @param bool  $rLLOD              Live-on-demand (shorter analysis window).
 	 * @param array $rSettings          Global settings (analyze/probesize/slack).
-	 * @return array{0:int,1:int|string,2:int} [probesize, analyzeDuration, timeout]
+	 * @return array{0:int,1:int,2:int} [probesize, analyzeDuration, timeout]
 	 */
 	private static function resolveProbeSettings(mixed $rOnDemand, mixed $rProbesizeOndemand, bool $rLLOD, array $rSettings) {
 		if ($rOnDemand == 1) {
-			$rProbesize = intval($rProbesizeOndemand) ?: 1000000;
-			$rAnalyseDuration = ($rLLOD ? '500000' : '10000000');
+			$rProbesize = max(0, intval($rProbesizeOndemand)) ?: (max(0, intval($rSettings['probesize_ondemand'] ?? 0)) ?: 1000000);
+			$rConfiguredAnalyze = abs(intval($rSettings['stream_max_analyze'] ?? 0)) ?: 10000000;
+			$rAnalyseDuration = $rLLOD ? min(500000, $rConfiguredAnalyze) : $rConfiguredAnalyze;
 		} else {
 			$rAnalyseDuration = abs(intval($rSettings['stream_max_analyze']));
 			$rProbesize = abs(intval($rSettings['probesize']));
@@ -1111,7 +1112,13 @@ class StreamProcess {
 				// (ffmpegReal — the same build the target resolves the token to),
 				// never the placeholder. Off-portable, ffmpegReal is null → unchanged.
 				$rNoFix = FfmpegPaths::fixDts($data['ffmpegReal'] ?? $rFFMPEG_CPU) ? '-nofix_dts' : '';
-				$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
+				// -max_interleave_delta caps how long the muxer buffers one stream
+				// waiting to interleave another. 0 removes the cap: a source with a
+				// sparse or stalled audio track makes ffmpeg hold video packets in
+				// memory with no bound, so RSS climbs into the gigabytes until the
+				// OOM killer fires. 10s (10_000_000 us) keeps A/V sync across normal
+				// jitter while bounding the buffer.
+				$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 10000000';
 			}
 
 			$container = (isset($rFFProbeOutput) && is_array($rFFProbeOutput)) ? ($rFFProbeOutput['container'] ?? null) : null;
@@ -1489,6 +1496,15 @@ class StreamProcess {
 	 * @throws \UnexpectedValueException When the driver's argv breaks the contract.
 	 */
 	private static function driverCommand(SourceDriverInterface $rDriver, array $rCtx): string {
+		$rArgv = self::driverArgv($rDriver, $rCtx);
+		$rCmd = implode(' ', array_map('escapeshellarg', $rArgv));
+		if (empty($rCtx['supervised'])) {
+			$rCmd .= ' >/dev/null 2>>' . escapeshellarg($rCtx['errors_path']) . ' & echo $! > ' . escapeshellarg(STREAMS_PATH . intval($rCtx['stream_id']) . '_.pid');
+		}
+		return $rCmd;
+	}
+
+	private static function driverArgv(SourceDriverInterface $rDriver, array $rCtx): array {
 		$rArgv = array_map('strval', $rDriver->buildArgv($rCtx));
 		$rBinary = $rArgv[0] ?? '';
 		if (!str_starts_with($rBinary, '/') || basename($rBinary) !== $rDriver->binary()) {
@@ -1498,11 +1514,37 @@ class StreamProcess {
 		if (count(array_filter($rArgv, static fn(string $rArg): bool => str_contains($rArg, $rPlaylist))) === 0) {
 			throw new \UnexpectedValueException('the command must name ' . $rPlaylist);
 		}
-		$rCmd = implode(' ', array_map('escapeshellarg', $rArgv));
-		if (empty($rCtx['supervised'])) {
-			$rCmd .= ' >/dev/null 2>>' . escapeshellarg($rCtx['errors_path']) . ' & echo $! > ' . escapeshellarg(STREAMS_PATH . intval($rCtx['stream_id']) . '_.pid');
+		return $rArgv;
+	}
+
+	/** The source index in the LB's own replica, never a URL copied into the process list. */
+	public static function lbDriverSource(int $rID, int $rIndex): ?string {
+		if ($rID <= 0 || $rIndex < 0) {
+			return null;
 		}
-		return $rCmd;
+		$rRow = StreamSource::streamRow($rID, true);
+		$rSources = is_array($rRow) ? json_decode((string) ($rRow['stream_source'] ?? ''), true) : null;
+		$rSources = is_array($rSources) ? array_values(array_filter(array_map('trim', $rSources), static fn(string $rSource): bool => $rSource !== '')) : [];
+		return $rSources[$rIndex] ?? null;
+	}
+
+	/** Build an opted-in driver's argv on the LB, after its local module is loaded. */
+	public static function lbDriverArgv(int $rID, int $rIndex, string $rIngestSock): array {
+		$rSource = self::lbDriverSource($rID, $rIndex);
+		if ($rSource === null || !SourceDriverRegistry::supportsLoadBalancer($rSource)) {
+			throw new \UnexpectedValueException('LB source driver is unavailable');
+		}
+		$rDriver = SourceDriverRegistry::for($rSource);
+		if ($rDriver === null) {
+			throw new \UnexpectedValueException('LB source driver is unavailable');
+		}
+		$rSegments = [
+			'seg_time' => SettingsManager::get('seg_time') ?? 10,
+			'seg_list_size' => SettingsManager::get('seg_list_size') ?? 8,
+			'seg_delete_threshold' => SettingsManager::get('seg_delete_threshold') ?? 4,
+		];
+		$rCtx = self::driverContext($rID, $rSource, (string) $rIndex, StreamSource::arguments($rID, true), $rSegments, $rIngestSock, true);
+		return self::driverArgv($rDriver, $rCtx);
 	}
 
 	/**
@@ -1518,10 +1560,19 @@ class StreamProcess {
 	 * @param array $rSegmentSettings seg_time / seg_list_size / seg_delete_threshold.
 	 * @return list<array{label: string, cmd: string, probe_cmd: string}>|null
 	 */
-	private static function driverSpecEntries(int $rStreamID, array $rStreamInfo, array $rArgsByKey, string $rSource, string $rLabel, array $rSegmentSettings, ?string $rIngestSock): ?array {
+	private static function driverSpecEntries(int $rStreamID, array $rStreamInfo, array $rArgsByKey, string $rSource, string $rLabel, array $rSegmentSettings, ?string $rIngestSock, bool $rPortable = false): ?array {
 		$rDriver = self::sourceDriverFor($rStreamInfo, $rArgsByKey, $rSource);
 		if ($rDriver === null) {
 			return null;
+		}
+		if ($rPortable) {
+			if (!$rDriver instanceof SourceDriverInterface || !SourceDriverRegistry::supportsLoadBalancer($rSource)) {
+				return [];
+			}
+			$rBase = PHP_BIN . ' ' . MAIN_HOME . 'console.php ';
+			return [['label' => $rSource,
+				'cmd' => $rBase . 'source:run ' . $rStreamID . ' ' . intval($rLabel) . " '{ingest_sock}'",
+				'probe_cmd' => $rBase . 'source:probe ' . $rStreamID . ' @' . intval($rLabel)]];
 		}
 		$rCmd = self::driverLaunch($rStreamID, $rDriver, self::driverContext($rStreamID, $rSource, $rLabel, $rArgsByKey, $rSegmentSettings, $rIngestSock, true));
 		$rProbe = PHP_BIN . ' ' . MAIN_HOME . 'console.php source:probe ' . $rStreamID . ' ' . escapeshellarg(base64_encode($rSource));
@@ -1873,15 +1924,13 @@ class StreamProcess {
 
 		$rSpecSources = [];
 		foreach ($rSources as $i => $rSource) {
-			// A module source driver needs PHP and the module on the node, and its
-			// command carries un-portable MAIN paths (PHP_BIN, MAIN_HOME, the driver
-			// binary). A serve-only LB has none of that: out of portable scope — emit
-			// no transcode directive (checked before driverSpecEntries, which can
-			// write to this node's log on a driver error).
-			if ($rPortableMode && self::sourceDriverFor($rInfo, $rArgsByKey, (string) $rSource) !== null) {
+			// The LB builds an opted-in driver's command locally; other drivers
+			// cannot produce on that node.
+			if ($rPortableMode && self::sourceDriverFor($rInfo, $rArgsByKey, (string) $rSource) !== null
+				&& !SourceDriverRegistry::supportsLoadBalancer((string) $rSource)) {
 				return null;
 			}
-			$rDriverEntries = self::driverSpecEntries($rStreamID, $rInfo, $rArgsByKey, (string) $rSource, (string) $i, $rSegmentSettings, $rIngestSock);
+			$rDriverEntries = self::driverSpecEntries($rStreamID, $rInfo, $rArgsByKey, (string) $rSource, (string) $i, $rSegmentSettings, $rIngestSock, $rPortableMode);
 			if ($rDriverEntries !== null) {
 				array_push($rSpecSources, ...$rDriverEntries);
 				continue;
@@ -1988,7 +2037,12 @@ class StreamProcess {
 	 * buildLive branches that resolve a concrete path despite the token inputs.
 	 */
 	private static function portableSpecHasNodeConcrete(array $rSpec): bool {
-		$rJson = (string) json_encode($rSpec);
+		$rJson = (string) json_encode($rSpec, JSON_UNESCAPED_SLASHES);
+		// These two CLI entry points are installed at the same fixed path on every LB.
+		if (defined('PHP_BIN') && defined('MAIN_HOME')) {
+			$rJson = str_replace(PHP_BIN . ' ' . MAIN_HOME . 'console.php source:run ', '{lb_driver_run} ', $rJson);
+			$rJson = str_replace(PHP_BIN . ' ' . MAIN_HOME . 'console.php source:probe ', '{lb_driver_probe} ', $rJson);
+		}
 		$rConcretes = [FfmpegPaths::cpu(), FfmpegPaths::gpu(), FfmpegPaths::probe(), FfmpegPaths::legacy()];
 		if (defined('MAIN_HOME')) {
 			$rConcretes[] = MAIN_HOME;

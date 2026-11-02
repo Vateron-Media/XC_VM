@@ -665,9 +665,8 @@ final class ArtefactHashRefusalTest extends TestCase {
 	 * install_module with a staged archive: only this module's, run from
 	 * root's copy with the checked grant before the stage is emptied, and
 	 * what module:install refused or failed is the command's failure.
-	 * Without one (a signals row), the legacy way, as before: run to its end
-	 * (exec() read the old `… 2>&1 &` line's output until module:install
-	 * closed it), its exit status and output not the command's. A payload
+	 * Without one (a signals row), run to its end and report a failure to
+	 * the signal sender. A payload
 	 * never names the archive, and module:install gets it as one argument.
 	 */
 	public function testInstallModuleTakesOnlyItsOwnStagedArchive(): void {
@@ -712,13 +711,16 @@ final class ArtefactHashRefusalTest extends TestCase {
 		$this->assertSame([], $rRuns);
 		$rAudited = $this->audited();
 		$this->assertSame('log.syslog:ARTEFACT', end($rAudited)[0] ?? null);
-		// No staged archive (a signals row): the legacy way, whatever it
-		// names, and what module:install answers is not the action's.
+		// No staged archive (a signals row): report the install failure too.
 		$rAnswer = [1, 'module:install: cannot reach MAIN'];
-		$rOut = $this->runAction($rAction + ['archive' => $rStaged['path']]);
+		try {
+			$this->runAction($rAction + ['archive' => $rStaged['path']]);
+			$this->fail('acked ok');
+		} catch (\RuntimeException $rE) {
+			$this->assertSame($rAnswer[1], $rE->getMessage());
+		}
 		$this->assertCount(1, $rRuns);
 		$this->assertSame($rAction, $rPayload($rRuns[0]));
-		$this->assertStringNotContainsString('cannot reach MAIN', $rOut);
 	}
 
 	/**

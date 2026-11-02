@@ -10,6 +10,13 @@ final class LiveStreamQuickTools {
 	public const DOWN = 'restart_down_streams';
 	public const PROGRESS = 'restart_abnormal_progress';
 	public const CODECS = 'restart_missing_codecs';
+	public const MEMORY = 'restart_high_memory';
+
+	// A healthy copy/remux producer sits around tens of MB; a runaway (a source
+	// whose timestamps make ffmpeg buffer without bound) climbs into the GB. The
+	// bar sits well above any legitimate transcode so only true runaways match.
+	// ponytail: fixed 750 MB bar; make it a setting if real transcodes need more.
+	private const MEM_RUNAWAY_BYTES = 750 * 1024 * 1024;
 
 	public static function matches(array $row, string $action): bool {
 		if ($action === self::ONLINE) {
@@ -20,6 +27,11 @@ final class LiveStreamQuickTools {
 		}
 		if ($action === self::CODECS) {
 			return trim((string) ($row['audio_codec'] ?? '')) === '' || trim((string) ($row['video_codec'] ?? '')) === '';
+		}
+		if ($action === self::MEMORY) {
+			$progress = json_decode((string) ($row['progress_info'] ?? ''), true);
+			$mem = is_array($progress) ? ($progress['mem'] ?? null) : null;
+			return is_numeric($mem) && (int) $mem > self::MEM_RUNAWAY_BYTES;
 		}
 		if ($action !== self::PROGRESS) {
 			return false;
@@ -47,7 +59,7 @@ final class LiveStreamQuickTools {
 	}
 
 	public static function restart(object $db, string $action, ?callable $request = null): array {
-		if (!in_array($action, [self::PROGRESS, self::CODECS, self::ONLINE, self::DOWN], true)) {
+		if (!in_array($action, [self::PROGRESS, self::CODECS, self::MEMORY, self::ONLINE, self::DOWN], true)) {
 			throw new \InvalidArgumentException('Unknown live stream quick tool.');
 		}
 		$where = match ($action) {

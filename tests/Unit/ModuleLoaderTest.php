@@ -5,10 +5,22 @@ use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\NavbarRegistry;
 use XcVm\Core\Module\ModuleInterface;
+use XcVm\Core\Enum\ServerEnvironment;
 use XcVm\Core\Http\Router;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 final class ModuleLoaderTest extends TestCase {
+	#[RunInSeparateProcess]
+	public function testLbEnvironmentComesFromServerConfig(): void {
+		if (class_exists('XC_VM', false)) {
+			$this->markTestSkipped('the installed extension owns XC_VM');
+		}
+		eval('class XC_VM { public static function config_server(): array { return ["is_lb" => 1]; } }');
+		$rMethod = new ReflectionMethod(ModuleLoader::class, 'getCurrentEnvironment');
+		$this->assertSame(ServerEnvironment::LoadBalancer, $rMethod->invoke(new ModuleLoader()));
+	}
+
 	public function testLoadAllSkipsModuleWithMissingDependencyInsteadOfThrowing(): void {
 		$root = $this->createModulesRoot();
 		// 'missing-alpha' requires a module that does not exist; a healthy sibling
