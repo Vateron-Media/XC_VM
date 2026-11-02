@@ -1334,12 +1334,8 @@ class ResellerAPI {
 					return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
 				}
 
-				if (self::storeLine($rArray, $rExpDate, $rOriginalLine)) {
-					$rInsertID = ($rArray['id'] ?? $db->last_insert_id());
+				if (($rInsertID = self::storeLineWithRefresh($rArray, $rExpDate, $rOriginalLine)) !== null) {
 					MagService::syncLineDevices($rInsertID);
-					if (SettingsManager::get('enable_cache')) {
-						LineService::updateLineSignal($rInsertID);
-					}
 
 					if (isset($rPackage)) {
 						$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
@@ -1408,6 +1404,43 @@ class ResellerAPI {
 			return $rSave();
 		} finally {
 			LineService::unlockTrials($rUserID);
+		}
+	}
+
+	/** Commit MAIN's line and its refresh job together, before device synchronization. */
+	private static function storeLineWithRefresh(array $line, mixed $expiry, array $original): ?int {
+		$db = self::db();
+		if (!SettingsManager::get('enable_cache')) {
+			return self::storeLine($line, $expiry, $original) ? (int) ($line['id'] ?? $db->last_insert_id()) : null;
+		}
+		$own = !$db->isInTransaction();
+		if (!($own ? $db->beginTransaction() : $db->query('SAVEPOINT xcvm_reseller_line;'))) {
+			return null;
+		}
+		$committed = false;
+		try {
+			if (!self::storeLine($line, $expiry, $original)) {
+				return null;
+			}
+			$id = (int) ($line['id'] ?? $db->last_insert_id());
+			// Never coalesce with a job a worker may already be processing from
+			// before this commit. The new job must remain for its next read.
+			if (!SignalDispatcher::cache((int) SERVER_ID, ['type' => 'update_line', 'id' => $id], false, false, $db)) {
+				return null;
+			}
+			$committed = (bool) ($own ? $db->commit() : $db->query('RELEASE SAVEPOINT xcvm_reseller_line;'));
+			return $committed ? $id : null;
+		} catch (\Throwable $error) {
+			return null;
+		} finally {
+			if (!$committed) {
+				if ($own) {
+					$db->rollback();
+				} else {
+					$db->query('ROLLBACK TO SAVEPOINT xcvm_reseller_line;');
+					$db->query('RELEASE SAVEPOINT xcvm_reseller_line;');
+				}
+			}
 		}
 	}
 

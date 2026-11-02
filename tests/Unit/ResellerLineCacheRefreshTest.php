@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Config\ConstantsInitializer;
 use XcVm\Core\Config\SettingsManager;
@@ -10,6 +12,7 @@ use XcVm\Domain\User\ResellerAPI;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Tests\Support\InstallSchema;
+use XcVm\Tests\Support\QueryLogDb;
 
 final class ResellerLineCacheRefreshTest extends TestCase {
 	private TestDb $db;
@@ -102,4 +105,68 @@ final class ResellerLineCacheRefreshTest extends TestCase {
 		$this->assertSame(STATUS_INSUFFICIENT_CREDITS, $this->save(['package' => 1])['status']);
 		$this->assertSame([], $this->refreshes());
 	}
+	public function testTheRefreshIsQueuedBeforeTheRenewalBecomesVisible(): void {
+		$this->assertSame(STATUS_SUCCESS, $this->save(['package' => 1])['status']);
+		$this->db->exec('DELETE FROM `signals`');
+		$expired = time() - 86400;
+		$this->db->query('UPDATE `lines` SET `exp_date` = ? WHERE `id` = 1', $expired);
+		$observer = TestDb::connect($this->db->schema());
+		$log = new QueryLogDb($this->db);
+		$checked = false;
+		$log->rBefore = function (string $sql) use ($observer, $expired, &$checked): void {
+			if (str_starts_with($sql, 'INSERT INTO `signals`')) {
+				$this->assertSame($expired, (int) $observer->query('SELECT `exp_date` FROM `lines` WHERE `id` = 1')->fetchColumn(), 'another connection cannot see the renewal before its refresh job is queued');
+				$checked = true;
+			}
+		};
+		DatabaseFactory::set($log);
+		$this->assertSame(STATUS_SUCCESS, $this->save(['edit' => 1, 'package' => 1])['status']);
+		$this->assertTrue($checked);
+		$this->assertSame([['type' => 'update_line', 'id' => 1]], $this->refreshes());
+	}
+
+	public function testARefreshWriteFailureRollsBackTheRenewalAndRefundsItsPrice(): void {
+		$this->assertSame(STATUS_SUCCESS, $this->save(['package' => 1])['status']);
+		$this->db->exec('DELETE FROM `signals`');
+		$expired = time() - 86400;
+		$this->db->query('UPDATE `lines` SET `exp_date` = ? WHERE `id` = 1', $expired);
+		$log = new QueryLogDb($this->db);
+		$log->rRefuse = '/INSERT INTO `signals`/';
+		DatabaseFactory::set($log);
+		$this->assertSame(STATUS_FAILURE, $this->save(['edit' => 1, 'package' => 1])['status']);
+		$this->db->query('SELECT `exp_date` FROM `lines` WHERE `id` = 1');
+		$this->assertSame($expired, (int) $this->db->get_col());
+		$this->db->query('SELECT `credits` FROM `users` WHERE `id` = 5');
+		$this->assertSame(90.0, (float) $this->db->get_col());
+		$this->assertSame([], $this->refreshes());
+	}
+
+	public function testAQueuedOlderRefreshDoesNotConsumeTheRenewalsNewJob(): void {
+		$this->db->exec('ALTER TABLE `signals` AUTO_INCREMENT = 1000');
+		$this->assertSame(1, $this->save(['package' => 1])['data']['insert_id'], 'signal ids must not replace the created line id');
+		$this->assertSame(STATUS_SUCCESS, $this->save(['edit' => 1, 'package' => 1])['status']);
+		$this->assertSame([['type' => 'update_line', 'id' => 1], ['type' => 'update_line', 'id' => 1]], $this->refreshes());
+	}
+
+	public function testARefreshFailureDoesNotRollBackTheCallersOuterTransaction(): void {
+		$this->assertSame(STATUS_SUCCESS, $this->save(['package' => 1])['status']);
+		$this->db->exec('DELETE FROM `signals`');
+		$this->db->beginTransaction();
+		try {
+			$this->db->query("UPDATE `users` SET `username` = 'outer-change' WHERE `id` = 5");
+			$log = new QueryLogDb($this->db);
+			$log->rRefuse = '/INSERT INTO `signals`/';
+			DatabaseFactory::set($log);
+			$this->assertSame(STATUS_FAILURE, $this->save(['edit' => 1, 'package' => 1])['status']);
+			$this->assertTrue($this->db->isInTransaction());
+			$this->db->query('SELECT `username`, `credits` FROM `users` WHERE `id` = 5');
+			$user = $this->db->get_row();
+			$this->assertSame('outer-change', $user['username']);
+			$this->assertSame(90.0, (float) $user['credits']);
+			$this->assertSame([], $this->refreshes());
+		} finally {
+			$this->db->rollback();
+		}
+	}
+
 }
