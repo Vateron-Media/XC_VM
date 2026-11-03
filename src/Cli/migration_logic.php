@@ -8,6 +8,8 @@ use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Migration\LegacyTableMigrationEvent;
 use XcVm\Cli\Commands\MigrateCommand;
+use XcVm\Cli\Commands\MigrationGuard;
+use XcVm\Cli\Commands\MigrationSourceBackup;
 
 /**
  * Database migration logic
@@ -20,7 +22,7 @@ use XcVm\Cli\Commands\MigrateCommand;
  */
 
 // Migration logic — loaded from MigrateCommand
-// Requires admin.php already loaded, $db available
+// Requires admin bootstrap and $db; MigrateCommand supplies the source $odb.
 //
 // Once the core tables are migrated, every backup table the core does not own
 // (MigrateCommand::moduleTables(): not in the core schema, not migrated by it,
@@ -32,6 +34,10 @@ use XcVm\Cli\Commands\MigrateCommand;
 set_time_limit(0);
 ini_set('memory_limit', -1);
 global $db;
+if (!isset($odb) || !$odb instanceof DatabaseHandler) {
+	throw new LogicException('The migration source handle is required.');
+}
+$rMigration = new MigrationGuard();
 $rXUITableList = MigrateCommand::XUI_TABLES;
 $rTableList = MigrateCommand::XC_TABLES;
 
@@ -43,18 +49,19 @@ $rTableList = MigrateCommand::XC_TABLES;
  *
  * @return bool false when a table could not be saved: the backup must then be kept
  */
-function saveModuleTables(DatabaseHandler $odb): bool {
+function saveModuleTables(DatabaseHandler $odb, MigrationGuard $rMigration): bool {
 	$rFormat = LegacyTableMigrationEvent::formatOf($odb);
-	$odb->query('SHOW TABLES;');
+	$rMigration->query($odb, 'SHOW TABLES;');
 	$rTables = array_map(static fn(array $rRow): string => (string) reset($rRow), $odb->get_rows());
 	$rSaved = true;
 	// A module table can be the parent of a foreign key (telegram_bots of
 	// telegram_chats): dropped one by one, it would be refused.
-	$odb->query('SET FOREIGN_KEY_CHECKS = 0;');
+	$rMigration->query($odb, 'SET FOREIGN_KEY_CHECKS = 0;');
 	foreach (MigrateCommand::moduleTables($rTables, MigrateCommand::coreSchemaTables()) as $rTable) {
 		try {
 			$rEvent = LegacyTableMigrationEvent::dump($odb, $rTable, $rFormat);
-		} catch (\RuntimeException $e) {
+		} catch (\Throwable $e) {
+			$rMigration->fail();
 			echo 'Could not save `' . $rTable . '` (' . $e->getMessage() . '): the migration database is kept.' . "\n";
 			$rSaved = false;
 			continue;
@@ -63,7 +70,6 @@ function saveModuleTables(DatabaseHandler $odb): bool {
 			// Read from the backup table itself: dropped only after.
 			EventDispatcher::dispatch($rEvent);
 		}
-		$odb->query('DROP TABLE IF EXISTS `' . str_replace('`', '', $rTable) . '`;');
 		if ($rEvent === null) {
 			continue; // empty
 		}
@@ -74,7 +80,7 @@ function saveModuleTables(DatabaseHandler $odb): bool {
 		$rEvent->discard();
 		echo ($rEvent->copied === 0 ? '`' . $rTable . '` already has rows: left as it is.' : 'Added ' . number_format($rEvent->copied, 0) . ' rows of `' . $rTable . '` (an installed module took it).') . "\n";
 	}
-	$odb->query('SET FOREIGN_KEY_CHECKS = 1;');
+	$rMigration->query($odb, 'SET FOREIGN_KEY_CHECKS = 1;');
 	return $rSaved;
 }
 
@@ -83,14 +89,14 @@ function saveModuleTables(DatabaseHandler $odb): bool {
  * held is in xc_vm now, or in Modules/migration/ for a module. Tables are
  * dropped, not the database, so the grants on it stay.
  */
-function clearMigrationDatabase(DatabaseHandler $odb): void {
-	$odb->query('SHOW TABLES;');
+function clearMigrationDatabase(DatabaseHandler $odb, MigrationGuard $rMigration): void {
+	$rMigration->query($odb, 'SHOW TABLES;');
 	$rTables = array_map(static fn(array $rRow): string => (string) reset($rRow), $odb->get_rows());
-	$odb->query('SET FOREIGN_KEY_CHECKS = 0;');
+	$rMigration->query($odb, 'SET FOREIGN_KEY_CHECKS = 0;');
 	foreach ($rTables as $rTable) {
-		$odb->query('DROP TABLE IF EXISTS `' . str_replace('`', '', $rTable) . '`;');
+		$rMigration->query($odb, 'DROP TABLE IF EXISTS `' . str_replace('`', '', $rTable) . '`;');
 	}
-	$odb->query('SET FOREIGN_KEY_CHECKS = 1;');
+	$rMigration->query($odb, 'SET FOREIGN_KEY_CHECKS = 1;');
 	echo 'Emptied the migration database (' . count($rTables) . ' tables).' . "\n";
 }
 
@@ -99,60 +105,60 @@ $rMigrateOptions = (json_decode((string) @file_get_contents(TMP_PATH . '.migrati
 
 file_put_contents(TMP_PATH . '.migration.pid', getmypid());
 file_put_contents(TMP_PATH . '.migration.status', 1);
-$odb = new DatabaseHandler(migrate: true);
 if (!$odb->connected) {
 	echo 'Failed to connect to migration database, or database is empty!' . "\n";
 	file_put_contents(TMP_PATH . '.migration.status', 3);
-	exit();
+	return 1;
 }
 echo 'Connected to migration database.' . "\n";
 $AdminAccesCode = '';
-$odb->query("SHOW TABLES LIKE 'access_codes';");
+$rMigration->query($odb, "SHOW TABLES LIKE 'access_codes';");
 if ($odb->num_rows() > 0) {
 	if (count($rMigrateOptions) == 0) {
 		$rMigrateOptions = $rXUITableList;
 	}
 	$rItemCount = 0;
 	foreach ($rXUITableList as $rTable) {
-		$odb->query('SHOW TABLES LIKE ?;', $rTable);
+		$rMigration->query($odb, 'SHOW TABLES LIKE ?;', $rTable);
 		if ($odb->num_rows() > 0) {
-			$odb->query('SELECT COUNT(*) AS `count` FROM `' . $rTable . '`;');
+			$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `' . $rTable . '`;');
 			$rItemCount += (intval($odb->get_row()['count']));
 		}
 	}
 	if ($rItemCount == 0) {
 		echo "\n" . "Couldn't find anything to migrate in the `xc_vm_migrate` database. Please ensure you restore your backup to that database specifically." . "\n\n";
-		exit();
+		return 1;
 	}
 	echo "\n" . 'Migrating database to XC_VM...' . "\n\n";
 
 	if (in_array('access_codes', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `access_codes`;');
+		$rMigration->query($odb, 'SELECT * FROM `access_codes`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `access_codes`;');
+			$rMigration->query($db, 'TRUNCATE `access_codes`;');
 			echo 'Add ' . number_format(count($rResults), 0) . ' access codes.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
 					if ($rResult['type'] == 0) {
 						$AdminAccesCode = $rResult['code'];
 					}
-					$rResult = QueryHelper::verifyPostTable('access_codes', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'access_codes', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `access_codes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					AuthRepository::updateCodes();
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('users', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `users`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `users`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `users`;');
+			$rMigration->query($db, 'TRUNCATE `users`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' users.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -164,101 +170,106 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `users` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `users` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('users', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'users', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 						// A name is one account's: another of the same name (case and
 						// trailing spaces aside) is not imported, and is named here.
-						if (!$db->query($rQuery, ...$rPrepare['data'])) {
+						if (!$rMigration->query($db, $rQuery, ...$rPrepare['data'])) {
 							echo 'Account not imported: ' . $rResult['username'] . ' (' . $db->error() . ")\n";
 						}
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('blocked_ips', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `blocked_ips`;');
+		$rMigration->query($odb, 'SELECT * FROM `blocked_ips`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `blocked_ips`;');
+			$rMigration->query($db, 'TRUNCATE `blocked_ips`;');
 			echo 'Blocking ' . number_format(count($rResults), 0) . ' IP addresses.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('blocked_ips', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'blocked_ips', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `blocked_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('blocked_uas', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `blocked_uas`;');
+		$rMigration->query($odb, 'SELECT * FROM `blocked_uas`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `blocked_uas`;');
+			$rMigration->query($db, 'TRUNCATE `blocked_uas`;');
 			echo 'Blocking ' . number_format(count($rResults), 0) . ' user-agents.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('blocked_uas', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'blocked_uas', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `blocked_uas`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('blocked_isps', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `blocked_isps`;');
+		$rMigration->query($odb, 'SELECT * FROM `blocked_isps`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `blocked_isps`;');
+			$rMigration->query($db, 'TRUNCATE `blocked_isps`;');
 			echo 'Blocking ' . number_format(count($rResults), 0) . " ISP's." . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('blocked_isps', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'blocked_isps', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `blocked_isps`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('bouquets', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `bouquets`;');
+		$rMigration->query($odb, 'SELECT * FROM `bouquets`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `bouquets`;');
+			$rMigration->query($db, 'TRUNCATE `bouquets`;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' bouquets.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('bouquets', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'bouquets', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('enigma2_devices', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `enigma2_devices`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `enigma2_devices`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `enigma2_devices`;');
+			$rMigration->query($db, 'TRUNCATE `enigma2_devices`;');
 			echo 'Authorising ' . number_format($rCount, 0) . ' enigma devices.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -270,25 +281,26 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `enigma2_devices` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `enigma2_devices` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('enigma2_devices', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'enigma2_devices', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('mag_devices', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `mag_devices`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `mag_devices`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `mag_devices`;');
+			$rMigration->query($db, 'TRUNCATE `mag_devices`;');
 			echo 'Authorising ' . number_format($rCount, 0) . ' MAG devices.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -300,97 +312,102 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `mag_devices` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `mag_devices` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('mag_devices', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'mag_devices', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `mag_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('epg', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `epg`;');
+		$rMigration->query($odb, 'SELECT * FROM `epg`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `epg`;');
+			$rMigration->query($db, 'TRUNCATE `epg`;');
 			echo 'Processing ' . number_format(count($rResults), 0) . ' EPG URLs.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('epg', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'epg', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `epg`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('users_groups', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `users_groups`;');
+		$rMigration->query($odb, 'SELECT * FROM `users_groups`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `users_groups`;');
+			$rMigration->query($db, 'TRUNCATE `users_groups`;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' user groups.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('users_groups', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'users_groups', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `users_groups`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('users_packages', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `users_packages`;');
+		$rMigration->query($odb, 'SELECT * FROM `users_packages`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `users_packages`;');
+			$rMigration->query($db, 'TRUNCATE `users_packages`;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' user packages.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('users_packages', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'users_packages', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `users_packages`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('rtmp_ips', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `rtmp_ips`;');
+		$rMigration->query($odb, 'SELECT * FROM `rtmp_ips`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `rtmp_ips`;');
+			$rMigration->query($db, 'TRUNCATE `rtmp_ips`;');
 			echo 'Authorising ' . number_format(count($rResults), 0) . ' RTMP IPs.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('rtmp_ips', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'rtmp_ips', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `rtmp_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('streams_series', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `streams_series`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `streams_series`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams_series`;');
+			$rMigration->query($db, 'TRUNCATE `streams_series`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' TV series.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -402,25 +419,26 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `streams_series` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `streams_series` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('streams_series', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'streams_series', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `streams_series`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('streams_episodes', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `streams_episodes`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `streams_episodes`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams_episodes`;');
+			$rMigration->query($db, 'TRUNCATE `streams_episodes`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' episodes.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -432,44 +450,46 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `streams_episodes` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `streams_episodes` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('streams_episodes', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'streams_episodes', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `streams_episodes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('servers', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `servers` ORDER BY `id` ASC;');
+		$rMigration->query($odb, 'SELECT * FROM `servers` ORDER BY `id` ASC;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
 			$rMain = false;
-			$db->query('TRUNCATE `servers`;');
+			$rMigration->query($db, 'TRUNCATE `servers`;');
 			echo 'Moving ' . number_format(count($rResults), 0) . ' servers.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('servers', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'servers', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('streams', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `streams`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `streams`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams`;');
+			$rMigration->query($db, 'TRUNCATE `streams`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' streams.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -481,25 +501,26 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `streams` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `streams` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('streams', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'streams', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('streams_options', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `streams_options`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `streams_options`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams_options`;');
+			$rMigration->query($db, 'TRUNCATE `streams_options`;');
 			echo 'Attributing ' . number_format($rCount, 0) . ' options to streams.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -511,25 +532,26 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `streams_options` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `streams_options` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('streams_options', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'streams_options', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `streams_options`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('streams_servers', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `streams_servers`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `streams_servers`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams_servers`;');
+			$rMigration->query($db, 'TRUNCATE `streams_servers`;');
 			echo 'Allocating ' . number_format($rCount, 0) . ' streams to servers.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -541,7 +563,7 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `streams_servers` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `streams_servers` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
 						$rResult['stream_status'] = 0;
@@ -550,112 +572,118 @@ if ($odb->num_rows() > 0) {
 						if (($rResult['pid'] ?? 0) < 0) {
 							$rResult['pid'] = null;
 						}
-						$rResult = QueryHelper::verifyPostTable('streams_servers', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'streams_servers', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `streams_servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('streams_categories', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `streams_categories`;');
+		$rMigration->query($odb, 'SELECT * FROM `streams_categories`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `streams_categories`;');
+			$rMigration->query($db, 'TRUNCATE `streams_categories`;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' categories.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('streams_categories', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'streams_categories', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('tickets', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `tickets`;');
+		$rMigration->query($odb, 'SELECT * FROM `tickets`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `tickets`;');
+			$rMigration->query($db, 'TRUNCATE `tickets`;');
 			echo 'Posting ' . number_format(count($rResults), 0) . ' tickets.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('tickets', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'tickets', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `tickets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('tickets_replies', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `tickets_replies`;');
+		$rMigration->query($odb, 'SELECT * FROM `tickets_replies`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `tickets_replies`;');
+			$rMigration->query($db, 'TRUNCATE `tickets_replies`;');
 			echo 'Posting ' . number_format(count($rResults), 0) . ' replies.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('tickets_replies', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'tickets_replies', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `tickets_replies`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('profiles', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `profiles`;');
+		$rMigration->query($odb, 'SELECT * FROM `profiles`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `profiles`;');
+			$rMigration->query($db, 'TRUNCATE `profiles`;');
 			echo 'Generating ' . number_format(count($rResults), 0) . ' transcoding profiles.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('profiles', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'profiles', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `profiles`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('providers', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `providers`;');
+		$rMigration->query($odb, 'SELECT * FROM `providers`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `providers`;');
+			$rMigration->query($db, 'TRUNCATE `providers`;');
 			echo 'Generating ' . number_format(count($rResults), 0) . ' providers.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('providers', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'providers', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `providers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('lines', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `lines`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `lines`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `lines`;');
+			$rMigration->query($db, 'TRUNCATE `lines`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' lines.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -667,7 +695,7 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `lines` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `lines` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
 						$rResult['stream_status'] = 0;
@@ -676,12 +704,13 @@ if ($odb->num_rows() > 0) {
 						if (($rResult['pid'] ?? 0) < 0) {
 							$rResult['pid'] = null;
 						}
-						$rResult = QueryHelper::verifyPostTable('lines', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'lines', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
@@ -693,35 +722,35 @@ if ($odb->num_rows() > 0) {
 	}
 	$rItemCount = 0;
 	foreach ($rTableList as $rTable) {
-		$odb->query('SHOW TABLES LIKE ?;', $rTable);
+		$rMigration->query($odb, 'SHOW TABLES LIKE ?;', $rTable);
 		if ($odb->num_rows() > 0) {
-			$odb->query('SELECT COUNT(*) AS `count` FROM `' . $rTable . '`;');
+			$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `' . $rTable . '`;');
 			$rItemCount += (intval($odb->get_row()['count']));
 		}
 	}
 	if ($rItemCount == 0) {
 		echo "\n" . "Couldn't find anything to migrate in the `xc_vm_migrate` database. Please ensure you restore your backup to that database specifically." . "\n\n";
-		exit();
+		return 1;
 	}
 	echo "\n" . 'Migrating database to XC_VM...' . "\n\n";
 
 	echo 'Remapping bouquets.' . "\n";
 	$rSeriesMap = $rBouquetMap = [];
-	$odb->query('SELECT `id`, `type` FROM `streams`;');
+	$rMigration->query($odb, 'SELECT `id`, `type` FROM `streams`;');
 	$rStreams = $odb->get_rows();
 	foreach ($rStreams as $rStream) {
 		$rBouquetMap[intval($rStream['id'])] = intval($rStream['type']);
 	}
-	$odb->query('SELECT `id` FROM `series`;');
+	$rMigration->query($odb, 'SELECT `id` FROM `series`;');
 	$rSeries = $odb->get_rows();
 	foreach ($rSeries as $rSeriesArr) {
 		$rSeriesMap[] = intval($rSeriesArr['id']);
 	}
 	if (in_array('reg_users', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `reg_users`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `reg_users`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `users`;');
+			$rMigration->query($db, 'TRUNCATE `users`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' users.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -733,29 +762,30 @@ if ($odb->num_rows() > 0) {
 			}
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `reg_users` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `reg_users` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('users', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'users', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 						// A name is one account's: another of the same name (case and
 						// trailing spaces aside) is not imported, and is named here.
-						if (!$db->query($rQuery, ...$rPrepare['data'])) {
+						if (!$rMigration->query($db, $rQuery, ...$rPrepare['data'])) {
 							echo 'Account not imported: ' . $rResult['username'] . ' (' . $db->error() . ")\n";
 						}
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('members', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `members`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `members`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `users`;');
+			$rMigration->query($db, 'TRUNCATE `users`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' users.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -768,101 +798,106 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `members` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `members` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('users', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'users', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 						// A name is one account's: another of the same name (case and
 						// trailing spaces aside) is not imported, and is named here.
-						if (!$db->query($rQuery, ...$rPrepare['data'])) {
+						if (!$rMigration->query($db, $rQuery, ...$rPrepare['data'])) {
 							echo 'Account not imported: ' . $rResult['username'] . ' (' . $db->error() . ")\n";
 						}
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('blocked_ips', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `blocked_ips`;');
+		$rMigration->query($odb, 'SELECT * FROM `blocked_ips`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `blocked_ips`;');
+			$rMigration->query($db, 'TRUNCATE `blocked_ips`;');
 			echo 'Blocking ' . number_format(count($rResults), 0) . ' IP addresses.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('blocked_ips', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'blocked_ips', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `blocked_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('blocked_user_agents', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `blocked_user_agents`;');
+		$rMigration->query($odb, 'SELECT * FROM `blocked_user_agents`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `blocked_uas`;');
+			$rMigration->query($db, 'TRUNCATE `blocked_uas`;');
 			echo 'Blocking ' . number_format(count($rResults), 0) . ' user-agents.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('blocked_uas', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'blocked_uas', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `blocked_uas`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('isp_addon', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `isp_addon`;');
+		$rMigration->query($odb, 'SELECT * FROM `isp_addon`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `blocked_isps`;');
+			$rMigration->query($db, 'TRUNCATE `blocked_isps`;');
 			echo 'Blocking ' . number_format(count($rResults), 0) . " ISP's." . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('blocked_isps', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'blocked_isps', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `blocked_isps`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('blocked_isps', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `blocked_isps`;');
+		$rMigration->query($odb, 'SELECT * FROM `blocked_isps`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `blocked_isps`;');
+			$rMigration->query($db, 'TRUNCATE `blocked_isps`;');
 			echo 'Blocking ' . number_format(count($rResults), 0) . " ISP's." . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('blocked_isps', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'blocked_isps', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `blocked_isps`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('bouquets', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `bouquets`;');
+		$rMigration->query($odb, 'SELECT * FROM `bouquets`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `bouquets`;');
+			$rMigration->query($db, 'TRUNCATE `bouquets`;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' bouquets.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
@@ -890,21 +925,22 @@ if ($odb->num_rows() > 0) {
 							$rResult['bouquet_' . $rType] = '[]';
 						}
 					}
-					$rResult = QueryHelper::verifyPostTable('bouquets', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'bouquets', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('enigma2_devices', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `enigma2_devices`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `enigma2_devices`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `enigma2_devices`;');
+			$rMigration->query($db, 'TRUNCATE `enigma2_devices`;');
 			echo 'Authorising ' . number_format($rCount, 0) . ' enigma devices.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -917,26 +953,27 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `enigma2_devices` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `enigma2_devices` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
 						$rResult['lock_device'] = 1;
-						$rResult = QueryHelper::verifyPostTable('enigma2_devices', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'enigma2_devices', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('mag_devices', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `mag_devices`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `mag_devices`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `mag_devices`;');
+			$rMigration->query($db, 'TRUNCATE `mag_devices`;');
 			echo 'Authorising ' . number_format($rCount, 0) . ' MAG devices.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -949,65 +986,68 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `mag_devices` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `mag_devices` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
 						$rResult['mac'] = base64_decode($rResult['mac']);
 						$rResult['lock_device'] = 1;
 						if (0 < $rResult['user_id']) {
-							$rResult = QueryHelper::verifyPostTable('mag_devices', $rResult);
+							$rResult = $rMigration->prepareRow($db, 'mag_devices', $rResult);
 							$rPrepare = QueryHelper::prepareArray($rResult);
 							$rQuery = 'INSERT INTO `mag_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-							$db->query($rQuery, ...$rPrepare['data']);
+							$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 						}
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('epg', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `epg`;');
+		$rMigration->query($odb, 'SELECT * FROM `epg`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `epg`;');
+			$rMigration->query($db, 'TRUNCATE `epg`;');
 			echo 'Processing ' . number_format(count($rResults), 0) . ' EPG URLs.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('epg', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'epg', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `epg`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('epg_sources', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `epg_sources`;');
+		$rMigration->query($odb, 'SELECT * FROM `epg_sources`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `epg`;');
+			$rMigration->query($db, 'TRUNCATE `epg`;');
 			echo 'Processing ' . number_format(count($rResults), 0) . ' EPG URLs.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('epg', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'epg', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `epg`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('member_groups', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `member_groups` WHERE `can_delete` = 1;');
+		$rMigration->query($odb, 'SELECT * FROM `member_groups` WHERE `can_delete` = 1;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('DELETE FROM `users_groups` WHERE `can_delete` = 1;');
+			$rMigration->query($db, 'DELETE FROM `users_groups` WHERE `can_delete` = 1;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' user groups.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
@@ -1017,21 +1057,22 @@ if ($odb->num_rows() > 0) {
 					$rResult['allow_change_password'] = 1;
 					$rResult['minimum_username_length'] = 8;
 					$rResult['minimum_password_length'] = 8;
-					$rResult = QueryHelper::verifyPostTable('users_groups', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'users_groups', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `users_groups`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('groups', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `groups` WHERE `can_delete` = 1;');
+		$rMigration->query($odb, 'SELECT * FROM `groups` WHERE `can_delete` = 1;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('DELETE FROM `users_groups` WHERE `can_delete` = 1;');
+			$rMigration->query($db, 'DELETE FROM `users_groups` WHERE `can_delete` = 1;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' user groups.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
@@ -1041,19 +1082,20 @@ if ($odb->num_rows() > 0) {
 					$rResult['allow_change_password'] = 1;
 					$rResult['minimum_username_length'] = 8;
 					$rResult['minimum_password_length'] = 8;
-					$rResult = QueryHelper::verifyPostTable('users_groups', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'users_groups', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `users_groups`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
-		$odb->query('SELECT * FROM `groups` WHERE `can_delete` = 1;');
+		$rMigration->query($odb, 'SELECT * FROM `groups` WHERE `can_delete` = 1;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('DELETE FROM `users_groups` WHERE `can_delete` = 1;');
+			$rMigration->query($db, 'DELETE FROM `users_groups` WHERE `can_delete` = 1;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' user groups.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
@@ -1063,21 +1105,22 @@ if ($odb->num_rows() > 0) {
 					$rResult['allow_change_password'] = 1;
 					$rResult['minimum_username_length'] = 8;
 					$rResult['minimum_password_length'] = 8;
-					$rResult = QueryHelper::verifyPostTable('users_groups', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'users_groups', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `users_groups`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('packages', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `packages`;');
+		$rMigration->query($odb, 'SELECT * FROM `packages`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `users_packages`;');
+			$rMigration->query($db, 'TRUNCATE `users_packages`;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' user packages.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
@@ -1101,41 +1144,43 @@ if ($odb->num_rows() > 0) {
 					if (count(json_decode($rResult['output_formats'], true)) == 0) {
 						$rResult['output_formats'] = '[1,2,3]';
 					}
-					$rResult = QueryHelper::verifyPostTable('users_packages', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'users_packages', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `users_packages`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('rtmp_ips', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `rtmp_ips`;');
+		$rMigration->query($odb, 'SELECT * FROM `rtmp_ips`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `rtmp_ips`;');
+			$rMigration->query($db, 'TRUNCATE `rtmp_ips`;');
 			echo 'Authorising ' . number_format(count($rResults), 0) . ' RTMP IPs.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('rtmp_ips', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'rtmp_ips', $rResult);
 					$rResult['push'] = 1;
 					$rResult['pull'] = 1;
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `rtmp_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('series', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `series`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `series`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams_series`;');
+			$rMigration->query($db, 'TRUNCATE `streams_series`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' TV series.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -1148,7 +1193,7 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `series` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `series` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
 						$rResult['category_id'] = '[' . intval($rResult['category_id']) . ']';
@@ -1156,22 +1201,23 @@ if ($odb->num_rows() > 0) {
 						if ($rResult['tmdb_id'] == 0) {
 							$rResult['tmdb_id'] = null;
 						}
-						$rResult = QueryHelper::verifyPostTable('streams_series', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'streams_series', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT IGNORE INTO `streams_series`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('series_episodes', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `series_episodes`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `series_episodes`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams_episodes`;');
+			$rMigration->query($db, 'TRUNCATE `streams_episodes`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' episodes.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -1184,27 +1230,28 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `series_episodes` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `series_episodes` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
 						$rResult['episode_num'] = $rResult['sort'];
-						$rResult = QueryHelper::verifyPostTable('streams_episodes', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'streams_episodes', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `streams_episodes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('streaming_servers', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `streaming_servers`;');
+		$rMigration->query($odb, 'SELECT * FROM `streaming_servers`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
 			$rMain = false;
-			$db->query('TRUNCATE `servers`;');
+			$rMigration->query($db, 'TRUNCATE `servers`;');
 			echo 'Moving ' . number_format(count($rResults), 0) . ' servers.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
@@ -1222,22 +1269,23 @@ if ($odb->num_rows() > 0) {
 					} else {
 						$rResult['is_main'] = 0;
 					}
-					$rResult = QueryHelper::verifyPostTable('servers', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'servers', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('servers', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `servers` ORDER BY `id` ASC;');
+		$rMigration->query($odb, 'SELECT * FROM `servers` ORDER BY `id` ASC;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
 			$rMain = false;
-			$db->query('TRUNCATE `servers`;');
+			$rMigration->query($db, 'TRUNCATE `servers`;');
 			echo 'Moving ' . number_format(count($rResults), 0) . ' servers.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
@@ -1255,11 +1303,12 @@ if ($odb->num_rows() > 0) {
 					} else {
 						$rResult['is_main'] = 0;
 					}
-					$rResult = QueryHelper::verifyPostTable('servers', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'servers', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
@@ -1267,10 +1316,10 @@ if ($odb->num_rows() > 0) {
 	}
 	$rCreatedOptions = [];
 	if (in_array('streams', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `streams`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `streams`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams`;');
+			$rMigration->query($db, 'TRUNCATE `streams`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' streams.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -1283,7 +1332,7 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `streams` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `streams` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
 						try {
@@ -1297,25 +1346,27 @@ if ($odb->num_rows() > 0) {
 								list($rResult['target_container']) = json_decode($rResult['target_container'], true);
 							}
 							$rCreatedOptions[$rResult['id']] = $rResult['cchannel_rsources'];
-							$rResult = QueryHelper::verifyPostTable('streams', $rResult);
+							$rResult = $rMigration->prepareRow($db, 'streams', $rResult);
 							$rPrepare = QueryHelper::prepareArray($rResult);
 							$rQuery = 'INSERT INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-							$db->query($rQuery, ...$rPrepare['data']);
-						} catch (\Exception $e) {
+							$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+						} catch (\Throwable $e) {
+							$rMigration->fail();
 							echo 'Error: ' . $e . "\n";
 						}
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('streams_options', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `streams_options`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `streams_options`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams_options`;');
+			$rMigration->query($db, 'TRUNCATE `streams_options`;');
 			echo 'Attributing ' . number_format($rCount, 0) . ' options to streams.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -1328,25 +1379,26 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `streams_options` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `streams_options` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
-						$rResult = QueryHelper::verifyPostTable('streams_options', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'streams_options', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `streams_options`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('streams_sys', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `streams_sys`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `streams_sys`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams_servers`;');
+			$rMigration->query($db, 'TRUNCATE `streams_servers`;');
 			echo 'Allocating ' . number_format($rCount, 0) . ' streams to servers.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -1359,7 +1411,7 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `streams_sys` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `streams_sys` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					if (0 < count($rResults)) {
 						foreach ($rResults as $rResult) {
@@ -1376,23 +1428,24 @@ if ($odb->num_rows() > 0) {
 							if (($rResult['pid'] ?? 0) < 0) {
 								$rResult['pid'] = null;
 							}
-							$rResult = QueryHelper::verifyPostTable('streams_servers', $rResult);
+							$rResult = $rMigration->prepareRow($db, 'streams_servers', $rResult);
 							$rPrepare = QueryHelper::prepareArray($rResult);
 							$rQuery = 'INSERT INTO `streams_servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-							$db->query($rQuery, ...$rPrepare['data']);
+							$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 						}
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('stream_servers', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `stream_servers`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `stream_servers`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `streams_servers`;');
+			$rMigration->query($db, 'TRUNCATE `streams_servers`;');
 			echo 'Allocating ' . number_format($rCount, 0) . ' streams to servers.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -1405,7 +1458,7 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `stream_servers` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `stream_servers` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					if (0 < count($rResults)) {
 						foreach ($rResults as $rResult) {
@@ -1418,103 +1471,109 @@ if ($odb->num_rows() > 0) {
 							if ($rResult['pid'] <= 0) {
 								$rResult['pid'] = null;
 							}
-							$rResult = QueryHelper::verifyPostTable('streams_servers', $rResult);
+							$rResult = $rMigration->prepareRow($db, 'streams_servers', $rResult);
 							$rPrepare = QueryHelper::prepareArray($rResult);
 							$rQuery = 'INSERT INTO `streams_servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-							$db->query($rQuery, ...$rPrepare['data']);
+							$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 						}
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('stream_categories', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `stream_categories`;');
+		$rMigration->query($odb, 'SELECT * FROM `stream_categories`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `streams_categories`;');
+			$rMigration->query($db, 'TRUNCATE `streams_categories`;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' categories.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('streams_categories', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'streams_categories', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('categories', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `categories`;');
+		$rMigration->query($odb, 'SELECT * FROM `categories`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `streams_categories`;');
+			$rMigration->query($db, 'TRUNCATE `streams_categories`;');
 			echo 'Creating ' . number_format(count($rResults), 0) . ' categories.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('streams_categories', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'streams_categories', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('tickets', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `tickets`;');
+		$rMigration->query($odb, 'SELECT * FROM `tickets`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `tickets`;');
+			$rMigration->query($db, 'TRUNCATE `tickets`;');
 			echo 'Posting ' . number_format(count($rResults), 0) . ' tickets.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('tickets', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'tickets', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `tickets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('tickets_replies', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `tickets_replies`;');
+		$rMigration->query($odb, 'SELECT * FROM `tickets_replies`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `tickets_replies`;');
+			$rMigration->query($db, 'TRUNCATE `tickets_replies`;');
 			echo 'Posting ' . number_format(count($rResults), 0) . ' replies.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('tickets_replies', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'tickets_replies', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `tickets_replies`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('transcoding_profiles', $rMigrateOptions)) {
-		$odb->query('SELECT * FROM `transcoding_profiles`;');
+		$rMigration->query($odb, 'SELECT * FROM `transcoding_profiles`;');
 		$rResults = $odb->get_rows();
 		if (count($rResults) > 0) {
-			$db->query('TRUNCATE `profiles`;');
+			$rMigration->query($db, 'TRUNCATE `profiles`;');
 			echo 'Generating ' . number_format(count($rResults), 0) . ' transcoding profiles.' . "\n";
 			foreach ($rResults as $rResult) {
 				try {
-					$rResult = QueryHelper::verifyPostTable('profiles', $rResult);
+					$rResult = $rMigration->prepareRow($db, 'profiles', $rResult);
 					$rPrepare = QueryHelper::prepareArray($rResult);
 					$rQuery = 'INSERT INTO `profiles`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-					$db->query($rQuery, ...$rPrepare['data']);
-				} catch (\Exception $e) {
+					$rMigration->query($db, $rQuery, ...$rPrepare['data']);
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
@@ -1522,7 +1581,7 @@ if ($odb->num_rows() > 0) {
 	}
 	$rOutput = [];
 	if (in_array('user_output', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `user_output`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `user_output`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
 			echo 'Attributing ' . number_format($rCount, 0) . ' output options to lines.' . "\n";
@@ -1537,22 +1596,23 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `user_output` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `user_output` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
 						$rOutput[$rResult['user_id']][] = $rResult['access_output_id'];
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
 		}
 	}
 	if (in_array('users', $rMigrateOptions)) {
-		$odb->query('SELECT COUNT(*) AS `count` FROM `users`;');
+		$rMigration->query($odb, 'SELECT COUNT(*) AS `count` FROM `users`;');
 		$rCount = $odb->get_row()['count'];
 		if ($rCount > 0) {
-			$db->query('TRUNCATE `lines`;');
+			$rMigration->query($db, 'TRUNCATE `lines`;');
 			echo 'Adding ' . number_format($rCount, 0) . ' lines.' . "\n";
 			$rSteps = [];
 			$stepSize = 1000;
@@ -1565,7 +1625,7 @@ if ($odb->num_rows() > 0) {
 
 			foreach ($rSteps as $rStep) {
 				try {
-					$odb->query('SELECT * FROM `users` LIMIT ' . $rStep . ', 1000;');
+					$rMigration->query($odb, 'SELECT * FROM `users` LIMIT ' . $rStep . ', 1000;');
 					$rResults = $odb->get_rows();
 					foreach ($rResults as $rResult) {
 						if (empty($rResult['isp_desc'])) {
@@ -1578,12 +1638,13 @@ if ($odb->num_rows() > 0) {
 							$rResult['allowed_outputs'] = $rResult['output'];
 						}
 						$rResult['bouquet'] = '[' . implode(',', array_map('intval', json_decode($rResult['bouquet'], true))) . ']';
-						$rResult = QueryHelper::verifyPostTable('lines', $rResult);
+						$rResult = $rMigration->prepareRow($db, 'lines', $rResult);
 						$rPrepare = QueryHelper::prepareArray($rResult);
 						$rQuery = 'INSERT INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-						$db->query($rQuery, ...$rPrepare['data']);
+						$rMigration->query($db, $rQuery, ...$rPrepare['data']);
 					}
-				} catch (\Exception $e) {
+				} catch (\Throwable $e) {
+					$rMigration->fail();
 					echo 'Error: ' . $e . "\n";
 				}
 			}
@@ -1591,29 +1652,36 @@ if ($odb->num_rows() > 0) {
 	}
 }
 try {
-	$odb->query('SELECT * FROM `settings` LIMIT 1;');
+	$rMigration->query($odb, 'SELECT * FROM `settings` LIMIT 1;');
 	$rSettings = $odb->get_row();
-	$db->query('UPDATE `settings` SET `server_name` = ?, `default_timezone` = ?;', $rSettings['server_name'], $rSettings['default_timezone']);
-} catch (\Exception $e) {
+	$rMigration->query($db, 'UPDATE `settings` SET `server_name` = ?, `default_timezone` = ?;', $rSettings['server_name'], $rSettings['default_timezone']);
+} catch (\Throwable $e) {
+	$rMigration->fail();
 	echo 'Error: ' . $e . "\n";
 }
 try {
-	$odb->query("SHOW TABLES LIKE 'admin_settings';");
+	$rMigration->query($odb, "SHOW TABLES LIKE 'admin_settings';");
 	if ($odb->num_rows() > 0) {
 		$rAdminSettings = [];
-		$odb->query('SELECT * FROM `admin_settings`;');
+		$rMigration->query($odb, 'SELECT * FROM `admin_settings`;');
 		foreach ($odb->get_rows() as $rRow) {
 			$rAdminSettings[$rRow['type']] = $rRow['value'];
 		}
 		if ((string) $rAdminSettings['recaptcha_v2_secret_key'] !== '' && (string) $rAdminSettings['recaptcha_v2_site_key'] !== '') {
-			$db->query('UPDATE `settings` SET `recaptcha_v2_secret_key` = ?, `recaptcha_v2_site_key` = ?;', $rAdminSettings['recaptcha_v2_secret_key'], $rAdminSettings['recaptcha_v2_site_key']);
+			$rMigration->query($db, 'UPDATE `settings` SET `recaptcha_v2_secret_key` = ?, `recaptcha_v2_site_key` = ?;', $rAdminSettings['recaptcha_v2_secret_key'], $rAdminSettings['recaptcha_v2_site_key']);
 		}
 	}
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
+	$rMigration->fail();
 	echo 'Error: ' . $e . "\n";
 }
 if (in_array('access_codes', $rMigrateOptions)) {
 	echo "\n" . 'Admin acces code: ' . $AdminAccesCode;
+}
+// A partial import must never discard the source or advertise success.
+if ($rMigration->hasFailed()) {
+	echo 'Migration failed: the migration database is kept for retry.' . "\n";
+	return 1;
 }
 // The blocklist tables were rewritten whole: nodes reload them.
 foreach (BlocklistChanges::KINDS as $rKind) {
@@ -1622,15 +1690,36 @@ foreach (BlocklistChanges::KINDS as $rKind) {
 // So were the streams: every server the import made a holder gets its version
 // row (taking a stream off it later reaches its node as a removal), and nodes
 // check every stream of their R2 replica again.
-StreamVersions::seedHolders($db);
-StreamVersions::reset($db);
-echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
-
+if (!StreamVersions::seedHolders($db) || StreamVersions::reset($db) <= 0) {
+	echo 'Migration failed: stream versions could not be updated; the migration database is kept.' . "\n";
+	return 1;
+}
 // Both drop tables through $odb: only while it is on the backup's schema.
 if (!MigrateCommand::onItsOwnSchema($odb, $db)) {
 	echo 'The migration database was not emptied: its connection is not on a schema of its own.' . "\n";
-} elseif (saveModuleTables($odb)) {
-	clearMigrationDatabase($odb);
+	return 1;
 }
-file_put_contents(TMP_PATH . '.migration.status', 2);
-$odb->close_mysql();
+if (!saveModuleTables($odb, $rMigration)) {
+	return 1;
+}
+$rRecovery = MigrationSourceBackup::create($odb, $rMigration, $rBackupRoot ?? MAIN_HOME . 'backups/');
+MigrateCommand::beginCleanup($rRecovery->directory);
+try {
+	clearMigrationDatabase($odb, $rMigration);
+} catch (\Throwable $cleanupError) {
+	echo 'Source cleanup failed; the complete recovery copy is in ' . $rRecovery->directory . "\n";
+	try {
+		$rRecovery->restoreMissing($odb, $rMigration);
+		@unlink(TMP_PATH . '.migration.cleanup');
+		echo 'The complete migration source was restored for retry.' . "\n";
+	} catch (\Throwable $restoreError) {
+		echo 'Automatic source recovery failed; reimport remains blocked. Recovery files: ' . $rRecovery->directory . "\n";
+	}
+	throw $cleanupError;
+}
+if (!@unlink(TMP_PATH . '.migration.cleanup')) {
+	throw new RuntimeException('Cannot finalize migration source cleanup.');
+}
+$rRecovery->discard();
+echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
+return 0;

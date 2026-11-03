@@ -42,7 +42,7 @@ if (!RequestManager::has('update')):
     if (file_exists(TMP_PATH . '.migration.status') && file_exists(TMP_PATH . '.migration.pid')) {
         $rPID = file_get_contents(TMP_PATH . '.migration.pid');
 
-        if (file_exists('/proc/' . $rPID)) {
+        if (MigrateCommand::isRunning((int) $rPID)) {
             $rMigrating = true;
         }
     }
@@ -59,13 +59,15 @@ if (!RequestManager::has('update')):
         if (count($rMigrateOptions) != 0) {
             if (file_exists(TMP_PATH . '.migration.pid')) {
                 $rPID = intval(file_get_contents(TMP_PATH . '.migration.pid'));
-                exec('kill -9 ' . $rPID);
+                if (MigrateCommand::isRunning($rPID)) {
+                    posix_kill($rPID, SIGKILL);
+                }
             }
 
             file_put_contents(TMP_PATH . '.migration.options', json_encode($rMigrateOptions));
-            unlink(TMP_PATH . '.migration.status');
-            unlink(TMP_PATH . '.migration.pid');
-            unlink(TMP_PATH . '.migration.log');
+            @unlink(TMP_PATH . '.migration.status');
+            @unlink(TMP_PATH . '.migration.pid');
+            @unlink(TMP_PATH . '.migration.log');
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php migrate > ' . TMP_PATH . '.migration.log 2>&1 &');
             $rMigrating = true;
         } else {
@@ -386,10 +388,10 @@ else:
         }
 
         if ($rStatus == 2) {
-            unlink(TMP_PATH . '.migration.options');
-            unlink(TMP_PATH . '.migration.status');
-            unlink(TMP_PATH . '.migration.pid');
-            unlink(TMP_PATH . '.migration.log');
+            @unlink(TMP_PATH . '.migration.options');
+            @unlink(TMP_PATH . '.migration.status');
+            @unlink(TMP_PATH . '.migration.pid');
+            @unlink(TMP_PATH . '.migration.log');
         }
 
         echo json_encode(array('result' => true, 'status' => $rStatus, 'data' =>
