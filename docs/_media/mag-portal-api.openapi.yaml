@@ -1,12 +1,12 @@
 openapi: 3.1.0
 info:
   title: XC_VM Stalker Portal (MAG) API
-  version: 2.7.2
+  version: 2.7.3
   summary: Stalker Portal (MAG) of the Xtream Codes compatible HTTP surface, as implemented by XC_VM.
   description: |
     A source-level reference for the **Xtream Codes (XC) API**: the de facto standard HTTP interface
     between IPTV panels and player apps. The reference implementation is
-    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.2, an open-source continuation of Xtream UI / XC.
+    [XC_VM](https://github.com/Vateron-Media/XC_VM) 2.7.3, an open-source continuation of Xtream UI / XC.
     Each operation cites the XC_VM source file and line it was traced from (`src/...:line`).
 
     ## Authentication models
