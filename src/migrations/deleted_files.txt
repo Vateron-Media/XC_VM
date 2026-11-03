@@ -5,3 +5,4 @@
 Infrastructure/ResellerApiDispatcher.php
 Infrastructure/ResellerTableRenderer.php
 vendor/composer/platform_check.php
+vendor/mobiledetect/mobiledetectlib/phpbench.json
