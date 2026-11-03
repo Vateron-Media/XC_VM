@@ -19,6 +19,8 @@ use XcVm\Streaming\Delivery\HLSGenerator;
 use XcVm\Streaming\Delivery\OffAirHandler;
 use XcVm\Streaming\Delivery\SegmentReader;
 use XcVm\Streaming\Delivery\SignalSender;
+use XcVm\Streaming\Delivery\TsProducerRecovery;
+use XcVm\Streaming\Delivery\TsDiscontinuity;
 use XcVm\Streaming\Fanout\FanoutClient;
 use XcVm\Streaming\Fanout\FanoutMode;
 use XcVm\Streaming\Lifecycle\ShutdownHandler;
@@ -653,12 +655,22 @@ if ($rChannelInfo) {
 			$rFails = 0;
 			$rTotalFails = max($rSegmentSettings["seg_time"] * 2, intval($rSettings["segment_wait_time"]) ?: 20);
 			$rMonitorCheck = $rLastCheck = time();
+			$rReset = null;
 
 			while (true) {
 				$rSegmentFile = sprintf("%d_%d.ts", $rStreamID, $rCurrent + 1);
 				$rNextSegment = sprintf("%d_%d.ts", $rStreamID, $rCurrent + 2);
 
-				if (!AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rSegmentFile, max(1, $rTotalFails), 1000) || !file_exists(STREAMS_PATH . $rSegmentFile)) {
+				if (!TsProducerRecovery::awaitSegment(STREAMS_PATH . $rSegmentFile, (int) $rStreamID, (int) $rChannelInfo["pid"], max(1, $rTotalFails))) {
+					if ($rUserInfo["is_restreamer"] != 1 && !ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
+						$rResume = TsProducerRecovery::wait(STREAMS_PATH, (int) $rStreamID, (int) $rChannelInfo["pid"], max(1, $rTotalFails));
+						if ($rResume !== null) {
+							$rChannelInfo["pid"] = $rResume['pid'];
+							$rCurrent = $rResume['current'];
+							$rReset = new TsDiscontinuity();
+							continue;
+						}
+					}
 					exit();
 				}
 
@@ -693,7 +705,15 @@ if ($rChannelInfo) {
 
 				$rFails = 0;
 				$rTimeStart = time();
-				$rFP = fopen(STREAMS_PATH . $rSegmentFile, "r");
+				$rFP = @fopen(STREAMS_PATH . $rSegmentFile, "r");
+				if ($rFP === false) {
+					// Re-check a restart above; an unreadable file on a live
+					// producer must not spin this worker indefinitely.
+					if (!ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
+						continue;
+					}
+					exit();
+				}
 
 				// Drain what ffmpeg has written without sleeping; only at the write
 				// head (no data) wait ~1 s and count a stall tick. Sleeping after
@@ -701,6 +721,12 @@ if ($rChannelInfo) {
 				while ($rFails <= $rTotalFails && !file_exists(STREAMS_PATH . $rNextSegment)) {
 					$rData = stream_get_line($rFP, $rSettings["read_buffer_size"]);
 					if (!empty($rData)) {
+						if ($rReset !== null) {
+							$rData = $rReset->push($rData);
+							if ($rData === false) {
+								exit();
+							}
+						}
 						echo $rData;
 						$rFails = 0;
 						continue;
@@ -722,31 +748,34 @@ if ($rChannelInfo) {
 					$rSegmentSize = filesize(STREAMS_PATH . $rSegmentFile);
 					$rRestSize = $rSegmentSize - ftell($rFP);
 					if ($rRestSize > 0) {
-						echo stream_get_line($rFP, $rRestSize);
+						$rData = stream_get_line($rFP, $rRestSize);
+						if ($rReset !== null) {
+							$rData = $rReset->push((string) $rData);
+							if ($rData === false) {
+								exit();
+							}
+						}
+						echo $rData;
 					}
+					if ($rReset !== null && !$rReset->complete()) {
+						exit();
+					}
+					$rReset = null;
 
 					$rTotalTime = max(0.1, time() - $rTimeStart);
 					file_put_contents($rConSpeedFile, intval($rSegmentSize / 1024 / $rTotalTime));
-				} elseif ($rUserInfo["is_restreamer"] != 1 && $rFails <= $rTotalFails) {
-					// The producer died: wait up to one segment for its restart,
-					// then carry on from the new playlist.
-					for ($rChecks = 0; $rChecks <= $rSegmentSettings["seg_time"] && !ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID); $rChecks++) {
-						if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {
-							$rPidContent = AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid", false);
-							if ($rPidContent) {
-								$rChannelInfo["pid"] = intval($rPidContent);
-							}
-						}
-						AsyncFileOperations::efficientSleep(1000000);
-					}
-
-					if ($rSegmentSettings["seg_time"] >= $rChecks && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
-						if (!file_exists(STREAMS_PATH . $rNextSegment)) {
-							$rCurrent = -2;
-						}
-					} else {
+				} elseif ($rUserInfo["is_restreamer"] != 1 && $rFails <= $rTotalFails && !ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
+					// Keep the viewer connected, but do not replay segment zero or
+					// mistake the previous producer's files for a ready replacement.
+					fclose($rFP);
+					$rResume = TsProducerRecovery::wait(STREAMS_PATH, (int) $rStreamID, (int) $rChannelInfo["pid"], max(1, $rTotalFails));
+					if ($rResume === null) {
 						exit();
 					}
+					$rChannelInfo["pid"] = $rResume['pid'];
+					$rCurrent = $rResume['current'];
+					$rReset = new TsDiscontinuity();
+					continue;
 				} else {
 					exit();
 				}
