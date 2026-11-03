@@ -2,6 +2,7 @@
 
 use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Auth\ApiTokens;
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\PageAuthorization;
@@ -45,6 +46,7 @@ use XcVm\Domain\User\GroupService;
 use XcVm\Domain\User\UserService;
 use XcVm\Domain\Vod\EpisodeService;
 use XcVm\Domain\Vod\MovieService;
+use XcVm\Domain\Vod\VodM3uImport;
 use XcVm\Domain\Vod\SeriesService;
 use XcVm\Domain\Vod\TMDbService;
 use XcVm\Infrastructure\Bootstrap\AdminScopeBootstrap;
@@ -1295,10 +1297,23 @@ if (1 < $rICount) { ?>
 				echo json_encode(array('result' => false, 'data' => ($rReturn['data'] ?? array()), 'status' => $rReturn['status'], 'message' => $rReturn['data']['message'] ?? (isset($rReturn['data']['error']) ? $language::get($rReturn['data']['error']) : null)));
 				exit();
 
+			case 'vod_playlist_preview':
+				if (!Authorization::check('adv', 'import_movies')) {
+					echo json_encode(['result' => false]);
+					exit();
+				}
+				try {
+					$rEntries = VodM3uImport::entries($rData, false);
+					echo json_encode(['result' => true, 'entries' => array_map(static fn($rEntry) => ['id' => hash('sha256', $rEntry['url']), 'title' => $rEntry['title']], $rEntries)]);
+				} catch (\Throwable $rError) {
+					echo json_encode(['result' => false, 'message' => $language::get('vod_m3u_invalid')]);
+				}
+				exit();
+
 			case 'movie':
-				if (!empty($rData['import_folder']) || !empty($_FILES['m3u_file']['tmp_name'])) {
+				if (!empty($rData['import_folder']) || VodM3uImport::hasPlaylist($rData)) {
 					$rReturn = MovieService::import($rData);
-					echo json_encode(array('result' => true, 'location' => 'movies?status=2', 'status' => $rReturn['status']));
+					echo json_encode(array('result' => $rReturn['status'] == STATUS_SUCCESS, 'location' => 'movies?status=2', 'status' => $rReturn['status'], 'message' => isset($rReturn['data']['error']) ? $language::get($rReturn['data']['error']) : null));
 					exit();
 				}
 
@@ -1861,9 +1876,9 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'serie':
-				if (!empty($rData['import_folder']) || !empty($_FILES['m3u_file']['tmp_name'])) {
+				if (!empty($rData['import_folder']) || VodM3uImport::hasPlaylist($rData)) {
 					$rReturn = SeriesService::import($rData);
-					echo json_encode(array('result' => true, 'location' => 'series?status=2', 'status' => $rReturn['status']));
+					echo json_encode(array('result' => $rReturn['status'] == STATUS_SUCCESS, 'location' => 'series?status=2', 'status' => $rReturn['status'], 'message' => isset($rReturn['data']['error']) ? $language::get($rReturn['data']['error']) : null));
 					exit();
 				}
 

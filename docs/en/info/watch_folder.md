@@ -230,3 +230,15 @@ For shows in RTL languages (Arabic, Hebrew, etc.):
 ---
 
 💡 **Tip:** Use consistent file and folder naming for accurate parsing and automatic season sorting.
+
+## Download VOD from an M3U
+
+Movies → Import and Series → Import accept an uploaded M3U/M3U8 file or an HTTP/HTTPS playlist URL (up to 10 MiB). Use **Load titles for selection** to select individual entries. Without a preview, all entries are imported. Series entries should include season/episode information in their titles, as with the existing importer.
+
+Enable **Download VOD files before importing**, then use the folder button to choose an existing writable folder on the destination server. The folder must be within that server's Scan Roots. The destination server is automatically included among the VOD servers.
+
+Each selected direct media-file URL downloads on the destination server before its catalog entry is created. The downloaded source is stored as `s:<server>:<path>`. Categories and bouquets (including existing genre mappings/fallbacks), container, native-frame reading, symlink/subtitle options, transcoding profile and the automatic encode option continue through the normal VOD import. Direct Source and Direct Proxy are disabled for downloaded local files. A selected transcoding profile is also enabled for downloaded series episodes.
+
+Downloads share the import concurrency setting (**Settings → VOD Import → thread_count**) and have a six-hour limit per file. Filenames contain a sanitized title and a source-URL hash. A download is published only after a successful HTTP response and a complete nonempty transfer; failures leave no catalog entry or partial media file, and existing files are never overwritten. A completed download can be reused by a later import. With Watch Folder enabled, import outcomes appear in its usual logs; the download/import itself does not require that module.
+
+This downloads direct media files, such as MP4 or MKV. HLS playlists and live-stream recording are not supported by this option. The destination node must run a version that supports the `vod_download` system action.

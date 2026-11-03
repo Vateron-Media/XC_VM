@@ -693,7 +693,7 @@ class VodItemImporter {
 		$rImportArray['movie_symlink'] = $rThreadData['movie_symlink'];
 		$rImportArray['remove_subtitles'] = $rThreadData['remove_subtitles'];
 		$rImportArray['transcode_profile_id'] = $rThreadData['transcode_profile_id'];
-		if ($rSetEnableTranscode && $rThreadData['transcode_profile_id'] > 0) {
+		if (($rSetEnableTranscode || !empty($rThreadData['download'])) && $rThreadData['transcode_profile_id'] > 0) {
 			$rImportArray['enable_transcode'] = 1;
 		}
 		if ($rThreadData['import']) {
@@ -1376,7 +1376,9 @@ class VodItemImporter {
 		while (($rLine = fgets($rHandle)) !== false) {
 			$rLine = trim($rLine);
 			if ($rLine !== '') {
-				yield '/usr/bin/timeout ' . $rItemTimeout . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php vod_import_item ' . escapeshellarg(base64_encode($rLine));
+				$rItem = json_decode($rLine, true);
+				$rTimeout = !empty($rItem['download']) ? max($rItemTimeout, VodDownload::TIMEOUT + 180) : $rItemTimeout;
+				yield '/usr/bin/timeout ' . $rTimeout . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php vod_import_item ' . escapeshellarg(base64_encode($rLine));
 			}
 		}
 		fclose($rHandle);
@@ -1425,6 +1427,15 @@ class VodItemImporter {
 		$rThreadData['ignore_no_match'] = !empty($rThreadData['ignore_no_match']);
 		$rThreadData['alternative_titles'] = !empty($rThreadData['alternative_titles']);
 
+		if ($rThreadData['import'] && !empty($rThreadData['download'])) {
+			$rLocalSource = VodDownload::receive($rThreadData);
+			if ($rLocalSource === null) {
+				self::reportResult($rThreadData, $rThreadData['type'] === 'movie' ? 1 : 2, $rThreadData['file'], VodImportResultEvent::STATUS_BROKEN_FILE);
+				return;
+			}
+			$rThreadData['file'] = $rLocalSource;
+			set_time_limit($rTimeout);
+		}
 		$rSettings = SettingsManager::getAll();
 
 		if (($rThreadData['file'] === '') || (!$rThreadData['import'] && $rThreadData['directory'] === '')) {

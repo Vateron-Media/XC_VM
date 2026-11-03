@@ -34,6 +34,12 @@ final class PageAuthorizationPostActionTest extends TestCase {
 		$this->assertTrue(PageAuthorization::checkPostAction('edit_profile', false), 'own profile');
 	}
 
+	public function testM3uPreviewRequiresImportPermission(): void {
+		$this->assertFalse(PageAuthorization::checkPostAction('vod_playlist_preview', false));
+		$GLOBALS['rPermissions']['advanced'] = ['import_movies'];
+		$this->assertTrue(PageAuthorization::checkPostAction('vod_playlist_preview', false));
+	}
+
 	public function testFullAdministratorKeepsEverything(): void {
 		$GLOBALS['rUserInfo']['member_group_id'] = 1;
 		foreach (['line', 'user', 'settings', 'quick_tools', 'mass_delete_lines', 'enigma', 'stream', 'server'] as $rAction) {

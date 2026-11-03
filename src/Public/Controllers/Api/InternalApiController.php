@@ -14,6 +14,7 @@ use XcVm\Core\Util\SystemInfo;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Vod\VodDownload;
 use XcVm\Streaming\Codec\FFprobeRunner;
 use XcVm\Streaming\Fanout\FanoutClient;
 
@@ -90,6 +91,10 @@ class InternalApiController {
 				echo json_encode($rReturn);
 
 				exit();
+
+			case 'vod_download':
+				echo json_encode(VodDownload::request($rRequest));
+				break;
 
 			case 'vod':
 				if (!empty($rRequest['stream_ids']) && !empty($rRequest['function'])) {
