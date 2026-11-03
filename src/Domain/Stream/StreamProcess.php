@@ -1570,9 +1570,11 @@ class StreamProcess {
 				return [];
 			}
 			$rBase = PHP_BIN . ' ' . MAIN_HOME . 'console.php ';
-			return [['label' => $rSource,
+			return [[
+				'label' => $rSource,
 				'cmd' => $rBase . 'source:run ' . $rStreamID . ' ' . intval($rLabel) . " '{ingest_sock}'",
-				'probe_cmd' => $rBase . 'source:probe ' . $rStreamID . ' @' . intval($rLabel)]];
+				'probe_cmd' => $rBase . 'source:probe ' . $rStreamID . ' @' . intval($rLabel),
+			]];
 		}
 		$rCmd = self::driverLaunch($rStreamID, $rDriver, self::driverContext($rStreamID, $rSource, $rLabel, $rArgsByKey, $rSegmentSettings, $rIngestSock, true));
 		$rProbe = PHP_BIN . ' ' . MAIN_HOME . 'console.php source:probe ' . $rStreamID . ' ' . escapeshellarg(base64_encode($rSource));
@@ -1927,7 +1929,8 @@ class StreamProcess {
 			// The LB builds an opted-in driver's command locally; other drivers
 			// cannot produce on that node.
 			if ($rPortableMode && self::sourceDriverFor($rInfo, $rArgsByKey, (string) $rSource) !== null
-				&& !SourceDriverRegistry::supportsLoadBalancer((string) $rSource)) {
+				&& !SourceDriverRegistry::supportsLoadBalancer((string) $rSource)
+			) {
 				return null;
 			}
 			$rDriverEntries = self::driverSpecEntries($rStreamID, $rInfo, $rArgsByKey, (string) $rSource, (string) $i, $rSegmentSettings, $rIngestSock, $rPortableMode);
