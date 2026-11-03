@@ -126,7 +126,7 @@ $rTitle = $rIsEdit ? $rMovie['stream_display_name'] : ($rIsImport ? $language::g
                         <div id="import_m3uf_toggle" class="mb-6">
                             <label class="form-label" for="m3u_file"><?= $language::get('m3u_file'); ?></label>
                             <input type="file" class="form-control" id="m3u_file" name="m3u_file">
-                            <?php include __DIR__ . "/vod_m3u_controls.php"; ?>
+							<?php include __DIR__ . "/vod_m3u_controls.php"; ?>
                         </div>
                         <div id="import_folder_toggle" class="mb-6" hidden>
                             <label class="form-label" for="import_folder"><?= $language::get('folder'); ?></label>
@@ -553,7 +553,7 @@ LayoutRenderer::renderFooter('admin');
         function esc(s) {
             return $('<div>').text(s == null ? '' : s).html().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
-        document.querySelectorAll('#filebrowser, #filebrowser-sub, .vod-folder-browser').forEach(function(b) {
+		document.querySelectorAll('#filebrowser, #filebrowser-sub, .vod-folder-browser').forEach(function(b) {
             b.addEventListener('click', function() {
                 fbTarget = b.dataset.target;
                 $('#fb_path').val('/');
@@ -602,7 +602,7 @@ LayoutRenderer::renderFooter('admin');
         var fbSelFolder = document.getElementById('fb_select_folder');
         if (fbSelFolder) {
             fbSelFolder.addEventListener('click', function() {
-                document.getElementById(fbTarget).value = 's:' + $('#fb_server').val() + ':' + fbDir;
+				document.getElementById(fbTarget).value = 's:' + $('#fb_server').val() + ':' + fbDir;
                 bootstrap.Modal.getInstance(fbModal).hide();
             });
         }
@@ -824,7 +824,7 @@ LayoutRenderer::renderFooter('admin');
                     xcToast(lang.noSource, 'warning');
                     ok = false;
                 }
-            } else if (!document.getElementById('m3u_file').value && !document.getElementById('m3u_url').value && !document.getElementById('import_folder').value) {
+			} else if (!document.getElementById('m3u_file').value && !document.getElementById('m3u_url').value && !document.getElementById('import_folder').value) {
                 xcToast(lang.noM3u, 'warning');
                 ok = false;
             }
@@ -874,7 +874,7 @@ LayoutRenderer::renderFooter('admin');
                         evaluateDirectSource();
                         evaluateSymlink();
                     }
-                    xcToast((dt && dt.message) || lang.errText, 'error');
+					xcToast((dt && dt.message) || lang.errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;

@@ -109,7 +109,7 @@ $rTitle = $rIsEdit ? $rSeriesArr['title'] : ($rIsImport ? 'Import Series' : 'Add
                         <div id="import_m3uf_toggle" class="mb-6">
                             <label class="form-label" for="m3u_file"><?= $language::get('m3u_file'); ?></label>
                             <input type="file" class="form-control" id="m3u_file" name="m3u_file">
-                            <?php include __DIR__ . "/vod_m3u_controls.php"; ?>
+							<?php include __DIR__ . "/vod_m3u_controls.php"; ?>
                         </div>
                         <div id="import_folder_toggle" class="mb-6" hidden>
                             <label class="form-label" for="import_folder"><?= $language::get('folder'); ?></label>
@@ -505,8 +505,8 @@ LayoutRenderer::renderFooter('admin');
                 });
 
             // ---- file browser (folder pick) ----
-            var fbTarget = 'import_folder',
-                fbDir = '/',
+			var fbTarget = 'import_folder',
+				fbDir = '/',
                 fbModal = document.getElementById('fileBrowserModal');
 
             function fbList() {
@@ -530,13 +530,13 @@ LayoutRenderer::renderFooter('admin');
                     $('#fb_dirs').html(dirs || '<li class="list-group-item text-muted">—</li>');
                 });
             }
-            document.querySelectorAll('#filebrowser, .vod-folder-browser').forEach(function(button) {
-                button.addEventListener('click', function() {
-                    fbTarget = button.dataset.target;
-                    $('#fb_path').val('/');
-                    fbList();
-                    bootstrap.Modal.getOrCreateInstance(fbModal).show();
-                });
+			document.querySelectorAll('#filebrowser, .vod-folder-browser').forEach(function(button) {
+				button.addEventListener('click', function() {
+					fbTarget = button.dataset.target;
+					$('#fb_path').val('/');
+					fbList();
+					bootstrap.Modal.getOrCreateInstance(fbModal).show();
+				});
             });
             document.getElementById('fb_go').addEventListener('click', fbList);
             $('#fb_server').on('change', function() {
@@ -554,7 +554,7 @@ LayoutRenderer::renderFooter('admin');
                 fbList();
             });
             document.getElementById('fb_select_folder').addEventListener('click', function() {
-                document.getElementById(fbTarget).value = 's:' + $('#fb_server').val() + ':' + fbDir;
+				document.getElementById(fbTarget).value = 's:' + $('#fb_server').val() + ':' + fbDir;
                 bootstrap.Modal.getInstance(fbModal).hide();
             });
         }
@@ -567,7 +567,7 @@ LayoutRenderer::renderFooter('admin');
                     xcToast(errText, 'error');
                     return;
                 }
-            } else if (!document.getElementById('m3u_file').value && !document.getElementById('m3u_url').value && !document.getElementById('import_folder').value) {
+			} else if (!document.getElementById('m3u_file').value && !document.getElementById('m3u_url').value && !document.getElementById('import_folder').value) {
                 xcToast(errText, 'error');
                 return;
             }
@@ -611,7 +611,7 @@ LayoutRenderer::renderFooter('admin');
                         return;
                     }
                     btn.disabled = false;
-                    xcToast((dt && dt.message) || errText, 'error');
+					xcToast((dt && dt.message) || errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;

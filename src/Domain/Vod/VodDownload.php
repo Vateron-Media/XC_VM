@@ -5,6 +5,7 @@ namespace XcVm\Domain\Vod;
 use XcVm\Core\Cluster\ClusterSettings;
 use XcVm\Core\Cluster\NodeRpc;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Util\AtomicFile;
 
 /** Downloads run on the selected node; RPC only starts or polls the worker. */
@@ -70,11 +71,14 @@ final class VodDownload {
 				return ['result' => false];
 			}
 			self::write($rID, ['result' => true, 'state' => 'queued', 'bytes' => 0]);
-			// Fixed binary/command and our hex identifier; no request value becomes shell syntax.
-			// nosemgrep: php.lang.security.exec-use.exec-use
-			($rStart ?? static function (string $rID): void {
-				shell_exec(escapeshellarg(PHP_BIN) . ' ' . escapeshellarg(MAIN_HOME . 'console.php') . ' vod_download ' . escapeshellarg($rID) . ' > /dev/null 2>&1 &');
-			})($rID);
+			$rStarted = $rStart !== null
+				? $rStart($rID) !== false
+				: ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'vod_download', $rID]);
+			if (!$rStarted) {
+				self::write($rID, ['result' => false, 'state' => 'failed', 'error' => 'vod_download_failed']);
+				@unlink($rJob);
+				return ['result' => false];
+			}
 			return ['result' => true, 'id' => $rID];
 		} finally {
 			flock($rLock, LOCK_UN);
