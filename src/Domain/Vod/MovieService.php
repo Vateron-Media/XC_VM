@@ -499,9 +499,13 @@ class MovieService {
 				}
 
 				$rStreamDatabase = [];
-				$db->query('SELECT `stream_source` FROM `streams` WHERE `type` = 2;');
+				$rSourceHashes = [];
+				$db->query('SELECT `stream_source`, `import_source_hash` FROM `streams` WHERE `type` = 2;');
 
 				foreach ($db->get_rows() as $rRow) {
+					if (!empty($rRow['import_source_hash'])) {
+						$rSourceHashes[$rRow['import_source_hash']] = true;
+					}
 					foreach (json_decode($rRow['stream_source'], true) as $rSource) {
 						if ((string) $rSource !== '') {
 							$rStreamDatabase[] = $rSource;
@@ -521,7 +525,8 @@ class MovieService {
 				if (VodM3uImport::hasPlaylist($rData)) {
 					try {
 						foreach (VodM3uImport::entries($rData) as $rEntry) {
-							if (!in_array($rEntry['url'], $rStreamDatabase, true)) {
+							$rEntry['source_hash'] = hash('sha256', $rEntry['url']);
+							if (!isset($rSourceHashes[$rEntry['source_hash']]) && !in_array($rEntry['url'], $rStreamDatabase, true)) {
 								if ($rDownload !== null) {
 									$rLocalSource = 's:' . $rDownload['server_id'] . ':' . rtrim($rDownload['directory'], '/') . '/' . VodDownload::filename($rEntry['url'], $rEntry['title']);
 									if (in_array($rLocalSource, $rStreamDatabase, true)) {
@@ -632,7 +637,7 @@ class MovieService {
 					}
 					$rItems = [];
 					foreach ($rImportStreams as $rImportStream) {
-						$rItems[] = ['import' => true, 'type' => 'movie', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => [], 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => $rDisableTMDB, 'ignore_no_match' => $rIgnoreMatch, 'bouquets' => [], 'category_id' => [], 'language' => SettingsManager::getString('tmdb_language'), 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => SettingsManager::getInt('max_genres'), 'duplicate_tmdb' => true];
+						$rItems[] = ['import' => true, 'type' => 'movie', 'source_hash' => $rImportStream['source_hash'] ?? null, 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => [], 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => $rDisableTMDB, 'ignore_no_match' => $rIgnoreMatch, 'bouquets' => [], 'category_id' => [], 'language' => SettingsManager::getString('tmdb_language'), 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => SettingsManager::getInt('max_genres'), 'duplicate_tmdb' => true];
 					}
 
 					if ($rDownload !== null) {

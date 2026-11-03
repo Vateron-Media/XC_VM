@@ -1304,7 +1304,7 @@ if (1 < $rICount) { ?>
 				}
 				try {
 					$rEntries = VodM3uImport::entries($rData, false);
-					echo json_encode(['result' => true, 'entries' => array_map(static fn($rEntry) => ['id' => hash('sha256', $rEntry['url']), 'title' => $rEntry['title']], $rEntries)]);
+					echo json_encode(['result' => true, 'fingerprint' => VodM3uImport::fingerprint($rEntries), 'entries' => array_map(static fn($rEntry) => ['id' => hash('sha256', $rEntry['url']), 'title' => $rEntry['title']], $rEntries)]);
 				} catch (\Throwable $rError) {
 					echo json_encode(['result' => false, 'message' => $language::get('vod_m3u_invalid')]);
 				}
@@ -1313,7 +1313,7 @@ if (1 < $rICount) { ?>
 			case 'movie':
 				if (!empty($rData['import_folder']) || VodM3uImport::hasPlaylist($rData)) {
 					$rReturn = MovieService::import($rData);
-					echo json_encode(array('result' => $rReturn['status'] == STATUS_SUCCESS, 'location' => 'movies?status=2', 'status' => $rReturn['status'], 'message' => isset($rReturn['data']['error']) ? $language::get($rReturn['data']['error']) : null));
+					echo json_encode(array('result' => $rReturn['status'] == STATUS_SUCCESS, 'queued' => $rReturn['status'] == STATUS_SUCCESS, 'status' => $rReturn['status'], 'message' => $rReturn['status'] == STATUS_SUCCESS ? $language::get('vod_import_queued') : (isset($rReturn['data']['error']) ? $language::get($rReturn['data']['error']) : null)));
 					exit();
 				}
 
@@ -1595,7 +1595,7 @@ if (1 < $rICount) { ?>
 					exit();
 				}
 
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status'], 'message' => isset($rReturn['data']['error']) ? $language::get($rReturn['data']['error']) : null));
+				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status'], 'message' => $rReturn['status'] == STATUS_SUCCESS ? $language::get('vod_import_queued') : (isset($rReturn['data']['error']) ? $language::get($rReturn['data']['error']) : null)));
 				exit();
 
 			case 'created_channel_mass':
@@ -1878,7 +1878,7 @@ if (1 < $rICount) { ?>
 			case 'serie':
 				if (!empty($rData['import_folder']) || VodM3uImport::hasPlaylist($rData)) {
 					$rReturn = SeriesService::import($rData);
-					echo json_encode(array('result' => $rReturn['status'] == STATUS_SUCCESS, 'location' => 'series?status=2', 'status' => $rReturn['status'], 'message' => isset($rReturn['data']['error']) ? $language::get($rReturn['data']['error']) : null));
+					echo json_encode(array('result' => $rReturn['status'] == STATUS_SUCCESS, 'queued' => $rReturn['status'] == STATUS_SUCCESS, 'status' => $rReturn['status'], 'message' => $rReturn['status'] == STATUS_SUCCESS ? $language::get('vod_import_queued') : (isset($rReturn['data']['error']) ? $language::get($rReturn['data']['error']) : null)));
 					exit();
 				}
 

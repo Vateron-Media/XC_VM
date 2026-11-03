@@ -7,6 +7,8 @@ use XcVm\Core\Process\ProcessRunner;
 use XcVm\Domain\Vod\VodDownload;
 use XcVm\Domain\Vod\VodItemImporter;
 use XcVm\Domain\Vod\VodM3uImport;
+use XcVm\Domain\Vod\VodHttp;
+use XcVm\Domain\Vod\VodDownloadQuota;
 
 final class VodM3uDownloadTest extends TestCase {
 	private string $directory;
@@ -14,6 +16,7 @@ final class VodM3uDownloadTest extends TestCase {
 	private array $jobs = [];
 	private $server;
 	private string $base;
+	private array $quota;
 
 	protected function setUp(): void {
 		$this->directory = sys_get_temp_dir() . '/xcvm-vod-download-' . bin2hex(random_bytes(5));
@@ -23,8 +26,15 @@ final class VodM3uDownloadTest extends TestCase {
 		$socket = stream_socket_server('tcp://127.0.0.1:0', $errno, $error);
 		$address = stream_socket_get_name($socket, false);
 		fclose($socket);
-		$this->base = 'http://' . $address;
-		file_put_contents($this->directory . '/router.php', '<?php if ($_SERVER["REQUEST_URI"] === "/playlist.m3u") { header("Content-Type: application/x-mpegurl"); echo file_get_contents(__DIR__ . "/playlist.m3u"); exit; } if ($_SERVER["REQUEST_URI"] === "/missing.mp4") { http_response_code(404); exit; } header("Content-Type: video/mp4"); echo str_repeat("vod-content", 4096);');
+		$port = (int) substr(strrchr($address, ':'), 1);
+		$this->base = 'http://vod.example:' . $port;
+		$this->quota = VodDownloadQuota::fromForm([]);
+		VodHttp::useResolver(static fn(): array => ['93.184.216.34']);
+		VodHttp::useTransport(static function ($url, $options) use ($port) {
+			$options[CURLOPT_RESOLVE] = ['vod.example:' . $port . ':127.0.0.1'];
+			$curl = curl_init(); curl_setopt_array($curl, $options); $ok = curl_exec($curl); curl_close($curl); return $ok;
+		});
+		file_put_contents($this->directory . '/router.php', '<?php if ($_SERVER["REQUEST_URI"] === "/playlist.m3u") { header("Content-Type: application/x-mpegurl"); echo file_get_contents(__DIR__ . "/playlist.m3u"); exit; } if ($_SERVER["REQUEST_URI"] === "/hls") { header("Content-Type: audio/mpegurl"); echo "#EXTM3U\n#EXT-X-TARGETDURATION:10\nsegment.ts"; exit; } if ($_SERVER["REQUEST_URI"] === "/missing.mp4") { http_response_code(404); exit; } header("Content-Type: video/mp4"); echo str_repeat("vod-content", 4096);');
 		$this->server = proc_open([PHP_BINARY, '-S', $address, $this->directory . '/router.php'], [['file', '/dev/null', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']], $pipes);
 		for ($i = 0; $i < 100; $i++) {
 			$ready = @stream_socket_client('tcp://' . $address, $errno, $error, 0.05);
@@ -35,6 +45,9 @@ final class VodM3uDownloadTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		VodHttp::useResolver(null);
+		VodHttp::useTransport(null);
+		@unlink(WATCH_TMP_PATH . 'vod_budget_' . $this->quota['batch_id'] . '.json');
 		ProcessRunner::useRunner(null);
 		NodeRpc::useTransport(null);
 		SettingsManager::set($this->settings);
@@ -44,7 +57,7 @@ final class VodM3uDownloadTest extends TestCase {
 			foreach (glob(WATCH_TMP_PATH . 'vod_download_' . $id . '.*') ?: [] as $file) { unlink($file); }
 		}
 		foreach (glob($this->directory . '/*') ?: [] as $file) { unlink($file); }
-		foreach (glob($this->directory . '/.vod-download-*') ?: [] as $file) { unlink($file); }
+		foreach (array_merge(glob($this->directory . '/.vod-download-*') ?: [], glob($this->directory . '/.*.vod-receipt.json') ?: []) as $file) { unlink($file); }
 		rmdir($this->directory);
 	}
 
@@ -77,7 +90,7 @@ final class VodM3uDownloadTest extends TestCase {
 	}
 
 	private function start(string $path = '/film.mp4', string $title = '../A Movie'): array {
-		return VodDownload::request(['function' => 'start', 'directory' => $this->directory, 'url' => $this->base . $path, 'title' => $title], function ($id): void { $this->jobs[] = $id; });
+		return VodDownload::request(['function' => 'start', 'directory' => $this->directory, 'url' => $this->base . $path, 'title' => $title, 'quota' => $this->quota], function ($id): void { $this->jobs[] = $id; });
 	}
 
 	public function testDownloadPublishesCompleteFileAndReturnsLocalSource(): void {
@@ -128,6 +141,91 @@ final class VodM3uDownloadTest extends TestCase {
 		symlink(dirname($this->directory), $this->directory . '/outside');
 		$this->assertNull(VodDownload::directory($this->directory . '/outside'));
 		$this->assertFalse(VodDownload::request(['function' => 'status', 'id' => '../bad'])['result']);
+	}
+
+	public function testRelativePlaylistAndChangedPreview(): void {
+		$entries = VodM3uImport::parse("#EXTM3U\n#EXTINF:-1,Relative\n../media/movie.mp4?x=1\n#EXTINF:-1,Root\n/root.mkv\n#EXTINF:-1,Missing URL\n", [], 'https://provider.test/lists/sub/list.m3u');
+		$this->assertSame(['https://provider.test/lists/media/movie.mp4?x=1', 'https://provider.test/root.mkv'], array_column($entries, 'url'));
+		$file = $this->directory . '/changed.m3u';
+		file_put_contents($file, "#EXTM3U\n#EXTINF:-1,New title\nhttps://provider.test/new.mp4\n");
+		$_FILES['m3u_file'] = ['tmp_name' => $file, 'name' => 'changed.m3u', 'error' => UPLOAD_ERR_OK];
+		$this->expectExceptionMessage('vod_m3u_changed');
+		VodM3uImport::entries(['m3u_fingerprint' => VodM3uImport::fingerprint($entries)]);
+	}
+
+	public function testTransientStatusFailuresAreRetried(): void {
+		$polls = 0; $starts = 0;
+		NodeRpc::useTransport(static function ($kind, $servers, $request) use (&$polls, &$starts): string {
+			if ($request['function'] === 'start') { return ++$starts === 1 ? json_encode(['error' => 'RPC_TIMEOUT']) : json_encode(['result' => true, 'id' => str_repeat('e', 64)]); }
+			return ++$polls <= 4 ? '{}' : json_encode(['result' => true, 'state' => 'complete', 'path' => '/media/movie.mp4']);
+		});
+		$source = VodDownload::receive(['file' => 'https://provider.test/movie.mp4', 'title' => 'Movie', 'download' => ['server_id' => 7, 'directory' => '/media']], static function (): void {});
+		$this->assertSame('s:7:/media/movie.mp4', $source);
+		$this->assertSame(5, $polls);
+		$this->assertSame(2, $starts);
+	}
+
+	public function testManifestContentTypesAndSignaturesAreRejected(): void {
+		$file = $this->directory . '/body'; file_put_contents($file, 'body');
+		foreach (['audio/mpegurl', 'audio/x-mpegurl', 'application/mpegurl', 'application/x-mpegurl', 'application/vnd.apple.mpegurl', 'audio/vnd.apple.mpegurl; charset=utf-8'] as $type) {
+			$this->assertFalse(VodDownload::mediaBody($type, $file), $type);
+		}
+		file_put_contents($file, "#EXTM3U\n#EXT-X-VERSION:3\n");
+		$this->assertFalse(VodDownload::mediaBody('application/octet-stream', $file));
+		$job = $this->start('/hls');
+		$this->assertFalse(VodDownload::run($job['id']));
+		$this->assertSame('failed', VodDownload::request(['function' => 'status', 'id' => $job['id']])['state']);
+	}
+
+	public function testFileAndSharedImportBudgetsAbortTransfers(): void {
+		$this->quota['max_file_bytes'] = 1024;
+		$job = $this->start('/large.mp4');
+		$this->assertFalse(VodDownload::run($job['id']));
+		$this->assertSame([], glob($this->directory . '/.vod-download-*'));
+		$this->quota['max_file_bytes'] = 50000;
+		$this->quota['max_import_bytes'] = 60000;
+		$one = $this->start('/one.mp4'); $two = $this->start('/two.mp4');
+		$this->assertTrue(VodDownload::run($one['id']));
+		$this->assertFalse(VodDownload::run($two['id']));
+		$this->assertFileDoesNotExist($this->directory . '/' . VodDownload::filename($this->base . '/two.mp4', '../A Movie'));
+	}
+
+	public function testCrashAfterPublicationRecoversAndMetadataExpires(): void {
+		$job = $this->start(); $this->assertTrue(VodDownload::run($job['id']));
+		$status = VodDownload::request(['function' => 'status', 'id' => $job['id']]);
+		// Emulate a crash after link publication: the durable receipt exists, terminal status does not.
+		file_put_contents(WATCH_TMP_PATH . 'vod_download_' . $job['id'] . '.json', json_encode(['state' => 'downloading', 'path' => $status['path'], 'updated' => 1]));
+		$this->assertSame('complete', VodDownload::request(['function' => 'status', 'id' => $job['id']])['state']);
+		foreach (glob(WATCH_TMP_PATH . 'vod_download_' . $job['id'] . '.*') as $file) { touch($file, time() - VodDownload::METADATA_TTL - 10); }
+		VodDownload::cleanup(true);
+		$this->assertSame([], glob(WATCH_TMP_PATH . 'vod_download_' . $job['id'] . '.*'));
+		$this->assertSame($job, $this->start(), 'A durable receipt also survives metadata expiry');
+	}
+
+	public function testCleanupPreservesActiveJobsAndTheirBudget(): void {
+		$job = $this->start();
+		$worker = fopen(WATCH_TMP_PATH . 'vod_download_' . $job['id'] . '.worker', 'c');
+		flock($worker, LOCK_EX);
+		$status = WATCH_TMP_PATH . 'vod_download_' . $job['id'] . '.json';
+		file_put_contents($status, json_encode(['state' => 'downloading', 'batch_id' => $this->quota['batch_id'], 'updated' => 1]));
+		$budget = WATCH_TMP_PATH . 'vod_budget_' . $this->quota['batch_id'] . '.json';
+		file_put_contents($budget, '{}');
+		foreach (array_merge(glob(WATCH_TMP_PATH . 'vod_download_' . $job['id'] . '.*'), [$budget]) as $file) { touch($file, time() - VodDownload::METADATA_TTL - 10); }
+		try {
+			VodDownload::cleanup(true);
+			$this->assertFileExists($status);
+			$this->assertFileExists($budget);
+		} finally { flock($worker, LOCK_UN); fclose($worker); }
+		VodDownload::cleanup(true);
+		$this->assertFileDoesNotExist($status);
+		$this->assertFileDoesNotExist($budget);
+	}
+
+	public function testWorkerThatExitsBeforeReportingCanBeRetried(): void {
+		$job = $this->start();
+		file_put_contents(WATCH_TMP_PATH . 'vod_download_' . $job['id'] . '.json', json_encode(['state' => 'queued', 'updated' => time() - 120]));
+		$this->assertSame('failed', VodDownload::request(['function' => 'status', 'id' => $job['id']])['state']);
+		$this->assertSame($job, $this->start());
 	}
 
 	public function testRejectsHlsAndKeepsDownloadTimeoutSeparateFromMetadataImports(): void {

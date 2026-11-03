@@ -24,12 +24,15 @@ final class VodM3uImport {
 			}
 			$rContent = file_get_contents($rFile['tmp_name']);
 		} else {
-			$rContent = self::fetch(trim((string) ($rData['m3u_url'] ?? '')));
+			[$rContent, $rBase] = self::fetch(trim((string) ($rData['m3u_url'] ?? '')));
 		}
 		if (!is_string($rContent) || trim($rContent) === '') {
 			throw new \InvalidArgumentException('vod_m3u_invalid');
 		}
-		$rEntries = self::parse($rContent, $rData);
+		$rEntries = self::parse($rContent, $rData, $rBase ?? null);
+		if ($rSelect && !empty($rData['m3u_fingerprint']) && !hash_equals((string) $rData['m3u_fingerprint'], self::fingerprint($rEntries))) {
+			throw new \InvalidArgumentException('vod_m3u_changed');
+		}
 		if ($rSelect && isset($rData['m3u_selection']) && $rData['m3u_selection'] !== '') {
 			$rSelection = json_decode($rData['m3u_selection'], true);
 			if (!is_array($rSelection)) {
@@ -42,7 +45,7 @@ final class VodM3uImport {
 	}
 
 	/** @return list<array{url: string, title: string, container: string}> */
-	public static function parse(string $rContent, array $rData = []): array {
+	public static function parse(string $rContent, array $rData = [], ?string $rBase = null): array {
 		$rParser = new \M3uParser\M3uParser();
 		$rParser->addDefaultTags();
 		$rParsed = $rParser->parse($rContent);
@@ -50,6 +53,12 @@ final class VodM3uImport {
 		$rSeen = [];
 		foreach ($rParsed as $rEntry) {
 			$rURL = str_replace(' ', '%20', trim((string) $rEntry->getPath()));
+			if ($rURL === '') {
+				continue;
+			}
+			if ($rBase !== null) {
+				$rURL = VodHttp::resolve($rBase, $rURL);
+			}
 			if (!self::httpUrl($rURL) || isset($rSeen[$rURL])) {
 				continue;
 			}
@@ -67,26 +76,23 @@ final class VodM3uImport {
 		return filter_var($rURL, FILTER_VALIDATE_URL) !== false && in_array(strtolower((string) parse_url($rURL, PHP_URL_SCHEME)), ['http', 'https'], true);
 	}
 
-	private static function fetch(string $rURL): string {
-		if (!self::httpUrl($rURL)) {
-			throw new \InvalidArgumentException('vod_m3u_invalid');
-		}
+	public static function fingerprint(array $rEntries): string {
+		return hash('sha256', (string) json_encode(array_map(static fn(array $rEntry): array => [$rEntry['url'], $rEntry['title']], $rEntries)));
+	}
+
+	private static function fetch(string $rURL): array {
 		$rContent = '';
-		$rCurl = curl_init($rURL);
-		curl_setopt_array($rCurl, [CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS, CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS, CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 30, CURLOPT_FAILONERROR => true, CURLOPT_WRITEFUNCTION => static function ($rCurl, string $rChunk) use (&$rContent): int {
+		$rReply = VodHttp::get($rURL, [CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 30, CURLOPT_FAILONERROR => true], static function (string $rChunk) use (&$rContent): int {
 			if (strlen($rContent) + strlen($rChunk) > self::MAX_BYTES) {
 				return 0;
 			}
 			$rContent .= $rChunk;
 			return strlen($rChunk);
-		}
-		]);
-		$rOK = curl_exec($rCurl);
-		curl_close($rCurl);
-		if (!$rOK) {
+		});
+		if (!$rReply['ok']) {
 			throw new \InvalidArgumentException('vod_m3u_invalid');
 		}
-		return $rContent;
+		return [$rContent, $rReply['url']];
 	}
 
 	/** Validate on the destination node before accepting the batch. */
@@ -105,6 +111,6 @@ final class VodM3uImport {
 		if (empty($rReply['result'])) {
 			throw new \InvalidArgumentException('vod_download_invalid_path');
 		}
-		return ['server_id' => $rServerID, 'directory' => $rParts[2]];
+		return ['server_id' => $rServerID, 'directory' => $rReply['directory'] ?? $rParts[2]] + VodDownloadQuota::fromForm($rData);
 	}
 }

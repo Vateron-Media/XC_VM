@@ -233,7 +233,7 @@ For shows in RTL languages (Arabic, Hebrew, etc.):
 
 ## Download VOD from an M3U
 
-Movies → Import and Series → Import accept an uploaded M3U/M3U8 file or an HTTP/HTTPS playlist URL (up to 10 MiB). Use **Load titles for selection** to select individual entries. Without a preview, all entries are imported. Series entries should include season/episode information in their titles, as with the existing importer.
+Movies → Import and Series → Import accept an uploaded M3U/M3U8 file or a public HTTP/HTTPS playlist URL (up to 10 MiB). Use **Load titles for selection** to select individual entries. Without a preview, all entries are imported. Series entries should include season/episode information in their titles, as with the existing importer.
 
 Enable **Download VOD files before importing**, then use the folder button to choose an existing writable folder on the destination server. The folder must be within that server's Scan Roots. The destination server is automatically included among the VOD servers.
 
@@ -242,3 +242,11 @@ Each selected direct media-file URL downloads on the destination server before i
 Downloads share the import concurrency setting (**Settings → VOD Import → thread_count**) and have a six-hour limit per file. Filenames contain a sanitized title and a source-URL hash. A download is published only after a successful HTTP response and a complete nonempty transfer; failures leave no catalog entry or partial media file, and existing files are never overwritten. A completed download can be reused by a later import. With Watch Folder enabled, import outcomes appear in its usual logs; the download/import itself does not require that module.
 
 This downloads direct media files, such as MP4 or MKV. HLS playlists and live-stream recording are not supported by this option. The destination node must run a version that supports the `vod_download` system action.
+
+The HTTP fetcher rejects private, loopback, link-local, metadata, multicast and reserved addresses. It validates all resolved A/AAAA addresses, pins them for the connection, and repeats the check for every redirect. Relative media links resolve against the final playlist URL. If the previewed titles or URLs change, the import asks you to reload the preview rather than silently omitting selected entries.
+
+Download limits are configurable on the import form: the defaults are **20 GiB per file** and **100 GiB per import**, capped at 100/1000 GiB. The destination node enforces the shared import budget across its workers, including responses without Content-Length, and retains at least **1 GiB free** while writing. Budgets reserve bytes in blocks of up to 1 MiB, so failed transfers may consume a little more budget than their final partial size. The form confirms **queue acceptance**, not completed downloads or catalog imports; it remains open with that explicit message.
+
+Migration `102_add_vod_import_source_hash.sql` adds a nullable original-source SHA-256 identity and a unique key per VOD type. It prevents concurrent or repeated M3U imports from creating duplicate catalog rows, including after title or destination changes. Both fresh-install schema and rollback migration are included. Existing entries without a recorded identity retain their current behavior.
+
+A durable receipt beside each downloaded file records its job identity, device/inode and size before publication. It recovers a completed file if the worker stops between publishing the hard link and recording completion, and survives temporary metadata expiry. Temporary job/status/worker-lock files and inactive budgets expire after 24 hours; active worker locks and their budgets are preserved. Abandoned queued jobs fail after a 60-second startup grace period so they can be retried. Missing RPC responses are retried until a terminal worker response or the overall deadline.

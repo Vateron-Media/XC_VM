@@ -17,6 +17,7 @@
     function reset() {
         generation++;
         selection.value = '';
+        document.getElementById('m3u_fingerprint').value = '';
         entries.hidden = true;
         list.replaceChildren();
     }
@@ -30,6 +31,11 @@
         var enabled = download.checked && document.getElementById('import_type_1').checked;
         document.getElementById('vod_download_controls').hidden = !enabled;
         path.required = enabled;
+        ['vod_download_file_gib', 'vod_download_import_gib'].forEach(function (id) {
+            var limit = document.getElementById(id);
+            limit.disabled = !enabled;
+            limit.required = enabled;
+        });
         ['direct_source', 'direct_proxy'].forEach(function (id) {
             var control = document.getElementById(id);
             if (control && enabled) {
@@ -70,6 +76,7 @@
         }).then(function (response) { return response.json(); }).then(function (data) {
             if (current !== generation) { return; }
             if (!data.result) { throw new Error(data.message || form.dataset.m3uError); }
+            document.getElementById('m3u_fingerprint').value = data.fingerprint;
             list.replaceChildren();
             data.entries.forEach(function (entry) {
                 var row = document.createElement('label');

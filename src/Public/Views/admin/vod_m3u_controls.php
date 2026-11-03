@@ -17,7 +17,18 @@
 		<button type="button" class="btn btn-label-primary vod-folder-browser" data-target="vod_download_path"><i class="icon-base ti tabler-folder"></i></button>
 	</div>
 	<div class="form-text"><?= $language::get('vod_download_help'); ?></div>
+	<div class="row mt-3">
+		<div class="col-md-6">
+			<label class="form-label" for="vod_download_file_gib"><?= $language::get('vod_download_file_limit'); ?></label>
+			<input class="form-control" type="number" id="vod_download_file_gib" name="vod_download_file_gib" min="0.001" max="100" step="any" value="20">
+		</div>
+		<div class="col-md-6">
+			<label class="form-label" for="vod_download_import_gib"><?= $language::get('vod_download_import_limit'); ?></label>
+			<input class="form-control" type="number" id="vod_download_import_gib" name="vod_download_import_gib" min="0.001" max="1000" step="any" value="100">
+		</div>
+	</div>
 </div>
+<input type="hidden" id="m3u_fingerprint" name="m3u_fingerprint" value="">
 <input type="hidden" id="m3u_selection" name="m3u_selection" value="">
 <button type="button" class="btn btn-label-primary mt-3" id="vod_m3u_preview" data-error="<?= htmlspecialchars($language::get('vod_m3u_invalid'), ENT_QUOTES); ?>"><?= $language::get('vod_m3u_preview'); ?></button>
 <div id="vod_m3u_entries" class="mt-3" hidden>

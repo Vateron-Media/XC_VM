@@ -1826,6 +1826,7 @@ CREATE TABLE IF NOT EXISTS `streams` (
   `category_id` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
   `stream_display_name` mediumtext COLLATE utf8_unicode_ci,
   `stream_source` mediumtext COLLATE utf8_unicode_ci,
+  `import_source_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
   `stream_icon` mediumtext COLLATE utf8_unicode_ci,
   `notes` mediumtext COLLATE utf8_unicode_ci,
   `enable_transcode` tinyint(4) DEFAULT '0',
@@ -1886,7 +1887,8 @@ CREATE TABLE IF NOT EXISTS `streams` (
   KEY `order` (`order`),
   KEY `direct_source` (`direct_source`),
   KEY `rtmp_output` (`rtmp_output`),
-  KEY `uuid` (`uuid`)
+  KEY `uuid` (`uuid`),
+  UNIQUE KEY `vod_import_source` (`type`, `import_source_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 -- --------------------------------------------------------

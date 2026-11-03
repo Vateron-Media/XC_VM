@@ -603,6 +603,7 @@ LayoutRenderer::renderFooter('admin');
                         };
                     }
                     if (dt && dt.result !== false) {
+						if (dt.queued) { xcToast(dt.message, 'info'); btn.disabled = false; return; }
                         if (window.parent !== window) {
                             window.parent.postMessage('xcModalSaved', '*');
                         } else {
