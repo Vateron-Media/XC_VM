@@ -13,6 +13,7 @@ use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Stream\StreamCacheBuilder;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Cache\CacheRunState;
+use XcVm\Infrastructure\Cache\LineCacheLocks;
 
 /**
  * CacheEngineCronJob — cache engine cron job
@@ -407,72 +408,60 @@ class CacheEngineCronJob implements CommandInterface {
 
 	private function generateLines($rStart = null, $rCount = null, $cacheLockMechanism = []): void {
 		global $db;
-		if (is_null($rCount)) {
-			$rCount = count($cacheLockMechanism);
+		$rCount ??= count($cacheLockMechanism);
+		if ($rCount <= 0) {
+			return;
 		}
-		if ($rCount > 0) {
-			$rColumns = '`id`, `username`, `password`, `exp_date`, `created_at`, `admin_enabled`, `enabled`, `bouquet`, `allowed_outputs`, `max_connections`, `is_trial`, `is_restreamer`, `is_stalker`, `is_mag`, `is_e2`, `is_isplock`, `allowed_ips`, `allowed_ua`, `pair_id`, `force_server_id`, `isp_desc`, `forced_country`, `bypass_ua`, `last_expiration_video`, `access_token`, `mag_devices`.`token` AS `mag_token`, `admin_notes`, `reseller_notes`, `lines`.`custom_data`';
-			$rSteps = [];
-			if (!is_null($rStart)) {
-				$rEnd = $rStart + $rCount - 1;
-				if ($this->rSplit >= ($rEnd - $rStart + 1)) {
-					$rSteps = [$rStart];
-				}
-			} else {
-				$rSteps = [null];
-			}
-			$rExists = [];
-			$rRead = true;
-			foreach ($rSteps as $rStep) {
-				if (!is_null($rStep)) {
-					if ($rStart + $rCount < $rStep + $this->rSplit) {
-						$rMax = ($rStart + $rCount) - $rStep;
-					} else {
-						$rMax = $this->rSplit;
-					}
-					// Page the lines themselves, in id order, before the MAG join:
-					// paging the joined rows would skip or repeat lines between
-					// pages (no stable order, a line with several devices).
-					$rOk = $db->query('SELECT ' . $rColumns . ' FROM (SELECT * FROM `lines` ORDER BY `id` ASC LIMIT ' . intval($rStep) . ', ' . intval($rMax) . ') AS `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id`;');
-				} else {
-					$rOk = $db->query('SELECT ' . $rColumns . ' FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `id` IN (' . implode(',', array_map('intval', $cacheLockMechanism)) . ');');
-				}
-				if ($rOk && $db->result) {
-					if ($db->result->rowCount() > 0) {
-						foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rUserInfo) {
-							$rExists[intval($rUserInfo['id'])] = true;
-							$rOldKeys = $this->lineKeys(intval($rUserInfo['id']));
-							$this->write(LINES_TMP_PATH . 'line_i_' . $rUserInfo['id'], igbinary_serialize($rUserInfo));
-							$rKey = $this->credentialKey($rUserInfo['username'], $rUserInfo['password']);
-							$this->write(LINES_TMP_PATH . 'line_c_' . $rKey, (string) $rUserInfo['id'], true);
-							if (!empty($rUserInfo['access_token'])) {
-								$this->write(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token'], (string) $rUserInfo['id'], true);
-							}
-							// Credentials or token changed: the old lookup files
-							// would keep resolving to this line.
-							if ($rOldKeys['c'] !== null && $rOldKeys['c'] !== $rKey) {
-								$this->unlinkLookup('line_c_' . $rOldKeys['c'], intval($rUserInfo['id']));
-							}
-							if ($rOldKeys['t'] !== null && $rOldKeys['t'] !== (string) $rUserInfo['access_token']) {
-								$this->unlinkLookup('line_t_' . $rOldKeys['t'], intval($rUserInfo['id']));
-							}
-						}
-					}
-					$db->result = null;
-				} else {
-					$rRead = false;
-				}
-			}
-			if (!$rRead) {
-				// A failed read says nothing about which lines exist.
+		$rColumns = '`id`, `username`, `password`, `exp_date`, `created_at`, `admin_enabled`, `enabled`, `bouquet`, `allowed_outputs`, `max_connections`, `is_trial`, `is_restreamer`, `is_stalker`, `is_mag`, `is_e2`, `is_isplock`, `allowed_ips`, `allowed_ua`, `pair_id`, `force_server_id`, `isp_desc`, `forced_country`, `bypass_ua`, `last_expiration_video`, `access_token`, `mag_devices`.`token` AS `mag_token`, `admin_notes`, `reseller_notes`, `lines`.`custom_data`';
+		if ($rStart !== null) {
+			// Page ids before joining MAG rows. Read the actual line data only
+			// after locking, so an older batch cannot overwrite a newer renewal.
+			if (!$db->query('SELECT `id` FROM `lines` ORDER BY `id` ASC LIMIT ' . intval($rStart) . ', ' . intval($rCount) . ';')) {
 				$this->markFailed();
 				return;
 			}
-			foreach ($cacheLockMechanism as $rForceID) {
-				$rForceID = intval($rForceID);
-				if (!isset($rExists[$rForceID])) {
-					$this->removeLine($rForceID);
+			$ids = array_map('intval', $db->get_column());
+		} else {
+			$ids = array_values(array_unique(array_filter(array_map('intval', $cacheLockMechanism), static fn(int $id): bool => $id > 0)));
+		}
+		// Bound open lock descriptors even when a full page has 10,000 ids.
+		foreach (array_chunk($ids, 128) as $batch) {
+			$read = false;
+			$locked = LineCacheLocks::run($batch, function () use ($db, $rColumns, $batch, &$read): void {
+				if (!$db->query('SELECT ' . $rColumns . ' FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `id` IN (' . implode(',', $batch) . ') ORDER BY `lines`.`id` ASC;') || !$db->result) {
+					return;
 				}
+				$rows = $db->result->fetchAll(\PDO::FETCH_ASSOC);
+				$db->result = null;
+				$read = true;
+				$exists = [];
+				foreach ($rows as $rUserInfo) {
+					$exists[intval($rUserInfo['id'])] = true;
+					$rOldKeys = $this->lineKeys(intval($rUserInfo['id']));
+					$this->write(LINES_TMP_PATH . 'line_i_' . $rUserInfo['id'], igbinary_serialize($rUserInfo));
+					$rKey = $this->credentialKey($rUserInfo['username'], $rUserInfo['password']);
+					$this->write(LINES_TMP_PATH . 'line_c_' . $rKey, (string) $rUserInfo['id'], true);
+					if (!empty($rUserInfo['access_token'])) {
+						$this->write(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token'], (string) $rUserInfo['id'], true);
+					}
+					// Credentials or token changed: the old lookup files
+					// would keep resolving to this line.
+					if ($rOldKeys['c'] !== null && $rOldKeys['c'] !== $rKey) {
+						$this->unlinkLookup('line_c_' . $rOldKeys['c'], intval($rUserInfo['id']));
+					}
+					if ($rOldKeys['t'] !== null && $rOldKeys['t'] !== (string) $rUserInfo['access_token']) {
+						$this->unlinkLookup('line_t_' . $rOldKeys['t'], intval($rUserInfo['id']));
+					}
+				}
+				foreach ($batch as $id) {
+					if (!isset($exists[$id])) {
+						$this->removeLockedLine($id);
+					}
+				}
+			});
+			if (!$locked || !$read) {
+				$this->markFailed();
+				return;
 			}
 		}
 	}
@@ -503,8 +492,8 @@ class CacheEngineCronJob implements CommandInterface {
 		return $rKeys;
 	}
 
-	/** Drop a deleted line's entry and the lookup files that pointed to it. */
-	private function removeLine(int $rUserID): void {
+	/** Called only while this line's publication lock is held. */
+	private function removeLockedLine(int $rUserID): void {
 		$rKeys = $this->lineKeys($rUserID);
 		foreach (['c' => 'line_c_', 't' => 'line_t_'] as $rType => $rPrefix) {
 			if ($rKeys[$rType] !== null) {

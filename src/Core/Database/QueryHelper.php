@@ -64,10 +64,15 @@ class QueryHelper {
 	 */
 	public static function verifyPostTable(string $rTable, array $rData = [], bool $rOnlyExisting = false) {
 		global $db;
-		$rReturn = [];
 		$db->query('SELECT `column_name`, `column_default`, `is_nullable`, `data_type` FROM `information_schema`.`columns` WHERE `table_schema` = (SELECT DATABASE()) AND `table_name` = ? ORDER BY `ordinal_position`;', $rTable);
 
-		foreach ($db->get_rows() as $rRow) {
+		return self::verifyPostColumns($db->get_rows(), $rData, $rOnlyExisting);
+	}
+
+	/** Normalize a row with column metadata already read by the caller. */
+	public static function verifyPostColumns(array $rColumns, array $rData = [], bool $rOnlyExisting = false): array {
+		$rReturn = [];
+		foreach ($rColumns as $rRow) {
 			if ($rRow['column_default'] != 'NULL') {
 				// strip surrounding quotes returned by some information_schema implementations
 				if (is_string($rRow['column_default']) && preg_match("/^'.*'$/", $rRow['column_default'])) {
