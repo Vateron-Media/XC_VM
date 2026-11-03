@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XC_VM Admin API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
+    <link rel="stylesheet" type="text/css" href="./theme-tokens.css">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/swagger-api/swagger-ui/master/dist/favicon-32x32.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Base chrome vars are aliased to the shared --xc-* tokens
+           (theme-tokens.css). They re-resolve automatically when
+           html[data-theme] flips, so no per-theme duplication here. */
+        :root {
+            --bg-primary: var(--xc-bg);
+            --bg-secondary: var(--xc-panel);
+            --bg-header: var(--xc-header);
+            --text-primary: var(--xc-text);
+            --text-secondary: var(--xc-text-2);
+            --text-header: #ffffff;
+            --border-color: var(--xc-border);
+            --accent-color: var(--xc-accent);
+            --accent-hover: var(--xc-accent-hover);
+            --code-bg: var(--xc-code-bg);
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --switch-bg: #ccc;
+            --switch-checked: var(--xc-accent);
+        }
+
+        [data-theme="dark"] {
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+            --switch-bg: #555;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        .header {
+            background: var(--bg-header);
+            color: var(--text-header);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .version-badges {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-version {
+            background: #27ae60;
+            color: white;
+        }
+
+        .badge-oas {
+            background: #f39c12;
+            color: white;
+        }
+
+        /* Theme Toggle Switch */
+        .theme-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-switch-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--switch-bg);
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--switch-checked);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .theme-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: var(--bg-header);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-tabs-container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .nav-tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            font-size: 1rem;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-tab:hover {
+            color: rgba(255,255,255,0.9);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .nav-tab.active {
+            color: white;
+            border-bottom-color: var(--accent-color);
+        }
+
+        .nav-tab-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Secondary row: Documentation / Swagger view toggle */
+        .nav-tabs-views {
+            background: rgba(0, 0, 0, 0.18);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-tabs-views .nav-tab {
+            padding: 0.6rem 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        #api-tabs {
+            flex-wrap: wrap;
+        }
+
+        #api-tabs:empty {
+            display: none;
+        }
+
+        /* Content Sections */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* General Documentation Styles */
+        .docs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid;
+            background: var(--bg-secondary);
+        }
+
+        .alert-info {
+            border-left-color: #3498db;
+        }
+
+        .alert-icon {
+            margin-right: 0.5rem;
+        }
+
+        .docs-title {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .docs-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-icon {
+            font-size: 1.5rem;
+        }
+
+        .section-content {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+            white-space: pre;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+        }
+
+        .code-inline {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            border: 1px solid var(--border-color);
+        }
+
+        .list-styled {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .list-styled li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .list-styled li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .highlight {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .link {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .link:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--accent-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Swagger UI Container */
+        .swagger-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Swagger UI Light Theme Customization */
+        #swagger-ui div .scheme-container {
+            background-color: rgba(52,73,94,0.09);
+        }
+
+        /* Swagger UI Light Theme Variables */
+        :root {
+            /* primary colors */
+            --swagger-color: #4c9325;
+            --link-color: #407ec9;
+            --accept-header-color: #619929;
+            /* methods colors */
+            --post-method-color: #619929;
+            --post-method-background-color: rgba(0, 0, 0, .0);
+            --get-method-color: #57A9D7;
+            --get-method-background-color: rgba(0, 0, 0, .0);
+            --head-method-color: #9B2393;
+            --head-method-background-color: rgba(0, 0, 0, .0);
+            --put-method-color: #0B4F79;
+            --put-method-background-color: rgba(0, 0, 0, .0);
+            --delete-method-color: #D12F1B;
+            --delete-method-background-color: rgba(0, 0, 0, .0);
+            --options-method-color: #000000;
+            --options-method-background-color: rgba(0, 0, 0, .0);
+            --patch-method-color: #0E0EFF;
+            --patch-method-background-color: rgba(0, 0, 0, .0);
+            /* background */
+            --all-bg-color: #ffffff;
+            --secondary-bg-color: #F2F2F2;
+            --header-bg-color: #619929;
+            --block-bg-color: #E9E9E9;
+            --selecter-bg-color: #F2F2F2;
+            /* text */
+            --primary-text-color: rgb(0, 0, 0);
+            --secondary-text-color: rgba(0, 0, 0, 0.4);
+            /* border */
+            --block-border-color: rgba(0, 0, 0, 0.08);
+            --block-border-radius: 12px;
+            --innner-block-border-radius: 8px;
+            /* icons */
+            --primary-icon-color: #000000;
+            --icons-opacity: none;
+            --secondary-icon-opacity: none;
+            --black-icons-filter: none;
+        }
+
+        /* Swagger UI Dark Theme Variables */
+        [data-theme="dark"] {
+            /* primary colors */
+            --swagger-color: #62a03f;
+            --link-color: #2e82e5;
+            --accept-header-color: #47b750;
+            /* methods colors */
+            --post-method-color: rgb(141, 199, 111);
+            --post-method-background-color: rgba(141, 199, 111, .08);
+            --get-method-color: rgb(74, 176, 244);
+            --get-method-background-color: rgba(74, 176, 244, .08);
+            --head-method-color: rgb(217, 115, 234);
+            --head-method-background-color: rgba(217, 115, 234, .08);
+            --put-method-color: rgb(189, 135, 86);
+            --put-method-background-color: rgba(189, 135, 86, .08);
+            --delete-method-color: rgb(237, 99, 113);
+            --delete-method-background-color: rgba(237, 99, 113, .08);
+            --options-method-color: rgb(210, 175, 60);
+            --options-method-background-color: rgba(210, 175, 60, .08);
+            --patch-method-color: rgb(113, 128, 147);
+            --patch-method-background-color: rgba(113, 128, 147, .08);
+            /* background */
+            --all-bg-color: #272C35;
+            --secondary-bg-color: #272C35;
+            --header-bg-color: #313845;
+            --block-bg-color: #20252C;
+            --selecter-bg-color: #313845;
+            /* text */
+            --primary-text-color: rgb(179, 187, 201);
+            --secondary-text-color: rgba(177, 203, 255, 0.3);
+            /* border */
+            --block-border-color: rgba(220, 220, 255, 0.1);
+            --block-border-radius: 6px;
+            --innner-block-border-radius: 2px;
+            /* icons */
+            --primary-icon-color: rgb(179, 187, 201);
+            --icons-opacity: .28;
+            --secondary-icon-opacity: .5;
+            --black-icons-filter: invert(1);
+        }
+
+        /* Apply Swagger Theme Variables to Swagger UI */
+        .swagger-ui {
+            background: var(--all-bg-color);
+        }
+
+        .swagger-ui .topbar {
+            display: none;
+        }
+
+        .swagger-ui .info {
+            background: var(--all-bg-color);
+        }
+
+        .swagger-ui .info .title,
+        .swagger-ui .info p,
+        .swagger-ui .info li,
+        .swagger-ui .opblock-tag,
+        .swagger-ui .opblock .opblock-summary-description,
+        .swagger-ui .opblock .opblock-summary-path,
+        .swagger-ui .parameter__name,
+        .swagger-ui .parameter__type,
+        .swagger-ui .response-col_status,
+        .swagger-ui table thead tr th,
+        .swagger-ui table tbody tr td,
+        .swagger-ui label,
+        .swagger-ui h4,
+        .swagger-ui h5 {
+            color: var(--primary-text-color) !important;
+        }
+
+        .swagger-ui .info .title small,
+        .swagger-ui .info .description p,
+        .swagger-ui .opblock-description-wrapper p,
+        .swagger-ui .parameter__type,
+        .swagger-ui .prop-format {
+            color: var(--secondary-text-color) !important;
+        }
+
+        .swagger-ui .scheme-container {
+            background: var(--secondary-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--block-border-radius);
+        }
+
+        .swagger-ui .opblock-tag-section {
+            background: var(--all-bg-color);
+        }
+
+        .swagger-ui .opblock {
+            background: var(--block-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--block-border-radius);
+            margin-bottom: 15px;
+        }
+
+        .swagger-ui .opblock .opblock-summary {
+            background: var(--block-bg-color);
+            border-radius: var(--block-border-radius);
+        }
+
+        .swagger-ui .opblock.opblock-get {
+            border-color: var(--get-method-color);
+            background: var(--get-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-get .opblock-summary-method {
+            background: var(--get-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-get .opblock-summary {
+            border-color: var(--get-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-post {
+            border-color: var(--post-method-color);
+            background: var(--post-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-post .opblock-summary-method {
+            background: var(--post-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-post .opblock-summary {
+            border-color: var(--post-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-put {
+            border-color: var(--put-method-color);
+            background: var(--put-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-put .opblock-summary-method {
+            background: var(--put-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-put .opblock-summary {
+            border-color: var(--put-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-delete {
+            border-color: var(--delete-method-color);
+            background: var(--delete-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-delete .opblock-summary-method {
+            background: var(--delete-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-delete .opblock-summary {
+            border-color: var(--delete-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-head {
+            border-color: var(--head-method-color);
+            background: var(--head-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-head .opblock-summary-method {
+            background: var(--head-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-head .opblock-summary {
+            border-color: var(--head-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-options {
+            border-color: var(--options-method-color);
+            background: var(--options-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-options .opblock-summary-method {
+            background: var(--options-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-options .opblock-summary {
+            border-color: var(--options-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-patch {
+            border-color: var(--patch-method-color);
+            background: var(--patch-method-background-color);
+        }
+
+        .swagger-ui .opblock.opblock-patch .opblock-summary-method {
+            background: var(--patch-method-color);
+        }
+
+        .swagger-ui .opblock.opblock-patch .opblock-summary {
+            border-color: var(--patch-method-color);
+        }
+
+        .swagger-ui .opblock-body,
+        .swagger-ui .opblock-description-wrapper,
+        .swagger-ui .opblock-section-header {
+            background: var(--block-bg-color);
+        }
+
+        .swagger-ui input[type=text],
+        .swagger-ui input[type=password],
+        .swagger-ui input[type=email],
+        .swagger-ui textarea,
+        .swagger-ui select {
+            background: var(--selecter-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--innner-block-border-radius);
+            color: var(--primary-text-color);
+        }
+
+        .swagger-ui .btn {
+            background: var(--secondary-bg-color);
+            color: var(--primary-text-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--innner-block-border-radius);
+        }
+
+        .swagger-ui .btn.execute {
+            background: var(--link-color);
+            color: #fff;
+            border-color: var(--link-color);
+        }
+
+        .swagger-ui table thead tr th,
+        .swagger-ui table thead tr td {
+            background: var(--secondary-bg-color);
+            border-color: var(--block-border-color);
+        }
+
+        .swagger-ui table tbody tr td {
+            background: var(--block-bg-color);
+            border-color: var(--block-border-color);
+        }
+
+        .swagger-ui .model-box,
+        .swagger-ui .model {
+            background: var(--block-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--block-border-radius);
+        }
+
+        .swagger-ui .model-title {
+            background: var(--secondary-bg-color);
+        }
+
+        .swagger-ui a {
+            color: var(--link-color);
+        }
+
+        .swagger-ui a:hover {
+            color: var(--swagger-color);
+        }
+
+        .swagger-ui .authorization__btn {
+            background: transparent;
+            border-color: var(--link-color);
+            color: var(--link-color);
+        }
+
+        .swagger-ui .authorization__btn.unlocked {
+            border-color: var(--accept-header-color);
+            color: var(--accept-header-color);
+        }
+
+        .swagger-ui .dialog-ux .modal-ux {
+            background: var(--block-bg-color);
+            border: 1px solid var(--block-border-color);
+            border-radius: var(--block-border-radius);
+        }
+
+        .swagger-ui .dialog-ux .modal-ux-header {
+            background: var(--secondary-bg-color);
+            border-bottom: 1px solid var(--block-border-color);
+        }
+
+        .swagger-ui .highlight-code {
+            background: var(--selecter-bg-color);
+        }
+
+        .swagger-ui .opblock-tag {
+            border-bottom: 1px solid var(--block-border-color);
+        }
+
+        .swagger-ui .prop-type {
+            color: var(--swagger-color);
+        }
+
+        .swagger-ui svg {
+            fill: var(--primary-icon-color);
+            opacity: var(--icons-opacity);
+        }
+
+        .swagger-ui .arrow svg {
+            opacity: var(--secondary-icon-opacity);
+        }
+
+        .swagger-ui img {
+            filter: var(--black-icons-filter);
+        }
+
+        /* Dark Theme Specific Overrides */
+        [data-theme="dark"] .swagger-ui .markdown code,
+        [data-theme="dark"] .swagger-ui .renderedMarkdown code {
+            background: rgb(12, 11, 11);
+            color: #62a03f;
+        }
+
+        [data-theme="dark"] .swagger-ui .opblock-description-wrapper,
+        [data-theme="dark"] .swagger-ui .opblock-external-docs-wrapper,
+        [data-theme="dark"] .swagger-ui .opblock-title_normal {
+            color: #7d8293;
+        }
+
+        [data-theme="dark"] .swagger-ui .info .title small,
+        [data-theme="dark"] .swagger-ui .info .description p,
+        [data-theme="dark"] .swagger-ui .opblock-description-wrapper p,
+        [data-theme="dark"] .swagger-ui .parameter__type,
+        [data-theme="dark"] .swagger-ui .prop-format {
+            color: #e8e8e8 !important;
+        }
+
+        [data-theme="dark"] .swagger-ui .opblock .opblock-section-header {
+            background: hsl(0deg 0% 7.23% / 80%);
+        }
+
+        [data-theme="dark"] .swagger-ui .example.microlight {
+            background: rgb(20, 20, 20);
+        }
+
+        [data-theme="dark"] .swagger-ui .opblock-body pre.microlight {
+            background: rgb(20, 20, 20);
+        }
+
+        [data-theme="dark"] .swagger-ui .responses-wrapper .response-col_description pre,
+        [data-theme="dark"] .swagger-ui .responses-wrapper pre.microlight,
+        [data-theme="dark"] .swagger-ui .model-example pre,
+        [data-theme="dark"] .swagger-ui .highlight-code pre {
+            background: rgb(20, 20, 20) !important;
+        }
+
+        /* Table Data */
+        [data-theme="dark"] .servers tr td {
+            background-color: transparent !important;
+        }
+
+        /* Computed url */
+        [data-theme="dark"] .servers div .computed-url {
+            color: #ecf0f1;
+        }
+
+        /* Servers title */
+        [data-theme="dark"] .schemes div .servers-title {
+            color: #ecf0f1;
+        }
+
+        /* Heading */
+        [data-theme="dark"] .servers div h4 {
+            color: #ecf0f1 !important;
+        }
+
+        /* Operations tag - for all */
+        [data-theme="dark"] [id^="operations-tag-"] {
+            color: #e1e9e9 !important;
+        }
+
+        /* Small Tag */
+        [data-theme="dark"] [id^="operations-tag-"] small {
+            color: #95a5a6;
+        }
+
+        /* Span Tag - Method-specific colors */
+        [data-theme="dark"] .opblock-get .opblock-summary-path span {
+            color: rgb(74, 176, 244); /* GET - blue */
+        }
+
+        [data-theme="dark"] .opblock-post .opblock-summary-path span {
+            color: rgb(141, 199, 111); /* POST - green */
+        }
+
+        [data-theme="dark"] .opblock-put .opblock-summary-path span {
+            color: rgb(189, 135, 86); /* PUT - orange */
+        }
+
+        [data-theme="dark"] .opblock-delete .opblock-summary-path span {
+            color: rgb(237, 99, 113); /* DELETE - red */
+        }
+
+        [data-theme="dark"] .opblock-head .opblock-summary-path span {
+            color: rgb(217, 115, 234); /* HEAD - purple */
+        }
+
+        [data-theme="dark"] .opblock-options .opblock-summary-path span {
+            color: rgb(210, 175, 60); /* OPTIONS - yellow */
+        }
+
+        [data-theme="dark"] .opblock-patch .opblock-summary-path span {
+            color: rgb(113, 128, 147); /* PATCH - gray */
+        }
+
+        /* Response col description - all operations */
+        [data-theme="dark"] [id$="_responses"] thead .response-col_description {
+            color: #bdc3c7;
+        }
+
+        /* Response col links - all operations */
+        [data-theme="dark"] [id$="_responses"] thead .response-col_links {
+            color: #bdc3c7;
+        }
+
+        /* List - all operations */
+        [data-theme="dark"] [id$="_responses"] tbody ul {
+            color: #bdc3c7;
+        }
+
+        /* Tablinks - all operations */
+        [data-theme="dark"] [id$="_responses"] .tab .tablinks {
+            color: #bdc3c7;
+        }
+
+        /* Model title text */
+        [data-theme="dark"] .swagger-ui .model-title__text {
+            color: #bdc3c7;
+        }
+
+        /* Prop enum */
+        [data-theme="dark"] .swagger-ui .inner-object td .prop-enum {
+            color: #bdc3c7;
+        }
+
+        /* Paragraph */
+        [data-theme="dark"] .swagger-ui .inner-object td p {
+            color: #bdc3c7;
+        }
+
+        /* Model toggle */
+        [data-theme="dark"] .swagger-ui .prop-enum span .model-toggle {
+            color: #bdc3c7;
+        }
+
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .nav-tabs-container {
+                overflow-x: auto;
+            }
+
+            .nav-tab {
+                padding: 1rem;
+                white-space: nowrap;
+            }
+
+            .docs-container, .swagger-container {
+                padding: 1rem;
+            }
+
+            .docs-title {
+                font-size: 2rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+
+        /* Quick Links Grid */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .quick-link-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .quick-link-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
+            border-color: var(--accent-color);
+        }
+
+        .quick-link-card h3 {
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .quick-link-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">
+                <h1 id="api-title">XC_VM Admin API</h1>
+                <div class="version-badges">
+                    <span class="badge badge-version">v1.5.13</span>
+                    <span class="badge badge-oas">OAS 3.0</span>
+                </div>
+            </div>
+            
+            <div class="theme-controls">
+                <div class="theme-switch-wrapper">
+                    <span class="theme-icon">☀️</span>
+                    <label class="theme-switch">
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="theme-icon">🌙</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- API tabs (one per specification, generated from API_SPECS) -->
+        <div class="nav-tabs">
+            <div class="nav-tabs-container" id="api-tabs"></div>
+        </div>
+
+        <!-- View tabs (Documentation / Swagger) -->
+        <div class="nav-tabs nav-tabs-views">
+            <div class="nav-tabs-container">
+                <button class="nav-tab view-tab active" onclick="switchTab('docs')">
+                    <span class="nav-tab-icon">📚</span>
+                    Documentation
+                </button>
+                <button class="nav-tab view-tab" onclick="switchTab('swagger')">
+                    <span class="nav-tab-icon">🔧</span>
+                    Interactive (Swagger)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- General Documentation Section -->
+    <div id="docs-section" class="content-section active">
+        <div class="docs-container">
+            <div class="alert alert-info" style="border-left-color: #e67e22;">
+                <span class="alert-icon">⚠️</span>
+                <strong>CORS Notice &mdash; "Try it out":</strong> Direct browser calls to your server may fail with <code class="code-inline">Failed to fetch</code> due to CORS. This is expected &mdash; use the generated cURL command, Postman or Insomnia. It does not mean the API is broken.
+            </div>
+
+            <div id="api-docs-content"></div>
+
+            <div class="btn-group">
+                <button class="btn" onclick="switchTab('swagger')">Open interactive API &rarr;</button>
+                <a href="https://github.com/Vateron-Media/XC_VM" target="_blank" class="btn" style="background: #27ae60;">View on GitHub</a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Swagger API Section -->
+    <div id="swagger-section" class="content-section">
+        <div class="swagger-container">
+            <div id="swagger-ui"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        if (currentTheme === 'dark') {
+            themeToggle.checked = true;
+        }
+
+        themeToggle.addEventListener('change', function() {
+            const theme = this.checked ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        });
+
+        // Tab Switching
+        function switchTab(tabName, evt) {
+            // Update the view-tab buttons (Documentation / Swagger) only,
+            // leaving the API tab row untouched.
+            document.querySelectorAll('.view-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            const trigger = evt || window.event;
+            if (trigger && trigger.target && trigger.target.closest('.view-tab')) {
+                trigger.target.closest('.view-tab').classList.add('active');
+            } else {
+                // Programmatic call (deep link): match the view tab by onclick
+                const btn = Array.from(document.querySelectorAll('.view-tab'))
+                    .find(b => (b.getAttribute('onclick') || '').includes("'" + tabName + "'"));
+                if (btn) btn.classList.add('active');
+            }
+
+            // Update content sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(tabName + '-section').classList.add('active');
+
+            // Initialize Swagger UI if not already initialized
+            if (tabName === 'swagger' && !window.swaggerInitialized) {
+                initSwagger();
+            }
+        }
+
+        // -----------------------------------------------------------------
+        // API specification registry
+        // To add another API: drop its <name>.openapi.yaml next to this file
+        // and add one entry below. `key` is used for deep links (?spec=key).
+        // -----------------------------------------------------------------
+        const API_SPECS = [
+            { key: 'player', name: 'Player API', url: './player-api.openapi.yaml' },
+            { key: 'playlist', name: 'Playlist API', url: './playlist-api.openapi.yaml' },
+            { key: 'streaming', name: 'Streaming', url: './streaming-api.openapi.yaml' },
+            { key: 'mag', name: 'MAG Portal', url: './mag-portal-api.openapi.yaml' },
+            { key: 'enigma2', name: 'Enigma2', url: './enigma2-api.openapi.yaml' },
+            { key: 'activation', name: 'Activation', url: './activation-api.openapi.yaml' },
+            { key: 'admin', name: 'Admin API', url: './admin-api.openapi.yaml' },
+            { key: 'reseller', name: 'Reseller API', url: './reseller-api.openapi.yaml' },
+            { key: 'system', name: 'System API', url: './system-api.openapi.yaml' },
+            { key: 'cluster', name: 'Cluster API', url: './cluster-api.openapi.yaml' },
+            { key: 'monitoring', name: 'Monitoring', url: './monitoring-api.openapi.yaml' },
+        ];
+
+        function getRequestedSpecKey() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('spec');
+        }
+
+        function resolveSpec(key) {
+            return API_SPECS.find(s => s.key === key) || API_SPECS.find(s => s.key === 'admin');
+        }
+
+        // -----------------------------------------------------------------
+        // Per-API documentation (Documentation tab), condensed from the tag
+        // descriptions of each specification.
+        // -----------------------------------------------------------------
+        const section = (icon, title, body) =>
+            `<div class="section"><h3 class="section-title"><span class="section-icon">${icon}</span>${title}</h3><div class="section-content">${body}</div></div>`;
+        const doc = (title, subtitle, overview, base, auth) =>
+            `<h2 class="docs-title">${title}</h2><p class="docs-subtitle">${subtitle}</p>` +
+            section('🎯', 'Overview', overview) +
+            section('🔗', 'Base URL', `<div class="code-block">${base}</div>`) +
+            section('🔐', 'Authentication', auth);
+
+        const API_DOCS = {
+            player: doc('XC_VM Player API', 'player_api.php, panel_api.php and xmltv.php &mdash; 15 operations',
+                '<p>The JSON API every Xtream Codes compatible app uses to sign in and browse live TV, VOD and series, multiplexed by <code class="code-inline">action</code>. With no action it answers the sign-in payload (<code class="code-inline">user_info</code> + <code class="code-inline">server_info</code>). <code class="code-inline">panel_api.php</code> (the XC v1 API) answers only with the <code class="code-inline">legacy_panel_api</code> setting on; <code class="code-inline">xmltv.php</code> is the XMLTV guide.</p>',
+                '{protocol}://{host}:{port}/player_api.php?username=&lt;user&gt;&password=&lt;pass&gt;&action=&lt;action&gt;',
+                '<p><code class="code-inline">username</code> + <code class="code-inline">password</code>, a 32-character <code class="code-inline">token</code>, or an activation code. A failed sign-in still answers <strong>200</strong> with <code class="code-inline">user_info.auth = 0</code>.</p>'),
+
+            playlist: doc('XC_VM Playlist API', 'get.php &mdash; downloadable playlists',
+                '<p>M3U, M3U Plus, Enigma2 bouquets and set-top box formats. Also reachable as <code class="code-inline">/playlist</code>, <code class="code-inline">/playlist.php</code>, <code class="code-inline">/api/playlist</code> and <code class="code-inline">/playlist/{username}/{password}[/{type}]</code>.</p>',
+                '{protocol}://{host}:{port}/get.php?username=&lt;user&gt;&password=&lt;pass&gt;&type=m3u_plus&output=ts',
+                '<p><code class="code-inline">username</code> + <code class="code-inline">password</code> or <code class="code-inline">token</code>. Nearly every error answers a bare nginx-style 404 page; download limits answer 429.</p>'),
+
+            streaming: doc('XC_VM Streaming', 'Live, VOD, series, catch-up, HLS segments and keys &mdash; 36 operations',
+                '<p>The media URL surface: every rewrite lands on <code class="code-inline">/stream/&lt;handler&gt;</code>, served by <code class="code-inline">src/Public/stream/index.php</code>.</p>',
+                '/live/{username}/{password}/{stream_id}.{ts|m3u8}\n/movie/{username}/{password}/{stream_id}.{ext}\n/series/{username}/{password}/{episode_id}.{ext}\n/timeshift/{username}/{password}/{duration}/{YYYY-MM-DD:HH-MM}/{stream_id}.ts',
+                '<p>Line credentials in the path, or a line / play token. Errors answer a bare nginx-style 404 page.</p>'),
+
+            mag: doc('XC_VM Stalker Portal (MAG)', 'Stalker/Ministra middleware emulation &mdash; 91 operations',
+                '<p>The portal API of MAG and other Stalker-compatible set-top boxes (<code class="code-inline">src/Ministra/PortalHandler.php</code>). Paths are written as <code class="code-inline">/portal.php?type=..&action=..</code>; substitute the real prefix.</p>',
+                '{protocol}://{host}:{port}/&lt;code&gt;/portal.php?type=stb&action=handshake\n{protocol}://{host}:{port}/c/portal.php   (only with mag_legacy_redirect)',
+                '<p><code class="code-inline">stb/handshake</code> with the MAC gives a token; <code class="code-inline">stb/get_profile</code> with <code class="code-inline">Authorization: Bearer &lt;token&gt;</code> verifies the device; every later call sends the same bearer token.</p>'),
+
+            enigma2: doc('XC_VM Enigma2', 'enigma2.php and xplugin.php &mdash; 13 operations',
+                '<p>The XML playlist API for Enigma2 boxes (base64 titles, CDATA URLs) and the companion API of the XC Enigma2 plugin: MAC generation, device sign-in, the remote-command watchdog and screenshot upload.</p>',
+                '{protocol}://{host}:{port}/enigma2.php?username=&lt;user&gt;&password=&lt;pass&gt;&type=&lt;type&gt;',
+                '<p>enigma2.php: line <code class="code-inline">username</code> + <code class="code-inline">password</code>. xplugin.php: the device MAC, then its token.</p>'),
+
+            activation: doc('XC_VM Activation', 'active_code.php and the /portal page &mdash; 15 operations',
+                '<p>Activation codes: without an API key, the subscriber/device activation endpoint; with an admin or reseller API key, a management API for codes and batches. <code class="code-inline">/portal</code> is the public self-activation page (HTML, or JSON to AJAX).</p>',
+                '{protocol}://{host}:{port}/active_code.php?action=&lt;action&gt;',
+                '<p>The activation code itself, or an admin / reseller <code class="code-inline">api_key</code> for management actions.</p>'),
+
+            admin: doc('XC_VM Admin API', 'Administration REST API &mdash; 187 actions',
+                '<p>Lines, MAG and Enigma2 devices, users, groups, packages, streams, VOD, series, servers, settings and logs.</p>',
+                '{protocol}://{host}:{port}/&lt;access_code&gt;/?api_key=&lt;API-KEY&gt;&action=&lt;action&gt;',
+                '<p>An access code of type <em>Admin API</em> (3), and an <code class="code-inline">api_key</code>: a named <code class="code-inline">xct_</code> token or the legacy per-user key of an administrator. Click <strong>Authorize</strong> to send it with every request.</p>'),
+
+            reseller: doc('XC_VM Reseller API', 'Reseller REST API &mdash; 49 actions',
+                '<p>The reseller\'s own lines, MAG and Enigma2 devices, sub-accounts, activation codes and credits, and the packages it may sell.</p>',
+                '{protocol}://{host}:{port}/&lt;access_code&gt;/?api_key=&lt;API-KEY&gt;&action=&lt;action&gt;',
+                '<p>An access code of type <em>Reseller API</em> (4), and the <code class="code-inline">api_key</code> of a reseller. Click <strong>Authorize</strong> to send it with every request.</p>'),
+
+            system: doc('XC_VM System API', 'Node actions (api.php) and /admin/* stream endpoints &mdash; 37 operations',
+                '<p><code class="code-inline">/api.php?action=&lt;name&gt;</code> no longer answers over HTTP (<strong>404</strong>, empty body): the actions run as the payload of the signed <code class="code-inline">node.rpc</code> cluster command. MAIN still POSTs the legacy form to nodes older than 2.7.0. <code class="code-inline">/admin/(api|live|proxy_api|thumb|timeshift|vod)</code> are the server-side stream endpoints on every server.</p>',
+                '{protocol}://{host}:{port}/api.php?password=&lt;live_streaming_pass&gt;&action=&lt;action&gt;   (pre-2.7.0 nodes)\n{protocol}://{host}:{port}/admin/&lt;handler&gt;',
+                '<p>/admin/*: a signed relay ticket, a loopback token, the legacy <code class="code-inline">live_streaming_pass</code> from an allowed IP, or a panel <code class="code-inline">uitoken</code>.</p>'),
+
+            cluster: doc('XC_VM Cluster API', 'MAIN-only node-to-MAIN control plane &mdash; 22 operations',
+                '<p>Enrolment, token refresh, events, config, stream and connection reports from load balancers (<code class="code-inline">docs/adr/0004-cluster-api.md</code>).</p>',
+                '{protocol}://{host}:{port}/cluster/v1/&lt;op&gt;',
+                '<p>Signed headers (<code class="code-inline">X-XCVM-Node</code>, <code class="code-inline">-Ts</code>, <code class="code-inline">-Nonce</code>, <code class="code-inline">-Sig</code>, &hellip;): HMAC-SHA256 under the session key, bodies sealed with AES-256-GCM. Not callable from a browser.</p>'),
+
+            monitoring: doc('XC_VM Monitoring', 'Prometheus metrics and health probes &mdash; 3 operations',
+                '<p><code class="code-inline">/metrics</code> (Prometheus text format, cached 15 s), the unauthenticated <code class="code-inline">/healthz</code> probe, and <code class="code-inline">/progress</code>, the FFmpeg progress sink accepted only from 127.0.0.1.</p>',
+                '{protocol}://{host}:{port}/metrics',
+                '<p><code class="code-inline">/metrics</code> answers only when the <code class="code-inline">metrics_token</code> setting is set, to <code class="code-inline">Authorization: Bearer &lt;token&gt;</code>. Click <strong>Authorize</strong> to send it.</p>'),
+        };
+
+        function renderApiDocs(key) {
+            const el = document.getElementById('api-docs-content');
+            if (!el) return;
+            el.innerHTML = API_DOCS[resolveSpec(key).key] || '';
+        }
+
+        // Build the API tab row (one tab per specification)
+        function renderApiTabs() {
+            const bar = document.getElementById('api-tabs');
+            if (!bar) return;
+            bar.innerHTML = '';
+            API_SPECS.forEach(s => {
+                const btn = document.createElement('button');
+                btn.className = 'nav-tab api-tab';
+                btn.dataset.key = s.key;
+                btn.innerHTML = '<span class="nav-tab-icon">🧩</span>' + s.name;
+                btn.addEventListener('click', () => selectApi(s.key, true));
+                bar.appendChild(btn);
+            });
+        }
+
+        // Apply an API: update the title, highlight its tab, refresh the
+        // Documentation tab and (if already shown) reload the Swagger view.
+        function applyApi(key) {
+            const spec = resolveSpec(key);
+            const title = document.getElementById('api-title');
+            if (title) title.textContent = 'XC_VM ' + spec.name;
+            document.querySelectorAll('#api-tabs .api-tab').forEach(b => {
+                b.classList.toggle('active', b.dataset.key === spec.key);
+            });
+            renderApiDocs(spec.key);
+            if (window.swaggerInitialized) loadSpec(spec.key);
+            return spec;
+        }
+
+        // Select an API tab (optionally reflect the choice in the URL)
+        function selectApi(key, updateUrl) {
+            const spec = applyApi(key);
+            if (updateUrl) {
+                const params = new URLSearchParams(window.location.search);
+                params.set('spec', spec.key);
+                history.replaceState(null, '', '?' + params.toString() + window.location.hash);
+            }
+            return spec;
+        }
+
+        // Initialize the API tabs and select the requested (or first) API
+        renderApiTabs();
+        selectApi(resolveSpec(getRequestedSpecKey()).key, false);
+
+        // Initialize / re-initialize Swagger UI with a given spec key
+        let swaggerInitialized = false;
+        function loadSpec(key) {
+            const spec = resolveSpec(key);
+            window.ui = SwaggerUIBundle({
+                url: spec.url,
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                docExpansion: "list",
+                filter: true,
+                showExtensions: true,
+                showCommonExtensions: true,
+                tryItOutEnabled: true
+            });
+            window.swaggerInitialized = true;
+        }
+
+        function initSwagger() {
+            loadSpec(resolveSpec(getRequestedSpecKey()).key);
+        }
+
+        // Open the Swagger tab directly when linked with ?spec= or #swagger
+        if (window.location.hash === '#swagger' || getRequestedSpecKey()) {
+            switchTab('swagger');
+        }
+    </script>
+</body>
+</html>
