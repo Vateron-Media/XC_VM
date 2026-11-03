@@ -15,6 +15,7 @@ use XcVm\Core\Events\Settings\CrontabChangedEvent;
 use XcVm\Core\Events\Settings\SettingsChangedEvent;
 use XcVm\Core\Events\Stream\StreamArgumentsChangedEvent;
 use XcVm\Core\Localization\Translator;
+use XcVm\Core\Reference\UiReference;
 use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Domain\Cluster\ClusterEndpoint;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
@@ -249,6 +250,9 @@ class SettingsService {
 		CategoryService::saveGenreMap($rData);
 
 		$rArray = QueryHelper::verifyPostTable('settings', $rData, true);
+		if (array_key_exists('login_design', $rArray) && !in_array($rArray['login_design'], UiReference::loginDesigns(), true)) {
+			unset($rArray['login_design']);
+		}
 		// MAIN's own cluster state, never the form's: a POST cannot rewind the
 		// transport policy's version or drop a port kept for the nodes.
 		$rArray = array_diff_key($rArray, array_flip(self::CLUSTER_STATE));
