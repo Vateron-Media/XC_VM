@@ -123,7 +123,7 @@ if ($rIsEdit && !empty($rUser['custom_data'])) {
                         <div class="row mb-6">
                             <div class="col-md-8">
                                 <label class="form-label" for="exp_date"><?= $language::get('expiry'); ?></label>
-                                <input type="text" class="form-control" id="exp_date" name="exp_date" value="<?= $rIsEdit ? (empty($rUser['exp_date']) ? '' : date('Y-m-d H:i:s', (int) $rUser['exp_date'])) : date('Y-m-d H:i:s', time() + 2592000); ?>">
+                                <input type="text" class="form-control" id="exp_date" name="exp_date" step="1" value="<?= $rIsEdit ? (empty($rUser['exp_date']) ? '' : date('Y-m-d H:i:s', (int) $rUser['exp_date'])) : date('Y-m-d H:i:s', time() + 2592000); ?>">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label d-block">&nbsp;</label>
@@ -487,6 +487,9 @@ LayoutRenderer::renderFooter('admin');
                     el.disabled = paired;
                 }
             });
+            if (typeof applyExpire === 'function') {
+                applyExpire();
+            }
         };
         if ($ && pairEl) {
             $('#pair_id').on('change', applyPair);
@@ -553,8 +556,10 @@ LayoutRenderer::renderFooter('admin');
         var noExpire = document.getElementById('no_expire'),
             expDate = document.getElementById('exp_date');
         var applyExpire = function() {
-            if (!isPaired()) {
-                expDate.disabled = noExpire.checked;
+            expDate.disabled = isPaired() || noExpire.checked;
+            // Flatpickr creates a separate native date-time input on mobile.
+            if (expDate._flatpickr && expDate._flatpickr.mobileInput) {
+                expDate._flatpickr.mobileInput.disabled = expDate.disabled;
             }
         };
         noExpire.addEventListener('change', applyExpire);

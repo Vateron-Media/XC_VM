@@ -794,7 +794,8 @@ class ModuleLoader {
 			throw new ModuleManifestException("ModuleLoader: invalid environment in module.json for module {$name}");
 		}
 		if ((array_key_exists('lb_source_drivers', $manifest) && !is_bool($manifest['lb_source_drivers']))
-			|| (!empty($manifest['lb_source_drivers']) && $environment !== 'any')) {
+			|| (!empty($manifest['lb_source_drivers']) && $environment !== 'any')
+		) {
 			throw new ModuleManifestException("ModuleLoader: lb_source_drivers requires a boolean and environment any for module {$name}");
 		}
 
