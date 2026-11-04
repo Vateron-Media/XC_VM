@@ -156,7 +156,7 @@ final class ConnectionIngest {
 		}
 		\XcVm\Core\Util\AtomicFile::write($path, json_encode(['after' => $cursor]));
 		if (SettingsManager::getBool('cluster_api_enabled')) {
-			ConnectionRetirement::dispatch(20, max(0, $rUntil - microtime(true)));
+			ConnectionRetirement::dispatch(100, max(0, $rUntil - microtime(true)));
 		}
 		return $rCount;
 	}
