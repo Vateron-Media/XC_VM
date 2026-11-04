@@ -1528,6 +1528,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `dropbox_remote` tinyint(1) DEFAULT '0',
   `ip_logout` tinyint(1) DEFAULT '1',
   `last_backup` int(10) DEFAULT '0',
+  `login_design` varchar(16) NOT NULL DEFAULT 'classic',
   `login_flood` tinyint(1) DEFAULT '15',
   `recaptcha_enable` tinyint(1) DEFAULT '0',
   `reseller_restrictions` tinyint(1) DEFAULT '0',

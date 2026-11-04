@@ -1,9 +1,9 @@
 <?php
 
-// Bootstrap 5 (new-UI) reseller login — shares the XC_VM "Core Access" HUD design
-// with the admin login (single-look dark + red). Auth/flood/redirect handling is
-// done by the reseller controller before this view is included; here we only
-// render. Assets resolve to the admin tree (the reseller code's nginx assets alias points at Public/assets/admin).
+use XcVm\Core\Localization\Translator;
+use XcVm\Core\Reference\UiReference;
+
+// Both sign-in designs use the reseller controller's authentication handling.
 $rBrand = ($rSettings['server_name'] ?? '') ?: 'XC_VM';
 $rStatusMessages = [
     STATUS_FAILURE         => 'login_message_1',
@@ -14,9 +14,12 @@ $rStatusMessages = [
 ];
 $rYears = (date('Y') === '2025') ? '2025' : '2025–' . date('Y');
 $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
+$rCurrentLang = Translator::current();
+$rIsRtl = Translator::isRtl($rCurrentLang);
+$rClassicLogin = UiReference::loginDesign($rSettings['login_design'] ?? null) === 'classic';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= htmlspecialchars($rCurrentLang, ENT_QUOTES); ?>" dir="<?= $rIsRtl ? 'rtl' : 'ltr'; ?>" data-login-design="<?= $rClassicLogin ? 'classic' : 'scifi'; ?>"<?= $rClassicLogin ? ' data-bs-theme="light"' : ''; ?>>
 
 <head>
     <meta charset="UTF-8">
@@ -26,21 +29,35 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
     <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
-    <link rel="stylesheet" href="assets/xcvm/login.css">
+    <?php if ($rClassicLogin): ?>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
+        <link rel="stylesheet" href="assets/vendor/css/bootstrap.css">
+        <link rel="stylesheet" href="assets/vendor/css/custom.css">
+        <link rel="stylesheet" href="assets/xcvm/login-classic.css?v=1">
+        <script src="assets/xcvm/login-theme.js?v=3"></script>
+    <?php else: ?>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
+        <link rel="stylesheet" href="assets/xcvm/login.css?v=scifi-1">
+    <?php endif; ?>
+    <?php if ($rIsRtl): ?>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap">
+        <link rel="stylesheet" href="assets/xcvm/rtl.css">
+    <?php endif; ?>
 </head>
 
 <body>
+    <?php if (!$rClassicLogin): ?>
     <div class="background"></div>
     <div class="grid"></div>
+    <?php endif; ?>
 
     <div class="page">
         <div class="stage">
-            <section class="login-panel">
-                <span class="panel-frame" aria-hidden="true"></span>
+            <section class="login-panel<?= $rClassicLogin ? ' card' : ''; ?>">
+                <?php if (!$rClassicLogin): ?><span class="panel-frame" aria-hidden="true"></span><?php endif; ?>
 
                 <div class="panel-logo">
-                    <div class="panel-logo-main"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?></div>
+                    <h1 class="panel-logo-main"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?></h1>
                     <div class="panel-title"><?= $language::get('reseller_access') ?></div>
                 </div>
 
@@ -69,6 +86,7 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
                     <input type="hidden" name="referrer" value="<?= $referrer ?? '' ?>">
 
                     <div class="form-group">
+                        <?php if ($rClassicLogin): ?><label class="form-label" for="username"><?= $language::get('username'); ?></label><?php endif; ?>
                         <div class="input-wrapper">
                             <span class="input-icon user" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -76,10 +94,11 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
                                     <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
                                 </svg>
                             </span>
-                            <input type="text" name="username" id="username" autocomplete="username" required autofocus
+                            <input type="text" name="username" id="username" class="form-control" aria-label="<?= htmlspecialchars($language::get('username'), ENT_QUOTES) ?>" autocomplete="username" required autofocus
                                 placeholder="<?= htmlspecialchars($language::get('username'), ENT_QUOTES) ?>">
                         </div>
 
+                        <?php if ($rClassicLogin): ?><label class="form-label" for="password"><?= $language::get('password'); ?></label><?php endif; ?>
                         <div class="input-wrapper">
                             <span class="input-icon password" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -87,7 +106,7 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
                                     <path d="M8 11V8a4 4 0 0 1 8 0v3" />
                                 </svg>
                             </span>
-                            <input type="password" name="password" id="password" autocomplete="current-password" required
+                            <input type="password" name="password" id="password" class="form-control" aria-label="<?= htmlspecialchars($language::get('password'), ENT_QUOTES) ?>" autocomplete="current-password" required
                                 placeholder="<?= htmlspecialchars($language::get('password'), ENT_QUOTES) ?>">
 
                             <button type="button" class="show-password" id="showPassword" aria-label="Show password">
@@ -110,7 +129,7 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
                         </div>
                     <?php endif; ?>
 
-                    <button class="login-button" type="submit" id="login_button" name="login" <?= $rRecaptcha ? 'disabled' : '' ?>>
+                    <button class="login-button<?= $rClassicLogin ? ' btn btn-primary w-100' : ''; ?>" type="submit" id="login_button" name="login" <?= $rRecaptcha ? 'disabled' : '' ?>>
                         <?= $language::get('login') ?>
                         <span class="arrow">→</span>
                     </button>
@@ -124,6 +143,7 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
                 </div>
             </section>
 
+            <?php if (!$rClassicLogin): ?>
             <div class="panel-glow" aria-hidden="true">
                 <span class="g-left"></span>
                 <span class="g-top"></span>
@@ -143,6 +163,7 @@ $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
                 <span class="g-plus p1"></span>
                 <span class="g-plus p2"></span>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 

@@ -113,7 +113,18 @@ final class ReplicaPolicySectionTest extends TestCase {
 		DatabaseFactory::set($rDb);
 		SettingsManager::set(['cluster_api_enabled' => 1]);
 
-		$rPolicy = ReplicaBuilder::policyData(['server_id' => 7, 'mode' => 1, 'state' => 'active', 'flows' => 0]);
+		\XcVm\Domain\Cluster\ClusterClock::fix(1800000000000);
+		$rNode = ['server_id' => 7, 'mode' => 1, 'state' => 'active', 'flows' => 0];
+		$rPolicy = ReplicaBuilder::policyData($rNode);
+		try {
+			\XcVm\Domain\Cluster\ClusterClock::fix(1800000061000);
+			$this->assertSame($rPolicy, ReplicaBuilder::policyData($rNode), 'unchanged policy stays identical across clock ticks');
+			$this->assertSame(0, $rPolicy['written_at']);
+			$this->assertSame(0, $rPolicy['serve_until']);
+			$this->assertNotSame($rPolicy, ReplicaBuilder::policyData(array_replace($rNode, ['state' => 'draining'])), 'real admission changes still change the section');
+		} finally {
+			\XcVm\Domain\Cluster\ClusterClock::fix(null);
+		}
 		$this->assertArrayHasKey('keys', $rPolicy, 'the node got a built policy, not a 503');
 		$this->assertArrayHasKey('paths', $rPolicy);
 		$this->assertSame(7, $rPolicy['server_id']);

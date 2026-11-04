@@ -7,6 +7,7 @@ use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamArgumentsChangedEvent;
 use XcVm\Core\Localization\Translator;
+use XcVm\Core\Reference\UiReference;
 use XcVm\Domain\Cluster\ClusterClock;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
 use XcVm\Domain\Server\SettingsService;
@@ -55,6 +56,7 @@ final class SettingsServiceClusterPortTest extends TestCase {
 		'cluster_policy_ver' => ['int', '1'],
 		'cluster_legacy_ports' => ['varchar', ''],
 		'search_items' => ['int', '15'],
+		'login_design' => ['varchar', 'classic'],
 		'dashboard_alerts' => ['int', '1'],
 		'dashboard_alerts_count' => ['int', '4'],
 		'dashboard_alert_history' => ['int', '1'],
@@ -122,6 +124,41 @@ final class SettingsServiceClusterPortTest extends TestCase {
 		unset($GLOBALS['db']);
 		DatabaseFactory::reset();
 		exec('rm -rf ' . escapeshellarg($this->rDir));
+	}
+
+	public function testLoginDesignSavesCentrallyAndRejectsInvalidOrMissingChoices(): void {
+		$rForm = ['user_agent' => '', 'http_proxy' => '', 'cookie' => '', 'headers' => '', 'search_items' => '15'];
+		foreach (['scifi', 'classic', 'scifi'] as $rDesign) {
+			$this->assertSame(STATUS_SUCCESS, SettingsService::edit($rForm + ['login_design' => $rDesign])['status']);
+			$this->rDb->query('SELECT `login_design` FROM `settings`');
+			$this->assertSame($rDesign, $this->rDb->get_col());
+		}
+		foreach ([[], ['login_design' => '../../etc/passwd'], ['login_design' => ['classic']], ['login_design' => '']] as $rChange) {
+			$this->assertSame(STATUS_SUCCESS, SettingsService::edit($rForm + $rChange)['status']);
+			$this->rDb->query('SELECT `login_design` FROM `settings`');
+			$this->assertSame('scifi', $this->rDb->get_col(), 'an old or invalid form must preserve the selected design');
+		}
+	}
+
+	public function testLoginDesignMigrationIsIdempotentAndPreservesTheSelection(): void {
+		$this->rDb->exec('ALTER TABLE `settings` DROP COLUMN `login_design`');
+		$this->rDb->exec(InstallSchema::migration('102_add_login_design'));
+		$this->rDb->query('SELECT `login_design` FROM `settings`');
+		$this->assertSame('classic', $this->rDb->get_col());
+		$this->rDb->query('UPDATE `settings` SET `login_design` = ?', 'scifi');
+		$this->rDb->exec(InstallSchema::migration('102_add_login_design'));
+		$this->rDb->query('SELECT `login_design` FROM `settings`');
+		$this->assertSame('scifi', $this->rDb->get_col());
+		$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/down/102_add_login_design.sql'));
+		$this->rDb->query("SHOW COLUMNS FROM `settings` LIKE 'login_design'");
+		$this->assertSame(0, $this->rDb->num_rows());
+	}
+
+	public function testUnknownStoredLoginDesignFallsBackWithoutChoosingAnAssetPath(): void {
+		$this->assertSame('classic', UiReference::loginDesign(null));
+		$this->assertSame('classic', UiReference::loginDesign(['scifi']));
+		$this->assertSame('classic', UiReference::loginDesign('../../etc/passwd'));
+		$this->assertSame('scifi', UiReference::loginDesign('scifi'));
 	}
 
 	public function testAlertPreferencesSaveGloballyAndClampTheirCounts(): void {
