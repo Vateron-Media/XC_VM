@@ -81,6 +81,8 @@ final class HlsReaping {
 
 	private static ?string $rPath = null;
 
+	private static bool $registryUnavailable = false;
+
 	/** Does this node end its own idle HLS viewers, so the 30 s rule must not? */
 	public static function nodeReaps(int $rServerID): bool {
 		if (defined('SERVER_ID') && $rServerID === (int) SERVER_ID) {
@@ -102,6 +104,11 @@ final class HlsReaping {
 	/** @return list<int> Nodes whose ended table records MAIN must retire. */
 	public static function sweptServers(): array {
 		return array_keys(self::$rNoSweep);
+	}
+
+	/** A failed registry read must not restore MAIN's unbounded history join. */
+	public static function registryUnavailable(): bool {
+		return self::$registryUnavailable;
 	}
 
 	/** On an LB: does this node's own agent end its idle HLS viewers? */
@@ -143,6 +150,7 @@ final class HlsReaping {
 		} catch (\Throwable) {
 			$rRead = false;
 		}
+		self::$registryUnavailable = !$rRead;
 		$rState = self::load();
 		if (!$rRead) {
 			foreach ($rState['reaps'] as $rID) {

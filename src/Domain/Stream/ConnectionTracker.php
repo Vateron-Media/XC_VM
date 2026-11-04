@@ -196,9 +196,10 @@ class ConnectionTracker {
 	 * @param int|null $rUserID   User ID to filter by.
 	 * @param int|null $rStreamID Stream ID to filter by.
 	 * @param list<int> $rEndedOnMain Table-store nodes whose ended records are drained separately.
+	 * @param bool $rSkipRemoteEnded MAIN never loads remote ended history through its wide join.
 	 * @return array Connections: [keys[], data[]] for Redis or rows for MySQL.
 	 */
-	public static function getConnections(?int $rServerID = null, ?int $rUserID = null, ?int $rStreamID = null, array $rEndedOnMain = []): array {
+	public static function getConnections(?int $rServerID = null, ?int $rUserID = null, ?int $rStreamID = null, array $rEndedOnMain = [], bool $rSkipRemoteEnded = false): array {
 		global $rSettings;
 		$db = self::db();
 		$rRedis = $rSettings['redis_handler'] ? RedisManager::instance() : null;
@@ -233,6 +234,9 @@ class ConnectionTracker {
 		}
 		if ($rEndedOnMain !== []) {
 			$rWhere[] = '(t1.hls_end = 0 OR t1.server_id NOT IN (' . implode(',', array_map('intval', $rEndedOnMain)) . '))';
+		}
+		if ($rSkipRemoteEnded) {
+			$rWhere[] = '(t1.hls_end = 0 OR t1.server_id = ' . (int) SERVER_ID . ')';
 		}
 		$rExtra = count($rWhere) ? 'WHERE ' . implode(' AND ', $rWhere) : '';
 		$rQuery = 'SELECT t2.*,t3.*,t5.bitrate,t1.*,t1.uuid AS `uuid` 
@@ -1407,6 +1411,9 @@ class ConnectionTracker {
 		// identity included): refresh it there, re-opened.
 		if (AgentConnections::enabled() && isset($rConnection['identity'], $rConnection['uuid'])) {
 			$rUpdated = array_merge($rConnection, $rChanges, ['hls_end' => 0]);
+			if (!empty($rConnection['hls_end'])) {
+				$rUpdated['retire_token'] = bin2hex(random_bytes(16));
+			}
 			if (AgentConnections::put((string) $rConnection['uuid'], $rUpdated)) {
 				$rConnection = $rUpdated;
 				return true;

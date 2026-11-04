@@ -131,6 +131,7 @@ final class AgentConnections {
 	 * @return true|string|null true when recorded; the refusal reason when the agent refused the viewer; null when the agent did not answer.
 	 */
 	public static function register(string $rUUID, array $rRecord, ?array $rAdmission): bool|string|null {
+		$rRecord['retire_token'] = bin2hex(random_bytes(16));
 		if ($rAdmission === null) {
 			return self::put($rUUID, $rRecord);
 		}
@@ -202,7 +203,7 @@ final class AgentConnections {
 	}
 
 	/** The keys of a registry record (ConnectionTracker's Redis record shape). */
-	public const RECORD_KEYS = ['uuid', 'user_id', 'hmac_id', 'hmac_identifier', 'identity', 'stream_id', 'server_id', 'proxy_id', 'user_agent', 'user_ip', 'container', 'pid', 'date_start', 'geoip_country_code', 'isp', 'external_device', 'hls_last_read', 'hls_end', 'on_demand'];
+	public const RECORD_KEYS = ['uuid', 'user_id', 'hmac_id', 'hmac_identifier', 'identity', 'stream_id', 'server_id', 'proxy_id', 'user_agent', 'user_ip', 'container', 'pid', 'date_start', 'geoip_country_code', 'isp', 'external_device', 'hls_last_read', 'hls_end', 'on_demand', 'retire_token'];
 
 	/** Records per seed call (the socket takes 1 MB a request). */
 	public const SEED_CHUNK = 500;

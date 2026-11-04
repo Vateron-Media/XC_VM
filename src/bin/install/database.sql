@@ -847,6 +847,7 @@ CREATE TABLE IF NOT EXISTS `lines_live` (
   `hmac_id` tinyint(4) DEFAULT NULL,
   `hmac_identifier` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `uuid` varchar(32) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `retire_token` char(32) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
   PRIMARY KEY (`activity_id`),
   KEY `user_agent` (`user_agent`),
   KEY `user_ip` (`user_ip`),
@@ -2632,3 +2633,20 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+CREATE TABLE IF NOT EXISTS `connection_retirements` (
+ `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+ `server_id` int NOT NULL,
+ `uuid` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ `generation` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ `date_start` int NOT NULL,
+ `retired_at` int NOT NULL,
+ `retire_token` char(32) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+ `command_id` char(32) DEFAULT NULL,
+ `notify_done` tinyint NOT NULL DEFAULT 0,
+ `retry_at` int NOT NULL DEFAULT 0,
+ PRIMARY KEY (`id`),
+ UNIQUE KEY `lifecycle` (`server_id`,`uuid`,`generation`),
+ KEY `pending` (`notify_done`,`retry_at`,`id`),
+ KEY `retired_done` (`notify_done`,`retired_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

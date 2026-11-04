@@ -393,6 +393,23 @@ final class ClusterRoute {
 		return self::enqueue($rServerID, 'conn.close', ['uuid' => $rUUID, 'remove' => $rRemove], 'close:' . $rUUID, true);
 	}
 
+	/** An opaque lifecycle ticket fits the existing restrictive conn.close schema. */
+	public static function retireConnection(int $server, string $token): ?string {
+		if (!preg_match('/^[0-9a-f]{32}\z/', $token)) {
+			return null;
+		}
+		$node = NodeRegistry::byServer($server);
+		if ($node === null || !in_array('retire_fence', explode(',', (string) ($node['features'] ?? '')), true)) {
+			return null;
+		}
+		$cmd = null;
+		self::command($server, 'conn.close', static function (ClusterCrypto $crypto) use ($server, $token, &$cmd): bool {
+			$cmd = CommandBus::enqueue($crypto, $server, 'conn.close', ['uuid' => 'retire_' . $token, 'remove' => true], 'retire:' . $token);
+			return true;
+		});
+		return $cmd;
+	}
+
 	/**
 	 * Cache jobs for a node in mode 2 (SignalDispatcher::cache and
 	 * cacheBatch): its signals daemon reads no `signals` row (its connects

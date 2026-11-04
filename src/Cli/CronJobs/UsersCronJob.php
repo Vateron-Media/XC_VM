@@ -601,7 +601,7 @@ class UsersCronJob implements CommandInterface {
 				if ($rEndedOnMain !== [] && class_exists(ConnectionIngest::class)) {
 					ConnectionIngest::sweepEnded($rEndedOnMain, $rStartTime);
 				}
-				$rUsers = ConnectionTracker::getConnections((($rServers[SERVER_ID]['is_main'] ?? 0) ? null : SERVER_ID), null, null, $rEndedOnMain);
+				$rUsers = ConnectionTracker::getConnections((($rServers[SERVER_ID]['is_main'] ?? 0) ? null : SERVER_ID), null, null, $rEndedOnMain, !empty($rServers[SERVER_ID]['is_main']) && HlsReaping::registryUnavailable());
 			}
 
 			$rRestreamerArray = $rMaxConnectionsArray = $rExpDateArray = [];

@@ -65,6 +65,7 @@ final class HlsReapingTest extends TestCase {
 		HlsReaping::begin(self::T, 120);
 		$this->assertTrue(HlsReaping::sweptByMain(2));
 		$this->assertSame([2], HlsReaping::sweptServers());
+		$this->assertFalse(HlsReaping::registryUnavailable());
 		foreach ([3, 4, 5, 99] as $rID) {
 			$this->assertFalse(HlsReaping::sweptByMain($rID), (string) $rID);
 		}
@@ -73,6 +74,7 @@ final class HlsReapingTest extends TestCase {
 		HlsReaping::begin(self::T + 60, 120);
 		$this->assertFalse(HlsReaping::sweptByMain(2));
 		$this->assertSame([], HlsReaping::sweptServers());
+		$this->assertTrue(HlsReaping::registryUnavailable());
 	}
 
 	public function testASilentNodeIsOrphanedOnlyAfterTheTtlWatchedByMain(): void {
