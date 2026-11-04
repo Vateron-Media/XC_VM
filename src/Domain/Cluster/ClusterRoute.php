@@ -365,9 +365,9 @@ final class ClusterRoute {
 	 * (ClusterBus::tomb), so an upsert of it the node had already sent does not
 	 * open it again in MAIN's store (ConnectionIngest).
 	 */
-	public static function tombstone(int $rServerID, string $rUUID, int $rDateStart): void {
+	public static function tombstone(int $rServerID, string $rUUID, int $rDateStart, ?string $rToken = null): void {
 		if ($rServerID > 0 && $rDateStart > 0 && preg_match(AgentConnections::CONN_UUID, $rUUID)) {
-			ClusterBus::tomb($rServerID, $rUUID, $rDateStart);
+			ClusterBus::tomb($rServerID, $rUUID, $rDateStart, $rToken);
 		}
 	}
 

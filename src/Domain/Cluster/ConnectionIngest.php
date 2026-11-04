@@ -202,10 +202,6 @@ final class ConnectionIngest {
 			$rEndAt,
 			false // the row is gone: nothing left for a sweep's hold to wait for
 		);
-		if (SettingsManager::getBool('cluster_api_enabled')) {
-			ClusterRoute::tombstone((int) $rRow['server_id'], (string) $rRow['uuid'], (int) $rRow['date_start']);
-			ClusterRoute::closeConnection((int) $rRow['server_id'], (string) $rRow['uuid'], true);
-		}
 		if ($rTell && (int) $rRow['server_id'] !== (int) SERVER_ID) {
 			try {
 				SignalDispatcher::cache((int) $rRow['server_id'], ['type' => 'delete_con', 'uuid' => (string) $rRow['uuid']], false, false, $rDb);
@@ -271,8 +267,8 @@ final class ConnectionIngest {
 		}
 		// A viewer MAIN closed while this upsert was on its way (a kick, a limit,
 		// its sweep): the same connection is not opened again. A reconnect is a
-		// new connection, with a date_start of its own.
-		if (isset($rRecord['date_start']) && ClusterBus::tombed($rServerID, $rUUID, (int) $rRecord['date_start'])) {
+		// new connection, with a lifecycle token of its own (date_start for older agents).
+		if (isset($rRecord['date_start']) && ClusterBus::tombed($rServerID, $rUUID, (int) $rRecord['date_start'], $rRecord['retire_token'] ?? null)) {
 			return true;
 		}
 		$rRecord += ['user_id' => null, 'proxy_id' => null]; // the store reads both

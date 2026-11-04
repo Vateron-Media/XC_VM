@@ -243,6 +243,31 @@ final class ConnectionStoreTest extends TestCase {
 		}
 	}
 
+	public function testVersionedKickBlocksOnlyItsLifecycleAndLegacyTombsDoNotBlockAReopen(): void {
+		$bus = BusServer::start('versioned-tomb');
+		if ($bus === null) {
+			$this->markTestSkipped('redis-server or phpredis not available');
+		}
+		ClusterBus::useSocket($bus->socket());
+		SettingsManager::set(['redis_handler' => 0, 'cluster_api_enabled' => 1]);
+		try {
+			$record = $this->record('versionedkick', ['container' => 'hls', 'retire_token' => str_repeat('a', 32)]);
+			ClusterRoute::tombstone(5, $record['uuid'], $record['date_start']);
+			$this->assertTrue(ConnectionIngest::upsert(5, $record));
+			$this->assertNotNull($this->row($record['uuid']), 'a legacy date-only tomb cannot block a versioned reconnect');
+			ClusterRoute::tombstone(5, $record['uuid'], $record['date_start'], $record['retire_token']);
+			$this->rDb->query('DELETE FROM lines_live WHERE uuid = ?;', $record['uuid']);
+			$this->assertTrue(ConnectionIngest::upsert(5, $record));
+			$this->assertNull($this->row($record['uuid']), 'the kicked generation stays closed');
+			$this->assertTrue(ConnectionIngest::upsert(5, ['retire_token' => str_repeat('b', 32)] + $record));
+			$this->assertSame(str_repeat('b', 32), $this->row($record['uuid'])['retire_token'], 'same UUID and timestamp, distinct lifecycle');
+			$this->assertTrue(ClusterBus::tombed(5, $record['uuid'], $record['date_start']), 'legacy readers keep their protection');
+		} finally {
+			ClusterBus::useSocket(null);
+			$bus->stop();
+		}
+	}
+
 	public function testMainRemembersAClosedViewerBeforeItChangesTheStore(): void {
 		// Afterwards, an upsert ingested between the store's change and the
 		// tombstone would still open it again.

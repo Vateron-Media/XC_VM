@@ -216,22 +216,23 @@ final class ClusterBus {
 
 	/**
 	 * MAIN closed one of a node's viewers (a kick, a limit, its sweep): an
-	 * upsert of that same connection, its `date_start`, already on its way
-	 * from the node is not to open it again (ConnectionIngest). Each
+	 * upsert of that same lifecycle already on its way from the node must not
+	 * open it again (ConnectionIngest). Versioned records use the lifecycle
+	 * token; older records use date_start. Each
 	 * connection closed under the uuid is kept (`tombs:<sid>:<uuid>`, a set,
 	 * for TOMB_TTL after the last close): a player that came back under the
 	 * same uuid and was closed again may still have the first one's upsert on
 	 * its way. False without the bus: the node's digest then corrects MAIN's
 	 * store, as before.
 	 */
-	public static function tomb(int $rServerID, string $rUUID, int $rDateStart): bool {
+	public static function tomb(int $rServerID, string $rUUID, int $rDateStart, ?string $rToken = null): bool {
 		$rRedis = self::client();
 		if ($rRedis === null) {
 			return false;
 		}
 		$rKey = 'tombs:' . $rServerID . ':' . $rUUID;
 		try {
-			$rOut = $rRedis->multi()->sAdd($rKey, (string) $rDateStart)->expire($rKey, self::TOMB_TTL)->exec();
+			$rOut = $rRedis->multi()->sAdd($rKey, self::tombMember($rDateStart, $rToken))->expire($rKey, self::TOMB_TTL)->exec();
 		} catch (\Throwable) {
 			self::drop();
 			return false;
@@ -239,18 +240,23 @@ final class ClusterBus {
 		return is_array($rOut) && ($rOut[1] ?? false) === true;
 	}
 
-	/** Did MAIN close this connection of a node's (its uuid and `date_start`) in the last TOMB_TTL? False without the bus. */
-	public static function tombed(int $rServerID, string $rUUID, int $rDateStart): bool {
+	/** Did MAIN close this lifecycle (token, or legacy date_start) in the last TOMB_TTL? False without the bus. */
+	public static function tombed(int $rServerID, string $rUUID, int $rDateStart, ?string $rToken = null): bool {
 		$rRedis = self::client();
 		if ($rRedis === null) {
 			return false;
 		}
 		try {
-			return (bool) $rRedis->sIsMember('tombs:' . $rServerID . ':' . $rUUID, (string) $rDateStart);
+			return (bool) $rRedis->sIsMember('tombs:' . $rServerID . ':' . $rUUID, self::tombMember($rDateStart, $rToken));
 		} catch (\Throwable) {
 			self::drop();
 			return false;
 		}
+	}
+
+	/** Versioned lifecycles never inherit an older date-only tomb. */
+	private static function tombMember(int $rDateStart, ?string $rToken): string {
+		return $rToken !== null && preg_match('/^[0-9a-f]{32}\z/', $rToken) ? 'v1:' . $rToken : (string) $rDateStart;
 	}
 
 	/**
