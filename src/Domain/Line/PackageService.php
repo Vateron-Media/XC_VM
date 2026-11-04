@@ -130,7 +130,9 @@ class PackageService {
 
 		if ($db->num_rows() > 0) {
 			foreach ($db->get_rows() as $rRow) {
-				if (!isset($rGroup) || in_array(intval($rGroup), json_decode($rRow['groups'], true))) {
+				$rGroups = json_decode((string) ($rRow['groups'] ?? ''), true);
+				$rGroups = is_array($rGroups) ? $rGroups : [];
+				if (!isset($rGroup) || in_array(intval($rGroup), $rGroups)) {
 					if (!$rType || $rRow['is_' . $rType]) {
 						$rReturn[intval($rRow['id'])] = UserCredits::amounts($rRow);
 					}
