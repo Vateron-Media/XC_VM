@@ -130,16 +130,25 @@ final class ConnectionIngest {
 		$rDb = self::db();
 		$rUntil = microtime(true) + $rSeconds;
 		$path = self::$sweepPath ?? TMP_PATH . 'users_ended_cursor.json';
-		$cursor = (int) (json_decode((string) @file_get_contents($path), true)['after'] ?? 0);
+		$state = json_decode((string) @file_get_contents($path), true);
+		$cursor = (int) ($state['after'] ?? 0);
+		$upper = (int) ($state['upper'] ?? 0);
+		if ($upper <= 0) {
+			if (!$rDb->query('SELECT MAX(activity_id) FROM lines_live;')) {
+				return 0;
+			}
+			$upper = (int) $rDb->get_col();
+		}
 		$rLimit = min(1000, $rLimit);
 		// A primary-key window bounds rows examined as well as rows returned.
-		// Advance past failed/locked records; wrap so they are retried fairly.
-		if (!$rDb->query('SELECT * FROM lines_live FORCE INDEX (PRIMARY) WHERE activity_id > ? ORDER BY activity_id ASC LIMIT ' . $rLimit . ';', $cursor)) {
+		// Advance past failed/locked records. A fixed upper bound makes every
+		// cycle wrap even when new connections arrive continuously.
+		if (!$rDb->query('SELECT * FROM lines_live FORCE INDEX (PRIMARY) WHERE activity_id > ? AND activity_id <= ? ORDER BY activity_id ASC LIMIT ' . $rLimit . ';', $cursor, $upper)) {
 			return 0;
 		}
 		$rows = $rDb->get_raw_rows();
 		if ($rows === []) {
-			$cursor = 0;
+			$cursor = $upper = 0;
 		}
 		$rCount = 0;
 		foreach ($rows as $rRow) {
@@ -154,7 +163,7 @@ final class ConnectionIngest {
 			$rEnd = $rEnd > 0 ? min($rNow, $rEnd) : $rNow;
 			$rCount += self::retireEnded($rRow, $rEnd, !SettingsManager::getBool('cluster_api_enabled')) ? 1 : 0;
 		}
-		\XcVm\Core\Util\AtomicFile::write($path, json_encode(['after' => $cursor]));
+		\XcVm\Core\Util\AtomicFile::write($path, json_encode(['after' => $cursor, 'upper' => $upper]));
 		if (SettingsManager::getBool('cluster_api_enabled')) {
 			ConnectionRetirement::dispatch(100, max(0, $rUntil - microtime(true)));
 		}

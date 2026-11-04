@@ -476,6 +476,30 @@ final class ConnectionStoreTest extends TestCase {
 		$this->assertSame(1, ConnectionIngest::sweepEnded([5], time(), 1), 'retry unlocked first row');
 	}
 
+	public function testContinuousArrivalsCannotPreventRetryingALockedOldRow(): void {
+		SettingsManager::set(['redis_handler' => 0, 'cluster_api_enabled' => 1]);
+		foreach (['first', 'second'] as $uuid) {
+			$this->assertTrue(ConnectionIngest::upsert(5, $this->record($uuid, ['hls_end' => 1, 'hls_last_read' => null])));
+		}
+		$other = TestDb::connect();
+		$other->exec('USE `' . $this->rDb->schema() . '`;');
+		$other->beginTransaction();
+		$other->query("SELECT * FROM lines_live WHERE uuid='first' FOR UPDATE;");
+		try {
+			$this->assertSame(0, ConnectionIngest::sweepEnded([5], time(), 1));
+		} finally {
+			$other->rollBack();
+		}
+		for ($i = 0; $i < 2; $i++) {
+			$this->assertTrue(ConnectionIngest::upsert(5, $this->record('arrival' . $i, ['hls_end' => 1, 'hls_last_read' => null])));
+			ConnectionIngest::sweepEnded([5], time(), 1);
+		}
+		$this->assertNotNull($this->row('first'), 'the first row was deferred to the next cycle');
+		$this->assertTrue(ConnectionIngest::upsert(5, $this->record('arrival2', ['hls_end' => 1, 'hls_last_read' => null])));
+		$this->assertSame(1, ConnectionIngest::sweepEnded([5], time(), 1));
+		$this->assertNull($this->row('first'), 'new arrivals cannot keep the cursor ahead of old records forever');
+	}
+
 	public function testOldBacklogIsNotWrittenBackIntoExpiredActivityLogs(): void {
 		defined('LOGS_TMP_PATH') || define('LOGS_TMP_PATH', sys_get_temp_dir() . '/xcvm-ended-logs/');
 		@mkdir(LOGS_TMP_PATH, 0777, true);
