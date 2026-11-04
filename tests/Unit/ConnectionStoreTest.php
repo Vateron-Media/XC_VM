@@ -31,6 +31,7 @@ final class ConnectionStoreTest extends TestCase {
 	private static $rRedisProc = null;
 
 	private TestDb $rDb;
+	private string $sweepPath;
 
 	public static function setUpBeforeClass(): void {
 		if (!class_exists(\Redis::class) || !function_exists('igbinary_serialize') || trim((string) shell_exec('command -v redis-server')) === '') {
@@ -54,14 +55,21 @@ final class ConnectionStoreTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
+		$this->sweepPath = sys_get_temp_dir() . '/ended-' . $this->rDb->schema() . '.json';
+		ConnectionIngest::useSweepPath($this->sweepPath);
 		$rSql = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		preg_match('/CREATE TABLE IF NOT EXISTS `lines_live` \(.*?\) ENGINE=[^;]*;/s', $rSql, $rM);
 		$rDdl = (string) $rM[0];
 		$this->rDb->exec($rDdl);
+		foreach (['connection_retirements', 'lines_activity'] as $table) {
+			$this->rDb->exec(\XcVm\Tests\Support\InstallSchema::table($table));
+		}
 		DatabaseFactory::set($this->rDb);
 	}
 
 	protected function tearDown(): void {
+		ConnectionIngest::useSweepPath(null);
+		@unlink($this->sweepPath);
 		NodeFlows::usePath(null);
 		AgentClient::useSocket(null);
 		SettingsManager::set([]);
@@ -235,6 +243,31 @@ final class ConnectionStoreTest extends TestCase {
 		}
 	}
 
+	public function testVersionedKickBlocksOnlyItsLifecycleAndLegacyTombsDoNotBlockAReopen(): void {
+		$bus = BusServer::start('versioned-tomb');
+		if ($bus === null) {
+			$this->markTestSkipped('redis-server or phpredis not available');
+		}
+		ClusterBus::useSocket($bus->socket());
+		SettingsManager::set(['redis_handler' => 0, 'cluster_api_enabled' => 1]);
+		try {
+			$record = $this->record('versionedkick', ['container' => 'hls', 'retire_token' => str_repeat('a', 32)]);
+			ClusterRoute::tombstone(5, $record['uuid'], $record['date_start']);
+			$this->assertTrue(ConnectionIngest::upsert(5, $record));
+			$this->assertNotNull($this->row($record['uuid']), 'a legacy date-only tomb cannot block a versioned reconnect');
+			ClusterRoute::tombstone(5, $record['uuid'], $record['date_start'], $record['retire_token']);
+			$this->rDb->query('DELETE FROM lines_live WHERE uuid = ?;', $record['uuid']);
+			$this->assertTrue(ConnectionIngest::upsert(5, $record));
+			$this->assertNull($this->row($record['uuid']), 'the kicked generation stays closed');
+			$this->assertTrue(ConnectionIngest::upsert(5, ['retire_token' => str_repeat('b', 32)] + $record));
+			$this->assertSame(str_repeat('b', 32), $this->row($record['uuid'])['retire_token'], 'same UUID and timestamp, distinct lifecycle');
+			$this->assertTrue(ClusterBus::tombed(5, $record['uuid'], $record['date_start']), 'legacy readers keep their protection');
+		} finally {
+			ClusterBus::useSocket(null);
+			$bus->stop();
+		}
+	}
+
 	public function testMainRemembersAClosedViewerBeforeItChangesTheStore(): void {
 		// Afterwards, an upsert ingested between the store's change and the
 		// tombstone would still open it again.
@@ -337,6 +370,196 @@ final class ConnectionStoreTest extends TestCase {
 		$this->assertSame(1, (int) $this->rDb->get_col());
 	}
 
+	public function testEndedSweepIsBoundedAndPreservesActiveRecentAndOtherNodes(): void {
+		defined('LOGS_TMP_PATH') || define('LOGS_TMP_PATH', sys_get_temp_dir() . '/xcvm-ended-logs/');
+		@mkdir(LOGS_TMP_PATH, 0777, true);
+		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 0]);
+		$this->rDb->exec('CREATE TABLE signals (signal_id INTEGER PRIMARY KEY AUTO_INCREMENT, server_id int, time int, custom_data text, cache tinyint DEFAULT 0);');
+		$record = ['user_id' => 7, 'stream_id' => 100, 'user_ip' => '10.0.0.9', 'container' => 'ts', 'pid' => 123, 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 1];
+		foreach (['oldts', 'oldvod', 'active', 'recent', 'hlsnow', 'other'] as $uuid) {
+			$changes = match ($uuid) {
+				'oldvod' => ['container' => 'VOD'],
+				'active' => ['hls_end' => 0],
+				'recent' => ['hls_last_read' => 1800000999],
+				'hlsnow' => ['container' => 'hls', 'hls_last_read' => 1800000999],
+				default => [],
+			};
+			$this->assertTrue(ConnectionIngest::upsert($uuid === 'other' ? 6 : 5, ['uuid' => $uuid] + $changes + $record));
+		}
+		$this->assertSame(0, ConnectionIngest::sweepEnded([], 1800001000));
+		$this->assertSame(1, ConnectionIngest::sweepEnded([5], 1800001000, 1));
+		$this->assertNull($this->row('oldts'));
+		$this->assertNotNull($this->row('oldvod'), 'batch limit');
+		$this->assertSame(2, ConnectionIngest::sweepEnded([5], 1800001000));
+		foreach (['active', 'recent', 'other'] as $uuid) {
+			$this->assertNotNull($this->row($uuid), $uuid);
+		}
+		foreach (['oldvod', 'hlsnow'] as $uuid) {
+			$this->assertNull($this->row($uuid), $uuid);
+		}
+		$this->rDb->query('SELECT COUNT(*) FROM signals;');
+		$this->assertSame(3, (int) $this->rDb->get_col());
+	}
+
+	public function testRetirementDoesNotDeleteAConnectionReopenedAndEndedAgain(): void {
+		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 0]);
+		$record = ['user_id' => 7, 'stream_id' => 100, 'container' => 'ts', 'uuid' => 'reused', 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 1];
+		$this->assertTrue(ConnectionIngest::upsert(5, $record));
+		$old = $this->row('reused');
+		$this->rDb->query('UPDATE lines_live SET date_start = ?, hls_last_read = ? WHERE uuid = ?;', 1800000100, 1800000200, 'reused');
+		$this->assertFalse(ConnectionIngest::retireEnded($old, 1800000040));
+		$this->assertNotNull($this->row('reused'));
+	}
+
+	public function testApiRetirementIsDurableAndRejectsAnInflightReplay(): void {
+		SettingsManager::set(['redis_handler' => 0, 'cluster_api_enabled' => 1, 'save_closed_connection' => 1, 'keep_activity' => 86400]);
+		$record = $this->record('durable', ['retire_token' => str_repeat('a', 32), 'hls_end' => 1, 'date_start' => time() - 30, 'hls_last_read' => time() - 10]);
+		$this->assertTrue(ConnectionIngest::upsert(5, $record));
+		$this->assertTrue(ConnectionIngest::retireEnded($this->row('durable'), time() - 10));
+		$this->assertNull($this->row('durable'));
+		$this->rDb->query('SELECT retire_token, notify_done, command_id FROM connection_retirements;');
+		$this->assertSame(['retire_token' => str_repeat('a', 32), 'notify_done' => 0, 'command_id' => null], $this->rDb->get_raw_row());
+		$this->rDb->query('SELECT COUNT(*) FROM lines_activity;');
+		$this->assertSame(1, (int) $this->rDb->get_col());
+		$this->assertTrue(ConnectionIngest::upsert(5, $record), 'an event already committed as retired is acknowledged');
+		$this->assertNull($this->row('durable'), 'a stale upsert cannot resurrect the row');
+		$this->rDb->query('SELECT COUNT(*) FROM lines_activity;');
+		$this->assertSame(1, (int) $this->rDb->get_col());
+		$this->assertTrue(ConnectionIngest::upsert(5, ['retire_token' => str_repeat('b', 32), 'hls_end' => 0] + $record));
+		$this->assertSame(str_repeat('b', 32), $this->row('durable')['retire_token']);
+	}
+
+	public function testApiRetirementRollsBackDeletionWhenDurableIntentFails(): void {
+		SettingsManager::set(['redis_handler' => 0, 'cluster_api_enabled' => 1]);
+		$this->assertTrue(ConnectionIngest::upsert(5, $this->record('rollback', ['hls_end' => 1])));
+		$this->rDb->exec('DROP TABLE connection_retirements;');
+		$this->assertFalse(ConnectionIngest::retireEnded($this->row('rollback'), time()));
+		$this->assertNotNull($this->row('rollback'), 'deletion cannot commit without its durable intent');
+		$this->assertFalse($this->rDb->isInTransaction());
+	}
+
+	public function testFailedReplacementRestoresOldRowAndRetirementInsideAndOutsideABatch(): void {
+		SettingsManager::set(['redis_handler' => 0, 'cluster_api_enabled' => 1]);
+		foreach ([false, true] as $outer) {
+			$uuid = $outer ? 'outerrollback' : 'ownrollback';
+			$record = $this->record($uuid, ['hls_end' => 1, 'retire_token' => str_repeat('a', 32)]);
+			$this->assertTrue(ConnectionIngest::upsert(5, $record));
+			$old = $this->row($uuid);
+			$refusing = new \XcVm\Tests\Support\QueryLogDb($this->rDb);
+			$refusing->rRefuse = '/^INSERT INTO lines_live/';
+			DatabaseFactory::set($refusing);
+			if ($outer) {
+				$this->rDb->beginTransaction();
+			}
+			$this->assertFalse(ConnectionIngest::upsert(5, ['hls_end' => 0, 'retire_token' => str_repeat('b', 32)] + $record));
+			if ($outer) {
+				$this->assertTrue($this->rDb->isInTransaction(), 'batch transaction remains open');
+				$this->rDb->commit();
+			}
+			$this->assertSame($old, $this->row($uuid));
+			$this->rDb->query('SELECT COUNT(*) FROM connection_retirements;');
+			$this->assertSame(0, (int) $this->rDb->get_col());
+			DatabaseFactory::set($this->rDb);
+		}
+	}
+
+	public function testSameSecondReopenAndEndGetsANewPhysicalRow(): void {
+		SettingsManager::set(['redis_handler' => 0, 'cluster_api_enabled' => 1]);
+		$record = $this->record('samesecond', ['hls_end' => 1, 'retire_token' => str_repeat('a', 32)]);
+		$this->assertTrue(ConnectionIngest::upsert(5, $record));
+		$old = $this->row('samesecond');
+		$this->assertTrue(ConnectionIngest::upsert(5, ['hls_end' => 0, 'retire_token' => str_repeat('b', 32)] + $record));
+		$this->assertTrue(ConnectionIngest::upsert(5, ['retire_token' => str_repeat('b', 32)] + $record));
+		$fresh = $this->row('samesecond');
+		$this->assertSame($old['date_start'], $fresh['date_start']);
+		$this->assertSame($old['hls_last_read'], $fresh['hls_last_read']);
+		$this->assertNotSame($old['activity_id'], $fresh['activity_id']);
+		$this->assertFalse(ConnectionIngest::retireEnded($old, time()));
+		$this->assertNotNull($this->row('samesecond'));
+	}
+
+	public function testNullLastReadAndLockedFirstRowDoNotStrandLaterWindows(): void {
+		SettingsManager::set(['redis_handler' => 0, 'cluster_api_enabled' => 1]);
+		foreach (['locked', 'later', 'nullread'] as $uuid) {
+			$this->assertTrue(ConnectionIngest::upsert(5, $this->record($uuid, ['hls_end' => 1, 'hls_last_read' => null])));
+		}
+		$other = TestDb::connect();
+		$other->exec('USE `' . $this->rDb->schema() . '`;');
+		$other->beginTransaction();
+		$other->query("SELECT * FROM lines_live WHERE uuid = 'locked' FOR UPDATE;");
+		try {
+			$this->assertSame(0, ConnectionIngest::sweepEnded([5], time(), 1));
+			$this->assertSame(1, ConnectionIngest::sweepEnded([5], time(), 1));
+			$this->assertNull($this->row('later'));
+			$this->assertSame(1, ConnectionIngest::sweepEnded([5], time(), 1));
+			$this->assertNull($this->row('nullread'));
+			$this->assertNotNull($this->row('locked'));
+		} finally {
+			$other->rollBack();
+		}
+		$this->assertSame(0, ConnectionIngest::sweepEnded([5], time(), 1), 'wrap cursor');
+		$this->assertSame(1, ConnectionIngest::sweepEnded([5], time(), 1), 'retry unlocked first row');
+	}
+
+	public function testContinuousArrivalsCannotPreventRetryingALockedOldRow(): void {
+		SettingsManager::set(['redis_handler' => 0, 'cluster_api_enabled' => 1]);
+		foreach (['first', 'second'] as $uuid) {
+			$this->assertTrue(ConnectionIngest::upsert(5, $this->record($uuid, ['hls_end' => 1, 'hls_last_read' => null])));
+		}
+		$other = TestDb::connect();
+		$other->exec('USE `' . $this->rDb->schema() . '`;');
+		$other->beginTransaction();
+		$other->query("SELECT * FROM lines_live WHERE uuid='first' FOR UPDATE;");
+		try {
+			$this->assertSame(0, ConnectionIngest::sweepEnded([5], time(), 1));
+		} finally {
+			$other->rollBack();
+		}
+		for ($i = 0; $i < 2; $i++) {
+			$this->assertTrue(ConnectionIngest::upsert(5, $this->record('arrival' . $i, ['hls_end' => 1, 'hls_last_read' => null])));
+			ConnectionIngest::sweepEnded([5], time(), 1);
+		}
+		$this->assertNotNull($this->row('first'), 'the first row was deferred to the next cycle');
+		$this->assertTrue(ConnectionIngest::upsert(5, $this->record('arrival2', ['hls_end' => 1, 'hls_last_read' => null])));
+		$this->assertSame(1, ConnectionIngest::sweepEnded([5], time(), 1));
+		$this->assertNull($this->row('first'), 'new arrivals cannot keep the cursor ahead of old records forever');
+	}
+
+	public function testOldBacklogIsNotWrittenBackIntoExpiredActivityLogs(): void {
+		defined('LOGS_TMP_PATH') || define('LOGS_TMP_PATH', sys_get_temp_dir() . '/xcvm-ended-logs/');
+		@mkdir(LOGS_TMP_PATH, 0777, true);
+		@unlink(LOGS_TMP_PATH . 'activity');
+		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 1, 'keep_activity' => 259200]);
+		$end = time() - 259201;
+		$this->assertTrue(ConnectionIngest::upsert(5, ['user_id' => 7, 'stream_id' => 100, 'container' => 'VOD', 'uuid' => 'expiredlog', 'date_start' => $end - 10, 'hls_last_read' => $end, 'hls_end' => 1]));
+		$this->assertTrue(ConnectionIngest::retireEnded((array) $this->row('expiredlog'), $end, false));
+		$this->assertNull($this->row('expiredlog'));
+		$this->assertFileDoesNotExist(LOGS_TMP_PATH . 'activity');
+	}
+
+	public function testMainLookupLeavesEndedApiRowsForTheBoundedSweep(): void {
+		SettingsManager::set(['redis_handler' => 0]);
+		$before = $GLOBALS['rSettings'] ?? null;
+		$GLOBALS['rSettings'] = ['redis_handler' => 0];
+		foreach (['lines', 'streams', 'streams_servers'] as $table) {
+			$this->rDb->exec(\XcVm\Tests\Support\InstallSchema::table($table));
+		}
+		$record = ['user_id' => 7, 'stream_id' => 100, 'container' => 'ts', 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 1];
+		$this->assertTrue(ConnectionIngest::upsert(5, ['uuid' => 'skip'] + $record));
+		$this->assertTrue(ConnectionIngest::upsert(5, ['uuid' => 'keep', 'hls_end' => 0] + $record));
+		$this->assertTrue(ConnectionIngest::upsert(6, ['uuid' => 'legacy'] + $record));
+		try {
+			$rows = array_merge(...array_values(ConnectionTracker::getConnections(null, null, null, [5])));
+			$this->assertSame(['keep', 'legacy'], array_column($rows, 'uuid'));
+			$safe = array_merge(...array_values(ConnectionTracker::getConnections(null, null, null, [], true)));
+			$this->assertSame(['keep'], array_column($safe, 'uuid'), 'registry failure still excludes remote ended rows');
+			$rows = array_merge(...array_values(ConnectionTracker::getConnections()));
+			$this->assertSame(['skip', 'keep', 'legacy'], array_column($rows, 'uuid'), 'other callers keep the old contract');
+		} finally {
+			$GLOBALS['rSettings'] = $before;
+		}
+	}
+
 	/**
 	 * MAIN closed a node's ended row (its sweep, its mint) between this
 	 * event's read and its UPDATE: the UPDATE changes nothing, and the viewer
@@ -351,7 +574,7 @@ final class ConnectionStoreTest extends TestCase {
 			}
 
 			public function query($query, ...$args): bool {
-				if (str_starts_with((string) $query, 'UPDATE `lines_live` SET')) {
+				if (str_starts_with((string) $query, 'UPDATE `lines_live` SET') || str_starts_with((string) $query, 'DELETE FROM lines_live WHERE activity_id')) {
 					$this->rInner->query('DELETE FROM `lines_live` WHERE `uuid` = ?', 'pppp'); // MAIN's retire, committed in between
 				}
 				return $this->rInner->query($query, ...$args);

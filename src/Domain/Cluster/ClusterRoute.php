@@ -365,9 +365,9 @@ final class ClusterRoute {
 	 * (ClusterBus::tomb), so an upsert of it the node had already sent does not
 	 * open it again in MAIN's store (ConnectionIngest).
 	 */
-	public static function tombstone(int $rServerID, string $rUUID, int $rDateStart): void {
+	public static function tombstone(int $rServerID, string $rUUID, int $rDateStart, ?string $rToken = null): void {
 		if ($rServerID > 0 && $rDateStart > 0 && preg_match(AgentConnections::CONN_UUID, $rUUID)) {
-			ClusterBus::tomb($rServerID, $rUUID, $rDateStart);
+			ClusterBus::tomb($rServerID, $rUUID, $rDateStart, $rToken);
 		}
 	}
 
@@ -391,6 +391,23 @@ final class ClusterRoute {
 			return [false, false];
 		}
 		return self::enqueue($rServerID, 'conn.close', ['uuid' => $rUUID, 'remove' => $rRemove], 'close:' . $rUUID, true);
+	}
+
+	/** An opaque lifecycle ticket fits the existing restrictive conn.close schema. */
+	public static function retireConnection(int $server, string $token): ?string {
+		if (!preg_match('/^[0-9a-f]{32}\z/', $token)) {
+			return null;
+		}
+		$node = NodeRegistry::byServer($server);
+		if ($node === null || !in_array('retire_fence', explode(',', (string) ($node['features'] ?? '')), true)) {
+			return null;
+		}
+		$cmd = null;
+		self::command($server, 'conn.close', static function (ClusterCrypto $crypto) use ($server, $token, &$cmd): bool {
+			$cmd = CommandBus::enqueue($crypto, $server, 'conn.close', ['uuid' => 'retire_' . $token, 'remove' => true], 'retire:' . $token);
+			return true;
+		});
+		return $cmd;
 	}
 
 	/**

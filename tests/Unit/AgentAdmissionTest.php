@@ -184,6 +184,8 @@ PHP);
 			$this->assertTrue(ConnectionTracker::createLive(['redis_handler' => 0], $rCtx, 'ts', 0), $rCase['name']);
 
 			$rRecord = $this->requests()[$rIndex]['body'];
+			$this->assertMatchesRegularExpression('/^[0-9a-f]{32}\\z/', $rRecord['retire_token']);
+			unset($rRecord['retire_token']);
 			$this->assertEqualsWithDelta(time() - $rV['time_offset'], $rRecord['hls_last_read'], 5, $rCase['name']);
 			$rRecord['hls_last_read'] = $rCase['record']['hls_last_read']; // MAIN's clock when it was written
 			$this->assertSame($rSorted($rCase['record']), $rSorted($rRecord), $rCase['name']);
@@ -207,7 +209,8 @@ PHP);
 		$rReqs = $this->requests();
 		$this->assertSame('PUT /v1/conn/' . $rUUID . ' HTTP/1.0', $rReqs[0]['line']);
 		$this->assertSame(['adm' => $rAdm, 'line_id' => 42, 'stream_id' => 100, 'max_connections' => 2, 'ip' => '203.0.113.9', 'ua' => 'VLC'], json_decode($rReqs[0]['headers']['x-xcvm-admission'], true));
-		$this->assertSame($this->record($rUUID), $rReqs[0]['body'], 'the record itself is unchanged: an older agent stores it as before');
+		$this->assertMatchesRegularExpression('/^[0-9a-f]{32}\\z/', $rReqs[0]['body']['retire_token']);
+		$this->assertSame($this->record($rUUID), array_diff_key($rReqs[0]['body'], ['retire_token' => true]), 'the record retains all viewer fields');
 		$this->assertArrayNotHasKey('adm', json_decode($rReqs[1]['headers']['x-xcvm-admission'], true), 'an expired claim is not passed on');
 		$this->assertArrayNotHasKey('adm', json_decode($rReqs[2]['headers']['x-xcvm-admission'], true), 'nor another node\'s');
 		$this->assertSame(['hmac_id' => 3, 'identifier' => 'dev', 'stream_id' => 100, 'max_connections' => 1, 'ip' => '203.0.113.9', 'ua' => 'VLC'], json_decode($rReqs[3]['headers']['x-xcvm-admission'], true));
