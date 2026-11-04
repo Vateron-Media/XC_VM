@@ -48,7 +48,7 @@ final class StoredConnectionsTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` text, `user_ip` text, `container` text, `pid` int, `date_start` int, `geoip_country_code` text, `isp` text, `external_device` text, `hls_last_read` int, `hls_end` int DEFAULT 0, `hmac_id` int, `hmac_identifier` text, `uuid` text, `divergence` int DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTO_INCREMENT, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` text, `user_ip` text, `container` text, `pid` int, `date_start` int, `geoip_country_code` text, `isp` text, `external_device` text, `hls_last_read` int, `hls_end` int DEFAULT 0, `hmac_id` int, `hmac_identifier` text, `uuid` text, `divergence` int DEFAULT 0, `retire_token` char(32) DEFAULT NULL)');
 		DatabaseFactory::set($this->rDb);
 		SettingsManager::set(['redis_handler' => 0]);
 	}

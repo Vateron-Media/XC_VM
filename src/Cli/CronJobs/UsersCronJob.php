@@ -597,7 +597,11 @@ class UsersCronJob implements CommandInterface {
 				}
 				unset($rConnections);
 			} else {
-				$rUsers = ConnectionTracker::getConnections((($rServers[SERVER_ID]['is_main'] ?? 0) ? null : SERVER_ID));
+				$rEndedOnMain = ($rServers[SERVER_ID]['is_main'] ?? 0) ? HlsReaping::sweptServers() : [];
+				if ($rEndedOnMain !== [] && class_exists(ConnectionIngest::class)) {
+					ConnectionIngest::sweepEnded($rEndedOnMain, $rStartTime);
+				}
+				$rUsers = ConnectionTracker::getConnections((($rServers[SERVER_ID]['is_main'] ?? 0) ? null : SERVER_ID), null, null, $rEndedOnMain, !empty($rServers[SERVER_ID]['is_main']) && HlsReaping::registryUnavailable());
 			}
 
 			$rRestreamerArray = $rMaxConnectionsArray = $rExpDateArray = [];
@@ -777,7 +781,10 @@ class UsersCronJob implements CommandInterface {
 						if (ConnectionIngest::retireEnded($rConnection, self::lastHeard($rConnection, $rStartTime), false)) {
 							echo 'Close connection: ' . $rConnection['uuid'] . "\n";
 							// Not $rDelete: its DELETE goes by uuid, and would take the row another node may open under it.
-							$rRetired[(int) $rConnection['server_id']][] = ['type' => 'delete_con', 'uuid' => (string) $rConnection['uuid']];
+							// API retirement owns its durable, generation-fenced notification.
+							if (!SettingsManager::getBool('cluster_api_enabled')) {
+								$rRetired[(int) $rConnection['server_id']][] = ['type' => 'delete_con', 'uuid' => (string) $rConnection['uuid']];
+							}
 						}
 						continue;
 					} elseif (($rServers[SERVER_ID]['is_main'] ?? 0) && self::orphaned($rConnection, $rServers, $rStartTime, HlsReaping::sweptByMain((int) $rConnection['server_id']))) {
