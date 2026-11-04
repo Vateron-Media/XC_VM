@@ -429,6 +429,10 @@ final class ReplicaBuilder {
 		$rPolicy = GatewayPolicy::build($rSettings, is_array($rServers) ? $rServers : [], $rServerID, $rNow, is_array($rDomains) ? $rDomains : [], $rViewerKeys);
 		// build() read MAIN's own flow/connection state; the policy is the TARGET
 		// node's, so set its admission (active) and conn store from the node row.
+		// The agent stamps these on its own clock. MAIN's build time would
+		// change the section ETag every second without any policy change.
+		$rPolicy['written_at'] = 0;
+		$rPolicy['serve_until'] = 0;
 		$rPolicy['live']['admission'] = ($rNode['state'] ?? '') === 'active';
 		$rPolicy['conn_store'] = ((int) ($rNode['flows'] ?? 0) & NodeRegistry::FLOW_CONNECTIONS) !== 0 ? 'agent' : 'php';
 		return $rPolicy;

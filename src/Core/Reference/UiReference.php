@@ -27,4 +27,14 @@ final class UiReference {
 	public static function hues(): array {
 		return self::HUES;
 	}
+
+	/** @return list<string> Centrally selectable sign-in designs. */
+	public static function loginDesigns(): array {
+		return ['classic', 'scifi'];
+	}
+
+	/** Resolve missing or invalid preferences without constructing an asset path. */
+	public static function loginDesign(mixed $rValue): string {
+		return is_string($rValue) && in_array($rValue, self::loginDesigns(), true) ? $rValue : 'classic';
+	}
 }

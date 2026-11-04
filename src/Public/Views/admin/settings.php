@@ -11,6 +11,7 @@ use XcVm\Core\Reference\LocaleReference;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Localization\Translator;
+use XcVm\Core\Reference\UiReference;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Alert\AlertChannels;
 use XcVm\Domain\Alert\ExpiryReminders;
@@ -210,6 +211,19 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 
 								<div class="col-md-8">
 									<input type="text" class="form-control" id="server_name" name="server_name" value="<?= htmlspecialchars($rSettings["server_name"] ?? '') ?>">
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
+								<div class="col-md-4 col-form-label" id="login_design_label"><?= $language::get('login_design') ?></div>
+								<div class="col-md-8">
+									<div class="btn-group" role="group" aria-labelledby="login_design_label" aria-describedby="login_design_help">
+										<?php foreach (UiReference::loginDesigns() as $rDesign): ?>
+											<input type="radio" class="btn-check" name="login_design" id="login_design_<?= $rDesign ?>" value="<?= $rDesign ?>" <?= UiReference::loginDesign($rSettings['login_design'] ?? null) === $rDesign ? 'checked' : '' ?>>
+											<label class="btn btn-outline-primary" for="login_design_<?= $rDesign ?>"><?= $language::get('login_design_' . $rDesign) ?></label>
+										<?php endforeach; ?>
+									</div>
+									<div class="form-text" id="login_design_help"><?= $language::get('login_design_help') ?></div>
 								</div>
 							</div>
 

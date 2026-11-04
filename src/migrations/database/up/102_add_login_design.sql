@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD COLUMN IF NOT EXISTS `login_design` VARCHAR(16) NOT NULL DEFAULT 'classic';

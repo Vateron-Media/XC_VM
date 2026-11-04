@@ -128,6 +128,7 @@ return [
 		'legacy_get',
 		'legacy_panel_api',
 		'legacy_xmltv',
+		'login_design',
 		'mag_legacy_redirect',
 		'magscan_settings',
 		'maintenance_message',
