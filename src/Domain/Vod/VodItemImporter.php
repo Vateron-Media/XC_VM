@@ -693,7 +693,7 @@ class VodItemImporter {
 		$rImportArray['movie_symlink'] = $rThreadData['movie_symlink'];
 		$rImportArray['remove_subtitles'] = $rThreadData['remove_subtitles'];
 		$rImportArray['transcode_profile_id'] = $rThreadData['transcode_profile_id'];
-		if ($rSetEnableTranscode && $rThreadData['transcode_profile_id'] > 0) {
+		if (($rSetEnableTranscode || !empty($rThreadData['download'])) && $rThreadData['transcode_profile_id'] > 0) {
 			$rImportArray['enable_transcode'] = 1;
 		}
 		if ($rThreadData['import']) {
@@ -1265,9 +1265,20 @@ class VodItemImporter {
 			$rImportArray['movie_subtitles'] = $rThreadData['subtitles'];
 		}
 		$rImportArray['added'] = time();
+		if (!empty($rThreadData['source_hash'])) {
+			$rImportArray['import_source_hash'] = $rThreadData['source_hash'];
+		}
 		$rPrepare = QueryHelper::prepareArray($rImportArray);
 		$rQuery = 'INSERT INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-		if ($db->query($rQuery, ...$rPrepare['data'])) {
+		try {
+			$rInserted = $db->query($rQuery, ...$rPrepare['data']);
+		} catch (\Throwable $rError) {
+			if (empty($rThreadData['source_hash']) || self::sourceStream($rThreadData) === 0) {
+				throw $rError;
+			}
+			$rInserted = false;
+		}
+		if ($rInserted) {
 			$rInsertID = $db->last_insert_id();
 			if ($rThreadData['import']) {
 				foreach ($rThreadData['servers'] as $rServerID) {
@@ -1300,10 +1311,23 @@ class VodItemImporter {
 			self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_IMPORTED, $rInsertID);
 			throw new VodItemImportHalt();
 		} else {
+			if (!empty($rThreadData['source_hash']) && ($rExisting = self::sourceStream($rThreadData)) > 0) {
+				self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_DUPLICATE, $rExisting);
+				throw new VodItemImportHalt();
+			}
 			echo 'Insert failed!' . "\n";
 			self::reportResult($rThreadData, $rThreadType, $rFile, VodImportResultEvent::STATUS_INSERT_FAILED);
 			throw new VodItemImportHalt();
 		}
+	}
+
+	private static function sourceStream(array $rData): int {
+		if (!preg_match('/^[a-f0-9]{64}$/D', (string) ($rData['source_hash'] ?? ''))) {
+			throw new \InvalidArgumentException('Invalid source identity');
+		}
+		$db = self::db();
+		$db->query('SELECT `id` FROM `streams` WHERE `type` = ? AND `import_source_hash` = ? LIMIT 1;', $rData['type'] === 'movie' ? 2 : 5, $rData['source_hash']);
+		return (int) $db->get_col();
 	}
 
 	/**
@@ -1376,7 +1400,9 @@ class VodItemImporter {
 		while (($rLine = fgets($rHandle)) !== false) {
 			$rLine = trim($rLine);
 			if ($rLine !== '') {
-				yield '/usr/bin/timeout ' . $rItemTimeout . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php vod_import_item ' . escapeshellarg(base64_encode($rLine));
+				$rItem = json_decode($rLine, true);
+				$rTimeout = !empty($rItem['download']) ? max($rItemTimeout, VodDownload::TIMEOUT + 180) : $rItemTimeout;
+				yield '/usr/bin/timeout ' . $rTimeout . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php vod_import_item ' . escapeshellarg(base64_encode($rLine));
 			}
 		}
 		fclose($rHandle);
@@ -1425,6 +1451,22 @@ class VodItemImporter {
 		$rThreadData['ignore_no_match'] = !empty($rThreadData['ignore_no_match']);
 		$rThreadData['alternative_titles'] = !empty($rThreadData['alternative_titles']);
 
+		if (!empty($rThreadData['source_hash'])) {
+			$rExisting = self::sourceStream($rThreadData);
+			if ($rExisting > 0) {
+				self::reportResult($rThreadData, $rThreadData['type'] === 'movie' ? 1 : 2, $rThreadData['file'], VodImportResultEvent::STATUS_DUPLICATE, $rExisting);
+				return;
+			}
+		}
+		if ($rThreadData['import'] && !empty($rThreadData['download'])) {
+			$rLocalSource = VodDownload::receive($rThreadData);
+			if ($rLocalSource === null) {
+				self::reportResult($rThreadData, $rThreadData['type'] === 'movie' ? 1 : 2, $rThreadData['file'], VodImportResultEvent::STATUS_BROKEN_FILE);
+				return;
+			}
+			$rThreadData['file'] = $rLocalSource;
+			set_time_limit($rTimeout);
+		}
 		$rSettings = SettingsManager::getAll();
 
 		if (($rThreadData['file'] === '') || (!$rThreadData['import'] && $rThreadData['directory'] === '')) {

@@ -166,11 +166,11 @@ final class ReplicaSections {
 	 * `streams` columns no record carries: the archive and thumbnail workers'
 	 * pids (the node's, as `stream.worker` events), the row's timestamp, and
 	 * MAIN's catalogue metadata (ordering, notes, release year, ratings,
-	 * similar titles, TMDb, Plex, EPG offset, title sync, import uuid).
+	 * similar titles, TMDb, Plex, EPG offset, title sync, import uuid and source identity).
 	 */
 	public const STREAM_LOCAL = [
 		'tv_archive_pid', 'vframes_pid', 'updated', 'order', 'notes', 'year', 'rating', 'similar', 'tmdb_id',
-		'tmdb_language', 'plex_uuid', 'uuid', 'epg_offset', 'title_sync',
+		'tmdb_language', 'plex_uuid', 'uuid', 'epg_offset', 'title_sync', 'import_source_hash',
 	];
 
 	/** `stream.server`: the node's own `streams_servers` row, what MAIN decides of it. */
