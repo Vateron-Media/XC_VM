@@ -3,6 +3,7 @@
 namespace XcVm\Core\Auth;
 
 use XcVm\Core\Cluster\NodeActions;
+use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
 
@@ -314,20 +315,17 @@ class AuthRepository {
 					$rReturn = array_merge($rReturn, $rPermData);
 				}
 			}
-			$db->query("SELECT * FROM `users_packages` WHERE JSON_CONTAINS(`groups`, ?, '\$');", $rUser['member_group_id']);
-			if ($db->num_rows() > 0) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rRow['is_line']) {
-						$rReturn['create_line'] = true;
-					}
+			foreach (PackageService::getAll((int) $rUser['member_group_id']) as $rRow) {
+				if ($rRow['is_line']) {
+					$rReturn['create_line'] = true;
+				}
 
-					if ($rRow['is_mag']) {
-						$rReturn['create_mag'] = true;
-					}
+				if ($rRow['is_mag']) {
+					$rReturn['create_mag'] = true;
+				}
 
-					if ($rRow['is_e2']) {
-						$rReturn['create_enigma'] = true;
-					}
+				if ($rRow['is_e2']) {
+					$rReturn['create_enigma'] = true;
 				}
 			}
 			if ($rUsers) {

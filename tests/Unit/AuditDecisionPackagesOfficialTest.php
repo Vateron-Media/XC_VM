@@ -108,6 +108,27 @@ final class AuditDecisionPackagesOfficialTest extends TestCase {
 		return $rResult['status'];
 	}
 
+	public static function malformedGroupAssignments(): array {
+		$cases = [];
+		foreach (['line', 'mag', 'enigma'] as $kind) {
+			foreach ([null, '', 'invalid', 'null', '1', 'true', '{"group":2}', '{"0":2}', '[true]', '["2oops"]'] as $groups) {
+				$cases[] = [$kind, $groups];
+			}
+		}
+		return $cases;
+	}
+
+	#[DataProvider('malformedGroupAssignments')]
+	public function testMalformedGroupsRejectPurchasesAndRenewals(string $kind, ?string $groups): void {
+		$statement = $this->rDb->pdo->prepare('UPDATE users_packages SET `groups` = ? WHERE id = 2;');
+		$statement->execute([$groups]);
+		$this->assertSame(STATUS_INVALID_PACKAGE, $this->save($kind, ['package' => 2]));
+		$statement->execute(['[2]']);
+		$this->assertSame(STATUS_SUCCESS, $this->save($kind, ['package' => 2]));
+		$statement->execute([$groups]);
+		$this->assertSame(STATUS_INVALID_PACKAGE, $this->save($kind, ['edit' => 1, 'package' => 2]));
+	}
+
 	/**
 	 * The reseller asks for a code of $rPackage.
 	 *

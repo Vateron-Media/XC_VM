@@ -284,7 +284,7 @@ class ResellerAPI {
 
 					// A trial is made from a package that offers trials, and a subscription
 					// is bought from a package that sells them.
-					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
+					if ($rPackage && in_array((int) self::$rUserInfo['member_group_id'], PackageService::groupIds($rPackage['groups'] ?? null), true) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
 						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
 								$rCost = self::amount($rPackage['trial_credits']);
@@ -586,7 +586,7 @@ class ResellerAPI {
 
 					// A trial is made from a package that offers trials, and a subscription
 					// is bought from a package that sells them.
-					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
+					if ($rPackage && in_array((int) self::$rUserInfo['member_group_id'], PackageService::groupIds($rPackage['groups'] ?? null), true) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
 						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
 								$rCost = self::amount($rPackage['trial_credits']);
@@ -1093,7 +1093,7 @@ class ResellerAPI {
 
 					// A trial is made from a package that offers trials, and a subscription
 					// is bought from a package that sells them.
-					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true)) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
+					if ($rPackage && in_array((int) self::$rUserInfo['member_group_id'], PackageService::groupIds($rPackage['groups'] ?? null), true) && (empty($rData['trial']) ? $rPackage['is_official'] : $rPackage['is_trial'])) {
 						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
 								$rCost = self::amount($rPackage['trial_credits']);

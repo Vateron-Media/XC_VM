@@ -625,10 +625,9 @@ class ActiveCodeService {
 	 * @param array $user    Reseller row (member_group_id).
 	 */
 	private static function packageAvailableTo(array $package, array $user): bool {
-		$groups = json_decode((string) ($package['groups'] ?? ''), true);
+		$groups = PackageService::groupIds($package['groups'] ?? null);
 		return !empty($package['is_line'])
-			&& is_array($groups)
-			&& in_array(intval($user['member_group_id'] ?? 0), array_map('intval', $groups), true);
+			&& in_array(intval($user['member_group_id'] ?? 0), $groups, true);
 	}
 
 	/**

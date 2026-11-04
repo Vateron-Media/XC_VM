@@ -10,6 +10,7 @@ use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Process\Multithread;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Stream\StreamCacheBuilder;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Cache\CacheRunState;
@@ -633,8 +634,11 @@ class CacheEngineCronJob implements CommandInterface {
 		$db->query('SELECT `group_id` FROM `users_groups`;');
 		foreach ($db->get_rows() as $rGroup) {
 			$rBouquets = $rReturn = [];
-			$db->query("SELECT * FROM `users_packages` WHERE JSON_CONTAINS(`groups`, ?, '\$');", $rGroup['group_id']);
+			$db->query('SELECT * FROM `users_packages` ORDER BY `id` ASC;');
 			foreach ($db->get_rows() as $rRow) {
+				if (!in_array((int) $rGroup['group_id'], PackageService::groupIds($rRow['groups'] ?? null), true)) {
+					continue;
+				}
 				foreach (json_decode($rRow['bouquets'], true) as $rID) {
 					if (!in_array($rID, $rBouquets)) {
 						$rBouquets[] = $rID;
