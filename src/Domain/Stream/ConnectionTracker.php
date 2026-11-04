@@ -195,9 +195,10 @@ class ConnectionTracker {
 	 * @param int|null $rServerID Server ID to filter by.
 	 * @param int|null $rUserID   User ID to filter by.
 	 * @param int|null $rStreamID Stream ID to filter by.
+	 * @param list<int> $rEndedOnMain Table-store nodes whose ended records are drained separately.
 	 * @return array Connections: [keys[], data[]] for Redis or rows for MySQL.
 	 */
-	public static function getConnections(?int $rServerID = null, ?int $rUserID = null, ?int $rStreamID = null): array {
+	public static function getConnections(?int $rServerID = null, ?int $rUserID = null, ?int $rStreamID = null, array $rEndedOnMain = []): array {
 		global $rSettings;
 		$db = self::db();
 		$rRedis = $rSettings['redis_handler'] ? RedisManager::instance() : null;
@@ -229,6 +230,9 @@ class ConnectionTracker {
 		}
 		if (!empty($rUserID)) {
 			$rWhere[] = 't1.user_id = ' . intval($rUserID);
+		}
+		if ($rEndedOnMain !== []) {
+			$rWhere[] = '(t1.hls_end = 0 OR t1.server_id NOT IN (' . implode(',', array_map('intval', $rEndedOnMain)) . '))';
 		}
 		$rExtra = count($rWhere) ? 'WHERE ' . implode(' AND ', $rWhere) : '';
 		$rQuery = 'SELECT t2.*,t3.*,t5.bitrate,t1.*,t1.uuid AS `uuid` 

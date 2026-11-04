@@ -98,11 +98,49 @@ final class ConnectionIngest {
 		// Never waited for: a node's batch or snapshot holds its rows' locks until it
 		// commits, and a mint or the sweep must not stand still behind one. A locked
 		// row fails at once and stays for the next sweep.
-		if (!$rDb->query('SET STATEMENT innodb_lock_wait_timeout=0 FOR DELETE FROM `lines_live` WHERE `activity_id` = ? AND `hls_end` = 1;', $rRow['activity_id']) || $rDb->num_rows() < 1) {
+		if (!$rDb->query('SET STATEMENT innodb_lock_wait_timeout=0 FOR DELETE FROM `lines_live` WHERE `activity_id` = ? AND `hls_end` = 1 AND `server_id` = ? AND `uuid` = ? AND `date_start` <=> ? AND `hls_last_read` <=> ?;', $rRow['activity_id'], $rRow['server_id'], $rRow['uuid'], $rRow['date_start'], $rRow['hls_last_read']) || $rDb->num_rows() < 1) {
 			return false;
 		}
 		self::retired($rRow, $rEndAt, $rTell);
 		return true;
+	}
+
+	/**
+	 * Retire ended records of API-only nodes without loading their entire history.
+	 * Active records and other nodes stay untouched. TS/VOD workers get the same
+	 * five-minute end grace as the regular users sweep. Work and queued markers
+	 * are bounded even when an old installation has accumulated a large backlog.
+	 *
+	 * @param list<int> $rServers
+	 */
+	public static function sweepEnded(array $rServers, int $rNow, int $rLimit = 500, float $rSeconds = 2.0): int {
+		if ($rServers === [] || $rLimit <= 0 || $rSeconds <= 0) {
+			return 0;
+		}
+		$rDb = self::db();
+		$rUntil = microtime(true) + $rSeconds;
+		$rIDs = implode(',', array_map('intval', $rServers));
+		$rLimit = min(1000, $rLimit);
+		if (!$rDb->query("SELECT * FROM `lines_live` WHERE `server_id` IN ({$rIDs}) AND `hls_end` = 1 AND (`container` = 'hls' OR `hls_last_read` <= ?) ORDER BY `activity_id` ASC LIMIT {$rLimit};", $rNow - 300)) {
+			return 0;
+		}
+		$rCount = 0;
+		$rMarkers = [];
+		foreach ($rDb->get_rows() ?: [] as $rRow) {
+			if (microtime(true) >= $rUntil) {
+				break;
+			}
+			$rEnd = (int) ($rRow['hls_last_read'] ?? 0);
+			$rEnd = $rEnd > 0 ? min($rNow, $rEnd) : $rNow;
+			if (self::retireEnded($rRow, $rEnd, false)) {
+				$rCount++;
+				$rMarkers[(int) $rRow['server_id']][] = ['type' => 'delete_con', 'uuid' => (string) $rRow['uuid']];
+			}
+		}
+		foreach ($rMarkers as $rServerID => $rPayloads) {
+			SignalDispatcher::cacheBatch($rServerID, $rPayloads, $rNow, $rDb);
+		}
+		return $rCount;
 	}
 
 	/**
@@ -113,8 +151,13 @@ final class ConnectionIngest {
 	 */
 	private static function retired(array $rRow, int $rEndAt, bool $rTell): void {
 		$rDb = self::db();
+		$rActivitySettings = SettingsManager::getAll() + ['save_closed_connection' => 0];
+		$rKeep = (int) ($rActivitySettings['keep_activity'] ?? 0);
+		if ($rKeep > 0 && $rEndAt < time() - $rKeep) {
+			$rActivitySettings['save_closed_connection'] = 0;
+		}
 		ConnectionTracker::writeOfflineActivity(
-			SettingsManager::getAll() + ['save_closed_connection' => 0],
+			$rActivitySettings,
 			(int) $rRow['server_id'],
 			(int) ($rRow['proxy_id'] ?? 0),
 			(int) ($rRow['user_id'] ?? 0),
@@ -132,6 +175,10 @@ final class ConnectionIngest {
 			$rEndAt,
 			false // the row is gone: nothing left for a sweep's hold to wait for
 		);
+		if (SettingsManager::getBool('cluster_api_enabled')) {
+			ClusterRoute::tombstone((int) $rRow['server_id'], (string) $rRow['uuid'], (int) $rRow['date_start']);
+			ClusterRoute::closeConnection((int) $rRow['server_id'], (string) $rRow['uuid'], true);
+		}
 		if ($rTell && (int) $rRow['server_id'] !== (int) SERVER_ID) {
 			try {
 				SignalDispatcher::cache((int) $rRow['server_id'], ['type' => 'delete_con', 'uuid' => (string) $rRow['uuid']], false, false, $rDb);

@@ -337,6 +337,80 @@ final class ConnectionStoreTest extends TestCase {
 		$this->assertSame(1, (int) $this->rDb->get_col());
 	}
 
+	public function testEndedSweepIsBoundedAndPreservesActiveRecentAndOtherNodes(): void {
+		defined('LOGS_TMP_PATH') || define('LOGS_TMP_PATH', sys_get_temp_dir() . '/xcvm-ended-logs/');
+		@mkdir(LOGS_TMP_PATH, 0777, true);
+		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 0]);
+		$this->rDb->exec('CREATE TABLE signals (signal_id INTEGER PRIMARY KEY AUTO_INCREMENT, server_id int, time int, custom_data text, cache tinyint DEFAULT 0);');
+		$record = ['user_id' => 7, 'stream_id' => 100, 'user_ip' => '10.0.0.9', 'container' => 'ts', 'pid' => 123, 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 1];
+		foreach (['oldts', 'oldvod', 'active', 'recent', 'hlsnow', 'other'] as $uuid) {
+			$changes = match ($uuid) {
+				'oldvod' => ['container' => 'VOD'],
+				'active' => ['hls_end' => 0],
+				'recent' => ['hls_last_read' => 1800000999],
+				'hlsnow' => ['container' => 'hls', 'hls_last_read' => 1800000999],
+				default => [],
+			};
+			$this->assertTrue(ConnectionIngest::upsert($uuid === 'other' ? 6 : 5, ['uuid' => $uuid] + $changes + $record));
+		}
+		$this->assertSame(0, ConnectionIngest::sweepEnded([], 1800001000));
+		$this->assertSame(1, ConnectionIngest::sweepEnded([5], 1800001000, 1));
+		$this->assertNull($this->row('oldts'));
+		$this->assertNotNull($this->row('oldvod'), 'batch limit');
+		$this->assertSame(2, ConnectionIngest::sweepEnded([5], 1800001000));
+		foreach (['active', 'recent', 'other'] as $uuid) {
+			$this->assertNotNull($this->row($uuid), $uuid);
+		}
+		foreach (['oldvod', 'hlsnow'] as $uuid) {
+			$this->assertNull($this->row($uuid), $uuid);
+		}
+		$this->rDb->query('SELECT COUNT(*) FROM signals;');
+		$this->assertSame(3, (int) $this->rDb->get_col());
+	}
+
+	public function testRetirementDoesNotDeleteAConnectionReopenedAndEndedAgain(): void {
+		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 0]);
+		$record = ['user_id' => 7, 'stream_id' => 100, 'container' => 'ts', 'uuid' => 'reused', 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 1];
+		$this->assertTrue(ConnectionIngest::upsert(5, $record));
+		$old = $this->row('reused');
+		$this->rDb->query('UPDATE lines_live SET date_start = ?, hls_last_read = ? WHERE uuid = ?;', 1800000100, 1800000200, 'reused');
+		$this->assertFalse(ConnectionIngest::retireEnded($old, 1800000040));
+		$this->assertNotNull($this->row('reused'));
+	}
+
+	public function testOldBacklogIsNotWrittenBackIntoExpiredActivityLogs(): void {
+		defined('LOGS_TMP_PATH') || define('LOGS_TMP_PATH', sys_get_temp_dir() . '/xcvm-ended-logs/');
+		@mkdir(LOGS_TMP_PATH, 0777, true);
+		@unlink(LOGS_TMP_PATH . 'activity');
+		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 1, 'keep_activity' => 259200]);
+		$end = time() - 259201;
+		$this->assertTrue(ConnectionIngest::upsert(5, ['user_id' => 7, 'stream_id' => 100, 'container' => 'VOD', 'uuid' => 'expiredlog', 'date_start' => $end - 10, 'hls_last_read' => $end, 'hls_end' => 1]));
+		$this->assertTrue(ConnectionIngest::retireEnded((array) $this->row('expiredlog'), $end, false));
+		$this->assertNull($this->row('expiredlog'));
+		$this->assertFileDoesNotExist(LOGS_TMP_PATH . 'activity');
+	}
+
+	public function testMainLookupLeavesEndedApiRowsForTheBoundedSweep(): void {
+		SettingsManager::set(['redis_handler' => 0]);
+		$before = $GLOBALS['rSettings'] ?? null;
+		$GLOBALS['rSettings'] = ['redis_handler' => 0];
+		foreach (['lines', 'streams', 'streams_servers'] as $table) {
+			$this->rDb->exec(\XcVm\Tests\Support\InstallSchema::table($table));
+		}
+		$record = ['user_id' => 7, 'stream_id' => 100, 'container' => 'ts', 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 1];
+		$this->assertTrue(ConnectionIngest::upsert(5, ['uuid' => 'skip'] + $record));
+		$this->assertTrue(ConnectionIngest::upsert(5, ['uuid' => 'keep', 'hls_end' => 0] + $record));
+		$this->assertTrue(ConnectionIngest::upsert(6, ['uuid' => 'legacy'] + $record));
+		try {
+			$rows = array_merge(...array_values(ConnectionTracker::getConnections(null, null, null, [5])));
+			$this->assertSame(['keep', 'legacy'], array_column($rows, 'uuid'));
+			$rows = array_merge(...array_values(ConnectionTracker::getConnections()));
+			$this->assertSame(['skip', 'keep', 'legacy'], array_column($rows, 'uuid'), 'other callers keep the old contract');
+		} finally {
+			$GLOBALS['rSettings'] = $before;
+		}
+	}
+
 	/**
 	 * MAIN closed a node's ended row (its sweep, its mint) between this
 	 * event's read and its UPDATE: the UPDATE changes nothing, and the viewer

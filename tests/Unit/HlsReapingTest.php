@@ -64,6 +64,7 @@ final class HlsReapingTest extends TestCase {
 		$this->node(5, 'quarantined', 2, 255, 'hls_reaper', self::T - 1);
 		HlsReaping::begin(self::T, 120);
 		$this->assertTrue(HlsReaping::sweptByMain(2));
+		$this->assertSame([2], HlsReaping::sweptServers());
 		foreach ([3, 4, 5, 99] as $rID) {
 			$this->assertFalse(HlsReaping::sweptByMain($rID), (string) $rID);
 		}
@@ -71,6 +72,7 @@ final class HlsReapingTest extends TestCase {
 		$this->rDb->exec('DROP TABLE `cluster_nodes`');
 		HlsReaping::begin(self::T + 60, 120);
 		$this->assertFalse(HlsReaping::sweptByMain(2));
+		$this->assertSame([], HlsReaping::sweptServers());
 	}
 
 	public function testASilentNodeIsOrphanedOnlyAfterTheTtlWatchedByMain(): void {

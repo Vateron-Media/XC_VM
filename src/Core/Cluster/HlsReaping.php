@@ -99,6 +99,11 @@ final class HlsReaping {
 		return self::$rNoSweep[$rServerID] ?? false;
 	}
 
+	/** @return list<int> Nodes whose ended table records MAIN must retire. */
+	public static function sweptServers(): array {
+		return array_keys(self::$rNoSweep);
+	}
+
 	/** On an LB: does this node's own agent end its idle HLS viewers? */
 	public static function localReaps(): bool {
 		return NodeFlows::on(NodeFlows::CONNECTIONS) && NodeFlows::agentHas(self::FEATURE);
