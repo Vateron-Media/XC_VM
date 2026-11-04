@@ -486,6 +486,9 @@ class PageAuthorization {
 	 * @param bool   $rIsEdit Whether the form edits an existing record (`edit`).
 	 */
 	public static function checkPostAction(string $rAction, bool $rIsEdit): bool {
+		if ($rAction === 'vod_playlist_preview') {
+			return Authorization::check('adv', 'import_movies');
+		}
 		if (str_starts_with($rAction, 'mass_delete_')) {
 			return self::checkPermissions('mass_delete', $rIsEdit, false);
 		}

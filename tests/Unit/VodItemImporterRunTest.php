@@ -17,7 +17,7 @@ final class VodItemImporterRunTest extends TestCase {
     private const STREAM_COLUMNS = array(
         'type' => 'int', 'stream_source' => 'mediumtext', 'target_container' => 'varchar', 'read_native' => 'tinyint',
         'movie_symlink' => 'tinyint', 'remove_subtitles' => 'tinyint', 'transcode_profile_id' => 'int',
-        'direct_source' => 'tinyint', 'direct_proxy' => 'tinyint', 'order' => 'int', 'stream_display_name' => 'mediumtext',
+		'import_source_hash' => 'varchar', 'enable_transcode' => 'tinyint', 'direct_source' => 'tinyint', 'direct_proxy' => 'tinyint', 'order' => 'int', 'stream_display_name' => 'mediumtext',
         'movie_properties' => 'mediumtext', 'movie_subtitles' => 'mediumtext', 'series_no' => 'int', 'added' => 'int',
         'tmdb_language' => 'varchar', 'notes' => 'mediumtext',
     );
@@ -39,7 +39,7 @@ final class VodItemImporterRunTest extends TestCase {
         foreach (self::STREAM_COLUMNS as $rName => $rType) {
             $rColumns[] = '`' . $rName . '` ' . ($rType === 'varchar' ? 'varchar(255)' : $rType) . ' NULL';
         }
-        $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, ' . implode(', ', $rColumns) . ');');
+		$this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, ' . implode(', ', $rColumns) . ', UNIQUE KEY vod_import_source(type, import_source_hash));');
         $this->db->exec('CREATE TABLE streams_servers (stream_id INTEGER, server_id INTEGER, parent_id INTEGER);');
         $this->db->exec('CREATE TABLE streams_episodes (season_num INTEGER, series_id INTEGER, stream_id INTEGER, episode_num INTEGER);');
         $this->db->exec('CREATE TABLE streams_series (id INTEGER PRIMARY KEY AUTO_INCREMENT, tmdb_id INTEGER, title TEXT, seasons TEXT, year INTEGER);');
@@ -57,6 +57,7 @@ final class VodItemImporterRunTest extends TestCase {
     }
 
     protected function tearDown(): void {
+		\XcVm\Core\Cluster\NodeRpc::useTransport(null);
         EventDispatcher::unlisten(VodImportResultEvent::class);
         SettingsManager::set($this->settingsBefore);
         $GLOBALS['db'] = $this->globalDbBefore;
@@ -113,6 +114,51 @@ final class VodItemImporterRunTest extends TestCase {
         $this->db->query('SELECT `server_id` FROM `streams_servers` WHERE `stream_id` = ?;', $rStreamID);
         $this->assertSame((string) SERVER_ID, (string) $this->db->get_col());
     }
+
+	public function testDownloadedEpisodeKeepsVodSettingsAndUsesDestinationSource(): void {
+		$this->expectOutputRegex('/Success!/');
+		\XcVm\Core\Cluster\NodeRpc::useTransport(static function ($kind, $servers, $request): string {
+			return json_encode($request['function'] === 'start' ? ['result' => true, 'id' => str_repeat('a', 64)] : ['result' => true, 'state' => 'complete', 'path' => '/media/series/episode.mkv']);
+		});
+		$data = ['download' => ['server_id' => 7, 'directory' => '/media/series'], 'servers' => [7], 'read_native' => 1, 'movie_symlink' => 1, 'remove_subtitles' => 1, 'transcode_profile_id' => 9] + $this->threadData();
+		VodItemImporter::run($data, 60, $this->tmdb([new TVShow(['id' => 1399, 'name' => 'Les Psys', 'first_air_date' => '2026-01-01'])]));
+		$this->assertSame(VodImportResultEvent::STATUS_IMPORTED, $this->results[0]->status);
+		$this->db->query('SELECT * FROM streams WHERE id = ?', $this->results[0]->streamId);
+		$row = $this->db->get_row();
+		$this->assertSame(['s:7:/media/series/episode.mkv'], json_decode($row['stream_source'], true));
+		foreach (['read_native', 'movie_symlink', 'remove_subtitles', 'enable_transcode'] as $setting) {
+			$this->assertSame(1, (int) $row[$setting], $setting);
+		}
+		$this->assertSame(9, (int) $row['transcode_profile_id']);
+		$this->assertSame('mkv', $row['target_container']);
+		$this->db->query('SELECT server_id FROM streams_servers WHERE stream_id = ?', $row['id']);
+		$this->assertSame(7, (int) $this->db->get_col());
+	}
+
+	public function testFailedDownloadDoesNotCreateCatalogEntry(): void {
+		\XcVm\Core\Cluster\NodeRpc::useTransport(static fn(): string => json_encode(['result' => false, 'error' => 'vod_download_failed']));
+		VodItemImporter::run(['download' => ['server_id' => 7, 'directory' => '/media/series']] + $this->threadData());
+		$this->assertSame(VodImportResultEvent::STATUS_BROKEN_FILE, $this->results[0]->status);
+		$this->db->query('SELECT COUNT(*) FROM streams');
+		$this->assertSame(0, (int) $this->db->get_col());
+	}
+
+
+	public function testAtomicSourceIdentitySurvivesTitleAndDestinationChanges(): void {
+		$payload = ['source_hash' => hash('sha256', 'https://provider.test/original.mkv')] + $this->threadData();
+		ob_start();
+		try {
+			foreach (['s:7:/first/original.mkv', 's:8:/different/renamed.mkv'] as $source) {
+				try {
+					VodItemImporter::persistImport($payload, 2, $source, null, ['id' => 5], 1, 2, ['type' => 5, 'stream_source' => json_encode([$source]), 'stream_display_name' => $source, 'movie_properties' => '{}'], [], []);
+				} catch (\XcVm\Domain\Vod\VodItemImportHalt) {}
+			}
+		} finally { ob_end_clean(); }
+		$this->assertSame([VodImportResultEvent::STATUS_IMPORTED, VodImportResultEvent::STATUS_DUPLICATE], array_map(static fn($event) => $event->status, $this->results));
+		$this->db->query('SELECT COUNT(*) FROM streams'); $this->assertSame(1, (int) $this->db->get_col());
+		$this->db->query('SELECT COUNT(*) FROM streams_episodes'); $this->assertSame(1, (int) $this->db->get_col());
+		$this->assertSame($this->results[0]->streamId, $this->results[1]->streamId);
+	}
 
     /**
      * A watch folder's file on another server is imported like an M3U entry,

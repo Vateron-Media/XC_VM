@@ -27,7 +27,7 @@ final class NodeRpc {
 		'get_archive_files', 'get_certificate_info', 'get_free_space', 'get_pids',
 		'kill_pid', 'kill_plex', 'probe', 'reload_nginx', 'restore_images',
 		'rtmp_kill', 'rtmp_stats', 'scandir', 'scandir_recursive', 'signal_send',
-		'ssl_log', 'stats', 'stream', 'streams_ramdisk', 'vod',
+		'ssl_log', 'stats', 'stream', 'streams_ramdisk', 'vod', 'vod_download',
 	];
 
 	/** @var (callable(string, array<int>, array<string, mixed>, int): mixed)|null */

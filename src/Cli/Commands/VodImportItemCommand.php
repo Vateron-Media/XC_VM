@@ -36,7 +36,8 @@ class VodImportItemCommand implements CommandInterface {
 		setlocale(LC_ALL, 'en_US.UTF-8');
 		putenv('LC_ALL=en_US.UTF-8');
 
-		$rTimeout = 60;
+		$rData = json_decode((string) base64_decode((string) ($rArgs[0] ?? ''), true), true);
+		$rTimeout = !empty($rData['download']) ? \XcVm\Domain\Vod\VodDownload::TIMEOUT + 120 : 60;
 		set_time_limit($rTimeout);
 		ini_set('max_execution_time', $rTimeout);
 
