@@ -87,6 +87,14 @@ final class CacheEngineGroupsTest extends TestCase {
 		$this->assertSame(json_decode(self::EXPECTED, true), $this->generate());
 	}
 
+	public function testMalformedPackageGroupsDoNotBreakOrGrantCachedPermissions(): void {
+		$statement = $this->rDb->pdo->prepare('INSERT INTO users_packages (id, `groups`, bouquets, is_line, is_mag, is_e2) VALUES (?, ?, ?, 1, 1, 1);');
+		foreach (['invalid', 'null', '3', '{"group":3}', '{"0":3}', '[true]'] as $id => $groups) {
+			$statement->execute([$id + 4, $groups, '[]']);
+		}
+		$this->assertSame(json_decode(self::EXPECTED, true), $this->generate());
+	}
+
 	public function testTheEpisodesAreReadOnce(): void {
 		$this->generate();
 		$this->assertCount(1, array_filter($this->rLog->rQueries, static fn(string $rQuery): bool => str_contains($rQuery, 'streams_episodes')));

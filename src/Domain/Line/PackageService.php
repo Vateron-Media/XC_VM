@@ -130,7 +130,8 @@ class PackageService {
 
 		if ($db->num_rows() > 0) {
 			foreach ($db->get_rows() as $rRow) {
-				if (!isset($rGroup) || in_array(intval($rGroup), json_decode($rRow['groups'], true))) {
+				$rGroups = self::groupIds($rRow['groups'] ?? null);
+				if (!isset($rGroup) || in_array(intval($rGroup), $rGroups, true)) {
 					if (!$rType || $rRow['is_' . $rType]) {
 						$rReturn[intval($rRow['id'])] = UserCredits::amounts($rRow);
 					}
@@ -139,6 +140,18 @@ class PackageService {
 		}
 
 		return $rReturn;
+	}
+
+	/** @return list<int> Positive group IDs from a JSON array; malformed assignments grant nothing. */
+	public static function groupIds(?string $groups): array {
+		$decoded = json_decode($groups ?? '');
+		if (!is_array($decoded)) {
+			return [];
+		}
+		return array_values(array_unique(array_map('intval', array_filter(
+			$decoded,
+			static fn($id): bool => (is_int($id) || (is_string($id) && ctype_digit($id))) && (int) $id > 0
+		))));
 	}
 
 	/**
