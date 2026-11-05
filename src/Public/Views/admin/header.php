@@ -59,7 +59,7 @@ if (!function_exists('_xc_nav_label')) {
 $xmCurrentLang = \XcVm\Core\Localization\Translator::current();
 $xmIsRtl       = \XcVm\Core\Localization\Translator::isRtl($xmCurrentLang);
 // Customizer prefs; see UiPrefs::pageState() and layouts/ui_prefs_head.php.
-[$xmUiPrefs, $xmBsTheme] = UiPrefs::pageState($rUserInfo, $xmIsRtl);
+[$xmUiPrefs, $xmBsTheme] = UiPrefs::pageState($rUserInfo ?? [], $xmIsRtl);
 ?>
 <!doctype html>
 <html
@@ -107,7 +107,7 @@ $xmIsRtl       = \XcVm\Core\Localization\Translator::isRtl($xmCurrentLang);
     <?php require __DIR__ . '/../layouts/ui_prefs_head.php'; ?>
 </head>
 
-<?php if (!empty($GLOBALS['_SETUP'])): /* setup wizard — branded bare shell: no sidebar / navbar / menu, and never touches $rUserInfo */ ?>
+<?php if (!empty($GLOBALS['_SETUP'])): /* Setup skips user-dependent navigation; UI prefs use available user data or first-run defaults. */ ?>
 
     <body>
         <!-- Setup top bar: brand only (no sidebar / navbar / user menu / header stats) -->
