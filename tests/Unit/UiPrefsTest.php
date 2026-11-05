@@ -25,6 +25,13 @@ final class UiPrefsTest extends TestCase {
 		$this->assertFalse($rPrefs['rtl']);
 	}
 
+	public function testFirstRunWithoutAUserUsesDefaultPreferences(): void {
+		[$rPrefs, $rBsTheme] = UiPrefs::pageState([], false);
+
+		$this->assertSame(['theme' => 'light', 'rtl' => false], $rPrefs);
+		$this->assertSame('light', $rBsTheme);
+	}
+
 	public function testSavedThemeWinsOverTheProfile(): void {
 		[$rPrefs, $rBsTheme] = UiPrefs::pageState(['theme' => 1, 'ui_prefs' => '{"theme":"light"}'], true);
 
