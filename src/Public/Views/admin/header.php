@@ -59,7 +59,7 @@ if (!function_exists('_xc_nav_label')) {
 $xmCurrentLang = \XcVm\Core\Localization\Translator::current();
 $xmIsRtl       = \XcVm\Core\Localization\Translator::isRtl($xmCurrentLang);
 // Customizer prefs; see UiPrefs::pageState() and layouts/ui_prefs_head.php.
-[$xmUiPrefs, $xmBsTheme] = UiPrefs::pageState($rUserInfo, $xmIsRtl);
+[$xmUiPrefs, $xmBsTheme] = UiPrefs::pageState($rUserInfo ?? [], $xmIsRtl);
 ?>
 <!doctype html>
 <html
