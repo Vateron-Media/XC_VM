@@ -1,6 +1,6 @@
 <?php
 use XcVm\Core\Util\LayoutRenderer;
-
+use XcVm\Domain\Server\ServerRepository;
 
 /**
  * Stream tools (Bootstrap 5). Four self-contained tools in tabs: DNS replacement and
@@ -58,7 +58,7 @@ use XcVm\Core\Util\LayoutRenderer;
                         <label class="col-md-3 col-form-label" for="source_server">Source Server</label>
                         <div class="col-md-9">
                             <select name="source_server" id="source_server" class="form-select">
-                                <?php foreach ($rServers as $rServer): ?><option value="<?= (int) $rServer['id']; ?>"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option><?php endforeach; ?>
+                                <?php foreach (ServerRepository::getStreamingSimple($rPermissions, 'all') as $rServer): ?><option value="<?= (int) $rServer['id']; ?>"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option><?php endforeach; ?>
                             </select>
                         </div>
                     </div>
