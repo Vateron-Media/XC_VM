@@ -199,6 +199,24 @@ final class VodItemImporterSeriesBuildTest extends TestCase {
         $this->assertSame('Drama', $rRow['genre']);
     }
 
+    public function testMergesGenreCategoriesWithAPreSuppliedCategory(): void {
+        $rMatch = new TVShow(array('id' => 1399));
+        $rTMDB = new FakeTmdbClient(array(
+            'getTVShow' => fn() => $this->showFixture(),
+            'getSeason' => fn() => $this->seasonFixture(array()),
+        ));
+
+        $rBuilt = VodItemImporter::buildSeriesImportArray(
+            $rTMDB, $rMatch, array('episode' => 1), $this->threadData(), array('download_images' => false, 'tmdb_language' => null),
+            array(1 => array(), 2 => array(18 => array('category_id' => 5, 'bouquets' => '[]'))),
+            '/media/got/s01e01.mkv', 2, 60, 1, 1, array(), array(99), array(), null, fn() => ''
+        );
+
+        $this->assertSame(array(99, 5), $rBuilt['categoryIDs']);
+        $this->db->query('SELECT category_id FROM streams_series WHERE id = ?;', $rBuilt['series']['id']);
+        $this->assertSame('[99,5]', $this->db->get_col());
+    }
+
     public function testNewSeriesWithNoCategoryResolvedHaltsInsteadOfInserting(): void {
         $rMatch = new TVShow(array('id' => 1399));
         $rTMDB = new FakeTmdbClient(array(

@@ -107,9 +107,24 @@ final class VodItemImporterMovieBuildTest extends TestCase {
         $this->assertSame(array(10, 11), $rBuilt['bouquetIDs']);
     }
 
-    public function testPreSuppliedCategoryAndBouquetIdsAreLeftUntouched(): void {
-        // category_id/bouquets given explicitly by the watch-folder config
-        // (or an import call) always win over genre-derived resolution.
+    public function testMergesGenreCategoriesWithAPreSuppliedCategory(): void {
+        $rMatch = new Movie(array('id' => 603));
+        $rTMDB = new FakeTmdbClient(array('getMovie' => fn() => $this->movieFixture()));
+        $rWatchCategories = array(
+            1 => array(28 => array('category_id' => 5), 878 => array('category_id' => 6)),
+            2 => array(),
+        );
+
+        $rBuilt = VodItemImporter::buildMovieImportArray(
+            $rTMDB, $rMatch, $this->threadData(), array('download_images' => false),
+            $rWatchCategories, '/media/movie.mkv', 1, array(), array(99), array(), null
+        );
+
+        $this->assertSame(array(99, 5, 6), $rBuilt['categoryIDs']);
+    }
+
+    public function testPreSuppliedCategoryAndBouquetIdsAreRetainedWithoutMappings(): void {
+        // Explicit category_id/bouquets remain when no TMDb genre has a mapping.
         $rMatch = new Movie(array('id' => 603));
         $rTMDB = new FakeTmdbClient(array('getMovie' => fn() => $this->movieFixture()));
 

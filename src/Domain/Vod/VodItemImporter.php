@@ -1022,7 +1022,7 @@ class VodItemImporter {
 		$rImportArray['rating'] = ($rImportArray['movie_properties']['rating'] ?: 0);
 		self::applyCommonStreamSettings($rImportArray, $rThreadData);
 		$rImportArray['tmdb_language'] = $rLanguage;
-		if (count($rCategoryIDs) == 0 && !empty($rMovieData['genres']) && is_array($rMovieData['genres'])) {
+		if (!empty($rMovieData['genres']) && is_array($rMovieData['genres'])) {
 			$rCategoryIDs = self::resolveGenreCategoryIDs($rMovieData['genres'], $rWatchCategories[1], $rThreadData['max_genres'], $rCategoryIDs);
 		}
 		if (count($rBouquetIDs) == 0) {
@@ -1123,9 +1123,7 @@ class VodItemImporter {
 				}
 				$rSeriesArray['genre'] = implode(', ', $rGenres);
 				$rSeriesArray['episode_run_time'] = intval($rShowData['episode_run_time'][0] ?? 0);
-				if (count($rCategoryIDs) == 0) {
-					$rCategoryIDs = self::resolveGenreCategoryIDs($rShowData['genres'], $rWatchCategories[2], $rThreadData['max_genres'], $rCategoryIDs);
-				}
+				$rCategoryIDs = self::resolveGenreCategoryIDs($rShowData['genres'], $rWatchCategories[2], $rThreadData['max_genres'], $rCategoryIDs);
 				if (count($rCategoryIDs) == 0 && !empty($rThreadData['fb_category_id'])) {
 					if (is_array($rThreadData['fb_category_id'])) {
 						$rCategoryIDs = array_map('intval', $rThreadData['fb_category_id']);

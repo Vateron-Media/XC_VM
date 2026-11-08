@@ -134,20 +134,21 @@ class TMDbService {
 	/**
 	 * Import \TMDB genres as VOD categories.
 	 *
-	 * @return void
+	 * @param object|null $rTMDB Optional client for tests.
+	 * @return bool
 	 */
-	public static function addCategories() {
+	public static function addCategories($rTMDB = null) {
 		$db = self::db();
-		$rTMDB = self::client();
+		$rTMDB ??= self::client();
 
 		$rCurrentCats = ['movie' => [], 'series' => []];
 
 		$db->query('SELECT `id`, `category_type`, `category_name` FROM `streams_categories`;');
 
 		if ($db->num_rows() > 0) {
-			foreach ($db->get_rows() as $rRow) {
+			foreach ($db->get_raw_rows() as $rRow) {
 				if (array_key_exists($rRow['category_type'], $rCurrentCats)) {
-					$rCurrentCats[$rRow['category_type']][] = $rRow['category_name'];
+					$rCurrentCats[$rRow['category_type']][$rRow['category_name']] = (int) $rRow['id'];
 				}
 			}
 		}
@@ -155,17 +156,27 @@ class TMDbService {
 		$rMovieGenres = $rTMDB->getMovieGenres();
 		foreach ($rMovieGenres as $rMovieGenre) {
 			$movieGenreName = $rMovieGenre->getName();
-			if (!in_array($movieGenreName, $rCurrentCats['movie'])) {
-				$db->query("INSERT INTO `streams_categories`(`category_type`, `category_name`) VALUES('movie', ?);", $movieGenreName);
+			$rCategoryID = $rCurrentCats['movie'][$movieGenreName] ?? 0;
+			if (!$rCategoryID && $db->query("INSERT INTO `streams_categories`(`category_type`, `category_name`) VALUES('movie', ?);", $movieGenreName)) {
+				$rCategoryID = (int) $db->last_insert_id();
+			}
+			if ($rCategoryID > 0) {
+				$db->query('UPDATE `watch_categories` SET `category_id` = ? WHERE `type` = 1 AND `genre_id` = ? AND `category_id` = 0;', $rCategoryID, $rMovieGenre->getID());
 			}
 		}
 
 		$rTVGenres = $rTMDB->getTVGenres();
 		foreach ($rTVGenres as $rTVGenre) {
 			$seriesGenreName = $rTVGenre->getName();
-			if (!in_array($seriesGenreName, $rCurrentCats['series'])) {
-				$db->query("INSERT INTO `streams_categories`(`category_type`, `category_name`) VALUES('series', ?);", $seriesGenreName);
+			$rCategoryID = $rCurrentCats['series'][$seriesGenreName] ?? 0;
+			if (!$rCategoryID && $db->query("INSERT INTO `streams_categories`(`category_type`, `category_name`) VALUES('series', ?);", $seriesGenreName)) {
+				$rCategoryID = (int) $db->last_insert_id();
+			}
+			if ($rCategoryID > 0) {
+				$db->query('UPDATE `watch_categories` SET `category_id` = ? WHERE `type` = 2 AND `genre_id` = ? AND `category_id` = 0;', $rCategoryID, $rTVGenre->getID());
 			}
 		}
+
+		return true;
 	}
 }
