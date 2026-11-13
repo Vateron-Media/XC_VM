@@ -121,7 +121,7 @@ final class ConnectionRetirement {
 					}
 					$command = $db->get_raw_row();
 					if ($command !== null && $command['state'] === 'acked') {
-						if (!$db->query('UPDATE connection_retirements SET notify_done = 1 WHERE id = ?;', $id) || !$db->commit()) {
+						if (!$db->query('UPDATE connection_retirements SET notify_done = 1, retry_at = ? WHERE id = ?;', time(), $id) || !$db->commit()) {
 							throw new \RuntimeException('Cannot acknowledge retirement');
 						}
 						continue;
@@ -142,11 +142,24 @@ final class ConnectionRetirement {
 				$db->rollback();
 			}
 		}
-		// Completed tickets remain for 24 hours, beyond the bus tomb TTL; pending
-		// delivery is never discarded. The composite index bounds this purge.
 		if (microtime(true) < $until) {
-			$db->query('SET STATEMENT innodb_lock_wait_timeout=0 FOR DELETE FROM connection_retirements WHERE notify_done = 1 AND retired_at < ? ORDER BY retired_at LIMIT 100;', time() - 86400);
+			self::cleanupCompleted();
 		}
 		return $sent;
+	}
+
+	/** Bounded history cleanup, independent of cluster mode or swept servers. */
+	public static function cleanupCompleted(): int {
+		$db = self::db();
+		if ($db->isInTransaction()) {
+			return 0;
+		}
+		// Once done, retry_at records acknowledgement time. Legacy tickets with
+		// no delivery use retired_at; pending tickets never qualify for removal.
+		$cutoff = time() - 86400;
+		if (!$db->query('SET STATEMENT innodb_lock_wait_timeout=0 FOR DELETE FROM connection_retirements WHERE notify_done = 1 AND retired_at < ? AND retry_at < ? ORDER BY retired_at LIMIT 100;', $cutoff, $cutoff)) {
+			return 0;
+		}
+		return $db->num_rows();
 	}
 }

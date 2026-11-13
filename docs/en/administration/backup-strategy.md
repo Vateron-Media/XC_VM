@@ -21,7 +21,7 @@ users_credits_logs, users_logs, watch_logs
 
 EPG programme entries (`epg_data`) are omitted. EPG sources (`epg`), channel metadata (`epg_channels`), and stream assignments remain in the backup. Programme entries can be fetched again after a restore.
 
-Completed connection retirement records are retained for 24 hours before routine cleanup removes them. Pending delivery records remain until acknowledged.
+Completed connection retirement records are retained for 24 hours after acknowledgement before routine cleanup removes them. Pending delivery records remain until acknowledged. MAIN’s users cron also runs this bounded cleanup when cluster mode is disabled or no servers are swept.
 
 Backups do **not** include:
 
