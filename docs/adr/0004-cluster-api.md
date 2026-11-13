@@ -6751,3 +6751,5 @@ The lifecycle checks and viewer-close behavior are unchanged.
 Snapshot feedback lives in `TMP_PATH/cluster_digest/<sid>.snapshot.json`, separate
 from heartbeat state so concurrent writers do not overwrite the last check.
 Partial or failed snapshots do not advance this backoff.
+
+Feedback comparisons, resets and read-modify-write updates share a per-node lock. State files are replaced atomically. A successful apply supplies its observed digest before commit rather than rereading the store after commit. The latest 64 completed snapshot IDs suppress duplicate backoff increments after a lost response; matching heartbeats clear retry feedback while keeping these IDs. If state cannot be read or persisted, the failure is logged and heartbeat checks issue no new snapshot until durable throttling is available.

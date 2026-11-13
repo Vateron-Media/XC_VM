@@ -81,8 +81,9 @@ final class ConnectionSnapshot {
 			}
 			array_push($rAll, ...$rChunk);
 		}
-		$rOut = self::apply($rServerID, $rAll); // throws: the chunks stay staged
-		ConnectionDigest::snapshotApplied($rServerID, $rAll);
+		$rAppliedDigest = null;
+		$rOut = self::apply($rServerID, $rAll, $rAppliedDigest); // throws: the chunks stay staged
+		ConnectionDigest::snapshotApplied($rServerID, $rAll, $rAppliedDigest, $rSnap);
 		self::clear($rDir);
 		return ['ok' => true, 'done' => true] + $rOut;
 	}
@@ -91,9 +92,11 @@ final class ConnectionSnapshot {
 	 * Make MAIN's store for the node match its registry.
 	 *
 	 * @param list<mixed> $rRecords
+	 * @param array{count: int, users: int, xor64: string}|null $rAppliedDigest
+	 * @param-out array{count: int, users: int, xor64: string} $rAppliedDigest
 	 * @return array{applied: int, removed: int, dropped: int}
 	 */
-	public static function apply(int $rServerID, array $rRecords): array {
+	public static function apply(int $rServerID, array $rRecords, ?array &$rAppliedDigest = null): array {
 		$rDb = SettingsManager::get('redis_handler') ? null : self::db();
 		$rTx = $rDb !== null && method_exists($rDb, 'beginTransaction') && $rDb->beginTransaction();
 		try {
@@ -109,11 +112,14 @@ final class ConnectionSnapshot {
 					$rDropped++;
 				}
 			}
-			foreach (array_keys(ConnectionDigest::stored($rServerID)) as $rUUID) {
+			$rStored = ConnectionDigest::stored($rServerID);
+			foreach (array_keys($rStored) as $rUUID) {
 				if (!isset($rSeen[(string) $rUUID]) && ConnectionIngest::remove($rServerID, (string) $rUUID)) {
 					$rRemoved++;
+					unset($rStored[$rUUID]);
 				}
 			}
+			$rAppliedDigest = ConnectionDigest::of($rStored);
 			if ($rTx && !$rDb->commit()) {
 				throw new \RuntimeException('cannot commit the snapshot');
 			}

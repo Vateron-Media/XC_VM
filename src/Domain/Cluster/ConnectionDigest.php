@@ -102,9 +102,14 @@ final class ConnectionDigest {
 		if (!is_array($rDigest) || !is_int($rDigest['count'] ?? null) || !is_int($rDigest['users'] ?? null) || !is_string($rDigest['xor64'] ?? null) || !preg_match('/^[a-f0-9]{16}$/iD', $rDigest['xor64'])) {
 			return false;
 		}
+		return self::locked($rServerID, static fn(): bool => self::checkLocked($rServerID, $rDigest, $rP0)) === true;
+	}
+
+	/** @param array{count: int, users: int, xor64: string} $rDigest */
+	private static function checkLocked(int $rServerID, array $rDigest, ?array $rP0): bool {
 		$rNow = ClusterClock::nowMs();
 		$rFile = self::dir() . $rServerID . '.json';
-		$rState = (self::state($rServerID) ?? []) + ['at' => 0, 'miss' => 0, 'asked' => 0];
+		$rState = self::readJson($rFile) + ['at' => 0, 'miss' => 0, 'asked' => 0];
 		if ($rNow - (int) $rState['at'] < (self::$rEvery ?? self::EVERY_MS)) {
 			return false;
 		}
@@ -128,9 +133,9 @@ final class ConnectionDigest {
 		$rSettling = $rPending && $rNow - $rState['drift_since'] < self::COOLDOWN_MS;
 		$rState['miss'] = $rSame || $rSettling ? 0 : (int) $rState['miss'] + 1;
 		$rFeedbackFile = self::dir() . $rServerID . '.snapshot.json';
-		$rFeedback = json_decode((string) @file_get_contents($rFeedbackFile), true);
+		$rFeedback = self::readJson($rFeedbackFile);
 		if ($rSame) {
-			@unlink($rFeedbackFile);
+			self::saveFeedback($rFeedbackFile, ['completed' => $rFeedback['completed'] ?? []]);
 		}
 		$rRetry = !$rSame && ($rFeedback['gap'] ?? null) === $rGap ? max(self::COOLDOWN_MS, min(self::MAX_RETRY_MS, (int) ($rFeedback['retry_ms'] ?? 0))) : self::COOLDOWN_MS;
 		$rState['retry_ms'] = $rRetry;
@@ -140,10 +145,7 @@ final class ConnectionDigest {
 			$rState['miss'] = 0;
 			$rState['asked'] = $rNow;
 		}
-		if (!is_dir(self::dir())) {
-			@mkdir(self::dir(), 0750, true);
-		}
-		@file_put_contents($rFile, json_encode($rState), LOCK_EX);
+		self::writeJson($rFile, $rState);
 		return $rWant;
 	}
 
@@ -154,26 +156,90 @@ final class ConnectionDigest {
 	 * overwrite a newer heartbeat. A changed gap uses the normal retry period.
 	 *
 	 * @param list<mixed> $rRecords
+	 * @param array{count: int, users: int, xor64: string}|null $rAppliedDigest
 	 */
-	public static function snapshotApplied(int $rServerID, array $rRecords): void {
+	public static function snapshotApplied(int $rServerID, array $rRecords, ?array $rAppliedDigest = null, ?string $rSnapshotID = null): void {
+		self::locked($rServerID, static function () use ($rServerID, $rRecords, $rAppliedDigest, $rSnapshotID): void {
+			$rFile = self::dir() . $rServerID . '.snapshot.json';
+			$rPrevious = self::readJson($rFile);
+			$rCompleted = $rPrevious['completed'] ?? [];
+			if ($rSnapshotID !== null && in_array($rSnapshotID, $rCompleted, true)) {
+				return; // Lost success responses must not count as another attempt.
+			}
+			if ($rSnapshotID !== null) {
+				$rCompleted[] = $rSnapshotID;
+				$rCompleted = array_slice($rCompleted, -64);
+			}
+			// receive() supplies the digest observed within the successful apply,
+			// so a store outage after commit cannot lose completion feedback.
+			$rOurs = $rAppliedDigest ?? self::of(self::stored($rServerID));
+			$rReported = self::of(self::scalarRecords($rRecords));
+			if ($rOurs === $rReported) {
+				self::saveFeedback($rFile, ['completed' => $rCompleted]);
+				return;
+			}
+			$rGap = self::gap($rOurs, $rReported);
+			$rRetry = ($rPrevious['gap'] ?? null) === $rGap ? (int) ($rPrevious['retry_ms'] ?? self::COOLDOWN_MS) : self::COOLDOWN_MS;
+			self::saveFeedback($rFile, ['at' => ClusterClock::nowMs(), 'gap' => $rGap, 'retry_ms' => min(self::MAX_RETRY_MS, max(self::COOLDOWN_MS, $rRetry) * 2), 'completed' => $rCompleted]);
+		});
+	}
+
+	/** Serialize the store comparison and every feedback read/modify/write. */
+	private static function locked(int $rServerID, callable $rOperation): mixed {
+		$rLock = false;
 		try {
-			$rOurs = self::of(self::stored($rServerID));
-		} catch (\Throwable) {
-			return; // Retry feedback must not fail a completed snapshot.
+			if (!is_dir(self::dir()) && !@mkdir(self::dir(), 0750, true) && !is_dir(self::dir())) {
+				throw new \RuntimeException('cannot create digest state directory');
+			}
+			$rLock = @fopen(self::dir() . $rServerID . '.lock', 'c');
+			if ($rLock === false || !flock($rLock, LOCK_EX)) {
+				throw new \RuntimeException('cannot lock digest state');
+			}
+			return $rOperation();
+		} catch (\Throwable $rError) {
+			// Optional feedback must not fail a successful apply. Heartbeats fail
+			// closed: never issue snapshots without durable rate-limit state.
+			error_log('Connection digest feedback unavailable: ' . $rError->getMessage());
+			return null;
+		} finally {
+			if (is_resource($rLock)) {
+				fclose($rLock);
+			}
 		}
-		$rReported = self::of(self::scalarRecords($rRecords));
-		$rFile = self::dir() . $rServerID . '.snapshot.json';
-		if ($rOurs === $rReported) {
-			@unlink($rFile);
+	}
+
+	private static function readJson(string $rFile): array {
+		if (!file_exists($rFile)) {
+			return [];
+		}
+		$rData = @file_get_contents($rFile);
+		$rValue = $rData === false ? null : json_decode($rData, true);
+		if (!is_array($rValue)) {
+			throw new \RuntimeException('cannot read digest state');
+		}
+		return $rValue;
+	}
+
+	private static function writeJson(string $rFile, array $rValue): void {
+		$rTemp = $rFile . '.write-' . bin2hex(random_bytes(8));
+		try {
+			$rJson = json_encode($rValue, JSON_THROW_ON_ERROR);
+			if (@file_put_contents($rTemp, $rJson, LOCK_EX) !== strlen($rJson) || !@rename($rTemp, $rFile)) {
+				throw new \RuntimeException('cannot persist digest state');
+			}
+		} finally {
+			@unlink($rTemp);
+		}
+	}
+
+	private static function saveFeedback(string $rFile, array $rFeedback): void {
+		if (!isset($rFeedback['gap']) && empty($rFeedback['completed'])) {
+			if (file_exists($rFile) && !@unlink($rFile)) {
+				throw new \RuntimeException('cannot clear digest feedback');
+			}
 			return;
 		}
-		$rGap = self::gap($rOurs, $rReported);
-		$rPrevious = json_decode((string) @file_get_contents($rFile), true);
-		$rRetry = ($rPrevious['gap'] ?? null) === $rGap ? (int) ($rPrevious['retry_ms'] ?? self::COOLDOWN_MS) : self::COOLDOWN_MS;
-		if (!is_dir(self::dir())) {
-			@mkdir(self::dir(), 0750, true);
-		}
-		@file_put_contents($rFile, json_encode(['at' => ClusterClock::nowMs(), 'gap' => $rGap, 'retry_ms' => min(self::MAX_RETRY_MS, max(self::COOLDOWN_MS, $rRetry) * 2)]), LOCK_EX);
+		self::writeJson($rFile, $rFeedback);
 	}
 
 	/**

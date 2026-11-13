@@ -166,7 +166,7 @@ final class ConnectionSnapshotTest extends TestCase {
 		ClusterClock::fix(1800000424000);
 		$this->assertFalse(ConnectionDigest::check(5, $digest));
 		$this->assertSame(30000, ConnectionDigest::state(5)['retry_ms']);
-		$this->assertFileDoesNotExist($this->rDir . '/digest/5.snapshot.json');
+		$this->assertArrayNotHasKey('gap', json_decode(file_get_contents($this->rDir . '/digest/5.snapshot.json'), true));
 	}
 
 	public function testSnapshotFeedbackUsesTheSameScalarFieldsAsIngest(): void {
@@ -174,6 +174,75 @@ final class ConnectionSnapshotTest extends TestCase {
 		$this->rDb->query('INSERT INTO lines_live (uuid, server_id, hmac_id, hmac_identifier, hls_end) VALUES (?, 5, 9, NULL, 0);', 'hmac-viewer');
 		ConnectionDigest::snapshotApplied(5, $records);
 		$this->assertFileDoesNotExist($this->rDir . '/digest/5.snapshot.json', 'discarded nested fields must not create divergence or emit warnings');
+	}
+
+	public function testCompletionFeedbackIsIdempotentForSnapshotRetries(): void {
+		$this->row('foreign', 6, 7);
+		$payload = ['snap_id' => 'aa11bb22cc33dd44', 'seq' => 0, 'last' => true, 'records' => [$this->rec('foreign', 7)]];
+		ConnectionSnapshot::receive(5, $payload);
+		ConnectionSnapshot::receive(5, $payload);
+		$file = $this->rDir . '/digest/5.snapshot.json';
+		$this->assertSame(60000, json_decode(file_get_contents($file), true)['retry_ms']);
+		$payload['snap_id'] = 'aa11bb22cc33dd55';
+		ConnectionSnapshot::receive(5, $payload);
+		$this->assertSame(120000, json_decode(file_get_contents($file), true)['retry_ms']);
+	}
+
+	public function testCommittedDigestRecordsFeedbackWithoutReadingTheStoreAgain(): void {
+		$records = [$this->rec('a', 7)];
+		try {
+			DatabaseFactory::reset();
+			ConnectionDigest::snapshotApplied(5, $records, ConnectionDigest::of([]), 'aa11bb22cc33dd44');
+		} finally {
+			DatabaseFactory::set($this->rDb);
+		}
+		$this->assertSame(60000, json_decode(file_get_contents($this->rDir . '/digest/5.snapshot.json'), true)['retry_ms']);
+		$applied = null;
+		ConnectionSnapshot::apply(5, $records, $applied);
+		$this->assertSame(ConnectionDigest::of(ConnectionDigest::stored(5)), $applied);
+	}
+
+	public function testBrokenFeedbackStorageNeverIssuesAnUnthrottledSnapshot(): void {
+		$digest = ConnectionDigest::of([$this->rec('a', 7)]);
+		$this->assertFalse(ConnectionDigest::check(5, $digest));
+		file_put_contents($this->rDir . '/digest/5.snapshot.json', '{broken');
+		foreach ([12000, 60000, 360000] as $elapsed) {
+			ClusterClock::fix(1800000000000 + $elapsed);
+			$this->assertFalse(ConnectionDigest::check(5, $digest));
+		}
+		$this->assertSame(0, ConnectionDigest::state(5)['asked']);
+	}
+
+	public function testConcurrentCompletionsSerializeTheirReadModifyWrite(): void {
+		$dir = $this->rDir . '/digest/';
+		mkdir($dir);
+		$lock = fopen($dir . '5.lock', 'ce');
+		flock($lock, LOCK_EX);
+		$children = [];
+		try {
+			foreach (['aa11bb22cc33dd44', 'aa11bb22cc33dd55'] as $id) {
+				$code = 'require ' . var_export(dirname(__DIR__) . '/bootstrap.php', true) . ';'
+					. '\\XcVm\\Domain\\Cluster\\ConnectionDigest::useState(' . var_export($dir, true) . ');'
+					. 'file_put_contents(' . var_export($dir . $id . '.ready', true) . ', "ready");'
+					. '\\XcVm\\Domain\\Cluster\\ConnectionDigest::snapshotApplied(5, [["uuid"=>"a","user_id"=>7]], ["count"=>0,"users"=>0,"xor64"=>"0000000000000000"], ' . var_export($id, true) . ');';
+				$process = proc_open([PHP_BINARY, '-r', $code], [['file', '/dev/null', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']], $pipes);
+				$this->assertIsResource($process);
+				$children[] = $process;
+			}
+			$until = microtime(true) + 5;
+			while (count(glob($dir . '*.ready')) < 2 && microtime(true) < $until) {
+				usleep(1000);
+			}
+			$this->assertCount(2, glob($dir . '*.ready'));
+			$this->assertFileDoesNotExist($dir . '5.snapshot.json', 'Both completions wait for the heartbeat/feedback lock.');
+		} finally {
+			flock($lock, LOCK_UN);
+			fclose($lock);
+			foreach ($children as $process) {
+				$this->assertSame(0, proc_close($process));
+			}
+		}
+		$this->assertSame(120000, json_decode(file_get_contents($dir . '5.snapshot.json'), true)['retry_ms']);
 	}
 
 	public function testPartialSnapshotDoesNotStartBackoff(): void {
