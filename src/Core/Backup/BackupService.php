@@ -27,6 +27,9 @@ class BackupService {
 		'cluster_commands',
 		'cluster_nonces',
 		'cluster_reservations',
+		// Audit history and old connection lifecycles are not restore state.
+		'cluster_audit',
+		'connection_retirements',
 		'detect_restream_logs',
 		'epg_data',
 		'lines_activity',
