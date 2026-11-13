@@ -1128,6 +1128,28 @@ final class ClusterApiTest extends TestCase {
 		}
 	}
 
+	#[\PHPUnit\Framework\Attributes\Group('skip-on-panel')]
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+	public function testSweepingADeadTsWorkerClosesItsNodeRegistryWithoutAKill(): void {
+		define('SERVER_ID', 1);
+		$this->active();
+		SettingsManager::set($this->rSettings);
+		NodeRegistry::update(self::SID, ['flows' => NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_CONNECTIONS]);
+		$GLOBALS['rSettings'] = ['redis_handler' => 0, 'save_closed_connection' => 0];
+		$GLOBALS['rServers'] = [];
+		$rViewer = ['activity_id' => 7, 'uuid' => 'dead-ts-worker', 'server_id' => self::SID, 'user_id' => 3, 'stream_id' => 100, 'container' => 'ts', 'pid' => 123456, 'date_start' => 1, 'hls_end' => 0];
+		\XcVm\Domain\Cluster\ClusterRoute::useCrypto(fn() => $this->rCrypto);
+		try {
+			// UsersCronJob deletes the store row in a batch after this call.
+			$this->assertTrue(\XcVm\Domain\Stream\ConnectionTracker::closeConnection($rViewer, false, false, false));
+			$rDocs = array_map(static fn($rC) => json_decode($rC['doc'], true), \XcVm\Domain\Cluster\CommandBus::pending(self::SID, 0));
+			$this->assertSame([['conn.close', ['uuid' => 'dead-ts-worker', 'remove' => false]]], array_map(static fn($rD) => [$rD['type'], $rD['args']], $rDocs), 'the agent removes TS entries on conn.close; no worker kill is queued');
+		} finally {
+			\XcVm\Domain\Cluster\ClusterRoute::useCrypto(null);
+		}
+	}
+
 	/**
 	 * A node in mode 2 reads no `signals` row (its connects are refused), so
 	 * the cache jobs MAIN queues for it (a movie's files deleted, a closed
