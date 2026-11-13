@@ -3,6 +3,7 @@
 namespace XcVm\Domain\Epg;
 
 use XMLReader;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Parsing\XmlStringStreamer;
 use XcVm\Infrastructure\Database\DatabaseAware;
@@ -243,20 +244,31 @@ class EPG {
 			return false;
 		}
 		try {
-			$exit = 0;
-			$output = [];
-			exec('wget -q -U "Mozilla/5.0" --connect-timeout=30 --read-timeout=120 --tries=2 -O ' . escapeshellarg($download) . ' -- ' . escapeshellarg($rSource), $output, $exit);
-			if ($exit !== 0) {
+			if (ProcessRunner::run(['wget', '-q', '-U', 'Mozilla/5.0', '--connect-timeout=30', '--read-timeout=120', '--tries=2', '-O', $download, '--', $rSource], true) !== 0) {
 				return false;
 			}
 			$extension = strtolower(pathinfo((string) parse_url($rSource, PHP_URL_PATH), PATHINFO_EXTENSION));
-			if (in_array($extension, ['gz', 'xz'], true)) {
-				exec(($extension === 'gz' ? 'gunzip' : 'unxz') . ' -c -- ' . escapeshellarg($download) . ' > ' . escapeshellarg($xml), $output, $exit);
-				if ($exit !== 0) {
+			if ($extension === 'gz' || file_get_contents($download, false, null, 0, 2) === "\x1f\x8b") {
+				$input = gzopen($download, 'rb');
+				$output = fopen($xml, 'wb');
+				try {
+					if ($input === false || $output === false || stream_copy_to_stream($input, $output) === false) {
+						return false;
+					}
+				} finally {
+					if (is_resource($input)) {
+						gzclose($input);
+					}
+					if (is_resource($output)) {
+						fclose($output);
+					}
+				}
+			} elseif ($extension === 'xz') {
+				if (ProcessRunner::runToFile(['unxz', '-c', '--', $download], $xml) !== 0) {
 					return false;
 				}
-			} else {
-				copy($download, $xml);
+			} elseif (!copy($download, $xml)) {
+				return false;
 			}
 			return self::validXml($xml) && rename($xml, $rFilename);
 		} finally {

@@ -21,14 +21,15 @@ final class EpgReload {
 	 * Keep the lock file's inode: removing it would let another run bypass the holder.
 	 *
 	 * @param callable(): int $rImport
+	 * @param bool $rWait Wait for the active importer so a requested reload is not discarded.
 	 */
-	public static function run(callable $rImport, string $rPath): int {
+	public static function run(callable $rImport, string $rPath, bool $rWait = false): int {
 		$rLock = @fopen($rPath, 'c');
 		if ($rLock === false) {
 			return 1;
 		}
 		try {
-			if (!flock($rLock, LOCK_EX | LOCK_NB, $rWouldBlock)) {
+			if (!flock($rLock, $rWait ? LOCK_EX : LOCK_EX | LOCK_NB, $rWouldBlock)) {
 				return $rWouldBlock ? 0 : 1;
 			}
 			return $rImport();

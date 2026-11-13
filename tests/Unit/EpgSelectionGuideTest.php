@@ -1,5 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
+namespace XcVm\Tests\Unit;
+
+use TestDb;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -12,6 +17,7 @@ final class EpgSelectionGuideTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->db = new TestDb();
+		\XcVm\Infrastructure\Database\DatabaseFactory::set($this->db);
 		foreach (['epg', 'epg_data', 'epg_channels', 'streams', 'streams_options', 'streams_servers', 'bouquets', 'servers', 'streams_categories'] as $table) {
 			$this->db->exec(InstallSchema::table($table));
 		}
@@ -26,8 +32,8 @@ final class EpgSelectionGuideTest extends TestCase {
 	}
 
 	public function testAnUnselectedStreamNeverGetsMatchedByName(): void {
-		$group = EpgSelectionGuide::group($this->db, [1, 2]);
-		$this->assertSame($group, EpgSelectionGuide::group($this->db, [1, 2]));
+		$group = EpgSelectionGuide::group([1, 2]);
+		$this->assertSame($group, EpgSelectionGuide::group([1, 2]));
 		$streams = [['id' => 7, 'stream_display_name' => 'RTL DE', 'epg_id' => $group]];
 		$config = EpgMerge::config(EpgSelectionGuide::resolve($this->sources(), $streams)[$group]);
 		$this->assertSame([], $config['bindings']);
@@ -49,7 +55,10 @@ final class EpgSelectionGuideTest extends TestCase {
 		\XcVm\Core\Config\SettingsManager::set(['enable_cache' => 0, 'download_images' => 0]);
 		$this->db->query('INSERT INTO `streams` (`id`,`type`,`stream_display_name`,`stream_source`,`category_id`) VALUES(7,1,?,?,?)', 'RTL DE', '["http://example.invalid/live.ts"]', '[]');
 		$calls = [];
-		\XcVm\Core\Process\ProcessRunner::useRunner(function ($argv) use (&$calls) { $calls[] = $argv; return 0; });
+		\XcVm\Core\Process\ProcessRunner::useRunner(function ($argv) use (&$calls) {
+			$calls[] = $argv;
+			return 0;
+		});
 		$post = ['edit' => 7, 'stream_source' => ['http://example.invalid/live.ts'], 'server_tree_data' => '[]', 'category_id' => [], 'bouquets' => [], 'epg_pick_enabled' => 1, 'epg_picks' => '[{"source":2,"channel":"rtl.at"},{"source":1,"channel":"rtl.de"}]'];
 		$result = \XcVm\Domain\Stream\StreamService::process($post);
 		$this->assertSame(STATUS_SUCCESS, $result['status']);
@@ -68,7 +77,7 @@ final class EpgSelectionGuideTest extends TestCase {
 		$result = \XcVm\Domain\Stream\StreamService::process($pickedPost);
 		$this->assertSame(STATUS_SUCCESS, $result['status']);
 		$this->db->query('SELECT * FROM `streams` WHERE `id`=7');
-		$this->assertSame(['rtl.at','rtl.de'],array_column(json_decode($this->db->get_raw_row()['epg_bindings'],true),'channel'));
+		$this->assertSame([['source' => 2, 'channel' => 'rtl.at', 'lang' => 'de'], ['source' => 1, 'channel' => 'rtl.de', 'lang' => 'de']], json_decode($this->db->get_raw_row()['epg_bindings'], true));
 
 		unset($post['edit']);
 		$post['stream_display_name'] = 'RTL AT';

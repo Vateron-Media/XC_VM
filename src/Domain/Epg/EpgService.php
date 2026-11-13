@@ -30,6 +30,10 @@ class EpgService {
 	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
 	 */
 	public static function process(array $rData) {
+		return EpgConfiguration::locked(static fn() => self::processLocked($rData));
+	}
+
+	private static function processLocked(array $rData) {
 		$db = self::db();
 		unset($rData['merge_config'], $rData['merge_status']);
 		if (isset($rData['edit']) && intval($rData['edit']) === CreatedChannelEpg::reservedSourceId()) {
@@ -72,7 +76,7 @@ class EpgService {
 				}
 			}
 			if ($id && (bool) EpgMerge::config($sources[$id]) !== !empty($rData['merge_enabled'])) {
-				$db->query('SELECT `id` FROM `streams` WHERE `epg_id` = ? LIMIT 1', $id);
+				$db->query('SELECT `id` FROM `streams` WHERE `epg_id` = ? LIMIT 1;', $id);
 				if ($db->num_rows() > 0) {
 					return ['status' => STATUS_FAILURE, 'data' => $rData];
 				}
@@ -128,11 +132,14 @@ class EpgService {
 	 */
 	public static function findByName(string $rEPGName) {
 		$db = self::db();
-		$db->query('SELECT `id`, `data` FROM `epg`;');
+		$db->query('SELECT `id`, `data`, `merge_config` FROM `epg`;');
 
 		if ($db->num_rows() > 0) {
 			foreach ($db->get_rows() as $rRow) {
-				foreach (json_decode($rRow['data'], true) as $rChannelID => $rChannelData) {
+				if (!empty(EpgMerge::config($rRow)['selection'])) {
+					continue;
+				}
+				foreach (json_decode((string) ($rRow['data'] ?? ''), true) ?: [] as $rChannelID => $rChannelData) {
 					if ($rChannelID == $rEPGName) {
 						if (count($rChannelData['langs']) > 0) {
 							$rEPGLang = $rChannelData['langs'][0];
@@ -284,6 +291,10 @@ class EpgService {
 	 * @return bool True on success.
 	 */
 	public static function deleteEpgById(int $rID) {
+		return EpgConfiguration::locked(static fn() => self::deleteLocked($rID));
+	}
+
+	private static function deleteLocked(int $rID) {
 		$db = self::db();
 		$rEPG = self::getById($rID);
 
@@ -291,6 +302,7 @@ class EpgService {
 			return false;
 		}
 
+		EpgSelectionGuide::cleanupUnused();
 		$db->query('SELECT * FROM `epg`;');
 		foreach ($db->get_raw_rows() as $source) {
 			if (in_array($rID, EpgMerge::config($source)['sources'] ?? [], true)) {

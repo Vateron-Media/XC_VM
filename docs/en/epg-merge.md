@@ -1,6 +1,6 @@
 # Combining EPG sources
 
-Apply database migrations `103_add_epg_merge` and `104_add_stream_epg_bindings` through the normal XC_VM updater before using this feature.
+Apply database migrations `103_add_epg_merge`, `104_add_stream_epg_bindings`, and `105_add_epg_merge_lookup` through the normal XC_VM updater before using this feature.
 
 ## Search and select multiple EPG entries
 
@@ -25,8 +25,14 @@ The normal EPG cron maintains the merged guide. Reloading an input also rebuilds
 
 Higher-priority programmes win. Backups fill only complete, non-overlapping intervals; programmes are never cut into fragments. A backup starting before an existing programme ends is skipped, so small gaps can remain. No system can supply missing listings when every input lacks them. The edit page shows coverage for the next 24 hours and the latest programme end for each assigned channel.
 
-Invalid downloads, malformed XML and failed database replacements retain the last successful data. An old merged guide is the final fallback during outages. Its entries still expire according to their actual programme times. The status lists failed input IDs detected during the latest reload.
+Invalid downloads, malformed XML and failed database replacements retain the last successful data. An old merged guide is a fallback only when relevant inputs failed and its source order, mappings, and selected languages still match. Successful reloads do not reintroduce programmes removed by the inputs. Its entries still expire according to their actual programme times. The status lists failed input IDs detected during the latest reload.
 
 Channel IDs are mapped explicitly; similar channel names are not matched automatically. Merged channel IDs are stable and separate from input IDs, preventing collisions in exported XMLTV. Changing a target ID requires reassigning affected streams. Removing a source used by a merge is refused. Switching an assigned source between ordinary and merged modes is refused; create a separate source instead.
 
 Merge sources cannot contain other merges or the reserved Created Channels guide. Up to 20 inputs and 1,000 manual mappings are supported. Source timezone offsets apply before merging; a merge has no additional offset. The existing single preferred programme language per input channel remains in effect.
+
+Configuration saves, input deletion, internal-group creation, and fetched-source publication share a database lock. An edit made while a source downloads discards that older response. Stream creation and its final selection channel ID commit atomically. A requested reload waits behind an active importer rather than being discarded. Failed process launches are logged; scheduled EPG refresh remains available.
+
+Unused internal selection guides are removed when checking source deletion. They are excluded from legacy search and auto-assignment. Each selection retains the longest configured history of its inputs; zero means that the importer does not impose an additional history cutoff. Source history still expires after failed downloads. A broken merge retains its previous data and does not stop other guides, XMLTV generation, or stream-cache refresh.
+
+Migration 105 adds `(epg_id, channel_id, end, start)` for per-channel lookups. A representative 10,000-row fixture uses this index and examines only its requested source/channel range; the `ORDER BY start` can still require a filesort after the indexed range lookup.

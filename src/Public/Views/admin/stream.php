@@ -18,6 +18,7 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Module\StreamFormRegistry;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Epg\EpgMerge;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Core\Util\LayoutRenderer;
 
@@ -315,7 +316,7 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                                     <label class="form-label" for="epg_id"><?= $language::get('epg_source'); ?></label>
                                     <select name="epg_id" id="epg_id" class="form-select">
                                         <option value="0" <?= $rSelEpgId === 0 ? 'selected' : ''; ?>><?= $language::get('no_epg'); ?></option>
-                                        <?php foreach ($rEPGSources as $rEPG): if (!empty(\XcVm\Domain\Epg\EpgMerge::config($rEPG)['selection'])) continue; ?>
+                                        <?php foreach ($rEPGSources as $rEPG): if (!empty(EpgMerge::config($rEPG)['selection'])) continue; ?>
                                             <option value="<?= (int) $rEPG['id']; ?>" <?= $rSelEpgId === (int) $rEPG['id'] ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rEPG['epg_name'], ENT_QUOTES); ?></option>
                                         <?php endforeach; ?>
                                     </select>
@@ -650,7 +651,7 @@ LayoutRenderer::renderFooter('admin');
             var pickLabels = <?= json_encode(['add' => $language::get('epg_pick_add'), 'remove' => $language::get('delete'), 'up' => $language::get('epg_pick_up'), 'down' => $language::get('epg_pick_down'), 'empty' => $language::get('epg_pick_empty'), 'more' => $language::get('epg_pick_more'), 'limit' => $language::get('epg_pick_limit')], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
             function activatePicks() {
                 pickFlag.value = pickedEntries.length ? '1' : '0';
-                if (!pickedEntries.length) $('#epg_id').val('0').trigger('change');
+                if (!pickedEntries.length && <?= !empty($rPickActive) ? 'true' : 'false'; ?>) $('#epg_id').val('0').trigger('change');
                 updateManualEpgState();
                 renderPicks();
             }

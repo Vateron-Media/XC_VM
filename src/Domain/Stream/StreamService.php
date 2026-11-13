@@ -17,6 +17,7 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Epg\EpgConfiguration;
 use XcVm\Domain\Epg\EpgSelectionGuide;
 use XcVm\Domain\Epg\EpgBindingSelection;
 use XcVm\Domain\Epg\EpgMerge;
@@ -44,6 +45,12 @@ class StreamService {
 	 * @return array ['status' => STATUS_* constant, 'data' => insert_id or payload].
 	 */
 	public static function process(array $rData) {
+		return array_key_exists('epg_pick_enabled', $rData)
+			? EpgConfiguration::locked(static fn() => self::processLocked($rData))
+			: self::processLocked($rData);
+	}
+
+	private static function processLocked(array $rData) {
 		$rData = Authorization::dropFfmpegArguments($rData);
 		unset($rData['epg_bindings']);
 		global $rSettings;
@@ -333,7 +340,7 @@ class StreamService {
 			$rInsertID = 0;
 			$rSavedIDs = [];
 			try {
-				$rSelectionGroup = $rSelectionSources ? EpgSelectionGuide::group($db, $rSelectionSources) : null;
+				$rSelectionGroup = $rSelectionSources ? EpgSelectionGuide::group($rSelectionSources) : null;
 			} catch (RuntimeException $e) {
 				return ['status' => STATUS_FAILURE, 'data' => $rData];
 			}
@@ -410,14 +417,32 @@ class StreamService {
 						$rImportArray['channel_id'] = EpgMerge::channelId($rSelectionGroup, EpgSelectionGuide::target((int) ($rImportArray['id'] ?? 0)));
 					}
 
+					$rSelectionTx = $rSelectionGroup !== null && !$db->isInTransaction();
+					$rSelectionSavepoint = $rSelectionGroup !== null && !$rSelectionTx;
+					if (($rSelectionTx && !$db->beginTransaction()) || ($rSelectionSavepoint && !$db->query('SAVEPOINT xcvm_stream_selection;'))) {
+						return ['status' => STATUS_FAILURE, 'data' => $rData];
+					}
 					$rPrepare = QueryHelper::prepareArray($rImportArray);
 					$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
-
-					if ($db->query($rQuery, ...$rPrepare['data'])) {
-						$rInsertID = $db->last_insert_id();
-						if ($rSelectionGroup !== null && !$db->query('UPDATE `streams` SET `channel_id` = ? WHERE `id` = ?', EpgMerge::channelId($rSelectionGroup, EpgSelectionGuide::target((int) $rInsertID)), $rInsertID)) {
-							return ['status' => STATUS_FAILURE, 'data' => $rData];
+					try {
+						$rWritten = $db->query($rQuery, ...$rPrepare['data']);
+						$rNewID = $rWritten ? (int) $db->last_insert_id() : 0;
+						if ($rSelectionGroup !== null && (!$rWritten || !$db->query('UPDATE `streams` SET `channel_id` = ? WHERE `id` = ?;', EpgMerge::channelId($rSelectionGroup, EpgSelectionGuide::target($rNewID)), $rNewID))) {
+							throw new RuntimeException('Cannot save stream EPG selection.');
 						}
+						if (($rSelectionTx && !$db->commit()) || ($rSelectionSavepoint && !$db->query('RELEASE SAVEPOINT xcvm_stream_selection;'))) {
+							throw new RuntimeException('Cannot commit stream EPG selection.');
+						}
+					} catch (\Throwable $rError) {
+						if ($rSelectionTx) {
+							$db->rollback();
+						} elseif ($rSelectionSavepoint) {
+							$db->query('ROLLBACK TO SAVEPOINT xcvm_stream_selection;');
+						}
+						throw $rError;
+					}
+					if ($rWritten) {
+						$rInsertID = $rNewID;
 						$rStreamExists = [];
 
 						if (isset($rData['edit']) || isset($rImportStream['id'])) {
@@ -521,7 +546,9 @@ class StreamService {
 
 			self::dispatchSaved($rSavedIDs, $rData, $rReview, $rModuleFields);
 			if ($rSelectionGroup !== null && $rSavedIDs) {
-				EpgReload::start($rSelectionGroup);
+				if (!EpgReload::start($rSelectionGroup)) {
+					error_log('EPG selection saved, but its immediate reload could not start; the scheduled EPG refresh will retry.');
+				}
 			}
 			return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rInsertID]];
 		}

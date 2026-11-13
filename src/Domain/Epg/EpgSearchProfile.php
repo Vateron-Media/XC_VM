@@ -1,8 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace XcVm\Domain\Epg;
 
-/** Normalizes channel names for read-only EPG search ranking. */
+/**
+ * Normalizes channel names for read-only EPG search ranking.
+ *
+ * @package XC_VM_Domain_Epg
+ */
 final class EpgSearchProfile {
 	private const COUNTRIES = [
 		'de' => 'de', 'deu' => 'de', 'ger' => 'de', 'germany' => 'de', 'deutschland' => 'de',
@@ -29,7 +35,12 @@ final class EpgSearchProfile {
 	];
 	private const NOISE = ['hd', 'fhd', 'uhd', 'sd', 'hq', 'lq', '4k', '8k', 'hevc', 'h264', 'h265', '1080p', '1080i', '720p', '50fps', '60fps', 'live', 'event', 'events', 'backup', 'vip', 'raw'];
 
-	/** Keep brand, service numbers, plus/timeshift and named variants intact. */
+	/**
+	 * Keep brand, service numbers, plus/timeshift and named variants intact.
+	 *
+	 * @param string $name
+	 * @return array
+	 */
 	public static function profile(string $name): array {
 		$name = preg_replace('/\bex[\s_-]*yu\b/i', ' ', $name);
 		$name = preg_replace('/^(?:mu|music)\s*:\s*/i', '', $name);

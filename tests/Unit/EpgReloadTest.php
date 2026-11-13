@@ -6,6 +6,32 @@ use XcVm\Core\Util\Topbar;
 use XcVm\Domain\Epg\EpgReload;
 
 final class EpgReloadTest extends TestCase {
+	public function testRequestedReloadWaitsForTheActiveImporter(): void {
+		$path = tempnam(sys_get_temp_dir(), 'epg-wait-');
+		$lock = fopen($path, 'ce');
+		flock($lock, LOCK_EX);
+		$code = 'require $argv[1]; exit(\\XcVm\\Domain\\Epg\\EpgReload::run(static function (): int { echo "FRESH_IMPORT"; return 42; }, $argv[2], true));';
+		$process = proc_open([PHP_BINARY, '-r', $code, MAIN_HOME . 'vendor/autoload.php', $path], [['file', '/dev/null', 'r'], ['pipe', 'w'], ['pipe', 'w']], $pipes);
+		try {
+			$this->assertIsResource($process);
+			$this->assertTrue(proc_get_status($process)['running']);
+			flock($lock, LOCK_UN);
+			fclose($lock);
+			$lock = null;
+			$this->assertSame('FRESH_IMPORT', stream_get_contents($pipes[1]));
+			$this->assertSame('', stream_get_contents($pipes[2]));
+			fclose($pipes[1]);
+			fclose($pipes[2]);
+			$this->assertSame(42, proc_close($process));
+		} finally {
+			if (is_resource($lock)) {
+				flock($lock, LOCK_UN);
+				fclose($lock);
+			}
+			unlink($path);
+		}
+	}
+
 	public function testACompetingProcessCannotImportOrReleaseTheHoldersLock(): void {
 		$rPath = tempnam(sys_get_temp_dir(), 'epg-lock-');
 		try {

@@ -10,6 +10,8 @@ use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Epg\EPG;
 use XcVm\Domain\Epg\EpgReload;
 use XcVm\Domain\Epg\EpgMerge;
+use XcVm\Domain\Epg\EpgConfiguration;
+use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Domain\Epg\EpgSelectionGuide;
 use RuntimeException;
 use Throwable;
@@ -26,6 +28,7 @@ use Throwable;
 
 class EpgCronJob implements CommandInterface {
 	use CronTrait;
+	use DatabaseAware;
 
 	/**
 	 * Of programmes with the same source, channel and start, keep the last one
@@ -46,7 +49,7 @@ class EpgCronJob implements CommandInterface {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
 		}
-		return EpgReload::run(fn(): int => $this->import($rArgs), CRONS_TMP_PATH . 'epg_import.lock');
+		return EpgReload::run(fn(): int => $this->import($rArgs), CRONS_TMP_PATH . 'epg_import.lock', true);
 	}
 
 	private function import(array $rArgs): int {
@@ -118,13 +121,16 @@ class EpgCronJob implements CommandInterface {
 
 	/** Fetch inputs first, preserve failed snapshots, then rebuild virtual guides. */
 	public function importSources(?int $requested = null): void {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `epg`;');
 		$sources = array_column($db->get_raw_rows(), null, 'id');
 		$scope = $requested === null ? array_keys($sources) : [$requested];
 		if (isset($sources[$requested])) {
 			$scope = array_merge($scope, EpgMerge::config($sources[$requested])['sources'] ?? []);
 		}
+		$db->query('SELECT `id`, `stream_display_name`, `epg_id`, `channel_id`, `epg_lang`, `epg_bindings` FROM `streams` WHERE `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL;');
+		$streams = $db->get_raw_rows();
+		// Fetch metadata first; all requested inputs must be visible to binding resolution.
 		$valid = [];
 		$failed = [];
 		foreach ($sources as $id => &$source) {
@@ -141,8 +147,6 @@ class EpgCronJob implements CommandInterface {
 			$valid[$id] = true;
 		}
 		unset($source);
-		$db->query('SELECT `id`, `stream_display_name`, `epg_id`, `channel_id`, `epg_lang`, `epg_bindings` FROM `streams` WHERE `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL;');
-		$streams = $db->get_raw_rows();
 		$sources = EpgSelectionGuide::resolve($sources, $streams);
 		$dependencies = EpgMerge::dependencies($sources, $streams);
 		foreach ($valid as $id => $_) {
@@ -150,7 +154,7 @@ class EpgCronJob implements CommandInterface {
 			$channels = $dependencies[$id] ?? [];
 			foreach ($streams as $stream) {
 				if ((int) $stream['epg_id'] === (int) $id) {
-					$channels[$stream['channel_id']] = ['epg_lang' => $stream['epg_lang'] ?? ''];
+					$channels[$stream['channel_id']] ??= ['epg_lang' => $stream['epg_lang'] ?? ''];
 				}
 			}
 			$epg = new EPG($source['epg_file'], true);
@@ -162,50 +166,71 @@ class EpgCronJob implements CommandInterface {
 			if ($channels && !$batches) {
 				$failed[] = $id;
 			}
-			if (!$db->beginTransaction()) {
-				throw new RuntimeException('Could not start EPG transaction.');
-			}
 			try {
-				$this->saveImport('DELETE FROM `epg_channels` WHERE `epg_id` = ?', [$id]);
-				foreach (json_decode($source['data'], true) as $channel => $metadata) {
-					$this->saveImport('INSERT INTO `epg_channels` (`epg_id`,`channel_id`,`name`,`langs`) VALUES(?,?,?,?)', [$id, $channel, $metadata['display_name'], json_encode($metadata['langs'])]);
-				}
-				// An empty programme response must not erase a working guide.
-				if ($batches) {
-					if ((int) $source['days_keep'] === 0) {
-						foreach (array_keys($epg->rParsedChannels) as $channel) {
-							$this->saveImport('DELETE FROM `epg_data` WHERE `epg_id` = ? AND `channel_id` = ?', [$id, $channel]);
+				EpgConfiguration::locked(function () use ($db, $source, $id, $epg, $batches): void {
+					$db->query('SELECT * FROM `epg` WHERE `id` = ?;', $id);
+					$current = $db->get_raw_row();
+					foreach (['epg_file', 'offset', 'days_keep', 'merge_config'] as $key) {
+						if ($current === null || (string) ($current[$key] ?? '') !== (string) ($source[$key] ?? '')) {
+							throw new RuntimeException('EPG configuration changed during download; discarding fetched snapshot.');
 						}
 					}
-					foreach ($batches as $batch) {
-						$this->saveImport('INSERT INTO `epg_data` (`epg_id`,`channel_id`,`start`,`end`,`lang`,`title`,`description`) VALUES ' . $batch, []);
+					if (!$db->beginTransaction()) {
+						throw new RuntimeException('Could not start EPG transaction.');
 					}
-				}
-				if ((int) $source['days_keep'] > 0) {
-					$this->saveImport('DELETE FROM `epg_data` WHERE `epg_id` = ? AND `end` < ?', [$id, time() - (int) $source['days_keep'] * 86400]);
-				}
-				$this->saveImport('UPDATE `epg` SET `data` = ?, `last_updated` = ? WHERE `id` = ?', [$source['data'], time(), $id]);
-				if (!$db->commit()) {
-					throw new RuntimeException('Could not commit EPG transaction.');
-				}
-			} catch (Throwable $e) {
-				$db->rollback();
+					try {
+						$this->saveImport('DELETE FROM `epg_channels` WHERE `epg_id` = ?;', [$id]);
+						foreach (json_decode($source['data'], true) as $channel => $metadata) {
+							$this->saveImport('INSERT INTO `epg_channels` (`epg_id`,`channel_id`,`name`,`langs`) VALUES(?,?,?,?);', [$id, $channel, $metadata['display_name'], json_encode($metadata['langs'])]);
+						}
+						if ($batches) {
+							foreach (array_keys($epg->rParsedChannels) as $channel) {
+								// Replace future listings after a successful channel refresh, preserving configured history.
+								$this->saveImport('DELETE FROM `epg_data` WHERE `epg_id` = ? AND `channel_id` = ?' . ((int) $source['days_keep'] === 0 ? '' : ' AND `end` >= ?') . ';', array_merge([$id, $channel], (int) $source['days_keep'] === 0 ? [] : [time()]));
+							}
+							foreach ($batches as $batch) {
+								$this->saveImport('INSERT INTO `epg_data` (`epg_id`,`channel_id`,`start`,`end`,`lang`,`title`,`description`) VALUES ' . $batch . ';', []);
+							}
+						}
+						$this->saveImport('UPDATE `epg` SET `data` = ?, `last_updated` = ? WHERE `id` = ?;', [$source['data'], time(), $id]);
+						if (!$db->commit()) {
+							throw new RuntimeException('Could not commit EPG transaction.');
+						}
+					} catch (Throwable $error) {
+						$db->rollback();
+						throw $error;
+					}
+				});
+			} catch (Throwable $error) {
 				$failed[] = $id;
-				$this->printLog('[EPG] Import rolled back: ' . $e->getMessage());
+				$this->printLog('[EPG] Import retained previous snapshot: ' . $error->getMessage());
 			}
 		}
+		// Retention also runs after failed downloads, using the current configuration.
+		EpgConfiguration::locked(function () use ($db, $scope): void {
+			$db->query('SELECT `id`, `epg_name`, `days_keep`, `merge_config` FROM `epg` WHERE `days_keep` > 0;');
+			foreach ($db->get_raw_rows() as $source) {
+				if (in_array((int) $source['id'], $scope, true) && $source['epg_name'] !== CreatedChannelEpg::SOURCE_NAME && !EpgMerge::config($source)) {
+					$this->saveImport('DELETE FROM `epg_data` WHERE `epg_id` = ? AND `end` < ?;', [$source['id'], time() - (int) $source['days_keep'] * 86400]);
+				}
+			}
+		});
 		$db->query(self::DEDUPE);
 		$db->query('SELECT * FROM `epg`;');
 		$sources = EpgSelectionGuide::resolve(array_column($db->get_raw_rows(), null, 'id'), $streams);
 		foreach ($sources as $source) {
 			if (EpgMerge::config($source)) {
-				EpgMerge::rebuild($db, $source, $sources, $streams, $failed);
+				try {
+					EpgMerge::rebuild($source, $sources, $streams, $failed);
+				} catch (Throwable $error) {
+					$this->printLog('[EPG] Merge kept previous snapshot: ' . $error->getMessage());
+				}
 			}
 		}
 	}
 
 	private function saveImport(string $sql, array $parameters): void {
-		global $db;
+		$db = self::db();
 		if (!$db->query($sql, ...$parameters)) {
 			throw new RuntimeException('Could not save EPG import.');
 		}

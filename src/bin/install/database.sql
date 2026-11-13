@@ -659,7 +659,8 @@ CREATE TABLE IF NOT EXISTS `epg_data` (
   KEY `start` (`start`),
   KEY `end` (`end`),
   KEY `lang` (`lang`),
-  KEY `channel_id` (`channel_id`)
+  KEY `channel_id` (`channel_id`),
+  KEY `epg_merge_lookup` (`epg_id`,`channel_id`,`end`,`start`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------

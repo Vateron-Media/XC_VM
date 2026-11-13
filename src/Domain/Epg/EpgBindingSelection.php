@@ -1,12 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace XcVm\Domain\Epg;
 
 use InvalidArgumentException;
 
-/** Ordered, explicit EPG entries picked from the panel's own XMLTV sources. */
+/**
+ * Ordered, explicit EPG entries picked from the panel's own XMLTV sources.
+ *
+ * @package XC_VM_Domain_Epg
+ */
 final class EpgBindingSelection {
-	/** Validate exact entries; do not silently replace an ID selected by the administrator. */
+	/**
+	 * Validate exact entries; do not silently replace an ID selected by the administrator.
+	 *
+	 * @param string $json
+	 * @param array $sources
+	 * @return array
+	 */
 	public static function validate(string $json, array $sources): array {
 		if (strlen($json) > 16384) {
 			throw new InvalidArgumentException('EPG selection is too large.');
@@ -43,7 +55,14 @@ final class EpgBindingSelection {
 		return $result;
 	}
 
-	/** Search all channel variants without excluding other countries from the result list. */
+	/**
+	 * Search all channel variants without excluding other countries from the result list.
+	 *
+	 * @param string $query
+	 * @param array $sources
+	 * @param int $onlySource
+	 * @return array
+	 */
 	public static function search(string $query, array $sources, int $onlySource = 0): array {
 		$profile = EpgSearchProfile::profile($query);
 		$key = $profile['key'];

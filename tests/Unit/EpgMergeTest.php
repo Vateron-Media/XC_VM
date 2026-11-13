@@ -1,5 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
+namespace XcVm\Tests\Unit;
+
+use TestDb;
+use InvalidArgumentException;
+use PDOException;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -58,6 +65,7 @@ final class EpgMergeTest extends TestCase {
 
 	public function testMigrationIsRepeatableAndReversible(): void {
 		$db = new TestDb();
+		\XcVm\Infrastructure\Database\DatabaseFactory::set($db);
 		$db->exec(InstallSchema::table('epg'));
 		$down = file_get_contents(MAIN_HOME . 'migrations/database/down/103_add_epg_merge.sql');
 		$db->exec($down);
@@ -74,6 +82,7 @@ final class EpgMergeTest extends TestCase {
 	#[PreserveGlobalState(false)]
 	public function testAdminCreatesValidatedMergeAndCannotDeleteItsInputs(): void {
 		$db = new TestDb();
+		\XcVm\Infrastructure\Database\DatabaseFactory::set($db);
 		foreach (['epg', 'epg_channels', 'epg_data', 'streams'] as $table) {
 			$db->exec(InstallSchema::table($table));
 		}
@@ -111,6 +120,7 @@ final class EpgMergeTest extends TestCase {
 		define('TMP_PATH', sys_get_temp_dir() . '/xcvm-epg-' . getmypid() . '/');
 		mkdir(TMP_PATH);
 		$db = new TestDb();
+		\XcVm\Infrastructure\Database\DatabaseFactory::set($db);
 		foreach (['epg', 'epg_channels', 'epg_data', 'streams'] as $table) {
 			$db->exec(InstallSchema::table($table));
 		}
@@ -132,14 +142,14 @@ final class EpgMergeTest extends TestCase {
 		$streams = [['epg_id' => 3, 'channel_id' => $key]];
 		$dependencies = EpgMerge::dependencies($sources, $streams);
 		$this->assertArrayHasKey('alt.news', $dependencies[2]);
-		EpgMerge::rebuild($db, $sources[3], $sources, $streams);
+		EpgMerge::rebuild($sources[3], $sources, $streams);
 		$db->query('SELECT * FROM `epg_data` WHERE `epg_id` = 3 ORDER BY `start`');
 		$before = $db->get_raw_rows();
 		$this->assertSame(['Primary', 'Backup'], array_column($before, 'title'));
 		$this->assertSame('A & B', $before[0]['description']);
 		$db->exec("CREATE TRIGGER fail_merge BEFORE INSERT ON epg_data FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected failure'");
 		try {
-			EpgMerge::rebuild($db, $sources[3], $sources, $streams);
+			EpgMerge::rebuild($sources[3], $sources, $streams);
 			$this->fail('A failed insert must abort the merge.');
 		} catch (PDOException $e) {
 			$this->assertStringContainsString('injected failure', $e->getMessage());
@@ -167,17 +177,17 @@ final class EpgMergeTest extends TestCase {
 		$this->assertGreaterThan(8, $status['channels'][$key]['percent']);
 		// Complete input loss still keeps the successful merged snapshot as last fallback.
 		$db->query('DELETE FROM `epg_data` WHERE `epg_id` IN (1,2)');
-		EpgMerge::rebuild($db, $sources[3], $sources, $streams, [1, 2]);
+		EpgMerge::rebuild($sources[3], $sources, $streams, [1, 2]);
 		$db->query('SELECT `title` FROM `epg_data` WHERE `epg_id` = 3 ORDER BY `start`');
 		$this->assertSame(['Primary', 'Backup'], array_column($db->get_raw_rows(), 'title'));
 		$db->query('UPDATE `epg` SET `data` = ? WHERE `id` IN (1,2)', '{}');
 		$db->query('SELECT * FROM `epg`');
 		$sources = array_column($db->get_raw_rows(), null, 'id');
-		$sources[3]['merge_config'] = json_encode(['sources' => [1, 2], 'aliases' => []]);
-		EpgMerge::rebuild($db, $sources[3], $sources, $streams, [1, 2]);
+		EpgMerge::rebuild($sources[3], $sources, $streams, [1, 2]);
 		$db->query('SELECT `title` FROM `epg_data` WHERE `epg_id` = 3 ORDER BY `start`');
 		$this->assertSame(['Primary', 'Backup'], array_column($db->get_raw_rows(), 'title'), 'A channel omitted by both input catalogs retains its merged snapshot.');
 	}
+
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState(false)]
 	public function testDownloadsImportUnusedInputsForMergeAndKeepDataAfterMalformedResponse(): void {
@@ -189,6 +199,7 @@ final class EpgMergeTest extends TestCase {
 		fclose($socket);
 		$process = proc_open([PHP_BINARY, '-S', $address, '-t', $dir], [['file', '/dev/null', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']], $pipes);
 		$db = new TestDb();
+		\XcVm\Infrastructure\Database\DatabaseFactory::set($db);
 		$previous = $GLOBALS['db'] ?? null;
 		$GLOBALS['db'] = $db;
 		EPG::setDb($db);
@@ -209,6 +220,9 @@ final class EpgMergeTest extends TestCase {
 				$start = gmdate('YmdHis O', $now + ($id - 1) * 3600);
 				$end = gmdate('YmdHis O', $now + $id * 3600);
 				$xml = '<tv><channel id="' . $channel . '"><display-name>News</display-name></channel><programme channel="' . $channel . '" start="' . $start . '" stop="' . $end . '"><title lang="de">Programme ' . $id . '</title><desc lang="de">A &amp; B</desc></programme></tv>';
+				if ($id === 1) {
+					$primaryXml = $xml;
+				}
 				file_put_contents($dir . $id . '.xml.gz', gzencode($xml));
 				$db->query('INSERT INTO `epg` (`id`,`epg_name`,`epg_file`,`days_keep`) VALUES(?,?,?,0)', $id, 'Source ' . $id, 'http://' . $address . '/' . $id . '.xml.gz?token=test');
 			}
@@ -237,6 +251,19 @@ final class EpgMergeTest extends TestCase {
 			$this->assertSame('Programme 1', $db->get_raw_row()['title']);
 			$db->query('SELECT * FROM `epg_data` WHERE `epg_id` = 3 ORDER BY `start`');
 			$this->assertSame(['Programme 1', 'Programme 2'], array_column($db->get_raw_rows(), 'title'));
+			// The response belongs to the old URL; a concurrent admin edit must win.
+			$script = '<?php require ' . var_export(dirname(__DIR__) . '/bootstrap.php', true) . '; $db = new \\TestDb(' . var_export($db->schema(), true) . ');'
+				. '$db->query("UPDATE epg SET epg_file = ? WHERE id = 1;", ' . var_export('http://' . $address . '/new-source.xml', true) . ');'
+				. 'echo ' . var_export(gzencode(str_replace('Programme 1', 'Stale URL response', $primaryXml)), true) . ';';
+			file_put_contents($dir . 'change.php', $script);
+			$db->query('UPDATE `epg` SET `epg_file` = ? WHERE `id` = 1;', 'http://' . $address . '/change.php');
+			ob_start();
+			$cron->importSources(1);
+			ob_end_clean();
+			$db->query('SELECT `title` FROM `epg_data` WHERE `epg_id` = 1;');
+			$this->assertSame(['Programme 1'], array_column($db->get_raw_rows(), 'title'));
+			$db->query('SELECT `epg_file` FROM `epg` WHERE `id` = 1;');
+			$this->assertSame('http://' . $address . '/new-source.xml', $db->get_col());
 		} finally {
 			$GLOBALS['db'] = $previous;
 			proc_terminate($process);
@@ -247,5 +274,4 @@ final class EpgMergeTest extends TestCase {
 			rmdir($dir);
 		}
 	}
-
 }
