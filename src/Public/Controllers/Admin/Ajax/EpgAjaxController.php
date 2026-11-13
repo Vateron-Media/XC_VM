@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
+use XcVm\Domain\Epg\EpgBindingSelection;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
@@ -36,7 +37,9 @@ class EpgAjaxController extends BaseAjaxController {
 		$rSub = RequestManager::get('sub');
 
 		if ($rSub == 'delete') {
-			EpgService::deleteEpgById(RequestManager::get('epg_id'));
+			if (!EpgService::deleteEpgById((int) RequestManager::get('epg_id'))) {
+				$this->fail();
+			}
 			$this->ok();
 		}
 
@@ -90,6 +93,16 @@ class EpgAjaxController extends BaseAjaxController {
 		}
 
 		$this->ok();
+	}
+
+	/** Search individual EPG entries for ordered per-channel selection. */
+	public function epgSearch(): never {
+		$this->requireXhr();
+		$this->gateAny([['adv', 'edit_stream'], ['adv', 'add_stream']]);
+		global $db;
+		$db->query('SELECT * FROM `epg`;');
+		$sources = array_column($db->get_raw_rows(), null, 'id');
+		$this->ok(EpgBindingSelection::search((string) RequestManager::get('search'), $sources, (int) RequestManager::get('source')));
 	}
 
 	/** action=epg_auto_assign — fuzzy-match streams to EPG channels in batches. */

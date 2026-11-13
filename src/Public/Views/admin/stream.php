@@ -274,28 +274,48 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                 <?php if (!$rIsImport): ?>
                     <?php
                     $rSelEpgId   = $rIsEdit ? (int) $rStream['epg_id'] : 0;
+                    $rSelectedPicks = json_decode((string) ($rStream['epg_bindings'] ?? ''), true) ?: [];
+                    $rPickActive = !empty($rSelectedPicks);
+                    if (!$rSelectedPicks && $rSelEpgId && !empty($rEPGSources[$rSelEpgId]['epg_file']) && !empty($rStream['channel_id'])) {
+                        $rSelectedPicks = [['source' => $rSelEpgId, 'channel' => (string) $rStream['channel_id'], 'lang' => (string) $rStream['epg_lang']]];
+                    }
+                    foreach ($rSelectedPicks as &$rPick) {
+                        $rPickSource = $rEPGSources[$rPick['source']] ?? [];
+                        $rPickData = json_decode((string) ($rPickSource['data'] ?? ''), true) ?: [];
+                        $rPick['name'] = $rPickData[$rPick['channel']]['display_name'] ?? $rPick['channel'];
+                        $rPick['source_name'] = $rPickSource['epg_name'] ?? (string) $rPick['source'];
+                    }
+                    unset($rPick);
+                    $rPickInputs = array_filter($rEPGSources, static fn($s) => !empty($s['epg_file']) && empty($s['merge_config']));
                     $rSelChannel = $rIsEdit ? (string) $rStream['channel_id'] : '';
                     $rSelLang    = $rIsEdit ? (string) $rStream['epg_lang'] : '';
                     $rEpgData    = ($rSelEpgId && isset($rEPGSources[$rSelEpgId])) ? (json_decode((string) $rEPGSources[$rSelEpgId]['data'], true) ?: []) : [];
                     ?>
                     <div class="tab-pane fade" id="tab-epg" role="tabpanel">
                         <ul class="nav nav-pills mb-4" role="tablist">
-                            <li class="nav-item"><button type="button" class="nav-link <?= $rIsEdit ? '' : 'active'; ?>" data-bs-toggle="tab" data-bs-target="#epg-quick" role="tab"><?= $language::get('search_epg'); ?></button></li>
-                            <li class="nav-item"><button type="button" class="nav-link <?= $rIsEdit ? 'active' : ''; ?>" data-bs-toggle="tab" data-bs-target="#epg-xmltv" role="tab"><?= $language::get('xmltv_epg'); ?></button></li>
+                            <li class="nav-item"><button type="button" class="nav-link <?= !$rIsEdit || $rPickActive ? 'active' : ''; ?>" data-bs-toggle="tab" data-bs-target="#epg-quick" role="tab"><?= $language::get('search_epg'); ?></button></li>
+                            <li class="nav-item"><button type="button" class="nav-link <?= $rIsEdit && !$rPickActive ? 'active' : ''; ?>" data-bs-toggle="tab" data-bs-target="#epg-xmltv" role="tab"><?= $language::get('xmltv_epg'); ?></button></li>
                         </ul>
                         <div class="tab-content p-0">
-                            <div class="tab-pane fade <?= $rIsEdit ? '' : 'show active'; ?>" id="epg-quick" role="tabpanel">
-                                <div>
-                                    <label class="form-label" for="quick_search"><?= $language::get('search_epg'); ?></label>
-                                    <select id="quick_search" class="form-select"></select>
+                            <div class="tab-pane fade <?= !$rIsEdit || $rPickActive ? 'show active' : ''; ?>" id="epg-quick" role="tabpanel">
+                                <input type="hidden" id="epg-pick-enabled" name="epg_pick_enabled" value="<?= $rPickActive ? '1' : '0'; ?>">
+                                <input type="hidden" id="epg-picks" name="epg_picks" value="">
+                                <p><?= $language::get('epg_pick_help'); ?></p>
+                                <h6><?= $language::get('epg_pick_selected'); ?></h6>
+                                <div id="epg-pick-list" class="mb-4"></div>
+                                <button type="button" class="btn btn-label-secondary mb-4" id="epg-pick-clear"><?= $language::get('epg_pick_clear'); ?></button>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-8"><label class="form-label" for="quick_search"><?= $language::get('search_epg'); ?></label><input type="search" id="quick_search" class="form-control" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['stream_display_name'], ENT_QUOTES) : ''; ?>"></div>
+                                    <div class="col-md-4"><label class="form-label" for="epg-pick-source"><?= $language::get('epg_source'); ?></label><select id="epg-pick-source" class="form-select"><option value="0"><?= $language::get('epg_pick_all_sources'); ?></option><?php foreach ($rPickInputs as $rInput): ?><option value="<?= (int) $rInput['id']; ?>"><?= htmlspecialchars((string) $rInput['epg_name'], ENT_QUOTES); ?></option><?php endforeach; ?></select></div>
                                 </div>
+                                <div id="epg-search-results" aria-live="polite"></div>
                             </div>
-                            <div class="tab-pane fade <?= $rIsEdit ? 'show active' : ''; ?>" id="epg-xmltv" role="tabpanel">
+                            <div class="tab-pane fade <?= $rIsEdit && !$rPickActive ? 'show active' : ''; ?>" id="epg-xmltv" role="tabpanel">
                                 <div class="mb-6">
                                     <label class="form-label" for="epg_id"><?= $language::get('epg_source'); ?></label>
                                     <select name="epg_id" id="epg_id" class="form-select">
                                         <option value="0" <?= $rSelEpgId === 0 ? 'selected' : ''; ?>><?= $language::get('no_epg'); ?></option>
-                                        <?php foreach ($rEPGSources as $rEPG): ?>
+                                        <?php foreach ($rEPGSources as $rEPG): if (!empty(\XcVm\Domain\Epg\EpgMerge::config($rEPG)['selection'])) continue; ?>
                                             <option value="<?= (int) $rEPG['id']; ?>" <?= $rSelEpgId === (int) $rEPG['id'] ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rEPG['epg_name'], ENT_QUOTES); ?></option>
                                         <?php endforeach; ?>
                                     </select>
@@ -612,6 +632,85 @@ LayoutRenderer::renderFooter('admin');
             $('#title_sync').val('').trigger('change');
         });
 
+
+
+        function updateManualEpgState() {
+            var picks = document.getElementById('epg-pick-enabled');
+            var disabled = !!(picks && picks.value === '1');
+            document.querySelectorAll('#epg-xmltv input, #epg-xmltv select').forEach(function(field) { field.disabled = disabled; });
+        }
+        var pickFlag = document.getElementById('epg-pick-enabled');
+        if (pickFlag) {
+            var pickedEntries = <?= json_encode($rSelectedPicks ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+            var pickList = document.getElementById('epg-pick-list');
+            var pickResults = document.getElementById('epg-search-results');
+            var pickSearch = document.getElementById('quick_search');
+            var pickSource = document.getElementById('epg-pick-source');
+            var pickTimer, pickRequest, pickSequence = 0;
+            var pickLabels = <?= json_encode(['add' => $language::get('epg_pick_add'), 'remove' => $language::get('delete'), 'up' => $language::get('epg_pick_up'), 'down' => $language::get('epg_pick_down'), 'empty' => $language::get('epg_pick_empty'), 'more' => $language::get('epg_pick_more'), 'limit' => $language::get('epg_pick_limit')], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+            function activatePicks() {
+                pickFlag.value = pickedEntries.length ? '1' : '0';
+                if (!pickedEntries.length) $('#epg_id').val('0').trigger('change');
+                updateManualEpgState();
+                renderPicks();
+            }
+            function smallButton(text, label, action) {
+                var button = document.createElement('button');
+                button.type = 'button'; button.className = 'btn btn-sm btn-label-secondary';
+                button.textContent = text; button.setAttribute('aria-label', label); button.title = label;
+                button.addEventListener('click', action); return button;
+            }
+            function renderPicks() {
+                document.getElementById('epg-picks').value = JSON.stringify(pickedEntries.map(function(entry) { return { source: Number(entry.source), channel: entry.channel, lang: entry.lang || '' }; }));
+                pickList.textContent = '';
+                if (!pickedEntries.length) pickList.textContent = pickLabels.empty;
+                pickedEntries.forEach(function(entry, index) {
+                    var row = document.createElement('div'); row.className = 'd-flex align-items-center gap-2 border rounded p-3 mb-2';
+                    var title = document.createElement('div'); title.className = 'flex-grow-1';
+                    title.textContent = (index + 1) + '. ' + (entry.name || entry.channel) + ' — ' + (entry.source_name || entry.source) + ' (' + entry.channel + ')';
+                    row.appendChild(title);
+                    var up = smallButton('↑', pickLabels.up, function() { if (index) { var previous = pickedEntries[index - 1]; pickedEntries[index - 1] = entry; pickedEntries[index] = previous; activatePicks(); } });
+                    up.disabled = index === 0; row.appendChild(up);
+                    var down = smallButton('↓', pickLabels.down, function() { if (index + 1 < pickedEntries.length) { var next = pickedEntries[index + 1]; pickedEntries[index + 1] = entry; pickedEntries[index] = next; activatePicks(); } });
+                    down.disabled = index + 1 === pickedEntries.length; row.appendChild(down);
+                    row.appendChild(smallButton('×', pickLabels.remove, function() { pickedEntries.splice(index, 1); activatePicks(); }));
+                    pickList.appendChild(row);
+                });
+                pickResults.querySelectorAll('button[data-pick-key]').forEach(function(button) { button.disabled = pickedEntries.some(function(entry) { return button.dataset.pickKey === entry.source + ':' + entry.channel; }); });
+            }
+            function searchPicks() {
+                clearTimeout(pickTimer); var sequence = ++pickSequence;
+                if (pickRequest) pickRequest.abort();
+                var search = pickSearch.value.trim(); pickResults.textContent = '';
+                if (!search) return;
+                pickTimer = setTimeout(function() {
+                    pickRequest = $.ajax({ url: './api', dataType: 'json', data: { action: 'epg_search', search: search, source: pickSource.value } })
+                        .done(function(data) {
+                            if (sequence !== pickSequence) return;
+                            pickResults.textContent = '';
+                            if (!data.result) { pickResults.textContent = errText; return; }
+                            if (!data.items.length) pickResults.textContent = pickLabels.empty;
+                            data.items.forEach(function(entry) {
+                                var row = document.createElement('div'); row.className = 'd-flex align-items-center gap-2 border-bottom py-3';
+                                var title = document.createElement('div'); title.className = 'flex-grow-1';
+                                title.textContent = entry.name + (entry.country ? ' [' + entry.country.toUpperCase() + ']' : '') + ' — ' + entry.source_name + ' (' + entry.channel + ')'; row.appendChild(title);
+                                var add = smallButton('+', pickLabels.add, function() {
+                                    if (pickedEntries.length >= 20) { xcToast(pickLabels.limit, 'error'); return; }
+                                    if (!pickedEntries.some(function(item) { return Number(item.source) === Number(entry.source) && item.channel === entry.channel; })) { pickedEntries.push(entry); var channelName = document.getElementById('stream_display_name'); if (channelName && !channelName.value.trim()) channelName.value = entry.name; activatePicks(); }
+                                });
+                                add.className = 'btn btn-sm btn-primary'; add.dataset.pickKey = entry.source + ':' + entry.channel;
+                                row.appendChild(add); pickResults.appendChild(row);
+                            });
+                            if (data.more) { var more = document.createElement('p'); more.className = 'text-body-secondary mt-3'; more.textContent = pickLabels.more; pickResults.appendChild(more); }
+                            renderPicks();
+                        }).fail(function(xhr, status) { if (sequence === pickSequence && status !== 'abort') pickResults.textContent = errText; });
+                }, 250);
+            }
+            document.getElementById('epg-pick-clear').addEventListener('click', function() { pickedEntries = []; activatePicks(); });
+            pickSearch.addEventListener('input', searchPicks); pickSource.addEventListener('change', searchPicks);
+            renderPicks(); searchPicks(); updateManualEpgState();
+        }
+
         // ---- EPG tab: source → channel → language cascade ----
         var rEPG = <?= json_encode($rEPGJS); ?>;
         if (document.getElementById('epg_id')) {
@@ -646,57 +745,7 @@ LayoutRenderer::renderFooter('admin');
             $('#epg_id').on('change', selectEPGSource);
             $('#channel_id').on('change', selectEPGID);
 
-            // Quick Search — ajax select2 over ./api?action=epglist, auto-fills the XMLTV fields.
-            $('#quick_search').select2({
-                width: '100%',
-                placeholder: <?= json_encode($language::get('search_epg')); ?>,
-                allowClear: true,
-                dropdownParent: $('#epg-quick'),
-                ajax: {
-                    url: './api',
-                    dataType: 'json',
-                    cache: true,
-                    data: function(params) {
-                        return {
-                            search: params.term,
-                            action: 'epglist',
-                            page: params.page
-                        };
-                    },
-                    processResults: function(data, params) {
-                        params.page = params.page || 1;
-                        return {
-                            results: data.items,
-                            pagination: {
-                                more: (params.page * 100) < data.total_count
-                            }
-                        };
-                    }
-                }
-            });
-            $('#quick_search').on('change', function() {
-                if (!$(this).val()) {
-                    return;
-                }
-                var d = ($('#quick_search').select2('data') || [])[0];
-                if (d && d.type == 0) {
-                    $('#epg_id').val(d.epg_id).trigger('change');
-                    $('#channel_id').val(d.id).trigger('change');
-                    $('#epg_lang').val(d.lang).trigger('change');
-                    var xmltvBtn = document.querySelector('[data-bs-target="#epg-xmltv"]');
-                    if (xmltvBtn && window.bootstrap) {
-                        bootstrap.Tab.getOrCreateInstance(xmltvBtn).show();
-                    }
-                    var nm = document.getElementById('stream_display_name');
-                    if (nm && nm.value.length === 0 && d.text) {
-                        nm.value = d.text;
-                    }
-                    if (d.icon) {
-                        window.offerEpgPicon(d.icon);
-                    }
-                }
-                $('#quick_search').val('').trigger('change');
-            });
+
         }
 
         // ---- EPG picon prompt: offer to use the EPG channel icon as the stream logo ----

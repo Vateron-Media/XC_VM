@@ -12,6 +12,13 @@ use XcVm\Core\Util\LayoutRenderer;
  */
 
 $rIsEdit = isset($rEPGArr);
+$rMergeConfig = json_decode((string) ($rEPGArr['merge_config'] ?? ''), true) ?: [];
+$rMergeStatus = json_decode((string) ($rEPGArr['merge_status'] ?? ''), true) ?: [];
+$rMergeSources = array_filter($rMergeSources ?? [], static fn($s) => !empty($s['epg_file']) && empty($s['merge_config']) && (int) $s['id'] !== (int) ($rEPGArr['id'] ?? 0));
+$rMergeOptions = '';
+foreach ($rMergeSources as $rSource) {
+    $rMergeOptions .= '<option value="' . (int) $rSource['id'] . '">' . htmlspecialchars((string) $rSource['epg_name'], ENT_QUOTES) . '</option>';
+}
 $rEPGData = ($rIsEdit && !empty($rEPGArr['data'])) ? (json_decode((string) $rEPGArr['data'], true) ?: []) : [];
 ?>
 
@@ -38,6 +45,26 @@ $rEPGData = ($rIsEdit && !empty($rEPGArr['data'])) ? (json_decode((string) $rEPG
                 <label class="form-label" for="epg_file"><?= $language::get('source'); ?></label>
                 <input type="text" class="form-control" id="epg_file" name="epg_file" required value="<?= $rIsEdit ? htmlspecialchars((string) $rEPGArr['epg_file'], ENT_QUOTES) : ''; ?>">
             </div>
+            <div class="mb-6">
+                <input type="hidden" name="merge_enabled" value="0">
+                <label class="form-check-label"><input class="form-check-input me-2" type="checkbox" id="merge-enabled" name="merge_enabled" value="1" <?= $rMergeConfig ? 'checked' : ''; ?>><?= $language::get('epg_merge_enable'); ?></label>
+            </div>
+            <div id="merge-settings" class="mb-6">
+                <p><?= $language::get('epg_merge_help'); ?></p>
+                <div class="table-responsive"><table class="table">
+                    <thead><tr><th><?= $language::get('source'); ?></th><th><?= $language::get('epg_merge_priority'); ?></th></tr></thead>
+                    <tbody><?php foreach ($rMergeSources as $rSource): $rPriority = array_search((int) $rSource['id'], $rMergeConfig['sources'] ?? [], true); ?>
+                        <tr><td><label><input class="form-check-input me-2" type="checkbox" name="merge_sources[]" value="<?= (int) $rSource['id']; ?>" <?= $rPriority !== false ? 'checked' : ''; ?>><?= htmlspecialchars((string) $rSource['epg_name'], ENT_QUOTES); ?></label></td>
+                        <td><input class="form-control" type="number" min="1" max="999" name="merge_order[<?= (int) $rSource['id']; ?>]" value="<?= $rPriority !== false ? $rPriority + 1 : 99; ?>"></td></tr>
+                    <?php endforeach; ?></tbody>
+                </table></div>
+                <h6 class="mt-4"><?= $language::get('epg_merge_aliases'); ?></h6>
+                <p><?= $language::get('epg_merge_alias_help'); ?></p>
+                <div class="table-responsive"><table class="table"><thead><tr>
+                    <th><?= $language::get('epg_merge_target'); ?></th><th><?= $language::get('source'); ?></th><th><?= $language::get('epg_merge_input_channel'); ?></th><th></th>
+                </tr></thead><tbody id="merge-aliases"></tbody></table></div>
+                <button type="button" id="merge-add-alias" class="btn btn-label-secondary mt-3"><?= $language::get('add'); ?></button>
+            </div>
             <div class="row mb-6">
                 <div class="col-md-6">
                     <label class="form-label" for="days_keep"><?= $language::get('days_to_keep'); ?></label>
@@ -54,6 +81,19 @@ $rEPGData = ($rIsEdit && !empty($rEPGArr['data'])) ? (json_decode((string) $rEPG
         </form>
     </div>
 </div>
+
+<?php if ($rMergeStatus): ?>
+<div class="card mb-6"><div class="card-header"><h5><?= $language::get('epg_merge_coverage'); ?></h5></div><div class="card-body">
+    <p><?= $language::get('last_updated'); ?>: <?= htmlspecialchars(date('Y-m-d H:i', (int) $rMergeStatus['built_at']), ENT_QUOTES); ?></p>
+    <?php if (!empty($rMergeStatus['failed_sources'])): ?><div class="alert alert-warning"><?= $language::get('epg_merge_failed'); ?> <?= htmlspecialchars(implode(', ', $rMergeStatus['failed_sources']), ENT_QUOTES); ?></div><?php endif; ?>
+    <div class="table-responsive"><table class="table"><thead><tr><th><?= $language::get('channel_name'); ?></th><th><?= $language::get('epg_merge_coverage'); ?></th><th><?= $language::get('epg_merge_until'); ?></th></tr></thead><tbody>
+    <?php foreach ($rMergeStatus['channels'] ?? [] as $rCoverage): ?><tr>
+        <td><?= htmlspecialchars((string) $rCoverage['name'], ENT_QUOTES); ?></td><td><?= (float) $rCoverage['percent']; ?>%</td>
+        <td><?= $rCoverage['until'] ? htmlspecialchars(date('Y-m-d H:i', (int) $rCoverage['until']), ENT_QUOTES) : '—'; ?></td>
+    </tr><?php endforeach; ?>
+    </tbody></table></div>
+</div></div>
+<?php endif; ?>
 
 <?php if ($rIsEdit): ?>
     <div class="card">
@@ -89,6 +129,46 @@ LayoutRenderer::renderFooter('admin');
 <script>
     (function() {
         var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var mergeToggle = document.getElementById('merge-enabled');
+        var mergeSettings = document.getElementById('merge-settings');
+        var sourceField = document.getElementById('epg_file');
+        var offsetField = document.getElementById('offset');
+        function toggleMerge() {
+            mergeSettings.hidden = !mergeToggle.checked;
+            mergeSettings.querySelectorAll('input, select, button').forEach(function(el) { el.disabled = !mergeToggle.checked; });
+            sourceField.required = !mergeToggle.checked;
+            sourceField.disabled = mergeToggle.checked;
+            offsetField.disabled = mergeToggle.checked;
+        }
+        var aliasIndex = 0;
+        function addAlias(alias) {
+            var index = aliasIndex++;
+            var tr = document.createElement('tr');
+            ['target', 'source', 'channel'].forEach(function(key) {
+                var td = document.createElement('td');
+                var field = document.createElement(key === 'source' ? 'select' : 'input');
+                field.className = key === 'source' ? 'form-select' : 'form-control';
+                field.name = 'merge_aliases[' + index + '][' + key + ']';
+                if (key === 'source') field.innerHTML = <?= json_encode($rMergeOptions, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+                else field.maxLength = 200;
+                if (alias && alias[key] !== undefined) field.value = alias[key];
+                td.appendChild(field);
+                tr.appendChild(td);
+            });
+            var td = document.createElement('td');
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'btn btn-label-danger';
+            remove.textContent = <?= json_encode($language::get('delete')); ?>;
+            remove.addEventListener('click', function() { tr.remove(); });
+            td.appendChild(remove);
+            tr.appendChild(td);
+            document.getElementById('merge-aliases').appendChild(tr);
+        }
+        <?= json_encode($rMergeConfig['aliases'] ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>.forEach(addAlias);
+        document.getElementById('merge-add-alias').addEventListener('click', function() { addAlias(null); });
+        mergeToggle.addEventListener('change', toggleMerge);
+        toggleMerge();
         // Numeric-only guards mirroring the legacy inputFilter.
         var digitsOnly = function(el, allowNeg) {
             el.addEventListener('input', function() {

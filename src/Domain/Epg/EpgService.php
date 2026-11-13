@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Epg;
 
+use InvalidArgumentException;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Events\EventDispatcher;
@@ -30,6 +31,7 @@ class EpgService {
 	 */
 	public static function process(array $rData) {
 		$db = self::db();
+		unset($rData['merge_config'], $rData['merge_status']);
 		if (isset($rData['edit']) && intval($rData['edit']) === CreatedChannelEpg::reservedSourceId()) {
 			return ['status' => STATUS_FAILURE, 'data' => $rData];
 		}
@@ -56,8 +58,34 @@ class EpgService {
 		// is already blocked from editing above.) strcasecmp+trim mirror the SQL match;
 		// exotic unicode-fold collisions remain possible but need the add_epg/epg_edit
 		// permission and cannot be reached by an ordinary user.
-		if (strcasecmp(trim((string) ($rArray['epg_name'] ?? '')), CreatedChannelEpg::SOURCE_NAME) === 0) {
+		if (!empty(EpgMerge::config($rArray)['selection']) || str_starts_with(trim((string) ($rArray['epg_name'] ?? '')), EpgSelectionGuide::PREFIX) || strcasecmp(trim((string) ($rArray['epg_name'] ?? '')), CreatedChannelEpg::SOURCE_NAME) === 0) {
 			return ['status' => STATUS_FAILURE, 'data' => $rData];
+		}
+
+		if (array_key_exists('merge_enabled', $rData)) {
+			$db->query('SELECT * FROM `epg`;');
+			$sources = array_column($db->get_raw_rows(), null, 'id');
+			$id = (int) ($rData['edit'] ?? 0);
+			foreach ($sources as $source) {
+				if (in_array($id, EpgMerge::config($source)['sources'] ?? [], true) && (!empty($rData['merge_enabled']) || empty($rArray['epg_file']))) {
+					return ['status' => STATUS_FAILURE, 'data' => $rData];
+				}
+			}
+			if ($id && (bool) EpgMerge::config($sources[$id]) !== !empty($rData['merge_enabled'])) {
+				$db->query('SELECT `id` FROM `streams` WHERE `epg_id` = ? LIMIT 1', $id);
+				if ($db->num_rows() > 0) {
+					return ['status' => STATUS_FAILURE, 'data' => $rData];
+				}
+			}
+			try {
+				$rArray['merge_config'] = !empty($rData['merge_enabled']) ? json_encode(EpgMerge::fromForm($rData, $sources, $id)) : null;
+			} catch (InvalidArgumentException $e) {
+				return ['status' => STATUS_FAILURE, 'data' => $rData];
+			}
+			if ($rArray['merge_config']) {
+				$rArray['epg_file'] = '';
+				$rArray['offset'] = 0;
+			}
 		}
 
 		$rPrepare = QueryHelper::prepareArray($rArray);
@@ -261,6 +289,13 @@ class EpgService {
 
 		if (!$rEPG || $rID === CreatedChannelEpg::reservedSourceId()) {
 			return false;
+		}
+
+		$db->query('SELECT * FROM `epg`;');
+		foreach ($db->get_raw_rows() as $source) {
+			if (in_array($rID, EpgMerge::config($source)['sources'] ?? [], true)) {
+				return false;
+			}
 		}
 
 		$db->query('SELECT `id` FROM `streams` WHERE `epg_id` = ?;', $rID);

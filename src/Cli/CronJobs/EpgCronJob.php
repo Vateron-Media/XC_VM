@@ -9,6 +9,10 @@ use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Epg\CreatedChannelEpg;
 use XcVm\Domain\Epg\EPG;
 use XcVm\Domain\Epg\EpgReload;
+use XcVm\Domain\Epg\EpgMerge;
+use XcVm\Domain\Epg\EpgSelectionGuide;
+use RuntimeException;
+use Throwable;
 
 /**
  * EpgCronJob — epg cron job
@@ -66,105 +70,7 @@ class EpgCronJob implements CommandInterface {
 			$this->printLog("[SYSTEM] Forced timezone to UTC");
 		}
 
-		$this->printLog("[EPG] Clearing old channel mappings...");
-		if ($rEPGID) {
-			$db->query('DELETE FROM `epg_channels` WHERE `epg_id` = ?;', $rEPGID);
-			$db->query('SELECT * FROM `epg` WHERE `id` = ?;', $rEPGID);
-		} else {
-			$db->query('TRUNCATE `epg_channels`;');
-			$db->query('SELECT * FROM `epg`;');
-		}
-
-		$epgSources = $db->get_rows();
-		$this->printLog("[EPG] Found " . count($epgSources) . " EPG sources to process");
-
-		foreach ($epgSources as $rRow) {
-			if ($rRow['epg_name'] === CreatedChannelEpg::SOURCE_NAME || $rRow['epg_file'] === '') {
-				continue;
-			}
-			$this->printLog("[EPG] Processing source ID: {$rRow['id']} | File: {$rRow['epg_file']}");
-			$rEPG = new EPG($rRow['epg_file']);
-
-			if ($rEPG->rValid) {
-				$rData = $rEPG->getData();
-
-				$this->reconnectDb();
-
-				$db->query('UPDATE `epg` SET `data` = ?, `last_updated` = ? WHERE `id` = ?', json_encode($rData, JSON_UNESCAPED_UNICODE), time(), $rRow['id']);
-
-				$this->printLog("[EPG] Updated metadata for EPG ID {$rRow['id']}, found " . count($rData) . " channels");
-
-				foreach ($rData as $rID => $rArray) {
-					$db->query('INSERT INTO `epg_channels`(`epg_id`, `channel_id`, `name`, `langs`) VALUES(?, ?, ?, ?);', $rRow['id'], $rID, $rArray['display_name'], json_encode($rArray['langs']));
-				}
-			} else {
-				$this->printLog("[EPG] Failed to load EPG source ID {$rRow['id']}");
-			}
-		}
-
-		$this->printLog("[EPG] Starting full programme data import...");
-
-		if ($rEPGID) {
-			$db->query('SELECT DISTINCT(t1.`epg_id`), t2.* FROM `streams` t1 INNER JOIN `epg` t2 ON t2.id = t1.epg_id WHERE t1.`epg_id` IS NOT NULL AND t2.id = ?;', $rEPGID);
-		} else {
-			$db->query('SELECT DISTINCT(t1.`epg_id`), t2.* FROM `streams` t1 INNER JOIN `epg` t2 ON t2.id = t1.epg_id WHERE t1.`epg_id` IS NOT NULL;');
-		}
-
-		foreach ($db->get_rows() as $rData) {
-			if ($rData['epg_name'] === CreatedChannelEpg::SOURCE_NAME || $rData['epg_file'] === '') {
-				continue;
-			}
-			$this->printLog("[EPG] === Processing EPG ID: {$rData['epg_id']} ===");
-
-			if ($rData['days_keep'] == 0) {
-				$this->printLog("[EPG] Clearing all existing data for EPG ID {$rData['epg_id']}");
-				$db->query('DELETE FROM `epg_data` WHERE `epg_id` = ?', $rData['epg_id']);
-			}
-
-			$rEPG = new EPG($rData['epg_file'], true);
-			if ($rEPG->rValid) {
-				$db->query('SELECT t1.`channel_id`, t1.`epg_lang`, t1.`epg_offset`, last_row.start 
-                    FROM `streams` t1 
-                    LEFT JOIN (SELECT channel_id, MAX(`start`) as start FROM epg_data WHERE epg_id = ? GROUP BY channel_id) last_row 
-                    ON last_row.channel_id = t1.channel_id 
-                    WHERE `epg_id` = ?;', $rData['epg_id'], $rData['epg_id']);
-				$channelMap = $db->get_rows(true, 'channel_id');
-
-				$batches = $rEPG->parseEPG($rData['epg_id'], $channelMap, intval($rData['offset']));
-
-				$this->reconnectDb();
-
-				if ($batches) {
-					$totalInserted = 0;
-					foreach ($batches as $insertBatch) {
-						if (!empty($insertBatch)) {
-							$db->simple_query('INSERT INTO `epg_data` (`epg_id`,`channel_id`,`start`,`end`,`lang`,`title`,`description`) VALUES ' . $insertBatch);
-							$totalInserted += substr_count($insertBatch, '),(') + 1;
-						}
-					}
-					$this->printLog("[EPG] Inserted $totalInserted programmes for EPG ID {$rData['epg_id']}");
-				} else {
-					$this->printLog("[EPG] No new programmes found for EPG ID {$rData['epg_id']}");
-				}
-
-				$db->query('UPDATE `epg` SET `last_updated` = ? WHERE `id` = ?', time(), $rData['epg_id']);
-			} else {
-				$this->printLog("[EPG] Failed to parse EPG file for ID {$rData['epg_id']}");
-			}
-
-			if ($rData['days_keep'] > 0) {
-				$cleanupTime = strtotime('-' . (int) $rData['days_keep'] . ' days');
-				if ($cleanupTime !== false) {
-					$db->query('DELETE FROM `epg_data` WHERE `epg_id` = ? AND `start` < ?', $rData['epg_id'], $cleanupTime);
-					echo "[EPG] Cleaned up old data (older than {$rData['days_keep']} days)\n";
-				} else {
-					echo "[EPG] Invalid days_keep value, skipping cleanup\n";
-				}
-			}
-		}
-
-		$this->printLog("[EPG] Removing duplicate EPG entries...");
-		$db->query(self::DEDUPE);
+		$this->importSources($rEPGID);
 
 		$this->printLog("[EPG] Cleaning temporary XML files...");
 		shell_exec('rm -f ' . TMP_PATH . '*.xml');
@@ -208,6 +114,101 @@ class EpgCronJob implements CommandInterface {
 		$this->printLog("=== EPG processing completed successfully! ===");
 
 		return 0;
+	}
+
+	/** Fetch inputs first, preserve failed snapshots, then rebuild virtual guides. */
+	public function importSources(?int $requested = null): void {
+		global $db;
+		$db->query('SELECT * FROM `epg`;');
+		$sources = array_column($db->get_raw_rows(), null, 'id');
+		$scope = $requested === null ? array_keys($sources) : [$requested];
+		if (isset($sources[$requested])) {
+			$scope = array_merge($scope, EpgMerge::config($sources[$requested])['sources'] ?? []);
+		}
+		$valid = [];
+		$failed = [];
+		foreach ($sources as $id => &$source) {
+			if (!in_array($id, $scope, true) || EpgMerge::config($source) || empty($source['epg_file']) || $source['epg_name'] === CreatedChannelEpg::SOURCE_NAME) {
+				continue;
+			}
+			$epg = new EPG($source['epg_file']);
+			if (!$epg->rValid || !($metadata = $epg->getData())) {
+				$failed[] = $id;
+				$this->printLog("[EPG] Keeping last valid data for failed source $id");
+				continue;
+			}
+			$source['data'] = json_encode($metadata);
+			$valid[$id] = true;
+		}
+		unset($source);
+		$db->query('SELECT `id`, `stream_display_name`, `epg_id`, `channel_id`, `epg_lang`, `epg_bindings` FROM `streams` WHERE `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL;');
+		$streams = $db->get_raw_rows();
+		$sources = EpgSelectionGuide::resolve($sources, $streams);
+		$dependencies = EpgMerge::dependencies($sources, $streams);
+		foreach ($valid as $id => $_) {
+			$source = $sources[$id];
+			$channels = $dependencies[$id] ?? [];
+			foreach ($streams as $stream) {
+				if ((int) $stream['epg_id'] === (int) $id) {
+					$channels[$stream['channel_id']] = ['epg_lang' => $stream['epg_lang'] ?? ''];
+				}
+			}
+			$epg = new EPG($source['epg_file'], true);
+			if (!$epg->rValid) {
+				$failed[] = $id;
+				continue;
+			}
+			$batches = $channels ? $epg->parseEPG((string) $id, $channels, (int) $source['offset']) : [];
+			if ($channels && !$batches) {
+				$failed[] = $id;
+			}
+			if (!$db->beginTransaction()) {
+				throw new RuntimeException('Could not start EPG transaction.');
+			}
+			try {
+				$this->saveImport('DELETE FROM `epg_channels` WHERE `epg_id` = ?', [$id]);
+				foreach (json_decode($source['data'], true) as $channel => $metadata) {
+					$this->saveImport('INSERT INTO `epg_channels` (`epg_id`,`channel_id`,`name`,`langs`) VALUES(?,?,?,?)', [$id, $channel, $metadata['display_name'], json_encode($metadata['langs'])]);
+				}
+				// An empty programme response must not erase a working guide.
+				if ($batches) {
+					if ((int) $source['days_keep'] === 0) {
+						foreach (array_keys($epg->rParsedChannels) as $channel) {
+							$this->saveImport('DELETE FROM `epg_data` WHERE `epg_id` = ? AND `channel_id` = ?', [$id, $channel]);
+						}
+					}
+					foreach ($batches as $batch) {
+						$this->saveImport('INSERT INTO `epg_data` (`epg_id`,`channel_id`,`start`,`end`,`lang`,`title`,`description`) VALUES ' . $batch, []);
+					}
+				}
+				if ((int) $source['days_keep'] > 0) {
+					$this->saveImport('DELETE FROM `epg_data` WHERE `epg_id` = ? AND `end` < ?', [$id, time() - (int) $source['days_keep'] * 86400]);
+				}
+				$this->saveImport('UPDATE `epg` SET `data` = ?, `last_updated` = ? WHERE `id` = ?', [$source['data'], time(), $id]);
+				if (!$db->commit()) {
+					throw new RuntimeException('Could not commit EPG transaction.');
+				}
+			} catch (Throwable $e) {
+				$db->rollback();
+				$failed[] = $id;
+				$this->printLog('[EPG] Import rolled back: ' . $e->getMessage());
+			}
+		}
+		$db->query(self::DEDUPE);
+		$db->query('SELECT * FROM `epg`;');
+		$sources = EpgSelectionGuide::resolve(array_column($db->get_raw_rows(), null, 'id'), $streams);
+		foreach ($sources as $source) {
+			if (EpgMerge::config($source)) {
+				EpgMerge::rebuild($db, $source, $sources, $streams, $failed);
+			}
+		}
+	}
+
+	private function saveImport(string $sql, array $parameters): void {
+		global $db;
+		if (!$db->query($sql, ...$parameters)) {
+			throw new RuntimeException('Could not save EPG import.');
+		}
 	}
 
 	/** Programme rows read per statement while a source set's programmes are written. */
@@ -483,22 +484,6 @@ class EpgCronJob implements CommandInterface {
 
 	private function printLog(string $message): void {
 		echo "[" . date('Y-m-d H:i:s') . "] " . $message . "\n";
-	}
-
-	private function reconnectDb(): void {
-		global $db;
-		if ($db->ping()) {
-			$this->printLog("[EPG] Database connection is alive.");
-		} else {
-			$this->printLog("[EPG] Database connection lost. Attempting to reconnect...");
-			$db->db_connect();
-			if ($db->ping()) {
-				$this->printLog("[EPG] Reconnected to the database successfully.");
-			} else {
-				$this->printLog("[EPG] Failed to reconnect to the database. Exiting.");
-				exit(1);
-			}
-		}
 	}
 
 	private function getBouquetGroups(): array {

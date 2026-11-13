@@ -617,6 +617,8 @@ CREATE TABLE IF NOT EXISTS `epg` (
   `days_keep` int(11) DEFAULT '7',
   `data` longtext COLLATE utf8_unicode_ci,
   `offset` int(11) DEFAULT '0',
+  `merge_config` mediumtext DEFAULT NULL,
+  `merge_status` mediumtext DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -1844,6 +1846,7 @@ CREATE TABLE IF NOT EXISTS `streams` (
   `epg_id` int(11) DEFAULT NULL,
   `channel_id` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `epg_lang` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `epg_bindings` mediumtext DEFAULT NULL,
   `order` int(11) DEFAULT '0',
   `auto_restart` mediumtext COLLATE utf8_unicode_ci,
   `transcode_profile_id` int(11) DEFAULT '0',
