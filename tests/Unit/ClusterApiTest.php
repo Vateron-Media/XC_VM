@@ -1413,6 +1413,7 @@ final class ClusterApiTest extends TestCase {
 			NodeRegistry::update(self::SID, ['flows' => NodeRegistry::FLOW_COMMANDS | NodeRegistry::FLOW_STREAMS | NodeRegistry::FLOW_CONNECTIONS]);
 			[$rRes, $rCtx] = $this->call('heartbeat', ['conn_digest' => $rDigest], 1, $rKeys);
 			$this->assertArrayNotHasKey('want_conn_snapshot', $this->reply($rRes, $rCtx, $rKeys), 'one miss');
+			ClusterClock::fix($this->rT0 + 12000);
 			[$rRes, $rCtx] = $this->call('heartbeat', ['conn_digest' => $rDigest], 1, $rKeys);
 			$this->assertTrue($this->reply($rRes, $rCtx, $rKeys)['want_conn_snapshot'] ?? false, 'the drift lasted');
 

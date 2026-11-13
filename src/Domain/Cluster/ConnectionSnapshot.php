@@ -82,6 +82,7 @@ final class ConnectionSnapshot {
 			array_push($rAll, ...$rChunk);
 		}
 		$rOut = self::apply($rServerID, $rAll); // throws: the chunks stay staged
+		ConnectionDigest::snapshotApplied($rServerID, $rAll);
 		self::clear($rDir);
 		return ['ok' => true, 'done' => true] + $rOut;
 	}
