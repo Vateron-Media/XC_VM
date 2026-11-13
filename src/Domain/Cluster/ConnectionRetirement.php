@@ -142,10 +142,10 @@ final class ConnectionRetirement {
 				$db->rollback();
 			}
 		}
-		// Completed tickets outlive the bus tomb TTL by seven days; pending
+		// Completed tickets remain for 24 hours, beyond the bus tomb TTL; pending
 		// delivery is never discarded. The composite index bounds this purge.
 		if (microtime(true) < $until) {
-			$db->query('SET STATEMENT innodb_lock_wait_timeout=0 FOR DELETE FROM connection_retirements WHERE notify_done = 1 AND retired_at < ? ORDER BY retired_at LIMIT 100;', time() - 604800);
+			$db->query('SET STATEMENT innodb_lock_wait_timeout=0 FOR DELETE FROM connection_retirements WHERE notify_done = 1 AND retired_at < ? ORDER BY retired_at LIMIT 100;', time() - 86400);
 		}
 		return $sent;
 	}

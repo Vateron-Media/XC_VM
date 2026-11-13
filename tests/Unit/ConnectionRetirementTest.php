@@ -59,6 +59,16 @@ final class ConnectionRetirementTest extends TestCase {
 		$this->assertSame(1, (int) $this->db->get_col());
 	}
 
+	public function testCleanupKeepsRecentAndPendingRetirements(): void {
+		$now = time();
+		foreach ([['expired', 1, $now - 90000], ['recent', 1, $now - 82800], ['pending', 0, $now - 90000]] as [$uuid, $done, $retired]) {
+			$this->db->query('INSERT INTO connection_retirements (server_id, uuid, generation, date_start, retired_at, notify_done, retry_at) VALUES (5, ?, ?, 100, ?, ?, ?);', $uuid, $uuid, $retired, $done, $now + 3600);
+		}
+		ConnectionRetirement::dispatch();
+		$this->db->query('SELECT uuid FROM connection_retirements ORDER BY uuid;');
+		$this->assertSame(['pending', 'recent'], $this->db->get_column());
+	}
+
 	public function testAnOldAgentDoesNotConsumeTheDurableNotification(): void {
 		$this->pending();
 		$this->db->query("UPDATE cluster_nodes SET features = 'hls_reaper';");
