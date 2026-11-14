@@ -59,6 +59,38 @@ final class ConnectionRetirementTest extends TestCase {
 		$this->assertSame(1, (int) $this->db->get_col());
 	}
 
+	public function testCleanupKeepsRecentAndPendingRetirements(): void {
+		$now = time();
+		foreach ([['expired', 1, $now - 90000], ['recent', 1, $now - 82800], ['pending', 0, $now - 90000]] as [$uuid, $done, $retired]) {
+			$this->db->query('INSERT INTO connection_retirements (server_id, uuid, generation, date_start, retired_at, notify_done, retry_at) VALUES (5, ?, ?, 100, ?, ?, ?);', $uuid, $uuid, $retired, $done, $done ? $retired : $now + 3600);
+		}
+		ConnectionRetirement::dispatch(seconds: 10.0);
+		$this->db->query('SELECT uuid FROM connection_retirements ORDER BY uuid;');
+		$this->assertSame(['pending', 'recent'], $this->db->get_column());
+	}
+
+	public function testLateAcknowledgementStartsANewRetentionWindow(): void {
+		$this->pending();
+		ConnectionRetirement::dispatch(seconds: 10.0);
+		$this->db->query("UPDATE cluster_commands SET state = 'acked';");
+		$this->db->query('UPDATE connection_retirements SET retired_at = ?, retry_at = 0;', time() - 10 * 86400);
+		ConnectionRetirement::dispatch(seconds: 10.0);
+		$this->db->query('SELECT notify_done, retired_at, retry_at FROM connection_retirements;');
+		$row = $this->db->get_raw_row();
+		$this->assertSame(1, (int) $row['notify_done']);
+		$this->assertGreaterThan(time() - 10, (int) $row['retry_at']);
+		$this->assertLessThan(time() - 86400, (int) $row['retired_at']);
+	}
+
+	public function testCleanupWorksWithoutClusterOrSweptServersAndStaysBounded(): void {
+		SettingsManager::set(['cluster_api_enabled' => 0]);
+		for ($i = 0; $i < 105; $i++) {
+			$this->db->query('INSERT INTO connection_retirements (server_id, uuid, generation, date_start, retired_at, notify_done) VALUES (5, ?, ?, 100, ?, 1);', 'old-' . $i, 'old-' . $i, time() - 90000);
+		}
+		$this->assertSame(100, ConnectionRetirement::cleanupCompleted());
+		$this->assertSame(5, ConnectionRetirement::cleanupCompleted());
+	}
+
 	public function testAnOldAgentDoesNotConsumeTheDurableNotification(): void {
 		$this->pending();
 		$this->db->query("UPDATE cluster_nodes SET features = 'hls_reaper';");

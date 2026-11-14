@@ -32,10 +32,10 @@ CHILD;
 		$this->assertSame(0, proc_close($process), $error);
 		$result = json_decode($output, true);
 		$this->assertTrue($result['ok']);
-		foreach (['cluster_commands', 'cluster_nonces', 'cluster_reservations', 'cluster_audit', 'connection_retirements', 'lines_live', 'lines_activity'] as $table) {
+		foreach (['cluster_commands', 'cluster_nonces', 'cluster_reservations', 'cluster_audit', 'connection_retirements', 'lines_live', 'lines_activity', 'epg_data'] as $table) {
 			$this->assertContains($table, $result['ignored']);
 		}
-		foreach (['settings', 'lines', 'streams', 'servers', 'cluster_nodes', 'cluster_node_epochs', 'cluster_meta'] as $table) {
+		foreach (['settings', 'lines', 'streams', 'servers', 'cluster_nodes', 'cluster_node_epochs', 'cluster_meta', 'epg', 'epg_channels'] as $table) {
 			$this->assertNotContains($table, $result['ignored']);
 		}
 	}

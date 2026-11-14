@@ -15,6 +15,7 @@ use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Cluster\ClusterAudit;
 use XcVm\Domain\Cluster\ConnectionIngest;
+use XcVm\Domain\Cluster\ConnectionRetirement;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Redis\RedisManager;
@@ -59,6 +60,13 @@ class UsersCronJob implements CommandInterface {
 
 		$rSync = null;
 		$this->rServers = ServerRepository::getAll();
+		if (!empty($this->rServers[SERVER_ID]['is_main']) && class_exists(ConnectionRetirement::class)) {
+			try {
+				ConnectionRetirement::cleanupCompleted();
+			} catch (\Throwable) {
+				error_log('Connection retirement history cleanup failed; user processing continues.');
+			}
+		}
 
 		if (!empty($rArgs[0]) && $this->rServers[SERVER_ID]['is_main']) {
 			// Just enabled (the Cache page): the watchdog starts Redis within seconds.
