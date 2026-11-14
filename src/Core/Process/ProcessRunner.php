@@ -63,6 +63,20 @@ final class ProcessRunner {
 	}
 
 	/**
+	 * Run an argv list directly and stream stdout to a file without buffering it.
+	 *
+	 * @param non-empty-list<string> $rArgv
+	 * @param string $rFilename Output path supplied by the caller.
+	 * @return int Exit status, or 127 when the process/output cannot be opened.
+	 */
+	public static function runToFile(array $rArgv, string $rFilename): int {
+		// An argv array and explicit file descriptors: no shell parses values.
+		// nosemgrep: php.lang.security.exec-use.exec-use
+		$rProcess = @proc_open($rArgv, [0 => ['file', '/dev/null', 'r'], 1 => ['file', $rFilename, 'w'], 2 => ['file', '/dev/null', 'w']], $rPipes);
+		return is_resource($rProcess) ? proc_close($rProcess) : 127;
+	}
+
+	/**
 	 * Start $rArgv and do not wait for it: what a line ending in `&` did. The
 	 * caller learns of the program another way — a pid file it writes, a later
 	 * `ps` — and this process must not be held for its lifetime (a channel
