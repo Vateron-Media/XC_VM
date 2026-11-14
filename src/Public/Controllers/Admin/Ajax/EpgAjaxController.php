@@ -2,6 +2,8 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
+use XcVm\Domain\Epg\EpgBindingSelection;
+use XcVm\Domain\Epg\EpgMerge;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
@@ -36,7 +38,9 @@ class EpgAjaxController extends BaseAjaxController {
 		$rSub = RequestManager::get('sub');
 
 		if ($rSub == 'delete') {
-			EpgService::deleteEpgById(RequestManager::get('epg_id'));
+			if (!EpgService::deleteEpgById((int) RequestManager::get('epg_id'))) {
+				$this->fail();
+			}
 			$this->ok();
 		}
 
@@ -60,9 +64,13 @@ class EpgAjaxController extends BaseAjaxController {
 
 		if (RequestManager::has('search')) {
 			$rEPGNames = $rEPGMap = [];
-			$db->query('SELECT `epg_channels`.`epg_id`, `epg_channels`.`channel_id`, `epg_channels`.`name`, `epg_channels`.`langs`, `epg`.`epg_name` FROM `epg_channels` LEFT JOIN `epg` ON `epg_channels`.`epg_id` = `epg`.`id` WHERE (LOWER(`epg_channels`.`channel_id`) LIKE ? OR LOWER(`epg_channels`.`name`) LIKE ?) ORDER BY `epg_channels`.`name` ASC LIMIT 50;', strtolower(RequestManager::get('search')) . '%', strtolower(RequestManager::get('search')) . '%');
+			$rPublicGuides = "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(`epg`.`merge_config`, '$.selection')), '') NOT IN ('true', '1') AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(`epg`.`merge_config`, '$.automatic')), '') NOT IN ('true', '1')";
+			$db->query('SELECT `epg_channels`.`epg_id`, `epg_channels`.`channel_id`, `epg_channels`.`name`, `epg_channels`.`langs`, `epg`.`epg_name`, `epg`.`merge_config` FROM `epg_channels` LEFT JOIN `epg` ON `epg_channels`.`epg_id` = `epg`.`id` WHERE ' . $rPublicGuides . ' AND (LOWER(`epg_channels`.`channel_id`) LIKE ? OR LOWER(`epg_channels`.`name`) LIKE ?) ORDER BY `epg_channels`.`name` ASC LIMIT 50;', strtolower(RequestManager::get('search')) . '%', strtolower(RequestManager::get('search')) . '%');
 
 			foreach ($db->get_rows() as $rRow) {
+				if (!empty(EpgMerge::config($rRow)['selection'])) {
+					continue;
+				}
 				if (!isset($rEPGNames[$rRow['epg_id']])) {
 					$rEPGNames[$rRow['epg_id']] = $rRow['epg_name'];
 				}
@@ -90,6 +98,16 @@ class EpgAjaxController extends BaseAjaxController {
 		}
 
 		$this->ok();
+	}
+
+	/** Search individual EPG entries for ordered per-channel selection. */
+	public function epgSearch(): never {
+		$this->requireXhr();
+		$this->gateAny([['adv', 'edit_stream'], ['adv', 'add_stream']]);
+		global $db;
+		$db->query('SELECT * FROM `epg`;');
+		$sources = array_column($db->get_raw_rows(), null, 'id');
+		$this->ok(EpgBindingSelection::search((string) RequestManager::get('search'), $sources, (int) RequestManager::get('source')));
 	}
 
 	/** action=epg_auto_assign — fuzzy-match streams to EPG channels in batches. */
@@ -123,11 +141,14 @@ class EpgAjaxController extends BaseAjaxController {
 		$rTotal = intval($db->get_row()['cnt']);
 
 		// --- Lookup 1: EPG channels by name ---
-		$db->query('SELECT `epg_id`, `channel_id`, `name`, `langs` FROM `epg_channels`;');
+		$db->query('SELECT c.`epg_id`, c.`channel_id`, c.`name`, c.`langs`, e.`merge_config` FROM `epg_channels` c JOIN `epg` e ON e.id = c.epg_id;');
 		$rEpgLookup = [];
 		// Also build channel_id -> epg info map for provider cross-reference
 		$rEpgByChannelId = [];
 		foreach ($db->get_rows() as $rEpgCh) {
+			if (!empty(EpgMerge::config($rEpgCh)['selection'])) {
+				continue;
+			}
 			$rNorm = $fnNormalize($rEpgCh['name']);
 			$rLang = json_decode($rEpgCh['langs'] ?? '[]', true)[0] ?? '';
 			if ($rNorm !== '') {

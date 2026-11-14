@@ -73,14 +73,14 @@ final class ConnectionSnapshotTest extends TestCase {
 		ClusterClock::fix(1800000004000);
 		$this->assertFalse(ConnectionDigest::check(5, $rDrift), 'one miss: events may be in flight');
 		ClusterClock::fix(1800000008000);
-		$this->assertTrue(ConnectionDigest::check(5, $rDrift), 'two in a row: ask');
-		ClusterClock::fix(1800000012000);
-		ConnectionDigest::check(5, $rDrift);
+		$this->assertFalse(ConnectionDigest::check(5, $rDrift), 'two quick checks can still precede an in-flight event');
 		ClusterClock::fix(1800000016000);
+		$this->assertTrue(ConnectionDigest::check(5, $rDrift), 'persistent drift after the settling window asks');
+		ClusterClock::fix(1800000020000);
 		$this->assertFalse(ConnectionDigest::check(5, $rDrift), 'asked at most every 30 s');
-		ClusterClock::fix(1800000040000);
+		ClusterClock::fix(1800000048000);
 		$this->assertTrue(ConnectionDigest::check(5, $rDrift));
-		ClusterClock::fix(1800000044000);
+		ClusterClock::fix(1800000052000);
 		$this->assertFalse(ConnectionDigest::check(5, ['count' => '1']), 'a malformed digest is ignored');
 	}
 
@@ -115,6 +115,143 @@ final class ConnectionSnapshotTest extends TestCase {
 		$this->assertFalse(ConnectionDigest::check(5, $rDigest, ['files' => 1]));
 		ClusterClock::fix(1800000036000);
 		$this->assertTrue(ConnectionDigest::check(5, $rDigest, ['files' => 1]));
+	}
+
+	public function testAQuietOutboxStillAllowsAnInFlightEventToSettle(): void {
+		$digest = ConnectionDigest::of([$this->rec('a', 7)]);
+		foreach ([0, 4000, 8000] as $elapsed) {
+			ClusterClock::fix(1800000000000 + $elapsed);
+			$this->assertFalse(ConnectionDigest::check(5, $digest, ['files' => 0]));
+		}
+		$this->row('a', 5, 7);
+		ClusterClock::fix(1800000012000);
+		$this->assertFalse(ConnectionDigest::check(5, $digest, ['files' => 0]));
+		$this->assertSame(0, ConnectionDigest::state(5)['asked']);
+	}
+
+	public function testRepeatedUnrepairableSnapshotsBackOffButADifferentGapRecoversNormally(): void {
+		$this->row('foreign', 6, 7);
+		$records = [$this->rec('foreign', 7)];
+		$digest = ConnectionDigest::of($records);
+		$this->assertFalse(ConnectionDigest::check(5, $digest));
+		ClusterClock::fix(1800000012000);
+		$this->assertTrue(ConnectionDigest::check(5, $digest));
+		$out = ConnectionSnapshot::receive(5, ['snap_id' => 'aa11bb22cc33dd44', 'seq' => 0, 'last' => true, 'records' => $records]);
+		$this->assertSame(1, $out['dropped']);
+		ClusterClock::fix(1800000044000);
+		$this->assertFalse(ConnectionDigest::check(5, $digest));
+		$this->assertSame(60000, ConnectionDigest::state(5)['retry_ms']);
+		ClusterClock::fix(1800000072000);
+		$this->assertTrue(ConnectionDigest::check(5, $digest));
+		ConnectionDigest::snapshotApplied(5, $records);
+		ClusterClock::fix(1800000104000);
+		$this->assertFalse(ConnectionDigest::check(5, $digest));
+		$this->assertSame(120000, ConnectionDigest::state(5)['retry_ms']);
+		$changed = ConnectionDigest::of([$this->rec('different', 8)]);
+		ClusterClock::fix(1800000108000);
+		$this->assertFalse(ConnectionDigest::check(5, $changed));
+		ClusterClock::fix(1800000120000);
+		$this->assertTrue(ConnectionDigest::check(5, $changed), 'a new gap uses normal recovery, not the old backoff');
+		for ($i = 0; $i < 5; $i++) {
+			ConnectionDigest::snapshotApplied(5, $records);
+		}
+		ClusterClock::fix(1800000124000);
+		ConnectionDigest::check(5, $digest);
+		$this->assertSame(300000, ConnectionDigest::state(5)['retry_ms'], 'retries stay bounded');
+		ClusterClock::fix(1800000416000);
+		$this->assertFalse(ConnectionDigest::check(5, $digest));
+		ClusterClock::fix(1800000420000);
+		$this->assertTrue(ConnectionDigest::check(5, $digest), 'even an unchanged gap is retried within five minutes');
+		$this->row('foreign', 5, 7);
+		ClusterClock::fix(1800000424000);
+		$this->assertFalse(ConnectionDigest::check(5, $digest));
+		$this->assertSame(30000, ConnectionDigest::state(5)['retry_ms']);
+		$this->assertArrayNotHasKey('gap', json_decode(file_get_contents($this->rDir . '/digest/5.snapshot.json'), true));
+	}
+
+	public function testSnapshotFeedbackUsesTheSameScalarFieldsAsIngest(): void {
+		$records = [['uuid' => 'hmac-viewer', 'hmac_id' => 9, 'hmac_identifier' => ['invalid'], 'hls_end' => 0]];
+		$this->rDb->query('INSERT INTO lines_live (uuid, server_id, hmac_id, hmac_identifier, hls_end) VALUES (?, 5, 9, NULL, 0);', 'hmac-viewer');
+		ConnectionDigest::snapshotApplied(5, $records);
+		$this->assertFileDoesNotExist($this->rDir . '/digest/5.snapshot.json', 'discarded nested fields must not create divergence or emit warnings');
+	}
+
+	public function testCompletionFeedbackIsIdempotentForSnapshotRetries(): void {
+		$this->row('foreign', 6, 7);
+		$payload = ['snap_id' => 'aa11bb22cc33dd44', 'seq' => 0, 'last' => true, 'records' => [$this->rec('foreign', 7)]];
+		ConnectionSnapshot::receive(5, $payload);
+		ConnectionSnapshot::receive(5, $payload);
+		$file = $this->rDir . '/digest/5.snapshot.json';
+		$this->assertSame(60000, json_decode(file_get_contents($file), true)['retry_ms']);
+		$payload['snap_id'] = 'aa11bb22cc33dd55';
+		ConnectionSnapshot::receive(5, $payload);
+		$this->assertSame(120000, json_decode(file_get_contents($file), true)['retry_ms']);
+	}
+
+	public function testCommittedDigestRecordsFeedbackWithoutReadingTheStoreAgain(): void {
+		$records = [$this->rec('a', 7)];
+		try {
+			DatabaseFactory::reset();
+			ConnectionDigest::snapshotApplied(5, $records, ConnectionDigest::of([]), 'aa11bb22cc33dd44');
+		} finally {
+			DatabaseFactory::set($this->rDb);
+		}
+		$this->assertSame(60000, json_decode(file_get_contents($this->rDir . '/digest/5.snapshot.json'), true)['retry_ms']);
+		$applied = null;
+		ConnectionSnapshot::apply(5, $records, $applied);
+		$this->assertSame(ConnectionDigest::of(ConnectionDigest::stored(5)), $applied);
+	}
+
+	public function testBrokenFeedbackStorageNeverIssuesAnUnthrottledSnapshot(): void {
+		$digest = ConnectionDigest::of([$this->rec('a', 7)]);
+		$this->assertFalse(ConnectionDigest::check(5, $digest));
+		file_put_contents($this->rDir . '/digest/5.snapshot.json', '{broken');
+		foreach ([12000, 60000, 360000] as $elapsed) {
+			ClusterClock::fix(1800000000000 + $elapsed);
+			$this->assertFalse(ConnectionDigest::check(5, $digest));
+		}
+		$this->assertSame(0, ConnectionDigest::state(5)['asked']);
+	}
+
+	public function testConcurrentCompletionsSerializeTheirReadModifyWrite(): void {
+		$dir = $this->rDir . '/digest/';
+		mkdir($dir);
+		$lock = fopen($dir . '5.lock', 'ce');
+		flock($lock, LOCK_EX);
+		$children = [];
+		try {
+			foreach (['aa11bb22cc33dd44', 'aa11bb22cc33dd55'] as $id) {
+				$code = 'require ' . var_export(dirname(__DIR__) . '/bootstrap.php', true) . ';'
+					. '\\XcVm\\Domain\\Cluster\\ConnectionDigest::useState(' . var_export($dir, true) . ');'
+					. 'file_put_contents(' . var_export($dir . $id . '.ready', true) . ', "ready");'
+					. '\\XcVm\\Domain\\Cluster\\ConnectionDigest::snapshotApplied(5, [["uuid"=>"a","user_id"=>7]], ["count"=>0,"users"=>0,"xor64"=>"0000000000000000"], ' . var_export($id, true) . ');';
+				$process = proc_open([PHP_BINARY, '-r', $code], [['file', '/dev/null', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']], $pipes);
+				$this->assertIsResource($process);
+				$children[] = $process;
+			}
+			$until = microtime(true) + 5;
+			while (count(glob($dir . '*.ready')) < 2 && microtime(true) < $until) {
+				usleep(1000);
+			}
+			$this->assertCount(2, glob($dir . '*.ready'));
+			$this->assertFileDoesNotExist($dir . '5.snapshot.json', 'Both completions wait for the heartbeat/feedback lock.');
+		} finally {
+			flock($lock, LOCK_UN);
+			fclose($lock);
+			foreach ($children as $process) {
+				$this->assertSame(0, proc_close($process));
+			}
+		}
+		$this->assertSame(120000, json_decode(file_get_contents($dir . '5.snapshot.json'), true)['retry_ms']);
+	}
+
+	public function testPartialSnapshotDoesNotStartBackoff(): void {
+		$this->row('foreign', 6, 7);
+		$records = [$this->rec('foreign', 7)];
+		ConnectionSnapshot::receive(5, ['snap_id' => 'aa11bb22cc33dd44', 'seq' => 0, 'last' => false, 'records' => $records]);
+		$this->assertFileDoesNotExist($this->rDir . '/digest/5.snapshot.json');
+		ConnectionSnapshot::receive(5, ['snap_id' => 'aa11bb22cc33dd44', 'seq' => 1, 'last' => true, 'records' => []]);
+		$this->assertFileExists($this->rDir . '/digest/5.snapshot.json');
 	}
 
 	public function testASnapshotIsAppliedWholeWithItsLastChunk(): void {

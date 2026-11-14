@@ -229,4 +229,16 @@ final class ProcessRunnerTest extends TestCase {
 		$this->assertSame(0, ProcessRunner::run([$rProgram]));
 		$this->assertFileExists($rProgram . '.ran');
 	}
+	public function testFileOutputPreservesArgumentsAndReportsProcessFailure(): void {
+		$file = tempnam(sys_get_temp_dir(), 'process-output-');
+		try {
+			$value = 'literal $(touch /this-must-not-run) ; <xml>&';
+			$this->assertSame(0, ProcessRunner::runToFile([PHP_BINARY, '-r', 'fwrite(STDOUT, $argv[1]);', $value], $file));
+			$this->assertSame($value, file_get_contents($file));
+			$this->assertSame(17, ProcessRunner::runToFile([PHP_BINARY, '-r', 'exit(17);'], $file));
+		} finally {
+			unlink($file);
+		}
+	}
+
 }

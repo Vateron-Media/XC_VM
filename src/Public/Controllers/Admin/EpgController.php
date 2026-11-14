@@ -32,7 +32,11 @@ class EpgController extends BaseAdminController {
 			}
 		}
 
+		$db = $GLOBALS['db'];
+		$db->query('SELECT * FROM `epg` ORDER BY `id`;');
+		$rMergeSources = $db->get_raw_rows();
+
 		$this->setTitle('EPG');
-		$this->render('epg', ['rEPGArr' => $rEPGArr]);
+		$this->render('epg', ['rEPGArr' => $rEPGArr, 'rMergeSources' => $rMergeSources]);
 	}
 }

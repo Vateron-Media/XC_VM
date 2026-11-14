@@ -2,6 +2,8 @@
 
 namespace XcVm\Domain\Epg;
 
+use XMLReader;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Parsing\XmlStringStreamer;
 use XcVm\Infrastructure\Database\DatabaseAware;
@@ -24,6 +26,9 @@ class EPG {
 	public $rEPGSource;
 
 	public $rFilename;
+
+	/** Channels with at least one valid programme in the current parse. */
+	public array $rParsedChannels = [];
 
 	/**
 	 * Load an EPG source on construction.
@@ -117,6 +122,7 @@ class EPG {
 		$db = self::db();
 
 		$rInsertQuery = [];
+		$this->rParsedChannels = [];
 		$programCount = 0;
 
 		$this->log("[EPG] Starting parseEPG() for EPG ID: $rEPGID (offset: {$rOffset}min)");
@@ -144,7 +150,7 @@ class EPG {
 			// Validate BEFORE applying the offset: `false + (offset*60)` would
 			// coerce false to 0, so the check below could never catch an invalid
 			// timestamp once the offset was added.
-			if ($rStartRaw === false || $rStopRaw === false) {
+			if ($rStartRaw === false || $rStopRaw === false || $rStopRaw <= $rStartRaw) {
 				$this->log("[EPG] Warning: Invalid timestamp for channel $rChannelID");
 				continue;
 			}
@@ -201,8 +207,13 @@ class EPG {
 				}
 			}
 
+			if (trim($rLangTitle) === '') {
+				continue;
+			}
+
 			$rInsertQuery[] = '(' . $db->escape($rEPGID) . ', ' . $db->escape($rChannelID) . ', ' . intval($rStart) . ', ' . intval($rStop) . ', ' . $db->escape($rChannelInfo[$rChannelID]['epg_lang']) . ', ' . $db->escape($rLangTitle) . ', ' . $db->escape($rLangDesc) . ')';
 
+			$this->rParsedChannels[$rChannelID] = true;
 			$programCount++;
 			if ($programCount % 1000 === 0) {
 				$this->log("[EPG] Parsed $programCount programmes so far...");
@@ -221,26 +232,75 @@ class EPG {
 	 * @return bool True on success.
 	 */
 	public function downloadFile(string $rSource, string $rFilename) {
-		$this->log("[EPG] Downloading EPG file: $rSource");
-
-		$rExtension = pathinfo($rSource, PATHINFO_EXTENSION);
-		$rDecompress = '';
-
-		if ($rExtension === 'gz') {
-			$rDecompress = ' | gunzip -c';
-		} elseif ($rExtension === 'xz') {
-			$rDecompress = ' | unxz -c';
+		$download = tempnam(dirname($rFilename), 'epg-download-');
+		$xml = tempnam(dirname($rFilename), 'epg-xml-');
+		if ($download === false || $xml === false) {
+			if ($download !== false) {
+				@unlink($download);
+			}
+			if ($xml !== false) {
+				@unlink($xml);
+			}
+			return false;
 		}
-
-		$rCommand = 'wget -U "Mozilla/5.0" --connect-timeout=30 --read-timeout=120 --tries=2 -O - ' . escapeshellarg($rSource) . $rDecompress . ' > ' . escapeshellarg($rFilename);
-		shell_exec($rCommand);
-
-		if (file_exists($rFilename) && filesize($rFilename) > 0) {
-			$this->log("[EPG] Download successful: " . filesize($rFilename) . " bytes");
-			return true;
+		try {
+			if (ProcessRunner::run(['wget', '-q', '-U', 'Mozilla/5.0', '--connect-timeout=30', '--read-timeout=120', '--tries=2', '-O', $download, '--', $rSource], true) !== 0) {
+				return false;
+			}
+			$extension = strtolower(pathinfo((string) parse_url($rSource, PHP_URL_PATH), PATHINFO_EXTENSION));
+			if ($extension === 'gz' || file_get_contents($download, false, null, 0, 2) === "\x1f\x8b") {
+				$input = gzopen($download, 'rb');
+				$output = fopen($xml, 'wb');
+				try {
+					if ($input === false || $output === false || stream_copy_to_stream($input, $output) === false) {
+						return false;
+					}
+				} finally {
+					if (is_resource($input)) {
+						gzclose($input);
+					}
+					if (is_resource($output)) {
+						fclose($output);
+					}
+				}
+			} elseif ($extension === 'xz') {
+				if (ProcessRunner::runToFile(['unxz', '-c', '--', $download], $xml) !== 0) {
+					return false;
+				}
+			} elseif (!copy($download, $xml)) {
+				return false;
+			}
+			return self::validXml($xml) && rename($xml, $rFilename);
+		} finally {
+			@unlink($download);
+			@unlink($xml);
 		}
-		$this->log("[EPG] Download failed or file is empty: $rSource");
-		return false;
+	}
+
+	/** Validate the entire document before replacing any last-known-good snapshot. */
+	public static function validXml(string $filename): bool {
+		$previous = libxml_use_internal_errors(true);
+		libxml_clear_errors();
+		$reader = new XMLReader();
+		try {
+			if (!$reader->open($filename, null, LIBXML_NONET)) {
+				return false;
+			}
+			$root = false;
+			while ($reader->read()) {
+				if ($reader->nodeType === XMLReader::ELEMENT && $reader->depth === 0) {
+					$root = $reader->name === 'tv';
+				}
+				if ($reader->nodeType === XMLReader::ENTITY_REF) {
+					return false;
+				}
+			}
+			return $root && libxml_get_errors() === [];
+		} finally {
+			$reader->close();
+			libxml_clear_errors();
+			libxml_use_internal_errors($previous);
+		}
 	}
 
 	/**
@@ -251,6 +311,7 @@ class EPG {
 	 * @return void
 	 */
 	public function loadEPG(string $rSource, bool $rCache) {
+		$this->rValid = false;
 		try {
 			$this->rFilename = TMP_PATH . md5($rSource) . '.xml';
 
@@ -264,7 +325,7 @@ class EPG {
 				$this->log("[EPG] Using cached EPG file: " . basename($this->rFilename));
 			}
 
-			if (!$this->rFilename) {
+			if (!self::validXml($this->rFilename)) {
 				FileLogger::log('epg', 'No XML found at: ' . $rSource);
 				return;
 			}

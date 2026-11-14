@@ -9,6 +9,7 @@
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Epg\EpgMerge;
 
 if (!Authorization::check('adv', 'epg')):
 ?>
@@ -42,6 +43,7 @@ $rCanEdit = Authorization::check('adv', 'epg_edit');
             </thead>
             <tbody>
                 <?php foreach (EpgService::getAll() as $rEPG): ?>
+                    <?php if (!empty(EpgMerge::config($rEPG)['selection'])) continue; ?>
                     <?php $rChannels = count(json_decode($rEPG['data'] ?? '[]', true) ?? []); ?>
                     <tr>
                         <td></td>

@@ -170,7 +170,7 @@ final class ReplicaSections {
 	 */
 	public const STREAM_LOCAL = [
 		'tv_archive_pid', 'vframes_pid', 'updated', 'order', 'notes', 'year', 'rating', 'similar', 'tmdb_id',
-		'tmdb_language', 'plex_uuid', 'uuid', 'epg_offset', 'title_sync', 'import_source_hash',
+		'tmdb_language', 'plex_uuid', 'uuid', 'epg_offset', 'epg_bindings', 'title_sync', 'import_source_hash',
 	];
 
 	/** `stream.server`: the node's own `streams_servers` row, what MAIN decides of it. */

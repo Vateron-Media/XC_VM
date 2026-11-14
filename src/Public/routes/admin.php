@@ -392,6 +392,7 @@ $router->api('send_event', [DeviceAjaxController::class, 'sendEvent']);
 $router->api('epg', [EpgAjaxController::class, 'epg']);
 $router->api('epglist', [EpgAjaxController::class, 'epglist']);
 $router->api('force_epg', [EpgAjaxController::class, 'forceEpg']);
+$router->api('epg_search', [EpgAjaxController::class, 'epgSearch']);
 $router->api('epg_auto_assign', [EpgAjaxController::class, 'epgAutoAssign']);
 $router->api('epg_categories', [EpgAjaxController::class, 'epgCategories']);
 $router->api('provider_import_epg', [EpgAjaxController::class, 'providerImportEpg']);
