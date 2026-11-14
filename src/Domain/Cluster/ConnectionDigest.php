@@ -31,6 +31,12 @@ final class ConnectionDigest {
 	/** Least time between two snapshot requests to one node (ms). */
 	public const COOLDOWN_MS = 30000;
 
+	/** A quiet outbox can still have events being applied on MAIN. */
+	public const SETTLE_MS = 12000;
+
+	/** Bound retries when a full snapshot leaves the same divergence. */
+	public const MAX_RETRY_MS = 300000;
+
 	/** What of() reads of a record: the uuid, its owner and whether it ended. */
 	private const KEYS = ['uuid', 'user_id', 'hmac_id', 'hmac_identifier', 'hls_end'];
 
@@ -96,9 +102,14 @@ final class ConnectionDigest {
 		if (!is_array($rDigest) || !is_int($rDigest['count'] ?? null) || !is_int($rDigest['users'] ?? null) || !is_string($rDigest['xor64'] ?? null) || !preg_match('/^[a-f0-9]{16}$/iD', $rDigest['xor64'])) {
 			return false;
 		}
+		return self::locked($rServerID, static fn(): bool => self::checkLocked($rServerID, $rDigest, $rP0)) === true;
+	}
+
+	/** @param array{count: int, users: int, xor64: string} $rDigest */
+	private static function checkLocked(int $rServerID, array $rDigest, ?array $rP0): bool {
 		$rNow = ClusterClock::nowMs();
 		$rFile = self::dir() . $rServerID . '.json';
-		$rState = (self::state($rServerID) ?? []) + ['at' => 0, 'miss' => 0, 'asked' => 0];
+		$rState = self::readJson($rFile) + ['at' => 0, 'miss' => 0, 'asked' => 0];
 		if ($rNow - (int) $rState['at'] < (self::$rEvery ?? self::EVERY_MS)) {
 			return false;
 		}
@@ -112,7 +123,7 @@ final class ConnectionDigest {
 		// continuously, competing with the events that would settle it.
 		$rPending = is_int($rP0['files'] ?? null) && $rP0['files'] > 0;
 		$rState['pending_p0'] = $rPending;
-		$rGap = ($rDigest['count'] - $rOurs['count']) . ':' . ($rDigest['users'] - $rOurs['users']) . ':' . bin2hex((hex2bin($rOurs['xor64']) ?: '') ^ (hex2bin($rDigest['xor64']) ?: ''));
+		$rGap = self::gap($rOurs, $rDigest);
 		if (($rState['drift_key'] ?? null) !== $rGap) {
 			$rState['miss'] = 0;
 			$rState['drift_since'] = $rNow;
@@ -121,16 +132,137 @@ final class ConnectionDigest {
 		$rState['drift_since'] = $rSame ? 0 : ((int) ($rState['drift_since'] ?? 0) ?: $rNow);
 		$rSettling = $rPending && $rNow - $rState['drift_since'] < self::COOLDOWN_MS;
 		$rState['miss'] = $rSame || $rSettling ? 0 : (int) $rState['miss'] + 1;
-		$rWant = $rState['miss'] >= self::MISSES && $rNow - (int) $rState['asked'] >= self::COOLDOWN_MS;
+		$rFeedbackFile = self::dir() . $rServerID . '.snapshot.json';
+		$rFeedback = self::readJson($rFeedbackFile);
+		if ($rSame) {
+			self::saveFeedback($rFeedbackFile, ['completed' => $rFeedback['completed'] ?? []]);
+		}
+		$rRetry = !$rSame && ($rFeedback['gap'] ?? null) === $rGap ? max(self::COOLDOWN_MS, min(self::MAX_RETRY_MS, (int) ($rFeedback['retry_ms'] ?? 0))) : self::COOLDOWN_MS;
+		$rState['retry_ms'] = $rRetry;
+		$rLastAttempt = max((int) $rState['asked'], !$rSame && ($rFeedback['gap'] ?? null) === $rGap ? (int) ($rFeedback['at'] ?? 0) : 0);
+		$rWant = $rState['miss'] >= self::MISSES && $rNow - $rState['drift_since'] >= self::SETTLE_MS && $rNow - $rLastAttempt >= $rRetry;
 		if ($rWant) {
 			$rState['miss'] = 0;
 			$rState['asked'] = $rNow;
 		}
-		if (!is_dir(self::dir())) {
-			@mkdir(self::dir(), 0750, true);
-		}
-		@file_put_contents($rFile, json_encode($rState), LOCK_EX);
+		self::writeJson($rFile, $rState);
 		return $rWant;
+	}
+
+	/**
+	 * A successful full snapshot can intentionally leave closed lifecycles out
+	 * of MAIN's store. Repeating that same snapshot cannot repair them. Keep
+	 * its feedback apart from heartbeat state, so concurrent writes do not
+	 * overwrite a newer heartbeat. A changed gap uses the normal retry period.
+	 *
+	 * @param list<mixed> $rRecords
+	 * @param array{count: int, users: int, xor64: string}|null $rAppliedDigest
+	 */
+	public static function snapshotApplied(int $rServerID, array $rRecords, ?array $rAppliedDigest = null, ?string $rSnapshotID = null): void {
+		self::locked($rServerID, static function () use ($rServerID, $rRecords, $rAppliedDigest, $rSnapshotID): void {
+			$rFile = self::dir() . $rServerID . '.snapshot.json';
+			$rPrevious = self::readJson($rFile);
+			$rCompleted = $rPrevious['completed'] ?? [];
+			if ($rSnapshotID !== null && in_array($rSnapshotID, $rCompleted, true)) {
+				return; // Lost success responses must not count as another attempt.
+			}
+			if ($rSnapshotID !== null) {
+				$rCompleted[] = $rSnapshotID;
+				$rCompleted = array_slice($rCompleted, -64);
+			}
+			// receive() supplies the digest observed within the successful apply,
+			// so a store outage after commit cannot lose completion feedback.
+			$rOurs = $rAppliedDigest ?? self::of(self::stored($rServerID));
+			$rReported = self::of(self::scalarRecords($rRecords));
+			if ($rOurs === $rReported) {
+				self::saveFeedback($rFile, ['completed' => $rCompleted]);
+				return;
+			}
+			$rGap = self::gap($rOurs, $rReported);
+			$rRetry = ($rPrevious['gap'] ?? null) === $rGap ? (int) ($rPrevious['retry_ms'] ?? self::COOLDOWN_MS) : self::COOLDOWN_MS;
+			self::saveFeedback($rFile, ['at' => ClusterClock::nowMs(), 'gap' => $rGap, 'retry_ms' => min(self::MAX_RETRY_MS, max(self::COOLDOWN_MS, $rRetry) * 2), 'completed' => $rCompleted]);
+		});
+	}
+
+	/** Serialize the store comparison and every feedback read/modify/write. */
+	private static function locked(int $rServerID, callable $rOperation): mixed {
+		$rLock = false;
+		try {
+			if (!is_dir(self::dir()) && !@mkdir(self::dir(), 0750, true) && !is_dir(self::dir())) {
+				throw new \RuntimeException('cannot create digest state directory');
+			}
+			$rLock = @fopen(self::dir() . $rServerID . '.lock', 'c');
+			if ($rLock === false || !flock($rLock, LOCK_EX)) {
+				throw new \RuntimeException('cannot lock digest state');
+			}
+			return $rOperation();
+		} catch (\Throwable $rError) {
+			// Optional feedback must not fail a successful apply. Heartbeats fail
+			// closed: never issue snapshots without durable rate-limit state.
+			error_log('Connection digest feedback unavailable: ' . $rError->getMessage());
+			return null;
+		} finally {
+			if (is_resource($rLock)) {
+				fclose($rLock);
+			}
+		}
+	}
+
+	private static function readJson(string $rFile): array {
+		if (!file_exists($rFile)) {
+			return [];
+		}
+		$rData = @file_get_contents($rFile);
+		$rValue = $rData === false ? null : json_decode($rData, true);
+		if (!is_array($rValue)) {
+			throw new \RuntimeException('cannot read digest state');
+		}
+		return $rValue;
+	}
+
+	private static function writeJson(string $rFile, array $rValue): void {
+		$rTemp = $rFile . '.write-' . bin2hex(random_bytes(8));
+		try {
+			$rJson = json_encode($rValue, JSON_THROW_ON_ERROR);
+			if (@file_put_contents($rTemp, $rJson, LOCK_EX) !== strlen($rJson) || !@rename($rTemp, $rFile)) {
+				throw new \RuntimeException('cannot persist digest state');
+			}
+		} finally {
+			@unlink($rTemp);
+		}
+	}
+
+	private static function saveFeedback(string $rFile, array $rFeedback): void {
+		if (!isset($rFeedback['gap']) && empty($rFeedback['completed'])) {
+			if (file_exists($rFile) && !@unlink($rFile)) {
+				throw new \RuntimeException('cannot clear digest feedback');
+			}
+			return;
+		}
+		self::writeJson($rFile, $rFeedback);
+	}
+
+	/**
+	 * Normalize snapshot fields as ingest does without duplicating a full
+	 * 50,000-record snapshot in memory for optional retry feedback.
+	 *
+	 * @param list<mixed> $rRecords
+	 * @return \Generator<int, array<string, mixed>>
+	 */
+	private static function scalarRecords(array $rRecords): \Generator {
+		foreach ($rRecords as $rRecord) {
+			if (is_array($rRecord)) {
+				yield array_filter($rRecord, static fn($rValue): bool => is_scalar($rValue) || $rValue === null);
+			}
+		}
+	}
+
+	/**
+	 * @param array{count: int, users: int, xor64: string} $rOurs
+	 * @param array{count: int, users: int, xor64: string} $rReported
+	 */
+	private static function gap(array $rOurs, array $rReported): string {
+		return ($rReported['count'] - $rOurs['count']) . ':' . ($rReported['users'] - $rOurs['users']) . ':' . bin2hex((hex2bin($rOurs['xor64']) ?: '') ^ (hex2bin($rReported['xor64']) ?: ''));
 	}
 
 	/**

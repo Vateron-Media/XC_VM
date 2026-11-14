@@ -1743,7 +1743,10 @@ class ConnectionTracker {
 						$db->query('DELETE FROM `lines_live` WHERE `activity_id` = ?', $rActivityInfo['activity_id']);
 					}
 				}
-				if ($rRemove || ($rEnd && ($rActivityInfo['container'] ?? '') == 'hls')) {
+				// A sweep passes remove=false/end=false and batches the store deletion
+				// itself. Its close must still reach the registry: a dead PHP TS
+				// worker cannot run its shutdown handler to remove that entry.
+				if ($rRemove || !$rEnd || ($rActivityInfo['container'] ?? '') == 'hls') {
 					if ($rActivityInfo['server_id'] == SERVER_ID) {
 						// This node's own connection: its agent's registry follows the
 						// close just made in MAIN's store.
