@@ -14,6 +14,7 @@ use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Util\AtomicFile;
 use XcVm\Core\Util\SystemInfo;
 use XcVm\Domain\Cluster\ClusterBus;
@@ -32,6 +33,9 @@ use XcVm\Domain\Server\ServerRepository;
 
 class ServersCronJob implements CommandInterface {
 	use CronTrait;
+
+	/** Seconds after a daemon's launch before the process list is read again (reviveFanoutSync()). */
+	private const START_WAIT = 2;
 
 	public function getName(): string {
 		return 'cron:servers';
@@ -77,20 +81,48 @@ class ServersCronJob implements CommandInterface {
 	 * exists) ends at the daemon's own flock, before it touches the holder
 	 * (DaemonTrait::acquireDaemonLock).
 	 *
+	 * It is started from its argv list, without interpolating arguments into
+	 * shell code (ProcessRunner::start()). That call answers for the hand-off
+	 * to the shell that backgrounds it, not for the daemon: a PHP binary that
+	 * is not there, or a daemon that ends in its bootstrap, still hands off.
+	 * So the process list is read once more a moment later, and a daemon that
+	 * is not in it is said in the cron's output; the next run tries again.
+	 *
 	 * @param callable|null $rRunning fn(list<string> $rTerms): bool (tests), default ProcessManager::isAnyProcessRunning().
-	 * @param callable|null $rStart   fn(string $rCommand): void (tests), default shell_exec().
-	 * @return bool True when this call started the daemon.
+	 * @param callable|null $rStart   fn(list<string> $rArgv): bool, the hand-off (tests), default ProcessRunner::start().
+	 * @param callable|null $rWait    fn(): void, the moment before the second look (tests), default START_WAIT seconds.
+	 * @return bool True when this call started the daemon and it is running.
 	 */
-	public function reviveFanoutSync(?callable $rRunning = null, ?callable $rStart = null): bool {
+	public function reviveFanoutSync(?callable $rRunning = null, ?callable $rStart = null, ?callable $rWait = null): bool {
 		$rRunning = $rRunning ?? static fn(array $rTerms): bool => ProcessManager::isAnyProcessRunning($rTerms);
-		if ($rRunning(['XC_VM[FanoutSync]', 'console.php fanout_sync'])) {
+		if ($this->fanoutSyncRunning($rRunning)) {
 			return false;
 		}
-		$rStart = $rStart ?? static function (string $rCommand): void {
-			shell_exec($rCommand);
+		$rStart = $rStart ?? static fn(array $rArgv): bool => ProcessRunner::start($rArgv);
+		if (!$rStart([PHP_BIN, MAIN_HOME . 'console.php', 'fanout_sync'])) {
+			echo 'Could not start fanout_sync' . "\n";
+			return false;
+		}
+		$rWait = $rWait ?? static function (): void {
+			sleep(self::START_WAIT);
 		};
-		$rStart(PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_sync > /dev/null 2>/dev/null &');
+		$rWait();
+		if (!$this->fanoutSyncRunning($rRunning)) {
+			echo 'fanout_sync was started and is not running' . "\n";
+			return false;
+		}
 		return true;
+	}
+
+	/**
+	 * Is the fanout_sync daemon in the process list now? By the title it gives
+	 * itself, or by its command line while it boots.
+	 *
+	 * @param callable $rRunning fn(list<string> $rTerms): bool
+	 * @phpstan-impure Each call reads the process list as it is then: two calls can differ.
+	 */
+	private function fanoutSyncRunning(callable $rRunning): bool {
+		return $rRunning(['XC_VM[FanoutSync]', 'console.php fanout_sync']);
 	}
 
 	private function loadCron(): void {

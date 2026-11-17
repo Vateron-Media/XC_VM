@@ -1,9 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
+namespace XcVm\Tests\Unit;
+
 use PHPUnit\Framework\TestCase;
 use XcVm\Cli\CronJobs\ServersCronJob;
 use XcVm\Cli\DaemonTrait;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Process\ProcessRunner;
 
 /**
  * @covers \XcVm\Cli\CronJobs\ServersCronJob::reviveFanoutSync
@@ -48,17 +53,31 @@ final class ServersCronFanoutSyncTest extends TestCase {
 	/**
 	 * One cron pass over the stand-in process list.
 	 *
-	 * @return array{0: bool, 1: list<string>} what reviveFanoutSync() answered, and the commands it started
+	 * @param bool $rHandsOff is the launch handed off to the shell that backgrounds it?
+	 * @param bool $rComesUp  is the launched daemon in the process list a moment later?
+	 * @return array{0: bool, 1: list<list<string>>, 2: string} what reviveFanoutSync() answered, the argv lists it started, and what it said
 	 */
-	private function revive(): array {
+	private function revive(bool $rHandsOff = true, bool $rComesUp = true): array {
 		$rStarted = [];
-		$rAnswer = (new ServersCronJob())->reviveFanoutSync(
-			fn(array $rTerms): bool => count(ProcessManager::findProcessPIDs($rTerms, 1, $this->rProc)) > 0,
-			static function (string $rCommand) use (&$rStarted): void {
-				$rStarted[] = $rCommand;
-			}
-		);
-		return [$rAnswer, $rStarted];
+		ob_start();
+		try {
+			$rAnswer = (new ServersCronJob())->reviveFanoutSync(
+				fn(array $rTerms): bool => count(ProcessManager::findProcessPIDs($rTerms, 1, $this->rProc)) > 0,
+				function (array $rArgv) use (&$rStarted, $rHandsOff, $rComesUp): bool {
+					$rStarted[] = $rArgv;
+					if ($rHandsOff && $rComesUp) {
+						$this->process(...$rArgv);
+					}
+					return $rHandsOff;
+				},
+				// The moment the cron waits before it looks again: none here.
+				static function (): void {
+				}
+			);
+		} finally {
+			$rSaid = (string) ob_get_clean();
+		}
+		return [$rAnswer, $rStarted, $rSaid];
 	}
 
 	/** The other daemons, and what merely looks like the reconciler: none of them is it. */
@@ -72,23 +91,89 @@ final class ServersCronFanoutSyncTest extends TestCase {
 
 	public function testAMissingReconcilerIsStartedOnce(): void {
 		$this->others();
-		[$rAnswer, $rStarted] = $this->revive();
+		[$rAnswer, $rStarted, $rSaid] = $this->revive();
 		$this->assertTrue($rAnswer);
-		$this->assertSame([PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_sync > /dev/null 2>/dev/null &'], $rStarted, 'as `service` starts it, detached');
+		$this->assertSame([[PHP_BIN, MAIN_HOME . 'console.php', 'fanout_sync']], $rStarted, 'its argv list, no argument interpolated into shell code');
+		$this->assertSame('', $rSaid, 'started, and found running a moment later: nothing to say');
+	}
+
+	public function testAHandOffThatFailedIsSaid(): void {
+		[$rAnswer, $rStarted, $rSaid] = $this->revive(false);
+		$this->assertFalse($rAnswer);
+		$this->assertCount(1, $rStarted);
+		$this->assertSame("Could not start fanout_sync\n", $rSaid);
+	}
+
+	/**
+	 * The hand-off succeeds whatever becomes of the program (ProcessRunnerTest):
+	 * a PHP binary that is not there, a daemon that ends in its bootstrap. The
+	 * second look at the process list is what tells, and the cron says so.
+	 */
+	public function testADaemonThatIsNotRunningAfterItsLaunchIsSaid(): void {
+		$this->others();
+		[$rAnswer, $rStarted, $rSaid] = $this->revive(true, false);
+		$this->assertFalse($rAnswer);
+		$this->assertCount(1, $rStarted);
+		$this->assertSame("fanout_sync was started and is not running\n", $rSaid);
+	}
+
+	/** With the real launcher: a program that does not exist is handed off all the same, and reported by the second look. */
+	public function testAMissingExecutableIsHandedOffAndThenReported(): void {
+		$rMissing = $this->rProc . '/not-a-program';
+		ob_start();
+		try {
+			$rAnswer = (new ServersCronJob())->reviveFanoutSync(
+				fn(array $rTerms): bool => count(ProcessManager::findProcessPIDs($rTerms, 1, $this->rProc)) > 0,
+				static fn(array $rArgv): bool => ProcessRunner::start([$rMissing, $rArgv[2]]),
+				static function (): void {
+				}
+			);
+		} finally {
+			$rSaid = (string) ob_get_clean();
+		}
+		$this->assertFalse($rAnswer);
+		$this->assertSame("fanout_sync was started and is not running\n", $rSaid);
+	}
+
+	/** The default launch is the codebase's argv runner, which starts nothing under a test runner. */
+	public function testTheDefaultLaunchGoesThroughTheProcessRunner(): void {
+		$rRan = [];
+		ProcessRunner::useRunner(static function (array $rArgv, bool $rQuiet) use (&$rRan): int {
+			$rRan[] = $rArgv;
+			return 0;
+		});
+		$rLooks = 0;
+		try {
+			// Absent at the first look, running at the second.
+			$rAnswer = (new ServersCronJob())->reviveFanoutSync(
+				static function (array $rTerms) use (&$rLooks): bool {
+					return ++$rLooks > 1;
+				},
+				null,
+				static function (): void {
+				}
+			);
+		} finally {
+			ProcessRunner::useRunner(null);
+		}
+		$this->assertTrue($rAnswer);
+		$this->assertSame(2, $rLooks);
+		$this->assertSame([[PHP_BIN, MAIN_HOME . 'console.php', 'fanout_sync']], $rRan);
+		$this->assertStringNotContainsString('shell_exec($r', (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/ServersCronJob.php'));
 	}
 
 	public function testARunningReconcilerIsLeftAlone(): void {
 		$this->others();
 		// The title the daemon gives itself (setProcessTitle).
 		$this->process('XC_VM[FanoutSync]');
-		$this->assertSame([false, []], $this->revive());
+		$this->assertSame([false, [], ''], $this->revive());
 	}
 
 	public function testAReconcilerThatHasNotSetItsTitleYetCountsAsRunning(): void {
 		$this->others();
 		// Just started, still booting: only its command line names it.
 		$this->process(PHP_BIN, MAIN_HOME . 'console.php', 'fanout_sync');
-		$this->assertSame([false, []], $this->revive());
+		$this->assertSame([false, [], ''], $this->revive());
 	}
 
 	/**

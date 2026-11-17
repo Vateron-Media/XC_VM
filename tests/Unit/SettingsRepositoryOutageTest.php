@@ -1,5 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
+namespace XcVm\Tests\Unit;
+
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\ReplicaBoot;
@@ -21,6 +25,12 @@ final class SettingsRepositoryOutageTest extends TestCase {
 	/** @var mixed */
 	private $rDb;
 
+	/** @var mixed the settings cache as it was found (false: none) */
+	private $rCache;
+
+	/** When that cache was written: put back with it, so an expired one stays expired. */
+	private int $rCachedAt = 0;
+
 	protected function setUp(): void {
 		if (!defined('CACHE_TMP_PATH')) {
 			$rDir = sys_get_temp_dir() . '/xcvm_settings_cache_test/';
@@ -29,6 +39,8 @@ final class SettingsRepositoryOutageTest extends TestCase {
 		}
 		@mkdir(CACHE_TMP_PATH, 0755, true);
 		ReplicaBoot::reset();
+		$this->rCache = FileCache::getCache('settings');
+		$this->rCachedAt = (int) @filemtime(FileCache::defaultPath() . 'settings');
 		FileCache::delCache('settings');
 		$this->rDb = $GLOBALS['db'] ?? null;
 
@@ -52,7 +64,13 @@ final class SettingsRepositoryOutageTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		FileCache::delCache('settings');
+		if ($this->rCache !== false) {
+			FileCache::setCache('settings', $this->rCache);
+			touch(FileCache::defaultPath() . 'settings', $this->rCachedAt);
+			clearstatcache();
+		} else {
+			FileCache::delCache('settings');
+		}
 		unset($GLOBALS['db']);
 		if ($this->rDb !== null) {
 			$GLOBALS['db'] = $this->rDb;

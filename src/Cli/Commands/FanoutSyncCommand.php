@@ -6,8 +6,10 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Cli\DaemonTrait;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\DivergenceSink;
+use XcVm\Core\Cluster\LbDatabaseAccessException;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Cluster\SettingsAudit;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Database\LazyDatabaseHandler;
@@ -89,60 +91,69 @@ class FanoutSyncCommand implements CommandInterface {
 			$this->initRedisIfEnabled();
 		}
 
-		while (true) {
-			// Refresh settings periodically and exit (to be respawned) if nginx
-			// stopped or the code changed — the standard daemon self-restart.
-			$rLastRefresh = $this->rLastCheck;
-			if (!$this->refreshOrBreak()) {
-				break;
-			}
+		try {
+			while (true) {
+				// Refresh settings periodically and exit (to be respawned) if nginx
+				// stopped or the code changed — the standard daemon self-restart.
+				$rLastRefresh = $this->rLastCheck;
+				if (!$this->refreshOrBreak()) {
+					break;
+				}
 
-			// No settings read has succeeded in this process yet (it started as
-			// the database went away, and refreshOrBreak() keeps what it holds
-			// when a read fails): nothing below works from settings nobody read.
-			if ($this->rLastCheck === null) {
-				sleep(self::INTERVAL);
-				continue;
-			}
+				// No settings read has succeeded in this process yet (it started as
+				// the database went away, and refreshOrBreak() keeps what it holds
+				// when a read fails): nothing below works from settings nobody read.
+				if ($this->rLastCheck === null) {
+					$this->pause();
+					continue;
+				}
 
-			// Keep the daemon's tuning config.json in step with panel settings even
-			// when nobody re-saved them: if the daemon wrote a default/stale config,
-			// the panel corrects it here. Runs in the xc_vm context that owns the
-			// file; a cheap no-op unless the panel-owned keys actually diverge (the
-			// internal diff guard skips the write), and the daemon mtime-polls it.
-			//
-			// Only with settings just re-read from the database: this loop runs
-			// every INTERVAL but refreshes settings every rRefreshInterval, and a
-			// sync from the older snapshot put the previous values back over an
-			// admin's save (SettingsService::edit writes the file at once) for up
-			// to a minute.
-			$rEnabled = FanoutMode::enabled();
-			if ($rEnabled && $this->rLastCheck !== $rLastRefresh) {
-				FanoutConfig::sync(SettingsManager::getAll());
-			}
+				// Keep the daemon's tuning config.json in step with panel settings even
+				// when nobody re-saved them: if the daemon wrote a default/stale config,
+				// the panel corrects it here. Runs in the xc_vm context that owns the
+				// file; a cheap no-op unless the panel-owned keys actually diverge (the
+				// internal diff guard skips the write), and the daemon mtime-polls it.
+				//
+				// Only with settings just re-read from the database: this loop runs
+				// every INTERVAL but refreshes settings every rRefreshInterval, and a
+				// sync from the older snapshot put the previous values back over an
+				// admin's save (SettingsService::edit writes the file at once) for up
+				// to a minute.
+				$rEnabled = FanoutMode::enabled();
+				if ($rEnabled && $this->rLastCheck !== $rLastRefresh) {
+					FanoutConfig::sync(SettingsManager::getAll());
+				}
 
-			// Fanout switched off: the daemon is stopped, so it serves nobody. An
-			// empty active set lets reconcile() close the daemon-served rows it
-			// left behind (pid 0); the PHP-served rows of the legacy path carry
-			// their php-fpm pid and are never touched here.
-			$rActive = $rEnabled ? FanoutClient::activeConnections() : [];
-			if ($rActive !== null && AgentConnections::enabled()) {
-				// The agent owns this node's registry and reconciles it against the
-				// fanout itself, so there are no rows here to close or drop: the
-				// daemon only reports the rates it measures.
-				$this->spoolRates($rActive);
-			} elseif ($rActive !== null) {
-				$rConns = $this->daemonConnections();
-				if ($rConns !== null) {
-					$this->reconcile(array_flip($rActive), $rConns);
-					if ($rEnabled) {
-						$this->dropOrphans($rActive, $rConns);
-						$this->writeDivergence($rConns);
+				// Fanout switched off: the daemon is stopped, so it serves nobody. An
+				// empty active set lets reconcile() close the daemon-served rows it
+				// left behind (pid 0); the PHP-served rows of the legacy path carry
+				// their php-fpm pid and are never touched here.
+				$rActive = $rEnabled ? FanoutClient::activeConnections() : [];
+				if ($rActive !== null && AgentConnections::enabled()) {
+					// The agent owns this node's registry and reconciles it against the
+					// fanout itself, so there are no rows here to close or drop: the
+					// daemon only reports the rates it measures.
+					$this->spoolRates($rActive);
+				} elseif ($rActive !== null) {
+					$rConns = $this->daemonConnections();
+					if ($rConns !== null) {
+						$this->reconcile(array_flip($rActive), $rConns);
+						if ($rEnabled) {
+							$this->dropOrphans($rActive, $rConns);
+							$this->writeDivergence($rConns);
+						}
 					}
 				}
-			}
 
-			sleep(self::INTERVAL);
+				$this->pause();
+			}
+		} catch (LbDatabaseAccessException $rRefused) {
+			// The node entered mode 2 inside a pass, after refreshOrBreak() asked:
+			// a dead connection was being opened again, and that connect is
+			// refused. Nothing was connected; the daemon leaves as it does on a
+			// mode change, and its next generation starts in mode 2.
+			echo "Mode changed! Break.\n";
+			SettingsAudit::republish();
 		}
 
 		// Self-respawn like every other daemon (watchdog/signals): refreshOrBreak
@@ -155,6 +166,11 @@ class FanoutSyncCommand implements CommandInterface {
 		$this->restartDaemon('fanout_sync');
 
 		return 0;
+	}
+
+	/** The wait between two passes. */
+	protected function pause(): void {
+		sleep(self::INTERVAL);
 	}
 
 	/**
