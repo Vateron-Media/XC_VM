@@ -6,6 +6,7 @@ use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\ReplicaApply;
 use XcVm\Core\Cluster\ReplicaBoot;
 use XcVm\Core\Cluster\ReplicaSections;
+use XcVm\Core\Database\LazyDatabaseHandler;
 
 /**
  * SettingsRepository — settings repository
@@ -35,10 +36,18 @@ class SettingsRepository {
 	 * replica no longer owns the cache (CONFIG went off, a refused section),
 	 * on the lazy handle's first use, counted.
 	 *
-	 * @param bool $rForce Bypass the file cache and re-read from the database.
-	 * @return array Settings map (with normalized array fields).
+	 * A read the database did not answer (a MariaDB restart or OOM kill) never
+	 * caches its empty row as the panel's settings. The caller gets the cache
+	 * however old; with $rOrNull it gets null instead, and keeps the settings
+	 * it holds (a daemon's refresh, DaemonTrait::refreshSettings()), and a
+	 * handle not opened yet is opened without ending the process.
+	 *
+	 * @param bool $rForce  Bypass the file cache and re-read from the database.
+	 * @param bool $rOrNull Answer null when the database did not answer, or a
+	 *                      process booted from the replica has no cache left.
+	 * @return array|null Settings map (with normalized array fields); null only with $rOrNull.
 	 */
-	public static function getAll(bool $rForce = false) {
+	public static function getAll(bool $rForce = false, bool $rOrNull = false) {
 		global $db;
 		$rReplica = self::replicaOwns();
 		if (!$rForce || $rReplica) {
@@ -52,10 +61,27 @@ class SettingsRepository {
 			}
 		}
 		if (ReplicaBoot::active() && !ReplicaBoot::hybrid()) {
-			return ReplicaBoot::cached('settings');
+			// No cache left to answer from, and no database to ask: nothing was
+			// read, which a caller that asked for null is told.
+			$rCached = ReplicaBoot::cached('settings');
+			return $rOrNull && $rCached === [] ? null : $rCached;
 		}
 
-		$db->query('SELECT * FROM `settings`');
+		// A lazy handle's first use connects, and ends the process when the
+		// server is unreachable: a caller that asked for null gets it instead.
+		if ($rOrNull && $db instanceof LazyDatabaseHandler && !$db->tryOpen()) {
+			return null;
+		}
+		// The database did not answer: an empty row decoded as the panel's
+		// settings was cached for every reader, and switched off whatever the
+		// caller reads a setting for.
+		if ($db->query('SELECT * FROM `settings`') === false) {
+			if ($rOrNull) {
+				return null;
+			}
+			$rCache = FileCache::getCache('settings');
+			return !empty($rCache) ? $rCache : self::decode([]);
+		}
 		$rOutput = self::decode($db->get_row() ?: []);
 
 		// Asked again: an apply may have built the replica's cache meanwhile.

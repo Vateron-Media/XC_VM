@@ -56,6 +56,26 @@ class LazyDatabaseHandler extends DatabaseHandler {
 		}
 	}
 
+	/**
+	 * Open the connection now, or again if it died, without ending the
+	 * process: false while the server is unreachable, whatever the handle's
+	 * own mode, and nothing is kept of the failure, so the next call tries
+	 * again (a graceful handle's own failed open is final). For a daemon,
+	 * which outlives a database outage a request does not: its loop asks
+	 * before each use. Once open, the handle is used as any other.
+	 */
+	public function tryOpen(): bool {
+		if ($this->rOpened && !$this->rDown && parent::ping()) {
+			return true;
+		}
+		if (!$this->db_connect(false, true)) {
+			return false;
+		}
+		$this->rOpened = true;
+		$this->rDown = false;
+		return true;
+	}
+
 	public function query(string $query, mixed $buffered = false) {
 		$this->open();
 		return parent::query(...func_get_args());

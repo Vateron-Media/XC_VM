@@ -64,6 +64,35 @@ class ServersCronJob implements CommandInterface {
 		return (int) floor(($rStopTime - $rStartTime) * 1000);
 	}
 
+	/**
+	 * Start the fanout_sync daemon when it is not running, where `service`
+	 * starts it at boot: on every server that runs PHP, MAIN or load balancer,
+	 * whatever the fanout switch and the cluster mode. With fanout off it
+	 * closes the rows the stopped xc_fanout left behind, and where the agent
+	 * holds the node's viewers it still reports their rates, so no setting
+	 * stands it down (and none ends it here, unlike the on-demand daemons).
+	 *
+	 * There are never two reconcilers: a start made beside a running one (in
+	 * the second restartDaemon() waits before its successor's command line
+	 * exists) ends at the daemon's own flock, before it touches the holder
+	 * (DaemonTrait::acquireDaemonLock).
+	 *
+	 * @param callable|null $rRunning fn(list<string> $rTerms): bool (tests), default ProcessManager::isAnyProcessRunning().
+	 * @param callable|null $rStart   fn(string $rCommand): void (tests), default shell_exec().
+	 * @return bool True when this call started the daemon.
+	 */
+	public function reviveFanoutSync(?callable $rRunning = null, ?callable $rStart = null): bool {
+		$rRunning = $rRunning ?? static fn(array $rTerms): bool => ProcessManager::isAnyProcessRunning($rTerms);
+		if ($rRunning(['XC_VM[FanoutSync]', 'console.php fanout_sync'])) {
+			return false;
+		}
+		$rStart = $rStart ?? static function (string $rCommand): void {
+			shell_exec($rCommand);
+		};
+		$rStart(PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_sync > /dev/null 2>/dev/null &');
+		return true;
+	}
+
 	private function loadCron(): void {
 		global $db;
 
@@ -172,6 +201,14 @@ class ServersCronJob implements CommandInterface {
 		if (!ProcessManager::isAnyProcessRunning(['XC_VM[Queue]', 'console.php queue'])) {
 			shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php queue > /dev/null 2>/dev/null &');
 		}
+
+		// The connection reconciler. `service` starts it once and its own
+		// respawn (restartDaemon) only follows a loop it left on purpose, so
+		// a generation that ended any other way was gone until the next
+		// service start. Nothing else closes a daemon-served TS connection
+		// (pid 0, which cron:users leaves to it): every viewer who left
+		// stayed "online", until the line was refused at its connection limit.
+		$this->reviveFanoutSync();
 
 		$rOnDemandPIDs = ProcessManager::findProcessPIDs(['XC_VM[Ondemand]', 'console.php ondemand']);
 		if (SettingsManager::get('on_demand_instant_off') && count($rOnDemandPIDs) == 0) {
