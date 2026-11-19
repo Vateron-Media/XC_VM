@@ -14,6 +14,7 @@ use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Util\AtomicFile;
 use XcVm\Core\Util\SystemInfo;
 use XcVm\Domain\Cluster\ClusterBus;
@@ -32,6 +33,9 @@ use XcVm\Domain\Server\ServerRepository;
 
 class ServersCronJob implements CommandInterface {
 	use CronTrait;
+
+	/** Seconds after a daemon's launch before the process list is read again (reviveFanoutSync()). */
+	private const START_WAIT = 2;
 
 	public function getName(): string {
 		return 'cron:servers';
@@ -62,6 +66,63 @@ class ServersCronJob implements CommandInterface {
 		}
 		fclose($rSocket);
 		return (int) floor(($rStopTime - $rStartTime) * 1000);
+	}
+
+	/**
+	 * Start the fanout_sync daemon when it is not running, where `service`
+	 * starts it at boot: on every server that runs PHP, MAIN or load balancer,
+	 * whatever the fanout switch and the cluster mode. With fanout off it
+	 * closes the rows the stopped xc_fanout left behind, and where the agent
+	 * holds the node's viewers it still reports their rates, so no setting
+	 * stands it down (and none ends it here, unlike the on-demand daemons).
+	 *
+	 * There are never two reconcilers: a start made beside a running one (in
+	 * the second restartDaemon() waits before its successor's command line
+	 * exists) ends at the daemon's own flock, before it touches the holder
+	 * (DaemonTrait::acquireDaemonLock).
+	 *
+	 * It is started from its argv list, without interpolating arguments into
+	 * shell code (ProcessRunner::start()). That call answers for the hand-off
+	 * to the shell that backgrounds it, not for the daemon: a PHP binary that
+	 * is not there, or a daemon that ends in its bootstrap, still hands off.
+	 * So the process list is read once more a moment later, and a daemon that
+	 * is not in it is said in the cron's output; the next run tries again.
+	 *
+	 * @param callable|null $rRunning fn(list<string> $rTerms): bool (tests), default ProcessManager::isAnyProcessRunning().
+	 * @param callable|null $rStart   fn(list<string> $rArgv): bool, the hand-off (tests), default ProcessRunner::start().
+	 * @param callable|null $rWait    fn(): void, the moment before the second look (tests), default START_WAIT seconds.
+	 * @return bool True when this call started the daemon and it is running.
+	 */
+	public function reviveFanoutSync(?callable $rRunning = null, ?callable $rStart = null, ?callable $rWait = null): bool {
+		$rRunning = $rRunning ?? static fn(array $rTerms): bool => ProcessManager::isAnyProcessRunning($rTerms);
+		if ($this->fanoutSyncRunning($rRunning)) {
+			return false;
+		}
+		$rStart = $rStart ?? static fn(array $rArgv): bool => ProcessRunner::start($rArgv);
+		if (!$rStart([PHP_BIN, MAIN_HOME . 'console.php', 'fanout_sync'])) {
+			echo 'Could not start fanout_sync' . "\n";
+			return false;
+		}
+		$rWait = $rWait ?? static function (): void {
+			sleep(self::START_WAIT);
+		};
+		$rWait();
+		if (!$this->fanoutSyncRunning($rRunning)) {
+			echo 'fanout_sync was started and is not running' . "\n";
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Is the fanout_sync daemon in the process list now? By the title it gives
+	 * itself, or by its command line while it boots.
+	 *
+	 * @param callable $rRunning fn(list<string> $rTerms): bool
+	 * @phpstan-impure Each call reads the process list as it is then: two calls can differ.
+	 */
+	private function fanoutSyncRunning(callable $rRunning): bool {
+		return $rRunning(['XC_VM[FanoutSync]', 'console.php fanout_sync']);
 	}
 
 	private function loadCron(): void {
@@ -172,6 +233,14 @@ class ServersCronJob implements CommandInterface {
 		if (!ProcessManager::isAnyProcessRunning(['XC_VM[Queue]', 'console.php queue'])) {
 			shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php queue > /dev/null 2>/dev/null &');
 		}
+
+		// The connection reconciler. `service` starts it once and its own
+		// respawn (restartDaemon) only follows a loop it left on purpose, so
+		// a generation that ended any other way was gone until the next
+		// service start. Nothing else closes a daemon-served TS connection
+		// (pid 0, which cron:users leaves to it): every viewer who left
+		// stayed "online", until the line was refused at its connection limit.
+		$this->reviveFanoutSync();
 
 		$rOnDemandPIDs = ProcessManager::findProcessPIDs(['XC_VM[Ondemand]', 'console.php ondemand']);
 		if (SettingsManager::get('on_demand_instant_off') && count($rOnDemandPIDs) == 0) {

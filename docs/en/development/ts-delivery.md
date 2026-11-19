@@ -107,6 +107,12 @@ The viewer's record stays open after PHP has answered (`pid` 0). The record is c
 - **The agent** (CONNECTIONS): it reconciles its registry against the daemon's `/connections` itself.
 - **Otherwise** `fanout_sync` (`FanoutSyncCommand`): it closes the open `pid = 0` rows the daemon no longer lists (after a short grace for the connect race), ends daemon viewers with no open row (`dropOrphans()`), and writes the per-viewer rates and divergence.
 
+A kick, a connection limit or an expired line closes a record whoever holds it. A viewer who simply disconnects is noticed by this reconciliation alone: in the legacy store (no agent) `cron:users` leaves `pid = 0` records to `fanout_sync`, so while that daemon is not running they stay open and count against their lines' limits.
+
+- `service` starts `fanout_sync` at boot, with fanout on or off. A `cron:servers` run that gets as far as its daemon checks (it booted, nginx is running, the server's row was found) starts it again when it is not running (`ServersCronJob::reviveFanoutSync()`); the daemon's lock keeps a second one from running beside it.
+- A `fanout_sync` that is running when the database becomes unreachable stays up: it keeps the settings it holds, skips each pass whose records it cannot read (never taking them for "no records"), and asks for the connection again at the next pass. The first pass after the database is back closes the records of the viewers who left meanwhile and keeps those the daemon still lists.
+- A `fanout_sync` started while the database is unreachable ends in its bootstrap where that bootstrap connects to the database (MAIN, and a node that does not boot from its replica), like any command there; the next eligible `cron:servers` run after the database is back starts it. A node that boots from a ready replica starts without MAIN's database: its `fanout_sync` comes up during the outage and skips its passes as above.
+
 ## 5. The segment gateway
 
 With `gateway_mode = segments+playlist`, nginx sends `/auth/<token>` to the gateway in `xc_fanout` first. It answers a TS viewer there, without PHP, as section 2 would answer it:

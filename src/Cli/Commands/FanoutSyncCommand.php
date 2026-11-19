@@ -6,9 +6,13 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Cli\DaemonTrait;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\DivergenceSink;
+use XcVm\Core\Cluster\LbDatabaseAccessException;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Cluster\SettingsAudit;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Database\LazyDatabaseHandler;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
@@ -28,7 +32,10 @@ use XcVm\Streaming\Fanout\FanoutMode;
  * killed — is closed, freeing the line's connection slot.
  *
  * If the daemon is unreachable the reconcile is skipped (an empty set would
- * wrongly close every daemon connection).
+ * wrongly close every daemon connection). So is a pass that cannot read the
+ * rows: the loop sits out a database outage (databaseReady()) instead of
+ * ending with it, since nothing else closes these rows. cron:servers starts
+ * the daemon again should it end all the same (ServersCronJob::reviveFanoutSync()).
  *
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -79,70 +86,91 @@ class FanoutSyncCommand implements CommandInterface {
 		$this->killStaleProcesses('XC_VM\\[FanoutSync\\]');
 		$this->initDaemonMD5();
 		// A node in mode 2 may not open MAIN's Redis: with the Redis handler on,
-		// a generation started there died at this line, and only `service`
-		// starts this daemon again.
+		// a generation started there died at this line.
 		if (!NodeRole::refusesConnects()) {
 			$this->initRedisIfEnabled();
 		}
 
-		while (true) {
-			// Refresh settings periodically and exit (to be respawned) if nginx
-			// stopped or the code changed — the standard daemon self-restart.
-			$rLastRefresh = $this->rLastCheck;
-			if (!$this->refreshOrBreak()) {
-				break;
-			}
+		try {
+			while (true) {
+				// Refresh settings periodically and exit (to be respawned) if nginx
+				// stopped or the code changed — the standard daemon self-restart.
+				$rLastRefresh = $this->rLastCheck;
+				if (!$this->refreshOrBreak()) {
+					break;
+				}
 
-			// Keep the daemon's tuning config.json in step with panel settings even
-			// when nobody re-saved them: if the daemon wrote a default/stale config,
-			// the panel corrects it here. Runs in the xc_vm context that owns the
-			// file; a cheap no-op unless the panel-owned keys actually diverge (the
-			// internal diff guard skips the write), and the daemon mtime-polls it.
-			//
-			// Only with settings just re-read from the database: this loop runs
-			// every INTERVAL but refreshes settings every rRefreshInterval, and a
-			// sync from the older snapshot put the previous values back over an
-			// admin's save (SettingsService::edit writes the file at once) for up
-			// to a minute.
-			$rEnabled = FanoutMode::enabled();
-			if ($rEnabled && $this->rLastCheck !== $rLastRefresh) {
-				FanoutConfig::sync(SettingsManager::getAll());
-			}
+				// No settings read has succeeded in this process yet (it started as
+				// the database went away, and refreshOrBreak() keeps what it holds
+				// when a read fails): nothing below works from settings nobody read.
+				if ($this->rLastCheck === null) {
+					$this->pause();
+					continue;
+				}
 
-			// Fanout switched off: the daemon is stopped, so it serves nobody. An
-			// empty active set lets reconcile() close the daemon-served rows it
-			// left behind (pid 0); the PHP-served rows of the legacy path carry
-			// their php-fpm pid and are never touched here.
-			$rActive = $rEnabled ? FanoutClient::activeConnections() : [];
-			if ($rActive !== null && AgentConnections::enabled()) {
-				// The agent owns this node's registry and reconciles it against the
-				// fanout itself, so there are no rows here to close or drop: the
-				// daemon only reports the rates it measures.
-				$this->spoolRates($rActive);
-			} elseif ($rActive !== null) {
-				$rConns = $this->daemonConnections();
-				if ($rConns !== null) {
-					$this->reconcile(array_flip($rActive), $rConns);
-					if ($rEnabled) {
-						$this->dropOrphans($rActive, $rConns);
-						$this->writeDivergence($rConns);
+				// Keep the daemon's tuning config.json in step with panel settings even
+				// when nobody re-saved them: if the daemon wrote a default/stale config,
+				// the panel corrects it here. Runs in the xc_vm context that owns the
+				// file; a cheap no-op unless the panel-owned keys actually diverge (the
+				// internal diff guard skips the write), and the daemon mtime-polls it.
+				//
+				// Only with settings just re-read from the database: this loop runs
+				// every INTERVAL but refreshes settings every rRefreshInterval, and a
+				// sync from the older snapshot put the previous values back over an
+				// admin's save (SettingsService::edit writes the file at once) for up
+				// to a minute.
+				$rEnabled = FanoutMode::enabled();
+				if ($rEnabled && $this->rLastCheck !== $rLastRefresh) {
+					FanoutConfig::sync(SettingsManager::getAll());
+				}
+
+				// Fanout switched off: the daemon is stopped, so it serves nobody. An
+				// empty active set lets reconcile() close the daemon-served rows it
+				// left behind (pid 0); the PHP-served rows of the legacy path carry
+				// their php-fpm pid and are never touched here.
+				$rActive = $rEnabled ? FanoutClient::activeConnections() : [];
+				if ($rActive !== null && AgentConnections::enabled()) {
+					// The agent owns this node's registry and reconciles it against the
+					// fanout itself, so there are no rows here to close or drop: the
+					// daemon only reports the rates it measures.
+					$this->spoolRates($rActive);
+				} elseif ($rActive !== null) {
+					$rConns = $this->daemonConnections();
+					if ($rConns !== null) {
+						$this->reconcile(array_flip($rActive), $rConns);
+						if ($rEnabled) {
+							$this->dropOrphans($rActive, $rConns);
+							$this->writeDivergence($rConns);
+						}
 					}
 				}
-			}
 
-			sleep(self::INTERVAL);
+				$this->pause();
+			}
+		} catch (LbDatabaseAccessException $rRefused) {
+			// The node entered mode 2 inside a pass, after refreshOrBreak() asked:
+			// a dead connection was being opened again, and that connect is
+			// refused. Nothing was connected; the daemon leaves as it does on a
+			// mode change, and its next generation starts in mode 2.
+			echo "Mode changed! Break.\n";
+			SettingsAudit::republish();
 		}
 
 		// Self-respawn like every other daemon (watchdog/signals): refreshOrBreak
 		// exits the loop on an nginx restart or a code change so a FRESH process
 		// picks up the new code — but that only happens if we spawn the successor.
 		// Without this the reconciler dies on the first deploy / nginx reload and
-		// never comes back (it is launched just once by the `service` script), so
+		// stays away until cron:servers finds it gone (up to a minute), while
 		// daemon-served pid=0 connections stop being reconciled and ghost viewers
 		// pile up in Redis/lines_live on streams nobody is watching.
 		$this->restartDaemon('fanout_sync');
 
 		return 0;
+	}
+
+	/** The wait between two passes. */
+	protected function pause(): void {
+		sleep(self::INTERVAL);
 	}
 
 	/**
@@ -256,13 +284,19 @@ class FanoutSyncCommand implements CommandInterface {
 		global $rSettings;
 		$rRedisMode = !empty($rSettings['redis_handler']);
 
-		DatabaseFactory::connect();
+		// The database went away since the rows were read: nothing is written,
+		// and the next pass measures again.
+		if (!$this->databaseReady()) {
+			return;
+		}
 		global $db;
 
 		// Expected delivery rate per stream: bitrate (kbps) / 8 = KB/s, minus a
 		// small headroom (0.92) — the same expectation UsersCronJob compares to.
 		$rExpected = [];
-		$db->query('SELECT `stream_id`, `bitrate` FROM `streams_servers` WHERE `server_id` = ? AND `bitrate` IS NOT NULL;', SERVER_ID);
+		if (!$db->query('SELECT `stream_id`, `bitrate` FROM `streams_servers` WHERE `server_id` = ? AND `bitrate` IS NOT NULL;', SERVER_ID)) {
+			return;
+		}
 		foreach ($db->get_rows() as $rRow) {
 			$rBitrate = intval($rRow['bitrate']);
 			if ($rBitrate > 0) {
@@ -389,11 +423,47 @@ class FanoutSyncCommand implements CommandInterface {
 			return $rRows === null ? null : array_values(array_filter($rRows, 'is_array'));
 		}
 
-		DatabaseFactory::connect();
+		// Unreachable (a MariaDB restart or OOM kill): "could not be read", so the
+		// loop skips this pass and asks again at the next one.
+		if (!$this->databaseReady()) {
+			return null;
+		}
 		global $db;
 		if (!$db->query('SELECT * FROM `lines_live` WHERE `server_id` = ? AND `pid` = 0 AND `hls_end` = 0', SERVER_ID)) {
 			return null;
 		}
-		return $db->get_rows();
+		$rRows = $db->get_rows();
+		return is_array($rRows) ? $rRows : null;
+	}
+
+	/**
+	 * Is the panel database answering on the handle this process booted with?
+	 * A dead connection is opened again on that same handle, once and
+	 * gracefully (db_connect()'s $graceful, never its $migrate, which selects
+	 * another schema): false while MariaDB is unreachable, and the loop's next
+	 * pass tries again. A lazy handle (a node booted from its replica) opens
+	 * its first connection the same way (tryOpen()): left to its first query,
+	 * it would connect as a request does.
+	 *
+	 * DatabaseFactory::connect() is not for a daemon: it replaces a dead handle
+	 * with a new DatabaseHandler, whose connect exits the process when the
+	 * server is unreachable. That is the answer a request needs, and it ended
+	 * this daemon at the first database restart, without a word (its output
+	 * goes to /dev/null).
+	 *
+	 * A node in mode 2 has no database of MAIN's to connect to: its connect is
+	 * refused with an exception, not an outage to wait out.
+	 */
+	private function databaseReady(): bool {
+		global $db;
+		if (!$db instanceof DatabaseHandler || NodeRole::refusesConnects()) {
+			return false;
+		}
+		$rUp = $db instanceof LazyDatabaseHandler ? $db->tryOpen() : ($db->ping() || $db->db_connect(false, true));
+		if (!$rUp) {
+			return false;
+		}
+		DatabaseFactory::set($db);
+		return true;
 	}
 }

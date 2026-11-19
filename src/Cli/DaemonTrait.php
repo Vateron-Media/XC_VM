@@ -155,7 +155,24 @@ trait DaemonTrait {
 			return false;
 		}
 
-		SettingsManager::set(SettingsRepository::getAll(true));
+		$this->refreshSettings();
+		return true;
+	}
+
+	/**
+	 * Re-read the settings. A read the database did not answer changes
+	 * nothing: the daemon keeps the settings it holds, rLastCheck stays, and
+	 * its next pass asks again. Taken as read, an empty row replaced them:
+	 * every switch off, every tuning value its default.
+	 *
+	 * @return bool true when the settings were read
+	 */
+	protected function refreshSettings(): bool {
+		$rFresh = SettingsRepository::getAll(true, true);
+		if ($rFresh === null) {
+			return false;
+		}
+		SettingsManager::set($rFresh);
 		$this->rLastCheck = time();
 		return true;
 	}
