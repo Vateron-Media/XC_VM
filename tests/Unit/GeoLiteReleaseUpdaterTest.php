@@ -21,7 +21,7 @@ final class GeoLiteReleaseUpdaterTest extends TestCase {
 	/** @param string[] $releases */
 	private function repo(array $releases): GitHubReleases {
 		$rRepo = $this->getMockBuilder(GitHubReleases::class)
-			->setConstructorArgs(array('Vateron-Media', 'XC_VM_Update', 'stable'))
+			->setConstructorArgs(array('Vateron-Media', 'XC_VM_GeoLite', 'stable'))
 			->onlyMethods(array('getReleases', 'assetUrl', 'getAssetHash'))
 			->getMock();
 		$rRepo->method('getReleases')->willReturn($releases);

@@ -8,7 +8,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * AsnCatalogSync — keeps the `blocked_asns` reference catalog current from the
- * master file shipped in the XC_VM_Update release (`blocked_asns.json.gz`).
+ * master file shipped in the XC_VM_GeoLite release (`blocked_asns.json.gz`).
  *
  * The panel no longer seeds ~69k static ASN rows at install: the table starts
  * empty and is populated/refreshed here. On each run the reference columns

@@ -437,7 +437,7 @@ class UpdateCommand implements CommandInterface {
 
 				// Ensure GeoLite2 databases are present/refreshed after an update.
 				// They are no longer shipped in the update archive, so fetch them
-				// from the XC_VM_Update release. Best-effort: run in background so a
+				// from the XC_VM_GeoLite release. Best-effort: run in background so a
 				// slow/failed download never blocks or fails the update.
 				if (ServerRepository::getAll()[SERVER_ID]['is_main']) {
 					UpdateLogger::info('Refreshing GeoLite2 databases (background)');

@@ -464,7 +464,6 @@ def install_prerequisites(dist_info):
             printc("Prerequisites (sudo, curl) are already installed.", col.OKGREEN)
 
 
-
 def compute_md5(file_path):
     """Compute MD5 hash of a file"""
     md5 = hashlib.md5()
@@ -477,7 +476,9 @@ def compute_md5(file_path):
 def download_release_hash(repo, release_tag, file_name):
     """Download hashes.md5 from a GitHub release (the latest one when release_tag is None) and return the hash for file_name"""
     release_path = f"download/{release_tag}" if release_tag else "latest/download"
-    hash_url = f"https://github.com/Vateron-Media/{repo}/releases/{release_path}/hashes.md5"
+    hash_url = (
+        f"https://github.com/Vateron-Media/{repo}/releases/{release_path}/hashes.md5"
+    )
     try:
         req = urllib.request.Request(hash_url)
         req.add_header("User-Agent", "XC_VM-Installer/1.0")
@@ -624,12 +625,18 @@ def install_distribution_binaries(dist_id, version):
         if expected_hash:
             actual_hash = compute_md5(temp_tar_file)
             if actual_hash != expected_hash:
-                printc(f"MD5 verification failed for {patch_name}: expected {expected_hash}, got {actual_hash}", col.FAIL)
+                printc(
+                    f"MD5 verification failed for {patch_name}: expected {expected_hash}, got {actual_hash}",
+                    col.FAIL,
+                )
                 os.remove(temp_tar_file)
                 return False
             printc(f"MD5 verification passed for {patch_name}", col.OKGREEN)
         else:
-            printc(f"Could not retrieve MD5 hash for {patch_name}: not installed unverified", col.FAIL)
+            printc(
+                f"Could not retrieve MD5 hash for {patch_name}: not installed unverified",
+                col.FAIL,
+            )
             os.remove(temp_tar_file)
             return False
 
@@ -1017,12 +1024,18 @@ def download_xc_vm():
             if expected_hash:
                 actual_hash = compute_md5("XC_VM.zip")
                 if actual_hash != expected_hash:
-                    printc(f"MD5 verification failed for XC_VM.zip: expected {expected_hash}, got {actual_hash}", col.FAIL)
+                    printc(
+                        f"MD5 verification failed for XC_VM.zip: expected {expected_hash}, got {actual_hash}",
+                        col.FAIL,
+                    )
                     os.remove("XC_VM.zip")
                     return False
                 printc("MD5 verification passed for XC_VM.zip", col.OKGREEN)
             else:
-                printc("Could not retrieve MD5 hash for XC_VM.zip: not used unverified", col.FAIL)
+                printc(
+                    "Could not retrieve MD5 hash for XC_VM.zip: not used unverified",
+                    col.FAIL,
+                )
                 os.remove("XC_VM.zip")
                 return False
 
@@ -1207,7 +1220,11 @@ def secure_mariadb_installation(root_password, dist_info=None):
     ret, out, err = run_command(version_cmd, capture_output=True)
 
     mariadb_version = out.strip() if out else ""
-    is_mariadb_103 = ("10.3" in mariadb_version or "5.7" in mariadb_version or "5.6" in mariadb_version)
+    is_mariadb_103 = (
+        "10.3" in mariadb_version
+        or "5.7" in mariadb_version
+        or "5.6" in mariadb_version
+    )
 
     if is_mariadb_103:
         printc("MariaDB 10.3 detected, using legacy password syntax", col.OKBLUE)
@@ -1601,7 +1618,9 @@ _NEEDS_OPENSSL3 = {"ubuntu_20"}
 # The package, the SHA-256 Ubuntu's signed index lists for it (jammy,
 # main/binary-amd64/Packages), and the library it puts in place.
 _OPENSSL3_DEB_URL = "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb"
-_OPENSSL3_DEB_SHA256 = "11a83260542e05aebbbafce9164d594287d2584be80972e08708528fe06f80d3"
+_OPENSSL3_DEB_SHA256 = (
+    "11a83260542e05aebbbafce9164d594287d2584be80972e08708528fe06f80d3"
+)
 _OPENSSL3_LIB = "/usr/lib/x86_64-linux-gnu/libssl.so.3"
 
 
@@ -1621,7 +1640,10 @@ def _install_openssl3_compat(dist_id, major):
             with open(tmp_file, "rb") as f:
                 actual_hash = hashlib.sha256(f.read()).hexdigest()
         if actual_hash != _OPENSSL3_DEB_SHA256:
-            printc("OpenSSL 3 library not installed: download failed or is not the expected package", col.WARNING)
+            printc(
+                "OpenSSL 3 library not installed: download failed or is not the expected package",
+                col.WARNING,
+            )
             printc("PHP binaries may not work without libssl.so.3", col.WARNING)
             return
         run_command(
@@ -1631,7 +1653,9 @@ def _install_openssl3_compat(dist_id, major):
         if os.path.exists(_OPENSSL3_LIB):
             printc("OpenSSL 3 library installation completed", col.OKGREEN)
         else:
-            printc("OpenSSL 3 library not installed: dpkg could not unpack it", col.WARNING)
+            printc(
+                "OpenSSL 3 library not installed: dpkg could not unpack it", col.WARNING
+            )
             printc("PHP binaries may not work without libssl.so.3", col.WARNING)
     except Exception as e:
         printc(f"OpenSSL 3 installation warning: {e}", col.WARNING)
@@ -1708,9 +1732,7 @@ def install_deb_packages(dist_info):
         # Install MariaDB packages separately with fallback
         if db_packages:
             db_str = " ".join(db_packages)
-            printc(
-                f"Installing MariaDB packages: {db_str}", col.OKBLUE
-            )
+            printc(f"Installing MariaDB packages: {db_str}", col.OKBLUE)
             # No capture_output → apt's log is shown directly under the frame.
             ret, _, _ = run_command(
                 f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {db_str}"
@@ -1769,7 +1791,10 @@ if __name__ == "__main__":
     # EOL: the binaries release no longer ships debian_11 assets, so the install
     # would fail halfway through.
     if dist_info["id"] == "debian" and dist_info["version"].split(".")[0] == "11":
-        printc("Debian 11 is end-of-life and no longer supported. Use Debian 12 or 13.", col.FAIL)
+        printc(
+            "Debian 11 is end-of-life and no longer supported. Use Debian 12 or 13.",
+            col.FAIL,
+        )
         sys.exit(1)
     if dist_info["family"] == "redhat":
         printc(
@@ -1918,7 +1943,9 @@ if __name__ == "__main__":
         install_deb_packages(dist_info)
 
         # Verify MariaDB was actually installed
-        ret, _, _ = run_command("dpkg -l mariadb-server 2>/dev/null | grep -q '^ii'", capture_output=True)
+        ret, _, _ = run_command(
+            "dpkg -l mariadb-server 2>/dev/null | grep -q '^ii'", capture_output=True
+        )
         if ret != 0:
             printc("MariaDB not installed after package step, retrying...", col.WARNING)
             run_command("apt-get update -y")
@@ -2009,9 +2036,7 @@ if __name__ == "__main__":
                 sys.exit(1)
 
         # Debian: 12, 13
-        elif dist_id == "debian" and any(
-            version.startswith(v) for v in ["12", "13"]
-        ):
+        elif dist_id == "debian" and any(version.startswith(v) for v in ["12", "13"]):
             if not install_distribution_binaries(dist_id, version):
                 printc(
                     f"FATAL: failed to install {dist_id} {version} binaries — the panel "
@@ -2311,7 +2336,9 @@ if __name__ == "__main__":
             # Replace placeholders
             # As AuthRepository::updateCodes() fills them: a placeholder left in
             # (#ALIAS#, #ZONE#) makes nginx refuse the whole config.
-            nginx_conf_path = os.path.normpath(os.path.join(rCodeDir, os.pardir, "nginx.conf"))
+            nginx_conf_path = os.path.normpath(
+                os.path.join(rCodeDir, os.pardir, "nginx.conf")
+            )
             with open(nginx_conf_path, "r") as f:
                 limit_zone = "panel" if "zone=panel:" in f.read() else "one"
             template_content = template_content.replace("#WHITELIST#", "")
@@ -2442,14 +2469,12 @@ if __name__ == "__main__":
         run_command("chown -R xc_vm:xc_vm /home/xc_vm/config/")
 
     # Download GeoLite2 GeoIP databases (City/Country/ASN). They are no longer
-    # bundled in the repo/release archive, so fetch them from the XC_VM_Update
+    # bundled in the repo/release archive, so fetch them from the XC_VM_GeoLite
     # release on install. This also refreshes bin/maxmind/version.json.
     # Non-fatal: run_command never raises, so a download failure won't abort.
     if os.path.exists(startup_cmd):
         printc("Downloading GeoLite2 GeoIP databases...", col.OKBLUE)
-        run_command(
-            f"/home/xc_vm/bin/php/bin/php {startup_cmd} cron:maxmind --force"
-        )
+        run_command(f"/home/xc_vm/bin/php/bin/php {startup_cmd} cron:maxmind --force")
 
     # Download the proxy-node archive (proxy.tar.gz). Like GeoLite2 it is no longer
     # bundled in the release archive — fetch it from the XC_VM_Proxy release on
@@ -2468,9 +2493,7 @@ if __name__ == "__main__":
     if os.path.exists(startup_cmd):
         printc("Downloading the ffmpeg builds...", col.OKBLUE)
         run_command("install -d -o xc_vm -g xc_vm -m 0755 /home/xc_vm/bin/ffmpeg_bin")
-        run_command(
-            f"sudo -u xc_vm /home/xc_vm/bin/php/bin/php {startup_cmd} ffmpeg"
-        )
+        run_command(f"sudo -u xc_vm /home/xc_vm/bin/php/bin/php {startup_cmd} ffmpeg")
 
     time.sleep(3)
 

@@ -127,9 +127,9 @@ final class GitHubReleasesTest extends TestCase {
 	}
 
 	public function testAssetUrlBuildsReleaseDownloadUrl() {
-		$instance = new GitHubReleases('Vateron-Media', 'XC_VM_Update', 'stable');
+		$instance = new GitHubReleases('Vateron-Media', 'XC_VM_GeoLite', 'stable');
 		$this->assertSame(
-			'https://github.com/Vateron-Media/XC_VM_Update/releases/download/29062026/GeoLite2-City.mmdb',
+			'https://github.com/Vateron-Media/XC_VM_GeoLite/releases/download/29062026/GeoLite2-City.mmdb',
 			$instance->assetUrl('29062026', 'GeoLite2-City.mmdb')
 		);
 	}
@@ -214,7 +214,7 @@ final class GitHubReleasesTest extends TestCase {
 
 	public function testDevChannelWithoutDevRepositoryBehavesLikeBeta() {
 		$mock = $this->getMockBuilder(GitHubReleases::class)
-			->setConstructorArgs(array('Vateron-Media', 'XC_VM_Update', 'dev'))
+			->setConstructorArgs(array('Vateron-Media', 'XC_VM_GeoLite', 'dev'))
 			->onlyMethods(array('fetchRawReleases'))
 			->getMock();
 		$mock->expects($this->once())->method('fetchRawReleases')->willReturn(self::MAIN_RELEASES);

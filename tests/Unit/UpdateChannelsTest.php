@@ -105,7 +105,7 @@ final class UpdateChannelsTest extends TestCase {
 		$this->assertSame('dev', UpdateChannels::main());
 		$this->assertSame('stable', UpdateChannels::bin(), 'BIN has no nightly builds');
 		$this->assertSame('stable', UpdateChannels::fanout(), 'FANOUT has no nightly builds');
-		$this->assertSame('dev', UpdateChannels::forRepo('XC_VM_Update'), 'UPDATE follows MAIN');
+		$this->assertSame('dev', UpdateChannels::forRepo('XC_VM_GeoLite'), 'UPDATE follows MAIN');
 	}
 
 	public function testMainReleasesCarriesTheConfiguredChannelAndDevRepo(): void {

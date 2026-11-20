@@ -98,7 +98,7 @@ PHP);
 	}
 
 	private function updater(): AuditCoreDataGeoLiteUpdater {
-		return new AuditCoreDataGeoLiteUpdater(new GitHubReleases('Vateron-Media', 'XC_VM_Update', 'stable'));
+		return new AuditCoreDataGeoLiteUpdater(new GitHubReleases('Vateron-Media', 'XC_VM_GeoLite', 'stable'));
 	}
 
 	/** @return array{fileurl: string, path: string, md5: ?string} what the release is asked for $rAsset */
@@ -155,7 +155,7 @@ PHP);
 
 	public function testTheVersionIsRecordedOnlyWhenEveryFileCameThrough(): void {
 		$rRepo = $this->getMockBuilder(GitHubReleases::class)
-			->setConstructorArgs(['Vateron-Media', 'XC_VM_Update', 'stable'])
+			->setConstructorArgs(['Vateron-Media', 'XC_VM_GeoLite', 'stable'])
 			->onlyMethods(['getReleases', 'assetUrl', 'getAssetHash'])
 			->getMock();
 		$rRepo->method('getReleases')->willReturn(['29062026']);

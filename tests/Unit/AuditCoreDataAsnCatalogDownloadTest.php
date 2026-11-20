@@ -105,7 +105,7 @@ PHP);
 
 			namespace {
 				define('GIT_OWNER', 'Vateron-Media');
-				define('GIT_REPO_UPDATE', 'XC_VM_Update');
+				define('GIT_REPO_UPDATE', 'XC_VM_GeoLite');
 				require $argv[3] . 'vendor/autoload.php';
 				$rDownload = new \ReflectionMethod(\XcVm\Core\GeoIP\AsnCatalogSync::class, 'download');
 				$rDownload->setAccessible(true);
