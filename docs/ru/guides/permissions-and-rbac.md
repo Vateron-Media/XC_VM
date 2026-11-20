@@ -327,7 +327,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 |`streams`, `stream_view`, `provider`, `providers`, `epg_view`, `created_channels`, `stream_rank`, `archive`| `streams` |При `created_channels` список внутри страницы отображается с помощью `manage_cchannels` или `edit_cchannel`|
-| `stream` | `edit_stream` |Когда присутствует `id`|
+| `stream` | `edit_stream` | When `id` is present |
 | `stream` | `add_stream` |Когда нет `id`|
 | `stream` | `import_streams` |Когда присутствует параметр `import` (в дополнение к параметру `add_stream`)|
 | `stream_categories` | `categories` | |
@@ -337,7 +337,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 | `mass_edit_streams` | `edit_stream` | |
 | `review` | `import_streams` | |
 | `channel_order` | `channel_order` | |
-| `created_channel` | `edit_cchannel` |Когда присутствует `id`|
+| `created_channel` | `edit_cchannel` | When `id` is present |
 | `created_channel` | `create_channel` |Когда нет `id`|
 
 ### <a id="movies-and-vod"></a>Фильмы и VOD
@@ -345,7 +345,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `movies` | `movies` | |
-| `movie` | `edit_movie` |Когда присутствует `id`|
+| `movie` | `edit_movie` | When `id` is present |
 | `movie` | `add_movie` |Когда нет `id`|
 | `movie` | `import_movies` |Когда присутствует параметр `import` (в дополнение к параметру `add_movie`)|
 | `movie_mass` | `mass_sedits_vod` | |
@@ -357,11 +357,11 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `series` | `series` | |
-| `serie` | `edit_series` |Когда присутствует `id`|
+| `serie` | `edit_series` | When `id` is present |
 | `serie` | `add_series` |Когда нет `id`|
 | `series_order` | `edit_series` | |
 | `episodes` | `episodes` | |
-| `episode` | `edit_episode` |Когда присутствует `id`|
+| `episode` | `edit_episode` | When `id` is present |
 | `episode` | `add_episode` |Когда нет `id`|
 |`series_mass`, `episodes_mass`| `mass_sedits` | |
 
@@ -370,7 +370,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `radios` | `radio` | |
-| `radio` | `edit_radio` |Когда присутствует `id`|
+| `radio` | `edit_radio` | When `id` is present |
 | `radio` | `add_radio` |Когда нет `id`|
 | `radio_mass` | `mass_edit_radio` | |
 
@@ -379,7 +379,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `lines` | `users` | |
-| `line` | `edit_user` |Когда присутствует `id`|
+| `line` | `edit_user` | When `id` is present |
 | `line` | `add_user` |Когда нет `id`|
 | `line_mass` | `mass_edit_lines` | |
 |`active_codes`, `active_codes_batch`| `users` |Управляйте активными кодами и пакетным менеджером. Элементы управления, которые изменяют коды (включают, отключают, расширяют, сбрасывают устройство, удаляют), отображаются только с `edit_user` или `mass_edit_lines`|
@@ -393,7 +393,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `mags` | `manage_mag` | |
-| `mag` | `edit_mag` |Когда присутствует `id`|
+| `mag` | `edit_mag` | When `id` is present |
 | `mag` | `add_mag` |Когда нет `id`|
 | `mag_events` | `manage_events` | |
 | `mag_mass` | `mass_edit_mags` | |
@@ -405,7 +405,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `users` | `mng_regusers` | |
-| `user` | `edit_reguser` |Когда присутствует `id`|
+| `user` | `edit_reguser` | When `id` is present |
 | `user` | `add_reguser` |Когда нет `id`|
 | `user_mass` | `mass_edit_users` | |
 | `user_logs` | `reg_userlog` | |
@@ -415,11 +415,11 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `bouquets` | `bouquets` | |
-| `bouquet` | `edit_bouquet` |Когда присутствует `id`|
+| `bouquet` | `edit_bouquet` | When `id` is present |
 | `bouquet` | `add_bouquet` |Когда нет `id`; при отказе переходит на `edit_bouquet`|
 |`bouquet_order`, `bouquet_sort`| `edit_bouquet` | |
 |`packages`, `addons`| `mng_packages` | |
-| `package` | `edit_package` |Когда присутствует `id`|
+| `package` | `edit_package` | When `id` is present |
 | `package` | `add_packages` |Когда нет `id`|
 
 ### <a id="groups"></a>Группы
@@ -427,7 +427,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `groups` | `mng_groups` | |
-| `group` | `edit_group` |Когда присутствует `id`|
+| `group` | `edit_group` | When `id` is present |
 | `group` | `add_group` |Когда нет `id`; при отказе переходит на `mng_groups`|
 
 ### <a id="epg"></a>ЭПГ
@@ -435,7 +435,7 @@ A mass-edit page shows the list it edits, so that table is read with the list pa
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `epgs` | `epg` | |
-| `epg` | `epg_edit` |Когда присутствует `id`|
+| `epg` | `epg_edit` | When `id` is present |
 | `epg` | `add_epg` |Когда нет `id`; при отказе переходит на `epg`|
 
 ### <a id="servers"></a>Серверы

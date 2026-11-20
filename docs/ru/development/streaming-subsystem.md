@@ -644,7 +644,7 @@ SIGNALS_PATH        = /home/xc_vm/signals/
 не является частью опубликованного сайта):
 
 - [ADR 0001 — Tmpfs-free streaming](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0001-tmpfs-free-streaming.md) — PHP out of the byte path, native fan-out, in-RAM HLS.
-- [ADR 0002 — `xc_fanout` daemon](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0002-xc-fanout-daemon.md) — the native live fan-out daemon.
+- [ADR 0002 — `xc_fanout` демон](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0002-xc-fanout-daemon.md) — собственный демон разветвления в реальном времени.
 - [ADR 0003 — Полное отключение демона](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0003-full-daemon-cutover.md) — отмена устаревшего байтового пути для live.
 
 ---
