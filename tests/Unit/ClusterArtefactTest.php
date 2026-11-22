@@ -600,8 +600,8 @@ final class ClusterArtefactTest extends TestCase {
 		$this->denial($rRes, $rReq, 403, 'GRANT_INVALID');
 	}
 
-	/** rotate_sign_key rides the cluster API alone: for a node it does not route, nothing is queued, and never as a signals row. */
-	public function testAnActionOnlyTheClusterCarriesIsNeverASignalsRow(): void {
+	/** Every root action is signed: an unready node gets no writable signals-row fallback. */
+	public function testNoRootActionFallsBackToASignalsRow(): void {
 		$rSink = new class implements SignalSink {
 			/** @var list<array<string, mixed>> */
 			public array $rRows = [];
@@ -617,10 +617,10 @@ final class ClusterArtefactTest extends TestCase {
 		};
 		SignalDispatcher::useSink($rSink);
 		try {
-			$this->assertFalse(NodeActions::send(9, ['action' => 'rotate_sign_key']), 'a legacy node');
+			$this->assertFalse(NodeActions::send(9, ['action' => 'rotate_sign_key', 'new_pub' => str_repeat('a', 64)]), 'a legacy node');
 			$this->assertSame([], $rSink->rRows);
-			$this->assertTrue(NodeActions::reloadNginx(9));
-			$this->assertCount(1, $rSink->rRows, 'what the signals table does carry');
+			$this->assertFalse(NodeActions::reloadNginx(9));
+			$this->assertSame([], $rSink->rRows);
 		} finally {
 			SignalDispatcher::useSink(null);
 		}

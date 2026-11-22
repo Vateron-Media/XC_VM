@@ -44,9 +44,9 @@
 
 - Не записывайте `INSERT INTO signals`, `UPDATE streams_servers` (для состояния выполнения),
 или ВСТАВЬТЕ непосредственно в таблицу журнала; используйте шов.
-- Не вызывайте `ApiClient::systemRequest()` / `asyncRequest()` или
-`SignalDispatcher::rootAction()` за пределами `Core\Cluster`; добавьте действие в
-внесите в каталог и используйте `NodeRpc` / `NodeActions`.
+- Не вызывайте `ApiClient::systemRequest()` / `asyncRequest()` и не записывайте
+root-действия в `signals`; добавьте действие в каталог и используйте `NodeRpc` /
+`NodeActions`.
 - Код на стороне узла считывает определения потоков через `StreamSource`, а не с помощью его
 собственные запросы к `streams`, `streams_options` или `recordings`. Как только узел будет
 реплика владеет потоками (ПОТОКИ продолжаются), ее ответы поступают из потока

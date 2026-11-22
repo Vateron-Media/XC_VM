@@ -3,6 +3,7 @@
 namespace XcVm\Core\Cluster;
 
 use XcVm\Core\Config\OpensslExtra;
+use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Domain\Cluster\ClusterRoute;
 
 /**
@@ -13,11 +14,8 @@ use XcVm\Domain\Cluster\ClusterRoute;
  * certificates, install or remove modules, flush the IP blocklist. The
  * node's root cron (RootSignalsCronJob) executes them.
  *
- * Callers queued the raw JSON through SignalDispatcher::rootAction() (a
- * `signals` row), which is still the only transport. In API mode (Phase 4)
- * each becomes a signed `node.root{action}` command for `cluster:root`.
- * ROOT_ACTIONS is the catalogue RootSignalsCronJob handles, and a payload
- * outside it is refused rather than queued to be ignored.
+ * Every action is a signed, node-bound `node.root` command for `cluster:root`.
+ * Nodes without COMMANDS and root_ready receive no privileged fallback.
  */
 final class NodeActions {
 	/** Every action RootSignalsCronJob executes. */
@@ -25,7 +23,7 @@ final class NodeActions {
 		'reboot', 'restart_services', 'stop_services', 'reload_nginx',
 		'disable_ramdisk', 'enable_ramdisk', 'certbot_generate', 'update_binaries',
 		'install_module', 'delete_module', 'update', 'rollback',
-		'set_services', 'set_governor', 'set_sysctl', 'set_port', 'flush',
+		'set_services', 'set_governor', 'set_port', 'flush',
 		OpensslExtra::SIGNAL_ACTION, 'rotate_redis', 'rotate_db', 'rotate_sign_key',
 		NodeCredentials::STRIP, NodeCredentials::INSTALL, NodeCorePin::ACTION,
 		self::SEED_CONNECTIONS,
@@ -129,10 +127,6 @@ final class NodeActions {
 		return self::send($rServerID, ['action' => 'set_governor', 'data' => $rGovernor], $rDb);
 	}
 
-	public static function setSysctl(int $rServerID, mixed $rSysCtl, ?object $rDb = null): bool {
-		return self::send($rServerID, ['action' => 'set_sysctl', 'data' => $rSysCtl], $rDb);
-	}
-
 	/** Clear the node's firewall blocklist; RootSignalsCronJob matches this exact payload. */
 	public static function flushBlocklist(int $rServerID, ?object $rDb = null): bool {
 		return self::send($rServerID, ['action' => 'flush'], $rDb);
@@ -155,16 +149,85 @@ final class NodeActions {
 		if (!is_string($rAction) || !in_array($rAction, self::ROOT_ACTIONS, true)) {
 			throw new \InvalidArgumentException('Unknown node root action: ' . (is_string($rAction) ? $rAction : 'none'));
 		}
-		// A node with the COMMANDS flow and its root pin gets a signed node.root (MAIN only).
+		if (!self::valid($rData)) {
+			throw new \InvalidArgumentException('Invalid node root action payload: ' . $rAction);
+		}
 		if (class_exists(ClusterRoute::class)) {
 			[$rRouted, $rQueued] = ClusterRoute::root($rServerID, $rData);
 			if ($rRouted) {
 				return $rQueued;
 			}
 		}
-		if (in_array($rAction, self::CLUSTER_ONLY, true)) {
+		return false;
+	}
+
+	/** Strict shape checked before signing and again by root after verification. */
+	public static function valid(array $rData): bool {
+		$rAction = $rData['action'] ?? null;
+		if (!is_string($rAction) || !in_array($rAction, self::ROOT_ACTIONS, true)) {
 			return false;
 		}
-		return SignalDispatcher::rootAction($rServerID, $rPayload, $rDb);
+		$rOnly = static fn(array $rKeys): bool => array_diff(array_keys($rData), array_merge(['action'], $rKeys)) === [];
+		$rString = static fn(string $rKey, int $rMax = 4096): bool => is_string($rData[$rKey] ?? null) && $rData[$rKey] !== '' && strlen($rData[$rKey]) <= $rMax;
+		$rB64 = static fn(string $rKey, int $rMax): bool => $rString($rKey, $rMax * 2) && ($rDecoded = base64_decode($rData[$rKey], true)) !== false && $rDecoded !== '' && strlen($rDecoded) <= $rMax;
+		$rVersion = static fn(string $rKey): bool => is_string($rData[$rKey] ?? null)
+			&& (GitHubReleases::isReleaseVersion($rData[$rKey]) || GitHubReleases::isDevVersion($rData[$rKey]));
+		$rName = static fn(string $rKey): bool => is_string($rData[$rKey] ?? null) && preg_match('/^[A-Za-z0-9_.-]{1,128}$/', $rData[$rKey]) === 1;
+
+		if (in_array($rAction, ['reboot', 'restart_services', 'stop_services', 'reload_nginx', 'disable_ramdisk', 'enable_ramdisk', 'update_binaries', 'flush', NodeCredentials::STRIP, self::SEED_CONNECTIONS], true)) {
+			return $rOnly([]);
+		}
+		return match ($rAction) {
+			'update', 'rollback' => $rOnly(['version']) && $rVersion('version'),
+			'certbot_generate' => $rOnly(['domain']) && self::domains($rData['domain'] ?? null),
+			'install_module' => $rOnly(['source', 'name', 'version', 'store_id', 'artefact'])
+				&& in_array($rData['source'] ?? null, ['local', 'platform'], true) && $rName('name')
+				&& is_string($rData['version'] ?? null) && preg_match('/^[0-9A-Za-z._+-]{1,64}$/', $rData['version']) === 1
+				&& (!isset($rData['store_id']) || $rName('store_id')) && (!isset($rData['artefact']) || is_array($rData['artefact'])),
+			'delete_module' => $rOnly(['name']) && $rName('name'),
+			'set_services' => $rOnly(['count', 'reload']) && is_int($rData['count'] ?? null) && $rData['count'] >= 1 && $rData['count'] <= 1024 && is_bool($rData['reload'] ?? null),
+			'set_governor' => $rOnly(['data']) && is_string($rData['data'] ?? null) && preg_match('/^[a-z_]{1,32}$/', $rData['data']) === 1,
+			'set_port' => $rOnly(['type', 'ports', 'reload', 'backend']) && self::ports($rData) && (!isset($rData['backend']) || is_bool($rData['backend'])),
+			OpensslExtra::SIGNAL_ACTION => $rOnly(['value']) && $rString('value'),
+			'rotate_redis' => $rOnly(['host', 'port', 'auth_sealed']) && self::host($rData['host'] ?? null)
+				&& is_int($rData['port'] ?? null) && $rData['port'] >= 1 && $rData['port'] <= 65535 && $rB64('auth_sealed', 65536),
+			'rotate_db' => $rOnly(['auth_sealed']) && $rB64('auth_sealed', 65536),
+			'rotate_sign_key' => $rOnly(['new_pub', 'pin_blob']) && is_string($rData['new_pub'] ?? null)
+				&& preg_match('/^[0-9a-f]{64}$/', $rData['new_pub']) === 1 && (!isset($rData['pin_blob']) || $rB64('pin_blob', 65536)),
+			NodeCredentials::INSTALL => $rOnly(['blob']) && $rB64('blob', NodeCredentials::MAX_BLOB),
+			NodeCorePin::ACTION => $rOnly(['blob']) && (!isset($rData['blob']) || $rB64('blob', NodeCorePin::MAX_BLOB)),
+			default => false,
+		};
+	}
+
+	private static function domains(mixed $rDomains): bool {
+		if (!is_array($rDomains) || !array_is_list($rDomains) || $rDomains === [] || count($rDomains) > 100) {
+			return false;
+		}
+		foreach ($rDomains as $rDomain) {
+			if (!is_string($rDomain) || !preg_match('/^(?=.{1,253}$)[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/', $rDomain)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** @param array<string, mixed> $rData */
+	private static function ports(array $rData): bool {
+		if (!is_int($rData['type'] ?? null) || $rData['type'] < 0 || $rData['type'] > 2 || !is_bool($rData['reload'] ?? null)
+			|| !is_array($rData['ports'] ?? null) || !array_is_list($rData['ports']) || $rData['ports'] === []) {
+			return false;
+		}
+		foreach ($rData['ports'] as $rPort) {
+			if (!is_int($rPort) || $rPort < ($rData['type'] === 2 ? 1 : 80) || $rPort > 65535) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static function host(mixed $rHost): bool {
+		return is_string($rHost) && (filter_var($rHost, FILTER_VALIDATE_IP) !== false
+			|| preg_match('/^(?=.{1,253}$)[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/', $rHost) === 1);
 	}
 }

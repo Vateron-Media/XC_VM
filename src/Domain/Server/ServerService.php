@@ -181,9 +181,6 @@ class ServerService {
 		if (!empty($rArray['governor'])) {
 			self::setGovernor($rInsertID, $rArray['governor']);
 		}
-		if (!empty($rArray['sysctl'])) {
-			self::setSysctl($rInsertID, $rArray['sysctl']);
-		}
 		if (file_exists(CACHE_TMP_PATH . 'servers')) {
 			unlink(CACHE_TMP_PATH . 'servers');
 		}
@@ -514,18 +511,6 @@ class ServerService {
 	public static function setGovernor(int $rServerID, string $rGovernor) {
 		$db = self::db();
 		NodeActions::setGovernor(intval($rServerID), $rGovernor, $db);
-	}
-
-	/**
-	 * Apply sysctl settings on a server.
-	 *
-	 * @param int   $rServerID Server id.
-	 * @param mixed $rSysCtl   Sysctl key/values to apply.
-	 * @return mixed Result.
-	 */
-	public static function setSysctl(int $rServerID, mixed $rSysCtl) {
-		$db = self::db();
-		NodeActions::setSysctl(intval($rServerID), $rSysCtl, $db);
 	}
 
 	/**
