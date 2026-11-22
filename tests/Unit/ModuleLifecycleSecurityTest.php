@@ -71,16 +71,10 @@ final class ModuleLifecycleSecurityTest extends TestCase {
 		$this->manager()->deployFromArchiveFilesOnly($archive, 'granted', '2.0.0');
 	}
 
-	public function testUnzipMetadataFallbackValidatesSafeArchive(): void {
-		$archive = $this->rDir . '/fallback.zip';
-		$zip = new ZipArchive();
-		$this->assertTrue($zip->open($archive, ZipArchive::CREATE));
-		$zip->addFromString('demo/module.json', json_encode(['name' => 'demo', 'version' => '1.0.0']));
-		$zip->close();
-
-		$method = new ReflectionMethod(ModuleManager::class, 'validateZipViaUnzip');
-		$method->invoke($this->manager(), $archive);
-		$this->addToAssertionCount(1);
+	public function testZipValidationHasNoCliFallbackWithoutAnExtractionQuota(): void {
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Core/Module/ModuleManager.php');
+		$this->assertStringNotContainsString('unzip', $rSource);
+		$this->assertStringContainsString('Secure ZIP validation requires the PHP zip extension.', $rSource);
 	}
 
 	private function manager(): ModuleManager {

@@ -11,6 +11,7 @@ use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Request;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\CrontabLock;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;
@@ -109,14 +110,25 @@ class LegacyInitializer {
 		if (file_exists(TMP_PATH . "crontab")) {
 			return false;
 		}
+		$rLock = CrontabLock::acquire();
+		if ($rLock === null || file_exists(TMP_PATH . "crontab")) {
+			return false;
+		}
 
 		$rCrontab = ReplicaApply::crontabText(ReplicaBoot::active() && !ReplicaBoot::hybrid() ? null : $db);
 		if ($rCrontab === null) {
 			return false;
 		}
 
-		// `crontab -u xc_vm <file>` replaces that crontab whole. No `crontab -r`
-		// first: it removes the crontab of whoever boots, root's included.
+		// Preserve module jobs while replacing the generated core jobs.
+		$rCurrent = [];
+		exec('crontab -u xc_vm -l', $rCurrent);
+		foreach ($rCurrent as $rLine) {
+			if (str_contains($rLine, '# XC_VM_MODULE') && !str_contains($rCrontab, $rLine)) {
+				$rCrontab .= "\n" . $rLine;
+			}
+		}
+		// `crontab -u xc_vm <file>` replaces that crontab whole. No `crontab -r` first.
 		$rTempName = tempnam("/tmp", "crontab");
 		$rHandle = fopen($rTempName, "w");
 		fwrite($rHandle, $rCrontab . "\n");

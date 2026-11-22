@@ -2529,7 +2529,7 @@ class ModuleManager {
 	 * The type is detected by magic bytes (uploads arrive as an extension-less tmp
 	 * file), then routed:
 	 *   - tar.gz : PharData (bundled with PHP, no extension) → fallback to `tar` CLI
-	 *   - zip    : ZipArchive → fallback to the validated `unzip` CLI
+	 *   - zip    : ZipArchive
 	 *
 	 * $destination is always an isolated temp dir created by the caller, and the
 	 * CLI tools refuse to write outside it (they strip `../`/absolute members), so
@@ -2548,17 +2548,12 @@ class ModuleManager {
 			return;
 		}
 
-		// ZIP metadata was validated above through the same available backend.
+		// ZIP metadata was validated above through ZipArchive.
 		if (class_exists('ZipArchive')) {
 			$this->extractZipViaZipArchive($archivePath, $destination);
 			return;
 		}
-		if ($this->hasBinary('unzip')) {
-			// unzip exit 1 = success with warnings (e.g. skipped unsafe paths).
-			$this->runExtractor('unzip -oqq ' . escapeshellarg($archivePath) . ' -d ' . escapeshellarg($destination), 1);
-			return;
-		}
-		throw new \RuntimeException('Cannot extract .zip: install the PHP zip extension or the `unzip` command (or upload a .tar.gz).');
+		throw new \RuntimeException('Cannot extract .zip securely: install the PHP zip extension or upload a .tar.gz.');
 	}
 
 	/** Reject oversized, ambiguous or unsafe archives before any member is extracted. */
@@ -2583,8 +2578,7 @@ class ModuleManager {
 	/** Inspect ZIP metadata, including expanded sizes and Unix link types. */
 	private function validateZipArchive(string $archivePath): void {
 		if (!class_exists('ZipArchive')) {
-			$this->validateZipViaUnzip($archivePath);
-			return;
+			throw new \RuntimeException('Secure ZIP validation requires the PHP zip extension.');
 		}
 		$zip = new \ZipArchive();
 		if ($zip->open($archivePath) !== true) {
@@ -2615,34 +2609,6 @@ class ModuleManager {
 			}
 		} finally {
 			$zip->close();
-		}
-		$this->assertArchiveStructure($entries);
-	}
-
-	/** Validate ZIP metadata with the unzip package shipped by the installer. */
-	private function validateZipViaUnzip(string $archivePath): void {
-		if (!$this->hasBinary('unzip')) {
-			throw new \RuntimeException('Secure ZIP validation requires the PHP zip extension or the `unzip` command.');
-		}
-		$names = $this->archiveListing(['unzip', '-Z', '-1', $archivePath]);
-		$details = array_values(preg_grep('/^[-dlbcps]/', $this->archiveListing(['unzip', '-Z', '-l', $archivePath])) ?: []);
-		if (count($details) !== count($names)) {
-			throw new \RuntimeException('Unable to inspect zip archive metadata.');
-		}
-
-		$entries = [];
-		$total = 0;
-		foreach ($details as $i => $detail) {
-			$parts = preg_split('/\s+/', trim($detail), 10);
-			$type = $detail[0] ?? '';
-			if (!in_array($type, ['-', 'd'], true) || !isset($parts[3], $parts[9]) || !ctype_digit($parts[3]) || $parts[9] !== $names[$i]) {
-				throw new \RuntimeException('Module archives may contain only regular files and directories.');
-			}
-			$name = $this->archiveEntryName($names[$i]);
-			$size = (int) $parts[3];
-			$total += $type === 'd' ? 0 : $size;
-			$this->assertArchiveLimits(count($entries) + 1, $total, $name, $size);
-			$entries[] = $name;
 		}
 		$this->assertArchiveStructure($entries);
 	}

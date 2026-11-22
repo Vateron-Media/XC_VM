@@ -135,6 +135,8 @@ final class AuditRootCronCrontabTest extends TestCase {
 	public function testRegeneratingTheXcVmCrontabRemovesNobodysCrontab(): void {
 		// The crontab of whoever boots (root's, for a root cron or `status`).
 		$rSeed = $this->seed();
+		$rModule = '*/5 * * * * module # XC_VM_MODULE';
+		file_put_contents($this->rDir . 'xc_vm.crontab', $rModule . "\n");
 		[$rOut, $rAsked] = $this->child('$GLOBALS["db"] = new class {
 	public function query(string $rQuery, mixed ...$rArgs): bool {
 		return true;
@@ -151,7 +153,12 @@ echo $rGenerate->invoke(null) ? "generated" : "skipped";');
 		$this->assertSame($rSeed, (string) @file_get_contents($this->rDir . 'root.crontab'), 'the booting user\'s own crontab is not the xc_vm crontab');
 		$this->assertSame([], preg_grep('/^crontab -r/', $rAsked));
 		$rLine = static fn(string $rTime, string $rName): string => $rTime . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rName . ' # XC_VM';
-		$this->assertSame([$rLine('* * * * *', 'streams'), $rLine('0 * * * *', 'tmdb')], (array) file($this->rDir . 'xc_vm.crontab', FILE_IGNORE_NEW_LINES), 'the xc_vm crontab is replaced with the jobs');
+		$this->assertSame([$rLine('* * * * *', 'streams'), $rLine('0 * * * *', 'tmdb'), $rModule], (array) file($this->rDir . 'xc_vm.crontab', FILE_IGNORE_NEW_LINES), 'core jobs are replaced without erasing module jobs');
 		$this->assertFileExists($this->rDir . 'tmp/crontab', 'done once: the marker');
+	}
+
+	public function testBothXcVmCrontabWritersUseTheSharedLock(): void {
+		$this->assertStringContainsString('CrontabLock::acquire()', (string) file_get_contents(MAIN_HOME . 'Core/Init/LegacyInitializer.php'));
+		$this->assertStringContainsString('CrontabLock::acquire()', (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ModuleCronSyncCommand.php'));
 	}
 }
