@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use XcVm\Domain\Cluster\CommandBus;
 use XcVm\Domain\Cluster\ClusterAdmin;
 use XcVm\Domain\Cluster\NodeRegistry;
 
@@ -15,6 +16,14 @@ use XcVm\Domain\Cluster\NodeRegistry;
  * (DbCredentials::strip, ClusterCredentialsActionTest).
  */
 final class ClusterModeGateTest extends TestCase {
+	public function testRootCommandsNeedOnlyAnActiveCommandFlowAndRootPin(): void {
+		foreach ([0, 1, 2] as $rMode) {
+			$this->assertTrue(CommandBus::acceptsRoot($this->node($rMode, NodeRegistry::FLOW_COMMANDS)), 'mode ' . $rMode);
+		}
+		$this->assertFalse(CommandBus::acceptsRoot($this->node(0, 0)));
+		$this->assertFalse(CommandBus::acceptsRoot($this->node(0, NodeRegistry::FLOW_COMMANDS, 'active', 0)));
+		$this->assertFalse(CommandBus::acceptsRoot($this->node(0, NodeRegistry::FLOW_COMMANDS, 'quarantined')));
+	}
 	private function node(int $rMode, int $rFlows, string $rState = 'active', int $rRootReady = 1): array {
 		return ['mode' => $rMode, 'flows' => $rFlows, 'state' => $rState, 'root_ready' => $rRootReady];
 	}

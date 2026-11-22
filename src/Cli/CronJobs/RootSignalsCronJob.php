@@ -25,6 +25,7 @@ use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Gateway\GatewayNginxConfig;
 use XcVm\Core\Gateway\GatewayPolicy;
+use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Process\PhpFpmPools;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Process\ProcessRunner;
@@ -668,19 +669,6 @@ class RootSignalsCronJob implements CommandInterface {
 	}
 
 	/**
-	 * Does MAIN send this node's root actions as signed `node.root` commands
-	 * (the COMMANDS flow on, and root's own pin of the panel key in place)?
-	 * MAIN then sends the blocklist flush that way too (NodeActions::send,
-	 * ClusterRoute::root), and cluster:root runs it through executeAction()
-	 * within a second; this cron no longer polls the signals table for it.
-	 * A flush row queued before (or while MAIN lacked the pin) still runs,
-	 * from the signals loop below.
-	 */
-	public static function rootCommandsFromMain(): bool {
-		return NodeFlows::on(NodeFlows::COMMANDS) && RootPin::read() !== null;
-	}
-
-	/**
 	 * Does this cron read MAIN's database: its `signals` table, the crontab
 	 * table, and `blocked_ips` without CONFIG? Not on a node in mode 2
 	 * (plan, section 10), whose connects are refused
@@ -688,7 +676,7 @@ class RootSignalsCronJob implements CommandInterface {
 	 * `node.root` commands, which cluster:root runs, and its replica says
 	 * when its own row changed (replicaChecks()). MAIN, mode 0 and mode 1
 	 * read it as before, `signals` rows MAIN queued before COMMANDS or
-	 * root's pin included.
+	 * root's pin included for non-privileged work only; privileged rows are discarded.
 	 */
 	public static function readsMainDatabase(): bool {
 		return !NodeRole::refusesConnects();
@@ -742,104 +730,89 @@ class RootSignalsCronJob implements CommandInterface {
 		// Before the servers the replica's checks use (replicaChecks()).
 		$rServersTag = $rReads ? null : self::replicaServersTag();
 		$rServers = ServerRepository::getAll(true);
-		$rFlush = false;
-		if ($rReads && !self::rootCommandsFromMain()) {
-			$db->query("SELECT `signal_id` FROM `signals` WHERE `server_id` = ? AND `custom_data` = '{\"action\":\"flush\"}' AND `cache` = 0;", SERVER_ID);
-			$rFlush = $db->num_rows() > 0;
+		// Auto-unban: on MAIN only, drop expired automatic IP bans (flood/
+		// bruteforce) so the sync below removes them from iptables. Manual admin
+		// bans (any other notes) are left permanent.
+		$rUnbanSettings = SettingsManager::getAll();
+		if (!empty($rServers[SERVER_ID]['is_main']) && !empty($rUnbanSettings['auto_unban_ip'])) {
+			$rUnbanMul = ['minutes' => 60, 'hours' => 3600, 'days' => 86400];
+			$rUnbanUnit = (string) ($rUnbanSettings['ban_duration_unit'] ?? 'hours');
+			$rUnbanSecs = max(1, intval($rUnbanSettings['ban_duration_value'] ?? 24)) * ($rUnbanMul[$rUnbanUnit] ?? 3600);
+			$rUnbanWhere = "`date` < ? AND (UPPER(`notes`) LIKE '%ATTACK%' OR UPPER(`notes`) LIKE '%BRUTEFORCE%' OR UPPER(`notes`) LIKE '%FLOOD%')";
+			$rUnbanBefore = time() - $rUnbanSecs;
+			$db->query('SELECT `ip` FROM `blocked_ips` WHERE ' . $rUnbanWhere . ';', $rUnbanBefore);
+			$rUnbanned = array_column($db->get_rows() ?: [], 'ip');
+			if ($rUnbanned !== []) {
+				$db->query('DELETE FROM `blocked_ips` WHERE ' . $rUnbanWhere . ';', $rUnbanBefore);
+				BlocklistChanges::del('ip', $rUnbanned, $db);
+			}
 		}
-		if ($rFlush) {
-			echo "Flushing IP's...";
-			$this->flushIPs();
-			$this->saveiptables();
-			if (!LogSink::syslog('FLUSH', 'Flushed blocked IP\'s from iptables.')) {
-				$db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'FLUSH', 'Flushed blocked IP\\'s from iptables.', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
-			}
-			$db->query("DELETE FROM `signals` WHERE `server_id` = ? AND `custom_data` = '{\"action\":\"flush\"}' AND `cache` = 0;", SERVER_ID);
-		} else {
-			// Auto-unban: on MAIN only, drop expired automatic IP bans (flood/
-			// bruteforce) so the sync below removes them from iptables. Manual admin
-			// bans (any other notes) are left permanent.
-			$rUnbanSettings = SettingsManager::getAll();
-			if (!empty($rServers[SERVER_ID]['is_main']) && !empty($rUnbanSettings['auto_unban_ip'])) {
-				$rUnbanMul = ['minutes' => 60, 'hours' => 3600, 'days' => 86400];
-				$rUnbanUnit = (string) ($rUnbanSettings['ban_duration_unit'] ?? 'hours');
-				$rUnbanSecs = max(1, intval($rUnbanSettings['ban_duration_value'] ?? 24)) * ($rUnbanMul[$rUnbanUnit] ?? 3600);
-				$rUnbanWhere = "`date` < ? AND (UPPER(`notes`) LIKE '%ATTACK%' OR UPPER(`notes`) LIKE '%BRUTEFORCE%' OR UPPER(`notes`) LIKE '%FLOOD%')";
-				$rUnbanBefore = time() - $rUnbanSecs;
-				$db->query('SELECT `ip` FROM `blocked_ips` WHERE ' . $rUnbanWhere . ';', $rUnbanBefore);
-				$rUnbanned = array_column($db->get_rows() ?: [], 'ip');
-				if ($rUnbanned !== []) {
-					$db->query('DELETE FROM `blocked_ips` WHERE ' . $rUnbanWhere . ';', $rUnbanBefore);
-					BlocklistChanges::del('ip', $rUnbanned, $db);
+
+		$rSyncMarker = CRONS_TMP_PATH . 'blocked_ips_sync_marker';
+		// The addresses iptables must block: MAIN's table, or with the
+		// CONFIG flow on the node replica's cache (cluster:apply). No cache
+		// yet means nothing to sync, never "unblock everything".
+		$rBlocked = self::blockedIPs($db);
+		$rRunFullSync = $rBlocked !== null;
+		$rCurrentIPCount = count($rBlocked ?? []);
+		// The list's content, not its size: a ban and an unban in one minute change it too.
+		$rSorted = $rBlocked ?? [];
+		sort($rSorted);
+		$rHash = hash('sha256', implode("\n", $rSorted));
+
+		if ($rRunFullSync && file_exists($rSyncMarker)) {
+			$rLastSyncData = json_decode(@file_get_contents($rSyncMarker), true);
+			if (is_array($rLastSyncData) && isset($rLastSyncData['hash'], $rLastSyncData['time'])) {
+				if ($rLastSyncData['hash'] === $rHash && (time() - intval($rLastSyncData['time'])) < 300) {
+					$rRunFullSync = false;
 				}
 			}
+		}
 
-			$rSyncMarker = CRONS_TMP_PATH . 'blocked_ips_sync_marker';
-			// The addresses iptables must block: MAIN's table, or with the
-			// CONFIG flow on the node replica's cache (cluster:apply). No cache
-			// yet means nothing to sync, never "unblock everything".
-			$rBlocked = self::blockedIPs($db);
-			$rRunFullSync = $rBlocked !== null;
-			$rCurrentIPCount = count($rBlocked ?? []);
-			// The list's content, not its size: a ban and an unban in one minute change it too.
-			$rSorted = $rBlocked ?? [];
-			sort($rSorted);
-			$rHash = hash('sha256', implode("\n", $rSorted));
-
-			if ($rRunFullSync && file_exists($rSyncMarker)) {
-				$rLastSyncData = json_decode(@file_get_contents($rSyncMarker), true);
-				if (is_array($rLastSyncData) && isset($rLastSyncData['hash'], $rLastSyncData['time'])) {
-					if ($rLastSyncData['hash'] === $rHash && (time() - intval($rLastSyncData['time'])) < 300) {
-						$rRunFullSync = false;
-					}
-				}
-			}
-
-			if ($rRunFullSync && $this->syncSets($rBlocked)) {
-				@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
-			} elseif ($rRunFullSync) {
-				$rActualBlocked = $this->getBlockedIPs();
-				$rActualBlockedFlip = array_flip($rActualBlocked);
-				$rBlockedFlip = array_flip($rBlocked);
-				$rAdd = $rDel = [];
-				foreach (array_count_values($rActualBlocked) as $rIP => $rCount) {
-					if ($rCount > 1) {
-						echo $rCount . "\n";
-						foreach (range(1, $rCount - 1) as $i) {
-							$rDel[] = $rIP;
-						}
-					}
-				}
-				foreach ($rBlocked as $rIP) {
-					if (!isset($rActualBlockedFlip[$rIP])) {
-						$rAdd[] = $rIP;
-					}
-				}
-				foreach ($rActualBlocked as $rIP) {
-					if (!isset($rBlockedFlip[$rIP])) {
+		if ($rRunFullSync && $this->syncSets($rBlocked)) {
+			@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
+		} elseif ($rRunFullSync) {
+			$rActualBlocked = $this->getBlockedIPs();
+			$rActualBlockedFlip = array_flip($rActualBlocked);
+			$rBlockedFlip = array_flip($rBlocked);
+			$rAdd = $rDel = [];
+			foreach (array_count_values($rActualBlocked) as $rIP => $rCount) {
+				if ($rCount > 1) {
+					echo $rCount . "\n";
+					foreach (range(1, $rCount - 1) as $i) {
 						$rDel[] = $rIP;
 					}
 				}
-				if (count($rDel) > 0) {
-					$this->rSaveIPTables = true;
-					foreach ($rDel as $rIP) {
-						echo 'Unblock IP: ' . $rIP . "\n";
-						$this->unblockip($rIP);
-					}
-				}
-				if (count($rAdd) > 0) {
-					$this->rSaveIPTables = true;
-					foreach ($rAdd as $rIP) {
-						echo 'Block IP: ' . $rIP . "\n";
-						$this->blockip($rIP);
-					}
-				}
-				if ($this->rSaveIPTables) {
-					$this->saveiptables();
-					$this->rSaveIPTables = false;
-				}
-				@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
 			}
+			foreach ($rBlocked as $rIP) {
+				if (!isset($rActualBlockedFlip[$rIP])) {
+					$rAdd[] = $rIP;
+				}
+			}
+			foreach ($rActualBlocked as $rIP) {
+				if (!isset($rBlockedFlip[$rIP])) {
+					$rDel[] = $rIP;
+				}
+			}
+			if (count($rDel) > 0) {
+				$this->rSaveIPTables = true;
+				foreach ($rDel as $rIP) {
+					echo 'Unblock IP: ' . $rIP . "\n";
+					$this->unblockip($rIP);
+				}
+			}
+			if (count($rAdd) > 0) {
+				$this->rSaveIPTables = true;
+				foreach ($rAdd as $rIP) {
+					echo 'Block IP: ' . $rIP . "\n";
+					$this->blockip($rIP);
+				}
+			}
+			if ($this->rSaveIPTables) {
+				$this->saveiptables();
+				$this->rSaveIPTables = false;
+			}
+			@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
 		}
 		$rReload = false;
 		$rViewerApiConf = self::viewerApiConf();
@@ -862,7 +835,7 @@ class RootSignalsCronJob implements CommandInterface {
 			file_put_contents(BIN_PATH . 'nginx/conf/ministra_legacy.conf', $rMinistraLegacyConf);
 			$rReload = true;
 		}
-		$rAllowedIPs = ServerRepository::getAllowedIPs();
+		$rAllowedIPs = ServerRepository::getAllowedIPs(rIncludeAdmin: false);
 		$rXC_VMList = [];
 		foreach ($rAllowedIPs as $rIP) {
 			if (!empty($rIP) && filter_var($rIP, FILTER_VALIDATE_IP)) {
@@ -1109,26 +1082,18 @@ class RootSignalsCronJob implements CommandInterface {
 				}
 			}
 		}
-		// A node in mode 2 reads no `signals` row: its replica says when to
-		// check its ramdisk, ports and services.
+		// Privileged rows are discarded, never executed. Enrolled nodes receive
+		// signed node.root commands; mode 2 also reconciles safe replica state.
 		if (!$rReads || $db->query("SELECT `signal_id`, `custom_data` FROM `signals` WHERE `server_id` = ? AND `custom_data` <> '' AND `cache` = 0 ORDER BY signal_id ASC;", SERVER_ID)) {
 			$rRows = $rReads ? $db->get_rows() : [];
-			$rCheck = $rReads ? ['php' => false, 'services' => false, 'ports' => false, 'ramdisk' => false] : $this->replicaChecks($rServersTag);
-			foreach ($rRows as $rRow) {
-				$rData = json_decode($rRow['custom_data'], true);
-				switch ($rData['action'] ?? '') {
-					case 'disable_ramdisk':
-					case 'enable_ramdisk':
-						$rCheck['ramdisk'] = true;
-						break;
-					case 'set_services':
-						$rCheck['services'] = true;
-						break;
-					case 'set_port':
-						$rCheck['ports'] = true;
-						break;
-				}
+			if ($rRows !== []) {
+				FileLogger::log('security', 'Discarded unauthenticated legacy root actions', count($rRows));
 			}
+			foreach ($rRows as $rRow) {
+				$db->query('DELETE FROM `signals` WHERE `signal_id` = ?;', (int) $rRow['signal_id']);
+			}
+			$rRows = [];
+			$rCheck = $rReads ? ['php' => false, 'services' => false, 'ports' => false, 'ramdisk' => false] : $this->replicaChecks($rServersTag);
 			if ($rCheck['services'] && !is_file(CONFIG_PATH . 'cluster/serve_only')) {
 				$rCurServices = 0;
 				$rStartScript = explode("\n", file_get_contents(MAIN_HOME . 'bin/daemons.sh'));
@@ -1138,7 +1103,7 @@ class RootSignalsCronJob implements CommandInterface {
 					}
 				}
 				if ($rServers[SERVER_ID]['total_services'] != $rCurServices) {
-					array_unshift($rRows, ['custom_data' => json_encode(['action' => 'set_services', 'count' => $rServers[SERVER_ID]['total_services'], 'reload' => true])]);
+					array_unshift($rRows, ['custom_data' => json_encode(['action' => 'set_services', 'count' => (int) $rServers[SERVER_ID]['total_services'], 'reload' => true])]);
 				}
 			}
 			if ($rCheck['ports']) {
@@ -1241,14 +1206,15 @@ class RootSignalsCronJob implements CommandInterface {
 	}
 
 	/**
-	 * Run one root action: a `signals` row's custom_data here, or a verified
-	 * `node.root` command handed over by cluster:root (Phase 4). Same code for
-	 * both, so the two transports cannot drift apart.
+	 * Run one verified `node.root` command handed over by cluster:root.
 	 *
 	 * @param array<string, mixed> $rData {action, …}
 	 * @param array<int, array<string, mixed>> $rServers
 	 */
 	public function executeAction(array $rData, array $rServers, object $db): void {
+		if (!NodeActions::valid($rData)) {
+			throw new \InvalidArgumentException('Invalid node root action payload');
+		}
 		switch ($rData['action'] ?? '') {
 			case 'flush':
 				// The blocklist flush; with the CONFIG flow on, the minute's sync
@@ -1493,18 +1459,6 @@ class RootSignalsCronJob implements CommandInterface {
 						sleep(2);
 						$rGovernor = explode(' ', trim(shell_exec('cpufreq-info -p')));
 						NodeStateSink::state(['governor' => json_encode($rGovernor)], $db);
-					}
-				}
-				break;
-			case 'set_sysctl':
-				$rNewConfig = $rData['data'];
-				if (!empty($rNewConfig)) {
-					$rSysCtl = file_get_contents('/etc/sysctl.conf');
-					if ($rSysCtl != $rNewConfig) {
-						shell_exec('sudo modprobe ip_conntrack > /dev/null');
-						file_put_contents('/etc/sysctl.conf', $rNewConfig);
-						shell_exec('sudo sysctl -p > /dev/null');
-						NodeStateSink::state(['sysctl' => $rNewConfig], $db);
 					}
 				}
 				break;

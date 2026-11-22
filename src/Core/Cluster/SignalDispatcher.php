@@ -7,8 +7,8 @@ use XcVm\Domain\Cluster\ClusterRoute;
 /**
  * Signal Dispatcher
  *
- * The one way code tells a node to do something: kill a viewer process, run a
- * root action, or refresh cached data. Callers used to write `signals` rows
+	 * The one way code tells a node to do something: kill a viewer process or
+	 * refresh cached data. Callers used to write `signals` rows
  * directly (47 INSERTs); they now name the intent and the dispatcher writes it
  * through a SignalSink. Today the only sink is LegacySqlSignalSink, which
  * writes exactly the rows the old INSERTs wrote, so nothing changes for the
@@ -51,18 +51,6 @@ final class SignalDispatcher {
 		}
 		$rRow['time'] = null;
 		return self::sink($rDb)->insert([$rRow]);
-	}
-
-	/**
-	 * A root action for cron:root_signals on the node (update, reboot,
-	 * restart_services, set_port, …). Encoded with json_encode(), so the
-	 * consumers that match custom_data byte for byte keep matching.
-	 *
-	 * @param array<string, mixed>|string $rPayload An array, or JSON already encoded.
-	 */
-	public static function rootAction(int $rServerID, array|string $rPayload, ?object $rDb = null): bool {
-		$rJson = is_string($rPayload) ? $rPayload : json_encode($rPayload);
-		return self::sink($rDb)->insert([['server_id' => $rServerID, 'time' => time(), 'custom_data' => $rJson]]);
 	}
 
 	/**

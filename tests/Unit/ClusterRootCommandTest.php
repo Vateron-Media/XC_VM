@@ -7,7 +7,6 @@ use XcVm\Cli\CronJobs\RootSignalsCronJob;
 use XcVm\Core\Cluster\Crypto\Enc;
 use XcVm\Core\Cluster\EventSpool;
 use XcVm\Core\Cluster\NodeCredentials;
-use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\RootPin;
 use XcVm\Tests\Support\FakeClusterCrypto;
 
@@ -50,43 +49,6 @@ final class ClusterRootCommandTest extends TestCase {
 
 	private function inbox(int $rSeq, array $rCmd): void {
 		file_put_contents($this->rBase . 'inbox/' . $rSeq . '.json', json_encode($rCmd));
-	}
-
-	/**
-	 * The blocklist flush (plan, section 7: `cron:root_signals` blocklist is
-	 * applied by `cluster:root`): a node that takes MAIN's root commands gets
-	 * it as a signed node.root, which runs through executeAction like every
-	 * other root action, and stops polling the signals table for it.
-	 */
-	public function testTheFlushComesAsARootCommandOnceTheNodeTakesThem(): void {
-		$rFlows = $this->rBase . 'flows.json';
-		NodeFlows::usePath($rFlows);
-		try {
-			foreach ([[null, false], [['mode' => 1, 'flows' => NodeFlows::TELEMETRY], false], [['mode' => 1, 'flows' => NodeFlows::COMMANDS, 'state' => 'active'], true], [['mode' => 2, 'flows' => 255, 'state' => 'quarantined'], true], [['mode' => 1, 'flows' => NodeFlows::COMMANDS, 'state' => 'revoked'], false]] as [$rDoc, $rExpected]) {
-				@unlink($rFlows);
-				if ($rDoc !== null) {
-					file_put_contents($rFlows, json_encode($rDoc));
-				}
-				NodeFlows::usePath($rFlows);
-				$this->assertSame($rExpected, RootSignalsCronJob::rootCommandsFromMain(), json_encode($rDoc));
-			}
-			// The same flows without a pin root trusts: MAIN keeps the signals table for them.
-			file_put_contents($rFlows, json_encode(['mode' => 1, 'flows' => NodeFlows::COMMANDS, 'state' => 'active']));
-			NodeFlows::usePath($rFlows);
-			$this->assertTrue(RootSignalsCronJob::rootCommandsFromMain(), 'COMMANDS on, the pin in place');
-			chmod($this->rBase . 'etc', 0775);
-			$this->assertFalse(RootSignalsCronJob::rootCommandsFromMain(), 'COMMANDS on, no pin');
-		} finally {
-			NodeFlows::usePath(null);
-		}
-		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
-		$rReads = strpos($rSource, '$rReads = self::readsMainDatabase();');
-		$rGate = strpos($rSource, 'if ($rReads && !self::rootCommandsFromMain()) {');
-		$rRead = strpos($rSource, "SELECT `signal_id` FROM `signals` WHERE `server_id` = ? AND `custom_data` = '{");
-		$this->assertNotFalse($rReads);
-		$this->assertNotFalse($rGate);
-		$this->assertLessThan($rGate, $rReads);
-		$this->assertTrue($rRead > $rGate && $rRead - $rGate < 120, 'the legacy flush row is read only where MAIN still sends it');
 	}
 
 	/**
@@ -160,6 +122,9 @@ final class ClusterRootCommandTest extends TestCase {
 			'stale' => [$this->command(3, ['exp' => 1799999000]), 2],
 			'replay' => [$this->command(3), 3],
 			'unknown action' => [$this->command(3, ['action' => 'rm_rf']), 2],
+			'extra argument' => [$this->command(3, ['args' => ['extra' => true]]), 2],
+			'wrong argument type' => [$this->command(3, ['action' => 'set_services', 'args' => ['count' => '4', 'reload' => true]]), 2],
+			'removed sysctl action' => [$this->command(3, ['action' => 'set_sysctl', 'args' => ['data' => 'kernel.core_pattern=|/tmp/pwn']]), 2],
 			// The action is the envelope's (the extension classes by it): one
 			// among the arguments as well, or instead, is refused.
 			'a second action among the arguments' => [$this->command(3, ['args' => ['action' => 'update']]), 2],
@@ -168,6 +133,11 @@ final class ClusterRootCommandTest extends TestCase {
 		foreach ($rCases as $rName => [$rCmd, $rHigh]) {
 			$this->assertIsString(RootPin::verify($rPin, $rCmd['doc'], (string) Enc::b64urlDecode($rCmd['sig']), 1800000000, $rHigh), $rName);
 		}
+	}
+
+	public function testExecutionBoundaryRejectsAnInvalidPayload(): void {
+		$this->expectException(InvalidArgumentException::class);
+		(new RootSignalsCronJob())->executeAction(['action' => 'restart_services', 'extra' => true], [], new stdClass());
 	}
 
 	public function testACredentialActionsOutcomeAlsoGoesToMainAsAnEvent(): void {
@@ -199,7 +169,7 @@ final class ClusterRootCommandTest extends TestCase {
 			return "Reloading nginx...\n";
 		};
 		$this->inbox(1, $this->command(1));
-		$this->inbox(2, $this->command(2, ['action' => 'update']));
+		$this->inbox(2, $this->command(2, ['action' => 'update', 'args' => ['version' => '2.7.4']]));
 		$rDone = ClusterRootCommand::drain($rRun, 1800000000);
 		$this->assertSame(['reload_nginx', 'update'], $rRan);
 		$this->assertSame(2, RootPin::highWater());
