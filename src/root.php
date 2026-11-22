@@ -23,6 +23,7 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
 
 $rRegistry = new CommandRegistry();
 $rRootCommands = [
+	XcVm\Cli\Commands\BackupOpenBundleCommand::class,
 	XcVm\Cli\Commands\BinariesCommand::class,
 	XcVm\Cli\Commands\CertbotCommand::class,
 	XcVm\Cli\Commands\ClusterDbAllowlistCommand::class,
@@ -34,6 +35,8 @@ $rRootCommands = [
 	XcVm\Cli\Commands\IpsetCommand::class,
 	XcVm\Cli\Commands\RootOwnCommand::class,
 	XcVm\Cli\Commands\RootPathsCommand::class,
+	XcVm\Cli\Commands\ServerDiagnoseCommand::class,
+	XcVm\Cli\Commands\ServerSyncOpensslExtraCommand::class,
 	XcVm\Cli\Commands\ServiceCommand::class,
 	XcVm\Cli\Commands\StartupCommand::class,
 	XcVm\Cli\Commands\StatusCommand::class,

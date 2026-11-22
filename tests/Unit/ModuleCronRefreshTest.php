@@ -76,4 +76,19 @@ final class ModuleCronRefreshTest extends TestCase {
 			)
 		);
 	}
+
+	/** @dataProvider crontabListResults */
+	public function testOnlyConfirmedMissingCrontabIsEmpty(int $rCode, string $rOutput, bool $rMissing): void {
+		$rMethod = new ReflectionMethod(ModuleCronSyncCommand::class, 'crontabMissing');
+		$this->assertSame($rMissing, $rMethod->invoke(null, $rCode, $rOutput));
+	}
+
+	public static function crontabListResults(): array {
+		return [
+			'absent' => [1, "no crontab for xc_vm\n", true],
+			'read error' => [1, "cannot read crontab\n", false],
+			'success' => [0, '', false],
+			'other failure' => [2, "permission denied\n", false],
+		];
+	}
 }

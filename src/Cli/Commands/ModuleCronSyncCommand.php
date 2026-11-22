@@ -28,17 +28,22 @@ final class ModuleCronSyncCommand implements CommandInterface {
 			return 1;
 		}
 
-		[$rCode, $rCurrent] = ProcessRunner::capture(['crontab', '-l'], self::MAX_CRONTAB_BYTES + 1);
-		if (($rCode !== 0 && $rCode !== 1) || strlen($rCurrent) > self::MAX_CRONTAB_BYTES) {
+		[$rCode, $rCurrent] = ProcessRunner::capture(['/usr/bin/env', 'LC_ALL=C', 'crontab', '-l'], self::MAX_CRONTAB_BYTES + 1, null, true);
+		$rMissing = self::crontabMissing($rCode, $rCurrent);
+		if (($rCode !== 0 && !$rMissing) || strlen($rCurrent) > self::MAX_CRONTAB_BYTES) {
 			return 1;
 		}
-		$rLines = $rCode === 0 ? preg_split('/\R/', rtrim($rCurrent)) : [];
+		$rLines = $rMissing ? [] : preg_split('/\R/', rtrim($rCurrent));
 		$rOutput = self::merge(is_array($rLines) ? $rLines : [], (new ModuleLoader())->loadAll()->collectCronEntries());
 		$rText = $rOutput === [] ? '' : implode("\n", $rOutput) . "\n";
 		if ($rCode === 0 && $rText === ($rCurrent === '' || str_ends_with($rCurrent, "\n") ? $rCurrent : $rCurrent . "\n")) {
 			return 0;
 		}
 		return ProcessRunner::capture(['crontab', '-'], 65536, $rText)[0] === 0 ? 0 : 1;
+	}
+
+	private static function crontabMissing(int $rCode, string $rOutput): bool {
+		return $rCode === 1 && preg_match('/\Ano crontab for [^\r\n]+\R?\z/', $rOutput) === 1;
 	}
 
 	/** @param list<string> $rCurrent @param list<string> $rModules @return list<string> */

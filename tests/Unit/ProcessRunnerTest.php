@@ -108,6 +108,12 @@ final class ProcessRunnerTest extends TestCase {
 		$this->assertSame([0, ''], ProcessRunner::capture(['cat']));
 	}
 
+	public function testCaptureCanMergeStderr(): void {
+		$rProgram = $this->program('warn', 'echo warning >&2; exit 1');
+		$this->assertSame([1, ''], ProcessRunner::capture([$rProgram]));
+		$this->assertSame([1, "warning\n"], ProcessRunner::capture([$rProgram], 100, null, true));
+	}
+
 	/** Its stdin is /dev/null, never this process's. */
 	public function testItsStdinIsDevNull(): void {
 		$rProgram = $this->program('reader', 'cat > "$0.stdin"');
