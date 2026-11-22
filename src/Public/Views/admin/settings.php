@@ -9,6 +9,7 @@ use XcVm\Core\Reference\DeviceReference;
 use XcVm\Core\Reference\GeoReference;
 use XcVm\Core\Reference\LocaleReference;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Reference\UiReference;
@@ -2916,6 +2917,16 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 								31536000 => "365 Days",
 							];
 							?>
+
+							<div class="alert alert-warning" role="note">
+								<div class="form-check form-switch mb-2">
+									<input name="diagnostics_panel_logs" id="diagnostics_panel_logs" type="checkbox" <?= ($rSettings['diagnostics_panel_logs'] ?? 1) ? ' checked' : '' ?> class="form-check-input">
+									<label class="form-check-label fw-semibold" for="diagnostics_panel_logs"><?= htmlspecialchars($language::get('diagnostics_panel_logs_label'), ENT_QUOTES) ?></label>
+								</div>
+								<div class="small">
+									<?= htmlspecialchars($language::get('diagnostics_panel_logs_help', ['{endpoint}' => DiagnosticsService::PANEL_LOG_ENDPOINT]), ENT_QUOTES) ?>
+								</div>
+							</div>
 
 							<div class="form-group row mb-4">
 								<label class="col-md-3 col-form-label" for="save_closed_connection">

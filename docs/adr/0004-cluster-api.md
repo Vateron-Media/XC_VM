@@ -2221,7 +2221,7 @@ The pass ends as before, 250 ms after its work, and the next process runs the ne
 
 | What | MAIN, mode 0, mode 1 (unchanged) | Mode 2 |
 | --- | --- | --- |
-| MAIN's panel logs (`panel_logs`, for the log service) | read, sent, marked (`DiagnosticsService::submitPanelLogs`) | not read: MAIN's own run sends them |
+| MAIN's panel logs (`panel_logs`, for the opt-in log service) | read, redacted, sent and marked only with administrator consent (`DiagnosticsService::submitPanelLogs`) | not read: MAIN's own run sends them when opted in |
 | its certificate due within 7 days | `certbot_generate` for its names, a `signals` row for its root (`NodeActions`) | nothing queued: MAIN sends the renewal (below) |
 | the record nginx's certificate is compared with | its `servers.certbot_ssl` | its copy of what it reported (`NodeStateSink::reported`) |
 | a certificate that differs from it, or nginx back on `server.crt` | `node.state` (TELEMETRY) or the row; `reload_nginx` as a `signals` row | `node.state`; nginx reloaded here |

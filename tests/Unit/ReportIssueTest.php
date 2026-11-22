@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Cluster\Redactor;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Public\Controllers\Admin\ReportIssueController;
 
@@ -97,7 +98,7 @@ final class ReportIssueTest extends TestCase {
 		$this->assertStringContainsString('Call to a member function q() on null', $rOut);
 		$this->assertStringContainsString('/home/xc_vm/Core/X.php:42', $rOut);
 		$this->assertStringContainsString('203.0.113.9', $rOut);
-		$this->assertStringContainsString('[redacted]', $rOut);
+		$this->assertStringContainsString(Redactor::MASK, $rOut);
 	}
 
 	public function testErrorLogTailTakesTheLastLinesRedactedAndCapped(): void {

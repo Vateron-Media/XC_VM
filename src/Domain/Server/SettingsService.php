@@ -68,7 +68,7 @@ class SettingsService {
 	 * save (edit()) stores 0 for every one of these it does not receive.
 	 */
 	public static function checkboxes(): array {
-		return array_merge(self::CHECKBOXES, ClusterSettings::switches());
+		return array_merge(['diagnostics_panel_logs'], self::CHECKBOXES, ClusterSettings::switches());
 	}
 
 	/**
