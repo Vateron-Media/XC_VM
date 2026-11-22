@@ -130,6 +130,8 @@ by default; an operator must explicitly set `XCVM_ALLOW_LOCAL_MODULE_UPLOAD=1` i
 process environment to expose the upload action. Archives are inspected before extraction for
 format, paths, links, one root manifest, entry count and compressed/expanded size. Load balancers
 also require the archive manifest name and version to match MAIN's granted artefact identity.
+ZIP inspection uses the bundled PHP zip extension when present and otherwise the installer-provided
+`unzip` command; if neither is available, ZIP uploads fail closed.
 
 ### Migrating a backup: tables of modules
 

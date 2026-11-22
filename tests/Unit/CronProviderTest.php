@@ -137,6 +137,16 @@ final class CronProviderTest extends TestCase {
         $this->assertSame([], (new ModuleLoader())->loadAll($other)->collectCronEntries());
     }
 
+	public function testCronEntriesRejectWildcardRangesPercentAndOtherModuleCommands(): void {
+		$root = $this->createRoot();
+		$this->createModuleWithCron($root, 'cron-owner', ['99 * * * *' => 'cron:owner']);
+		$this->createModuleWithCron($root, 'cron-borrower', ['* * * * *' => 'cron:owner'], false);
+		$this->createModuleWithCron($root, 'cron-percent', ['* * * * *' => 'cron:percent value%mail']);
+		$this->createModuleWithCron($root, 'cron-wildcard', ['*-5 * * * *' => 'cron:wildcard']);
+
+		$this->assertSame([], (new ModuleLoader())->loadAll($root)->collectCronEntries());
+	}
+
     public function testModuleCronMergeKeepsOtherXcVmJobsAndReplacesOnlyModuleJobs(): void {
         $this->assertSame(
             ['0 * * * * core # XC_VM', '*/5 * * * * new # XC_VM_MODULE'],

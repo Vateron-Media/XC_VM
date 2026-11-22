@@ -478,11 +478,16 @@ class ModuleLoader {
 			return [];
 		}
 
-		$registry = new CommandRegistry();
-		$this->registerAllCommands($registry);
 		$lines = [];
 		foreach ($this->modules as $name => $module) {
-			if (!$module instanceof CronProviderInterface) {
+			if (!$module instanceof CronProviderInterface || !$module instanceof CommandProviderInterface) {
+				continue;
+			}
+			$registry = new CommandRegistry();
+			try {
+				$module->registerCommands($registry);
+			} catch (\Throwable $e) {
+				error_log("ModuleLoader: registerCommands failed for module '{$name}': " . $e->getMessage());
 				continue;
 			}
 			foreach ($module->getCronEntries() as $expression => $command) {
@@ -491,7 +496,7 @@ class ModuleLoader {
 				if (!is_string($expression) || !self::validCronExpression($expression)
 					|| !is_string($commandName) || $registry->get($commandName) === null
 					|| preg_match('/^[a-z0-9][a-z0-9:_-]*$/', $commandName) !== 1
-					|| array_filter($argv, static fn(string $arg): bool => preg_match('/^[A-Za-z0-9._:@%+,=\/-]+$/', $arg) !== 1) !== []
+					|| array_filter($argv, static fn(string $arg): bool => preg_match('/^[A-Za-z0-9._:@+,=\/-]+$/', $arg) !== 1) !== []
 				) {
 					error_log("ModuleLoader: rejected unsafe cron entry from module '{$name}'");
 					continue;
@@ -512,12 +517,17 @@ class ModuleLoader {
 		foreach ($fields as $i => $field) {
 			[$min, $max] = [[0, 59], [0, 23], [1, 31], [1, 12], [0, 7]][$i];
 			foreach (explode(',', $field) as $part) {
-				if (preg_match('/^(\*|\d+)(?:-(\d+))?(?:\/(\d+))?$/', $part, $match) !== 1) {
+				if (preg_match('/^\*(?:\/(\d+))?$/', $part, $match) === 1) {
+					$start = $min;
+					$end = $max;
+					$step = isset($match[1]) && $match[1] !== '' ? (int) $match[1] : 1;
+				} elseif (preg_match('/^(\d+)(?:-(\d+))?(?:\/(\d+))?$/', $part, $match) === 1) {
+					$start = (int) $match[1];
+					$end = isset($match[2]) && $match[2] !== '' ? (int) $match[2] : $start;
+					$step = isset($match[3]) && $match[3] !== '' ? (int) $match[3] : 1;
+				} else {
 					return false;
 				}
-				$start = $match[1] === '*' ? $min : (int) $match[1];
-				$end = isset($match[2]) && $match[2] !== '' ? (int) $match[2] : $start;
-				$step = isset($match[3]) && $match[3] !== '' ? (int) $match[3] : 1;
 				if ($start < $min || $start > $max || $end < $start || $end > $max || $step < 1 || $step > ($max - $min + 1)) {
 					return false;
 				}

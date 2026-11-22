@@ -52,5 +52,7 @@ final class ModuleCronRefreshTest extends TestCase {
 		$rBody = substr($rSource, (int) strpos($rSource, 'function installRootCrontab('));
 		$this->assertStringNotContainsString('ModuleLoader', $rBody);
 		$this->assertStringNotContainsString('collectCronEntries', $rBody);
+		$rConsole = (string) file_get_contents(MAIN_HOME . 'console.php');
+		$this->assertStringContainsString('if (posix_geteuid() !== 0)', $rConsole, 'root CLI commands never load or boot writable modules');
 	}
 }

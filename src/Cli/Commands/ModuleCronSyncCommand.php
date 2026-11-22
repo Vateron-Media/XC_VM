@@ -23,6 +23,10 @@ final class ModuleCronSyncCommand implements CommandInterface {
 			fwrite(STDERR, "module:cron-sync must run as xc_vm, not root.\n");
 			return 1;
 		}
+		$rLock = fopen(__FILE__, 'r');
+		if ($rLock === false || !flock($rLock, LOCK_EX)) {
+			return 1;
+		}
 
 		[$rCode, $rCurrent] = ProcessRunner::capture(['crontab', '-l'], self::MAX_CRONTAB_BYTES + 1);
 		if ($rCode !== 0 && $rCode !== 1) {

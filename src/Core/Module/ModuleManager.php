@@ -37,6 +37,7 @@ class ModuleManager {
 	private const MAX_EXTRACTED_BYTES = 268435456;
 	private const MAX_ARCHIVE_ENTRIES = 10000;
 	private const MAX_MANIFEST_BYTES = 65536;
+	private const MAX_ARCHIVE_LIST_BYTES = 8388608;
 
 	/** Local archives are unsigned and stay off unless the operator opts in outside the panel. */
 	public static function localUploadsEnabled(): bool {
@@ -2528,7 +2529,7 @@ class ModuleManager {
 	 * The type is detected by magic bytes (uploads arrive as an extension-less tmp
 	 * file), then routed:
 	 *   - tar.gz : PharData (bundled with PHP, no extension) → fallback to `tar` CLI
-	 *   - zip    : ZipArchive (validated) → fallback to the `unzip` CLI
+	 *   - zip    : ZipArchive → fallback to the validated `unzip` CLI
 	 *
 	 * $destination is always an isolated temp dir created by the caller, and the
 	 * CLI tools refuse to write outside it (they strip `../`/absolute members), so
@@ -2547,7 +2548,7 @@ class ModuleManager {
 			return;
 		}
 
-		// ZIP: prefer the validated PHP extension, else the `unzip` CLI.
+		// ZIP metadata was validated above through the same available backend.
 		if (class_exists('ZipArchive')) {
 			$this->extractZipViaZipArchive($archivePath, $destination);
 			return;
@@ -2582,7 +2583,8 @@ class ModuleManager {
 	/** Inspect ZIP metadata, including expanded sizes and Unix link types. */
 	private function validateZipArchive(string $archivePath): void {
 		if (!class_exists('ZipArchive')) {
-			throw new \RuntimeException('Secure ZIP validation requires the PHP zip extension.');
+			$this->validateZipViaUnzip($archivePath);
+			return;
 		}
 		$zip = new \ZipArchive();
 		if ($zip->open($archivePath) !== true) {
@@ -2617,20 +2619,42 @@ class ModuleManager {
 		$this->assertArchiveStructure($entries);
 	}
 
+	/** Validate ZIP metadata with the unzip package shipped by the installer. */
+	private function validateZipViaUnzip(string $archivePath): void {
+		if (!$this->hasBinary('unzip')) {
+			throw new \RuntimeException('Secure ZIP validation requires the PHP zip extension or the `unzip` command.');
+		}
+		$names = $this->archiveListing(['unzip', '-Z', '-1', $archivePath]);
+		$details = array_values(preg_grep('/^[-dlbcps]/', $this->archiveListing(['unzip', '-Z', '-l', $archivePath])) ?: []);
+		if (count($details) !== count($names)) {
+			throw new \RuntimeException('Unable to inspect zip archive metadata.');
+		}
+
+		$entries = [];
+		$total = 0;
+		foreach ($details as $i => $detail) {
+			$parts = preg_split('/\s+/', trim($detail), 10);
+			$type = $detail[0] ?? '';
+			if (!in_array($type, ['-', 'd'], true) || !isset($parts[3], $parts[9]) || !ctype_digit($parts[3]) || $parts[9] !== $names[$i]) {
+				throw new \RuntimeException('Module archives may contain only regular files and directories.');
+			}
+			$name = $this->archiveEntryName($names[$i]);
+			$size = (int) $parts[3];
+			$total += $type === 'd' ? 0 : $size;
+			$this->assertArchiveLimits(count($entries) + 1, $total, $name, $size);
+			$entries[] = $name;
+		}
+		$this->assertArchiveStructure($entries);
+	}
+
 	/** GNU tar lists raw names and member types without extracting them. */
 	private function validateTarArchive(string $archivePath): void {
 		if (!$this->hasBinary('tar')) {
 			throw new \RuntimeException('Secure TAR validation requires the `tar` command.');
 		}
-		$names = [];
-		$code = 0;
-		exec('LC_ALL=C tar -tf ' . escapeshellarg($archivePath) . ' 2>/dev/null', $names, $code);
-		if ($code !== 0) {
-			throw new \RuntimeException('Unable to inspect tar archive.');
-		}
-		$details = [];
-		exec('LC_ALL=C tar -tvf ' . escapeshellarg($archivePath) . ' 2>/dev/null', $details, $code);
-		if ($code !== 0 || count($details) !== count($names)) {
+		$names = $this->archiveListing(['env', 'LC_ALL=C', 'tar', '-tf', $archivePath]);
+		$details = $this->archiveListing(['env', 'LC_ALL=C', 'tar', '-tvf', $archivePath]);
+		if (count($details) !== count($names)) {
 			throw new \RuntimeException('Unable to inspect tar archive metadata.');
 		}
 
@@ -2652,6 +2676,16 @@ class ModuleManager {
 			$entries[] = $name;
 		}
 		$this->assertArchiveStructure($entries);
+	}
+
+	/** @param non-empty-list<string> $argv @return list<string> */
+	private function archiveListing(array $argv): array {
+		[$code, $output] = ProcessRunner::capture($argv, self::MAX_ARCHIVE_LIST_BYTES + 1);
+		if ($code !== 0 || strlen($output) > self::MAX_ARCHIVE_LIST_BYTES) {
+			throw new \RuntimeException('Archive metadata is invalid or exceeds the allowed limits.');
+		}
+		$output = rtrim($output, "\r\n");
+		return $output === '' ? [] : (preg_split('/\R/', $output) ?: []);
 	}
 
 	/** Normalize a safe relative member name; traversal and platform paths fail closed. */
