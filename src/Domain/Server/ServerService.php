@@ -142,8 +142,11 @@ class ServerService {
 		// is refused. nginx's reload would fail to bind it and keep running the
 		// old configuration, while the row (and, for MAIN, the nodes'
 		// announcement) named the new one.
-		if ((int) $rServer['id'] === (int) SERVER_ID && self::portsTaken($rServer, array_merge($rPorts['http'], $rPorts['https'], [$rData['rtmp_port']])) !== []) {
-			return ['status' => STATUS_PORT_IN_USE, 'data' => $rData];
+		if ((int) $rServer['id'] === (int) SERVER_ID) {
+			$rCurrentWebPort = is_numeric($_SERVER['SERVER_PORT'] ?? null) ? [(int) $_SERVER['SERVER_PORT']] : [];
+			if (self::portsTaken($rServer, array_merge($rPorts['http'], $rPorts['https']), $rCurrentWebPort) !== [] || self::portsTaken($rServer, [$rData['rtmp_port']]) !== []) {
+				return ['status' => STATUS_PORT_IN_USE, 'data' => $rData];
+			}
 		}
 
 		$rArray['total_services'] = $rData['total_services'];
@@ -234,11 +237,11 @@ class ServerService {
 	 *
 	 * @param array<string, mixed> $rServer The row as stored.
 	 * @param array<int|string>    $rPorts  The ports the save would use.
+	 * @param list<int>            $rOwn    Additional ports owned by this server.
 	 * @param callable|null        $rListening fn(int $port): bool (tests)
 	 * @return list<int>
 	 */
-	public static function portsTaken(array $rServer, array $rPorts, ?callable $rListening = null): array {
-		$rOwn = is_numeric($_SERVER['SERVER_PORT'] ?? null) ? [(int) $_SERVER['SERVER_PORT']] : [];
+	public static function portsTaken(array $rServer, array $rPorts, array $rOwn = [], ?callable $rListening = null): array {
 		foreach (['http_broadcast_port', 'https_broadcast_port', 'rtmp_port', 'http_ports_add', 'https_ports_add'] as $rKey) {
 			foreach (explode(',', (string) ($rServer[$rKey] ?? '')) as $rPort) {
 				if (is_numeric($rPort)) {

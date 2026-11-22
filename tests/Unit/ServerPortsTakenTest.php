@@ -14,25 +14,16 @@ final class ServerPortsTakenTest extends TestCase {
 	public function testOnlyANewPortSomethingHoldsIsTaken(): void {
 		$rHeld = [8080, 8081, 8443, 8880, 8090];
 		$rListening = static fn(int $rPort): bool => in_array($rPort, $rHeld, true);
-		$this->assertSame([], ServerService::portsTaken(self::ROW, [8080, 8443, 8880, 8090], $rListening), 'the row\'s own ports are this nginx\'s');
-		$this->assertSame([8081], ServerService::portsTaken(self::ROW, [8081, 8443, 8880], $rListening), 'held by another program');
-		$this->assertSame([], ServerService::portsTaken(self::ROW, [8082, '8443', 'x', 0], $rListening), 'free, or not a port');
+		$this->assertSame([], ServerService::portsTaken(self::ROW, [8080, 8443, 8880, 8090], [], $rListening), 'the row\'s own ports are this nginx\'s');
+		$this->assertSame([8081], ServerService::portsTaken(self::ROW, [8081, 8443, 8880], [], $rListening), 'held by another program');
+		$this->assertSame([], ServerService::portsTaken(self::ROW, [8082, '8443', 'x', 0], [], $rListening), 'free, or not a port');
 	}
 
 	public function testThePortServingTheSaveRequestBelongsToThePanel(): void {
-		$rPrevious = $_SERVER['SERVER_PORT'] ?? null;
-		$_SERVER['SERVER_PORT'] = '8443';
-		try {
-			$rListening = static fn(int $rPort): bool => in_array($rPort, [8443, 9443], true);
-			$rStored = ['https_broadcast_port' => 443] + self::ROW;
-			$this->assertSame([9443], ServerService::portsTaken($rStored, [8443, 9443], $rListening));
-		} finally {
-			if ($rPrevious === null) {
-				unset($_SERVER['SERVER_PORT']);
-			} else {
-				$_SERVER['SERVER_PORT'] = $rPrevious;
-			}
-		}
+		$rListening = static fn(int $rPort): bool => in_array($rPort, [8443, 9443], true);
+		$rStored = ['https_broadcast_port' => 443] + self::ROW;
+		$this->assertSame([9443], ServerService::portsTaken($rStored, [8443, 9443], [8443], $rListening), 'the current web port is this nginx\'s');
+		$this->assertSame([8443], ServerService::portsTaken($rStored, [8443], [], $rListening), 'RTMP cannot take the current web port');
 	}
 
 	public function testItAsksTheMachineByDefault(): void {
