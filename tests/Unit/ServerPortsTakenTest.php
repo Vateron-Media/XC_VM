@@ -23,7 +23,7 @@ final class ServerPortsTakenTest extends TestCase {
 		$rListening = static fn(int $rPort): bool => in_array($rPort, [8443, 9443], true);
 		$rStored = ['https_broadcast_port' => 443] + self::ROW;
 		$this->assertSame([9443], ServerService::portsTaken($rStored, [8443, 9443], [8443], $rListening), 'the current web port is this nginx\'s');
-		$this->assertSame([8443], ServerService::portsTaken($rStored, [8443], [], $rListening), 'RTMP cannot take the current web port');
+		$this->assertSame([8443], ServerService::portsTaken(['rtmp_port' => self::ROW['rtmp_port']], [8443], [], $rListening), 'only the stored RTMP port belongs to RTMP');
 	}
 
 	public function testItAsksTheMachineByDefault(): void {

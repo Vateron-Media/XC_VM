@@ -144,7 +144,8 @@ class ServerService {
 		// announcement) named the new one.
 		if ((int) $rServer['id'] === (int) SERVER_ID) {
 			$rCurrentWebPort = is_numeric($_SERVER['SERVER_PORT'] ?? null) ? [(int) $_SERVER['SERVER_PORT']] : [];
-			if (self::portsTaken($rServer, array_merge($rPorts['http'], $rPorts['https']), $rCurrentWebPort) !== [] || self::portsTaken($rServer, [$rData['rtmp_port']]) !== []) {
+			$rStoredRtmp = ['rtmp_port' => $rServer['rtmp_port']];
+			if (self::portsTaken($rServer, array_merge($rPorts['http'], $rPorts['https']), $rCurrentWebPort) !== [] || self::portsTaken($rStoredRtmp, [$rData['rtmp_port']]) !== []) {
 				return ['status' => STATUS_PORT_IN_USE, 'data' => $rData];
 			}
 		}
