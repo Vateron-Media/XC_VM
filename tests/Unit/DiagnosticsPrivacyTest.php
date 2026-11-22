@@ -26,24 +26,28 @@ final class DiagnosticsPrivacyTest extends TestCase {
 		@rmdir($this->rDir);
 	}
 
-	public function testPanelLogSubmissionIsOffUnlessExplicitlyEnabled(): void {
+	public function testPanelLogSubmissionIsEnabledByDefaultAndCanBeDisabled(): void {
 		SettingsManager::set([]);
-		$this->assertFalse(DiagnosticsService::submitPanelLogs());
+		$this->assertTrue(SettingsManager::getBool('diagnostics_panel_logs', true));
 		SettingsManager::set(['diagnostics_panel_logs' => 0]);
 		$this->assertFalse(DiagnosticsService::submitPanelLogs());
 	}
 
-	public function testFreshInstallUpgradeAndUiRequireInformedOptIn(): void {
+	public function testFreshInstallUpgradeAndUiEnableDocumentedDiagnostics(): void {
 		$rSchema = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		$rMigration = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/106_opt_in_panel_diagnostics.sql');
 		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/settings.php');
-		$this->assertStringContainsString("`diagnostics_panel_logs` tinyint(1) NOT NULL DEFAULT '0'", $rSchema);
-		$this->assertStringContainsString("DEFAULT '0'", $rMigration);
+		$rEnglish = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/en.ini');
+		$rRussian = (string) file_get_contents(MAIN_HOME . 'Core/Localization/lang/ru.ini');
+		$this->assertStringContainsString("`diagnostics_panel_logs` tinyint(1) NOT NULL DEFAULT '1'", $rSchema);
+		$this->assertStringContainsString("DEFAULT '1'", $rMigration);
 		$this->assertContains('diagnostics_panel_logs', \XcVm\Domain\Server\SettingsService::checkboxes());
 		$this->assertStringContainsString('DiagnosticsService::PANEL_LOG_ENDPOINT', $rView);
+		$this->assertStringContainsString("\$language::get('diagnostics_panel_logs_help'", $rView);
 		foreach (['log_message', 'log_extra', 'retention period', 'stops future uploads', 'does not delete data already sent'] as $rDisclosure) {
-			$this->assertStringContainsString($rDisclosure, $rView);
+			$this->assertStringContainsString($rDisclosure, $rEnglish);
 		}
+		$this->assertStringContainsString('Включено по умолчанию', $rRussian);
 	}
 
 	public function testTransmittedPayloadHasOnlyDocumentedRedactedFields(): void {
@@ -82,6 +86,14 @@ final class DiagnosticsPrivacyTest extends TestCase {
 		foreach (['abcdefghij', 'abc.def', 'u:p', 'password=p'] as $rSecret) {
 			$this->assertStringNotContainsString($rSecret, $rOut);
 		}
+	}
+
+	public function testRedactorConsumesCompleteQuotedSecrets(): void {
+		$rOut = Redactor::redact('password="correct horse battery staple" {"api_key":"quoted secret value"} Authorization: "Bearer header secret"');
+		foreach (['correct', 'horse', 'battery', 'staple', 'quoted secret value', 'header secret'] as $rSecret) {
+			$this->assertStringNotContainsString($rSecret, $rOut);
+		}
+		$this->assertSame($rOut, Redactor::redact($rOut));
 	}
 
 	private function assertStoredLineIsRedacted(string $rFile): void {

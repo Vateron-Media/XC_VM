@@ -53,11 +53,11 @@ Throws `Exception` on DB query failure.
 
 ### `submitPanelLogs(object $db): string|false`
 
-Disabled by default. When an administrator explicitly enables **Send redacted panel errors to XC_VM diagnostics** under Settings → Logs, MAIN sends HTTPS POST requests to `https://www.xcvm.tech/api/v1/report`.
+Enabled by default. While **Send redacted panel errors to XC_VM diagnostics** is enabled under Settings → Logs, MAIN sends HTTPS POST requests to `https://www.xcvm.tech/api/v1/report`.
 
 Each request contains the current panel version and up to 1000 errors. Each error contains only `type`, redacted `log_message`, redacted `log_extra`, `line`, UTC `date`, and the panel `version` recorded with that error. Passwords, tokens, authorization values and URL credentials are redacted before local storage and again before transmission.
 
-The receiver's retention period is not defined by the panel. Disabling the setting stops future uploads; it cannot delete data already sent. The method returns `false` without reading logs when consent is absent.
+The receiver's retention period is not defined by the panel. Disabling the setting stops future uploads; it cannot delete data already sent. The method returns `false` without reading logs when the setting is disabled.
 
 ---
 

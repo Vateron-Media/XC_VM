@@ -200,7 +200,7 @@ class DiagnosticsService {
 	 * @return string|false  API response or false on failure
 	 */
 	public static function submitPanelLogs() {
-		if (!SettingsManager::getBool('diagnostics_panel_logs')) {
+		if (!SettingsManager::getBool('diagnostics_panel_logs', true)) {
 			return false;
 		}
 		$db = self::db();

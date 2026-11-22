@@ -937,7 +937,9 @@ def run_mariadb(sql, root_password=None, database=None):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        return result.returncode
+        if result.returncode != 0:
+            raise RuntimeError(f"MariaDB command failed (exit {result.returncode}).")
+        return 0
     finally:
         if defaults_path and os.path.exists(defaults_path):
             os.remove(defaults_path)

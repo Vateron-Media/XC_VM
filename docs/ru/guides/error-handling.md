@@ -284,7 +284,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 3. Записи заносятся в таблицу `panel_logs`
 4. **Диагностическая служба** (`src/Core/Diagnostics/DiagnosticsService.php`) считывается из `panel_logs` для:
    - `downloadPanelLogs()` -- извлекает до 1000 последних ошибок, не связанных с EPG, затем обрезает таблицу
-   - `submitPanelLogs()` -- отправляет очищенные логи только после согласия администратора в Settings → Logs
+   - `submitPanelLogs()` -- отправляет очищенные логи, пока включён активный по умолчанию параметр в Настройки → Журналы
 5. Панель администратора отображает эти журналы в разделе **Управление > Журналы > Ошибки панели**
 
 ### <a id="filelogger-noise-filtering"></a>Фильтрация шума файлового регистратора

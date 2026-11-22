@@ -30,6 +30,12 @@ def run(args, **kwargs):
     return Result()
 mod.subprocess.run = run
 mod.run_mariadb("SELECT 'sql-secret'", "root-secret", "xc_vm")
+seen["success"] = seen.copy()
+Result.returncode = 7
+try:
+    mod.run_mariadb("SELECT 'failure-secret'", "failure-password", "xc_vm")
+except RuntimeError as error:
+    seen["failure"] = str(error)
 print(json.dumps(seen))
 PY;
 		$rFile = tempnam(sys_get_temp_dir(), 'xcvm-installer-test-');
@@ -39,11 +45,14 @@ PY;
 		$this->assertSame(0, $rCode, implode("\n", $rOutput));
 		$rSeen = json_decode(implode("\n", $rOutput), true);
 		$this->assertIsArray($rSeen);
-		$this->assertStringNotContainsString('root-secret', implode(' ', $rSeen['args']));
-		$this->assertStringNotContainsString('sql-secret', implode(' ', $rSeen['args']));
-		$this->assertStringContainsString('root-secret', $rSeen['defaults']);
-		$this->assertSame("SELECT 'sql-secret'", $rSeen['sql']);
-		$this->assertTrue($rSeen['stdout']);
-		$this->assertTrue($rSeen['stderr']);
+		$this->assertStringNotContainsString('root-secret', implode(' ', $rSeen['success']['args']));
+		$this->assertStringNotContainsString('sql-secret', implode(' ', $rSeen['success']['args']));
+		$this->assertStringContainsString('root-secret', $rSeen['success']['defaults']);
+		$this->assertSame("SELECT 'sql-secret'", $rSeen['success']['sql']);
+		$this->assertTrue($rSeen['success']['stdout']);
+		$this->assertTrue($rSeen['success']['stderr']);
+		$this->assertSame('MariaDB command failed (exit 7).', $rSeen['failure']);
+		$this->assertStringNotContainsString('failure-secret', $rSeen['failure']);
+		$this->assertStringNotContainsString('failure-password', $rSeen['failure']);
 	}
 }

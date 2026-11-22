@@ -2920,14 +2920,11 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 
 							<div class="alert alert-warning" role="note">
 								<div class="form-check form-switch mb-2">
-									<input name="diagnostics_panel_logs" id="diagnostics_panel_logs" type="checkbox" <?= !empty($rSettings['diagnostics_panel_logs']) ? ' checked' : '' ?> class="form-check-input">
-									<label class="form-check-label fw-semibold" for="diagnostics_panel_logs">Send redacted panel errors to XC_VM diagnostics</label>
+									<input name="diagnostics_panel_logs" id="diagnostics_panel_logs" type="checkbox" <?= ($rSettings['diagnostics_panel_logs'] ?? 1) ? ' checked' : '' ?> class="form-check-input">
+									<label class="form-check-label fw-semibold" for="diagnostics_panel_logs"><?= htmlspecialchars($language::get('diagnostics_panel_logs_label'), ENT_QUOTES) ?></label>
 								</div>
 								<div class="small">
-									Destination: <code><?= htmlspecialchars(DiagnosticsService::PANEL_LOG_ENDPOINT, ENT_QUOTES) ?></code>.
-									Each upload contains up to 1000 errors with <code>type</code>, <code>log_message</code>, <code>log_extra</code>, <code>line</code>, UTC <code>date</code>, the error's <code>version</code>, and the current panel version.
-									Credentials and tokens are redacted before storage and upload. The receiver's retention period is not defined by this panel.
-									Turning this off stops future uploads; it does not delete data already sent.
+									<?= htmlspecialchars($language::get('diagnostics_panel_logs_help', ['{endpoint}' => DiagnosticsService::PANEL_LOG_ENDPOINT]), ENT_QUOTES) ?>
 								</div>
 							</div>
 
