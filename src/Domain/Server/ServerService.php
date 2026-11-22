@@ -238,7 +238,7 @@ class ServerService {
 	 * @return list<int>
 	 */
 	public static function portsTaken(array $rServer, array $rPorts, ?callable $rListening = null): array {
-		$rOwn = [];
+		$rOwn = is_numeric($_SERVER['SERVER_PORT'] ?? null) ? [(int) $_SERVER['SERVER_PORT']] : [];
 		foreach (['http_broadcast_port', 'https_broadcast_port', 'rtmp_port', 'http_ports_add', 'https_ports_add'] as $rKey) {
 			foreach (explode(',', (string) ($rServer[$rKey] ?? '')) as $rPort) {
 				if (is_numeric($rPort)) {
