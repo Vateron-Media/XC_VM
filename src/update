@@ -3,7 +3,7 @@ import os, sys, hashlib, time
 
 rBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/"
 rPHPDir = rBaseDir + "bin/php/bin/php"
-rConsole = rBaseDir + "console.php"
+rConsole = rBaseDir + "root.php"
 LOG_FILE = rBaseDir + "update.log"
 
 # Paths excluded during update (binaries, user data, per-server config).
@@ -78,12 +78,9 @@ def doUpdate(rFilename):
     import tempfile
 
     rTmpDir = tempfile.mkdtemp(prefix="xc_vm_update_")
-    # mkdtemp makes the dir 0700; the copy below is `cp -a <tmp>/. <base>`,
-    # which stamps this dir's OWN mode onto the install root. A full archive
-    # carries a 0755 `./` entry that resets it, but a delta that lacks one
-    # would leave 0700 and lock the xc_vm user out of root:xc_vm-owned
-    # /home/xc_vm on MAIN. Force 0755 so the staging mode can never leak.
-    os.chmod(rTmpDir, 0o755)
+    # Keep extracted executable code root-only until it replaces the live tree.
+    # cp may copy this mode onto the existing base, restored explicitly below.
+    os.chmod(rTmpDir, 0o700)
     log_msg("INFO", "Temporary directory created: %s" % rTmpDir)
     rCopying = False
 
@@ -121,8 +118,17 @@ def doUpdate(rFilename):
         rCopying = True
         rCopied = os.system('sudo cp -a "%s/." "%s"' % (rTmpDir, rBaseDir)) == 0
 
+        # The staging directory is 0700; the live root remains traversable by
+        # xc_vm while its executable children are made root-owned by status.
+        os.chmod(rBaseDir, 0o755)
+
         log_msg("INFO", "Fixing file permissions...")
         os.system('sudo chown -R xc_vm:xc_vm "%s"' % rBaseDir)
+        rRootFiles = "root.php console.php bootstrap.php service update bin bin/php bin/nginx bin/nginx_rtmp bin/yt-dlp"
+        rRootTrees = "vendor Cli Core Domain Infrastructure Ministra Public Streaming bin/php/bin bin/php/sbin bin/php/lib bin/install bin/nginx/sbin bin/nginx_rtmp/sbin"
+        os.system('sudo chown -h root:xc_vm "%s" %s' % (rBaseDir.rstrip("/"), " ".join('"%s%s"' % (rBaseDir, p) for p in rRootFiles.split())))
+        os.system('sudo chown -hR root:xc_vm %s' % " ".join('"%s%s"' % (rBaseDir, p) for p in rRootTrees.split()))
+        os.chmod(rBaseDir + "bin/install", 0o755)
 
         # Validate the (possibly refreshed) nginx.conf before the restart. On
         # failure roll it back to the pre-update copy so nginx still starts.

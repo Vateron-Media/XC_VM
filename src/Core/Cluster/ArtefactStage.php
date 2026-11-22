@@ -92,6 +92,11 @@ final class ArtefactStage {
 		return RootPin::dir() . 'stage/';
 	}
 
+	/** Closed xc_vm-owned stage used only after root has verified a module archive. */
+	public static function moduleStageDir(): string {
+		return dirname(rtrim(self::downloads(), '/')) . '/module-stage/';
+	}
+
 	/** Where the node keeps the off-air videos MAIN granted it. */
 	public static function videoDir(): string {
 		return self::$rVideos ?? ((defined('VIDEO_PATH') ? VIDEO_PATH : '/home/xc_vm/content/video/') . 'cluster/');
@@ -357,6 +362,59 @@ final class ArtefactStage {
 		return $rPlaced ? null : ($rWhy ?? 'cannot install it');
 	}
 
+	/**
+	 * Copy a verified root-staged module archive into xc_vm's closed stage.
+	 *
+	 * @param array{path: string, grant: array<string, mixed>} $rStaged
+	 * @return array{path: string, grant: array<string, mixed>}|string
+	 */
+	public static function handoffModuleArchive(array $rStaged): array|string {
+		$rGrant = $rStaged['grant'];
+		if (!is_string($rGrant['cmd_id'] ?? null) || preg_match('/^[0-9a-f]{32}\z/', $rGrant['cmd_id']) !== 1) {
+			return 'the grant has no command id';
+		}
+		$rWhy = self::stagedArchive((string) $rStaged['path'], $rGrant);
+		if ($rWhy !== null) {
+			return $rWhy;
+		}
+		$rIn = @fopen((string) $rStaged['path'], 'rb');
+		if ($rIn === false) {
+			return 'the staged copy is gone';
+		}
+		$rDir = self::moduleStageDir();
+		$rPath = $rDir . $rGrant['cmd_id'];
+		$rWhy = 'cannot prepare xc_vm module stage';
+		$rDone = SettingsAudit::asAgentUser(static function () use ($rDir, $rPath, $rGrant, $rIn, &$rWhy): bool {
+			$rBase = rtrim($rDir, '/');
+			if (is_link($rBase) || (!is_dir($rBase) && !@mkdir($rBase, 0700))) {
+				return false;
+			}
+			@chmod($rBase, 0700);
+			clearstatcache(true, $rBase);
+			$rStat = @lstat($rBase);
+			if ($rStat === false || ($rStat['mode'] & 0170000) !== 0040000 || $rStat['uid'] !== posix_geteuid() || ($rStat['mode'] & 0077) !== 0) {
+				return false;
+			}
+			$rWhy = self::copyChecked($rIn, $rPath, $rGrant, 0600);
+			return $rWhy === null;
+		}, self::agentDir());
+		fclose($rIn);
+		return $rDone ? ['path' => $rPath, 'grant' => $rGrant] : $rWhy;
+	}
+
+	/** Remove the unprivileged module handoff after its synchronous installer exits. */
+	public static function discardModuleArchive(array $rStaged): void {
+		$rPath = (string) ($rStaged['path'] ?? '');
+		$rCmdID = (string) ($rStaged['grant']['cmd_id'] ?? '');
+		if ($rCmdID === '' || $rPath !== self::moduleStageDir() . $rCmdID) {
+			return;
+		}
+		SettingsAudit::asAgentUser(static function () use ($rPath): bool {
+			@unlink($rPath);
+			return true;
+		}, self::agentDir());
+	}
+
 	/** The installed agent's version (the first line of `xc_agent version`, run as its user), or null when it does not run. */
 	public static function agentVersion(): ?string {
 		$rVersion = self::runs(self::agentBinary(), dirname(self::agentBinary()) . '/');
@@ -406,17 +464,21 @@ final class ArtefactStage {
 	}
 
 	/**
-	 * module:install's archive, when root staged it (install_module with a
-	 * grant): only a file in root's stage, and only the grant's bytes.
+	 * module:install's archive: a checked file in root's stage, or its checked
+	 * handoff in xc_vm's closed stage, and only the grant's bytes.
 	 *
 	 * @param array<string, mixed>|null $rGrant The command's grant, as the payload carries it.
 	 * @return string|null null when it may be installed, else why not
 	 */
 	public static function stagedArchive(string $rPath, ?array $rGrant): ?string {
-		$rStage = realpath(self::stageDir());
+		$rStages = array_filter([realpath(self::stageDir()), realpath(self::moduleStageDir())], 'is_string');
 		$rReal = realpath($rPath);
-		if ($rStage === false || $rReal === false || dirname($rReal) !== $rStage || is_link($rPath) || !is_file($rReal)) {
-			return 'the archive is not in root\'s stage';
+		if ($rReal === false || !in_array(dirname($rReal), $rStages, true) || is_link($rPath) || !is_file($rReal)) {
+			return 'the archive is not in a module stage';
+		}
+		$rUserStage = realpath(self::moduleStageDir());
+		if ($rUserStage !== false && dirname($rReal) === $rUserStage && basename($rReal) !== ($rGrant['cmd_id'] ?? null)) {
+			return 'the archive is not this command\'s handoff';
 		}
 		return self::matches($rReal, $rGrant['size'] ?? null, $rGrant['sha256'] ?? null) ? null : 'the archive is not the one MAIN granted';
 	}

@@ -113,7 +113,7 @@ boot() {
   # delegates the cache builds to xc_vm itself. A PHP-free serve-only node has no
   # bin/php, so it skips every PHP startup/cron — the Go agent covers them.
   if php_available; then
-    sudo $SCRIPT/bin/php/bin/php $SCRIPT/console.php startup
+    sudo $SCRIPT/bin/php/bin/php $SCRIPT/root.php startup
     sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php signals >/dev/null 2>/dev/null &
     sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php watchdog >/dev/null 2>/dev/null &
     sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php queue >/dev/null 2>/dev/null &

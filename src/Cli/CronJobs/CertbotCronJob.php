@@ -169,7 +169,7 @@ class CertbotCronJob implements CommandInterface {
 			return;
 		}
 		LogSink::syslog('RELOAD', 'NGINX services reloaded on request.');
-		ProcessRunner::run([BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp', '-s', 'reload']);
-		ProcessRunner::run([BIN_PATH . 'nginx/sbin/nginx', '-s', 'reload']);
+		ProcessRunner::run(['sudo', '-u', 'xc_vm', BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp', '-s', 'reload']);
+		ProcessRunner::run(['sudo', '-u', 'xc_vm', BIN_PATH . 'nginx/sbin/nginx', '-s', 'reload']);
 	}
 }

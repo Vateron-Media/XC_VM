@@ -125,7 +125,7 @@ final class BinariesUpdateKeepsCoreTest extends TestCase {
 		$this->assertContains('bin/install/database.sql', $rFiles);
 
 		$rCron = (string) file_get_contents(self::ROOT . 'Cli/CronJobs/RootSignalsCronJob.php');
-		$this->assertSame(1, preg_match('/if \(!NodeRole::isMain\(\) && [^\n]*\$rBinariesStamp[^\n]*\n[^\n]*\n\s*ProcessRunner::start\(\[PHP_BIN, MAIN_HOME \. \'console\.php\', \'binaries\'\]\);/', $rCron), 'polled off MAIN');
+		$this->assertSame(1, preg_match('/if \(!NodeRole::isMain\(\) && [^\n]*\$rBinariesStamp[^\n]*\n[^\n]*\n\s*ProcessRunner::start\(\[PHP_BIN, MAIN_HOME \. \'root\.php\', \'binaries\'\]\);/', $rCron), 'polled off MAIN');
 	}
 
 	public function testAPanelUpdateLeavesTheBundlesReleaseRecord(): void {

@@ -1,15 +1,14 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use XcVm\Cli\Commands\ModuleCronSyncCommand;
 use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\CronJobs\RootSignalsCronJob;
+use XcVm\Core\Process\ProcessRunner;
 
 /**
- * root_signals brings root's crontab up to date with the modules every
- * minute, so a module installed or enabled from the panel gets its cron lines
- * (the anti-abuse shield's, which starts its honeypot) without a restart, and
- * a `startup` or `status` that wrote an older list is put right a minute
- * later. It keeps nothing of its last write: the crontab is what is compared.
+ * root_signals keeps root's fixed core crontab and xc_vm's module jobs current
+ * without reading module PHP in the root process.
  */
 final class ModuleCronRefreshTest extends TestCase {
 	public function testEveryRunChecksTheCrontab(): void {
@@ -37,11 +36,22 @@ final class ModuleCronRefreshTest extends TestCase {
 		$rParameters = (new ReflectionMethod(StartupCommand::class, 'installRootCrontab'))->getParameters();
 		$this->assertSame('rQuiet', $rParameters[0]->getName());
 		$this->assertFalse($rParameters[0]->getDefaultValue(), 'startup and status still say it');
+		$rSeen = [];
+		ProcessRunner::useRunner(static function (array $rArgv, bool $rQuiet) use (&$rSeen): int {
+			$rSeen = [$rArgv, $rQuiet];
+			return 0;
+		});
+		try {
+			$this->assertTrue(RootSignalsCronJob::refreshModuleCrons());
+		} finally {
+			ProcessRunner::useRunner(null);
+		}
+		$this->assertSame([['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'module:cron-sync'], true], $rSeen);
 		$this->assertStringContainsString('StartupCommand::installRootCrontab(true)', (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php'));
 		$this->assertStringContainsString('if ($rQuiet && $rListed !== 0)', (string) file_get_contents(MAIN_HOME . 'Cli/Commands/StartupCommand.php'), 'an unreadable crontab is not rewritten each minute');
 	}
 
-	/** One writer of root's crontab at a time, from reading the modules to replacing the list. */
+	/** One writer of root's crontab at a time; it never reads module PHP. */
 	public function testAWriterAtWorkKeepsTheOthersOut(): void {
 		$rLock = new ReflectionMethod(StartupCommand::class, 'crontabLock');
 		$rHeld = $rLock->invoke(null, false);
@@ -54,6 +64,17 @@ final class ModuleCronRefreshTest extends TestCase {
 
 		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/StartupCommand.php');
 		$rBody = substr($rSource, (int) strpos($rSource, 'function installRootCrontab('));
-		$this->assertLessThan(strpos($rBody, 'loadAll()'), strpos($rBody, 'self::crontabLock(!$rQuiet)'), 'taken before the modules are read');
+		$this->assertStringNotContainsString('loadAll()', $rBody, 'root crontab generation never loads modules');
 	}
+
+	public function testSyncReplacesOnlyMarkedModuleJobs(): void {
+		$this->assertSame(
+			['0 * * * * core # XC_VM', '*/5 * * * * new # XC_VM_MODULE'],
+			ModuleCronSyncCommand::merge(
+				['0 * * * * core # XC_VM', '* * * * * old # XC_VM_MODULE'],
+				['*/5 * * * * new # XC_VM_MODULE']
+			)
+		);
+	}
+
 }

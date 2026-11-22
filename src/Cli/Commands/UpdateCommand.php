@@ -32,6 +32,9 @@ use XcVm\Domain\Server\ServerRepository;
  */
 
 class UpdateCommand implements CommandInterface {
+	/** Root-only archive handed to the privileged Python updater. */
+	public const ARCHIVE = '/var/lib/xc_vm/update/update.tar.gz';
+
 	public function getName(): string {
 		return 'update';
 	}
@@ -149,8 +152,8 @@ class UpdateCommand implements CommandInterface {
 
 				echo "Downloading update...\n";
 				UpdateLogger::info('Downloading update file...');
-				$rOutputDir = TMP_PATH . '.update.tar.gz';
-				$rDownloaded = $this->downloadFile($UpdateData['url'], $rOutputDir);
+				$rOutputDir = $this->downloadArchive($UpdateData['url']);
+				$rDownloaded = $rOutputDir !== null;
 
 				if (!$rDownloaded) {
 					echo "ERROR: Download failed.\n";
@@ -252,9 +255,9 @@ class UpdateCommand implements CommandInterface {
 
 				echo "Downloading {$rTarget}...\n";
 				UpdateLogger::info('Downloading rollback archive...');
-				$rOutputDir = TMP_PATH . '.update.tar.gz';
+				$rOutputDir = $this->downloadArchive($UpdateData['url']);
 
-				if (!$this->downloadFile($UpdateData['url'], $rOutputDir)) {
+				if ($rOutputDir === null) {
 					echo "ERROR: download failed.\n";
 					UpdateLogger::error('Rollback download failed from: ' . $UpdateData['url']);
 					return 1;
@@ -342,10 +345,11 @@ class UpdateCommand implements CommandInterface {
 				// balancers it installs (no install_xcvm_core.sh). Take them from
 				// the archive this update came in.
 				// ponytail: drop once every MAIN runs an updater that copies bin/install.
-				$rArchive = TMP_PATH . '.update.tar.gz';
+				$rArchive = self::ARCHIVE;
 				if (ServerRepository::getAll()[SERVER_ID]['is_main'] && is_file($rArchive)) {
 					ProcessRunner::run(['tar', '-xzf', $rArchive, '-C', MAIN_HOME, './bin/install/install_xcvm_core.sh', './bin/install/update_binaries.sh', './bin/install/database.sql'], true);
-					ProcessRunner::run(['chown', '-R', 'xc_vm:xc_vm', MAIN_HOME . 'bin/install'], true);
+					ProcessRunner::run(['chown', '-R', 'root:xc_vm', MAIN_HOME . 'bin/install'], true);
+					ProcessRunner::run(['chmod', '0755', MAIN_HOME . 'bin/install'], true);
 				}
 				// MAIN's copies of the binaries it used to hand its nodes: every node
 				// takes them from GitHub itself now (ADR 0004, "Binaries from GitHub
@@ -404,16 +408,19 @@ class UpdateCommand implements CommandInterface {
 				}
 
 				ProcessRunner::run(TreeOwnership::chownTree(MAIN_HOME));
+				foreach (TreeOwnership::rootOwn(MAIN_HOME) as $rArgv) {
+					ProcessRunner::run($rArgv);
+				}
 				exec('sudo systemctl daemon-reload');
 				exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system");
-				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status');
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php status');
 
 				// Pull/refresh the xc_fanout daemon binary to match this panel
 				// version (ADR 0003, Phase G) — nothing else does it. Idempotent
 				// (downloads only on a version mismatch) + background + best-effort
 				// so an unreachable GitHub never blocks the update; the RootSignals
 				// hourly self-heal is the backstop. Runs on every node (LBs too).
-				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_binary >/dev/null 2>&1 &');
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php fanout_binary >/dev/null 2>&1 &');
 
 				// Pull/refresh the xcvm_core PHP extension to match the version
 				// published in the binaries repo — decoupled from the heavy runtime
@@ -423,17 +430,17 @@ class UpdateCommand implements CommandInterface {
 				// + best-effort; the RootSignals hourly self-heal is the backstop.
 				// Runs on every node (LBs too) — this is what ships config_set_redis
 				// to LB nodes so their Redis target can be pointed at the main server.
-				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php xcvm_core >/dev/null 2>&1 &');
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php xcvm_core >/dev/null 2>&1 &');
 
 				// The archive just put back its own yt-dlp, older than the one the daily
 				// RootSignals check had installed; refresh it now, not up to a day later.
-				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'ytdlp']);
+				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'root.php', 'ytdlp']);
 
 				// ipset for the blocklist's sets (RootSignalsCronJob::syncSets), on a server
 				// installed before the installers took it. Background + best-effort: apt held
 				// or unreachable leaves the blocks one rule each, and the next update tries again.
 				// An argument list, no shell; post-update already runs as root.
-				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'ipset']);
+				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'root.php', 'ipset']);
 
 				// Ensure GeoLite2 databases are present/refreshed after an update.
 				// They are no longer shipped in the update archive, so fetch them
@@ -441,7 +448,7 @@ class UpdateCommand implements CommandInterface {
 				// slow/failed download never blocks or fails the update.
 				if (ServerRepository::getAll()[SERVER_ID]['is_main']) {
 					UpdateLogger::info('Refreshing GeoLite2 databases (background)');
-					exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:maxmind --force >/dev/null 2>&1 &');
+					exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php cron:maxmind --force >/dev/null 2>&1 &');
 				}
 
 				if ($rFailed === []) {
@@ -449,7 +456,7 @@ class UpdateCommand implements CommandInterface {
 				} else {
 					// status above ran them again and marked the schema; say what came of it.
 					$db->query('SELECT `status_uuid` FROM `settings`;');
-					UpdateLogger::error('Post-update completed, but a database migration failed on the first attempt: ' . ((string) $db->get_col() === StatusCommand::schemaMark() ? 'it applied when status ran it again' : 'it still fails, run "sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status" for the cause'));
+					UpdateLogger::error('Post-update completed, but a database migration failed on the first attempt: ' . ((string) $db->get_col() === StatusCommand::schemaMark() ? 'it applied when status ran it again' : 'it still fails, run "sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php status" for the cause'));
 				}
 				break;
 		}
@@ -562,6 +569,33 @@ class UpdateCommand implements CommandInterface {
 			}
 		}
 		return null;
+	}
+
+	/** Download then atomically publish an archive in root's private stage. */
+	private function downloadArchive(string $rUrl): ?string {
+		$rDir = dirname(self::ARCHIVE);
+		foreach ([dirname($rDir), $rDir] as $rOwned) {
+			if (!is_dir($rOwned) && !@mkdir($rOwned, 0700)) {
+				return null;
+			}
+			$rStat = @lstat($rOwned);
+			if ($rStat === false || ($rStat['mode'] & 0170000) !== 0040000 || $rStat['uid'] !== 0 || ($rStat['mode'] & 0022) !== 0) {
+				return null;
+			}
+			if ($rOwned === $rDir && !@chmod($rOwned, 0700)) {
+				return null;
+			}
+		}
+		$rTmp = @tempnam($rDir, '.archive-');
+		if ($rTmp === false) {
+			return null;
+		}
+		@chmod($rTmp, 0600);
+		if (!$this->downloadFile($rUrl, $rTmp) || !@chmod($rTmp, 0600) || !@rename($rTmp, self::ARCHIVE)) {
+			@unlink($rTmp);
+			return null;
+		}
+		return self::ARCHIVE;
 	}
 
 	private function downloadFile($url, $targetPath): bool {

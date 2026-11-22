@@ -437,6 +437,9 @@ cat > "$VERSION_FILE" <<EOF
 EOF
 
 sudo chown xc_vm:xc_vm -R /home/xc_vm >/dev/null 2>&1
+sudo chown -h root:xc_vm /home/xc_vm /home/xc_vm/root.php /home/xc_vm/console.php /home/xc_vm/bootstrap.php /home/xc_vm/service /home/xc_vm/update /home/xc_vm/bin /home/xc_vm/bin/php /home/xc_vm/bin/nginx /home/xc_vm/bin/nginx_rtmp /home/xc_vm/bin/yt-dlp
+sudo chown -hR root:xc_vm /home/xc_vm/vendor /home/xc_vm/Cli /home/xc_vm/Core /home/xc_vm/Domain /home/xc_vm/Infrastructure /home/xc_vm/Ministra /home/xc_vm/Public /home/xc_vm/Streaming /home/xc_vm/bin/php/bin /home/xc_vm/bin/php/sbin /home/xc_vm/bin/php/lib /home/xc_vm/bin/install /home/xc_vm/bin/nginx/sbin /home/xc_vm/bin/nginx_rtmp/sbin
+sudo chmod 0755 /home/xc_vm/bin/install
 
 ROLLBACK_REQUIRED=0
 echo "Binaries updated successfully. Version file: ${VERSION_FILE}"

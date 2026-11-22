@@ -99,6 +99,7 @@ class RootSignalsCronJob implements CommandInterface {
 		AtomicFile::write(CONFIG_PATH . 'signals.last', (string) time(), 0644);
 
 		self::refreshModuleCrons();
+		StartupCommand::installRootCrontab(true);
 		$this->loadCron();
 
 		return 0;
@@ -144,24 +145,19 @@ class RootSignalsCronJob implements CommandInterface {
 	}
 
 	/**
-	 * Root's crontab as the modules now ask for it, checked every minute. A
-	 * module installed, enabled, disabled or removed from the panel brings or
-	 * takes its cron lines (CronProviderInterface), and only `startup` and
-	 * `status` wrote them: a module's cron did not run until the next restart
-	 * (the anti-abuse shield, and with it its honeypot ports).
+	 * The xc_vm user's module crontab, checked every minute without loading
+	 * module PHP in this root process.
 	 *
-	 * Nothing is kept of the last write: installRootCrontab() compares the
-	 * crontab itself and writes only when its list differs, one writer at a
-	 * time (crontabLock()), so a list read before another's write cannot land
-	 * after it; and a list written just before the modules changed is put
-	 * right the next minute. Root writes no file of its own where xc_vm can
-	 * plant a link.
+	 * Root keeps no module-derived state: the unprivileged synchronizer compares
+	 * xc_vm's crontab and replaces only its marked module lines.
 	 *
-	 * @param (callable(): bool)|null $rWrite What brings the crontab up to date (tests); StartupCommand::installRootCrontab(true).
-	 * @return bool Whether the crontab holds the modules' lines now.
+	 * @param (callable(): bool)|null $rWrite What brings the xc_vm crontab up to date (tests).
+	 * @return bool Whether the crontab holds the module lines now.
 	 */
 	public static function refreshModuleCrons(?callable $rWrite = null): bool {
-		return (bool) ($rWrite ?? static fn(): bool => StartupCommand::installRootCrontab(true))();
+		return (bool) ($rWrite ?? static fn(): bool => ProcessRunner::run([
+			'sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'module:cron-sync',
+		], true) === 0)();
 	}
 
 	/**
@@ -578,10 +574,10 @@ class RootSignalsCronJob implements CommandInterface {
 	 */
 	public static function reloadAsked(): void {
 		if (self::$rReloadRtmp) {
-			self::run(['sudo', BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp', '-s', 'reload']);
+			self::run(['sudo', '-u', 'xc_vm', BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp', '-s', 'reload']);
 		}
 		if (self::$rReloadNginx) {
-			self::run(['sudo', BIN_PATH . 'nginx/sbin/nginx', '-s', 'reload']);
+			self::run(['sudo', '-u', 'xc_vm', BIN_PATH . 'nginx/sbin/nginx', '-s', 'reload']);
 		}
 		self::$rReloadNginx = self::$rReloadRtmp = false;
 	}
@@ -594,7 +590,7 @@ class RootSignalsCronJob implements CommandInterface {
 	/**
 	 * module:install's argv for an install_module payload, its payload one
 	 * argument (base64 of the JSON). With the archive cluster:root staged
-	 * and checked (ArtefactStage::current()), from that copy, with the
+	 * and checked, from its xc_vm-owned handoff, with the
 	 * checked grant (with its command's id) to check it again against; its
 	 * exit status and output are the action's. Without one, the node pulls
 	 * the archive the legacy way, and neither is. Either runs to its end
@@ -612,7 +608,7 @@ class RootSignalsCronJob implements CommandInterface {
 		if ($rStaged !== null) {
 			$rData = ['archive' => $rStaged['path'], 'artefact' => $rStaged['grant']] + $rData;
 		}
-		return ['sudo', PHP_BIN, MAIN_HOME . 'console.php', 'module:install', base64_encode((string) json_encode($rData))];
+		return ['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'module:install', base64_encode((string) json_encode($rData))];
 	}
 
 	/**
@@ -976,7 +972,7 @@ class RootSignalsCronJob implements CommandInterface {
 		$rFanoutWait = $rFanoutEnabled && !is_executable(MAIN_HOME . 'bin/xc_fanout/xc_fanout') ? 600 : 3600;
 		if (!file_exists($rFanoutStamp) || time() - intval(@file_get_contents($rFanoutStamp) ?: 0) > $rFanoutWait) {
 			file_put_contents($rFanoutStamp, time());
-			ProcessRunner::start($rFanoutEnabled ? [PHP_BIN, MAIN_HOME . 'console.php', 'fanout_binary'] : [PHP_BIN, MAIN_HOME . 'console.php', 'fanout_binary', 'agent']);
+			ProcessRunner::start($rFanoutEnabled ? [PHP_BIN, MAIN_HOME . 'root.php', 'fanout_binary'] : [PHP_BIN, MAIN_HOME . 'root.php', 'fanout_binary', 'agent']);
 		}
 
 		// xcvm_core PHP extension — same self-heal rationale as the daemon above.
@@ -989,7 +985,7 @@ class RootSignalsCronJob implements CommandInterface {
 		$rCoreStamp = CRONS_TMP_PATH . 'xcvm_core_check';
 		if (!file_exists($rCoreStamp) || time() - intval(@file_get_contents($rCoreStamp) ?: 0) > 3600) {
 			file_put_contents($rCoreStamp, time());
-			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'xcvm_core']);
+			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'root.php', 'xcvm_core']);
 		}
 
 		// The runtime bundle (PHP, nginx) of a load balancer. MAIN updates its own
@@ -1003,7 +999,7 @@ class RootSignalsCronJob implements CommandInterface {
 		$rBinariesStamp = CRONS_TMP_PATH . 'binaries_check';
 		if (!NodeRole::isMain() && (!file_exists($rBinariesStamp) || time() - intval(@file_get_contents($rBinariesStamp) ?: 0) > 86400)) {
 			file_put_contents($rBinariesStamp, time());
-			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'binaries']);
+			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'root.php', 'binaries']);
 		}
 
 		// yt-dlp — same self-heal rationale. It is a static bundled binary that
@@ -1017,7 +1013,7 @@ class RootSignalsCronJob implements CommandInterface {
 		$rYtDlpStamp = CRONS_TMP_PATH . 'ytdlp_check';
 		if (!file_exists($rYtDlpStamp) || time() - intval(@file_get_contents($rYtDlpStamp) ?: 0) > 86400) {
 			file_put_contents($rYtDlpStamp, time());
-			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'ytdlp']);
+			ProcessRunner::start([PHP_BIN, MAIN_HOME . 'root.php', 'ytdlp']);
 		}
 
 		// ffmpeg — the builds for this distribution from XC_VM_FFMPEG (`ffmpeg`,
@@ -1350,14 +1346,14 @@ class RootSignalsCronJob implements CommandInterface {
 				if (!LogSink::syslog('CERTBOT', 'Attempting to generate certbot certificate on request.')) {
 					$db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'CERTBOT', 'Attempting to generate certbot certificate on request.', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
 				}
-				shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php certbot "' . base64_encode(json_encode($rData)) . '" 2>&1 &');
+				shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php certbot "' . base64_encode(json_encode($rData)) . '" 2>&1 &');
 				break;
 			case 'update_binaries':
 				echo 'Updating binaries...' . "\n";
 				if (!LogSink::syslog('BINARIES', 'Updating XC_VM binaries from XC_VM server...')) {
 					$db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'BINARIES', 'Updating XC_VM binaries from XC_VM server...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
 				}
-				shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php binaries 2>&1 &');
+				shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php binaries 2>&1 &');
 				break;
 			case 'install_module':
 				echo 'Installing module distributed from MAIN...' . "\n";
@@ -1368,17 +1364,25 @@ class RootSignalsCronJob implements CommandInterface {
 				$rStaged = ArtefactStage::current();
 				if ($rStaged !== null) {
 					// The custom module's archive MAIN granted, staged by
-					// cluster:root and checked there: only this module's, and
-					// installed from that copy now, before the stage is emptied
-					// (module:install checks it again against the grant). What
+					// cluster:root and checked there: only this module's. It is
+					// handed to a closed xc_vm stage for the unprivileged installer,
+					// which checks it again against the grant. What
 					// module:install refused or failed is the command's failure.
 					$rWant = 'module/' . (string) ($rData['name'] ?? '') . '/' . (string) ($rData['version'] ?? '');
 					if ($rStaged['grant']['id'] !== $rWant) {
 						throw new \RuntimeException(ArtefactStage::refuseGrant($rStaged['grant'], 'not the archive of ' . $rWant));
 					}
-					[$rCode, $rOutput] = self::run(self::moduleInstallArgv($rData, $rStaged));
-					if ($rCode !== 0) {
-						throw new \RuntimeException(trim($rOutput) !== '' ? trim($rOutput) : 'module:install exited ' . $rCode);
+					$rHandoff = ArtefactStage::handoffModuleArchive($rStaged);
+					if (is_string($rHandoff)) {
+						throw new \RuntimeException(ArtefactStage::refuseGrant($rStaged['grant'], $rHandoff));
+					}
+					try {
+						[$rCode, $rOutput] = self::run(self::moduleInstallArgv($rData, $rHandoff));
+						if ($rCode !== 0) {
+							throw new \RuntimeException(trim($rOutput) !== '' ? trim($rOutput) : 'module:install exited ' . $rCode);
+						}
+					} finally {
+						ArtefactStage::discardModuleArchive($rHandoff);
 					}
 					echo $rOutput . "\n";
 					break;
@@ -1422,7 +1426,7 @@ class RootSignalsCronJob implements CommandInterface {
 				if (!LogSink::syslog('MODULE', 'Deleting module removed on MAIN...')) {
 					$db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'MODULE', 'Deleting module removed on MAIN...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
 				}
-				shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php module:delete "' . base64_encode(json_encode($rData)) . '" 2>&1 &');
+				shell_exec('sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php module:delete "' . base64_encode(json_encode($rData)) . '" 2>&1 &');
 				break;
 			case 'update':
 				echo 'Updating...' . "\n";
@@ -1431,7 +1435,7 @@ class RootSignalsCronJob implements CommandInterface {
 				}
 				// MAIN's release, when it names one (NodeActions::update).
 				$rUpVersion = UpdateCommand::pinned($rData['version'] ?? null);
-				ProcessRunner::start(array_merge(['sudo', PHP_BIN, MAIN_HOME . 'console.php', 'update', 'update'], $rUpVersion === null ? [] : [$rUpVersion]));
+				ProcessRunner::start(array_merge(['sudo', PHP_BIN, MAIN_HOME . 'root.php', 'update', 'update'], $rUpVersion === null ? [] : [$rUpVersion]));
 				break;
 			case 'rollback':
 				$rRbVersion = UpdateCommand::pinned($rData['version'] ?? null);
@@ -1440,7 +1444,7 @@ class RootSignalsCronJob implements CommandInterface {
 					if (!LogSink::syslog('UPDATE', 'Rolling back XC_VM to ' . $rRbVersion . '...')) {
 						$db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'UPDATE', ?, 'root', 'localhost', NULL, ?);", SERVER_ID, 'Rolling back XC_VM to ' . $rRbVersion . '...', time());
 					}
-					ProcessRunner::start(['sudo', PHP_BIN, MAIN_HOME . 'console.php', 'update', 'rollback', $rRbVersion]);
+					ProcessRunner::start(['sudo', PHP_BIN, MAIN_HOME . 'root.php', 'update', 'rollback', $rRbVersion]);
 				}
 				break;
 			case 'seed_connections':

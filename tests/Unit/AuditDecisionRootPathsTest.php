@@ -3,7 +3,6 @@
 use PHPUnit\Framework\TestCase;
 use XcVm\Cli\Commands\RootPathsCommand;
 use XcVm\Core\Config\ConstantsInitializer;
-use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Config\TreeOwnership;
 use XcVm\Core\Process\ProcessRunner;
 
@@ -88,7 +87,7 @@ final class AuditDecisionRootPathsTest extends TestCase {
 				continue;
 			}
 			foreach (explode("\n", $rText) as $rLine) {
-				if (str_contains($rLine, 'TreeOwnership::chownTree(') || (preg_match('/\bchown\b.*(?<![\w-])(-\w*R\w*|--recursive)\b/', $rLine) && preg_match('/' . $rTree . '/', $rLine))) {
+				if (!str_contains($rLine, 'root:xc_vm') && (str_contains($rLine, 'TreeOwnership::chownTree(') || (preg_match('/\bchown\b.*(?<![\w-])(-\w*R\w*|--recursive)\b/', $rLine) && preg_match('/' . $rTree . '/', $rLine)))) {
 					$rFound[] = $rFile . ': ' . trim($rLine);
 				}
 			}
@@ -200,23 +199,24 @@ final class AuditDecisionRootPathsTest extends TestCase {
 	public function testChainTakesWhatRootStartsFromTheCrontabTheUnitAndTheService(): void {
 		$rCrontab = "# m h dom mon dow command\n"
 			. "0 4 * * * /usr/local/bin/backup /etc/backup.conf\n"
-			. "* * * * * /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:root_signals # XC_VM\n"
+			. "* * * * * /home/xc_vm/bin/php/bin/php /home/xc_vm/root.php cron:root_signals # XC_VM\n"
 			. "17 3 * * * sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:module_licenses # XC_VM\n"
 			. "@reboot /home/xc_vm/Modules/extra/boot.sh > /dev/null 2>&1 # XC_VM\n";
 		$rUnit = "[Service]\nUser=root\nExecStart=/bin/bash /home/xc_vm/service start\nExecStop=-/bin/bash /home/xc_vm/service stop\n";
-		$rService = "SCRIPT=/home/xc_vm\n  sudo chown -R xc_vm:xc_vm \$SCRIPT/tmp\n  sudo -u xc_vm \$SCRIPT/bin/daemons.sh\n  sudo \$SCRIPT/bin/php/bin/php \$SCRIPT/console.php startup\n  sudo \$SCRIPT/bin/extra >/dev/null 2>/dev/null &\n";
+		$rService = "SCRIPT=/home/xc_vm\n  sudo chown -R xc_vm:xc_vm \$SCRIPT/tmp\n  sudo -u xc_vm \$SCRIPT/bin/daemons.sh\n  sudo \$SCRIPT/bin/php/bin/php \$SCRIPT/root.php startup\n  sudo \$SCRIPT/bin/extra >/dev/null 2>/dev/null &\n";
 
 		$rChain = TreeOwnership::chain('/home/xc_vm/', $rCrontab, $rUnit, $rService);
 
-		foreach (array_keys(TreeOwnership::ROOT_RUNS) as $rPath) {
-			$this->assertArrayHasKey('/home/xc_vm/' . $rPath, $rChain);
+		$rDeclared = array_map(static fn(string $rPath): string => str_starts_with($rPath, '/') ? $rPath : '/home/xc_vm/' . $rPath, array_keys(TreeOwnership::ROOT_RUNS));
+		foreach ($rDeclared as $rPath) {
+			$this->assertArrayHasKey($rPath, $rChain);
 		}
 		$this->assertSame(
 			['/home/xc_vm/Modules/extra/boot.sh', '/bin/bash', '/home/xc_vm/bin/extra'],
-			array_values(array_diff(array_keys($rChain), array_map(static fn(string $rPath): string => '/home/xc_vm/' . $rPath, array_keys(TreeOwnership::ROOT_RUNS))))
+			array_values(array_diff(array_keys($rChain), $rDeclared))
 		);
-		$this->assertContains("named in root's crontab", $rChain['/home/xc_vm/console.php']);
-		$this->assertContains('named in `service`', $rChain['/home/xc_vm/console.php']);
+		$this->assertContains("named in root's crontab", $rChain['/home/xc_vm/root.php']);
+		$this->assertContains('named in `service`', $rChain['/home/xc_vm/root.php']);
 		$this->assertContains('named in the systemd unit', $rChain['/home/xc_vm/service']);
 		$this->assertSame(['named in the systemd unit'], $rChain['/bin/bash']);
 	}
@@ -398,12 +398,14 @@ final class AuditDecisionRootPathsTest extends TestCase {
 		foreach (['vendor', 'Core/Localization/lang', 'bin/php/bin', 'bin/nginx/conf', 'config', 'tmp'] as $rDir) {
 			mkdir($rBase . '/' . $rDir, 0755, true);
 		}
+		touch($rBase . '/root.php');
 		touch($rBase . '/console.php');
 		touch($rBase . '/bin/yt-dlp');
+		mkdir($rBase . '/bin/install');
 		try {
 			$this->assertSame([
-				['chown', '-h', 'root:xc_vm', $rBase, $rBase . '/console.php', $rBase . '/bin', $rBase . '/bin/php', $rBase . '/bin/nginx', $rBase . '/bin/yt-dlp'],
-				['chown', '-hR', 'root:xc_vm', $rBase . '/vendor', $rBase . '/Core', $rBase . '/bin/php/bin'],
+				['chown', '-h', 'root:xc_vm', $rBase, $rBase . '/root.php', $rBase . '/console.php', $rBase . '/bin', $rBase . '/bin/php', $rBase . '/bin/nginx', $rBase . '/bin/yt-dlp'],
+				['chown', '-hR', 'root:xc_vm', $rBase . '/vendor', $rBase . '/Core', $rBase . '/bin/php/bin', $rBase . '/bin/install'],
 			], TreeOwnership::rootOwn($rBase . '/'));
 		} finally {
 			exec('rm -rf ' . escapeshellarg($rBase));
@@ -418,21 +420,23 @@ final class AuditDecisionRootPathsTest extends TestCase {
 		}
 	}
 
-	/** An updater that puts a file in place gives it to whoever the tree's policy says: root on MAIN, for what root runs. */
-	public function testAnUpdaterGivesItsFileToRootOnMainOnly(): void {
-		try {
-			NodeRole::useServers(static fn(): array => [SERVER_ID => ['is_main' => 1]]);
-			$this->assertSame('root', TreeOwnership::owner('bin/yt-dlp'));
-			$this->assertSame('root', TreeOwnership::owner('bin/php/lib/php/extensions/xcvm_core.so'));
-			$this->assertSame('root', TreeOwnership::owner('Core/Config/TreeOwnership.php'));
-			$this->assertSame('root', TreeOwnership::owner('Core/Localization/lang/pt.ini'), 'a bundled language is code: custom ones are in config/lang/');
-			$this->assertSame('xc_vm', TreeOwnership::owner('bin/xc_fanout/xc_fanout'));
-			$this->assertSame('xc_vm', TreeOwnership::owner('config/modules.php'));
+	/** Privileged release material is root-owned on MAIN and load balancers alike. */
+	public function testAnUpdaterUsesTheSameOwnershipPolicyOnEveryNode(): void {
+		$this->assertSame('root', TreeOwnership::owner('bin/yt-dlp'));
+		$this->assertSame('root', TreeOwnership::owner('bin/php/lib/php/extensions/xcvm_core.so'));
+		$this->assertSame('root', TreeOwnership::owner('Core/Config/TreeOwnership.php'));
+		$this->assertSame('root', TreeOwnership::owner('bin/install/update_binaries.sh'));
+		$this->assertSame('xc_vm', TreeOwnership::owner('bin/xc_fanout/xc_fanout'));
+		$this->assertSame('xc_vm', TreeOwnership::owner('config/modules.php'));
+	}
 
-			NodeRole::useServers(static fn(): array => [SERVER_ID => ['is_main' => 0]]);
-			$this->assertSame('xc_vm', TreeOwnership::owner('bin/yt-dlp'), "a load balancer's tree is xc_vm's");
-		} finally {
-			NodeRole::useServers(null);
+	/** Install flows restore every privileged code tree after their blanket chown. */
+	public function testInstallFlowsRetakeTheCompleteRootCodeTree(): void {
+		$rServer = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
+		$rLb = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/LbInstallFlow.php');
+		foreach (['Domain', 'Ministra', 'bin/php/bin', 'bin/php/sbin', 'bin/php/lib', 'bin/install'] as $rTree) {
+			$this->assertStringContainsString("MAIN_HOME . '{$rTree} ", $rServer, $rTree);
+			$this->assertStringContainsString('/home/xc_vm/' . $rTree . ' ', $rLb, $rTree);
 		}
 	}
 }

@@ -8,10 +8,8 @@ use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Config\NginxPortsFile;
 use XcVm\Core\Config\TreeOwnership;
-use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\MigrationRunner;
-use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Process\ProcessRunner;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
 use XcVm\Domain\Cluster\ClusterPool;
@@ -105,20 +103,9 @@ class StatusCommand implements CommandInterface {
 			// Every run, boot included, so the dashboard's schema row clears once a failure is gone.
 			self::markSchema($db, MigrationRunner::run($db) === []);
 
-			// Provision bundled modules (create their tables via migrations) the
-			// first time after a fresh install/update. Idempotent and safe to
-			// re-run; failures are logged, not fatal.
-			try {
-				$rInstalled = (new ModuleManager(null, null, ServiceContainer::getInstance()))
-					->syncBundledModules();
-				if ($rInstalled !== []) {
-					echo 'Installed bundled modules: ' . implode(', ', $rInstalled) . "\n";
-				}
-			} catch (\Throwable $e) {
-				error_log('Bundled module sync failed: ' . $e->getMessage());
-			}
-
-			ProcessRunner::run(['sudo', 'chmod', '0775', MAIN_HOME . 'bin/install']);
+			// Module PHP is never loaded by this root process. The normal console
+			// performs the same idempotent sync with xc_vm's privileges.
+			ProcessRunner::passThrough(['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'module:sync-bundled']);
 		}
 
 		$this->fixPermissions();
@@ -240,12 +227,14 @@ class StatusCommand implements CommandInterface {
 	}
 
 	private function fixPermissions(): void {
+		$this->migrateInstallRuntime();
 		$rSockets = glob(MAIN_HOME . 'bin/php/sockets/*') ?: []; // none while PHP-FPM is stopped (an update)
 		if ($rSockets !== []) {
 			ProcessRunner::run(['sudo', 'chmod', '0660', ...$rSockets], true);
 		}
 		ProcessRunner::run(['sudo', 'chmod', '0771', MAIN_HOME . 'bin/daemons.sh']);
 		ProcessRunner::run(['sudo', 'chmod', '0775', MAIN_HOME . 'bin/certbot']);
+		ProcessRunner::run(['sudo', 'chmod', '0755', MAIN_HOME . 'bin/install']);
 		ProcessRunner::run(['sudo', 'chown', '-R', 'xc_vm:xc_vm', MAIN_HOME . 'config']);
 		// The database user and password: the installer wrote the file readable
 		// by all up to 2.6.4 (only config/'s own mode kept others out).
@@ -253,11 +242,28 @@ class StatusCommand implements CommandInterface {
 			ProcessRunner::run(['sudo', 'chmod', '0600', MAIN_HOME . 'config/config.ini']);
 		}
 		shell_exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system 2> /dev/null");
-		// MAIN: what root runs or loads from the tree is root's again, after the
-		// install or the update that handed the whole tree to xc_vm.
-		if (NodeRole::isMain()) {
-			foreach (TreeOwnership::rootOwn(MAIN_HOME) as $rArgv) {
-				ProcessRunner::run(array_merge(['sudo'], $rArgv));
+		// Every node: no root entrypoint remains replaceable by xc_vm.
+		foreach (TreeOwnership::rootOwn(MAIN_HOME) as $rArgv) {
+			ProcessRunner::run(array_merge(['sudo'], $rArgv));
+		}
+	}
+
+	/** Move legacy mutable install files out of the root-owned script directory. */
+	private function migrateInstallRuntime(): void {
+		$rOld = MAIN_HOME . 'bin/install/';
+		$rNew = STORAGE_PATH . 'install/';
+		if (!is_dir($rNew)) {
+			ProcessRunner::run(['sudo', 'install', '-d', '-o', 'xc_vm', '-g', 'xc_vm', '-m', '0750', $rNew]);
+		}
+		$rRelease = ['database.sql', 'install_xcvm_core.sh', 'update_binaries.sh', 'xcvm-noderoot'];
+		foreach (glob($rOld . '*') ?: [] as $rPath) {
+			if (in_array(basename($rPath), $rRelease, true) || !is_file($rPath) || is_link($rPath)) {
+				continue;
+			}
+			$rTo = $rNew . basename($rPath);
+			if (!file_exists($rTo)) {
+				ProcessRunner::run(['sudo', 'mv', '--', $rPath, $rTo]);
+				ProcessRunner::run(['sudo', 'chown', 'xc_vm:xc_vm', $rTo]);
 			}
 		}
 	}

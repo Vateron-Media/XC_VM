@@ -821,6 +821,7 @@ class LbInstallFlow {
 		// install_id / config.enc as root. A root-owned install_id is unreadable by
 		// FPM (xc_vm) and makes config.enc decryption fall back to a default config.
 		call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm -R /home/xc_vm >/dev/null 2>&1');
+		call_user_func($rRunSSH, $rConn, 'sudo chown -h root:xc_vm /home/xc_vm /home/xc_vm/root.php /home/xc_vm/console.php /home/xc_vm/bootstrap.php /home/xc_vm/service /home/xc_vm/update /home/xc_vm/bin /home/xc_vm/bin/php /home/xc_vm/bin/nginx /home/xc_vm/bin/nginx_rtmp /home/xc_vm/bin/yt-dlp; sudo chown -hR root:xc_vm /home/xc_vm/vendor /home/xc_vm/Cli /home/xc_vm/Core /home/xc_vm/Domain /home/xc_vm/Infrastructure /home/xc_vm/Ministra /home/xc_vm/Public /home/xc_vm/Streaming /home/xc_vm/bin/php/bin /home/xc_vm/bin/php/sbin /home/xc_vm/bin/php/lib /home/xc_vm/bin/install /home/xc_vm/bin/nginx/sbin /home/xc_vm/bin/nginx_rtmp/sbin; sudo chmod 0755 /home/xc_vm/bin/install');
 		// Older release archives also lack this directory; prepare it on the
 		// node even when API-mode startup waits for its replica.
 		call_user_func($rRunSSH, $rConn, 'sudo install -d -o xc_vm -g xc_vm -m 0755 /home/xc_vm/bin/ffmpeg_bin');
@@ -1105,7 +1106,7 @@ class LbInstallFlow {
 		// A serve-only node takes the daemon now as well: it loses PHP at the end of
 		// the install, and with it cron:root_signals, which fetches it on every other node.
 		$rFetch = 'fanout_binary' . ($rServeOnly ? '' : ' agent') . ($rApiMode ? ' ' . ReplicaBoot::OPTION . FanoutBinaryCommand::mainOptions($rSettings) : '');
-		$rGot = trim((string) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . $rFetch . ' 2>&1; sudo test -x ' . escapeshellarg(self::AGENT_BIN) . ' && echo AGENT_OK')['output']);
+		$rGot = trim((string) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php ' . $rFetch . ' 2>&1; sudo test -x ' . escapeshellarg(self::AGENT_BIN) . ' && echo AGENT_OK')['output']);
 		if (!str_ends_with($rGot, 'AGENT_OK')) {
 			$rWhy = trim((string) strrchr("\n" . $rGot, "\n")) ?: 'it could not install one';
 			if ($rApiMode) {
