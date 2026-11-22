@@ -38,9 +38,11 @@ use XcVm\Core\Util\LayoutRenderer;
                 <button type="button" class="btn btn-sm btn-label-primary js-job-button" id="module-check-updates" title="<?= htmlspecialchars($language::get('module_check_updates_hint'), ENT_QUOTES); ?>">
                     <i class="icon-base ti tabler-refresh me-1"></i><?= $language::get('module_check_updates'); ?>
                 </button>
-                <button type="button" class="btn btn-sm btn-primary js-job-button" data-bs-toggle="modal" data-bs-target="#module-upload-modal">
-                    <i class="icon-base ti tabler-upload me-1"></i><?= $language::get('module_upload'); ?>
-                </button>
+                <?php if (!empty($localUploadsEnabled)): ?>
+                    <button type="button" class="btn btn-sm btn-primary js-job-button" data-bs-toggle="modal" data-bs-target="#module-upload-modal">
+                        <i class="icon-base ti tabler-upload me-1"></i><?= $language::get('module_upload'); ?>
+                    </button>
+                <?php endif; ?>
             </div>
             <div class="alert alert-info d-flex align-items-center gap-2 mb-0 rounded-0 d-none" id="module-job" role="status" aria-live="polite">
                 <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
@@ -113,6 +115,7 @@ use XcVm\Core\Util\LayoutRenderer;
     </div>
 </div>
 
+<?php if (!empty($localUploadsEnabled)): ?>
 <div class="modal fade" id="module-upload-modal" tabindex="-1" aria-labelledby="module-upload-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form class="modal-content" id="module-upload-form" enctype="multipart/form-data">
@@ -135,6 +138,7 @@ use XcVm\Core\Util\LayoutRenderer;
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <?php
 LayoutRenderer::renderFooter('admin');
@@ -435,6 +439,7 @@ LayoutRenderer::renderFooter('admin');
         // ---- upload ----
 
         var zipInput = document.getElementById('module-zip-input');
+        if (zipInput) {
         var dropZone = document.getElementById('module-drop-zone');
         var uploadForm = document.getElementById('module-upload-form');
 
@@ -479,6 +484,7 @@ LayoutRenderer::renderFooter('admin');
                 take(resp);
             });
         });
+        }
 
         // ---- store ----
 

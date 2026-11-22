@@ -88,7 +88,7 @@ class ModuleInstallCommand implements CommandInterface {
 					return 1;
 				}
 				echo "Installing custom module '{$rName}' v{$rVersion} from the archive MAIN granted...\n";
-				$rInstalledName = $rManager->deployFromArchiveFilesOnly($rStaged);
+				$rInstalledName = $rManager->deployFromArchiveFilesOnly($rStaged, $rName, $rVersion);
 			} else {
 				echo "module:install: no archive granted for '{$rName}' v{$rVersion} (a custom module reaches a load balancer only as a cluster artefact: COMMANDS, root_ready, agent feature 'artefact').\n";
 				return 1;

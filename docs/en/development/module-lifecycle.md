@@ -26,7 +26,7 @@ Available `state` values (backed by `ModuleState` enum):
 
 > **Panel diagnostics.** The **Modules** page shows a yellow **⚠ Issue** badge next to a module's status when the module reads `Enabled` but is not loaded: a required dependency is missing or not enabled (e.g. `plex` reads `Enabled` but `watch` is `failed`), its `requires_core` rules out this core, or its `module.json` cannot be loaded. The badge tooltip lists the concrete problems, for example `Not loaded: it has a module.json that cannot be loaded (…).` This `dependency_warnings` field is computed by `ModuleManager::listModules()`.
 >
-> The page, its module list and every module operation (the row actions, a ZIP upload, a store install) need the `settings` permission.
+> The page, its module list and every module operation are restricted to a full administrator. A delegated `settings` permission is not sufficient; direct Ajax requests are refused with HTTP 403.
 
 To override the class resolved for a module:
 
@@ -125,6 +125,12 @@ An archive uploaded on the **Modules** page over an installed module is installe
 way. An upload that is refused, or that fails to install, leaves the installed copy in
 place: its files, its on/off state and the version shown.
 
+Store packages are the default trusted installation path. Unsigned local archives are disabled
+by default; an operator must explicitly set `XCVM_ALLOW_LOCAL_MODULE_UPLOAD=1` in the panel
+process environment to expose the upload action. Archives are inspected before extraction for
+format, paths, links, one root manifest, entry count and compressed/expanded size. Load balancers
+also require the archive manifest name and version to match MAIN's granted artefact identity.
+
 ### Migrating a backup: tables of modules
 
 The panel installs no module by itself, and keeps no list of which module owns which table. The
@@ -173,6 +179,12 @@ rollback, license renewal, store install, archive upload, update check) is a **b
 how it ended in `CACHE_TMP_PATH/module_job.json`. One job runs at a time. The page polls
 `api?action=module_status` (the modules and the job) until the job ends, and draws only what that
 answers.
+
+Module cron entries never enter root's crontab. `root_signals` invokes
+`module:cron-sync` as `xc_vm`; that command preserves the existing `xc_vm` crontab and replaces
+only `# XC_VM_MODULE` lines. It accepts five bounded numeric cron fields and literal arguments,
+and only commands the module registered in `CommandRegistry`; malformed expressions, unknown
+commands and shell syntax are ignored and logged.
 
 | Action (`api?action=`) | Method | Does |
 |------------------------|--------|------|

@@ -4,7 +4,6 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\DaemonTrait;
-use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Process\ProcessRunner;
 
 /**
@@ -245,11 +244,11 @@ class StartupCommand implements CommandInterface {
 
 	/**
 	 * Root's crontab: cron:root_signals, cluster:root (MAIN's signed root
-	 * commands), cron:root_mysql and the module licences, plus whatever the
-	 * modules ask for. Static and public because `status` installs the same
+	 * commands), cron:root_mysql and the module licences. Static and public
+	 * because `status` installs the same
 	 * list — two writers meant the second one deleted what the first added.
-	 * root_signals checks it every minute, so a module's lines follow its
-	 * install without a restart.
+	 * Module entries live in xc_vm's crontab and are synced by root_signals
+	 * through module:cron-sync running as xc_vm.
 	 *
 	 * @param bool $rQuiet The every-minute check: nothing said when the list is there, nothing written when the crontab cannot be read.
 	 * @return bool Whether root's crontab holds the list now (it did, or it was written).
@@ -273,10 +272,6 @@ class StartupCommand implements CommandInterface {
 		// when no licensed modules are installed.
 		if (file_exists(MAIN_HOME . 'Cli/CronJobs/ModuleLicensesCronJob.php')) {
 			$rCrons[] = '17 3 * * * sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:module_licenses # XC_VM';
-		}
-
-		foreach ((new ModuleLoader())->loadAll()->collectCronEntries() as $rEntry) {
-			$rCrons[] = $rEntry;
 		}
 
 		$rInstalled = [];

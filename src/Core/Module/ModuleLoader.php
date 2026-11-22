@@ -478,16 +478,52 @@ class ModuleLoader {
 			return [];
 		}
 
+		$registry = new CommandRegistry();
+		$this->registerAllCommands($registry);
 		$lines = [];
-		foreach ($this->modules as $module) {
+		foreach ($this->modules as $name => $module) {
 			if (!$module instanceof CronProviderInterface) {
 				continue;
 			}
 			foreach ($module->getCronEntries() as $expression => $command) {
-				$lines[] = $expression . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . $command . ' # XC_VM';
+				$argv = preg_split('/\s+/', trim((string) $command)) ?: [];
+				$commandName = array_shift($argv);
+				if (!is_string($expression) || !self::validCronExpression($expression)
+					|| !is_string($commandName) || $registry->get($commandName) === null
+					|| preg_match('/^[a-z0-9][a-z0-9:_-]*$/', $commandName) !== 1
+					|| array_filter($argv, static fn(string $arg): bool => preg_match('/^[A-Za-z0-9._:@%+,=\/-]+$/', $arg) !== 1) !== []
+				) {
+					error_log("ModuleLoader: rejected unsafe cron entry from module '{$name}'");
+					continue;
+				}
+				$arguments = $argv === [] ? '' : ' ' . implode(' ', array_map('escapeshellarg', $argv));
+				$lines[] = $expression . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . $commandName . $arguments . ' # XC_VM_MODULE';
 			}
 		}
 		return $lines;
+	}
+
+	/** Five numeric cron fields with bounded lists, ranges and positive steps. */
+	public static function validCronExpression(string $expression): bool {
+		$fields = preg_split('/\s+/', trim($expression)) ?: [];
+		if (count($fields) !== 5) {
+			return false;
+		}
+		foreach ($fields as $i => $field) {
+			[$min, $max] = [[0, 59], [0, 23], [1, 31], [1, 12], [0, 7]][$i];
+			foreach (explode(',', $field) as $part) {
+				if (preg_match('/^(\*|\d+)(?:-(\d+))?(?:\/(\d+))?$/', $part, $match) !== 1) {
+					return false;
+				}
+				$start = $match[1] === '*' ? $min : (int) $match[1];
+				$end = isset($match[2]) && $match[2] !== '' ? (int) $match[2] : $start;
+				$step = isset($match[3]) && $match[3] !== '' ? (int) $match[3] : 1;
+				if ($start < $min || $start > $max || $end < $start || $end > $max || $step < 1 || $step > ($max - $min + 1)) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	/**
