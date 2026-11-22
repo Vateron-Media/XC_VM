@@ -672,9 +672,9 @@ final class ArtefactHashRefusalTest extends TestCase {
 	public function testInstallModuleTakesOnlyItsOwnStagedArchive(): void {
 		$rAction = ['action' => 'install_module', 'source' => 'local', 'name' => 'radio', 'version' => '1.0'];
 		$rPayload = function (array $rArgv): array {
-			$this->assertSame(['sudo', PHP_BIN, MAIN_HOME . 'console.php', 'module:install'], array_slice($rArgv, 0, 4), 'the node\'s own PHP and console.php');
-			$this->assertCount(5, $rArgv, 'the payload is one argument');
-			return json_decode((string) base64_decode((string) $rArgv[4], true), true);
+			$this->assertSame(['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'module:install'], array_slice($rArgv, 0, 6), 'module code runs only as xc_vm');
+			$this->assertCount(7, $rArgv, 'the payload is one argument');
+			return json_decode((string) base64_decode((string) $rArgv[6], true), true);
 		};
 		$rArgv = RootSignalsCronJob::moduleInstallArgv($rAction + ['archive' => '/etc/shadow', 'artefact' => ['id' => 'module/radio/1.0']], null);
 		$this->assertSame($rAction, $rPayload($rArgv), 'a signals row names no archive');
@@ -755,8 +755,8 @@ final class ArtefactHashRefusalTest extends TestCase {
 
 		$rAction = ['action' => 'install_module', 'source' => $rArgs[3], 'name' => $rArgs[0], 'version' => $rArgs[5], 'url' => $rArgs[1] . $rArgs[2] . $rArgs[6]];
 		$rArgv = RootSignalsCronJob::moduleInstallArgv($rAction, null);
-		$this->assertCount(5, $rArgv);
-		$this->assertSame($rAction, json_decode((string) base64_decode($rArgv[4], true), true));
+		$this->assertCount(7, $rArgv);
+		$this->assertSame($rAction, json_decode((string) base64_decode($rArgv[6], true), true));
 	}
 
 	/**

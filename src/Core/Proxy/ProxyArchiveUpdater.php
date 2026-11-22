@@ -11,10 +11,10 @@ use XcVm\Core\Updates\GitHubReleases;
  * proxy.tar.gz is no longer shipped in the panel tree (it lived in Git LFS). It is
  * fetched from XC_VM_Proxy GitHub releases at panel-install time and kept fresh by
  * cron:proxy, mirroring the GeoLite/MaxMind pattern. The archive and a small index
- * file live side by side under bin/install/:
+ * file live side by side under storage/install/:
  *
- *   bin/install/proxy.tar.gz        — the asset shipped to proxy nodes over SSH
- *   bin/install/proxy_version.json  — {"version": "X.Y.Z", "md5": "..."} watermark
+ *   storage/install/proxy.tar.gz        — the asset shipped to proxy nodes over SSH
+ *   storage/install/proxy_version.json  — {"version": "X.Y.Z", "md5": "..."} watermark
  *
  * ensure() is idempotent: it downloads only when the local copy is missing or the
  * recorded version/hash no longer matches the latest release for the channel.
@@ -45,11 +45,11 @@ class ProxyArchiveUpdater {
 
 	/**
 	 * @param GitHubReleases $repo       Client bound to GIT_OWNER / GIT_REPO_PROXY.
-	 * @param string|null    $installDir Override the target dir (defaults to bin/install/); for tests.
+	 * @param string|null    $installDir Override the target dir (defaults to storage/install/); for tests.
 	 */
 	public function __construct(GitHubReleases $repo, ?string $installDir = null) {
 		$this->repo        = $repo;
-		$this->installDir  = rtrim($installDir ?? (BIN_PATH . 'install/'), '/') . '/';
+		$this->installDir  = rtrim($installDir ?? ((defined('STORAGE_PATH') ? STORAGE_PATH : MAIN_HOME . 'storage/') . 'install/'), '/') . '/';
 		$this->archivePath = $this->installDir . self::ASSET;
 		$this->indexPath   = $this->installDir . 'proxy_version.json';
 	}

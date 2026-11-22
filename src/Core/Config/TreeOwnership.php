@@ -2,22 +2,19 @@
 
 namespace XcVm\Core\Config;
 
-use XcVm\Core\Cluster\NodeRole;
-
 /**
  * Who writes what under the install base (MAIN_HOME), in one place.
  *
  * The whole tree is handed to xc_vm: BLANKET_CHOWNS names every statement
  * that does. WRITABLE is what xc_vm has to write while the panel runs, and
  * ROOT_RUNS what root's crons, the service unit and the updater run or load
- * from the tree. `console.php root:paths` (RootPathsCommand) prints, for
+	 * from the tree. `root.php root:paths` (RootPathsCommand) prints, for
  * each path root runs, whether xc_vm can replace it.
  *
- * On MAIN, what root runs is then taken back: ROOT_OWNED is root's, with
+	 * On every node, what root runs is then taken back: ROOT_OWNED is root's, with
  * xc_vm's group still reading it (rootOwn(), which `status` runs as root at
- * every start, and so after every install and update). A load balancer's
- * tree stays xc_vm's for now. In Core, which ships to load balancers: the
- * check runs on a node of either kind.
+	 * every start, and so after every install and update). The same invariant
+	 * is enforced on MAIN and load balancers.
  */
 final class TreeOwnership {
 	/** The user the panel's own processes run as. */
@@ -47,11 +44,10 @@ final class TreeOwnership {
 		'bin/daemons.sh',
 		'bin/php/etc/',
 		'bin/ffmpeg_bin/',
-		// The proxy archive (cron:proxy) and the install logs.
-		'bin/install/',
+		// Proxy archives, credentials and install logs live under storage/install;
+		// bin/install is executable release material and stays root-owned.
 		'bin/maxmind/',
-		// Not the two nginx binaries root runs (ROOT_RUNS): their configuration,
-		// logs and temporary files.
+		// Nginx runs as xc_vm; its configuration, logs and temporary files stay writable.
 		'bin/nginx/conf/',
 		'bin/nginx/logs/',
 		'bin/nginx/client_body_temp/',
@@ -85,7 +81,8 @@ final class TreeOwnership {
 		'update' => 'the updater, started with sudo',
 		'bin/php/bin/php' => "the PHP of root's crons, of `service` and of the updater",
 		'bin/php/lib/' => 'its php.ini and its extensions',
-		'console.php' => 'every command of root starts here',
+		'root.php' => 'every privileged command starts here',
+		'console.php' => 'legacy root invocations redirect here before module boot',
 		'bootstrap.php' => 'console.php loads it',
 		'vendor/' => 'the autoloader and the libraries',
 		'Cli/' => 'classes the autoloader loads',
@@ -95,20 +92,14 @@ final class TreeOwnership {
 		'Ministra/' => 'classes the autoloader loads',
 		'Public/' => 'classes the autoloader loads',
 		'Streaming/' => 'classes the autoloader loads',
-		'Modules/' => 'console.php loads every installed module',
-		'config/modules.php' => 'the module loader requires it as PHP',
-		'bin/nginx/sbin/nginx' => 'cron:root_signals reloads nginx with it, and the certbot cron runs it',
-		'bin/nginx_rtmp/sbin/nginx_rtmp' => 'cron:root_signals reloads nginx_rtmp with it, and the certbot cron runs it',
-		'bin/yt-dlp' => '`console.php ytdlp` runs it for its version',
-		'tmp/.update.tar.gz' => 'the updater unpacks it over the tree, and post-update takes the installers from it',
-		'bin/install/update_binaries.sh' => '`console.php binaries` runs it',
+		'bin/install/' => 'root commands consume the bundled installers and database schema',
+		'bin/install/update_binaries.sh' => '`root.php binaries` runs it',
 		'bin/install/install_xcvm_core.sh' => "a node being installed runs MAIN's copy",
-		// Not bin/xc_agent/xc_agent: root starts it as the owner of its directory (ArtefactStage::runs()).
-		'bin/xc_fanout/xc_fanout' => '`console.php fanout_binary` runs it for its version',
+		'/var/lib/xc_vm/update/update.tar.gz' => 'the updater unpacks root\'s staged release archive',
 	];
 
 	/**
-	 * What is root's on MAIN, from the base, so that xc_vm cannot replace what
+	 * What is root's on every node, from the base, so that xc_vm cannot replace what
 	 * root runs or loads: true for everything under a directory, false for the
 	 * entry alone. The group stays xc_vm's, which reads all of it and writes
 	 * none (no file of the tree is group-writable).
@@ -119,13 +110,12 @@ final class TreeOwnership {
 	 * working directories under bin/), which root's ownership of the parent
 	 * leaves alone.
 	 *
-	 * Not here, and still xc_vm's to replace (`root:paths` names them): the
-	 * modules and config/modules.php, which the panel installs and root's
-	 * console loads; the two scripts of bin/install/; the update archive in
-	 * tmp/; bin/xc_fanout/xc_fanout.
+	 * Modules and config/modules.php stay writable, but root.php never loads
+	 * them. Runtime install data lives under storage/install, outside bin/install.
 	 */
 	public const ROOT_OWNED = [
 		'' => false,
+		'root.php' => false,
 		'console.php' => false,
 		'bootstrap.php' => false,
 		'service' => false,
@@ -143,6 +133,7 @@ final class TreeOwnership {
 		'bin/php/bin' => true,
 		'bin/php/sbin' => true,
 		'bin/php/lib' => true,
+		'bin/install' => true,
 		'bin/nginx' => false,
 		'bin/nginx/sbin' => true,
 		'bin/nginx_rtmp' => false,
@@ -212,15 +203,11 @@ final class TreeOwnership {
 	}
 
 	/**
-	 * Who a file an updater has just put in place belongs to: root for what is
-	 * root's on MAIN (rootOwn()), else xc_vm.
+	 * Who a file an updater has just put in place belongs to under this policy.
 	 *
 	 * @param string $rPath From the base, as ROOT_OWNED names it.
 	 */
 	public static function owner(string $rPath): string {
-		if (!NodeRole::isMain()) {
-			return self::USER;
-		}
 		foreach (self::ROOT_OWNED as $rEntry => $rTree) {
 			if ($rPath === $rEntry || ($rTree && str_starts_with($rPath, $rEntry . '/'))) {
 				return 'root';
@@ -271,7 +258,7 @@ final class TreeOwnership {
 	public static function chain(string $rBase, string $rCrontab, string $rUnit, string $rService): array {
 		$rChain = [];
 		foreach (self::ROOT_RUNS as $rPath => $rWho) {
-			$rChain[$rBase . $rPath][] = $rWho;
+			$rChain[str_starts_with($rPath, '/') ? $rPath : $rBase . $rPath][] = $rWho;
 		}
 		$rLines = [];
 		foreach (explode("\n", $rCrontab) as $rLine) {

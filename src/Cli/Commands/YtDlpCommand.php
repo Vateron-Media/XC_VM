@@ -157,7 +157,7 @@ class YtDlpCommand implements CommandInterface {
 		@chmod($rTmp, 0755);
 		// Run-test: proves the fresh binary actually runs with the host python3
 		// before we swap it in — a broken download must never replace a working one.
-		$rNewVer = trim((string) shell_exec(escapeshellarg($rTmp) . ' --version 2>/dev/null'));
+		$rNewVer = trim((string) shell_exec('sudo -u xc_vm -- ' . escapeshellarg($rTmp) . ' --version 2>/dev/null'));
 		if ($rNewVer === '') {
 			echo "Downloaded binary does not run on this host — aborting\n";
 			@unlink($rTmp);
@@ -183,7 +183,7 @@ class YtDlpCommand implements CommandInterface {
 		if (!is_file($rBinary) || !is_executable($rBinary)) {
 			return null;
 		}
-		$rOut = trim((string) shell_exec(escapeshellarg($rBinary) . ' --version 2>/dev/null'));
+		$rOut = trim((string) shell_exec('sudo -u xc_vm -- ' . escapeshellarg($rBinary) . ' --version 2>/dev/null'));
 		return $rOut !== '' ? ltrim($rOut, 'vV') : null;
 	}
 

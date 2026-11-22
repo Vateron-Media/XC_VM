@@ -5,11 +5,9 @@ use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\CronJobs\RootSignalsCronJob;
 
 /**
- * root_signals brings root's crontab up to date with the modules every
- * minute, so a module installed or enabled from the panel gets its cron lines
- * (the anti-abuse shield's, which starts its honeypot) without a restart, and
- * a `startup` or `status` that wrote an older list is put right a minute
- * later. It keeps nothing of its last write: the crontab is what is compared.
+ * root_signals keeps root's fixed core crontab current every minute without
+ * reading module PHP. Module commands and jobs stay on the xc_vm side of the
+ * privilege boundary.
  */
 final class ModuleCronRefreshTest extends TestCase {
 	public function testEveryRunChecksTheCrontab(): void {
@@ -18,15 +16,15 @@ final class ModuleCronRefreshTest extends TestCase {
 			$rRuns++;
 			return true;
 		};
-		$this->assertTrue(RootSignalsCronJob::refreshModuleCrons($rWrite));
-		$this->assertTrue(RootSignalsCronJob::refreshModuleCrons($rWrite), 'the next minute too: nothing says "already done"');
+		$this->assertTrue(RootSignalsCronJob::refreshRootCrons($rWrite));
+		$this->assertTrue(RootSignalsCronJob::refreshRootCrons($rWrite), 'the next minute too: nothing says "already done"');
 		$this->assertSame(2, $rRuns);
-		$this->assertFalse(RootSignalsCronJob::refreshModuleCrons(static fn(): bool => false), 'a crontab that could not be written');
+		$this->assertFalse(RootSignalsCronJob::refreshRootCrons(static fn(): bool => false), 'a crontab that could not be written');
 	}
 
 	/** Root writes no file where xc_vm could plant a link, and hashes nothing. */
 	public function testNothingIsKeptOfTheLastWrite(): void {
-		$rMethod = new ReflectionMethod(RootSignalsCronJob::class, 'refreshModuleCrons');
+		$rMethod = new ReflectionMethod(RootSignalsCronJob::class, 'refreshRootCrons');
 		$rSource = implode('', array_slice(file((string) $rMethod->getFileName()), $rMethod->getStartLine() - 1, $rMethod->getEndLine() - $rMethod->getStartLine() + 1));
 		$this->assertStringNotContainsString('file_put_contents', $rSource);
 		$this->assertStringNotContainsString('md5', $rSource);
@@ -41,7 +39,7 @@ final class ModuleCronRefreshTest extends TestCase {
 		$this->assertStringContainsString('if ($rQuiet && $rListed !== 0)', (string) file_get_contents(MAIN_HOME . 'Cli/Commands/StartupCommand.php'), 'an unreadable crontab is not rewritten each minute');
 	}
 
-	/** One writer of root's crontab at a time, from reading the modules to replacing the list. */
+	/** One writer of root's crontab at a time; it never reads module PHP. */
 	public function testAWriterAtWorkKeepsTheOthersOut(): void {
 		$rLock = new ReflectionMethod(StartupCommand::class, 'crontabLock');
 		$rHeld = $rLock->invoke(null, false);
@@ -54,6 +52,6 @@ final class ModuleCronRefreshTest extends TestCase {
 
 		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/StartupCommand.php');
 		$rBody = substr($rSource, (int) strpos($rSource, 'function installRootCrontab('));
-		$this->assertLessThan(strpos($rBody, 'loadAll()'), strpos($rBody, 'self::crontabLock(!$rQuiet)'), 'taken before the modules are read');
+		$this->assertStringNotContainsString('loadAll()', $rBody, 'root crontab generation never loads modules');
 	}
 }

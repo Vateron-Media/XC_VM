@@ -122,6 +122,9 @@ class ModuleInstallCommand implements CommandInterface {
 	 * this command runs as root from the signals cron.
 	 */
 	private function fixOwnership(string $rName): void {
+		if (posix_geteuid() !== 0) {
+			return;
+		}
 		if (!preg_match('/^[a-z0-9][a-z0-9\-]*$/', $rName)) {
 			return;
 		}

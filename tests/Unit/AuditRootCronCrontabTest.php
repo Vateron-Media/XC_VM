@@ -73,7 +73,7 @@ final class AuditRootCronCrontabTest extends TestCase {
 	}
 
 	private static function rootSignals(): string {
-		return '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # XC_VM';
+		return '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php cron:root_signals # XC_VM';
 	}
 
 	/** Root's crontab of an older release: the operator's lines, and the panel's under an old path and both markers. */

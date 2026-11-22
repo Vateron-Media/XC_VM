@@ -18,7 +18,7 @@ final class ServeOnlyPhpFreeInstallTest extends TestCase {
 		$rCmd = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ServerInstallCommand.php');
 
 		// The PHP-free transition removes console.php + bin/php only.
-		$this->assertStringContainsString("'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php'", $rCmd, 'the serve-only install removes console.php and bin/php');
+		$this->assertStringContainsString("'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'root.php ' . MAIN_HOME . 'bin/php'", $rCmd, 'the serve-only install removes both PHP entrypoints and bin/php');
 		// bin/nginx is KEPT: the Go front reads its listen ports from
 		// bin/nginx/conf/ports/*, so deleting it would leave the front with no
 		// ports. (nginx_rtmp is a different tree and also stays.)
@@ -28,7 +28,7 @@ final class ServeOnlyPhpFreeInstallTest extends TestCase {
 		// install's PHP steps (installExtension, readback) run with PHP present and
 		// only then is PHP removed. Removing it earlier would abort the install.
 		$rReadbackPos = strpos($rCmd, 'LbInstallFlow::readback(');
-		$rRemovePos = strpos($rCmd, "MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php");
+		$rRemovePos = strpos($rCmd, "MAIN_HOME . 'console.php ' . MAIN_HOME . 'root.php ' . MAIN_HOME . 'bin/php");
 		$this->assertNotFalse($rReadbackPos);
 		$this->assertNotFalse($rRemovePos);
 		$this->assertGreaterThan($rReadbackPos, $rRemovePos, 'PHP is removed AFTER readback (and the other PHP-dependent install steps), not before');
@@ -55,7 +55,7 @@ final class ServeOnlyPhpFreeInstallTest extends TestCase {
 	}
 
 	private function removalLine(string $rCmd): string {
-		$rPos = strpos($rCmd, "MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php");
+		$rPos = strpos($rCmd, "MAIN_HOME . 'console.php ' . MAIN_HOME . 'root.php ' . MAIN_HOME . 'bin/php");
 		return $rPos === false ? '' : substr($rCmd, $rPos, 120);
 	}
 }

@@ -2370,6 +2370,9 @@ if __name__ == "__main__":
 
     # Set permissions
     run_command("chown -R xc_vm:xc_vm /home/xc_vm")
+    run_command("chown -h root:xc_vm /home/xc_vm /home/xc_vm/root.php /home/xc_vm/console.php /home/xc_vm/bootstrap.php /home/xc_vm/service /home/xc_vm/update /home/xc_vm/bin /home/xc_vm/bin/php /home/xc_vm/bin/nginx /home/xc_vm/bin/nginx_rtmp /home/xc_vm/bin/yt-dlp")
+    run_command("chown -hR root:xc_vm /home/xc_vm/vendor /home/xc_vm/Cli /home/xc_vm/Core /home/xc_vm/Domain /home/xc_vm/Infrastructure /home/xc_vm/Ministra /home/xc_vm/Public /home/xc_vm/Streaming /home/xc_vm/bin/php/bin /home/xc_vm/bin/php/sbin /home/xc_vm/bin/php/lib /home/xc_vm/bin/install /home/xc_vm/bin/nginx/sbin /home/xc_vm/bin/nginx_rtmp/sbin")
+    run_command("chmod 0755 /home/xc_vm/bin/install")
 
     # Set executable permissions on key files
     run_command("chmod +x /home/xc_vm/service")
@@ -2442,14 +2445,14 @@ if __name__ == "__main__":
 
     # Run status command (root by design: root crontab, system limits, DB
     # migrations — the command refuses to run as any other user).
-    if os.path.exists("/home/xc_vm/console.php"):
-        run_command("/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status 1")
+    if os.path.exists("/home/xc_vm/root.php"):
+        run_command("/home/xc_vm/bin/php/bin/php /home/xc_vm/root.php status 1")
 
     # Set config permissions
     run_command("chown -R xc_vm:xc_vm /home/xc_vm/config/")
 
-    # Run startup command via console.php
-    startup_cmd = "/home/xc_vm/console.php"
+    # Run privileged startup commands through the module-free root entrypoint.
+    startup_cmd = "/home/xc_vm/root.php"
     if os.path.exists(startup_cmd):
         run_command(
             f"/home/xc_vm/bin/php/bin/php {startup_cmd} startup >/dev/null 2>&1"

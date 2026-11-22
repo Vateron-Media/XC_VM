@@ -102,7 +102,7 @@ class ServerInstallCommand implements CommandInterface {
 		$rPrivateIP = (empty($rArgs[8]) ? 0 : intval($rArgs[8]));
 		$rParentIDs = (empty($rArgs[9]) ? [] : json_decode($rArgs[9], true));
 		$rSysCtl = '# XC_VM' . PHP_EOL . PHP_EOL . 'net.ipv4.tcp_congestion_control = bbr' . PHP_EOL . 'net.core.default_qdisc = fq' . PHP_EOL . 'net.ipv4.tcp_rmem = 8192 87380 134217728' . PHP_EOL . 'net.ipv4.udp_rmem_min = 16384' . PHP_EOL . 'net.core.rmem_default = 262144' . PHP_EOL . 'net.core.rmem_max = 268435456' . PHP_EOL . 'net.ipv4.tcp_wmem = 8192 65536 134217728' . PHP_EOL . 'net.ipv4.udp_wmem_min = 16384' . PHP_EOL . 'net.core.wmem_default = 262144' . PHP_EOL . 'net.core.wmem_max = 268435456' . PHP_EOL . 'net.core.somaxconn = 1000000' . PHP_EOL . 'net.core.netdev_max_backlog = 250000' . PHP_EOL . 'net.core.optmem_max = 65535' . PHP_EOL . 'net.ipv4.tcp_max_tw_buckets = 1440000' . PHP_EOL . 'net.ipv4.tcp_max_orphans = 16384' . PHP_EOL . 'net.ipv4.ip_local_port_range = 2000 65000' . PHP_EOL . 'net.ipv4.tcp_no_metrics_save = 1' . PHP_EOL . 'net.ipv4.tcp_slow_start_after_idle = 0' . PHP_EOL . 'net.ipv4.tcp_fin_timeout = 15' . PHP_EOL . 'net.ipv4.tcp_keepalive_time = 300' . PHP_EOL . 'net.ipv4.tcp_keepalive_probes = 5' . PHP_EOL . 'net.ipv4.tcp_keepalive_intvl = 15' . PHP_EOL . 'fs.file-max=20970800' . PHP_EOL . 'fs.nr_open=20970800' . PHP_EOL . 'fs.aio-max-nr=20970800' . PHP_EOL . 'net.ipv4.tcp_timestamps = 1' . PHP_EOL . 'net.ipv4.tcp_window_scaling = 1' . PHP_EOL . 'net.ipv4.tcp_mtu_probing = 1' . PHP_EOL . 'net.ipv4.route.flush = 1' . PHP_EOL . 'net.ipv6.route.flush = 1';
-		$rInstallDir = BIN_PATH . 'install/';
+		$rInstallDir = InstallCredentials::dir();
 
 		if ($rType == 1) {
 			$rPackages = ProxyInstallFlow::getPackages();
@@ -417,7 +417,7 @@ class ServerInstallCommand implements CommandInterface {
 					// bin/nginx/conf/ports (http.conf and https.conf — fanoutcmd -front-ports
 					// defaults; LbInstallFlow writes https.conf there), so deleting the tree would
 					// leave the front with no ports and the node serving nothing.
-					call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bin/php');
+					call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'root.php ' . MAIN_HOME . 'bin/php');
 					// xc_vm.service runs `bash service` as root and the blanket chown made it (and
 					// its directory) xc_vm's: root-own what root runs, as rootOwn() does on MAIN.
 					// This node has no PHP to run rootOwn(), so it is done here, last.
@@ -562,6 +562,7 @@ class ServerInstallCommand implements CommandInterface {
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'tmp');
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'content/streams');
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME);
+		call_user_func($rRunSSH, $rConn, 'sudo chown -h root:xc_vm ' . MAIN_HOME . ' ' . MAIN_HOME . 'root.php ' . MAIN_HOME . 'console.php ' . MAIN_HOME . 'bootstrap.php ' . MAIN_HOME . 'service ' . MAIN_HOME . 'update ' . MAIN_HOME . 'bin ' . MAIN_HOME . 'bin/php ' . MAIN_HOME . 'bin/nginx ' . MAIN_HOME . 'bin/nginx_rtmp ' . MAIN_HOME . 'bin/yt-dlp; sudo chown -hR root:xc_vm ' . MAIN_HOME . 'vendor ' . MAIN_HOME . 'Cli ' . MAIN_HOME . 'Core ' . MAIN_HOME . 'Domain ' . MAIN_HOME . 'Infrastructure ' . MAIN_HOME . 'Ministra ' . MAIN_HOME . 'Public ' . MAIN_HOME . 'Streaming ' . MAIN_HOME . 'bin/php/bin ' . MAIN_HOME . 'bin/php/sbin ' . MAIN_HOME . 'bin/php/lib ' . MAIN_HOME . 'bin/install ' . MAIN_HOME . 'bin/nginx/sbin ' . MAIN_HOME . 'bin/nginx_rtmp/sbin; sudo chmod 0755 ' . MAIN_HOME . 'bin/install');
 		if ($rGrant) {
 			BackupService::grantPrivileges($rHost);
 		}

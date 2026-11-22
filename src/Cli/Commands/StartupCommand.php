@@ -4,7 +4,6 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\DaemonTrait;
-use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Process\ProcessRunner;
 
 /**
@@ -56,7 +55,7 @@ class StartupCommand implements CommandInterface {
 		ini_set('display_startup_errors', 1);
 		error_reporting(32767);
 
-		exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status 1');
+		exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php status 1');
 
 		// ── Восстановление daemons.sh при повреждении ────────
 		// Not on a serve-only node: it runs no php-fpm, so daemons.sh + the pool
@@ -245,8 +244,8 @@ class StartupCommand implements CommandInterface {
 
 	/**
 	 * Root's crontab: cron:root_signals, cluster:root (MAIN's signed root
-	 * commands), cron:root_mysql and the module licences, plus whatever the
-	 * modules ask for. Static and public because `status` installs the same
+	 * commands), cron:root_mysql and the unprivileged module-licence job.
+	 * Static and public because `status` installs the same
 	 * list — two writers meant the second one deleted what the first added.
 	 * root_signals checks it every minute, so a module's lines follow its
 	 * install without a restart.
@@ -260,23 +259,19 @@ class StartupCommand implements CommandInterface {
 			return false;
 		}
 		$rCrons = [];
-		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # XC_VM';
+		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php cron:root_signals # XC_VM';
 		// MAIN's signed root commands (cluster API, Phase 4); a no-op until the node's root pin exists.
 		if (file_exists(MAIN_HOME . 'Cli/Commands/ClusterRootCommand.php')) {
-			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cluster:root # XC_VM';
+			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php cluster:root # XC_VM';
 		}
 		if (file_exists(MAIN_HOME . 'Cli/CronJobs/RootMysqlCronJob.php')) {
-			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # XC_VM';
+			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php cron:root_mysql # XC_VM';
 		}
 		// Renew per-machine ionCube licenses for platform modules before they
 		// expire (runs as xc_vm so the .lic is owned by the panel user). No-op
 		// when no licensed modules are installed.
 		if (file_exists(MAIN_HOME . 'Cli/CronJobs/ModuleLicensesCronJob.php')) {
 			$rCrons[] = '17 3 * * * sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:module_licenses # XC_VM';
-		}
-
-		foreach ((new ModuleLoader())->loadAll()->collectCronEntries() as $rEntry) {
-			$rCrons[] = $rEntry;
 		}
 
 		$rInstalled = [];
