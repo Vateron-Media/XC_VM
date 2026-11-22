@@ -1535,6 +1535,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `login_design` varchar(16) NOT NULL DEFAULT 'classic',
   `login_flood` tinyint(1) DEFAULT '15',
   `recaptcha_enable` tinyint(1) DEFAULT '0',
+	`diagnostics_panel_logs` tinyint(1) NOT NULL DEFAULT '0',
   `reseller_restrictions` tinyint(1) DEFAULT '0',
   `stats_pid` int(5) DEFAULT '0',
   `tmdb_pid` int(5) DEFAULT '0',

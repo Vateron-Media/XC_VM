@@ -2,6 +2,8 @@
 
 namespace XcVm\Core\Logging;
 
+use XcVm\Core\Cluster\Redactor;
+
 /**
  * Файловый логгер
  *
@@ -68,7 +70,8 @@ class FileLogger implements LoggerInterface {
 	 * @param int        $line    Номер строки (опционально)
 	 */
 	public static function log(string $type, string $message, string|int $extra = '', int $line = 0): void {
-		$extra = (string) $extra;
+		$message = Redactor::redact($message);
+		$extra = Redactor::redact((string) $extra);
 
 		$rTrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
 		$rCaller = $rTrace[1] ?? [];

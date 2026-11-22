@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Cluster\NodeRole;
+use XcVm\Core\Cluster\Redactor;
 use XcVm\Core\Logging\FileLogger;
 
 /**
@@ -88,18 +89,7 @@ class ReportIssueController extends BaseAdminController {
 	 * administrator still reviews the result; this is the floor, not the ceiling.
 	 */
 	public static function redact(string $rText): string {
-		// `Bearer <token>` / `Basic <token>` first: the secret is the next word, which
-		// the keyed rule below would otherwise skip over (it stops at "Bearer").
-		$rText = (string) preg_replace('/\b(bearer|basic)\s+[A-Za-z0-9._\-\/+=]+/i', '$1 [redacted]', $rText);
-		// key = value / key: value / key"=>"value, the value to the next space, quote, comma or separator.
-		$rText = (string) preg_replace(
-			'/((?:pass(?:word)?|passwd|pwd|secret|token|api[_-]?key|authorization|bearer|access[_-]?key)["\']?\s*(?:=>|[:=])\s*["\']?)[^\s"\',;)&]+/i',
-			'$1[redacted]',
-			$rText
-		);
-		// user:password@host in a URL/DSN.
-		$rText = (string) preg_replace('#(://[^:/\s@]+:)[^@\s/]+(@)#', '$1[redacted]$2', $rText);
-		return $rText;
+		return Redactor::redact($rText);
 	}
 
 	/**

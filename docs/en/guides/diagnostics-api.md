@@ -53,9 +53,11 @@ Throws `Exception` on DB query failure.
 
 ### `submitPanelLogs(object $db): string|false`
 
-Submits panel logs to remote diagnostics endpoint and clears submitted logs.
-Returns the response string on success, `false` on failure (e.g. API IP resolution fails).
-Used for support/telemetry workflows.
+Disabled by default. When an administrator explicitly enables **Send redacted panel errors to XC_VM diagnostics** under Settings → Logs, MAIN sends HTTPS POST requests to `https://www.xcvm.tech/api/v1/report`.
+
+Each request contains the current panel version and up to 1000 errors. Each error contains only `type`, redacted `log_message`, redacted `log_extra`, `line`, UTC `date`, and the panel `version` recorded with that error. Passwords, tokens, authorization values and URL credentials are redacted before local storage and again before transmission.
+
+The receiver's retention period is not defined by the panel. Disabling the setting stops future uploads; it cannot delete data already sent. The method returns `false` without reading logs when consent is absent.
 
 ---
 
@@ -65,7 +67,7 @@ Used for support/telemetry workflows.
 | --- | --- | --- |
 | `type` | string | event type |
 | `log_message` | string | main message |
-| `log_extra` | string | extra context; for `pdo` entries the failed SQL statement as written, with its `?` placeholders in place of the bound values. The driver's own message is in `log_message`: the text MySQL quotes after `value: ` or after a syntax error's `near ` is exported and submitted as `?`; any other message, and the message of a statement run through `simple_query()`, is exported and submitted as MySQL wrote it and can still quote a value |
+| `log_extra` | string | redacted extra context or stack trace |
 | `line` | int | source line |
 | `date` | int | UNIX timestamp |
 

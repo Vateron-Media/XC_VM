@@ -284,7 +284,7 @@ The Logger writes to `error_log.log` on disk. A separate subsystem reads that fi
 3. Entries are ingested into the `panel_logs` table
 4. **DiagnosticsService** (`src/Core/Diagnostics/DiagnosticsService.php`) reads from `panel_logs` for:
    - `downloadPanelLogs()` -- retrieves up to 1000 recent non-EPG errors, then truncates the table
-   - `submitPanelLogs()` -- sends logs to the central API server for analysis
+   - `submitPanelLogs()` -- sends redacted logs only after the administrator opts in under Settings → Logs
 5. The admin panel exposes these logs under **Management > Logs > Panel Errors**
 
 ### FileLogger noise filtering

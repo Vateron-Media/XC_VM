@@ -3,6 +3,8 @@
 namespace XcVm\Core\Diagnostics;
 
 use XcVm\Core\Cluster\NodeRpc;
+use XcVm\Core\Cluster\Redactor;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
@@ -22,6 +24,8 @@ use XcVm\Infrastructure\Database\DatabaseAware;
 
 class DiagnosticsService {
 	use DatabaseAware;
+
+	public const PANEL_LOG_ENDPOINT = 'https://www.xcvm.tech/api/v1/report';
 
 	/**
 	 * Parse SSL certificate info from nginx config or a specific file
@@ -132,8 +136,8 @@ class DiagnosticsService {
 			foreach ($allErrors as $error) {
 				$errorData = [
 					'type'    => isset($error['type']) ? htmlspecialchars($error['type'], ENT_QUOTES, 'UTF-8') : 'unknown',
-					'message' => isset($error['log_message']) ? htmlspecialchars($error['log_message'], ENT_QUOTES, 'UTF-8') : '',
-					'file'    => isset($error['log_extra']) ? htmlspecialchars($error['log_extra'], ENT_QUOTES, 'UTF-8') : '',
+					'message' => isset($error['log_message']) ? htmlspecialchars(Redactor::redact((string) $error['log_message']), ENT_QUOTES, 'UTF-8') : '',
+					'file'    => isset($error['log_extra']) ? htmlspecialchars(Redactor::redact((string) $error['log_extra']), ENT_QUOTES, 'UTF-8') : '',
 					'line'    => isset($error['line']) ? (int) $error['line'] : 0,
 					'date'    => isset($error['date']) ? (int) $error['date'] : 0,
 					'version' => isset($error['version']) ? htmlspecialchars((string) $error['version'], ENT_QUOTES, 'UTF-8') : '',
@@ -170,12 +174,35 @@ class DiagnosticsService {
 		];
 	}
 
+	/** @param list<array<string, mixed>> $rRows */
+	public static function panelLogPayload(array $rRows): array {
+		$rErrors = [];
+		foreach ($rRows as $rRow) {
+			$rTimestamp = isset($rRow['date']) ? (int) $rRow['date'] : 0;
+			$rErrors[] = [
+				'type'        => (string) ($rRow['type'] ?? ''),
+				'log_message' => Redactor::redact((string) ($rRow['log_message'] ?? '')),
+				'log_extra'   => Redactor::redact((string) ($rRow['log_extra'] ?? '')),
+				'line'        => isset($rRow['line']) ? (string) $rRow['line'] : '',
+				'date'        => $rTimestamp > 0 ? gmdate('Y-m-d H:i:s', $rTimestamp) : '',
+				'version'     => (string) ($rRow['version'] ?? ''),
+			];
+		}
+		return [
+			'errors'  => $rErrors,
+			'version' => defined('XC_VM_VERSION') ? XC_VM_VERSION : 'unknown',
+		];
+	}
+
 	/**
 	 * Submit panel logs to the central API server
 	 *
 	 * @return string|false  API response or false on failure
 	 */
 	public static function submitPanelLogs() {
+		if (!SettingsManager::getBool('diagnostics_panel_logs')) {
+			return false;
+		}
 		$db = self::db();
 		ini_set('default_socket_timeout', 60);
 
@@ -184,46 +211,26 @@ class DiagnosticsService {
 
 		$rows = $db->get_rows() ?: [];
 
-		$rAPI = base64_decode(implode('', [
-			'aHR0cHM6L',
-			'y93d3cueG',
-			'N2bS50ZWN',
-			'oL2FwaS92',
-			'MS9yZXBvcnQ='
-		]));
-
-		$errorsForApi = [];
 		$ids = [];
 
 		foreach ($rows as $row) {
-			$ts = isset($row['date']) ? (int) $row['date'] : 0;
-			$errorsForApi[] = [
-				'type'        => $row['type'] ?? '',
-				'log_message' => $row['log_message'] ?? '',
-				'log_extra'   => $row['log_extra'] ?? '',
-				'line'        => isset($row['line']) ? (string) $row['line'] : '',
-				'date'        => $ts > 0 ? gmdate('Y-m-d H:i:s', $ts) : '',
-				// Per-error panel version frozen when the error occurred. The log
-				// server attributes the entry to THIS, not the batch/current version.
-				'version'     => (string) ($row['version'] ?? ''),
-			];
 			if (isset($row['id'])) {
 				$ids[] = (int) $row['id'];
 			}
 		}
 
-		$payload = json_encode([
-			'errors'  => $errorsForApi,
-			'version' => defined('XC_VM_VERSION') ? XC_VM_VERSION : 'unknown',
-		], JSON_UNESCAPED_UNICODE);
+		$payload = json_encode(self::panelLogPayload($rows), JSON_UNESCAPED_UNICODE);
 
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $rAPI);
+		curl_setopt($ch, CURLOPT_URL, self::PANEL_LOG_ENDPOINT);
 		curl_setopt($ch, CURLOPT_POST, true);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+		curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
 			'Content-Type: application/json',
 			'Content-Length: ' . strlen($payload),

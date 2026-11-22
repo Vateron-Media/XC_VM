@@ -6,8 +6,7 @@ namespace XcVm\Core\Cluster;
  * Removes credentials from text that leaves the node: log lines, a stream's
  * current source, process command lines. It covers:
  *
- *  - `password=`, `token=` and `username=` values in query strings and argument
- *    lists;
+ *  - credentials and tokens in query strings, headers and argument lists;
  *  - the `/user/pass/` segments of Xtream-style URLs (`/live/u/p/1.ts`,
  *    `/movie/…`, `/series/…`, `/timeshift/u/p/…`);
  *  - `user:pass@` in URLs, as ffmpeg and curl command lines carry them.
@@ -23,8 +22,14 @@ final class Redactor {
 		if ($rText === '') {
 			return $rText;
 		}
-		// key=value (query strings, form bodies, `-headers` arguments).
-		$rText = (string) preg_replace('/\b(password|passwd|pass|token|username|user)=([^&\s"\'\\\\]*)/i', '$1=' . self::MASK, $rText);
+		// Authorization headers need their scheme kept, but never their credential.
+		$rText = (string) preg_replace('/\b(bearer|basic)\s+[A-Za-z0-9._\-\/+~=]+/i', '$1 ' . self::MASK, $rText);
+		// key=value / key: value / JSON-ish key => value.
+		$rText = (string) preg_replace(
+			'/\b(password|passwd|pwd|pass|secret(?:[_ -]?prefix)?|token|api[_-]?key|access[_-]?key|authorization|username|user)(["\']?\s*(?:=>|[:=])\s*["\']?)([^&\s"\'\\\\,;)}]+)/i',
+			'$1$2' . self::MASK,
+			$rText
+		);
 		// scheme://user:pass@host
 		$rText = (string) preg_replace('#\b([a-z][a-z0-9+.\-]*://)[^/\s:@"\']+:[^/\s@"\']*@#i', '$1' . self::MASK . '@', $rText);
 		// Xtream paths: /live/<user>/<pass>/… and friends.
