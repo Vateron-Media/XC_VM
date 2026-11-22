@@ -164,6 +164,23 @@ final class CredentialRotationTest extends TestCase {
 		$this->assertNull(ClusterMeta::get(CredentialRotation::META_REDIS));
 	}
 
+	public function testApiOffRefusesBeforeMainChanges(): void {
+		SettingsManager::set(['cluster_api_enabled' => 0]);
+		$this->expectExceptionMessage('requires the cluster API');
+		try {
+			$this->rotation()->redis('new-redis-password');
+		} finally {
+			$this->assertSame([], $this->rRedis);
+			$this->assertSame([], $this->rMainConfig);
+			$this->rDb->query('SELECT `redis_password` FROM `settings`');
+			$this->assertSame('old-redis-password', $this->rDb->get_row()['redis_password']);
+			$this->assertStringContainsString('requirepass old-redis-password', (string) file_get_contents($this->rDir . '/redis.conf'));
+			$this->assertNull(ClusterMeta::get(CredentialRotation::META_REDIS));
+			$this->assertSame([], CommandBus::pending(self::ROOT_NODE, 0));
+			$this->assertSame([], CommandBus::pending(self::LEGACY_NODE, 0));
+		}
+	}
+
 	public function testASealForAnotherNodeDoesNotOpen(): void {
 		$this->rotation()->redis('new-redis-password');
 		$rCmd = $this->rootCommand(self::ROOT_NODE);

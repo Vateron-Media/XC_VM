@@ -4,6 +4,7 @@ namespace XcVm\Domain\Cluster;
 
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\RootCredentials;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Redis\RedisManager;
 
@@ -108,6 +109,9 @@ final class CredentialRotation {
 		}
 		if ($this->rRedisConf !== '' && is_file($this->rRedisConf) && !is_writable($this->rRedisConf)) {
 			throw new \RuntimeException($this->rRedisConf . ' is not writable: run as root');
+		}
+		if (empty(SettingsManager::get('cluster_api_enabled'))) {
+			throw new \RuntimeException('Redis rotation requires the cluster API');
 		}
 		$rHost = self::mainHost();
 		$rActions = [];
