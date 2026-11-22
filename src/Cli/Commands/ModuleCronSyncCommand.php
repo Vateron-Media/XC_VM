@@ -5,6 +5,7 @@ namespace XcVm\Cli\Commands;
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Process\ProcessRunner;
+use XcVm\Core\Util\CrontabLock;
 
 /** Keep module jobs in xc_vm's crontab, never root's. */
 final class ModuleCronSyncCommand implements CommandInterface {
@@ -23,8 +24,8 @@ final class ModuleCronSyncCommand implements CommandInterface {
 			fwrite(STDERR, "module:cron-sync must run as xc_vm, not root.\n");
 			return 1;
 		}
-		$rLock = fopen(__FILE__, 'r');
-		if ($rLock === false || !flock($rLock, LOCK_EX)) {
+		$rLock = CrontabLock::acquire();
+		if ($rLock === null) {
 			return 1;
 		}
 

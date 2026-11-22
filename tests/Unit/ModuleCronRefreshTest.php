@@ -83,6 +83,12 @@ final class ModuleCronRefreshTest extends TestCase {
 		$this->assertSame($rMissing, $rMethod->invoke(null, $rCode, $rOutput));
 	}
 
+	public function testSyncKeepsTheSharedLockAndReadFailureGuard(): void {
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ModuleCronSyncCommand.php');
+		$this->assertStringContainsString('CrontabLock::acquire()', $rSource);
+		$this->assertStringContainsString('self::crontabMissing($rCode, $rCurrent)', $rSource);
+	}
+
 	public static function crontabListResults(): array {
 		return [
 			'absent' => [1, "no crontab for xc_vm\n", true],
