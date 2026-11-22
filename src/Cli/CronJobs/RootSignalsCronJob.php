@@ -732,91 +732,89 @@ class RootSignalsCronJob implements CommandInterface {
 		// Before the servers the replica's checks use (replicaChecks()).
 		$rServersTag = $rReads ? null : self::replicaServersTag();
 		$rServers = ServerRepository::getAll(true);
-		{
-			// Auto-unban: on MAIN only, drop expired automatic IP bans (flood/
-			// bruteforce) so the sync below removes them from iptables. Manual admin
-			// bans (any other notes) are left permanent.
-			$rUnbanSettings = SettingsManager::getAll();
-			if (!empty($rServers[SERVER_ID]['is_main']) && !empty($rUnbanSettings['auto_unban_ip'])) {
-				$rUnbanMul = ['minutes' => 60, 'hours' => 3600, 'days' => 86400];
-				$rUnbanUnit = (string) ($rUnbanSettings['ban_duration_unit'] ?? 'hours');
-				$rUnbanSecs = max(1, intval($rUnbanSettings['ban_duration_value'] ?? 24)) * ($rUnbanMul[$rUnbanUnit] ?? 3600);
-				$rUnbanWhere = "`date` < ? AND (UPPER(`notes`) LIKE '%ATTACK%' OR UPPER(`notes`) LIKE '%BRUTEFORCE%' OR UPPER(`notes`) LIKE '%FLOOD%')";
-				$rUnbanBefore = time() - $rUnbanSecs;
-				$db->query('SELECT `ip` FROM `blocked_ips` WHERE ' . $rUnbanWhere . ';', $rUnbanBefore);
-				$rUnbanned = array_column($db->get_rows() ?: [], 'ip');
-				if ($rUnbanned !== []) {
-					$db->query('DELETE FROM `blocked_ips` WHERE ' . $rUnbanWhere . ';', $rUnbanBefore);
-					BlocklistChanges::del('ip', $rUnbanned, $db);
+		// Auto-unban: on MAIN only, drop expired automatic IP bans (flood/
+		// bruteforce) so the sync below removes them from iptables. Manual admin
+		// bans (any other notes) are left permanent.
+		$rUnbanSettings = SettingsManager::getAll();
+		if (!empty($rServers[SERVER_ID]['is_main']) && !empty($rUnbanSettings['auto_unban_ip'])) {
+			$rUnbanMul = ['minutes' => 60, 'hours' => 3600, 'days' => 86400];
+			$rUnbanUnit = (string) ($rUnbanSettings['ban_duration_unit'] ?? 'hours');
+			$rUnbanSecs = max(1, intval($rUnbanSettings['ban_duration_value'] ?? 24)) * ($rUnbanMul[$rUnbanUnit] ?? 3600);
+			$rUnbanWhere = "`date` < ? AND (UPPER(`notes`) LIKE '%ATTACK%' OR UPPER(`notes`) LIKE '%BRUTEFORCE%' OR UPPER(`notes`) LIKE '%FLOOD%')";
+			$rUnbanBefore = time() - $rUnbanSecs;
+			$db->query('SELECT `ip` FROM `blocked_ips` WHERE ' . $rUnbanWhere . ';', $rUnbanBefore);
+			$rUnbanned = array_column($db->get_rows() ?: [], 'ip');
+			if ($rUnbanned !== []) {
+				$db->query('DELETE FROM `blocked_ips` WHERE ' . $rUnbanWhere . ';', $rUnbanBefore);
+				BlocklistChanges::del('ip', $rUnbanned, $db);
+			}
+		}
+
+		$rSyncMarker = CRONS_TMP_PATH . 'blocked_ips_sync_marker';
+		// The addresses iptables must block: MAIN's table, or with the
+		// CONFIG flow on the node replica's cache (cluster:apply). No cache
+		// yet means nothing to sync, never "unblock everything".
+		$rBlocked = self::blockedIPs($db);
+		$rRunFullSync = $rBlocked !== null;
+		$rCurrentIPCount = count($rBlocked ?? []);
+		// The list's content, not its size: a ban and an unban in one minute change it too.
+		$rSorted = $rBlocked ?? [];
+		sort($rSorted);
+		$rHash = hash('sha256', implode("\n", $rSorted));
+
+		if ($rRunFullSync && file_exists($rSyncMarker)) {
+			$rLastSyncData = json_decode(@file_get_contents($rSyncMarker), true);
+			if (is_array($rLastSyncData) && isset($rLastSyncData['hash'], $rLastSyncData['time'])) {
+				if ($rLastSyncData['hash'] === $rHash && (time() - intval($rLastSyncData['time'])) < 300) {
+					$rRunFullSync = false;
 				}
 			}
+		}
 
-			$rSyncMarker = CRONS_TMP_PATH . 'blocked_ips_sync_marker';
-			// The addresses iptables must block: MAIN's table, or with the
-			// CONFIG flow on the node replica's cache (cluster:apply). No cache
-			// yet means nothing to sync, never "unblock everything".
-			$rBlocked = self::blockedIPs($db);
-			$rRunFullSync = $rBlocked !== null;
-			$rCurrentIPCount = count($rBlocked ?? []);
-			// The list's content, not its size: a ban and an unban in one minute change it too.
-			$rSorted = $rBlocked ?? [];
-			sort($rSorted);
-			$rHash = hash('sha256', implode("\n", $rSorted));
-
-			if ($rRunFullSync && file_exists($rSyncMarker)) {
-				$rLastSyncData = json_decode(@file_get_contents($rSyncMarker), true);
-				if (is_array($rLastSyncData) && isset($rLastSyncData['hash'], $rLastSyncData['time'])) {
-					if ($rLastSyncData['hash'] === $rHash && (time() - intval($rLastSyncData['time'])) < 300) {
-						$rRunFullSync = false;
-					}
-				}
-			}
-
-			if ($rRunFullSync && $this->syncSets($rBlocked)) {
-				@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
-			} elseif ($rRunFullSync) {
-				$rActualBlocked = $this->getBlockedIPs();
-				$rActualBlockedFlip = array_flip($rActualBlocked);
-				$rBlockedFlip = array_flip($rBlocked);
-				$rAdd = $rDel = [];
-				foreach (array_count_values($rActualBlocked) as $rIP => $rCount) {
-					if ($rCount > 1) {
-						echo $rCount . "\n";
-						foreach (range(1, $rCount - 1) as $i) {
-							$rDel[] = $rIP;
-						}
-					}
-				}
-				foreach ($rBlocked as $rIP) {
-					if (!isset($rActualBlockedFlip[$rIP])) {
-						$rAdd[] = $rIP;
-					}
-				}
-				foreach ($rActualBlocked as $rIP) {
-					if (!isset($rBlockedFlip[$rIP])) {
+		if ($rRunFullSync && $this->syncSets($rBlocked)) {
+			@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
+		} elseif ($rRunFullSync) {
+			$rActualBlocked = $this->getBlockedIPs();
+			$rActualBlockedFlip = array_flip($rActualBlocked);
+			$rBlockedFlip = array_flip($rBlocked);
+			$rAdd = $rDel = [];
+			foreach (array_count_values($rActualBlocked) as $rIP => $rCount) {
+				if ($rCount > 1) {
+					echo $rCount . "\n";
+					foreach (range(1, $rCount - 1) as $i) {
 						$rDel[] = $rIP;
 					}
 				}
-				if (count($rDel) > 0) {
-					$this->rSaveIPTables = true;
-					foreach ($rDel as $rIP) {
-						echo 'Unblock IP: ' . $rIP . "\n";
-						$this->unblockip($rIP);
-					}
-				}
-				if (count($rAdd) > 0) {
-					$this->rSaveIPTables = true;
-					foreach ($rAdd as $rIP) {
-						echo 'Block IP: ' . $rIP . "\n";
-						$this->blockip($rIP);
-					}
-				}
-				if ($this->rSaveIPTables) {
-					$this->saveiptables();
-					$this->rSaveIPTables = false;
-				}
-				@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
 			}
+			foreach ($rBlocked as $rIP) {
+				if (!isset($rActualBlockedFlip[$rIP])) {
+					$rAdd[] = $rIP;
+				}
+			}
+			foreach ($rActualBlocked as $rIP) {
+				if (!isset($rBlockedFlip[$rIP])) {
+					$rDel[] = $rIP;
+				}
+			}
+			if (count($rDel) > 0) {
+				$this->rSaveIPTables = true;
+				foreach ($rDel as $rIP) {
+					echo 'Unblock IP: ' . $rIP . "\n";
+					$this->unblockip($rIP);
+				}
+			}
+			if (count($rAdd) > 0) {
+				$this->rSaveIPTables = true;
+				foreach ($rAdd as $rIP) {
+					echo 'Block IP: ' . $rIP . "\n";
+					$this->blockip($rIP);
+				}
+			}
+			if ($this->rSaveIPTables) {
+				$this->saveiptables();
+				$this->rSaveIPTables = false;
+			}
+			@file_put_contents($rSyncMarker, json_encode(['count' => $rCurrentIPCount, 'hash' => $rHash, 'time' => time()]));
 		}
 		$rReload = false;
 		$rViewerApiConf = self::viewerApiConf();
@@ -839,7 +837,7 @@ class RootSignalsCronJob implements CommandInterface {
 			file_put_contents(BIN_PATH . 'nginx/conf/ministra_legacy.conf', $rMinistraLegacyConf);
 			$rReload = true;
 		}
-		$rAllowedIPs = ServerRepository::getAllowedIPs(false, false);
+		$rAllowedIPs = ServerRepository::getAllowedIPs(rIncludeAdmin: false);
 		$rXC_VMList = [];
 		foreach ($rAllowedIPs as $rIP) {
 			if (!empty($rIP) && filter_var($rIP, FILTER_VALIDATE_IP)) {

@@ -175,7 +175,7 @@ class ServerService {
 		}
 		self::changePort($rInsertID, 0, $rPorts['http'], false);
 		self::changePort($rInsertID, 1, $rPorts['https'], false);
-		self::changePort($rInsertID, 2, [$rArray['rtmp_port']], false);
+		self::changePort($rInsertID, 2, [(int) $rArray['rtmp_port']], false);
 		self::setServices($rInsertID, intval($rArray['total_services']), true);
 
 		if (!empty($rArray['governor'])) {

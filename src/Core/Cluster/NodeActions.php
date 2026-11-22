@@ -43,11 +43,11 @@ final class NodeActions {
 
 	/**
 	 * Actions that run only over the cluster API: never queued as a `signals`
-	 * row. `rotate_db` carries a sealed password nothing else could carry;
+	 * row. Credential rotation carries sealed passwords nothing else could carry;
 	 * `rotate_sign_key` is only worth the signature root checks it under;
 	 * the credential strip and install carry sealed configs.
 	 */
-	public const CLUSTER_ONLY = ['rotate_db', 'rotate_sign_key', NodeCredentials::STRIP, NodeCredentials::INSTALL, NodeCorePin::ACTION];
+	public const CLUSTER_ONLY = ['rotate_redis', 'rotate_db', 'rotate_sign_key', NodeCredentials::STRIP, NodeCredentials::INSTALL, NodeCorePin::ACTION];
 
 	public static function reboot(int $rServerID, ?object $rDb = null): bool {
 		return self::send($rServerID, ['action' => 'reboot'], $rDb);

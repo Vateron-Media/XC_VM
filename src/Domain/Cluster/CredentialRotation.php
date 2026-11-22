@@ -17,10 +17,9 @@ use XcVm\Infrastructure\Redis\RedisManager;
  * it to the nodes that still connect — every load balancer whose cluster node is not in
  * mode 2 (targets()):
  *
- * - to a node that takes root commands, as `node.root rotate_redis` with
- *   the password SEALed to its box key (RootCredentials);
- * - to a legacy node without them, `rotate_redis` as a `signals` row with no
- *   secret: its root cron reads MAIN's settings row, as it always has.
+ * Every target must take signed root commands. Before MAIN changes anything,
+ * the password is SEALed to each node's box key (RootCredentials); an
+ * unenrolled or unpinned node refuses the whole rotation.
  *
  * Redis: the new password is *added* to Redis' `default` user (`ACL SETUSER`
  * — `CONFIG` is renamed away, RedisConfigHardening), so both work while the
@@ -93,7 +92,7 @@ final class CredentialRotation {
 
 	/**
 	 * Start a Redis rotation. Returns the job: its id and how each target was
-	 * reached (`command`, `signal`, or `unsent` with why).
+	 * reached (`command`, or `unsent` with why after the preflight passed).
 	 *
 	 * @return array{id: string, nodes: array<int, array{via: string, detail?: string}>}
 	 */
@@ -110,6 +109,24 @@ final class CredentialRotation {
 		if ($this->rRedisConf !== '' && is_file($this->rRedisConf) && !is_writable($this->rRedisConf)) {
 			throw new \RuntimeException($this->rRedisConf . ' is not writable: run as root');
 		}
+		$rHost = self::mainHost();
+		$rActions = [];
+		$rBlocked = [];
+		foreach (self::targets() as $rServerID => $rNode) {
+			if (!CommandBus::acceptsRoot($rNode)) {
+				$rBlocked[] = $rServerID;
+				continue;
+			}
+			$rActions[$rServerID] = [
+				'action' => 'rotate_redis',
+				'host' => $rHost,
+				'port' => self::REDIS_PORT,
+				'auth_sealed' => RootCredentials::seal((string) $rNode['node_box_pub'], (string) $rNode['node_uuid'], $rNew),
+			];
+		}
+		if ($rBlocked !== []) {
+			throw new \RuntimeException('Redis rotation requires signed root commands for nodes: ' . implode(', ', $rBlocked));
+		}
 		// Both passwords open Redis from here until finish().
 		if (!self::redisOk(($this->rRedis)(['ACL', 'SETUSER', 'default', 'on', '>' . $rNew]))) {
 			throw new \RuntimeException('Redis refused ACL SETUSER');
@@ -122,16 +139,10 @@ final class CredentialRotation {
 		$this->writeRequirepass($rNew);
 
 		$rJob = ['id' => bin2hex(random_bytes(8)), 'old_sha' => hash('sha256', $rOld), 'started_at' => $rNow, 'nodes' => []];
-		$rHost = self::mainHost();
-		foreach (self::targets() as $rServerID => $rNode) {
-			$rAction = ['action' => 'rotate_redis', 'host' => $rHost, 'port' => self::REDIS_PORT];
-			$rVia = CommandBus::acceptsRoot($rNode) ? 'command' : 'signal';
-			if ($rVia === 'command') {
-				$rAction['auth_sealed'] = RootCredentials::seal((string) $rNode['node_box_pub'], (string) $rNode['node_uuid'], $rNew);
-			}
+		foreach ($rActions as $rServerID => $rAction) {
 			try {
 				$rSent = NodeActions::send($rServerID, $rAction);
-				$rJob['nodes'][$rServerID] = $rSent ? ['via' => $rVia] : ['via' => 'unsent', 'detail' => 'not queued (see the cluster log)'];
+				$rJob['nodes'][$rServerID] = $rSent ? ['via' => 'command'] : ['via' => 'unsent', 'detail' => 'not queued (see the cluster log)'];
 			} catch (\Throwable $rE) {
 				$rJob['nodes'][$rServerID] = ['via' => 'unsent', 'detail' => substr($rE->getMessage(), 0, 120)];
 			}
@@ -143,8 +154,8 @@ final class CredentialRotation {
 
 	/**
 	 * The open Redis rotation, each node with where its command stands
-	 * (`acked`, `failed`, `queued`/`delivered`, or `sent` for a signals row,
-	 * which reports nothing back); null when none is open.
+	 * (`acked`, `failed`, `queued`/`delivered`, or `unsent`); null when none
+	 * is open. Old jobs may still contain a legacy `signal` entry.
 	 *
 	 * @return array{id: string, started_at: int, nodes: array<int, array{via: string, state: string, detail: string}>}|null
 	 */
@@ -171,8 +182,8 @@ final class CredentialRotation {
 	/**
 	 * Close the Redis rotation: the old password leaves Redis. Refused while a
 	 * node reached by command has not acked it, or one was not reached at
-	 * all, unless $rForce — that node would lose Redis. A node reached by a
-	 * signals row reports nothing; the operator's --force answers for it.
+	 * all, unless $rForce — that node would lose Redis. Legacy open jobs may
+	 * contain a signals row, which only the operator's --force can answer for.
 	 *
 	 * @return list<int> the nodes that held it up (empty when it was closed)
 	 */

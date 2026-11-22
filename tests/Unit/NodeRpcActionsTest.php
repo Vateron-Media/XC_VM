@@ -128,6 +128,11 @@ final class NodeRpcActionsTest extends TestCase {
 		}
 	}
 
+	public function testServerSaveCastsTheRtmpPortForTheTypedRootAction(): void {
+		$rServer = (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerService.php');
+		$this->assertStringContainsString("self::changePort(\$rInsertID, 2, [(int) \$rArray['rtmp_port']]", $rServer);
+	}
+
 	public function testRootActionVersionsUseTheUpdaterContract(): void {
 		foreach (['2.7.4', '2.7.4-p1', '2.7.4-dev.3'] as $rVersion) {
 			$this->assertTrue(NodeActions::valid(['action' => 'rollback', 'version' => $rVersion]), $rVersion);
