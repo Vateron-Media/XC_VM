@@ -14,9 +14,16 @@ final class ServerPortsTakenTest extends TestCase {
 	public function testOnlyANewPortSomethingHoldsIsTaken(): void {
 		$rHeld = [8080, 8081, 8443, 8880, 8090];
 		$rListening = static fn(int $rPort): bool => in_array($rPort, $rHeld, true);
-		$this->assertSame([], ServerService::portsTaken(self::ROW, [8080, 8443, 8880, 8090], $rListening), 'the row\'s own ports are this nginx\'s');
-		$this->assertSame([8081], ServerService::portsTaken(self::ROW, [8081, 8443, 8880], $rListening), 'held by another program');
-		$this->assertSame([], ServerService::portsTaken(self::ROW, [8082, '8443', 'x', 0], $rListening), 'free, or not a port');
+		$this->assertSame([], ServerService::portsTaken(self::ROW, [8080, 8443, 8880, 8090], [], $rListening), 'the row\'s own ports are this nginx\'s');
+		$this->assertSame([8081], ServerService::portsTaken(self::ROW, [8081, 8443, 8880], [], $rListening), 'held by another program');
+		$this->assertSame([], ServerService::portsTaken(self::ROW, [8082, '8443', 'x', 0], [], $rListening), 'free, or not a port');
+	}
+
+	public function testThePortServingTheSaveRequestBelongsToThePanel(): void {
+		$rListening = static fn(int $rPort): bool => in_array($rPort, [8443, 9443], true);
+		$rStored = ['https_broadcast_port' => 443] + self::ROW;
+		$this->assertSame([9443], ServerService::portsTaken($rStored, [8443, 9443], [8443], $rListening), 'the current web port is this nginx\'s');
+		$this->assertSame([8443], ServerService::portsTaken(['rtmp_port' => self::ROW['rtmp_port']], [8443], [], $rListening), 'only the stored RTMP port belongs to RTMP');
 	}
 
 	public function testItAsksTheMachineByDefault(): void {
