@@ -122,7 +122,13 @@ class LegacyInitializer {
 
 		// Preserve module jobs while replacing the generated core jobs.
 		$rCurrent = [];
-		exec('crontab -u xc_vm -l', $rCurrent);
+		exec('LC_ALL=C crontab -u xc_vm -l 2>&1', $rCurrent, $rReadCode);
+		if ($rReadCode !== 0) {
+			if ($rReadCode !== 1 || trim(implode("\n", $rCurrent)) !== 'no crontab for xc_vm') {
+				return false;
+			}
+			$rCurrent = [];
+		}
 		foreach ($rCurrent as $rLine) {
 			if (str_contains($rLine, '# XC_VM_MODULE') && !str_contains($rCrontab, $rLine)) {
 				$rCrontab .= "\n" . $rLine;
