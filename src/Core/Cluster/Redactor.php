@@ -24,7 +24,7 @@ final class Redactor {
 		}
 		// Quoted values may contain spaces, commas and escaped quotes.
 		$rText = (string) preg_replace(
-			'/\b(password|passwd|pwd|pass|secret(?:[_ -]?prefix)?|token|api[_-]?key|access[_-]?key|username|user)(["\']?\s*(?:=>|[:=])\s*)(["\'])((?:\\\\.|(?!\3).)*)\3/i',
+			'/\b((?:[a-z0-9]+_)*(?:password|passwd|pwd|pass|secret(?:[_ -]?prefix)?|token|api[_-]?key|access[_-]?key|username|user))(["\']?\s*(?:=>|[:=])\s*)(["\'])((?:\\\\.|(?!\3).)*)\3/i',
 			'$1$2$3' . self::MASK . '$3',
 			$rText
 		);
@@ -37,7 +37,7 @@ final class Redactor {
 		$rText = (string) preg_replace('/\b(bearer|basic)\s+[A-Za-z0-9._\-\/+~=]+/i', '$1 ' . self::MASK, $rText);
 		// Unquoted key=value / key: value / JSON-ish key => value.
 		$rText = (string) preg_replace(
-			'/\b(password|passwd|pwd|pass|secret(?:[_ -]?prefix)?|token|api[_-]?key|access[_-]?key|username|user)(["\']?\s*(?:=>|[:=])\s*)([^&\s"\'\\\\,;)}]+)/i',
+			'/\b((?:[a-z0-9]+_)*(?:password|passwd|pwd|pass|secret(?:[_ -]?prefix)?|token|api[_-]?key|access[_-]?key|username|user))(["\']?\s*(?:=>|[:=])\s*)([^&\s"\'\\\\,;)}]+)/i',
 			'$1$2' . self::MASK,
 			$rText
 		);

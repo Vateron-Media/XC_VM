@@ -89,8 +89,8 @@ final class DiagnosticsPrivacyTest extends TestCase {
 	}
 
 	public function testRedactorConsumesCompleteQuotedSecrets(): void {
-		$rOut = Redactor::redact('password="correct horse battery staple" {"api_key":"quoted secret value"} Authorization: "Bearer header secret"');
-		foreach (['correct', 'horse', 'battery', 'staple', 'quoted secret value', 'header secret'] as $rSecret) {
+		$rOut = Redactor::redact('password="correct horse battery staple" {"api_key":"quoted secret value","client_secret":"client value"} refresh_token=refresh-value db_password=db-value Authorization: "Bearer header secret"');
+		foreach (['correct', 'horse', 'battery', 'staple', 'quoted secret value', 'client value', 'refresh-value', 'db-value', 'header secret'] as $rSecret) {
 			$this->assertStringNotContainsString($rSecret, $rOut);
 		}
 		$this->assertSame($rOut, Redactor::redact($rOut));
