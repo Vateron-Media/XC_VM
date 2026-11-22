@@ -21,9 +21,9 @@ use XcVm\Core\Module\ModuleManager;
  *                       (the shared DB was already migrated by MAIN).
  * - source = local    : the module is a custom one not on the store. Its
  *                       archive arrives as a cluster artefact: cluster:root
- *                       stages it in root's own stage and checks its size and
- *                       SHA-256 against MAIN's signed grant, and the payload
- *                       names that copy as `archive` (with the grant as
+ *                       checks it in root's stage, copies it into a closed
+ *                       xc_vm stage, and the payload names that handoff as
+ *                       `archive` (with the grant as
  *                       `artefact`); it is checked again here, refused and
  *                       audited as an artefact when it is not the grant's.
  *                       Without a grant nothing installs: MAIN's `/api`

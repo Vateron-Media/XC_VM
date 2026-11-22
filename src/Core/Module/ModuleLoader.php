@@ -468,10 +468,9 @@ class ModuleLoader {
 	 * Collects system crontab entries declared by loaded modules.
 	 *
 	 * Iterates over all loaded modules implementing CronProviderInterface and
-	 * assembles ready-to-write crontab lines. Callers (StartupCommand,
-	 * StatusCommand) append these to the crontab without touching module code.
+	 * assembles ready-to-write crontab lines for module:cron-sync.
 	 *
-	 * @return string[] Complete crontab lines, each ending with "# XC_VM".
+	 * @return string[] Complete crontab lines, each ending with "# XC_VM_MODULE".
 	 */
 	public function collectCronEntries(): array {
 		if (!defined('PHP_BIN') || !defined('MAIN_HOME')) {
@@ -484,7 +483,7 @@ class ModuleLoader {
 				continue;
 			}
 			foreach ($module->getCronEntries() as $expression => $command) {
-				$lines[] = $expression . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . $command . ' # XC_VM';
+				$lines[] = $expression . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . $command . ' # XC_VM_MODULE';
 			}
 		}
 		return $lines;

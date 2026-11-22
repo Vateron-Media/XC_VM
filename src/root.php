@@ -22,26 +22,36 @@ XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
 ]);
 
 $rRegistry = new CommandRegistry();
-foreach ([
-	__DIR__ . '/Cli/Commands' => 'XcVm\\Cli\\Commands\\',
-	__DIR__ . '/Cli/CronJobs' => 'XcVm\\Cli\\CronJobs\\',
-] as $rDir => $rNamespace) {
-	if (!is_dir($rDir)) {
+$rRootCommands = [
+	XcVm\Cli\Commands\BinariesCommand::class,
+	XcVm\Cli\Commands\CertbotCommand::class,
+	XcVm\Cli\Commands\ClusterDbAllowlistCommand::class,
+	XcVm\Cli\Commands\ClusterLockdownCommand::class,
+	XcVm\Cli\Commands\ClusterPinRootCommand::class,
+	XcVm\Cli\Commands\ClusterRootCommand::class,
+	XcVm\Cli\Commands\ClusterSetDbPasswordCommand::class,
+	XcVm\Cli\Commands\FanoutBinaryCommand::class,
+	XcVm\Cli\Commands\IpsetCommand::class,
+	XcVm\Cli\Commands\RootOwnCommand::class,
+	XcVm\Cli\Commands\RootPathsCommand::class,
+	XcVm\Cli\Commands\ServiceCommand::class,
+	XcVm\Cli\Commands\StartupCommand::class,
+	XcVm\Cli\Commands\StatusCommand::class,
+	XcVm\Cli\Commands\ToolsCommand::class,
+	XcVm\Cli\Commands\UpdateCommand::class,
+	XcVm\Cli\Commands\XcvmCoreCommand::class,
+	XcVm\Cli\Commands\YtDlpCommand::class,
+	XcVm\Cli\CronJobs\MaxMindCronJob::class,
+	XcVm\Cli\CronJobs\RootMysqlCronJob::class,
+	XcVm\Cli\CronJobs\RootSignalsCronJob::class,
+];
+foreach ($rRootCommands as $rClass) {
+	if (!class_exists($rClass)) {
 		continue;
 	}
-	foreach (glob($rDir . '/*.php') as $rFile) {
-		$rClass = $rNamespace . basename($rFile, '.php');
-		if (!class_exists($rClass)) {
-			continue;
-		}
-		$rReflection = new ReflectionClass($rClass);
-		if (!$rReflection->isAbstract() && $rReflection->implementsInterface(CommandInterface::class)) {
-			$rCommand = new $rClass();
-			$rName = $rCommand->getName();
-			if (!str_starts_with($rName, 'module:') && !str_starts_with($rName, 'cron:module_') && $rName !== 'ondemand') {
-				$rRegistry->register($rCommand);
-			}
-		}
+	$rReflection = new ReflectionClass($rClass);
+	if (!$rReflection->isAbstract() && $rReflection->implementsInterface(CommandInterface::class)) {
+		$rRegistry->register(new $rClass());
 	}
 }
 

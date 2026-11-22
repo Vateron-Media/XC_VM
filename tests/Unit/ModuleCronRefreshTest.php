@@ -1,13 +1,14 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use XcVm\Cli\Commands\ModuleCronSyncCommand;
 use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\CronJobs\RootSignalsCronJob;
+use XcVm\Core\Process\ProcessRunner;
 
 /**
- * root_signals keeps root's fixed core crontab current every minute without
- * reading module PHP. Module commands and jobs stay on the xc_vm side of the
- * privilege boundary.
+ * root_signals keeps root's fixed core crontab and xc_vm's module jobs current
+ * without reading module PHP in the root process.
  */
 final class ModuleCronRefreshTest extends TestCase {
 	public function testEveryRunChecksTheCrontab(): void {
@@ -16,15 +17,15 @@ final class ModuleCronRefreshTest extends TestCase {
 			$rRuns++;
 			return true;
 		};
-		$this->assertTrue(RootSignalsCronJob::refreshRootCrons($rWrite));
-		$this->assertTrue(RootSignalsCronJob::refreshRootCrons($rWrite), 'the next minute too: nothing says "already done"');
+		$this->assertTrue(RootSignalsCronJob::refreshModuleCrons($rWrite));
+		$this->assertTrue(RootSignalsCronJob::refreshModuleCrons($rWrite), 'the next minute too: nothing says "already done"');
 		$this->assertSame(2, $rRuns);
-		$this->assertFalse(RootSignalsCronJob::refreshRootCrons(static fn(): bool => false), 'a crontab that could not be written');
+		$this->assertFalse(RootSignalsCronJob::refreshModuleCrons(static fn(): bool => false), 'a crontab that could not be written');
 	}
 
 	/** Root writes no file where xc_vm could plant a link, and hashes nothing. */
 	public function testNothingIsKeptOfTheLastWrite(): void {
-		$rMethod = new ReflectionMethod(RootSignalsCronJob::class, 'refreshRootCrons');
+		$rMethod = new ReflectionMethod(RootSignalsCronJob::class, 'refreshModuleCrons');
 		$rSource = implode('', array_slice(file((string) $rMethod->getFileName()), $rMethod->getStartLine() - 1, $rMethod->getEndLine() - $rMethod->getStartLine() + 1));
 		$this->assertStringNotContainsString('file_put_contents', $rSource);
 		$this->assertStringNotContainsString('md5', $rSource);
@@ -35,6 +36,17 @@ final class ModuleCronRefreshTest extends TestCase {
 		$rParameters = (new ReflectionMethod(StartupCommand::class, 'installRootCrontab'))->getParameters();
 		$this->assertSame('rQuiet', $rParameters[0]->getName());
 		$this->assertFalse($rParameters[0]->getDefaultValue(), 'startup and status still say it');
+		$rSeen = [];
+		ProcessRunner::useRunner(static function (array $rArgv, bool $rQuiet) use (&$rSeen): int {
+			$rSeen = [$rArgv, $rQuiet];
+			return 0;
+		});
+		try {
+			$this->assertTrue(RootSignalsCronJob::refreshModuleCrons());
+		} finally {
+			ProcessRunner::useRunner(null);
+		}
+		$this->assertSame([['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'module:cron-sync'], true], $rSeen);
 		$this->assertStringContainsString('StartupCommand::installRootCrontab(true)', (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php'));
 		$this->assertStringContainsString('if ($rQuiet && $rListed !== 0)', (string) file_get_contents(MAIN_HOME . 'Cli/Commands/StartupCommand.php'), 'an unreadable crontab is not rewritten each minute');
 	}
@@ -53,5 +65,15 @@ final class ModuleCronRefreshTest extends TestCase {
 		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/StartupCommand.php');
 		$rBody = substr($rSource, (int) strpos($rSource, 'function installRootCrontab('));
 		$this->assertStringNotContainsString('loadAll()', $rBody, 'root crontab generation never loads modules');
+	}
+
+	public function testSyncReplacesOnlyMarkedModuleJobs(): void {
+		$this->assertSame(
+			['0 * * * * core # XC_VM', '*/5 * * * * new # XC_VM_MODULE'],
+			ModuleCronSyncCommand::merge(
+				['0 * * * * core # XC_VM', '* * * * * old # XC_VM_MODULE'],
+				['*/5 * * * * new # XC_VM_MODULE']
+			)
+		);
 	}
 }

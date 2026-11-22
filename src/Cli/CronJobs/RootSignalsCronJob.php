@@ -98,7 +98,8 @@ class RootSignalsCronJob implements CommandInterface {
 		// under the name, into whatever file it points to.
 		AtomicFile::write(CONFIG_PATH . 'signals.last', (string) time(), 0644);
 
-		self::refreshRootCrons();
+		self::refreshModuleCrons();
+		StartupCommand::installRootCrontab(true);
 		$this->loadCron();
 
 		return 0;
@@ -144,19 +145,19 @@ class RootSignalsCronJob implements CommandInterface {
 	}
 
 	/**
-	 * Root's fixed core crontab, checked every minute. Module jobs belong to
-	 * xc_vm and never influence this privileged list.
+	 * The xc_vm user's module crontab, checked every minute without loading
+	 * module PHP in this root process.
 	 *
-	 * Nothing is kept of the last write: installRootCrontab() compares the
-	 * crontab itself and writes only when its list differs, one writer at a
-	 * time (crontabLock()), so a list read before another's write cannot land
-	 * after it. Root writes no file of its own where xc_vm can plant a link.
+	 * Root keeps no module-derived state: the unprivileged synchronizer compares
+	 * xc_vm's crontab and replaces only its marked module lines.
 	 *
-	 * @param (callable(): bool)|null $rWrite What brings the crontab up to date (tests); StartupCommand::installRootCrontab(true).
-	 * @return bool Whether the crontab holds the core root lines now.
+	 * @param (callable(): bool)|null $rWrite What brings the xc_vm crontab up to date (tests).
+	 * @return bool Whether the crontab holds the module lines now.
 	 */
-	public static function refreshRootCrons(?callable $rWrite = null): bool {
-		return (bool) ($rWrite ?? static fn(): bool => StartupCommand::installRootCrontab(true))();
+	public static function refreshModuleCrons(?callable $rWrite = null): bool {
+		return (bool) ($rWrite ?? static fn(): bool => ProcessRunner::run([
+			'sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'module:cron-sync',
+		], true) === 0)();
 	}
 
 	/**
@@ -589,7 +590,7 @@ class RootSignalsCronJob implements CommandInterface {
 	/**
 	 * module:install's argv for an install_module payload, its payload one
 	 * argument (base64 of the JSON). With the archive cluster:root staged
-	 * and checked (ArtefactStage::current()), from that copy, with the
+	 * and checked, from its xc_vm-owned handoff, with the
 	 * checked grant (with its command's id) to check it again against; its
 	 * exit status and output are the action's. Without one, the node pulls
 	 * the archive the legacy way, and neither is. Either runs to its end
@@ -1363,17 +1364,25 @@ class RootSignalsCronJob implements CommandInterface {
 				$rStaged = ArtefactStage::current();
 				if ($rStaged !== null) {
 					// The custom module's archive MAIN granted, staged by
-					// cluster:root and checked there: only this module's, and
-					// installed from that copy now, before the stage is emptied
-					// (module:install checks it again against the grant). What
+					// cluster:root and checked there: only this module's. It is
+					// handed to a closed xc_vm stage for the unprivileged installer,
+					// which checks it again against the grant. What
 					// module:install refused or failed is the command's failure.
 					$rWant = 'module/' . (string) ($rData['name'] ?? '') . '/' . (string) ($rData['version'] ?? '');
 					if ($rStaged['grant']['id'] !== $rWant) {
 						throw new \RuntimeException(ArtefactStage::refuseGrant($rStaged['grant'], 'not the archive of ' . $rWant));
 					}
-					[$rCode, $rOutput] = self::run(self::moduleInstallArgv($rData, $rStaged));
-					if ($rCode !== 0) {
-						throw new \RuntimeException(trim($rOutput) !== '' ? trim($rOutput) : 'module:install exited ' . $rCode);
+					$rHandoff = ArtefactStage::handoffModuleArchive($rStaged);
+					if (is_string($rHandoff)) {
+						throw new \RuntimeException(ArtefactStage::refuseGrant($rStaged['grant'], $rHandoff));
+					}
+					try {
+						[$rCode, $rOutput] = self::run(self::moduleInstallArgv($rData, $rHandoff));
+						if ($rCode !== 0) {
+							throw new \RuntimeException(trim($rOutput) !== '' ? trim($rOutput) : 'module:install exited ' . $rCode);
+						}
+					} finally {
+						ArtefactStage::discardModuleArchive($rHandoff);
 					}
 					echo $rOutput . "\n";
 					break;

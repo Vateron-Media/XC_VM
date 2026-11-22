@@ -9,6 +9,7 @@ final class RootEntrypointIsolationTest extends TestCase {
 	protected function setUp(): void {
 		$this->rDir = sys_get_temp_dir() . '/xcvm-root-entry-' . bin2hex(random_bytes(4)) . '/';
 		mkdir($this->rDir . 'Cli/Commands', 0755, true);
+		mkdir($this->rDir . 'Cli/CronJobs', 0755, true);
 		mkdir($this->rDir . 'Modules', 0755, true);
 		mkdir($this->rDir . 'config', 0755, true);
 		copy(dirname(__DIR__, 2) . '/src/root.php', $this->rDir . 'root.php');
@@ -34,21 +35,22 @@ namespace XcVm\Cli {
 }
 namespace XcVm\Core\Cluster { class ReplicaBoot { public static function forArgv(array $argv): bool { return false; } } }
 namespace {
-	require __DIR__ . '/Cli/Commands/SafeCommand.php';
+	require __DIR__ . '/Cli/Commands/StatusCommand.php';
 	class XC_Bootstrap { public const CONTEXT_CLI = 'cli'; public static function boot(string $context, array $options): void {} }
 }
 PHP);
-		file_put_contents($this->rDir . 'Cli/Commands/SafeCommand.php', <<<'PHP'
+		file_put_contents($this->rDir . 'Cli/Commands/StatusCommand.php', <<<'PHP'
 <?php
 namespace XcVm\Cli\Commands;
-final class SafeCommand implements \XcVm\Cli\CommandInterface {
-	public function getName(): string { return 'safe'; }
-	public function getDescription(): string { return 'safe'; }
-	public function execute(array $args): int { echo "safe\n"; return 0; }
+final class StatusCommand implements \XcVm\Cli\CommandInterface {
+	public function getName(): string { return 'status'; }
+	public function getDescription(): string { return 'status'; }
+	public function execute(array $args): int { echo "status\n"; return 0; }
 }
 PHP);
+		file_put_contents($this->rDir . 'Cli/Commands/InjectedCommand.php', '<?php file_put_contents(' . var_export($rMarker, true) . ', "core");');
 
-		$rCommand = [PHP_BINARY, $this->rDir . 'root.php', 'safe'];
+		$rCommand = [PHP_BINARY, $this->rDir . 'root.php', 'status'];
 		$rProc = proc_open($rCommand, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);
 		$this->assertIsResource($rProc);
 		$rOut = stream_get_contents($rPipes[1]);
@@ -56,7 +58,7 @@ PHP);
 		$rCode = proc_close($rProc);
 
 		$this->assertSame(0, $rCode, $rErr);
-		$this->assertSame("safe\n", $rOut);
+		$this->assertSame("status\n", $rOut);
 		$this->assertFileDoesNotExist($rMarker);
 	}
 
@@ -65,7 +67,8 @@ PHP);
 		$this->assertLessThan(strpos($rSource, "require_once __DIR__ . '/bootstrap.php'"), strpos($rSource, "require __DIR__ . '/root.php'"));
 		$this->assertStringContainsString('refusing module-aware CLI boot', $rSource);
 		$rRoot = (string) file_get_contents(dirname(__DIR__, 2) . '/src/root.php');
-		$this->assertStringContainsString("!str_starts_with(\$rName, 'module:')", $rRoot);
-		$this->assertStringContainsString("!str_starts_with(\$rName, 'cron:module_')", $rRoot);
+		$this->assertStringNotContainsString('glob(', $rRoot);
+		$this->assertStringContainsString('StatusCommand::class', $rRoot);
+		$this->assertStringNotContainsString('ModuleInstallCommand::class', $rRoot);
 	}
 }

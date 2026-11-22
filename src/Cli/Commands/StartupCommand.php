@@ -247,8 +247,8 @@ class StartupCommand implements CommandInterface {
 	 * commands), cron:root_mysql and the unprivileged module-licence job.
 	 * Static and public because `status` installs the same
 	 * list — two writers meant the second one deleted what the first added.
-	 * root_signals checks it every minute, so a module's lines follow its
-	 * install without a restart.
+	 * root_signals checks this list and syncs module lines into xc_vm's crontab
+	 * every minute, so module changes need no restart.
 	 *
 	 * @param bool $rQuiet The every-minute check: nothing said when the list is there, nothing written when the crontab cannot be read.
 	 * @return bool Whether root's crontab holds the list now (it did, or it was written).

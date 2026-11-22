@@ -3,11 +3,11 @@
 namespace XcVm\Core\Module\Contract;
 
 /**
- * Optional contract for modules that need system-level crontab entries.
+ * Optional contract for modules that need xc_vm-user crontab entries.
  *
  * Implement this interface to declare cron schedule entries your module
  * requires. ModuleLoader::collectCronEntries() gathers them from all loaded
- * modules; StartupCommand / StatusCommand write them to the system crontab.
+ * modules; module:cron-sync writes them to the xc_vm crontab.
  *
  * This removes the need to edit core files (StartupCommand, StatusCommand)
  * when a module adds or changes its scheduling requirements.
@@ -28,7 +28,7 @@ interface CronProviderInterface {
 	 *
 	 * Example:
 	 *   return ['* * * * *' => 'cron:watch'];
-	 *   // Produces: "* * * * * /usr/bin/php /opt/xc_vm/console.php cron:watch # XC_VM"
+	 *   // Produces: "* * * * * /usr/bin/php /opt/xc_vm/console.php cron:watch # XC_VM_MODULE"
 	 *
 	 * @return array<string, string>  cron-expression => console-command-name
 	 */

@@ -679,18 +679,30 @@ final class ArtefactHashRefusalTest extends TestCase {
 		$rArgv = RootSignalsCronJob::moduleInstallArgv($rAction + ['archive' => '/etc/shadow', 'artefact' => ['id' => 'module/radio/1.0']], null);
 		$this->assertSame($rAction, $rPayload($rArgv), 'a signals row names no archive');
 		$rStaged = $this->stagedCopy('module/radio/1.0', 'radio_1.0.zip', 'PK-archive');
-		$rArgv = RootSignalsCronJob::moduleInstallArgv($rAction + ['archive' => '/etc/shadow'], $rStaged);
-		$this->assertSame(['archive' => $rStaged['path'], 'artefact' => $rStaged['grant']] + $rAction, $rPayload($rArgv));
+		$rHandoff = ['path' => ArtefactStage::moduleStageDir() . $rStaged['grant']['cmd_id'], 'grant' => $rStaged['grant']];
+		$rArgv = RootSignalsCronJob::moduleInstallArgv($rAction + ['archive' => '/etc/shadow'], $rHandoff);
+		$this->assertSame(['archive' => $rHandoff['path'], 'artefact' => $rHandoff['grant']] + $rAction, $rPayload($rArgv));
 
 		$rRuns = [];
 		$rAnswer = [0, "module:install: 'radio' installed."];
-		RootSignalsCronJob::useRunner(static function (array $rRun) use (&$rRuns, &$rAnswer): array {
+		RootSignalsCronJob::useRunner(function (array $rRun) use (&$rRuns, &$rAnswer): array {
 			$rRuns[] = $rRun;
+			$rPayload = json_decode((string) base64_decode((string) end($rRun), true), true);
+			if (isset($rPayload['archive'])) {
+				$this->assertStringStartsWith(ArtefactStage::moduleStageDir(), $rPayload['archive']);
+				$this->assertSame('PK-archive', file_get_contents($rPayload['archive']));
+				if (AgentUser::root()) {
+					$this->assertSame(AgentUser::UID, fileowner($rPayload['archive']));
+					$this->assertSame(0600, fileperms($rPayload['archive']) & 0777);
+					$this->assertSame(0700, fileperms(dirname($rPayload['archive'])) & 0777);
+				}
+			}
 			return $rAnswer;
 		});
 		$rOut = ArtefactStage::withStaged($rStaged, fn() => $this->runAction($rAction + ['archive' => '/etc/shadow']));
 		$this->assertStringContainsString("'radio' installed", $rOut);
 		$this->assertSame([$rArgv], $rRuns);
+		$this->assertFileDoesNotExist($rHandoff['path'], 'the xc_vm handoff is removed after the installer exits');
 		// module:install refused it: the command fails with its refusal.
 		$rAnswer = [1, 'module:install: artefact refused: module/radio/1.0 (radio_1.0.zip): the archive is not the one MAIN granted'];
 		try {
@@ -777,7 +789,7 @@ final class ArtefactHashRefusalTest extends TestCase {
 		$this->assertSame("a\nb\n", $rOutput, 'as exec() returned it');
 	}
 
-	/** module:install takes an archive only from root's stage, only with the grant's bytes; anything else is refused and audited, and nothing deploys. */
+	/** module:install takes an archive only from a closed module stage with the grant's bytes; anything else is refused and audited. */
 	public function testModuleInstallRefusesAnArchiveThatIsNotTheGrants(): void {
 		mkdir($this->rBase . 'etc/stage', 0700);
 		$rGrant = ['cmd_id' => str_repeat('c', 32)] + $this->grant('module/radio/1.0', 'radio_1.0.zip', 'PK-archive');
@@ -785,7 +797,7 @@ final class ArtefactHashRefusalTest extends TestCase {
 		file_put_contents($this->rBase . 'etc/stage/' . str_repeat('b', 32), 'PK-evil!!!');
 		file_put_contents($this->rBase . 'elsewhere.zip', 'PK-archive');
 		foreach ([
-			'outside the stage' => [$this->rBase . 'elsewhere.zip', $rGrant, 'not in root\'s stage'],
+			'outside the stage' => [$this->rBase . 'elsewhere.zip', $rGrant, 'not in a module stage'],
 			'not the grant\'s bytes' => [$this->rBase . 'etc/stage/' . str_repeat('b', 32), $rGrant, 'not the one MAIN granted'],
 			'no grant' => [$this->rBase . 'etc/stage/' . str_repeat('a', 32), null, 'not the one MAIN granted'],
 		] as $rWhy => [$rPath, $rWith, $rSays]) {

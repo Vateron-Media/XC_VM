@@ -117,7 +117,7 @@ final class CronProviderTest extends TestCase {
         $entries = $loader->collectCronEntries();
         $this->assertCount(1, $entries);
         $this->assertSame(
-            '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:eta # XC_VM',
+            '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:eta # XC_VM_MODULE',
             $entries[0]
         );
     }
