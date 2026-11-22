@@ -4,7 +4,6 @@ namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\Commands\FfmpegBuildsCommand;
-use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\Commands\UpdateCommand;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Cache\FileCache;
@@ -145,14 +144,17 @@ class RootSignalsCronJob implements CommandInterface {
 	}
 
 	/**
-	 * The xc_vm user's module crontab, checked every minute without loading
-	 * module PHP in this root process.
+	 * The xc_vm user's module crontab, checked every minute. A module installed,
+	 * enabled, disabled or removed from the panel brings or takes its validated
+	 * cron lines without putting module code in root's
+	 * crontab.
 	 *
-	 * Root keeps no module-derived state: the unprivileged synchronizer compares
-	 * xc_vm's crontab and replaces only its marked module lines.
+	 * Nothing is kept by root: the synchronizer compares the xc_vm crontab and
+	 * replaces only marked module lines when they changed. A list written just
+	 * before the modules changed is put right the next minute.
 	 *
 	 * @param (callable(): bool)|null $rWrite What brings the xc_vm crontab up to date (tests).
-	 * @return bool Whether the crontab holds the module lines now.
+	 * @return bool Whether the crontab holds the modules' lines now.
 	 */
 	public static function refreshModuleCrons(?callable $rWrite = null): bool {
 		return (bool) ($rWrite ?? static fn(): bool => ProcessRunner::run([

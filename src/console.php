@@ -101,16 +101,19 @@ foreach ($rCommandDirs as $rDir => $rNamespace) {
 // Модули регистрируют свои команды через ModuleInterface::registerCommands()
 // Без filesystem scanning — каждый модуль явно знает свои команды.
 
-$rModuleLoader = new ModuleLoader();
-$rModuleLoader->loadAll();
-$rModuleLoader->registerAllCommands($rRegistry);
+// Root commands must never execute module files: modules are writable by xc_vm.
+if (posix_geteuid() !== 0) {
+	$rModuleLoader = new ModuleLoader();
+	$rModuleLoader->loadAll();
+	$rModuleLoader->registerAllCommands($rRegistry);
 
-// Boot modules and register their #[ListensTo] subscribers before any command
-// runs: core commands dispatch events modules own the handling of (e.g.
-// vod_import_item's VodImportResultEvent → watch_logs). The web path boots
-// modules in index.php, so the CLI must do the same. No Router in CLI, so route
-// registration is skipped.
-$rModuleLoader->bootAll(XC_Bootstrap::getContainer());
+	// Boot modules and register their #[ListensTo] subscribers before any command
+	// runs: core commands dispatch events modules own the handling of (e.g.
+	// vod_import_item's VodImportResultEvent → watch_logs). The web path boots
+	// modules in index.php, so the CLI must do the same. No Router in CLI, so route
+	// registration is skipped.
+	$rModuleLoader->bootAll(XC_Bootstrap::getContainer());
+}
 
 // ─── Dispatch ────────────────────────────────────────────────────
 

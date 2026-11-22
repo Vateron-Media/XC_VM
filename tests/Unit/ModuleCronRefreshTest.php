@@ -6,10 +6,7 @@ use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\CronJobs\RootSignalsCronJob;
 use XcVm\Core\Process\ProcessRunner;
 
-/**
- * root_signals keeps root's fixed core crontab and xc_vm's module jobs current
- * without reading module PHP in the root process.
- */
+/** root_signals keeps root's fixed crontab and xc_vm's validated module jobs current. */
 final class ModuleCronRefreshTest extends TestCase {
 	public function testEveryRunChecksTheCrontab(): void {
 		$rRuns = 0;
@@ -31,11 +28,8 @@ final class ModuleCronRefreshTest extends TestCase {
 		$this->assertStringNotContainsString('md5', $rSource);
 	}
 
-	/** The every-minute check says nothing when the list is there: cron would mail it each minute. */
-	public function testTheCheckIsQuietWhenNothingChanges(): void {
-		$rParameters = (new ReflectionMethod(StartupCommand::class, 'installRootCrontab'))->getParameters();
-		$this->assertSame('rQuiet', $rParameters[0]->getName());
-		$this->assertFalse($rParameters[0]->getDefaultValue(), 'startup and status still say it');
+	/** Root starts only the fixed synchronizer as xc_vm; module code stays out of root. */
+	public function testTheCheckDropsToXcVmForTheModuleCronSync(): void {
 		$rSeen = [];
 		ProcessRunner::useRunner(static function (array $rArgv, bool $rQuiet) use (&$rSeen): int {
 			$rSeen = [$rArgv, $rQuiet];
@@ -61,10 +55,15 @@ final class ModuleCronRefreshTest extends TestCase {
 		$rAgain = $rLock->invoke(null, false);
 		$this->assertIsResource($rAgain, 'released: the next writer has it');
 		fclose($rAgain);
+	}
 
+	public function testRootCrontabNeverLoadsOrContainsModuleEntries(): void {
 		$rSource = (string) file_get_contents(MAIN_HOME . 'Cli/Commands/StartupCommand.php');
 		$rBody = substr($rSource, (int) strpos($rSource, 'function installRootCrontab('));
-		$this->assertStringNotContainsString('loadAll()', $rBody, 'root crontab generation never loads modules');
+		$this->assertStringNotContainsString('ModuleLoader', $rBody);
+		$this->assertStringNotContainsString('collectCronEntries', $rBody);
+		$rConsole = (string) file_get_contents(MAIN_HOME . 'console.php');
+		$this->assertStringContainsString('if (posix_geteuid() !== 0)', $rConsole, 'root CLI commands never load or boot writable modules');
 	}
 
 	public function testSyncReplacesOnlyMarkedModuleJobs(): void {
@@ -76,5 +75,4 @@ final class ModuleCronRefreshTest extends TestCase {
 			)
 		);
 	}
-
 }

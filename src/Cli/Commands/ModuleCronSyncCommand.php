@@ -7,7 +7,7 @@ use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Util\CrontabLock;
 
-/** Keep module jobs in xc_vm's crontab, never root's. */
+/** Keep validated module jobs in xc_vm's crontab, never root's. */
 final class ModuleCronSyncCommand implements CommandInterface {
 	private const MAX_CRONTAB_BYTES = 1048576;
 
@@ -16,7 +16,7 @@ final class ModuleCronSyncCommand implements CommandInterface {
 	}
 
 	public function getDescription(): string {
-		return 'Synchronize module cron entries for the xc_vm user';
+		return 'Synchronize validated module cron entries for the xc_vm user';
 	}
 
 	public function execute(array $rArgs): int {

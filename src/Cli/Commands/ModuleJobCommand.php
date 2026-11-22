@@ -92,6 +92,9 @@ class ModuleJobCommand implements CommandInterface {
 
 	/** Install the archive the page saved, then remove it. */
 	private static function uploadInstall(ModuleManager $rManager, string $rPath): string {
+		if (!ModuleManager::localUploadsEnabled()) {
+			throw new \RuntimeException('Local module uploads are disabled by policy.');
+		}
 		// Only an archive the upload endpoint saved: a job file names its path.
 		if (dirname($rPath) . '/' !== CACHE_TMP_PATH || !preg_match('/^module_upload_[0-9a-f]{16}$/', basename($rPath))) {
 			throw new \RuntimeException('Not an uploaded module archive.');

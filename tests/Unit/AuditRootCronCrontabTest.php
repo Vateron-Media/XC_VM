@@ -29,7 +29,7 @@ final class AuditRootCronCrontabTest extends TestCase {
 		// `crontab`: -l lists, -r removes, a file name installs it and `-`
 		// what is on its standard input, as `cat` reads either (or is refused,
 		// with REFUSE set); -u xc_vm is the xc_vm user's crontab.
-		file_put_contents($this->rDir . 'bin/crontab', "#!/bin/sh\necho \"crontab \$*\" >&2\nfile=$rRoot\nif [ \"\$1\" = -u ]; then file=$rXcVm; shift 2; fi\ncase \"\$1\" in\n\t-l) [ -f \"\$file\" ] || exit 1; cat \"\$file\";;\n\t-r) rm -f \"\$file\";;\n\t*) [ -z \"\$REFUSE\" ] || exit 1; cat \"\$1\" > \"\$file\";;\nesac\n");
+		file_put_contents($this->rDir . 'bin/crontab', "#!/bin/sh\nif [ \"\$1\" != -u ] || [ \"\$3\" != -l ]; then echo \"crontab \$*\" >&2; fi\nfile=$rRoot\nif [ \"\$1\" = -u ]; then file=$rXcVm; shift 2; fi\ncase \"\$1\" in\n\t-l) [ -z \"\$READ_FAIL\" ] || { echo 'read failed' >&2; exit 2; }; [ -f \"\$file\" ] || { echo 'no crontab for xc_vm' >&2; exit 1; }; cat \"\$file\";;\n\t-r) rm -f \"\$file\";;\n\t*) [ -z \"\$REFUSE\" ] || exit 1; cat \"\$1\" > \"\$file\";;\nesac\n");
 		file_put_contents($this->rDir . 'bin/sudo', "#!/bin/sh\n[ \"\$1\" = crontab ] && exec \"\$@\"\necho \"\$*\" >&2\n");
 		chmod($this->rDir . 'bin/crontab', 0755);
 		chmod($this->rDir . 'bin/sudo', 0755);
@@ -135,6 +135,8 @@ final class AuditRootCronCrontabTest extends TestCase {
 	public function testRegeneratingTheXcVmCrontabRemovesNobodysCrontab(): void {
 		// The crontab of whoever boots (root's, for a root cron or `status`).
 		$rSeed = $this->seed();
+		$rModule = '*/5 * * * * module # XC_VM_MODULE';
+		file_put_contents($this->rDir . 'xc_vm.crontab', $rModule . "\n");
 		[$rOut, $rAsked] = $this->child('$GLOBALS["db"] = new class {
 	public function query(string $rQuery, mixed ...$rArgs): bool {
 		return true;
@@ -151,7 +153,41 @@ echo $rGenerate->invoke(null) ? "generated" : "skipped";');
 		$this->assertSame($rSeed, (string) @file_get_contents($this->rDir . 'root.crontab'), 'the booting user\'s own crontab is not the xc_vm crontab');
 		$this->assertSame([], preg_grep('/^crontab -r/', $rAsked));
 		$rLine = static fn(string $rTime, string $rName): string => $rTime . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rName . ' # XC_VM';
-		$this->assertSame([$rLine('* * * * *', 'streams'), $rLine('0 * * * *', 'tmdb')], (array) file($this->rDir . 'xc_vm.crontab', FILE_IGNORE_NEW_LINES), 'the xc_vm crontab is replaced with the jobs');
+		$this->assertSame([$rLine('* * * * *', 'streams'), $rLine('0 * * * *', 'tmdb'), $rModule], (array) file($this->rDir . 'xc_vm.crontab', FILE_IGNORE_NEW_LINES), 'core jobs are replaced without erasing module jobs');
 		$this->assertFileExists($this->rDir . 'tmp/crontab', 'done once: the marker');
+	}
+
+	public function testBothXcVmCrontabWritersUseTheSharedLock(): void {
+		$this->assertStringContainsString('CrontabLock::acquire()', (string) file_get_contents(MAIN_HOME . 'Core/Init/LegacyInitializer.php'));
+		$this->assertStringContainsString('CrontabLock::acquire()', (string) file_get_contents(MAIN_HOME . 'Cli/Commands/ModuleCronSyncCommand.php'));
+	}
+
+	public function testUnreadableXcVmCrontabIsNeverReplaced(): void {
+		$rOriginal = "MAILTO=ops@example.com\n*/5 * * * * module # XC_VM_MODULE\n";
+		file_put_contents($this->rDir . 'xc_vm.crontab', $rOriginal);
+		[$rOut, $rAsked] = $this->child('$GLOBALS["db"] = new class {
+	public function query(string $rQuery, mixed ...$rArgs): bool { return true; }
+	public function get_rows(): array { return [["filename" => "streams", "time" => "* * * * *"]]; }
+};
+$rGenerate = new ReflectionMethod(XcVm\Core\Init\LegacyInitializer::class, "generateCron");
+$rGenerate->setAccessible(true);
+echo $rGenerate->invoke(null) ? "generated" : "skipped";', ['READ_FAIL' => '1']);
+
+		$this->assertSame('skipped', $rOut);
+		$this->assertSame($rOriginal, (string) file_get_contents($this->rDir . 'xc_vm.crontab'));
+		$this->assertSame([], preg_grep('/^crontab -$/', $rAsked), 'a failed read never reaches replacement');
+	}
+
+	public function testMissingXcVmCrontabIsCreated(): void {
+		[$rOut] = $this->child('$GLOBALS["db"] = new class {
+	public function query(string $rQuery, mixed ...$rArgs): bool { return true; }
+	public function get_rows(): array { return [["filename" => "streams", "time" => "* * * * *"]]; }
+};
+$rGenerate = new ReflectionMethod(XcVm\Core\Init\LegacyInitializer::class, "generateCron");
+$rGenerate->setAccessible(true);
+echo $rGenerate->invoke(null) ? "generated" : "skipped";');
+
+		$this->assertSame('generated', $rOut);
+		$this->assertFileExists($this->rDir . 'xc_vm.crontab');
 	}
 }

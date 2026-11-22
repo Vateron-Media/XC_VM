@@ -6,8 +6,7 @@ use XcVm\Core\Reference\PermissionReference;
 
 /**
  * An administrator whose group lists advanced permissions is held to them by
- * the pages that do their own work: the Modules page takes the permission of
- * the settings page (its links ask for the same), the EPG source form the EPG
+ * the pages that do their own work: the Modules page is full-admin only, the EPG source form the EPG
  * permissions, the activation-code pages those of their menu entries, and the
  * details of an activation code the permission that lists the lines. The
  * tables behind a page take the page's permission, and a page keeps its rule
@@ -104,11 +103,10 @@ final class AuditAdminAuthzPagesTest extends TestCase {
 		return [$rMatch[2], $rMatch[1]];
 	}
 
-	public function testTheModulesPageTakesThePermissionOfTheSettingsPage(): void {
-		$rAllButSettings = array_values(array_diff(PermissionReference::keys(), ['settings']));
-		$this->assertSame(['302', ''], $this->request(self::MODULES, $rAllButSettings), 'sent home with every permission but settings');
+	public function testTheModulesPageRequiresAFullAdministrator(): void {
+		$this->assertSame(['403', ''], $this->request(self::MODULES, ['settings']), 'a delegated settings permission is insufficient');
 
-		foreach ([[['settings'], 5], [['ticket'], 1], [[], 5]] as [$rAdvanced, $rGroup]) {
+		foreach ([[['ticket'], 1], [[], 5]] as [$rAdvanced, $rGroup]) {
 			// Past the gate the page starts rendering (the shell needs more of a
 			// request than this child has, so only its start is looked at).
 			$this->assertStringStartsWith('<!doctype html>', $this->request(self::MODULES, $rAdvanced, $rGroup)[1], 'the page for group ' . $rGroup . ' with ' . implode(',', $rAdvanced));
@@ -185,11 +183,10 @@ final class AuditAdminAuthzPagesTest extends TestCase {
 		}
 	}
 
-	public function testTheListOfModulesTakesThePermissionOfTheModulesPage(): void {
-		$rAllButSettings = array_values(array_diff(PermissionReference::keys(), ['settings']));
-		$this->assertSame('{"result":false}', $this->request(self::MODULE_STATUS, $rAllButSettings)[1], 'refused with every permission but settings');
+	public function testTheListOfModulesRequiresAFullAdministrator(): void {
+		$this->assertSame(['403', '{"result":false,"message":"Full administrator authority is required."}'], $this->request(self::MODULE_STATUS, ['settings']));
 
-		foreach ([[['settings'], 5], [['ticket'], 1], [[], 5]] as [$rAdvanced, $rGroup]) {
+		foreach ([[['ticket'], 1], [[], 5]] as [$rAdvanced, $rGroup]) {
 			$this->assertStringStartsWith('{"result":true,"rows":', $this->request(self::MODULE_STATUS, $rAdvanced, $rGroup)[1], 'the modules for group ' . $rGroup . ' with ' . implode(',', $rAdvanced));
 		}
 	}
