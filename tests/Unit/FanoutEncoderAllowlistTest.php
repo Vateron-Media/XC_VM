@@ -65,4 +65,12 @@ final class FanoutEncoderAllowlistTest extends TestCase {
 		);
 		$this->assertSame([101], $rKilled);
 	}
+
+	public function testSupervisorReapsOnlyExactDaemonArgv(): void {
+		$rRun = (string) file_get_contents(__DIR__ . '/../../src/bin/xc_fanout/run.sh');
+		$this->assertStringNotContainsString('pkill -u xc_vm -x xc_fanout', $rRun);
+		$this->assertStringContainsString('[ "${argv[0]:-}" = "$FANOUT_DIR/xc_fanout" ]', $rRun);
+		$this->assertStringContainsString('[ "${argv[1]:-}" = "-sock" ]', $rRun);
+		$this->assertStringContainsString('kill "$pid"', $rRun);
+	}
 }
