@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import os, sys, hashlib, time
+import os, sys, hashlib, tarfile, time
 
 rBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/"
 rPHPDir = rBaseDir + "bin/php/bin/php"
@@ -74,6 +74,17 @@ def md5(rFilename):
     return rMD5.hexdigest()
 
 
+def extract_archive(rFilename, rDestination):
+    root = os.path.realpath(rDestination)
+    with tarfile.open(rFilename, "r:gz") as archive:
+        members = archive.getmembers()
+        for member in members:
+            target = os.path.realpath(os.path.join(root, member.name))
+            if member.issym() or member.islnk() or (target != root and not target.startswith(root + os.sep)):
+                raise RuntimeError("unsafe archive member: %s" % member.name)
+        archive.extractall(root, members=members)
+
+
 def doUpdate(rFilename):
     import tempfile
 
@@ -83,14 +94,14 @@ def doUpdate(rFilename):
     os.chmod(rTmpDir, 0o700)
     log_msg("INFO", "Temporary directory created: %s" % rTmpDir)
     rCopying = False
+    rPostUpdateFailed = False
 
     try:
         log_msg("INFO", "Stopping xc_vm service...")
         os.system("sudo systemctl stop xc_vm")
 
         log_msg("INFO", "Extracting archive...")
-        if os.system('sudo tar -zxf "%s" -C "%s"' % (rFilename, rTmpDir)) != 0:
-            raise RuntimeError("extracting the archive failed (disk full?); nothing was changed")
+        extract_archive(rFilename, rTmpDir)
 
         log_msg("INFO", "Removing excluded directories from temp copy...")
         for rExclude in UPDATE_EXCLUDE_DIRS:
@@ -145,7 +156,10 @@ def doUpdate(rFilename):
             raise RuntimeError("copying the files failed: the installation is partly updated")
 
         log_msg("INFO", "Running post-update...")
-        os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
+        rPostUpdateStatus = os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
+        if rPostUpdateStatus != 0:
+            rPostUpdateFailed = True
+            raise RuntimeError("post-update failed; service remains stopped")
 
         log_msg("INFO", "Starting xc_vm service...")
         os.system("sudo systemctl start xc_vm")
@@ -161,8 +175,11 @@ def doUpdate(rFilename):
                 os.remove(rFilename)
             os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
         # A partly copied one stays "updating" in the panel, which is what it is.
-        log_msg("INFO", "Starting xc_vm service...")
-        os.system("sudo systemctl start xc_vm")
+        if rPostUpdateFailed:
+            log_msg("ERROR", "xc_vm service remains stopped after post-update failure")
+        else:
+            log_msg("INFO", "Starting xc_vm service...")
+            os.system("sudo systemctl start xc_vm")
     finally:
         log_msg("INFO", "Cleaning up temporary files...")
         os.system('sudo rm -rf "%s"' % rTmpDir)

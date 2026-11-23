@@ -257,19 +257,19 @@ class WatchdogCommand implements CommandInterface {
 	}
 
 	/**
-	 * Restart the local Redis (KeyDB) when the health check fails and the
+	 * Restart the local distro Redis when the health check fails and the
 	 * process is actually dead. In Redis mode every playback request dies
 	 * with LINE_CREATE_FAIL until Redis is back, so waiting for a human is
 	 * not an option.
 	 *
-	 * No-op on LB nodes (bin/redis is stripped from the LB build — Redis
+	 * No-op on LB nodes (the Redis config is stripped from the LB build — Redis
 	 * lives on MAIN). A live-but-unreachable process (auth/config drift)
 	 * is left alone: a restart would not fix it. Attempts are rate-limited
 	 * to one per 60 seconds across watchdog respawns via a stamp file.
 	 */
 	private function attemptRedisRestart(): void {
-		$rBinary = MAIN_HOME . 'bin/redis/redis-server';
-		if (!file_exists($rBinary)) {
+		$rBinary = '/usr/bin/redis-server';
+		if (!is_executable($rBinary) || !is_file(MAIN_HOME . 'bin/redis/redis.conf')) {
 			return;
 		}
 

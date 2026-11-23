@@ -3,7 +3,7 @@
 XC_VM uses a dual-layer caching strategy:
 
 - **File-based cache (igbinary)** — primary layer, used by both streaming and admin paths
-- **Redis/KeyDB** — optional high-performance layer for connection state and advanced operations
+- **Redis** — optional high-performance layer for connection state and advanced operations
 
 The streaming path reads exclusively from file cache (no database queries).
 The admin path reads from the database with optional short-lived cache.

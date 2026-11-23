@@ -23,27 +23,27 @@
 						</div>
 						<ul class="nav nav-tabs content__tabs content__tabs--profile" id="content__tabs" role="tablist">
 							<li class="nav-item">
-								<a class="nav-link active" data-toggle="tab" href="#tab-profile" role="tab" aria-controls="tab-profile" aria-selected="true">Profile</a>
+								<a class="nav-link active" data-bs-toggle="tab" href="#tab-profile" role="tab" aria-controls="tab-profile" aria-selected="true">Profile</a>
 							</li>
 							<?php 
 use XcVm\Core\Config\SettingsManager;
 
 if (SettingsManager::get('player_allow_bouquet')): ?>
 							<li class="nav-item">
-								<a class="nav-link" data-toggle="tab" href="#tab-bouquets" role="tab" aria-controls="tab-bouquets" aria-selected="false">Bouquets</a>
+								<a class="nav-link" data-bs-toggle="tab" href="#tab-bouquets" role="tab" aria-controls="tab-bouquets" aria-selected="false">Bouquets</a>
 							</li>
 							<?php endif; ?>
 						</ul>
 						<div class="content__mobile-tabs content__mobile-tabs--profile" id="content__mobile-tabs">
-							<div class="content__mobile-tabs-btn dropdown-toggle" role="navigation" id="mobile-tabs" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<div class="content__mobile-tabs-btn dropdown-toggle" role="navigation" id="mobile-tabs" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								<input type="button" value="Profile">
 								<span></span>
 							</div>
 							<div class="content__mobile-tabs-menu dropdown-menu" aria-labelledby="mobile-tabs">
 								<ul class="nav nav-tabs" role="tablist">
-									<li class="nav-item"><a class="nav-link active" id="profile-tab" data-toggle="tab" href="#tab-profile" role="tab" aria-controls="tab-profile" aria-selected="true">Profile</a></li>
+									<li class="nav-item"><a class="nav-link active" id="profile-tab" data-bs-toggle="tab" href="#tab-profile" role="tab" aria-controls="tab-profile" aria-selected="true">Profile</a></li>
 									<?php if (SettingsManager::get('player_allow_bouquet')): ?>
-									<li class="nav-item"><a class="nav-link" id="bouquets-tab" data-toggle="tab" href="#tab-bouquets" role="tab" aria-controls="tab-bouquets" aria-selected="false">Bouquets</a></li>
+									<li class="nav-item"><a class="nav-link" id="bouquets-tab" data-bs-toggle="tab" href="#tab-bouquets" role="tab" aria-controls="tab-bouquets" aria-selected="false">Bouquets</a></li>
 									<?php endif; ?>
 								</ul>
 							</div>
@@ -97,7 +97,7 @@ if (SettingsManager::get('player_allow_bouquet')): ?>
 								<div class="col-12 col-md-12 col-lg-12 col-xl-12">
 									<div class="profile__group">
 										<label class="profile__label" for="download_type">Format</label>
-										<select id="download_type" class="profile__input" data-toggle="select2">
+										<select id="download_type" class="profile__input" data-bs-toggle="select2">
 											<?php $db->query('SELECT * FROM `output_devices` WHERE `copy_text` IS NULL ORDER BY `device_id` ASC;'); ?>
 											<?php foreach ($db->get_rows() as $rRow): ?>
 											<optgroup label="<?= $rRow['device_name'] ?>">
@@ -111,7 +111,7 @@ if (SettingsManager::get('player_allow_bouquet')): ?>
 								<div class="col-12 col-md-12 col-lg-12 col-xl-12">
 									<div class="profile__group">
 										<label class="profile__label" for="output_type">Output</label>
-										<select id="output_type" class="profile__input" data-toggle="select2">
+										<select id="output_type" class="profile__input" data-bs-toggle="select2">
 											<option value="" selected>Everything</option>
 											<option value="live">Live Streams</option>
 											<option value="movie">Movies</option>

@@ -530,7 +530,6 @@ set_permissions:
 	@chmod 0755 $(TEMP_DIR)/bin/xc_fanout/run.sh 2>/dev/null || true
 	@chmod 0755 $(TEMP_DIR)/console.php 2>/dev/null || true
 	@chmod 0755 $(TEMP_DIR)/root.php 2>/dev/null || true
-	@chmod 0755 $(TEMP_DIR)/bin/guess 2>/dev/null || true
 	@chmod 0755 $(TEMP_DIR)/bin/yt-dlp 2>/dev/null || true
 	@chmod 0550 $(TEMP_DIR)/bin/network 2>/dev/null || true
 	@chmod 0550 $(TEMP_DIR)/bin/network.py 2>/dev/null || true
@@ -551,9 +550,6 @@ set_permissions:
 	@chmod 0551 $(TEMP_DIR)/bin/php/bin/php 2>/dev/null || true
 	@chmod 0551 $(TEMP_DIR)/bin/php/sbin/php-fpm 2>/dev/null || true
 
-	# Redis executable
-	@chmod 0755 $(TEMP_DIR)/bin/redis/redis-server 2>/dev/null || true
-
 	# Sensitive config files
 	@chmod 0640 $(TEMP_DIR)/config/modules.php 2>/dev/null || true
 	@chmod 0550 $(TEMP_DIR)/config/rclone.conf 2>/dev/null || true
@@ -573,7 +569,7 @@ verify_permissions:
 		done; \
 	}; \
 	check 750 service update bin/daemons.sh backups bin config content signals bin/nginx_rtmp/sbin/nginx_rtmp; \
-	check 755 console.php root.php bin/guess bin/yt-dlp bin/redis/redis-server bin/xc_fanout/run.sh; \
+	check 755 console.php root.php bin/yt-dlp bin/xc_fanout/run.sh; \
 	check 550 bin/network bin/network.py bin/nginx/sbin/nginx; \
 	check 551 bin/php/bin/php bin/php/sbin/php-fpm; \
 	check 600 bin/nginx/conf/server.key; \
