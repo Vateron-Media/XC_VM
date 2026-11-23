@@ -56,26 +56,26 @@ This list is updated automatically from the repository's commit history
       </a>
     </td>
     <td align="center">
+      <a href="https://github.com/locka-hd">
+        <img src="https://images.weserv.nl/?url=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F7718318%3Fv%3D4&amp;w=160&amp;h=160&amp;fit=cover&amp;mask=circle&amp;maxage=7d" width="80" alt="locka-hd"/>
+        <br />
+        <sub><b>locka-hd</b></sub>
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
       <a href="https://github.com/404errordeveloper">
         <img src="https://images.weserv.nl/?url=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F271474204%3Fv%3D4&amp;w=160&amp;h=160&amp;fit=cover&amp;mask=circle&amp;maxage=7d" width="80" alt="404errordeveloper"/>
         <br />
         <sub><b>404errordeveloper</b></sub>
       </a>
     </td>
-  </tr>
-  <tr>
     <td align="center">
       <a href="https://github.com/icleitoncosta">
         <img src="https://images.weserv.nl/?url=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F3260480%3Fv%3D4&amp;w=160&amp;h=160&amp;fit=cover&amp;mask=circle&amp;maxage=7d" width="80" alt="icleitoncosta"/>
         <br />
         <sub><b>icleitoncosta</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/locka-hd">
-        <img src="https://images.weserv.nl/?url=https%3A%2F%2Favatars.githubusercontent.com%2Fu%2F7718318%3Fv%3D4&amp;w=160&amp;h=160&amp;fit=cover&amp;mask=circle&amp;maxage=7d" width="80" alt="locka-hd"/>
-        <br />
-        <sub><b>locka-hd</b></sub>
       </a>
     </td>
     <td align="center">
