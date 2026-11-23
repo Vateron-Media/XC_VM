@@ -46,7 +46,8 @@ class SignalSender {
 		}
 		$rArgv = [$rFFMPEG_CPU, '-copyts', '-vsync', '0', '-nostats', '-nostdin', '-hide_banner', '-loglevel', 'quiet', '-y',
 			'-i', $rInput, '-filter_complex', $rFilter, '-map', '0', '-vcodec', $rCodec, '-preset', 'ultrafast', '-acodec', 'copy',
-			'-scodec', 'copy', '-mpegts_flags', '+initial_discontinuity', '-mpegts_copyts', '1', '-f', 'mpegts', $rOutput];
+			'-scodec', 'copy', '-mpegts_flags', '+initial_discontinuity', '-mpegts_copyts', '1', '-f', 'mpegts', $rOutput
+		];
 		$rStdout = $rReturn ? ['file', '/dev/null', 'w'] : ['file', 'php://output', 'w'];
 		$rProc = proc_open($rArgv, [0 => ['file', '/dev/null', 'r'], 1 => $rStdout, 2 => ['file', '/dev/null', 'w']], $rPipes);
 		$rStatus = is_resource($rProc) ? proc_close($rProc) : 1;

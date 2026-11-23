@@ -519,11 +519,11 @@ class ModuleLoader {
 				if (preg_match('/^\*(?:\/(\d+))?$/', $part, $match) === 1) {
 					$start = $min;
 					$end = $max;
-					$step = isset($match[1]) && $match[1] !== '' ? (int) $match[1] : 1;
+					$step = isset($match[1]) ? (int) $match[1] : 1;
 				} elseif (preg_match('/^(\d+)(?:-(\d+))?(?:\/(\d+))?$/', $part, $match) === 1) {
 					$start = (int) $match[1];
 					$end = isset($match[2]) && $match[2] !== '' ? (int) $match[2] : $start;
-					$step = isset($match[3]) && $match[3] !== '' ? (int) $match[3] : 1;
+					$step = isset($match[3]) ? (int) $match[3] : 1;
 				} else {
 					return false;
 				}

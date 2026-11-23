@@ -168,7 +168,8 @@ final class RootPin {
 			return 'seq not above ' . $rHighWater;
 		}
 		if (!is_array($rCmd['args'] ?? null) || array_key_exists('action', $rCmd['args'])
-			|| !NodeActions::valid(['action' => $rCmd['action'] ?? null] + $rCmd['args'])) {
+			|| !NodeActions::valid(['action' => $rCmd['action'] ?? null] + $rCmd['args'])
+		) {
 			return 'unknown root action';
 		}
 		return $rCmd;

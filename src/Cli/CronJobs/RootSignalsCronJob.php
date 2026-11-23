@@ -4,6 +4,7 @@ namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\Commands\FfmpegBuildsCommand;
+use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\Commands\UpdateCommand;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Cache\FileCache;
@@ -1229,9 +1230,6 @@ class RootSignalsCronJob implements CommandInterface {
 			if (count($rRows) > 0) {
 				foreach ($rRows as $rRow) {
 					$rData = json_decode($rRow['custom_data'], true);
-					if (!empty($rRow['signal_id'])) {
-						$db->query('DELETE FROM `signals` WHERE `signal_id` = ?;', $rRow['signal_id']);
-					}
 					$this->executeAction(is_array($rData) ? $rData : [], $rServers, $db);
 				}
 			}
