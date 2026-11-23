@@ -196,7 +196,6 @@ final class NodeActions {
 				&& preg_match('/^[0-9a-f]{64}$/', $rData['new_pub']) === 1 && (!isset($rData['pin_blob']) || $rB64('pin_blob', 65536)),
 			NodeCredentials::INSTALL => $rOnly(['blob']) && $rB64('blob', NodeCredentials::MAX_BLOB),
 			NodeCorePin::ACTION => $rOnly(['blob']) && (!isset($rData['blob']) || $rB64('blob', NodeCorePin::MAX_BLOB)),
-			default => false,
 		};
 	}
 
@@ -215,7 +214,8 @@ final class NodeActions {
 	/** @param array<string, mixed> $rData */
 	private static function ports(array $rData): bool {
 		if (!is_int($rData['type'] ?? null) || $rData['type'] < 0 || $rData['type'] > 2 || !is_bool($rData['reload'] ?? null)
-			|| !is_array($rData['ports'] ?? null) || !array_is_list($rData['ports']) || $rData['ports'] === []) {
+			|| !is_array($rData['ports'] ?? null) || !array_is_list($rData['ports']) || $rData['ports'] === []
+		) {
 			return false;
 		}
 		foreach ($rData['ports'] as $rPort) {

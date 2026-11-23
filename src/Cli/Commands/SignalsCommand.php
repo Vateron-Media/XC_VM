@@ -218,7 +218,8 @@ class SignalsCommand implements CommandInterface {
 		$rParts = parse_url($rBaseUrl);
 		if ($rClientId <= 0 || filter_var($rBaseUrl, FILTER_VALIDATE_URL) === false || !is_array($rParts)
 			|| !in_array($rParts['scheme'] ?? '', ['http', 'https'], true) || empty($rParts['host'])
-			|| isset($rParts['user']) || isset($rParts['pass']) || isset($rParts['query']) || isset($rParts['fragment'])) {
+			|| isset($rParts['user']) || isset($rParts['pass']) || isset($rParts['query']) || isset($rParts['fragment'])
+		) {
 			return;
 		}
 		$rCurl = curl_init(rtrim($rBaseUrl, '/') . '/control/drop/client?clientid=' . $rClientId);

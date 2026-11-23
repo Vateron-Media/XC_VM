@@ -503,7 +503,8 @@ class UpdateCommand implements CommandInterface {
 		if ($rMissing !== []) {
 			$rApt = ['/usr/bin/env', 'DEBIAN_FRONTEND=noninteractive', 'apt-get', '-o', 'DPkg::Lock::Timeout=120'];
 			if (ProcessRunner::run(array_merge($rApt, ['update', '-q']), true) !== 0
-				|| ProcessRunner::run(array_merge($rApt, ['install', '-y', '-q'], $rMissing), true) !== 0) {
+				|| ProcessRunner::run(array_merge($rApt, ['install', '-y', '-q'], $rMissing), true) !== 0
+			) {
 				return false;
 			}
 		}

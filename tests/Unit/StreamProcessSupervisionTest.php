@@ -215,7 +215,7 @@ final class StreamProcessSupervisionTest extends TestCase {
 			'custom ffmpeg' => ['custom_ffmpeg' => '-i x -c:v libx264 y'],
 			'custom map' => ['custom_map' => '-map 0:0'],
 			'rtmp output' => ['rtmp_output' => 1],
-			'external push here' => ['external_push' => json_encode([1 => ['rtmp://push/x']])],
+			'external push here' => ['external_push' => json_encode([SERVER_ID => ['rtmp://push/x']])],
 			'radio' => ['type_key' => 'radio_streams'],
 			'created channel' => ['type_key' => 'created_live'],
 			'a type key that is not the schema\'s' => ['type_key' => 'live_streams'],
@@ -224,7 +224,7 @@ final class StreamProcessSupervisionTest extends TestCase {
 			// must say something an operator can act on.
 			$this->assertIsString(self::call('nativeRefusal', $this->plainStream($rOverride), []), $rWhy);
 		}
-		$this->assertNull(self::call('nativeRefusal', $this->plainStream(['external_push' => json_encode([7 => ['rtmp://push/x']])]), []), "another server's push is not this one's");
+		$this->assertNull(self::call('nativeRefusal', $this->plainStream(['external_push' => json_encode([SERVER_ID + 1 => ['rtmp://push/x']])]), []), "another server's push is not this one's");
 		$this->assertIsString(self::call('nativeRefusal', $this->plainStream(), ['force_input_acodec' => ['value' => 'ac3']]), 'forced input codec');
 	}
 
