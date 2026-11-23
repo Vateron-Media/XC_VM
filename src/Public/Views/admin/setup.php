@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Http\RequestSecurity;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\LayoutRenderer;
 use XcVm\Core\Util\NetworkUtils;
@@ -16,6 +17,8 @@ use XcVm\Cli\Commands\MigrateCommand;
 use XcVm\Domain\Server\SettingsService;
 use XcVm\Infrastructure\Bootstrap\AdminScopeBootstrap;
 
+RequestSecurity::sendHeaders();
+RequestSecurity::enforceSameOrigin();
 
 global $db, $rSettings, $rMobile, $rServers, $rProxyServers, $rDetect,
     $rTimeout, $rProtocol, $allServers, $rPermissions, $allowedLangs,

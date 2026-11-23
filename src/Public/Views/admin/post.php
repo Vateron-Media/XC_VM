@@ -18,6 +18,7 @@ use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Http\RequestSecurity;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\QuickToolsRegistry;
@@ -67,6 +68,10 @@ if (!class_exists(SessionManager::class, false)) {
 // standalone entry loads the bootstrap above.
 $rICount = (!empty($GLOBALS['__forcePostMode'])
 	|| realpath((string) (get_included_files()[0] ?? '')) === realpath(__FILE__)) ? 1 : 2;
+if ($rICount === 1) {
+	RequestSecurity::sendHeaders();
+	RequestSecurity::enforceSameOrigin();
+}
 SessionManager::start('admin');
 SessionManager::requireAuth();
 global $db, $rSettings, $rMobile, $rServers, $rProxyServers, $rDetect,

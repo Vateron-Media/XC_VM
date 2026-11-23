@@ -5,10 +5,10 @@ namespace XcVm\Domain\Cluster;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
- * The opt-in firewall allowlist for MAIN's MariaDB (3306) and Redis (6379).
+ * The firewall allowlist for MAIN's MariaDB (3306) and Redis (6379).
  *
- * Until lockdown (Phase 9) both listen on every interface, because legacy and
- * hybrid LBs still reach them. With `cluster_db_allowlist` on, only these may:
+ * Both listen on every interface because legacy and hybrid LBs still reach
+ * them. The allowlist is on by default; while on, only these may:
  *
  * - loopback, and MAIN's own `server_ip` / `private_ip`;
  * - every other `servers` row, LBs and proxies alike (a proxy may hold a

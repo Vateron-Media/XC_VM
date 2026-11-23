@@ -71,10 +71,10 @@ test.describe.serial('administrator sign-in', () => {
     await submitLogin(page, username, password);
     await expect(page.locator('#layout-menu')).toBeVisible({ timeout: 30_000 });
 
-    // The profile menu in the navbar holds the sign-out link.
+    // The profile menu in the navbar holds the POST-only sign-out form.
     const profile = page.locator('.dropdown-user');
     await profile.locator('[data-bs-toggle="dropdown"]').first().click();
-    await profile.locator('a[href$="logout"]').click();
+    await profile.locator('form[action$="logout"] button[type="submit"]').click();
     await expect(page.locator('#login_button')).toBeVisible();
 
     // The session is gone, not just the page.

@@ -237,10 +237,12 @@ $xmIsRtl       = \XcVm\Core\Localization\Translator::isRtl($xmCurrentLang);
                                                     <div class="dropdown-divider my-1 mx-n2"></div>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" href="logout">
+													<form method="post" action="logout">
+														<button class="dropdown-item" type="submit">
                                                         <i class="icon-base ti tabler-logout me-3 icon-md"></i>
                                                         <span class="align-middle"><?= $language::get('logout'); ?></span>
-                                                    </a>
+														</button>
+													</form>
                                                 </li>
                                             </ul>
                                         </li>

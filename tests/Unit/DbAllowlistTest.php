@@ -7,7 +7,7 @@ use XcVm\Domain\Cluster\DbAllowlist;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
- * The opt-in 3306/6379 allowlist: who is allowed, the rules it writes, that a
+ * The default-on 3306/6379 allowlist: who is allowed, the rules it writes, that a
  * pass only rewrites what differs, and that turning it off removes it all.
  * An in-memory firewall stands in for iptables; the opt-in
  * testInANetworkNamespace runs the real tools in a throwaway namespace.

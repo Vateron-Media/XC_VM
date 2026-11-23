@@ -49,7 +49,6 @@ $router->post('favorites', [FavoritesController::class, 'index']);
 // ─── Auth (noBootstrapPages) ────────────────────────────────────
 $router->get('login', [PlayerLoginController::class, 'index']);
 $router->post('login', [PlayerLoginController::class, 'index']);
-$router->get('logout', [PlayerLogoutController::class, 'index']);
 $router->post('logout', [PlayerLogoutController::class, 'index']);
 
 // ─── Shared Utilities ───────────────────────────────────────────

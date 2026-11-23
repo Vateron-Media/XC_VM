@@ -1,8 +1,13 @@
 <?php
 
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Core\Http\RequestSecurity;
 use XcVm\Core\Localization\Translator;
 use XcVm\Infrastructure\Bootstrap\AdminScopeBootstrap;
+
+RequestSecurity::sendHeaders();
+RequestSecurity::enforceSameOrigin();
 
 /*
  PHP Mini MySQL Admin
@@ -71,7 +76,7 @@ $dbh = null; #pdo OR mysqli connection handle
 $DBDRV = ''; #db driver in use: 'pdo' or 'mysqli'
 $db_last_error = '';
 
-$secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+$secure = NetworkUtils::isHttps();
 @session_set_cookie_params(0, null, null, $secure, true);
 ini_set('session.use_only_cookies', 1);
 @session_start();

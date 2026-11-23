@@ -4927,7 +4927,7 @@ Until lockdown, legacy and hybrid LBs still use MAIN's MariaDB (3306) and Redis 
   - `FLUSHALL`, `FLUSHDB` and `EVAL` stay, because the panel uses them.
   - The shipped `bin/redis/redis.conf` carries the lines. Updates never overwrite `bin/redis`, so `status` appends them once to an existing install's config (`RedisConfigHardening`). They take effect when Redis next restarts.
   - An operator who needs a command renames it to a secret name; any `rename-command` line for it is left alone.
-- **Allowlist.** `cluster_db_allowlist` is off by default. When on, only these may connect to the two ports:
+- **Allowlist.** `cluster_db_allowlist` is on by default. While on, only these may connect to the two ports:
   - loopback and MAIN's own addresses;
   - every other `servers` row (LBs and proxies) except nodes in cluster mode 2;
   - `cluster_db_allowlist_extra`.
