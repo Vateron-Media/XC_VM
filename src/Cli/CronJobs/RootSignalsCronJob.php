@@ -83,8 +83,22 @@ class RootSignalsCronJob implements CommandInterface {
 		if (@file_get_contents($rPath) === $rJson || !AtomicFile::write($rPath, $rJson, 0644)) {
 			return false;
 		}
-		($rRestart ?? static fn() => shell_exec("pkill -u xc_vm -f '^/home/xc_vm/bin/xc_fanout/xc_fanout -sock ' 2>/dev/null"))();
+		($rRestart ?? static fn() => self::restartFanoutDaemon(
+			preg_split('/\s+/', trim((string) shell_exec('pgrep -u xc_vm -x xc_fanout 2>/dev/null')), -1, PREG_SPLIT_NO_EMPTY) ?: []
+		))();
 		return true;
+	}
+
+	private static function restartFanoutDaemon(array $rPids, ?callable $rRead = null, ?callable $rKill = null): void {
+		$rRead ??= static fn(int $rPid): string => (string) @file_get_contents('/proc/' . $rPid . '/cmdline');
+		$rKill ??= static fn(int $rPid): bool => @posix_kill($rPid, SIGTERM);
+		foreach ($rPids as $rPid) {
+			$rPid = (int) $rPid;
+			$rArgv = explode("\0", rtrim($rRead($rPid), "\0"));
+			if ($rPid > 1 && ($rArgv[0] ?? '') === '/home/xc_vm/bin/xc_fanout/xc_fanout' && ($rArgv[1] ?? '') === '-sock') {
+				$rKill($rPid);
+			}
+		}
 	}
 
 	public function getName(): string {

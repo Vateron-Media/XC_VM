@@ -31,8 +31,7 @@ final class FanoutEncoderAllowlistTest extends TestCase {
 
 	public function testChangedAllowlistRestartsFanoutOnlyAfterAtomicWrite(): void {
 		$rSource = (string) file_get_contents(__DIR__ . '/../../src/Cli/CronJobs/RootSignalsCronJob.php');
-		$this->assertStringContainsString("pkill -u xc_vm -f '^/home/xc_vm/bin/xc_fanout/xc_fanout -sock '", $rSource);
-		$this->assertStringNotContainsString('pkill -u xc_vm -x xc_fanout', $rSource);
+		$this->assertStringNotContainsString('pkill ', $rSource);
 		$rPath = sys_get_temp_dir() . '/xcvm-fanout-allowlist-' . bin2hex(random_bytes(4)) . '.json';
 		$rRestarts = 0;
 		$rRestart = static function () use (&$rRestarts): void { $rRestarts++; };
@@ -47,5 +46,23 @@ final class FanoutEncoderAllowlistTest extends TestCase {
 		} finally {
 			@unlink($rPath);
 		}
+	}
+
+	public function testRestartSignalsOnlyTheExactFanoutDaemonPid(): void {
+		$rCmdlines = [
+			101 => "/home/xc_vm/bin/xc_fanout/xc_fanout\0-sock\0/run/xc_vm/fanout.sock\0",
+			102 => "/home/xc_vm/bin/xc_fanout/xc_fanout\0remux\0-config\0/tmp/stream.json\0",
+			103 => "/tmp/xc_fanout\0-sock\0/run/xc_vm/fanout.sock\0",
+		];
+		$rKilled = [];
+		$rMethod = new ReflectionMethod(RootSignalsCronJob::class, 'restartFanoutDaemon');
+		$rMethod->setAccessible(true);
+		$rMethod->invoke(
+			null,
+			array_keys($rCmdlines),
+			static fn(int $rPid): string => $rCmdlines[$rPid],
+			static function (int $rPid) use (&$rKilled): bool { $rKilled[] = $rPid; return true; }
+		);
+		$this->assertSame([101], $rKilled);
 	}
 }
