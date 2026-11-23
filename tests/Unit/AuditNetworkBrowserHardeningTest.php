@@ -6,6 +6,9 @@ final class AuditNetworkBrowserHardeningTest extends TestCase {
 	public function testInternalPortsAndProxyHeadersAreRestrictedByDefault(): void {
 		$rSchema = (string) file_get_contents(MAIN_HOME . 'bin/install/database.sql');
 		$this->assertMatchesRegularExpression("/`cluster_db_allowlist` tinyint\(1\) DEFAULT '1'/", $rSchema);
+		$rUpgrade = (string) file_get_contents(MAIN_HOME . 'migrations/database/up/107_enable_cluster_db_allowlist.sql');
+		$this->assertStringContainsString("MODIFY COLUMN `cluster_db_allowlist` tinyint(1) DEFAULT '1'", $rUpgrade);
+		$this->assertStringContainsString("UPDATE `settings` SET `cluster_db_allowlist` = '1'", $rUpgrade);
 		$this->assertStringContainsString('listen 127.0.0.1:31210;', (string) file_get_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/nginx.conf'));
 
 		foreach (['bin/nginx/conf/nginx.conf', '../lb_configs/nginx.conf'] as $rFile) {
@@ -32,5 +35,8 @@ final class AuditNetworkBrowserHardeningTest extends TestCase {
 			$this->assertStringContainsString("->post('logout'", $rSource, $rRoute);
 			$this->assertStringNotContainsString("->get('logout'", $rSource, $rRoute);
 		}
+		$rAdminHeader = (string) file_get_contents(MAIN_HOME . 'Public/Views/admin/header.php');
+		$this->assertStringContainsString("\$_pi->key === 'profile.logout'", $rAdminHeader);
+		$this->assertStringContainsString('<form method="post" action="<?= htmlspecialchars($_pi->url, ENT_QUOTES); ?>">', $rAdminHeader);
 	}
 }
