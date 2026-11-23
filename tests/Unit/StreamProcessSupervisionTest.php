@@ -51,6 +51,7 @@ final class StreamProcessSupervisionTest extends TestCase {
 		$this->assertStringStartsWith('/home/xc_vm/bin/xc_fanout/xc_fanout remux ', $c);
 		$this->assertStringContainsString("-i 'http://src.example/live/u/p/9.ts'", $c);
 		$this->assertStringContainsString("-ingest 'unix:/run/fanout/ingest/42.sock'", $c);
+		$this->assertStringContainsString('-idle_timeout 36 ', $c);
 		$this->assertStringContainsString('-hls_time 6 ', $c);
 		$this->assertStringContainsString('-hls_init_time 2 ', $c, "buildLive's fast first segment");
 		$this->assertStringContainsString('-hls_list_size 8 ', $c);

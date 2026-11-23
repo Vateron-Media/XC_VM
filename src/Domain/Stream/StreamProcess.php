@@ -1331,6 +1331,13 @@ class StreamProcess {
 		if (!empty($data['ingestSock'])) {
 			$rCmd[] = '-ingest ' . escapeshellarg('unix:' . $data['ingestSock']);
 		}
+		// The remuxer's default -idle_timeout is 8s. A quiet HTTP MPEG-TS socket
+		// is closed locally and the process exits ("source idle for 8s"), so the
+		// supervisor starts a new remuxer after stream_fail_sleep. ffmpeg sets no
+		// read timeout, so the same pause stays inside one process. Wait as long
+		// as the supervisor already waits before calling a producer dead
+		// (seg_time×6), and never shorter than the remuxer's own 8s default.
+		$rCmd[] = '-idle_timeout ' . max(8, $rSegTime * 6);
 		$rCmd[] = '-hls_time ' . $rSegTime;
 		$rCmd[] = '-hls_init_time ' . min(2, $rSegTime); // buildLive's fast first segment
 		$rCmd[] = '-hls_list_size ' . intval($rSeg['seg_list_size']);
