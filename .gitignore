@@ -59,6 +59,7 @@ __pycache__/
 /.codex/
 /.claude/
 /.task-conveyor/
+/XC_VM_Fanout/
 .github/skills/
 
 # --- Local credentials ------------------------------------------------------

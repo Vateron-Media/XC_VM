@@ -35,6 +35,7 @@ use XcVm\Domain\Cluster\ClusterEndpoint;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
 use XcVm\Domain\Cluster\DbAllowlist;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Fanout\FanoutMode;
 
 /**
@@ -64,6 +65,41 @@ class RootSignalsCronJob implements CommandInterface {
 	 * @var (callable(list<string>): array{0: int, 1: string})|null
 	 */
 	private static $rRunner = null;
+
+	/** @return array<string,string> */
+	private static function fanoutEncoderAllowlist(string $rBinPath): array {
+		$rEncoders = [];
+		foreach (glob(rtrim($rBinPath, '/') . '/ffmpeg_bin/*/ffmpeg') ?: [] as $rEncoder) {
+			$rBuild = basename(dirname($rEncoder));
+			if (FfmpegPaths::isBuildId($rBuild) && is_executable($rEncoder)) {
+				$rEncoders[$rBuild] = $rEncoder;
+			}
+		}
+		return $rEncoders;
+	}
+
+	private static function syncFanoutEncoderAllowlist(string $rPath, array $rEncoders, ?callable $rRestart = null): bool {
+		$rJson = json_encode($rEncoders, JSON_UNESCAPED_SLASHES);
+		if (@file_get_contents($rPath) === $rJson || !AtomicFile::write($rPath, $rJson, 0644)) {
+			return false;
+		}
+		($rRestart ?? static fn() => self::restartFanoutDaemon(
+			preg_split('/\s+/', trim((string) shell_exec('pgrep -u xc_vm -x xc_fanout 2>/dev/null')), -1, PREG_SPLIT_NO_EMPTY) ?: []
+		))();
+		return true;
+	}
+
+	private static function restartFanoutDaemon(array $rPids, ?callable $rRead = null, ?callable $rKill = null): void {
+		$rRead ??= static fn(int $rPid): string => (string) @file_get_contents('/proc/' . $rPid . '/cmdline');
+		$rKill ??= static fn(int $rPid): bool => @posix_kill($rPid, SIGTERM);
+		foreach ($rPids as $rPid) {
+			$rPid = (int) $rPid;
+			$rArgv = explode("\0", rtrim($rRead($rPid), "\0"));
+			if ($rPid > 1 && ($rArgv[0] ?? '') === '/home/xc_vm/bin/xc_fanout/xc_fanout' && ($rArgv[1] ?? '') === '-sock') {
+				$rKill($rPid);
+			}
+		}
+	}
 
 	public function getName(): string {
 		return 'cron:root_signals';
@@ -891,6 +927,17 @@ class RootSignalsCronJob implements CommandInterface {
 			if (empty(SettingsManager::get('live_streaming_pass'))) {
 				$db->query('UPDATE `settings` SET `live_streaming_pass` = ?', Encryption::randomString(40));
 			}
+		}
+
+		// The daemon may execute only the exact ffmpeg paths root has allowlisted.
+		// Include every installed, validated build so CPU/GPU/legacy selections
+		// keep working without trusting the panel command's path or basename.
+		$rEncoders = self::fanoutEncoderAllowlist(BIN_PATH);
+		if (!is_dir('/etc/xc_vm')) {
+			@mkdir('/etc/xc_vm', 0755, true);
+		}
+		if (is_dir('/etc/xc_vm')) {
+			self::syncFanoutEncoderAllowlist('/etc/xc_vm/fanout-encoders.json', $rEncoders);
 		}
 
 		// xc_fanout keepalive supervisor — ensure run.sh itself is alive. It is

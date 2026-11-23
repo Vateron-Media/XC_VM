@@ -50,6 +50,19 @@ pick_ffmpeg() {
   ls -d "$SCRIPT"/bin/ffmpeg_bin/*/ffmpeg 2>/dev/null | sort -V | tail -1
 }
 
+reap_orphaned_daemons() {
+  local pid
+  local -a argv
+  while read -r pid; do
+    [ "$pid" -gt 1 ] || continue
+    argv=()
+    mapfile -d '' -t argv < "/proc/$pid/cmdline" 2>/dev/null || continue
+    if [ "${argv[0]:-}" = "$FANOUT_DIR/xc_fanout" ] && [ "${argv[1]:-}" = "-sock" ]; then
+      kill "$pid" 2>/dev/null
+    fi
+  done < <(pgrep -u xc_vm -x xc_fanout 2>/dev/null)
+}
+
 while true; do
   # Fanout switched off in the panel: FanoutMode writes this flag (from the
   # root cron, within a minute of the change) and stops the daemon, which lands
@@ -65,7 +78,7 @@ while true; do
     # already exited by the time the loop returns here, so this only ever targets
     # such strays — closing the "two daemons fighting over the socket" gap before
     # we bind fresh.
-    pkill -u xc_vm -x xc_fanout 2>/dev/null
+    reap_orphaned_daemons
     FF=$(pick_ffmpeg)
     # The segment gateway's socket (Phase 12), only for a daemon that knows the
     # flag: an older one would exit on it. Until the gateway answers there,

@@ -1658,10 +1658,10 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="fanout_source_insecure">
 									<?= $language::get('fanout_source_insecure_tls') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: skip upstream TLS verification when pulling HTTPS sources (on by default; panels often pull self-signed upstreams)."></i>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: skip upstream TLS verification only for trusted legacy or self-signed sources (off by default)."></i>
 								</label>
 								<div class="col-md-2">
-									<div class="form-check form-switch"><input name="fanout_source_insecure" id="fanout_source_insecure" type="checkbox" <?= ($rSettings["fanout_source_insecure"] ?? 1) == 1 ? ' checked' : '' ?> class="form-check-input"></div>
+									<div class="form-check form-switch"><input name="fanout_source_insecure" id="fanout_source_insecure" type="checkbox" <?= ($rSettings["fanout_source_insecure"] ?? 0) == 1 ? ' checked' : '' ?> class="form-check-input"></div>
 								</div>
 								<label class="col-md-4 col-form-label" for="fanout_debug">
 									<?= $language::get('fanout_debug') ?>
