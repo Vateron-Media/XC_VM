@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import os, sys, hashlib, subprocess, tarfile, time
+import os, sys, hashlib, tarfile, time
 
 rBaseDir = os.path.dirname(os.path.realpath(__file__)) + "/"
 rPHPDir = rBaseDir + "bin/php/bin/php"
@@ -74,33 +74,6 @@ def md5(rFilename):
     return rMD5.hexdigest()
 
 
-def ensure_runtime_packages():
-    required = {}
-    if os.path.isfile(rBaseDir + "bin/redis/redis.conf"):
-        required["redis-server"] = "/usr/bin/redis-server"
-    if os.path.isdir(rBaseDir + "Public/Controllers/Admin"):
-        required["python3-guessit"] = "/usr/bin/guessit"
-    missing = [package for package, path in required.items() if not os.path.isfile(path)]
-    if missing:
-        subprocess.run(["apt-get", "update", "-q"], check=True)
-        subprocess.run(["apt-get", "install", "-y", "-q"] + missing, check=True)
-    for path in required.values():
-        if not os.path.isfile(path) or not os.access(path, os.X_OK):
-            raise RuntimeError("required runtime is missing: %s" % path)
-    if "redis-server" in required:
-        subprocess.run(["systemctl", "disable", "--now", "redis-server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    obsolete = []
-    if "redis-server" in required:
-        obsolete.append(rBaseDir + "bin/redis/redis-server")
-    if "python3-guessit" in required:
-        obsolete.append(rBaseDir + "bin/guess")
-    for path in obsolete:
-        try:
-            os.remove(path)
-        except FileNotFoundError:
-            pass
-
-
 def extract_archive(rFilename, rDestination):
     root = os.path.realpath(rDestination)
     with tarfile.open(rFilename, "r:gz") as archive:
@@ -125,8 +98,6 @@ def doUpdate(rFilename):
     try:
         log_msg("INFO", "Stopping xc_vm service...")
         os.system("sudo systemctl stop xc_vm")
-
-        ensure_runtime_packages()
 
         log_msg("INFO", "Extracting archive...")
         extract_archive(rFilename, rTmpDir)

@@ -303,6 +303,12 @@ class UpdateCommand implements CommandInterface {
 						UpdateLogger::info('Rollback schema reversal: ' . count($rMigrationResult['reversed']) . ' reversed, ' . count($rMigrationResult['skipped']) . ' skipped');
 					}
 				}
+				if (!self::restoreRollbackRedis($rOutputDir)) {
+					echo "ERROR: target Redis runtime could not be restored; aborting rollback.\n";
+					UpdateLogger::error('Rollback aborted: target Redis runtime could not be restored');
+					@unlink($rOutputDir);
+					return 1;
+				}
 
 				// Pre-flight the launcher before flipping status: a missing
 				// interpreter or updater script must not strand the server at
@@ -329,6 +335,13 @@ class UpdateCommand implements CommandInterface {
 
 			case 'post-update':
 				UpdateLogger::info('Post-update started');
+				// The updater process is from the previous release; this new code is
+				// the first reliable place to migrate runtimes before service start.
+				if (!self::ensureRuntimePackages()) {
+					echo "ERROR: required runtime packages could not be installed.\n";
+					UpdateLogger::error('Post-update aborted: required runtime packages are missing');
+					return 1;
+				}
 
 				$rFailed = [];
 				if (ServerRepository::getAll()[SERVER_ID]['is_main']) {
@@ -464,11 +477,70 @@ class UpdateCommand implements CommandInterface {
 		return 0;
 	}
 
-	/**
-	 * A release version (x.y.z, a patch build x.y.z-pN, or a nightly
-	 * x.y.z-dev.N when MAIN runs the dev channel) as an update names it, or
-	 * null for none or anything else.
-	 */
+	/** Install maintained system runtimes, then remove their obsolete bundled copies. */
+	public static function ensureRuntimePackages(string $rMainHome = MAIN_HOME, ?array $rExecutables = null): bool {
+		$rMainHome = rtrim($rMainHome, '/') . '/';
+		$rExecutables ??= ['redis-server' => '/usr/bin/redis-server', 'python3-guessit' => '/usr/bin/guessit'];
+		$rRequired = [];
+		if (is_file($rMainHome . 'bin/redis/redis.conf')) {
+			$rRequired['redis-server'] = $rExecutables['redis-server'];
+		}
+		if (is_dir($rMainHome . 'Public/Controllers/Admin')) {
+			$rRequired['python3-guessit'] = $rExecutables['python3-guessit'];
+		}
+		$rMissing = array_keys(array_filter($rRequired, static fn(string $rPath): bool => !is_file($rPath) || !is_executable($rPath)));
+		if ($rMissing !== []) {
+			$rApt = ['/usr/bin/env', 'DEBIAN_FRONTEND=noninteractive', 'apt-get', '-o', 'DPkg::Lock::Timeout=120'];
+			if (ProcessRunner::run(array_merge($rApt, ['update', '-q']), true) !== 0
+				|| ProcessRunner::run(array_merge($rApt, ['install', '-y', '-q'], $rMissing), true) !== 0) {
+				return false;
+			}
+		}
+		foreach ($rRequired as $rPath) {
+			if (!is_file($rPath) || !is_executable($rPath)) {
+				return false;
+			}
+		}
+		if (isset($rRequired['redis-server'])) {
+			ProcessRunner::run(['systemctl', 'disable', '--now', 'redis-server'], true);
+			@unlink($rMainHome . 'bin/redis/redis-server');
+		}
+		if (isset($rRequired['python3-guessit'])) {
+			@unlink($rMainHome . 'bin/guess');
+		}
+		return true;
+	}
+
+	/** Restore the target release's Redis before its updater preserves bin/redis. */
+	public static function restoreRollbackRedis(string $rArchive, string $rMainHome = MAIN_HOME): bool {
+		if (ProcessRunner::run(['tar', '-tzf', $rArchive], true) !== 0) {
+			return false;
+		}
+		$rMember = null;
+		foreach (['./bin/redis/redis-server', 'bin/redis/redis-server'] as $rCandidate) {
+			if (ProcessRunner::run(['tar', '-tzf', $rArchive, $rCandidate], true) === 0) {
+				$rMember = $rCandidate;
+				break;
+			}
+		}
+		if ($rMember === null) {
+			return true;
+		}
+		$rDir = rtrim($rMainHome, '/') . '/bin/redis';
+		if ((!is_dir($rDir) && !mkdir($rDir, 0750, true)) || ($rTmp = tempnam($rDir, '.rollback-redis-')) === false) {
+			return false;
+		}
+		try {
+			if (ProcessRunner::runToFile(['tar', '-xOzf', $rArchive, $rMember], $rTmp) !== 0 || filesize($rTmp) === 0 || !chmod($rTmp, 0755)) {
+				return false;
+			}
+			return rename($rTmp, $rDir . '/redis-server');
+		} finally {
+			if (is_file($rTmp)) {
+				@unlink($rTmp);
+			}
+		}
+	}
 
 	/**
 	 * The migration list a rollback reverses to, from the target release's archive.
@@ -514,6 +586,7 @@ class UpdateCommand implements CommandInterface {
 		UpdateLogger::info('Pre-update DB backup OK: ' . basename($rFile) . ' (' . filesize($rFile) . ' bytes)');
 	}
 
+	/** A release version this update flow accepts, or null for anything else. */
 	public static function pinned(mixed $rVersion): ?string {
 		$rVersion = is_string($rVersion) ? trim($rVersion) : '';
 		return GitHubReleases::isReleaseVersion($rVersion) || GitHubReleases::isDevVersion($rVersion) ? $rVersion : null;
