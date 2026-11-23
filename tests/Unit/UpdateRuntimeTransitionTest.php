@@ -64,6 +64,19 @@ final class UpdateRuntimeTransitionTest extends TestCase {
 		$this->assertFileExists($this->rDir . 'main/bin/guess');
 	}
 
+	public function testFailedRedisServiceStopKeepsBundledCopies(): void {
+		$rExecutables = $this->runtimeTree();
+		foreach ($rExecutables as $rPath) {
+			file_put_contents($rPath, '#!/bin/sh');
+			chmod($rPath, 0755);
+		}
+		ProcessRunner::useRunner(static fn(array $rArgv): int => $rArgv[0] === 'systemctl' ? 1 : 0);
+
+		$this->assertFalse(UpdateCommand::ensureRuntimePackages($this->rDir . 'main', $rExecutables));
+		$this->assertFileExists($this->rDir . 'main/bin/redis/redis-server');
+		$this->assertFileExists($this->rDir . 'main/bin/guess');
+	}
+
 	public function testRollbackRestoresRedisFromTheTargetArchive(): void {
 		$rStage = $this->rDir . 'stage/bin/redis';
 		mkdir($rStage, 0700, true);
@@ -72,9 +85,17 @@ final class UpdateRuntimeTransitionTest extends TestCase {
 		exec('tar -czf ' . escapeshellarg($rArchive) . ' -C ' . escapeshellarg($this->rDir . 'stage') . ' .', $rOut, $rCode);
 		$this->assertSame(0, $rCode);
 
-		$this->assertTrue(UpdateCommand::restoreRollbackRedis($rArchive, $this->rDir . 'main'));
+		$rPrepared = UpdateCommand::prepareRollbackRedis($rArchive, $this->rDir . 'main');
+		$this->assertTrue($rPrepared['ok']);
+		$this->assertIsString($rPrepared['staged']);
 		$rRestored = $this->rDir . 'main/bin/redis/redis-server';
+		$this->assertFileDoesNotExist($rRestored, 'preparation does not change the live runtime before schema rollback');
+		$this->assertTrue(rename($rPrepared['staged'], $rRestored));
 		$this->assertSame('target redis', file_get_contents($rRestored));
 		$this->assertTrue(is_executable($rRestored));
+
+		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/Commands/UpdateCommand.php');
+		$this->assertLessThan(strpos($rSource, 'self::rollbackMigrations($rOutputDir)'), strpos($rSource, 'self::prepareRollbackRedis($rOutputDir)'));
+		$this->assertGreaterThan(strpos($rSource, 'self::rollbackMigrations($rOutputDir)'), strpos($rSource, "rename(\$rRollbackRedis['staged']"));
 	}
 }

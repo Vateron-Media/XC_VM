@@ -273,6 +273,13 @@ class UpdateCommand implements CommandInterface {
 
 				echo "Download OK, MD5 verified (" . filesize($rOutputDir) . " bytes).\n";
 				UpdateLogger::info('Rollback download OK, MD5 verified, size=' . filesize($rOutputDir) . ' bytes');
+				$rRollbackRedis = self::prepareRollbackRedis($rOutputDir);
+				if (!$rRollbackRedis['ok']) {
+					echo "ERROR: target Redis runtime could not be prepared; aborting rollback.\n";
+					UpdateLogger::error('Rollback aborted: target Redis runtime could not be prepared');
+					@unlink($rOutputDir);
+					return 1;
+				}
 
 				// Reverse schema changes a target up to 2.5.3 doesn't carry (e.g. a
 				// column a newer migration dropped), so the older code about to be
@@ -285,6 +292,9 @@ class UpdateCommand implements CommandInterface {
 						$rTargetMigrations = self::rollbackMigrations($rOutputDir);
 						$rMigrationResult = $rTargetMigrations === null ? null : MigrationRunner::rollback($db, $rTargetMigrations);
 					} catch (\Throwable $e) {
+						if ($rRollbackRedis['staged'] !== null) {
+							@unlink($rRollbackRedis['staged']);
+						}
 						echo "ERROR: schema reversal failed: " . $e->getMessage() . "\n";
 						UpdateLogger::error('Rollback aborted: schema reversal failed: ' . $e->getMessage());
 						@unlink($rOutputDir);
@@ -303,7 +313,8 @@ class UpdateCommand implements CommandInterface {
 						UpdateLogger::info('Rollback schema reversal: ' . count($rMigrationResult['reversed']) . ' reversed, ' . count($rMigrationResult['skipped']) . ' skipped');
 					}
 				}
-				if (!self::restoreRollbackRedis($rOutputDir)) {
+				if ($rRollbackRedis['staged'] !== null && !rename($rRollbackRedis['staged'], MAIN_HOME . 'bin/redis/redis-server')) {
+					@unlink($rRollbackRedis['staged']);
 					echo "ERROR: target Redis runtime could not be restored; aborting rollback.\n";
 					UpdateLogger::error('Rollback aborted: target Redis runtime could not be restored');
 					@unlink($rOutputDir);
@@ -502,7 +513,9 @@ class UpdateCommand implements CommandInterface {
 			}
 		}
 		if (isset($rRequired['redis-server'])) {
-			ProcessRunner::run(['systemctl', 'disable', '--now', 'redis-server'], true);
+			if (ProcessRunner::run(['systemctl', 'disable', '--now', 'redis-server'], true) !== 0) {
+				return false;
+			}
 			@unlink($rMainHome . 'bin/redis/redis-server');
 		}
 		if (isset($rRequired['python3-guessit'])) {
@@ -511,10 +524,10 @@ class UpdateCommand implements CommandInterface {
 		return true;
 	}
 
-	/** Restore the target release's Redis before its updater preserves bin/redis. */
-	public static function restoreRollbackRedis(string $rArchive, string $rMainHome = MAIN_HOME): bool {
+	/** @return array{ok: bool, staged: ?string} Target Redis staged beside its preserved directory. */
+	public static function prepareRollbackRedis(string $rArchive, string $rMainHome = MAIN_HOME): array {
 		if (ProcessRunner::run(['tar', '-tzf', $rArchive], true) !== 0) {
-			return false;
+			return ['ok' => false, 'staged' => null];
 		}
 		$rMember = null;
 		foreach (['./bin/redis/redis-server', 'bin/redis/redis-server'] as $rCandidate) {
@@ -524,22 +537,17 @@ class UpdateCommand implements CommandInterface {
 			}
 		}
 		if ($rMember === null) {
-			return true;
+			return ['ok' => true, 'staged' => null];
 		}
 		$rDir = rtrim($rMainHome, '/') . '/bin/redis';
 		if ((!is_dir($rDir) && !mkdir($rDir, 0750, true)) || ($rTmp = tempnam($rDir, '.rollback-redis-')) === false) {
-			return false;
+			return ['ok' => false, 'staged' => null];
 		}
-		try {
-			if (ProcessRunner::runToFile(['tar', '-xOzf', $rArchive, $rMember], $rTmp) !== 0 || filesize($rTmp) === 0 || !chmod($rTmp, 0755)) {
-				return false;
-			}
-			return rename($rTmp, $rDir . '/redis-server');
-		} finally {
-			if (is_file($rTmp)) {
-				@unlink($rTmp);
-			}
+		if (ProcessRunner::runToFile(['tar', '-xOzf', $rArchive, $rMember], $rTmp) !== 0 || filesize($rTmp) === 0 || !chmod($rTmp, 0755)) {
+			@unlink($rTmp);
+			return ['ok' => false, 'staged' => null];
 		}
+		return ['ok' => true, 'staged' => $rTmp];
 	}
 
 	/**

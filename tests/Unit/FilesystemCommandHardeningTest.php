@@ -68,6 +68,8 @@ PY;
 		$this->assertStringContainsString('"python3-guessit"', $rInstall);
 		$this->assertStringContainsString('member.issym() or member.islnk()', $rUpdate);
 		$this->assertStringNotContainsString('tar -zxf', $rUpdate);
+		$this->assertStringContainsString('raise RuntimeError("post-update failed; service remains stopped")', $rUpdate);
+		$this->assertMatchesRegularExpression('/except Exception.*if rPostUpdateFailed:.*service remains stopped/s', $rUpdate);
 	}
 
 	public function testMalformedPortalCacheFailsClosed(): void {

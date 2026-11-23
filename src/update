@@ -94,6 +94,7 @@ def doUpdate(rFilename):
     os.chmod(rTmpDir, 0o700)
     log_msg("INFO", "Temporary directory created: %s" % rTmpDir)
     rCopying = False
+    rPostUpdateFailed = False
 
     try:
         log_msg("INFO", "Stopping xc_vm service...")
@@ -155,7 +156,9 @@ def doUpdate(rFilename):
             raise RuntimeError("copying the files failed: the installation is partly updated")
 
         log_msg("INFO", "Running post-update...")
-        os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
+        if os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole)) != 0:
+            rPostUpdateFailed = True
+            raise RuntimeError("post-update failed; service remains stopped")
 
         log_msg("INFO", "Starting xc_vm service...")
         os.system("sudo systemctl start xc_vm")
@@ -171,8 +174,11 @@ def doUpdate(rFilename):
                 os.remove(rFilename)
             os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
         # A partly copied one stays "updating" in the panel, which is what it is.
-        log_msg("INFO", "Starting xc_vm service...")
-        os.system("sudo systemctl start xc_vm")
+        if rPostUpdateFailed:
+            log_msg("ERROR", "xc_vm service remains stopped after post-update failure")
+        else:
+            log_msg("INFO", "Starting xc_vm service...")
+            os.system("sudo systemctl start xc_vm")
     finally:
         log_msg("INFO", "Cleaning up temporary files...")
         os.system('sudo rm -rf "%s"' % rTmpDir)
