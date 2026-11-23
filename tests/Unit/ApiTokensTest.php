@@ -102,7 +102,9 @@ final class ApiTokensTest extends TestCase {
 		$this->assertNull(ApiTokens::userFor('xct_' . str_repeat('0', 40), '192.0.2.1', 'admin'));
 		$this->assertNull(ApiTokens::userFor('', '192.0.2.1', 'admin'));
 
-		$this->assertSame(5, ApiTokens::userFor('ABCDEF0123456789ABCDEF0123456789', '192.0.2.1', 'admin'), 'a legacy key');
+		$this->assertNull(ApiTokens::userFor('ABCDEF0123456789ABCDEF0123456789', '192.0.2.1', 'admin'), 'legacy keys default off');
+		SettingsManager::set(['api_legacy_keys' => '1']);
+		$this->assertSame(5, ApiTokens::userFor('ABCDEF0123456789ABCDEF0123456789', '192.0.2.1', 'admin'), 'a legacy key explicitly enabled');
 		SettingsManager::set(['api_legacy_keys' => '0']);
 		$this->assertNull(ApiTokens::userFor('ABCDEF0123456789ABCDEF0123456789', '192.0.2.1', 'admin'), 'legacy keys off');
 		$this->assertSame(5, ApiTokens::userFor($rAdmin, '192.0.2.1', 'admin'), 'tokens still work');

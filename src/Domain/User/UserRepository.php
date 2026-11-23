@@ -649,7 +649,7 @@ class UserRepository {
 	 * @param bool  $rGetConnections  Include active connections.
 	 * @return array|null Device user info, or null if not found.
 	 */
-	public static function getE2Info(array $rDevice, bool $rGetChannelIDs = false, bool $rGetConnections = false) {
+	public static function getE2Info(array $rDevice, bool $rGetChannelIDs = false, bool $rGetConnections = false, string $rIP = '') {
 		$db = self::db();
 		if (empty($rDevice['device_id'])) {
 			$db->query('SELECT * FROM `enigma2_devices` WHERE `mac` = ?', $rDevice['mac']);
@@ -665,11 +665,11 @@ class UserRepository {
 			'pair_line_info' => [],
 		];
 
-		if ($rUserInfo = self::getUserInfo($rReturn['enigma2']['user_id'], null, null, $rGetChannelIDs, $rGetConnections)) {
+		if ($rUserInfo = self::getUserInfo($rReturn['enigma2']['user_id'], null, null, $rGetChannelIDs, $rGetConnections, $rIP)) {
 			$rReturn['user_info'] = $rUserInfo;
 
 			if (!is_null($rReturn['user_info']['pair_id'])
-				&& ($rUserInfo = self::getUserInfo($rReturn['user_info']['pair_id'], null, null, $rGetChannelIDs, $rGetConnections))
+				&& ($rUserInfo = self::getUserInfo($rReturn['user_info']['pair_id'], null, null, $rGetChannelIDs, $rGetConnections, $rIP))
 			) {
 				$rReturn['pair_line_info'] = $rUserInfo;
 			}

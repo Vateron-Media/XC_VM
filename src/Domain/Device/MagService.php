@@ -303,7 +303,7 @@ class MagService {
 				$rArray['allowed_user_agents'] = json_encode($rAgents);
 			}
 
-			if (isset($rData['lock_device'])) {
+			if (isset($rData['lock_device']) || !isset($rData['edit'])) {
 				$rArray['lock_device'] = 1;
 			} else {
 				$rArray['lock_device'] = 0;

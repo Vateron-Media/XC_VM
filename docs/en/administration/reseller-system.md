@@ -168,6 +168,8 @@ Lock fields: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `s
 
 ### Enigma2 devices
 
+Fresh MAG and Enigma2 devices now default to **Device Lock**. An upgrade keeps each existing device's saved lock state to avoid disconnecting receivers; review unlocked devices and enable the lock after confirming their stored hardware identity. XPlugin clients must always send a valid modem MAC before credentials are returned.
+
 Managed by `EnigmaService` (`src/Domain/Device/EnigmaService.php`).
 Lock fields: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
 

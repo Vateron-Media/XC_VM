@@ -238,7 +238,7 @@ class EnigmaService {
 				$rUserArray['is_isplock'] = 0;
 			}
 
-			if (isset($rData['lock_device'])) {
+			if (isset($rData['lock_device']) || !isset($rData['edit'])) {
 				$rArray['lock_device'] = 1;
 			} else {
 				$rArray['lock_device'] = 0;

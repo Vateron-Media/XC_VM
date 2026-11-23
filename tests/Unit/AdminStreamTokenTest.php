@@ -30,6 +30,16 @@ final class AdminStreamTokenTest extends TestCase {
 		$this->assertNull(AdminStreamToken::decode($token, self::KEY, true));
 	}
 
+	public function testDecodeRejectsUntrustedFileAndAddressFields(): void {
+		foreach (array(
+			array('stream_id' => '../7', 'ip' => '1.2.3.4', 'expires' => 1000),
+			array('stream_id' => 7, 'ip' => 'not-an-ip', 'expires' => 1000),
+			array('stream_id' => 7, 'ip' => '1.2.3.4', 'expires' => 1000, 'container' => '../secret'),
+		) as $data) {
+			$this->assertNull(AdminStreamToken::decode($this->makeToken($data), self::KEY, true));
+		}
+	}
+
 	public function testDecodeExposesTypedFieldsAndKeepsStartRaw() {
 		$token = $this->makeToken(array(
 			'stream_id' => '7',

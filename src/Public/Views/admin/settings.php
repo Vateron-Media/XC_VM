@@ -1136,7 +1136,7 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 								</label>
 
 								<div class="col-md-8">
-									<div class="form-check form-switch"><input name="api_legacy_keys" id="api_legacy_keys" type="checkbox" <?= ($rSettings["api_legacy_keys"] ?? 1) == 1 ? ' checked' : '' ?> class="form-check-input"></div>
+									<div class="form-check form-switch"><input name="api_legacy_keys" id="api_legacy_keys" type="checkbox" <?= ($rSettings["api_legacy_keys"] ?? 0) == 1 ? ' checked' : '' ?> class="form-check-input"></div>
 								</div>
 							</div>
 

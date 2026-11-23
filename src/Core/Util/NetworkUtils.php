@@ -16,6 +16,18 @@ namespace XcVm\Core\Util;
  */
 
 class NetworkUtils {
+	/** One textual form per address, including IPv4-mapped IPv6 addresses. */
+	public static function canonicalIP(string $rIP): string {
+		$rPacked = @inet_pton($rIP);
+		if ($rPacked === false) {
+			return $rIP;
+		}
+		if (strlen($rPacked) === 16 && substr($rPacked, 0, 12) === "\0\0\0\0\0\0\0\0\0\0\xff\xff") {
+			$rPacked = substr($rPacked, 12);
+		}
+		return (string) inet_ntop($rPacked);
+	}
+
 	/**
 	 * Get the client's IP address
 	 *
