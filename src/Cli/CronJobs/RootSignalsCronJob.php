@@ -35,6 +35,7 @@ use XcVm\Domain\Cluster\ClusterEndpoint;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
 use XcVm\Domain\Cluster\DbAllowlist;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Fanout\FanoutMode;
 
 /**
@@ -64,6 +65,18 @@ class RootSignalsCronJob implements CommandInterface {
 	 * @var (callable(list<string>): array{0: int, 1: string})|null
 	 */
 	private static $rRunner = null;
+
+	/** @return array<string,string> */
+	private static function fanoutEncoderAllowlist(string $rBinPath): array {
+		$rEncoders = [];
+		foreach (glob(rtrim($rBinPath, '/') . '/ffmpeg_bin/*/ffmpeg') ?: [] as $rEncoder) {
+			$rBuild = basename(dirname($rEncoder));
+			if (FfmpegPaths::isBuildId($rBuild) && is_executable($rEncoder)) {
+				$rEncoders[$rBuild] = $rEncoder;
+			}
+		}
+		return $rEncoders;
+	}
 
 	public function getName(): string {
 		return 'cron:root_signals';
@@ -890,6 +903,20 @@ class RootSignalsCronJob implements CommandInterface {
 
 			if (empty(SettingsManager::get('live_streaming_pass'))) {
 				$db->query('UPDATE `settings` SET `live_streaming_pass` = ?', Encryption::randomString(40));
+			}
+		}
+
+		// The daemon may execute only the exact ffmpeg paths root has allowlisted.
+		// Include every installed, validated build so CPU/GPU/legacy selections
+		// keep working without trusting the panel command's path or basename.
+		$rEncoders = self::fanoutEncoderAllowlist(BIN_PATH);
+		if (!is_dir('/etc/xc_vm')) {
+			@mkdir('/etc/xc_vm', 0755, true);
+		}
+		if (is_dir('/etc/xc_vm')) {
+			$rEncoderJson = json_encode($rEncoders, JSON_UNESCAPED_SLASHES);
+			if (@file_get_contents('/etc/xc_vm/fanout-encoders.json') !== $rEncoderJson) {
+				AtomicFile::write('/etc/xc_vm/fanout-encoders.json', $rEncoderJson, 0644);
 			}
 		}
 

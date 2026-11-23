@@ -140,6 +140,13 @@ final class FanoutConfigTest extends TestCase {
 		$this->assertFalse($this->read()['source_insecure']);
 	}
 
+	public function testSourceInsecureDefaultsFalse(): void {
+		$s = $this->baseSettings();
+		unset($s['fanout_source_insecure']);
+		FanoutConfig::sync($s);
+		$this->assertFalse($this->read()['source_insecure']);
+	}
+
 	public function testIsIdempotent(): void {
 		$this->assertTrue(FanoutConfig::sync($this->baseSettings()));
 		// Nothing changed → no rewrite.

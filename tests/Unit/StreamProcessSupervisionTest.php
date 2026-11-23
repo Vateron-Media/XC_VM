@@ -97,6 +97,7 @@ final class StreamProcessSupervisionTest extends TestCase {
 	public function testNativeInsecureFollowsTheSetting(): void {
 		$this->assertStringContainsString(' -insecure ', $this->native());
 		$this->assertStringNotContainsString('-insecure', $this->native(['settings' => ['fanout_source_insecure' => 0]]));
+		$this->assertStringNotContainsString('-insecure', $this->native(['settings' => []]));
 	}
 
 	/** A source URL is shell data: quotes in it must not escape the argument. */
