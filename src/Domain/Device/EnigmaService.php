@@ -316,7 +316,6 @@ class EnigmaService {
 							$rArray['cpu'] = $rArray['lversion'];
 							$rArray['enigma_version'] = $rArray['cpu'];
 							$rArray['local_ip'] = $rArray['enigma_version'];
-							$rArray['modem_mac'] = $rArray['local_ip'];
 						}
 						$rPrepare = QueryHelper::prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';

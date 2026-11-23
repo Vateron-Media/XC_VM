@@ -13,7 +13,7 @@ final class XPluginDeviceIdentityTest extends TestCase {
 	public function testLockedDeviceNeedsMoreThanItsPublicMac(): void {
 		$this->assertFalse($this->identityMatches(['lock_device' => 1, 'modem_mac' => ''], ''));
 		$this->assertFalse($this->identityMatches(['lock_device' => 1, 'modem_mac' => ''], 'made-up-id'));
-		$this->assertTrue($this->identityMatches(['lock_device' => 1, 'modem_mac' => ''], '00:11:22:33:44:55'));
+		$this->assertFalse($this->identityMatches(['lock_device' => 1, 'modem_mac' => ''], '00:11:22:33:44:55'));
 		$this->assertTrue($this->identityMatches(['lock_device' => 1, 'modem_mac' => '00:11:22:33:44:55'], '00:11:22:33:44:55'));
 		$this->assertFalse($this->identityMatches(['lock_device' => 1, 'modem_mac' => '00:11:22:33:44:55'], 'AA:BB:CC:DD:EE:FF'));
 		$this->assertFalse($this->identityMatches(['lock_device' => 0, 'modem_mac' => ''], ''));

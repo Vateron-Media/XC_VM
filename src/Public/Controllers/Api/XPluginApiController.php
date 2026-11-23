@@ -148,7 +148,7 @@ class XPluginApiController {
 		exit();
 	}
 
-	/** A locked receiver binds its first non-empty modem MAC, then must present it. */
+	/** A locked receiver must present the modem MAC provisioned by its operator. */
 	private static function identityMatches(array $rDevice, string $rModemMAC): bool {
 		if (filter_var($rModemMAC, FILTER_VALIDATE_MAC) === false) {
 			return false;
@@ -158,7 +158,7 @@ class XPluginApiController {
 		}
 		$rModemMAC = strtoupper(str_replace('-', ':', $rModemMAC));
 		$rStored = strtoupper(str_replace('-', ':', (string) ($rDevice['modem_mac'] ?? '')));
-		return $rStored === '' || hash_equals($rStored, $rModemMAC);
+		return $rStored !== '' && hash_equals($rStored, $rModemMAC);
 	}
 
 	private function checkCommands($rDeviceInfo, $rRequest) {
