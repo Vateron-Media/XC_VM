@@ -114,11 +114,14 @@ final class AuditResellerCoreEnigmaEditTest extends TestCase {
 	public function testANewDeviceIsStillSaved(): void {
 		$rResult = EnigmaService::process([
 			'mac' => '00:1A:79:00:00:BB', 'username' => 'another', 'password' => 'secret',
+			'modem_mac' => '00:11:22:33:44:55',
 			'bouquets_selected' => '[]', 'isp_clear' => '', 'exp_date' => date('Y-m-d', time() + 30 * 86400),
 		]);
 
 		$this->assertSame(STATUS_SUCCESS, $rResult['status'] ?? null);
 		$this->rDb->query('SELECT COUNT(*) FROM `enigma2_devices`');
 		$this->assertSame(3, (int) $this->rDb->get_col());
+		$this->rDb->query('SELECT `modem_mac`, `lock_device` FROM `enigma2_devices` WHERE `mac` = ?', '00:1A:79:00:00:BB');
+		$this->assertSame(['modem_mac' => '00:11:22:33:44:55', 'lock_device' => 1], $this->rDb->get_row());
 	}
 }

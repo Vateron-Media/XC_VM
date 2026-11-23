@@ -245,6 +245,15 @@ final class AuditResellerCoreLineStoreTest extends TestCase {
 		$this->assertFalse($this->rDb->isInTransaction());
 	}
 
+	public function testANewLockedEnigmaKeepsItsProvisionedIdentity(): void {
+		$this->rDb->exec('UPDATE `users_packages` SET `lock_device` = 1 WHERE `id` = 1');
+
+		$this->assertSame(STATUS_SUCCESS, $this->save('enigma', ['package' => 1, 'modem_mac' => '00:11:22:33:44:55']));
+
+		$this->rDb->query('SELECT `modem_mac`, `lock_device` FROM `enigma2_devices`');
+		$this->assertSame(['modem_mac' => '00:11:22:33:44:55', 'lock_device' => 1], $this->rDb->get_row());
+	}
+
 	/** A device that is stored is stored with its line, and the transaction that held both is over. */
 	#[DataProvider('devices')]
 	public function testAnExtensionOfADeviceIsStoredWithItsLine(string $rKind): void {

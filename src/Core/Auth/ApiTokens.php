@@ -92,9 +92,9 @@ final class ApiTokens {
 		return (int) $rRow['id'];
 	}
 
-	/** Whether an account's legacy `api_key` still signs in (the `api_legacy_keys` setting, on unless turned off). */
+	/** Whether an account's legacy `api_key` still signs in (off unless explicitly enabled). */
 	public static function legacyKeys(): bool {
-		return (string) (SettingsManager::get('api_legacy_keys') ?? '1') !== '0';
+		return (string) (SettingsManager::get('api_legacy_keys') ?? '0') === '1';
 	}
 
 	/** Forget the request's token (a session that did not sign in with one). */

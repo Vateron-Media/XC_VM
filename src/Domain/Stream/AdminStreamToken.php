@@ -60,7 +60,12 @@ final class AdminStreamToken {
 
 		$rData = json_decode($rDecrypted, true);
 
-		if (!is_array($rData) || !isset($rData['stream_id'], $rData['ip'], $rData['expires'])) {
+		if (!is_array($rData) || !isset($rData['stream_id'], $rData['ip'], $rData['expires'])
+			|| filter_var($rData['ip'], FILTER_VALIDATE_IP) === false
+			|| filter_var($rData['stream_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false
+			|| filter_var($rData['expires'], FILTER_VALIDATE_INT) === false
+			|| (isset($rData['container']) && (!is_string($rData['container']) || preg_match('/^[A-Za-z0-9]{1,16}$/', $rData['container']) !== 1))
+		) {
 			return null;
 		}
 

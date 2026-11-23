@@ -498,7 +498,7 @@ class ToolsCommand implements CommandInterface {
 					continue;
 				}
 				$rOriginalURL = Encryption::decrypt($rImage, SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
-				if (!empty($rOriginalURL) && substr($rOriginalURL, 0, 4) == 'http') {
+				if (is_string($rOriginalURL) && filter_var($rOriginalURL, FILTER_VALIDATE_URL) !== false && in_array(strtolower((string) parse_url($rOriginalURL, PHP_URL_SCHEME)), ['http', 'https'], true)) {
 					if (!file_exists(IMAGES_PATH . $rPathInfo['basename'])) {
 						echo 'Downloading: ' . $rOriginalURL . "\n";
 						ImageUtils::downloadImage($rOriginalURL);

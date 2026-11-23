@@ -89,62 +89,67 @@ class BaseApiController {
 	}
 
 	protected function validateUser($rUserInfo, $rUserAgent, $rIP, $rCountryCode) {
-		if ($rUserInfo['bypass_ua'] == 0) {
-			if (BlocklistService::checkAndBlockUA(BlocklistService::getBlockedUA(), $rUserAgent, true)) {
-				generateError('BLOCKED_USER_AGENT');
-			}
-		}
-
 		if (!is_null($rUserInfo['exp_date']) && $rUserInfo['exp_date'] <= time()) {
 			generateError('EXPIRED');
 		}
-
 		if ($rUserInfo['is_mag'] || $rUserInfo['is_e2']) {
 			generateError('DEVICE_NOT_ALLOWED');
 		}
-
 		if (!$rUserInfo['admin_enabled']) {
 			generateError('BANNED');
 		}
-
 		if (!$rUserInfo['enabled']) {
 			generateError('DISABLED');
 		}
+		BruteforceGuard::checkAuthFlood($rUserInfo, $rIP);
+		if (($rError = self::restriction($rUserInfo, $rUserAgent, $rIP, $rCountryCode)) !== null) {
+			generateError($rError);
+		}
+	}
+
+	/** The restrictions shared by playlist, EPG, player_api and Enigma2. */
+	public static function restriction(array $rUserInfo, string $rUserAgent, string $rIP, ?string $rCountryCode): ?string {
+		if ($rUserInfo['bypass_ua'] == 0) {
+			if (BlocklistService::checkAndBlockUA(BlocklistService::getBlockedUA(), $rUserAgent, true)) {
+				return 'BLOCKED_USER_AGENT';
+			}
+		}
 
 		if (!SettingsManager::get('restrict_playlists')) {
-			return;
+			return null;
 		}
 
 		if (empty($rUserAgent) && SettingsManager::get('disallow_empty_user_agents') == 1) {
-			generateError('EMPTY_USER_AGENT');
+			return 'EMPTY_USER_AGENT';
 		}
 
 		if (!empty($rUserInfo['allowed_ips']) && !in_array($rIP, array_map('gethostbyname', $rUserInfo['allowed_ips']))) {
-			generateError('NOT_IN_ALLOWED_IPS');
+			return 'NOT_IN_ALLOWED_IPS';
 		}
 
 		if (!empty($rCountryCode)) {
 			$rForceCountry = !empty($rUserInfo['forced_country']);
 
 			if ($rForceCountry && $rUserInfo['forced_country'] != 'ALL' && $rCountryCode != $rUserInfo['forced_country']) {
-				generateError('FORCED_COUNTRY_INVALID');
+				return 'FORCED_COUNTRY_INVALID';
 			}
 
 			if (!$rForceCountry && !in_array('ALL', SettingsManager::get('allow_countries')) && !in_array($rCountryCode, SettingsManager::get('allow_countries'))) {
-				generateError('NOT_IN_ALLOWED_COUNTRY');
+				return 'NOT_IN_ALLOWED_COUNTRY';
 			}
 		}
 
 		if (!empty($rUserInfo['allowed_ua']) && !in_array($rUserAgent, $rUserInfo['allowed_ua'])) {
-			generateError('NOT_IN_ALLOWED_UAS');
+			return 'NOT_IN_ALLOWED_UAS';
 		}
 
 		if ($rUserInfo['isp_violate'] == 1) {
-			generateError('ISP_BLOCKED');
+			return 'ISP_BLOCKED';
 		}
 
 		if ($rUserInfo['isp_is_server'] == 1 && !$rUserInfo['is_restreamer']) {
-			generateError('ASN_BLOCKED');
+			return 'ASN_BLOCKED';
 		}
+		return null;
 	}
 }
