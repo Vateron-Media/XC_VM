@@ -156,7 +156,8 @@ def doUpdate(rFilename):
             raise RuntimeError("copying the files failed: the installation is partly updated")
 
         log_msg("INFO", "Running post-update...")
-        if os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole)) != 0:
+        rPostUpdateStatus = os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
+        if rPostUpdateStatus != 0:
             rPostUpdateFailed = True
             raise RuntimeError("post-update failed; service remains stopped")
 
