@@ -331,7 +331,7 @@ $router->get('resize', [AdminResizeController::class, 'index']);
 
 // ─── Formerly unrouted pages ─────────────────────────
 
-$router->get('logout', [AdminLogoutController::class, 'index']);
+$router->post('logout', [AdminLogoutController::class, 'index']);
 $router->any('player', [PlayerEmbedController::class, 'index']);
 $router->any('post', [PostController::class, 'index']);
 $router->any('table', [TableController::class, 'index']);

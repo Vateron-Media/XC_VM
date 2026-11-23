@@ -42,7 +42,7 @@ $router->any('profile', [PlayerProfileController::class, 'index']);
 
 // ─── Special Pages (no view) ───────────────────────────────────
 
-$router->get('logout', [PlayerLogoutController::class, 'index']);
+$router->post('logout', [PlayerLogoutController::class, 'index']);
 $router->get('listings', [ListingsController::class, 'index']);
 
 // ─── Auth (noBootstrapPages) ───────────────────────────────────

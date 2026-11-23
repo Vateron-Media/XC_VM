@@ -4,12 +4,16 @@ use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\TwoFactor;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Http\RequestSecurity;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Reference\UiReference;
 use XcVm\Core\Localization\Translator;
 use XcVm\Infrastructure\Bootstrap\AdminScopeBootstrap;
+
+RequestSecurity::sendHeaders();
+RequestSecurity::enforceSameOrigin();
 
 $rHues = UiReference::hues();
 

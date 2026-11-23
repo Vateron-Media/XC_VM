@@ -63,7 +63,7 @@ use XcVm\Public\Controllers\Reseller\ResellerUsersController;
 
 $router->get('dashboard', [ResellerDashboardController::class, 'index']);
 $router->get('edit_profile', [ResellerEditProfileController::class, 'index']);
-$router->get('logout', [ResellerLogoutController::class, 'index']);
+$router->post('logout', [ResellerLogoutController::class, 'index']);
 $router->get('session', [ResellerSessionController::class, 'index']);
 
 // ─── Auth & Infrastructure ─────────────────────────────────────

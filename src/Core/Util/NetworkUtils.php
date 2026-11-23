@@ -22,19 +22,23 @@ class NetworkUtils {
 	 * @return string IP address
 	 */
 	public static function getClientIP() {
-		// Check proxy headers first
-		$headers = ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'];
+		// nginx rewrites REMOTE_ADDR only for its set_real_ip_from allow-list.
+		return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+	}
 
-		foreach ($headers as $header) {
-			if (!empty($_SERVER[$header])) {
-				$ip = trim(explode(',', $_SERVER[$header])[0]);
-				if (filter_var($ip, FILTER_VALIDATE_IP)) {
-					return $ip;
-				}
-			}
+	/** HTTPS directly, or HTTPS reported by a proxy nginx actually trusted. */
+	public static function isHttps(?array $rServer = null): bool {
+		$rServer ??= $_SERVER;
+		if (strtolower((string) ($rServer['HTTPS'] ?? '')) === 'on' || ($rServer['REQUEST_SCHEME'] ?? '') === 'https') {
+			return true;
 		}
 
-		return isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
+		$rPeer = (string) ($rServer['XC_PEER_ADDR'] ?? '');
+		$rClient = (string) ($rServer['REMOTE_ADDR'] ?? '');
+		return $rPeer !== $rClient
+			&& filter_var($rPeer, FILTER_VALIDATE_IP) !== false
+			&& filter_var($rClient, FILTER_VALIDATE_IP) !== false
+			&& strtolower(trim((string) ($rServer['HTTP_X_FORWARDED_PROTO'] ?? ''))) === 'https';
 	}
 
 	/**

@@ -2,6 +2,7 @@
 
 use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Error\ErrorResponder;
+use XcVm\Core\Http\RequestSecurity;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Infrastructure\Bootstrap\ScopeBootstrapFactory;
@@ -41,6 +42,7 @@ if (!defined('MAIN_HOME')) {
 
 // 1b. Autoloader
 require_once MAIN_HOME . 'vendor/autoload.php';
+RequestSecurity::sendHeaders();
 
 // 2. Разбор URL → scope + pageName
 
@@ -112,6 +114,10 @@ $pageName = preg_replace('/\.php$/', '', $pageName);
 
 if ($pageName === '') {
 	$pageName = 'index';
+}
+
+if (!isset($rawScope) || !in_array($rawScope, ['api', 'includes/api/admin', 'includes/api/reseller'], true)) {
+	RequestSecurity::enforceSameOrigin();
 }
 
 // 3. REST API (access code type 3/4) — dispatch до редиректа и роутера

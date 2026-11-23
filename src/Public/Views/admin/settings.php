@@ -48,22 +48,31 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 			version_compare($rUpdate["version"], XC_VM_VERSION) == 0
 		)
 	): ?>
+		<?php
+		$rReleaseUrl = (string) ($rUpdate['url'] ?? '');
+		$rReleaseParts = parse_url($rReleaseUrl);
+		if ($rReleaseParts === false || ($rReleaseParts['scheme'] ?? '') !== 'https' || strtolower((string) ($rReleaseParts['host'] ?? '')) !== 'github.com' || isset($rReleaseParts['user'], $rReleaseParts['pass'])) {
+			$rReleaseUrl = '';
+		}
+		?>
 		<div class="card bg-info text-white mb-4">
 			<div class="card-body py-3">
 				<div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-					<h6 class="text-white mb-0"><i class="icon-base ti tabler-cloud-download me-1"></i><?= $language::get('update_available') ?> — v<?= $rUpdate["version"] ?></h6>
+					<h6 class="text-white mb-0"><i class="icon-base ti tabler-cloud-download me-1"></i><?= $language::get('update_available') ?> — v<?= htmlspecialchars((string) $rUpdate["version"], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></h6>
 					<div class="d-flex align-items-center gap-2">
-						<a href="<?= str_replace('" ', '"', $rUpdate["url"]) ?>" class="btn btn-sm btn-outline-light" target="_blank"><?= $language::get('release_thread') ?> <i class="icon-base ti tabler-arrow-right"></i></a>
+						<?php if ($rReleaseUrl !== ''): ?>
+							<a href="<?= htmlspecialchars($rReleaseUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>" class="btn btn-sm btn-outline-light" target="_blank" rel="noopener noreferrer"><?= $language::get('release_thread') ?> <i class="icon-base ti tabler-arrow-right"></i></a>
+						<?php endif; ?>
 						<button type="button" class="btn btn-sm btn-light" onclick="UpdateServer()"><?= $language::get('update_server') ?></button>
 					</div>
 				</div>
 				<?php if (!empty($rUpdate["changelog"]) && is_array($rUpdate["changelog"])): ?>
 					<div class="small mt-2 pe-2" style="max-height:150px; overflow-y:auto;">
 						<?php foreach ($rUpdate["changelog"] as $rItem): ?>
-							<div class="fw-semibold mt-2"><?= $language::get('changelog_v') ?><?= $rItem["version"] ?></div>
+							<div class="fw-semibold mt-2"><?= $language::get('changelog_v') ?><?= htmlspecialchars((string) ($rItem["version"] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></div>
 							<ul class="mb-1 ps-3">
 								<?php foreach ((is_array($rItem["changes"] ?? null) ? $rItem["changes"] : []) as $rChange): ?>
-									<li><?= $rChange ?></li>
+									<li><?= htmlspecialchars((string) $rChange, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></li>
 								<?php endforeach; ?>
 							</ul>
 						<?php endforeach; ?>
