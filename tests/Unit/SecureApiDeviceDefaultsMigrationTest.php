@@ -8,12 +8,13 @@ final class SecureApiDeviceDefaultsMigrationTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->rDb = new TestDb();
-		$this->rDb->exec('CREATE TABLE `settings` (`api_legacy_keys` tinyint(1) DEFAULT 1)');
-		$this->rDb->exec('CREATE TABLE `mag_devices` (`lock_device` tinyint(4) DEFAULT 0)');
-		$this->rDb->exec('CREATE TABLE `enigma2_devices` (`lock_device` tinyint(4) DEFAULT 0)');
-		$this->rDb->exec('INSERT INTO `settings` VALUES (1)');
-		$this->rDb->exec('INSERT INTO `mag_devices` VALUES (0)');
-		$this->rDb->exec('INSERT INTO `enigma2_devices` VALUES (0)');
+		foreach (['settings', 'mag_devices', 'enigma2_devices'] as $rTable) {
+			$this->rDb->exec(InstallSchema::table($rTable));
+		}
+		$this->rDb->exec((string) file_get_contents(MAIN_HOME . 'migrations/database/down/107_secure_api_device_defaults.sql'));
+		$this->rDb->exec('INSERT INTO `settings` (`id`, `api_legacy_keys`) VALUES (1, 1)');
+		$this->rDb->exec('INSERT INTO `mag_devices` (`lock_device`) VALUES (0)');
+		$this->rDb->exec('INSERT INTO `enigma2_devices` (`lock_device`) VALUES (0)');
 	}
 
 	/** @return array{string, string, string} */
