@@ -96,7 +96,7 @@ class StartupCommand implements CommandInterface {
 
 		// Core scripts/binaries lose their executable bit on a mode-dropping
 		// deploy, and a missing php-fpm pool config leaves that worker down.
-		$this->ensureExecutableScripts(['service', 'update', 'bin/redis/redis-server', 'bin/daemons.sh'], MAIN_HOME);
+		$this->ensureExecutableScripts(['service', 'update', 'bin/daemons.sh'], MAIN_HOME);
 		$this->ensurePhpFpmPoolConfigs(MAIN_HOME);
 
 		// nginx is already up (service starts it before this): reload it onto the new pair.

@@ -7,6 +7,7 @@ import os
 import secrets
 import shutil
 import socket
+import stat
 import subprocess
 import sys
 import tarfile
@@ -42,6 +43,8 @@ PACKAGES = {
         "wget",
         "mariadb-server",
         "mariadb-client",
+        "redis-server",
+        "python3-guessit",
         "sysstat",
         "alsa-utils",
         "v4l-utils",
@@ -104,6 +107,8 @@ PACKAGES = {
         "mariadb-server",
         "mariadb-client",
         "mariadb-common",
+        "redis-server",
+        "python3-guessit",
         "libjpeg-dev",
         "libpng-dev",
         "libharfbuzz-dev",
@@ -151,6 +156,8 @@ PACKAGES = {
         "mariadb-server",
         "mariadb-client",
         "mariadb-common",
+        "redis-server",
+        "python3-guessit",
         "libsodium23",
         "cpufrequtils",
         "mcrypt",
@@ -183,6 +190,8 @@ PACKAGES = {
         "mariadb-server",
         "mariadb-client",
         "mariadb-common",
+        "redis-server",
+        "python3-guessit",
         "alsa-utils",
         "v4l-utils",
         "certbot",
@@ -239,6 +248,8 @@ PACKAGES = {
         "mariadb-server",
         "mariadb-client",
         "mariadb-common",
+        "redis-server",
+        "python3-guessit",
         "libjpeg-dev",
         "libpng-dev",
         "libharfbuzz-dev",
@@ -977,13 +988,27 @@ def generate_self_signed_cert():
 
 
 def _safe_tar_members(tar, dest):
-    """Filter tar members to prevent path traversal attacks (CVE-2007-4559)"""
+    """Reject links and members outside dest before extracting anything."""
     dest = os.path.realpath(dest)
     for member in tar.getmembers():
+        if member.issym() or member.islnk():
+            raise ValueError(f"archive link is not allowed: {member.name}")
         member_path = os.path.realpath(os.path.join(dest, member.name))
         if not member_path.startswith(dest + os.sep) and member_path != dest:
-            printc(f"Skipping unsafe tar member: {member.name}", col.WARNING)
-            continue
+            raise ValueError(f"archive path escapes destination: {member.name}")
+        yield member
+
+
+def _safe_zip_members(archive, dest):
+    """Reject ZIP links and members outside dest before extracting anything."""
+    dest = os.path.realpath(dest)
+    for member in archive.infolist():
+        mode = member.external_attr >> 16
+        member_path = os.path.realpath(os.path.join(dest, member.filename))
+        if stat.S_ISLNK(mode):
+            raise ValueError(f"archive link is not allowed: {member.filename}")
+        if not member_path.startswith(dest + os.sep) and member_path != dest:
+            raise ValueError(f"archive path escapes destination: {member.filename}")
         yield member
 
 
@@ -991,8 +1016,7 @@ def is_valid_zip(file_path):
     """Check if a file is a valid ZIP archive"""
     try:
         with zipfile.ZipFile(file_path, "r") as zip_ref:
-            # Try to list contents
-            zip_ref.namelist()
+            list(_safe_zip_members(zip_ref, "/home/xc_vm/"))
             return True
     except Exception:
         return False
@@ -1002,8 +1026,7 @@ def is_valid_tar(file_path):
     """Check if a file is a valid TAR archive"""
     try:
         with tarfile.open(file_path, "r:*") as tar_ref:
-            # Try to list contents
-            tar_ref.getmembers()
+            list(_safe_tar_members(tar_ref, "/home/xc_vm/"))
             return True
     except Exception:
         return False
@@ -1120,29 +1143,20 @@ def install_mariadb_repo(dist_info):
     printc(f"Configuring MariaDB repository for {dist_id} {version}", col.OKBLUE)
 
     if family == "debian":
-        # Debian/Ubuntu
-        if dist_id == "ubuntu":
-            # Try to get codename from /etc/os-release
-            codename = "jammy"  # Default for Ubuntu 22.04
-            try:
-                with open("/etc/os-release", "r") as f:
-                    for line in f:
-                        if line.startswith("UBUNTU_CODENAME="):
-                            codename = line.split("=")[1].strip().strip('"')
+        codename = ""
+        try:
+            with open("/etc/os-release", "r") as f:
+                for line in f:
+                    if line.startswith(("UBUNTU_CODENAME=", "VERSION_CODENAME=")):
+                        codename = line.split("=", 1)[1].strip().strip('"')
+                        if codename:
                             break
-                        elif line.startswith("VERSION_CODENAME="):
-                            codename = line.split("=")[1].strip().strip('"')
-                            break
-            except Exception:
-                # Fallback based on version
-                if version.startswith("20"):
-                    codename = "focal"
-                elif version.startswith("22"):
-                    codename = "jammy"
-                elif version.startswith("24"):
-                    codename = "noble"
-
-            printc(f"Using Ubuntu codename: {codename}", col.OKGREEN)
+        except OSError:
+            pass
+        if not codename:
+            printc("Cannot determine distribution codename; using system MariaDB packages", col.WARNING)
+            return False
+        printc(f"Using distribution codename: {codename}", col.OKGREEN)
 
         # Install prerequisites
         run_command(
@@ -1186,39 +1200,41 @@ def install_mariadb_repo(dist_info):
                 printc("Continuing with system packages...", col.WARNING)
 
         else:
-            # For other versions, use the official script
-            printc(
-                "Adding MariaDB repository using official setup script...", col.OKBLUE
-            )
-            ret, _, _ = run_command(
-                "curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version='mariadb-11.4'",
-                capture_output=True,
-            )
-            if ret != 0:
-                printc(
-                    "MariaDB repo setup script failed, will use system packages",
-                    col.WARNING,
-                )
-                # Clean up any partial repo configuration
-                run_command(
-                    "rm -f /etc/apt/sources.list.d/mariadb.list "
-                    "/etc/apt/sources.list.d/mariadb.sources || true"
-                )
-
-        # Add MaxMind repository for Ubuntu (with error handling)
-        if dist_id == "ubuntu":
-            printc("Adding MaxMind repository for GeoIP...", col.OKBLUE)
+            key_url = "https://supplychain.mariadb.com/mariadb-keyring-2019.gpg"
+            fingerprint = "177F4010FE56CA3336300305F1656F24C74CD1D8"
+            keyring = "/usr/share/keyrings/mariadb-keyring.gpg"
+            temp_key = None
             try:
-                run_command("add-apt-repository -y ppa:maxmind/ppa")
-                printc("MaxMind repository added successfully", col.OKGREEN)
-            except Exception as e:
-                printc(f"MaxMind PPA failed to add: {e}", col.WARNING)
-                printc(
-                    "Continuing without MaxMind PPA (not critical for functionality)",
-                    col.OKBLUE,
+                fd, temp_key = tempfile.mkstemp(prefix="xcvm-mariadb-key-")
+                os.close(fd)
+                urllib.request.urlretrieve(key_url, temp_key)
+                check = subprocess.run(
+                    ["gpg", "--batch", "--show-keys", "--with-colons", temp_key],
+                    capture_output=True,
+                    text=True,
                 )
-        else:
-            printc("Skipping MaxMind PPA (not available for Debian)", col.OKBLUE)
+                fingerprints = [line.split(":")[9] for line in check.stdout.splitlines() if line.startswith("fpr:")]
+                if check.returncode != 0 or fingerprint not in fingerprints:
+                    raise RuntimeError("MariaDB repository key fingerprint mismatch")
+                shutil.copyfile(temp_key, keyring)
+                os.chmod(keyring, 0o644)
+                with open("/etc/apt/sources.list.d/mariadb.list", "w", encoding="utf-8") as source:
+                    source.write(
+                        f"deb [signed-by={keyring}] https://mirror.mariadb.org/repo/11.4/{dist_id} {codename} main\n"
+                    )
+            except Exception as e:
+                printc(f"MariaDB repository not configured: {e}", col.WARNING)
+                for path in ("/etc/apt/sources.list.d/mariadb.list", "/etc/apt/sources.list.d/mariadb.sources"):
+                    try:
+                        os.remove(path)
+                    except FileNotFoundError:
+                        pass
+            finally:
+                if temp_key:
+                    try:
+                        os.remove(temp_key)
+                    except FileNotFoundError:
+                        pass
 
         # Update package list
         printc("Updating package list...", col.OKBLUE)
@@ -1527,12 +1543,11 @@ def extract_archive(archive_path):
     elif archive_path.endswith(".zip"):
         try:
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
-                # Get file list for debugging
-                file_list = zip_ref.namelist()
+                safe = list(_safe_zip_members(zip_ref, "/home/xc_vm/"))
+                file_list = [member.filename for member in safe]
                 printc(f"Archive contains {len(file_list)} files", col.OKGREEN)
 
-                # Extract all files
-                zip_ref.extractall(path="/home/xc_vm/")
+                zip_ref.extractall(path="/home/xc_vm/", members=safe)
                 printc("Extraction successful", col.OKGREEN)
 
                 # Check if zip contains nested tar.gz
@@ -1639,9 +1654,9 @@ _NEEDS_OPENSSL3 = {"ubuntu_20"}
 
 # The package, the SHA-256 Ubuntu's signed index lists for it (jammy,
 # main/binary-amd64/Packages), and the library it puts in place.
-_OPENSSL3_DEB_URL = "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb"
+_OPENSSL3_DEB_URL = "https://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1.30_amd64.deb"
 _OPENSSL3_DEB_SHA256 = (
-    "11a83260542e05aebbbafce9164d594287d2584be80972e08708528fe06f80d3"
+    "d1b4636e32ac6d3b95d583ac05ac548b1aa248414bae1c51b14f54be0f8fd7bc"
 )
 _OPENSSL3_LIB = "/usr/lib/x86_64-linux-gnu/libssl.so.3"
 
@@ -1930,19 +1945,6 @@ if __name__ == "__main__":
 
     if dist_info["family"] == "debian":
         # Debian/Ubuntu
-        printc("Cleaning package locks", col.OKBLUE)
-        for rFile in [
-            "/var/lib/dpkg/lock-frontend",
-            "/var/cache/apt/archives/lock",
-            "/var/lib/dpkg/lock",
-            "/var/lib/apt/lists/lock",
-        ]:
-            if os.path.exists(rFile):
-                try:
-                    os.remove(rFile)
-                except Exception:
-                    pass
-
         printc("Updating system", col.OKBLUE)
         run_command("apt-get update -y")
 
@@ -1963,6 +1965,13 @@ if __name__ == "__main__":
         # Install packages
         printc("Installing system packages", col.OKBLUE)
         install_deb_packages(dist_info)
+
+        for required in ("/usr/bin/redis-server", "/usr/bin/guessit"):
+            if not os.path.isfile(required) or not os.access(required, os.X_OK):
+                printc(f"CRITICAL: required runtime is missing: {required}", col.FAIL)
+                sys.exit(1)
+        # XC_VM starts Redis with its own authenticated config.
+        run_command("systemctl disable --now redis-server 2>/dev/null || true")
 
         # Verify MariaDB was actually installed
         ret, _, _ = run_command(

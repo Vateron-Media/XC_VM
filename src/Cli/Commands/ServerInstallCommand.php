@@ -36,8 +36,8 @@ class ServerInstallCommand implements CommandInterface {
 	 * The OpenSSL 3 package an Ubuntu 20 node is given, and the SHA-256 Ubuntu's
 	 * signed index lists for it (jammy, main/binary-amd64/Packages).
 	 */
-	private const LIBSSL3_URL = 'http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb';
-	private const LIBSSL3_SHA256 = '11a83260542e05aebbbafce9164d594287d2584be80972e08708528fe06f80d3';
+	private const LIBSSL3_URL = 'https://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1.30_amd64.deb';
+	private const LIBSSL3_SHA256 = 'd1b4636e32ac6d3b95d583ac05ac548b1aa248414bae1c51b14f54be0f8fd7bc';
 
 	public function getName(): string {
 		return 'server:install';

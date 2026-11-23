@@ -46,25 +46,6 @@ document.addEventListener('DOMContentLoaded', function () {
     window.Helpers.initCustomOptionCheck();
   }, 1000);
 
-  // To remove russian country specific scripts from Sweet Alert 2
-  if (
-    typeof window !== 'undefined' &&
-    /^ru\b/.test(navigator.language) &&
-    location.host.match(/\.(ru|su|by|xn--p1ai)$/)
-  ) {
-    localStorage.removeItem('swal-initiation');
-
-    document.body.style.pointerEvents = 'system';
-    setInterval(() => {
-      if (document.body.style.pointerEvents === 'none') {
-        document.body.style.pointerEvents = 'system';
-      }
-    }, 100);
-    HTMLAudioElement.prototype.play = function () {
-      return Promise.resolve();
-    };
-  }
-
   if (typeof Waves !== 'undefined') {
     Waves.init();
     Waves.attach(

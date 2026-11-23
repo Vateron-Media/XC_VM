@@ -42,7 +42,7 @@ daemon need a free activation key — see [Licensing & Activation](info/licensin
 - **Nginx** — reverse proxy & web server  
 - **PHP 8.3** — core backend  
 - **MariaDB** — database  
-- **KeyDB** — cache/session engine  
+- **Redis** — cache/session engine from the operating system security repository  
 - **FFmpeg 8.0** — transcoding  
 - **yt-dlp** — media acquiring  
 - **Deno** — JavaScript runtime for yt-dlp (YouTube)  

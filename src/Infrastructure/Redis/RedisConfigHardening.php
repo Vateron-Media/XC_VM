@@ -27,7 +27,7 @@ namespace XcVm\Infrastructure\Redis;
  */
 
 class RedisConfigHardening {
-	/** Commands renamed away. Every one is known to the bundled redis-server 6.3. */
+	/** Commands renamed away. Every one is supported by the distro Redis packages. */
 	public const DISABLED = ['CONFIG', 'DEBUG', 'SHUTDOWN', 'SLAVEOF', 'REPLICAOF', 'MIGRATE', 'MODULE'];
 
 	/**

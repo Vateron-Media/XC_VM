@@ -942,14 +942,12 @@ class PortalHandler {
 			case "get_short_epg":
 				$rEPG = ["js" => []];
 				if (!empty($rRequest["ch_id"])) {
-					$rChannelID = $rRequest["ch_id"];
+					$rChannelID = intval($rRequest["ch_id"]);
 					$rTime = time();
 					$rEPGData = [];
 
 					if (file_exists(EPG_PATH . "stream_" . intval($rChannelID))) {
-						$rRows = igbinary_unserialize(
-							file_get_contents(EPG_PATH . "stream_" . $rChannelID),
-						);
+						$rRows = self::cacheArray(EPG_PATH . "stream_" . $rChannelID);
 						foreach ($rRows as $rRow) {
 							if (($rRow["start"] <= $rTime && $rTime <= $rRow["end"])
 								|| $rTime <= $rRow["start"]
@@ -1690,7 +1688,7 @@ class PortalHandler {
 					exit();
 				}
 
-				$rChannelID = $rRequest["ch_id"];
+				$rChannelID = intval($rRequest["ch_id"]);
 				$rReqDate = $rRequest["date"];
 				$rPage = intval($rRequest["p"]);
 				$rPageItems = $ctx["theme"] == "xc_vm" ? 7 : 10;
@@ -1700,9 +1698,7 @@ class PortalHandler {
 				$rEndTime = strtotime($rReqDate . " 23:59:59");
 
 				if (file_exists(EPG_PATH . "stream_" . intval($rChannelID))) {
-					$rRows = igbinary_unserialize(
-						file_get_contents(EPG_PATH . "stream_" . $rChannelID),
-					);
+					$rRows = self::cacheArray(EPG_PATH . "stream_" . $rChannelID);
 					foreach ($rRows as $rRow) {
 						if ($rStartTime <= $rRow["start"] && $rRow["start"] <= $rEndTime) {
 							$rRow["start_timestamp"] = $rRow["start"];
@@ -1713,9 +1709,7 @@ class PortalHandler {
 				}
 
 				if (file_exists(STREAMS_TMP_PATH . "stream_" . intval($rChannelID))) {
-					$rStreamRow = igbinary_unserialize(
-						file_get_contents(STREAMS_TMP_PATH . "stream_" . intval($rChannelID)),
-					)["info"];
+					$rStreamRow = self::cacheArray(STREAMS_TMP_PATH . "stream_" . $rChannelID)["info"] ?? [];
 				} else {
 					$db->query(
 						"SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;",
@@ -1819,9 +1813,7 @@ class PortalHandler {
 				$rTimeDifference = TimeUtils::getDiffTimezone($ctx["timezone"]);
 
 				if (file_exists(STREAMS_TMP_PATH . "stream_" . intval($rChannelID))) {
-					$rStreamRow = igbinary_unserialize(
-						file_get_contents(STREAMS_TMP_PATH . "stream_" . intval($rChannelID)),
-					)["info"];
+					$rStreamRow = self::cacheArray(STREAMS_TMP_PATH . "stream_" . $rChannelID)["info"] ?? [];
 				} else {
 					$db->query(
 						"SELECT `tv_archive_duration` FROM `streams` WHERE `id` = ?;",
@@ -1836,9 +1828,7 @@ class PortalHandler {
 				$rTime = strtotime(date("Y-m-d 00:00:00"));
 
 				if (file_exists(EPG_PATH . "stream_" . intval($rChannelID))) {
-					$rRows = igbinary_unserialize(
-						file_get_contents(EPG_PATH . "stream_" . $rChannelID),
-					);
+					$rRows = self::cacheArray(EPG_PATH . "stream_" . $rChannelID);
 					foreach ($rRows as $rRow) {
 						if ($rTime <= $rRow["start"]) {
 							$rRow["start_timestamp"] = $rRow["start"];
@@ -1875,6 +1865,13 @@ class PortalHandler {
 		// this exact plain-text body as the cue to handshake again, while an empty
 		// reply left them stuck on an "unknown error".
 		exit('Authorization failed.');
+	}
+
+	/** @return array<mixed> */
+	private static function cacheArray(string $rPath): array {
+		$rData = @file_get_contents($rPath);
+		$rValue = is_string($rData) ? @igbinary_unserialize($rData) : null;
+		return is_array($rValue) ? $rValue : [];
 	}
 
 	/** Seconds in the period a handshake's token is made in: get_profile takes the token in that period and in the next. */
