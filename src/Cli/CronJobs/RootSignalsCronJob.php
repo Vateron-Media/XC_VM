@@ -83,7 +83,7 @@ class RootSignalsCronJob implements CommandInterface {
 		if (@file_get_contents($rPath) === $rJson || !AtomicFile::write($rPath, $rJson, 0644)) {
 			return false;
 		}
-		($rRestart ?? static fn() => shell_exec('pkill -u xc_vm -x xc_fanout 2>/dev/null'))();
+		($rRestart ?? static fn() => shell_exec("pkill -u xc_vm -f '^/home/xc_vm/bin/xc_fanout/xc_fanout -sock ' 2>/dev/null"))();
 		return true;
 	}
 
