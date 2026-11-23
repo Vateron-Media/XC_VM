@@ -31,12 +31,13 @@ class RedisConfigHardening {
 	public const DISABLED = ['CONFIG', 'DEBUG', 'SHUTDOWN', 'SLAVEOF', 'REPLICAOF', 'MIGRATE', 'MODULE'];
 
 	/**
-	 * Return $rConfig with a `rename-command <CMD> ""` line appended for each
-	 * disabled command that has no rename-command line yet.
+	 * Remove obsolete KeyDB-only threading directives and append a
+	 * `rename-command <CMD> ""` line for each disabled command not handled yet.
 	 *
 	 * @return array{0: string, 1: string[]} The config and the commands added.
 	 */
 	public static function apply(string $rConfig): array {
+		$rConfig = preg_replace('/^[ \t]*server-(?:threads|thread-affinity)[ \t]+[^\r\n]*(?:\R|$)/mi', '', $rConfig) ?? $rConfig;
 		$rAdded = [];
 		foreach (self::DISABLED as $rCommand) {
 			if (preg_match('/^[ \t]*rename-command[ \t]+' . $rCommand . '[ \t]/mi', $rConfig)) {

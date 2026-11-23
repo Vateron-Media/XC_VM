@@ -398,12 +398,9 @@ class StatusCommand implements CommandInterface {
 			$rConfig = str_replace('stop-writes-on-bgsave-error yes', 'stop-writes-on-bgsave-error no', $rConfig);
 			echo "Disabling failed write lock on Redis\n\n";
 		}
-		if (stripos($rConfig, "\nserver-threads") === false) {
-			$rWrite = true;
-			$rConfig .= "\nserver-threads 4\nserver-thread-affinity true";
-			echo "Enabling multithreading on Redis\n\n";
-		}
+		$rBeforeHardening = $rConfig;
 		[$rConfig, $rDisabled] = RedisConfigHardening::apply($rConfig);
+		$rWrite = $rWrite || $rConfig !== $rBeforeHardening;
 		if ($rDisabled !== []) {
 			$rWrite = true;
 			echo 'Disabling unused Redis admin commands (' . implode(', ', $rDisabled) . "), effective on the next Redis restart\n\n";

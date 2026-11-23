@@ -10,16 +10,20 @@ use XcVm\Infrastructure\Redis\RedisConfigHardening;
 final class RedisConfigHardeningTest extends TestCase {
 	public function testTheShippedTemplateAlreadyDisablesEveryCommand(): void {
 		$rTemplate = file_get_contents(MAIN_HOME . 'bin/redis/redis.conf');
+		$this->assertStringNotContainsString('server-threads', $rTemplate);
+		$this->assertStringNotContainsString('server-thread-affinity', $rTemplate);
 		[$rConfig, $rAdded] = RedisConfigHardening::apply($rTemplate);
 		$this->assertSame([], $rAdded);
 		$this->assertSame($rTemplate, $rConfig);
 	}
 
 	public function testAnOldConfigGetsEachCommandOnceAndKeepsWhatThePanelUses(): void {
-		$rOld = "bind *\nrequirepass secret\nsave 60 1000\nserver-threads 4";
+		$rOld = "bind *\nrequirepass secret\nsave 60 1000\nserver-threads 4\nserver-thread-affinity true\n";
 		[$rConfig, $rAdded] = RedisConfigHardening::apply($rOld);
 		$this->assertSame(RedisConfigHardening::DISABLED, $rAdded);
-		$this->assertStringStartsWith($rOld . "\nrename-command CONFIG \"\"\n", $rConfig);
+		$this->assertStringStartsWith("bind *\nrequirepass secret\nsave 60 1000\nrename-command CONFIG \"\"\n", $rConfig);
+		$this->assertStringNotContainsString('server-threads', $rConfig);
+		$this->assertStringNotContainsString('server-thread-affinity', $rConfig);
 		foreach (RedisConfigHardening::DISABLED as $rCommand) {
 			$this->assertSame(1, substr_count($rConfig, "rename-command {$rCommand} \"\"\n"));
 		}
