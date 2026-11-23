@@ -410,9 +410,11 @@ final class ArtefactHashRefusalTest extends TestCase {
 		// The binaries an older MAIN pushed: no action of root's installs them (every node takes them from GitHub).
 		foreach ([['action' => 'agent_binary', 'arch' => 'amd64', 'artefact_path' => $this->rBase . 'etc/x'], ['action' => 'fanout_binary', 'arch' => 'amd64'], ['action' => 'xcvm_core', 'group' => 'php8.3']] as $rAction) {
 			$this->assertNotContains($rAction['action'], NodeActions::ROOT_ACTIONS);
-			ob_start();
-			(new RootSignalsCronJob())->executeAction($rAction, [], $rDb);
-			ob_end_clean();
+			try {
+				(new RootSignalsCronJob())->executeAction($rAction, [], $rDb);
+				$this->fail('unknown root action accepted');
+			} catch (\InvalidArgumentException) {
+			}
 			$this->assertSame('the running agent', file_get_contents($this->rBase . 'bin/xc_agent/xc_agent'), $rAction['action']);
 		}
 
@@ -699,7 +701,7 @@ final class ArtefactHashRefusalTest extends TestCase {
 			}
 			return $rAnswer;
 		});
-		$rOut = ArtefactStage::withStaged($rStaged, fn() => $this->runAction($rAction + ['archive' => '/etc/shadow']));
+		$rOut = ArtefactStage::withStaged($rStaged, fn() => $this->runAction($rAction));
 		$this->assertStringContainsString("'radio' installed", $rOut);
 		$this->assertSame([$rArgv], $rRuns);
 		$this->assertFileDoesNotExist($rHandoff['path'], 'the xc_vm handoff is removed after the installer exits');
@@ -726,7 +728,7 @@ final class ArtefactHashRefusalTest extends TestCase {
 		// No staged archive (a signals row): report the install failure too.
 		$rAnswer = [1, 'module:install: cannot reach MAIN'];
 		try {
-			$this->runAction($rAction + ['archive' => $rStaged['path']]);
+			$this->runAction($rAction);
 			$this->fail('acked ok');
 		} catch (\RuntimeException $rE) {
 			$this->assertSame($rAnswer[1], $rE->getMessage());
