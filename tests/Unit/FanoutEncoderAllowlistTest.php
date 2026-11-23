@@ -28,4 +28,21 @@ final class FanoutEncoderAllowlistTest extends TestCase {
 			@rmdir($rBase);
 		}
 	}
+
+	public function testChangedAllowlistRestartsFanoutOnlyAfterAtomicWrite(): void {
+		$rPath = sys_get_temp_dir() . '/xcvm-fanout-allowlist-' . bin2hex(random_bytes(4)) . '.json';
+		$rRestarts = 0;
+		$rRestart = static function () use (&$rRestarts): void { $rRestarts++; };
+		try {
+			$rMethod = new ReflectionMethod(RootSignalsCronJob::class, 'syncFanoutEncoderAllowlist');
+			$rMethod->setAccessible(true);
+			$this->assertTrue($rMethod->invoke(null, $rPath, ['7.1' => '/opt/ffmpeg'], $rRestart));
+			$this->assertSame(1, $rRestarts);
+			$this->assertSame('{"7.1":"/opt/ffmpeg"}', file_get_contents($rPath));
+			$this->assertFalse($rMethod->invoke(null, $rPath, ['7.1' => '/opt/ffmpeg'], $rRestart));
+			$this->assertSame(1, $rRestarts);
+		} finally {
+			@unlink($rPath);
+		}
+	}
 }

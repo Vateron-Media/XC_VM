@@ -78,6 +78,15 @@ class RootSignalsCronJob implements CommandInterface {
 		return $rEncoders;
 	}
 
+	private static function syncFanoutEncoderAllowlist(string $rPath, array $rEncoders, ?callable $rRestart = null): bool {
+		$rJson = json_encode($rEncoders, JSON_UNESCAPED_SLASHES);
+		if (@file_get_contents($rPath) === $rJson || !AtomicFile::write($rPath, $rJson, 0644)) {
+			return false;
+		}
+		($rRestart ?? static fn() => shell_exec('pkill -u xc_vm -x xc_fanout 2>/dev/null'))();
+		return true;
+	}
+
 	public function getName(): string {
 		return 'cron:root_signals';
 	}
@@ -914,10 +923,7 @@ class RootSignalsCronJob implements CommandInterface {
 			@mkdir('/etc/xc_vm', 0755, true);
 		}
 		if (is_dir('/etc/xc_vm')) {
-			$rEncoderJson = json_encode($rEncoders, JSON_UNESCAPED_SLASHES);
-			if (@file_get_contents('/etc/xc_vm/fanout-encoders.json') !== $rEncoderJson) {
-				AtomicFile::write('/etc/xc_vm/fanout-encoders.json', $rEncoderJson, 0644);
-			}
+			self::syncFanoutEncoderAllowlist('/etc/xc_vm/fanout-encoders.json', $rEncoders);
 		}
 
 		// xc_fanout keepalive supervisor — ensure run.sh itself is alive. It is

@@ -147,6 +147,15 @@ final class FanoutConfigTest extends TestCase {
 		$this->assertFalse($this->read()['source_insecure']);
 	}
 
+	public function testTlsDefaultMigrationPreservesExistingChoice(): void {
+		$rBase = __DIR__ . '/../../src/migrations/database/';
+		$rUp = (string) file_get_contents($rBase . 'up/107_secure_fanout_tls_default.sql');
+		$rDown = (string) file_get_contents($rBase . 'down/107_secure_fanout_tls_default.sql');
+		$this->assertStringContainsString("DEFAULT '0'", $rUp);
+		$this->assertStringContainsString("DEFAULT '1'", $rDown);
+		$this->assertStringNotContainsString('UPDATE', $rUp . $rDown);
+	}
+
 	public function testIsIdempotent(): void {
 		$this->assertTrue(FanoutConfig::sync($this->baseSettings()));
 		// Nothing changed → no rewrite.
