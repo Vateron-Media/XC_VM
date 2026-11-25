@@ -5,7 +5,6 @@ namespace XcVm\Core\Module;
 /** Persistent, table-scoped module database backups. */
 final class ModuleBackup {
 	private const ID = '/^\d{14}-[a-f0-9]{16}$/D';
-	private const CHUNK = 1000;
 
 	private string $directory;
 
@@ -63,15 +62,7 @@ final class ModuleBackup {
 	/** Restore only the tables named by the verified backup. */
 	public function restore(string $id): void {
 		$entry = $this->load($id, true);
-		$statements = $this->validatedStatements($entry['_path'], $entry['tables']);
-		$creates = $inserts = [];
-		foreach ($statements as $statement) {
-			if (preg_match('/^CREATE TABLE(?: IF NOT EXISTS)? `([A-Za-z0-9_]+)`/i', $statement, $match)) {
-				$creates[$match[1]] = $statement;
-			} elseif (str_starts_with(strtoupper($statement), 'INSERT INTO ')) {
-				$inserts[] = $statement;
-			}
-		}
+		$creates = $this->validatedStatements($entry['_path'], $entry['tables']);
 		$created = [];
 		if (!$this->db->query('SET FOREIGN_KEY_CHECKS = 0;')) {
 			throw new \RuntimeException('Cannot prepare the module backup restore.');
@@ -92,6 +83,7 @@ final class ModuleBackup {
 			if (!$this->db->query($lock)) {
 				throw new \RuntimeException('Cannot lock the module tables for restore.');
 			}
+			$this->assertTransactional($entry['tables']);
 			$this->createTables($entry['tables'], [
 				'name' => (string) $entry['module_name'],
 				'title' => (string) $entry['module_title'],
@@ -103,11 +95,7 @@ final class ModuleBackup {
 					throw new \RuntimeException("Cannot clear {$table} for restore.");
 				}
 			}
-			foreach ($inserts as $statement) {
-				if (!$this->db->query($statement)) {
-					throw new \RuntimeException('Cannot restore the module backup.');
-				}
-			}
+			$this->restoreRows($entry['_path']);
 			if (!$this->db->query('COMMIT;')) {
 				throw new \RuntimeException('Cannot commit the module backup restore.');
 			}
@@ -256,19 +244,20 @@ final class ModuleBackup {
 		}
 		$this->write($out, 'DROP TABLE IF EXISTS ' . $name . ";\n");
 		$this->write($out, str_replace(["\r", "\n"], ' ', $create) . ";\n");
-		for ($offset = 0;; $offset += self::CHUNK) {
-			if (!$this->db->query('SELECT * FROM ' . $name . ' LIMIT ' . self::CHUNK . ' OFFSET ' . $offset . ';')) {
-				throw new \RuntimeException("Cannot read {$table}.");
-			}
-			$rows = $this->db->get_raw_rows();
-			foreach ($rows as $record) {
-				$columns = '`' . implode('`, `', array_map(static fn(string $column): string => str_replace('`', '``', $column), array_keys($record))) . '`';
-				$values = implode(', ', array_map(fn(mixed $value): string => $this->value($value), array_values($record)));
-				$this->write($out, 'INSERT INTO ' . $name . ' (' . $columns . ') VALUES (' . $values . ");\n");
-			}
-			if (count($rows) < self::CHUNK) {
-				break;
-			}
+		if (!$this->db->query("SELECT `column_name` FROM `information_schema`.`columns` WHERE `table_schema` = DATABASE() AND BINARY `table_name` = ? AND `extra` NOT LIKE '%GENERATED%' ORDER BY `ordinal_position`;", $table)) {
+			throw new \RuntimeException("Cannot read the columns of {$table}.");
+		}
+		$columns = array_column($this->db->get_raw_rows(), 'column_name');
+		if ($columns === [] || array_filter($columns, static fn(mixed $column): bool => !is_string($column) || !preg_match('/^[A-Za-z0-9_]+$/D', $column))) {
+			throw new \RuntimeException("Cannot read the columns of {$table}.");
+		}
+		$quotedColumns = implode(', ', array_map(fn(string $column): string => $this->quoted($column), $columns));
+		if (!$this->db->query('SELECT ' . $quotedColumns . ' FROM ' . $name . ';', true)) {
+			throw new \RuntimeException("Cannot read {$table}.");
+		}
+		while (($record = $this->db->fetch_raw_row()) !== null) {
+			$values = implode(', ', array_map(fn(string $column): string => $this->value($record[$column] ?? null), $columns));
+			$this->write($out, 'INSERT INTO ' . $name . ' (' . $quotedColumns . ') VALUES (' . $values . ");\n");
 		}
 	}
 
@@ -307,11 +296,11 @@ final class ModuleBackup {
 		return $entry;
 	}
 
-	/** @param string[] $tables @return string[] */
+	/** @param string[] $tables @return array<string,string> */
 	private function validatedStatements(string $file, array $tables): array {
 		$allowed = array_fill_keys($tables, true);
 		$seen = [];
-		$out = [];
+		$creates = [];
 		$in = fopen($file, 'rb');
 		if ($in === false) {
 			throw new \RuntimeException('Cannot open the module backup.');
@@ -327,7 +316,9 @@ final class ModuleBackup {
 					throw new \RuntimeException('Module backup contains an unexpected statement.');
 				}
 				$seen[$match[1]][strtoupper(strtok($line, ' '))] = true;
-				$out[] = $line;
+				if (str_starts_with(strtoupper($line), 'CREATE TABLE')) {
+					$creates[$match[1]] = $line;
+				}
 			}
 		} finally {
 			fclose($in);
@@ -337,7 +328,38 @@ final class ModuleBackup {
 				throw new \RuntimeException('Module backup is incomplete.');
 			}
 		}
-		return $out;
+		return $creates;
+	}
+
+	/** Execute the already validated data statements without retaining the dump in memory. */
+	private function restoreRows(string $file): void {
+		$in = fopen($file, 'rb');
+		if ($in === false) {
+			throw new \RuntimeException('Cannot open the module backup.');
+		}
+		try {
+			while (($line = fgets($in)) !== false) {
+				$line = trim($line);
+				if (str_starts_with(strtoupper($line), 'INSERT INTO ') && !$this->db->query($line)) {
+					throw new \RuntimeException('Cannot restore the module backup.');
+				}
+			}
+		} finally {
+			fclose($in);
+		}
+	}
+
+	/** @param string[] $tables */
+	private function assertTransactional(array $tables): void {
+		foreach ($tables as $table) {
+			if (!$this->db->query('SELECT `engine` FROM `information_schema`.`tables` WHERE `table_schema` = DATABASE() AND BINARY `table_name` = ?;', $table)) {
+				throw new \RuntimeException('Cannot determine the module table engines.');
+			}
+			$row = $this->db->get_raw_row();
+			if (strtoupper((string) ($row['engine'] ?? '')) !== 'INNODB') {
+				throw new \RuntimeException("Cannot safely restore non-transactional table {$table}.");
+			}
+		}
 	}
 
 	/** @param array<string,mixed> $entry */

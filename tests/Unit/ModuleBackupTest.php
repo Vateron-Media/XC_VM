@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use XcVm\Core\Database\Database;
 use XcVm\Core\Module\ModuleBackup;
 use XcVm\Core\Module\ModuleMigrator;
 
@@ -38,6 +39,34 @@ final class ModuleBackupTest extends TestCase {
 		$this->assertStringContainsString("  <kept>\\n\0  ", $sql, 'raw module values are not trimmed or HTML-escaped');
 		$this->assertStringNotContainsString('core_users', $sql);
 		$this->assertSame([true, ['demo_rows']], [$backup->list()[0]['verified'], $backup->list()[0]['tables']]);
+	}
+
+	public function testCreateStreamsRowsWithoutOffsetAndOmitsGeneratedColumns(): void {
+		file_put_contents($this->module . '/database_drop.sql', 'DROP TABLE `demo_rows`;');
+		$rows = [];
+		for ($id = 1; $id <= 1001; $id++) {
+			$rows[] = ['id' => (string) $id, 'value' => 'v' . $id, 'total' => (string) ($id * 2)];
+		}
+		$db = new ModuleBackupDb(['demo_rows' => $rows], generated: ['demo_rows' => ['total']]);
+		$entry = (new ModuleBackup($db, $this->root . '/Modules'))->create($this->module, $this->metadata());
+
+		$sql = file_get_contents($this->root . '/module_backups/' . $entry['id'] . '.sql');
+		$this->assertSame(1001, substr_count($sql, 'INSERT INTO `demo_rows`'));
+		$this->assertStringNotContainsString('`total`', $sql);
+		$this->assertNotEmpty(array_filter($db->executed, static fn(string $query): bool => $query === 'SELECT `id`, `value` FROM `demo_rows`;'));
+		$this->assertEmpty(array_filter($db->executed, static fn(string $query): bool => str_contains($query, ' OFFSET ')));
+	}
+
+	public function testDatabaseUnbufferedQueryDoesNotBindCursorFlagAndFetchesOneRowAtATime(): void {
+		$db = (new ReflectionClass(Database::class))->newInstanceWithoutConstructor();
+		$db->dbh = $pdo = new ModuleBackupPdo([['id' => 1], ['id' => 2]]);
+
+		$this->assertTrue($db->query('SELECT `id` FROM `demo_rows`;', true));
+		$this->assertSame([], $pdo->statement->parameters);
+		$this->assertSame(['id' => 1], $db->fetch_raw_row());
+		$this->assertSame(['id' => 2], $db->fetch_raw_row());
+		$this->assertNull($db->fetch_raw_row());
+		$this->assertSame([false, true], array_column($pdo->attributes, 1));
 	}
 
 	public function testOwnedTablesComeOnlyFromTheTeardownContract(): void {
@@ -121,6 +150,26 @@ final class ModuleBackupTest extends TestCase {
 		$this->assertLessThan($lockAt, $createAt);
 	}
 
+	public function testRestoreRejectsNonTransactionalTableBeforeDeletingCurrentData(): void {
+		file_put_contents($this->module . '/database_drop.sql', 'DROP TABLE `demo_rows`;');
+		$db = new ModuleBackupDb(['demo_rows' => [['id' => '1', 'value' => 'saved']]]);
+		$backup = new ModuleBackup($db, $this->root . '/Modules');
+		$entry = $backup->create($this->module, $this->metadata());
+		$db->tables['demo_rows'] = [['id' => '2', 'value' => 'current']];
+		$db->engines['demo_rows'] = 'MyISAM';
+		$db->executed = [];
+
+		try {
+			$backup->restore($entry['id']);
+			$this->fail('non-transactional table was replaced');
+		} catch (\RuntimeException $error) {
+			$this->assertStringContainsString('non-transactional', $error->getMessage());
+		}
+		$this->assertSame([['id' => '2', 'value' => 'current']], $db->tables['demo_rows']);
+		$this->assertEmpty(array_filter($db->executed, static fn(string $sql): bool => str_starts_with($sql, 'DELETE FROM')));
+		$this->assertEmpty(array_filter($db->executed, static fn(string $sql): bool => str_starts_with($sql, 'INSERT INTO')));
+	}
+
 	public function testIdentifiersSymlinksDownloadAndDeleteAreBoundToTheBackupDirectory(): void {
 		file_put_contents($this->module . '/database_drop.sql', 'DROP TABLE `demo_rows`;');
 		$backup = new ModuleBackup(new ModuleBackupDb(['demo_rows' => []]), $this->root . '/Modules');
@@ -186,16 +235,35 @@ final class ModuleBackupDb {
 	/** @var string[] */
 	public array $executed = [];
 	public string $failOn = '';
+	/** @var array<string,string> */
+	public array $engines = [];
+	/** @var array<string,string[]> */
+	private array $generated;
 	private array $result = [];
 
-	public function __construct(array $tables) {
+	public function __construct(array $tables, array $generated = []) {
 		$this->tables = $tables;
+		$this->generated = $generated;
 	}
 
 	public function query(string $sql, mixed ...$args): bool {
 		$this->executed[] = $sql;
 		if ($this->failOn !== '' && str_contains($sql, $this->failOn)) {
 			return false;
+		}
+		if (str_contains($sql, '`information_schema`.`columns`')) {
+			$table = (string) ($args[0] ?? '');
+			$columns = array_keys($this->tables[$table][0] ?? ['id' => null, 'value' => null]);
+			$this->result = array_map(
+				static fn(string $column): array => ['column_name' => $column],
+				array_values(array_diff($columns, $this->generated[$table] ?? []))
+			);
+			return true;
+		}
+		if (str_contains($sql, 'SELECT `engine` FROM `information_schema`.`tables`')) {
+			$table = (string) ($args[0] ?? '');
+			$this->result = isset($this->tables[$table]) ? [['engine' => $this->engines[$table] ?? 'InnoDB']] : [];
+			return true;
 		}
 		if (str_contains($sql, 'information_schema')) {
 			$table = (string) ($args[0] ?? '');
@@ -208,8 +276,12 @@ final class ModuleBackupDb {
 				: [];
 			return $this->result !== [];
 		}
-		if (preg_match('/^SELECT \* FROM `([^`]+)` LIMIT (\d+) OFFSET (\d+)/', $sql, $match)) {
-			$this->result = array_slice($this->tables[$match[1]] ?? [], (int) $match[3], (int) $match[2]);
+		if (preg_match('/^SELECT (.+) FROM `([^`]+)`;$/', $sql, $match)) {
+			preg_match_all('/`([^`]+)`/', $match[1], $columns);
+			$this->result = array_map(
+				static fn(array $row): array => array_intersect_key($row, array_flip($columns[1])),
+				$this->tables[$match[2]] ?? []
+			);
 			return true;
 		}
 		if (preg_match('/^DROP TABLE IF EXISTS `([^`]+)`/', $sql, $match)) {
@@ -231,6 +303,10 @@ final class ModuleBackupDb {
 		return $this->result[0] ?? null;
 	}
 
+	public function fetch_raw_row(): ?array {
+		return array_shift($this->result);
+	}
+
 	public function get_rows(): array {
 		return $this->result;
 	}
@@ -245,5 +321,38 @@ final class ModuleBackupDb {
 
 	public function escape(string $value): string {
 		return "'" . str_replace(["\\", "'", "\n", "\r"], ["\\\\", "\\'", "\\n", "\\r"], $value) . "'";
+	}
+}
+
+final class ModuleBackupPdo {
+	public ModuleBackupPdoStatement $statement;
+	public array $attributes = [];
+
+	public function __construct(array $rows) {
+		$this->statement = new ModuleBackupPdoStatement($rows);
+	}
+
+	public function setAttribute(int $attribute, mixed $value): void {
+		$this->attributes[] = [$attribute, $value];
+	}
+
+	public function prepare(string $query): ModuleBackupPdoStatement {
+		return $this->statement;
+	}
+}
+
+final class ModuleBackupPdoStatement {
+	public array $parameters = [];
+
+	public function __construct(private array $rows) {
+	}
+
+	public function execute(array $parameters): bool {
+		$this->parameters = $parameters;
+		return true;
+	}
+
+	public function fetch(int $mode): array|false {
+		return array_shift($this->rows) ?? false;
 	}
 }

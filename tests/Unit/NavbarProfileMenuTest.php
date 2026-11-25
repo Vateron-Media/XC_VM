@@ -139,6 +139,7 @@ final class NavbarProfileMenuTest extends TestCase {
         $this->assertSame('report_issue', $byKey['profile.report_issue']->url);
         $this->assertSame(['database'], $byKey['profile.backups']->permissions);
         $this->assertSame(['database'], $byKey['profile.module_backups']->permissions);
+        $this->assertSame('module_backups', $byKey['profile.module_backups']->translationKey);
         $this->assertSame(['database'], $byKey['profile.cache']->permissions);
     }
 

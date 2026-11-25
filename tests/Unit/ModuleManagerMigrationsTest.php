@@ -33,12 +33,14 @@ class FakeModuleDb {
         if ($this->failOn !== '' && strpos($sql, $this->failOn) !== false) {
             return false;
         }
-        if (str_contains($sql, 'information_schema')) {
+        if (str_contains($sql, '`information_schema`.`columns`')) {
+            $this->result = [['column_name' => 'id']];
+        } elseif (str_contains($sql, 'information_schema')) {
             $table = (string) ($args[0] ?? '');
             $this->result = isset($this->tables[$table]) ? [['table_name' => $table]] : [];
         } elseif (preg_match('/^SHOW CREATE TABLE `([^`]+)`/', $sql, $match)) {
             $this->result = [['Table' => $match[1], 'Create Table' => 'CREATE TABLE `' . $match[1] . '` (`id` int)']];
-        } elseif (preg_match('/^SELECT \* FROM `([^`]+)`/', $sql, $match)) {
+        } elseif (preg_match('/^SELECT `id` FROM `([^`]+)`/', $sql, $match)) {
             $this->result = $this->tables[$match[1]] ?? [];
         } else {
             $this->result = [];
@@ -51,6 +53,7 @@ class FakeModuleDb {
     public function get_rows(): array { return $this->result; }
     public function get_raw_row(): ?array { return $this->result[0] ?? null; }
     public function get_raw_rows(): array { return $this->result; }
+    public function fetch_raw_row(): ?array { return array_shift($this->result); }
     public function escape(string $value): string { return "'" . addslashes($value) . "'"; }
 }
 

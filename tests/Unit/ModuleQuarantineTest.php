@@ -152,9 +152,10 @@ final class ModuleQuarantineTest extends TestCase {
 			public function query(string $sql, mixed ...$args): bool {
 				$this->statements[] = rtrim($sql, ';');
 				$this->result = match (true) {
+					str_contains($sql, '`information_schema`.`columns`') => [['column_name' => 'id']],
 					str_contains($sql, 'information_schema') => [['table_name' => 'qbill_orders']],
 					str_starts_with($sql, 'SHOW CREATE TABLE') => [['Table' => 'qbill_orders', 'Create Table' => 'CREATE TABLE `qbill_orders` (`id` int)']],
-					str_starts_with($sql, 'SELECT * FROM') => [['id' => 1]],
+					str_starts_with($sql, 'SELECT `id` FROM') => [['id' => 1]],
 					default => [],
 				};
 				return true;
@@ -164,6 +165,7 @@ final class ModuleQuarantineTest extends TestCase {
 			public function get_rows(): array { return $this->result; }
 			public function get_raw_row(): ?array { return $this->result[0] ?? null; }
 			public function get_raw_rows(): array { return $this->result; }
+			public function fetch_raw_row(): ?array { return array_shift($this->result); }
 			public function escape(string $value): string { return "'" . addslashes($value) . "'"; }
         };
         $container = ServiceContainer::getInstance();

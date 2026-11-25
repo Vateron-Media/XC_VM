@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Module\ModuleBackup;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
@@ -14,7 +15,7 @@ final class ModuleBackupsController extends BaseAdminController {
 			http_response_code(503);
 			exit;
 		}
-		$this->setTitle('Module Backups');
+		$this->setTitle(Translator::get('module_backups'));
 		$this->render('module_backups', ['backups' => (new ModuleBackup($db, MAIN_HOME . 'Modules'))->list()]);
 	}
 }
