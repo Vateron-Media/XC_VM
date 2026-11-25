@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-	<link rel="stylesheet" href="/admin/assets/vendor/css/bootstrap.css">
+	<link rel="stylesheet" href="/assets/admin/vendor/css/bootstrap.css">
 	<link rel="stylesheet" href="css/default-skin.css">
 	<link rel="stylesheet" href="css/main.css">
 	<link rel="shortcut icon" href="img/favicon.ico">
@@ -40,7 +40,7 @@ echo SettingsManager::get('server_name'); ?></title>
 			</div>
 		</div>
 	</div>
-	<script src="/admin/assets/vendor/libs/jquery/jquery.js"></script>
-	<script src="/admin/assets/vendor/js/bootstrap.js"></script>
+	<script src="/assets/admin/vendor/libs/jquery/jquery.js"></script>
+	<script src="/assets/admin/vendor/js/bootstrap.js"></script>
 </body>
 </html>

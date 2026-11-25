@@ -87,6 +87,18 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 		$this->assertMatchesRegularExpression('/^\s*limit_req_zone \$binary_remote_addr zone=one:\d+m rate=\d+r\/s;\r?$/m', $rNginx);
 	}
 
+	public function testSharedAdminAssetsDoNotDependOnTheAdminAccessCode(): void {
+		$rNginx = (string) file_get_contents(MAIN_HOME . 'bin/nginx/conf/nginx.conf');
+		$this->assertStringContainsString('location ^~ /assets/admin/ {', $rNginx);
+		$this->assertStringContainsString('alias /home/xc_vm/Public/assets/admin/;', $rNginx);
+
+		foreach (['Public/Views/player/login.php', 'Public/Views/layouts/player/header.php', 'Public/Views/layouts/player/footer.php'] as $rFile) {
+			$rSource = (string) file_get_contents(MAIN_HOME . $rFile);
+			$this->assertStringNotContainsString('/admin/assets/', $rSource, $rFile);
+			$this->assertStringContainsString('/assets/admin/', $rSource, $rFile);
+		}
+	}
+
 	public function testEveryGeneratedCodeFileLimitsItsSignInAndResizerAtTheTypesBurst(): void {
 		foreach ($this->generate(self::template()) as $rCode => $rConf) {
 			$rName = strlen($rCode) >= 4 ? $rCode : $rCode . '/';
@@ -132,6 +144,16 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 			$this->assertDoesNotMatchRegularExpression('/#[A-Z]+#/', $rConf, $rCode . ': a placeholder is left');
 			$this->assertSame(1, substr_count(self::location($rConf, '~ /(login|resize)$'), 'limit_req zone=panel burst=' . $rBurst . ' nodelay;'), $rCode);
 			$this->assertSame(2, substr_count($rConf, 'limit_req'), $rCode);
+		}
+	}
+
+	public function testAnInstalledTemplateWithTheOldLowercasePublicPathIsRepaired(): void {
+		$rInstalled = str_replace('/home/xc_vm/Public/', '/home/xc_vm/public/', self::template());
+		$this->assertStringContainsString('/home/xc_vm/public/', $rInstalled);
+
+		foreach ($this->generate($rInstalled) as $rCode => $rConf) {
+			$this->assertStringNotContainsString('/home/xc_vm/public/', $rConf, $rCode);
+			$this->assertStringContainsString('/home/xc_vm/Public/', $rConf, $rCode);
 		}
 	}
 

@@ -138,6 +138,7 @@ class AuthRepository {
 	public static function updateCodes() {
 		$rMainHome = MAIN_HOME;
 		$rTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template');
+		$rTemplate = str_replace('/home/xc_vm/public/', '/home/xc_vm/Public/', $rTemplate);
 		// An update keeps the installed bin/nginx/conf/codes, the template with
 		// it: one from before the sign-in and the resizer were limited gets
 		// their location here.
@@ -149,6 +150,7 @@ class AuthRepository {
 		// update's own nginx -t fallback) has only the zone the streams use.
 		$rZone = str_contains((string) @file_get_contents($rMainHome . 'bin/nginx/conf/nginx.conf'), 'zone=panel:') ? 'panel' : 'one';
 		$rMinistraTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template_ministra');
+		$rMinistraTemplate = str_replace('/home/xc_vm/public/', '/home/xc_vm/Public/', $rMinistraTemplate);
 		shell_exec('rm -f ' . $rMainHome . 'bin/nginx/conf/codes/*.conf');
 
 		foreach (self::getAllCodes() as $rCode) {
