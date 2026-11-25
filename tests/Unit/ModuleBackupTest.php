@@ -41,19 +41,24 @@ final class ModuleBackupTest extends TestCase {
 		$this->assertSame([true, ['demo_rows']], [$backup->list()[0]['verified'], $backup->list()[0]['tables']]);
 	}
 
-	public function testCreateStreamsRowsWithoutOffsetAndOmitsGeneratedColumns(): void {
+	public function testCreateStreamsRowsWithoutOffsetAndOmitsOnlyActuallyGeneratedColumns(): void {
 		file_put_contents($this->module . '/database_drop.sql', 'DROP TABLE `demo_rows`;');
 		$rows = [];
 		for ($id = 1; $id <= 1001; $id++) {
-			$rows[] = ['id' => (string) $id, 'value' => 'v' . $id, 'total' => (string) ($id * 2)];
+			$rows[] = ['id' => (string) $id, 'order-id' => 'v' . $id, 'line`item' => 'safe', 'created-at' => '2026-11-25', 'total' => (string) ($id * 2)];
 		}
-		$db = new ModuleBackupDb(['demo_rows' => $rows], generated: ['demo_rows' => ['total']]);
+		$db = new ModuleBackupDb(
+			['demo_rows' => $rows],
+			generated: ['demo_rows' => ['total']],
+			defaultGenerated: ['demo_rows' => ['created-at']]
+		);
 		$entry = (new ModuleBackup($db, $this->root . '/Modules'))->create($this->module, $this->metadata());
 
 		$sql = file_get_contents($this->root . '/module_backups/' . $entry['id'] . '.sql');
 		$this->assertSame(1001, substr_count($sql, 'INSERT INTO `demo_rows`'));
 		$this->assertStringNotContainsString('`total`', $sql);
-		$this->assertNotEmpty(array_filter($db->executed, static fn(string $query): bool => $query === 'SELECT `id`, `value` FROM `demo_rows`;'));
+		$this->assertStringContainsString("'2026-11-25'", $sql, 'expression-default values must be preserved');
+		$this->assertNotEmpty(array_filter($db->executed, static fn(string $query): bool => $query === 'SELECT `id`, `order-id`, `line``item`, `created-at` FROM `demo_rows`;'));
 		$this->assertEmpty(array_filter($db->executed, static fn(string $query): bool => str_contains($query, ' OFFSET ')));
 	}
 
@@ -239,11 +244,14 @@ final class ModuleBackupDb {
 	public array $engines = [];
 	/** @var array<string,string[]> */
 	private array $generated;
+	/** @var array<string,string[]> */
+	private array $defaultGenerated;
 	private array $result = [];
 
-	public function __construct(array $tables, array $generated = []) {
+	public function __construct(array $tables, array $generated = [], array $defaultGenerated = []) {
 		$this->tables = $tables;
 		$this->generated = $generated;
+		$this->defaultGenerated = $defaultGenerated;
 	}
 
 	public function query(string $sql, mixed ...$args): bool {
@@ -254,9 +262,12 @@ final class ModuleBackupDb {
 		if (str_contains($sql, '`information_schema`.`columns`')) {
 			$table = (string) ($args[0] ?? '');
 			$columns = array_keys($this->tables[$table][0] ?? ['id' => null, 'value' => null]);
+			$excluded = str_contains($sql, '`generation_expression`')
+				? ($this->generated[$table] ?? [])
+				: array_merge($this->generated[$table] ?? [], $this->defaultGenerated[$table] ?? []);
 			$this->result = array_map(
 				static fn(string $column): array => ['column_name' => $column],
-				array_values(array_diff($columns, $this->generated[$table] ?? []))
+				array_values(array_diff($columns, $excluded))
 			);
 			return true;
 		}
@@ -277,7 +288,8 @@ final class ModuleBackupDb {
 			return $this->result !== [];
 		}
 		if (preg_match('/^SELECT (.+) FROM `([^`]+)`;$/', $sql, $match)) {
-			preg_match_all('/`([^`]+)`/', $match[1], $columns);
+			preg_match_all('/`((?:``|[^`])+)`/', $match[1], $columns);
+			$columns[1] = array_map(static fn(string $column): string => str_replace('``', '`', $column), $columns[1]);
 			$this->result = array_map(
 				static fn(array $row): array => array_intersect_key($row, array_flip($columns[1])),
 				$this->tables[$match[2]] ?? []

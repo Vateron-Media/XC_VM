@@ -244,11 +244,11 @@ final class ModuleBackup {
 		}
 		$this->write($out, 'DROP TABLE IF EXISTS ' . $name . ";\n");
 		$this->write($out, str_replace(["\r", "\n"], ' ', $create) . ";\n");
-		if (!$this->db->query("SELECT `column_name` FROM `information_schema`.`columns` WHERE `table_schema` = DATABASE() AND BINARY `table_name` = ? AND `extra` NOT LIKE '%GENERATED%' ORDER BY `ordinal_position`;", $table)) {
+		if (!$this->db->query("SELECT `column_name` FROM `information_schema`.`columns` WHERE `table_schema` = DATABASE() AND BINARY `table_name` = ? AND COALESCE(`generation_expression`, '') = '' ORDER BY `ordinal_position`;", $table)) {
 			throw new \RuntimeException("Cannot read the columns of {$table}.");
 		}
 		$columns = array_column($this->db->get_raw_rows(), 'column_name');
-		if ($columns === [] || array_filter($columns, static fn(mixed $column): bool => !is_string($column) || !preg_match('/^[A-Za-z0-9_]+$/D', $column))) {
+		if ($columns === [] || array_filter($columns, static fn(mixed $column): bool => !is_string($column))) {
 			throw new \RuntimeException("Cannot read the columns of {$table}.");
 		}
 		$quotedColumns = implode(', ', array_map(fn(string $column): string => $this->quoted($column), $columns));
@@ -389,10 +389,7 @@ final class ModuleBackup {
 	}
 
 	private function quoted(string $table): string {
-		if (!preg_match('/^[A-Za-z0-9_]+$/D', $table)) {
-			throw new \RuntimeException('Invalid module table name.');
-		}
-		return '`' . $table . '`';
+		return '`' . str_replace('`', '``', $table) . '`';
 	}
 
 	private function value(mixed $value): string {
