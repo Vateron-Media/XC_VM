@@ -1,4 +1,4 @@
-name: Add to project board
+name: Project - Add new items
 
 # Auto-adds newly opened issues and pull requests to the org Kanban board
 # (https://github.com/orgs/Vateron-Media/projects/5) so nothing skips triage.

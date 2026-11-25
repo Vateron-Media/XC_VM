@@ -1,4 +1,4 @@
-name: Board labels
+name: Project - Sync labels and status
 
 # Keeps issue labels in step with the XC_VM board
 # (https://github.com/orgs/Vateron-Media/projects/5); the board's Status is the

@@ -1,4 +1,4 @@
-name: Build Dev (nightly)
+name: Build - Dev nightly
 
 # Nightly panel builds for the 'dev' update channel. Builds are published to the
 # releases-only repository XC_VM_Dev, not to this repository: frequent releases

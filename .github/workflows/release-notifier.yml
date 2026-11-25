@@ -1,4 +1,4 @@
-name: Release Notifier
+name: Release - Notify Telegram
 
 on:
   workflow_call:
