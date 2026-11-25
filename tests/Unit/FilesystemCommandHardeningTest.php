@@ -72,6 +72,54 @@ PY;
 		$this->assertMatchesRegularExpression('/except Exception.*if rPostUpdateFailed:.*service remains stopped/s', $rUpdate);
 	}
 
+	public function testUpdaterCleansDetachedProcessesAndRejectsFailedStart(): void {
+		$rDriver = <<<'PY'
+import importlib.machinery, importlib.util, json, sys
+loader = importlib.machinery.SourceFileLoader("xc_update", sys.argv[1])
+update = importlib.util.module_from_spec(importlib.util.spec_from_loader("xc_update", loader))
+loader.exec_module(update)
+calls = []
+statuses = iter((0, 0, 0, 1))
+def stopped(command):
+    calls.append(command)
+    return next(statuses)
+update.os.system = stopped
+update.stop_service()
+start_calls = []
+start_statuses = iter((0, 1))
+def failed_start(command):
+    start_calls.append(command)
+    return next(start_statuses)
+update.os.system = failed_start
+update.time.sleep = lambda seconds: None
+try:
+    update.start_service()
+    rejected = False
+except RuntimeError:
+    rejected = True
+print(json.dumps({"calls": calls, "start_calls": start_calls, "rejected": rejected}))
+PY;
+		$rFile = tempnam(sys_get_temp_dir(), 'xc-update-service-');
+		file_put_contents($rFile, $rDriver);
+		$rUpdate = dirname(__DIR__, 2) . '/src/update';
+		exec('python3 -B ' . escapeshellarg($rFile) . ' ' . escapeshellarg($rUpdate), $rOutput, $rCode);
+		@unlink($rFile);
+		$this->assertSame(0, $rCode, implode("\n", $rOutput));
+		$this->assertSame([
+			'calls' => [
+				'sudo systemctl stop xc_vm',
+				'pgrep -u xc_vm >/dev/null 2>&1',
+				'sudo /bin/bash "' . dirname($rUpdate) . '/service" stop',
+				'pgrep -u xc_vm >/dev/null 2>&1',
+			],
+			'start_calls' => [
+				'sudo systemctl start xc_vm',
+				'sudo systemctl is-active --quiet xc_vm',
+			],
+			'rejected' => true,
+		], json_decode(implode("\n", $rOutput), true));
+	}
+
 	public function testMalformedPortalCacheFailsClosed(): void {
 		if (!function_exists('igbinary_unserialize')) {
 			$this->markTestSkipped('igbinary is not installed');

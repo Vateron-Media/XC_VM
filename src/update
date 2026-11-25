@@ -85,6 +85,24 @@ def extract_archive(rFilename, rDestination):
         archive.extractall(root, members=members)
 
 
+def stop_service():
+    if os.system("sudo systemctl stop xc_vm") != 0:
+        raise RuntimeError("stopping xc_vm service failed")
+    if os.system("pgrep -u xc_vm >/dev/null 2>&1") == 0:
+        if os.system('sudo /bin/bash "%sservice" stop' % rBaseDir) != 0:
+            raise RuntimeError("stopping detached xc_vm processes failed")
+    if os.system("pgrep -u xc_vm >/dev/null 2>&1") == 0:
+        raise RuntimeError("xc_vm processes are still running after stop")
+
+
+def start_service():
+    if os.system("sudo systemctl start xc_vm") != 0:
+        raise RuntimeError("starting xc_vm service failed")
+    time.sleep(1)
+    if os.system("sudo systemctl is-active --quiet xc_vm") != 0:
+        raise RuntimeError("xc_vm service did not remain active after start")
+
+
 def doUpdate(rFilename):
     import tempfile
 
@@ -95,10 +113,11 @@ def doUpdate(rFilename):
     log_msg("INFO", "Temporary directory created: %s" % rTmpDir)
     rCopying = False
     rPostUpdateFailed = False
+    rStartAttempted = False
 
     try:
         log_msg("INFO", "Stopping xc_vm service...")
-        os.system("sudo systemctl stop xc_vm")
+        stop_service()
 
         log_msg("INFO", "Extracting archive...")
         extract_archive(rFilename, rTmpDir)
@@ -162,7 +181,8 @@ def doUpdate(rFilename):
             raise RuntimeError("post-update failed; service remains stopped")
 
         log_msg("INFO", "Starting xc_vm service...")
-        os.system("sudo systemctl start xc_vm")
+        rStartAttempted = True
+        start_service()
 
         log_msg("INFO", "System update completed successfully")
     except Exception as e:
@@ -177,9 +197,9 @@ def doUpdate(rFilename):
         # A partly copied one stays "updating" in the panel, which is what it is.
         if rPostUpdateFailed:
             log_msg("ERROR", "xc_vm service remains stopped after post-update failure")
-        else:
+        elif not rStartAttempted:
             log_msg("INFO", "Starting xc_vm service...")
-            os.system("sudo systemctl start xc_vm")
+            start_service()
     finally:
         log_msg("INFO", "Cleaning up temporary files...")
         os.system('sudo rm -rf "%s"' % rTmpDir)
