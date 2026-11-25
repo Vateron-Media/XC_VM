@@ -4,6 +4,7 @@ use PHPUnit\Framework\TestCase;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Exception\Module\ModuleException;
 use XcVm\Core\Module\ModuleManager;
+use XcVm\Core\Module\ModuleBackup;
 use XcVm\Core\Module\ModuleQuarantine;
 
 final class ModuleQuarantineTest extends TestCase {
@@ -11,12 +12,12 @@ final class ModuleQuarantineTest extends TestCase {
     private string $root;
 
     protected function setUp(): void {
-        $this->root = sys_get_temp_dir() . '/xc_vm_quarantine_' . bin2hex(random_bytes(6));
+        $this->root = sys_get_temp_dir() . '/xc_vm_quarantine_' . bin2hex(random_bytes(6)) . '/Modules';
         mkdir($this->root, 0775, true);
     }
 
     protected function tearDown(): void {
-        exec('rm -rf ' . escapeshellarg($this->root));
+        exec('rm -rf ' . escapeshellarg(dirname($this->root)));
     }
 
     // ── recordFatal(): which errors quarantine which module ──────────────
@@ -147,7 +148,23 @@ final class ModuleQuarantineTest extends TestCase {
 
         $db = new class {
             public array $statements = [];
-            public function query(string $sql): bool { $this->statements[] = rtrim($sql, ';'); return true; }
+			private array $result = [];
+			public function query(string $sql, mixed ...$args): bool {
+				$this->statements[] = rtrim($sql, ';');
+				$this->result = match (true) {
+					str_contains($sql, 'information_schema') => [['table_name' => 'qbill_orders']],
+					str_starts_with($sql, 'SHOW CREATE TABLE') => [['Table' => 'qbill_orders', 'Create Table' => 'CREATE TABLE `qbill_orders` (`id` int)']],
+					str_starts_with($sql, 'SELECT * FROM') => [['id' => 1]],
+					default => [],
+				};
+				return true;
+			}
+			public function num_rows(): int { return count($this->result); }
+			public function get_row(): array|false { return $this->result[0] ?? false; }
+			public function get_rows(): array { return $this->result; }
+			public function get_raw_row(): ?array { return $this->result[0] ?? null; }
+			public function get_raw_rows(): array { return $this->result; }
+			public function escape(string $value): string { return "'" . addslashes($value) . "'"; }
         };
         $container = ServiceContainer::getInstance();
         $container->set('db', $db);
@@ -156,7 +173,8 @@ final class ModuleQuarantineTest extends TestCase {
             $manager->uninstallModule('qbill');
 
             $this->assertFileDoesNotExist($dir . '/required', 'the module code was never required');
-            $this->assertSame(['DROP TABLE IF EXISTS `qbill_orders`'], $db->statements);
+			$this->assertContains('DROP TABLE IF EXISTS `qbill_orders`', $db->statements);
+			$this->assertCount(1, (new ModuleBackup($db, $this->root))->list(), 'quarantined teardown was backed up first');
 
             $this->expectException(ModuleException::class);
             $this->expectExceptionMessage('quarantined');

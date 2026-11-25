@@ -2,6 +2,7 @@
 
 namespace XcVm\Core\Module;
 
+use XcVm\Core\Audit\AdminAudit;
 use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Config\SettingsManager;
@@ -877,6 +878,31 @@ class ModuleManager {
 	public function uninstallModule(string $name): void {
 		$name = $this->sanitizeModuleName($name);
 		$this->assertNoInstalledDependents($name, 'uninstall');
+		$modulePath = $this->modulePathFor($name);
+		$manifest = $this->readModuleManifest($name);
+		$db = $this->getDb() ?? DatabaseFactory::get();
+		try {
+			$tables = ModuleMigrator::ownedTables($modulePath);
+			if ($tables !== []) {
+				if ($db === null) {
+					throw new \RuntimeException("Cannot back up '{$name}' before uninstall: database unavailable.");
+				}
+				$backup = (new ModuleBackup($db, $this->modulesPath))->create($modulePath, [
+					'name' => $name,
+					'title' => self::titleFrom($manifest, $name),
+					'hash_id' => (string) ($manifest['hash_id'] ?? ''),
+					'version' => (string) (($this->readOverrides()[$name]['installed_version'] ?? '') ?: ($manifest['version'] ?? '')),
+				]);
+				if ($backup !== null) {
+					AdminAudit::record('module_backup_create', true, ['name' => $name, 'id' => $backup['id'], 'tables' => $backup['tables']], $db);
+				}
+			}
+		} catch (\Throwable $error) {
+			if ($db !== null) {
+				AdminAudit::record('module_backup_create', false, ['name' => $name], $db);
+			}
+			throw new \RuntimeException("Cannot back up '{$name}' before uninstall: " . $error->getMessage(), 0, $error);
+		}
 
 		// A quarantined module's code cannot run (requiring it is the fatal that
 		// quarantined it), so its uninstall() hook is skipped; its schema still
@@ -894,9 +920,8 @@ class ModuleManager {
 		// half-deleted data, so mark it Failed and let the admin see it.
 		try {
 			$module?->uninstall();
-			$db = $this->getDb() ?? DatabaseFactory::get();
 			if ($db !== null) {
-				ModuleMigrator::uninstall($this->modulePathFor($name), $db);
+				ModuleMigrator::uninstall($modulePath, $db);
 			}
 		} catch (\Throwable $e) {
 			$this->setState($name, ModuleState::Failed);

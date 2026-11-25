@@ -340,6 +340,7 @@ class PageAuthorization {
 				return Authorization::check('adv', 'settings');
 
 			case 'backups':
+			case 'module_backups':
 			case 'cache':
 			case 'setup':
 				return Authorization::check('adv', 'database');

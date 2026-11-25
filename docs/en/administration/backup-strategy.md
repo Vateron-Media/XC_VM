@@ -3,6 +3,12 @@
 XC_VM supports automated and manual database backups with local storage, optional Dropbox upload and [off-site copies](operations.md#off-site-backups) to S3-compatible storage or SFTP.
 Backups are managed through the admin panel, CLI commands, and a cron job.
 
+## Module backups
+
+Before uninstalling or fully deleting a module, XC_VM saves the schema and data of the tables named by that module's `database_drop.sql` in `MAIN_HOME/module_backups/`. If a required dump cannot be verified, removal stops before module code or teardown SQL runs. Modules without existing owned tables create no empty backup.
+
+Database administrators can list, inspect, download, restore, and delete these files from **Module Backups**. They are retained until explicitly deleted. Restore verifies the checksum, locks the affected tables, first saves their current state as a safety backup, recreates missing tables from the saved schema, and replaces data in existing tables without downgrading their current schema. Tables outside the recorded module table list are never changed. Files use restrictive permissions and are separate from full database backups and the transient `.module_backups` module-file rollback directory.
+
 ---
 
 ## What Gets Backed Up
