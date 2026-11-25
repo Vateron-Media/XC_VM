@@ -187,11 +187,36 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DEV_RELEASE_TOKEN }}
         run: |
-          gh release create "$VERSION" dist/* \
-            -R "${DEV_OWNER}/${DEV_REPO_NAME}" \
-            --prerelease \
-            --title "${VERSION} (nightly)" \
-            --notes-file "${RUNNER_TEMP}/notes.md"
+          set -euo pipefail
+          DEV_REPO="${DEV_OWNER}/${DEV_REPO_NAME}"
+          for attempt in 1 2 3; do
+            if gh release view "$VERSION" -R "$DEV_REPO" >/dev/null 2>&1; then
+              echo "${VERSION} already exists; completing its metadata and assets"
+              if gh release edit "$VERSION" -R "$DEV_REPO" \
+                  --prerelease --title "${VERSION} (nightly)" \
+                  --notes-file "${RUNNER_TEMP}/notes.md" \
+                && gh release upload "$VERSION" dist/* -R "$DEV_REPO" --clobber; then
+                break
+              fi
+            elif gh release create "$VERSION" dist/* -R "$DEV_REPO" \
+                --prerelease --title "${VERSION} (nightly)" \
+                --notes-file "${RUNNER_TEMP}/notes.md"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Could not publish ${VERSION} after ${attempt} attempts"
+              exit 1
+            fi
+            sleep $((attempt * 10))
+          done
+
+          missing=$(comm -23 \
+            <(find dist -maxdepth 1 -type f -printf '%f\n' | sort) \
+            <(gh release view "$VERSION" -R "$DEV_REPO" --json assets --jq '.assets[].name' | sort))
+          if [ -n "$missing" ]; then
+            echo "::error::Published release is missing assets: ${missing//$'\n'/, }"
+            exit 1
+          fi
 
       - name: Prune old nightlies
         env:
