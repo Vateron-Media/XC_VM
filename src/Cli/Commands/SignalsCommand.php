@@ -145,7 +145,7 @@ class SignalsCommand implements CommandInterface {
 								shell_exec('kill -9 ' . intval($rPID));
 							}
 						} else {
-							shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rPID) . '" >/dev/null 2>/dev/null &');
+							self::dropRtmpClient((string) ($rServers[SERVER_ID]['rtmp_mport_url'] ?? ''), intval($rPID));
 						}
 					}
 					if (count($rIDs) > 0) {
@@ -194,7 +194,7 @@ class SignalsCommand implements CommandInterface {
 											shell_exec('kill -9 ' . intval($rPID));
 										}
 									} else {
-										shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rPID) . '" >/dev/null 2>/dev/null &');
+										self::dropRtmpClient((string) ($rServers[SERVER_ID]['rtmp_mport_url'] ?? ''), intval($rPID));
 									}
 								}
 								$rRedis->multi()->del($rIDs)->sRem('SIGNALS#' . SERVER_ID, ...$rSignals)->exec();
@@ -212,5 +212,19 @@ class SignalsCommand implements CommandInterface {
 
 		$this->restartDaemon('signals');
 		return 0;
+	}
+
+	private static function dropRtmpClient(string $rBaseUrl, int $rClientId): void {
+		$rParts = parse_url($rBaseUrl);
+		if ($rClientId <= 0 || filter_var($rBaseUrl, FILTER_VALIDATE_URL) === false || !is_array($rParts)
+			|| !in_array($rParts['scheme'] ?? '', ['http', 'https'], true) || empty($rParts['host'])
+			|| isset($rParts['user']) || isset($rParts['pass']) || isset($rParts['query']) || isset($rParts['fragment'])
+		) {
+			return;
+		}
+		$rCurl = curl_init(rtrim($rBaseUrl, '/') . '/control/drop/client?clientid=' . $rClientId);
+		curl_setopt_array($rCurl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 2, CURLOPT_TIMEOUT => 2]);
+		curl_exec($rCurl);
+		curl_close($rCurl);
 	}
 }

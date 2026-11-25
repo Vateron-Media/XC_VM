@@ -129,7 +129,7 @@ class FanoutConfig {
 			'write_timeout_sec'     => self::clampInt((int) ($rSettings['fanout_write_timeout_sec'] ?? 15), 1, 600),
 			'chunk_bytes'           => self::clampInt((int) ($rSettings['fanout_chunk_bytes'] ?? 12032), 188, 4194304),
 			'max_gop_bytes'         => self::clampInt((int) ($rSettings['fanout_max_gop_bytes'] ?? 10528000), 188, 268435456),
-			'source_insecure'       => (bool) ($rSettings['fanout_source_insecure'] ?? true),
+			'source_insecure'       => (bool) ($rSettings['fanout_source_insecure'] ?? false),
 			'default_prebuffer_sec' => self::clampInt((int) ($rSettings['fanout_default_prebuffer_sec'] ?? 0), 0, 120),
 			'idle_buffer_grace_sec' => self::clampInt((int) ($rSettings['fanout_idle_buffer_grace_sec'] ?? 30), 0, 3600),
 			'idle_buffer_ratio'     => $rRatio,

@@ -44,9 +44,9 @@ action.
 
 - Do not write `INSERT INTO signals`, `UPDATE streams_servers` (for runtime state),
   or an INSERT into a log table directly; use the seam.
-- Do not call `ApiClient::systemRequest()` / `asyncRequest()` or
-  `SignalDispatcher::rootAction()` outside `Core\Cluster`; add the action to the
-  catalogue and use `NodeRpc` / `NodeActions`.
+- Do not call `ApiClient::systemRequest()` / `asyncRequest()` or write root
+  actions to `signals`; add the action to the catalogue and use `NodeRpc` /
+  `NodeActions`.
 - Node-side code reads stream definitions through `StreamSource`, not with its
   own queries on `streams`, `streams_options` or `recordings`. Once the node's
   replica owns the streams (STREAMS flow on), its answers come from the stream

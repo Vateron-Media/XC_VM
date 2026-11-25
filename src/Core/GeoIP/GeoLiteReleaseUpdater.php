@@ -111,8 +111,9 @@ class GeoLiteReleaseUpdater {
 		}
 
 		$rFolderPath = pathinfo($rFile['path'])['dirname'] . '/';
-		if (!file_exists($rFolderPath)) {
-			shell_exec('sudo mkdir -p "' . $rFolderPath . '"');
+		if (!is_dir($rFolderPath) && !mkdir($rFolderPath, 0750, true) && !is_dir($rFolderPath)) {
+			echo '[ERROR] ' . $rFile['path'] . ": target directory could not be created\n";
+			return null;
 		}
 
 		$ch = curl_init();

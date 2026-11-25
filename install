@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 import hashlib
+import getpass
 import io
 import json
 import os
-import random
+import secrets
 import shutil
 import socket
+import stat
 import subprocess
 import sys
 import tarfile
@@ -41,6 +43,8 @@ PACKAGES = {
         "wget",
         "mariadb-server",
         "mariadb-client",
+        "redis-server",
+        "python3-guessit",
         "sysstat",
         "alsa-utils",
         "v4l-utils",
@@ -103,6 +107,8 @@ PACKAGES = {
         "mariadb-server",
         "mariadb-client",
         "mariadb-common",
+        "redis-server",
+        "python3-guessit",
         "libjpeg-dev",
         "libpng-dev",
         "libharfbuzz-dev",
@@ -150,6 +156,8 @@ PACKAGES = {
         "mariadb-server",
         "mariadb-client",
         "mariadb-common",
+        "redis-server",
+        "python3-guessit",
         "libsodium23",
         "cpufrequtils",
         "mcrypt",
@@ -182,6 +190,8 @@ PACKAGES = {
         "mariadb-server",
         "mariadb-client",
         "mariadb-common",
+        "redis-server",
+        "python3-guessit",
         "alsa-utils",
         "v4l-utils",
         "certbot",
@@ -238,6 +248,8 @@ PACKAGES = {
         "mariadb-server",
         "mariadb-client",
         "mariadb-common",
+        "redis-server",
+        "python3-guessit",
         "libjpeg-dev",
         "libpng-dev",
         "libharfbuzz-dev",
@@ -916,6 +928,34 @@ def run_command(cmd, shell=True, capture_output=False):
         return 1, None, str(e)
 
 
+def run_mariadb(sql, root_password=None, database=None):
+    """Run SQL over stdin; credentials and SQL never appear in process arguments."""
+    defaults_path = None
+    try:
+        args = ["mariadb", "-u", "root"]
+        if root_password:
+            fd, defaults_path = tempfile.mkstemp(prefix="xcvm-mariadb-", text=True)
+            with os.fdopen(fd, "w", encoding="utf-8") as defaults:
+                defaults.write("[client]\nuser=root\npassword=" + root_password + "\n")
+            os.chmod(defaults_path, 0o600)
+            args = ["mariadb", "--defaults-extra-file=" + defaults_path]
+        if database:
+            args.append(database)
+        result = subprocess.run(
+            args,
+            input=sql,
+            text=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"MariaDB command failed (exit {result.returncode}).")
+        return 0
+    finally:
+        if defaults_path and os.path.exists(defaults_path):
+            os.remove(defaults_path)
+
+
 def generate_self_signed_cert():
     """Generate a fresh, per-install self-signed TLS certificate for nginx.
 
@@ -948,13 +988,27 @@ def generate_self_signed_cert():
 
 
 def _safe_tar_members(tar, dest):
-    """Filter tar members to prevent path traversal attacks (CVE-2007-4559)"""
+    """Reject links and members outside dest before extracting anything."""
     dest = os.path.realpath(dest)
     for member in tar.getmembers():
+        if member.issym() or member.islnk():
+            raise ValueError(f"archive link is not allowed: {member.name}")
         member_path = os.path.realpath(os.path.join(dest, member.name))
         if not member_path.startswith(dest + os.sep) and member_path != dest:
-            printc(f"Skipping unsafe tar member: {member.name}", col.WARNING)
-            continue
+            raise ValueError(f"archive path escapes destination: {member.name}")
+        yield member
+
+
+def _safe_zip_members(archive, dest):
+    """Reject ZIP links and members outside dest before extracting anything."""
+    dest = os.path.realpath(dest)
+    for member in archive.infolist():
+        mode = member.external_attr >> 16
+        member_path = os.path.realpath(os.path.join(dest, member.filename))
+        if stat.S_ISLNK(mode):
+            raise ValueError(f"archive link is not allowed: {member.filename}")
+        if not member_path.startswith(dest + os.sep) and member_path != dest:
+            raise ValueError(f"archive path escapes destination: {member.filename}")
         yield member
 
 
@@ -962,8 +1016,7 @@ def is_valid_zip(file_path):
     """Check if a file is a valid ZIP archive"""
     try:
         with zipfile.ZipFile(file_path, "r") as zip_ref:
-            # Try to list contents
-            zip_ref.namelist()
+            list(_safe_zip_members(zip_ref, "/home/xc_vm/"))
             return True
     except Exception:
         return False
@@ -973,8 +1026,7 @@ def is_valid_tar(file_path):
     """Check if a file is a valid TAR archive"""
     try:
         with tarfile.open(file_path, "r:*") as tar_ref:
-            # Try to list contents
-            tar_ref.getmembers()
+            list(_safe_tar_members(tar_ref, "/home/xc_vm/"))
             return True
     except Exception:
         return False
@@ -1091,29 +1143,20 @@ def install_mariadb_repo(dist_info):
     printc(f"Configuring MariaDB repository for {dist_id} {version}", col.OKBLUE)
 
     if family == "debian":
-        # Debian/Ubuntu
-        if dist_id == "ubuntu":
-            # Try to get codename from /etc/os-release
-            codename = "jammy"  # Default for Ubuntu 22.04
-            try:
-                with open("/etc/os-release", "r") as f:
-                    for line in f:
-                        if line.startswith("UBUNTU_CODENAME="):
-                            codename = line.split("=")[1].strip().strip('"')
+        codename = ""
+        try:
+            with open("/etc/os-release", "r") as f:
+                for line in f:
+                    if line.startswith(("UBUNTU_CODENAME=", "VERSION_CODENAME=")):
+                        codename = line.split("=", 1)[1].strip().strip('"')
+                        if codename:
                             break
-                        elif line.startswith("VERSION_CODENAME="):
-                            codename = line.split("=")[1].strip().strip('"')
-                            break
-            except Exception:
-                # Fallback based on version
-                if version.startswith("20"):
-                    codename = "focal"
-                elif version.startswith("22"):
-                    codename = "jammy"
-                elif version.startswith("24"):
-                    codename = "noble"
-
-            printc(f"Using Ubuntu codename: {codename}", col.OKGREEN)
+        except OSError:
+            pass
+        if not codename:
+            printc("Cannot determine distribution codename; using system MariaDB packages", col.WARNING)
+            return False
+        printc(f"Using distribution codename: {codename}", col.OKGREEN)
 
         # Install prerequisites
         run_command(
@@ -1157,39 +1200,41 @@ def install_mariadb_repo(dist_info):
                 printc("Continuing with system packages...", col.WARNING)
 
         else:
-            # For other versions, use the official script
-            printc(
-                "Adding MariaDB repository using official setup script...", col.OKBLUE
-            )
-            ret, _, _ = run_command(
-                "curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version='mariadb-11.4'",
-                capture_output=True,
-            )
-            if ret != 0:
-                printc(
-                    "MariaDB repo setup script failed, will use system packages",
-                    col.WARNING,
-                )
-                # Clean up any partial repo configuration
-                run_command(
-                    "rm -f /etc/apt/sources.list.d/mariadb.list "
-                    "/etc/apt/sources.list.d/mariadb.sources || true"
-                )
-
-        # Add MaxMind repository for Ubuntu (with error handling)
-        if dist_id == "ubuntu":
-            printc("Adding MaxMind repository for GeoIP...", col.OKBLUE)
+            key_url = "https://supplychain.mariadb.com/mariadb-keyring-2019.gpg"
+            fingerprint = "177F4010FE56CA3336300305F1656F24C74CD1D8"
+            keyring = "/usr/share/keyrings/mariadb-keyring.gpg"
+            temp_key = None
             try:
-                run_command("add-apt-repository -y ppa:maxmind/ppa")
-                printc("MaxMind repository added successfully", col.OKGREEN)
-            except Exception as e:
-                printc(f"MaxMind PPA failed to add: {e}", col.WARNING)
-                printc(
-                    "Continuing without MaxMind PPA (not critical for functionality)",
-                    col.OKBLUE,
+                fd, temp_key = tempfile.mkstemp(prefix="xcvm-mariadb-key-")
+                os.close(fd)
+                urllib.request.urlretrieve(key_url, temp_key)
+                check = subprocess.run(
+                    ["gpg", "--batch", "--show-keys", "--with-colons", temp_key],
+                    capture_output=True,
+                    text=True,
                 )
-        else:
-            printc("Skipping MaxMind PPA (not available for Debian)", col.OKBLUE)
+                fingerprints = [line.split(":")[9] for line in check.stdout.splitlines() if line.startswith("fpr:")]
+                if check.returncode != 0 or fingerprint not in fingerprints:
+                    raise RuntimeError("MariaDB repository key fingerprint mismatch")
+                shutil.copyfile(temp_key, keyring)
+                os.chmod(keyring, 0o644)
+                with open("/etc/apt/sources.list.d/mariadb.list", "w", encoding="utf-8") as source:
+                    source.write(
+                        f"deb [signed-by={keyring}] https://mirror.mariadb.org/repo/11.4/{dist_id} {codename} main\n"
+                    )
+            except Exception as e:
+                printc(f"MariaDB repository not configured: {e}", col.WARNING)
+                for path in ("/etc/apt/sources.list.d/mariadb.list", "/etc/apt/sources.list.d/mariadb.sources"):
+                    try:
+                        os.remove(path)
+                    except FileNotFoundError:
+                        pass
+            finally:
+                if temp_key:
+                    try:
+                        os.remove(temp_key)
+                    except FileNotFoundError:
+                        pass
 
         # Update package list
         printc("Updating package list...", col.OKBLUE)
@@ -1266,24 +1311,17 @@ def secure_mariadb_installation(root_password, dist_info=None):
                 "FLUSH PRIVILEGES;",
             ]
 
-        for sql in sql_commands:
-            if is_mariadb_103 and "SET PASSWORD" in sql:
-                # Special handling for SET PASSWORD command
-                run_command(f'mariadb -u root -e "{sql}"', shell=True)
-            else:
-                run_command(f'mariadb -u root -e "{sql}"')
+        run_mariadb("\n".join(sql_commands))
 
         printc("MariaDB secured with password authentication", col.OKGREEN)
     else:
         printc("Setting MariaDB root password...", col.OKBLUE)
         # Try to set password with version-specific syntax
         if is_mariadb_103:
-            # MariaDB 10.3 syntax
-            set_cmd = f"mariadb -u root -e \"SET PASSWORD FOR 'root'@'localhost' = PASSWORD('{root_password}');\" 2>/dev/null || true"
+            sql = f"SET PASSWORD FOR 'root'@'localhost' = PASSWORD('{root_password}');"
         else:
-            # MariaDB 11.x syntax
-            set_cmd = f"mariadb -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\" 2>/dev/null || true"
-        run_command(set_cmd)
+            sql = f"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';"
+        run_mariadb(sql)
 
     # Create custom security configuration (like 99-custom.cnf from bash script)
     printc("Creating custom MariaDB security configuration...", col.OKBLUE)
@@ -1411,16 +1449,16 @@ def write_secret(path, text):
 
 
 def generate_random_password(length=32):
-    """Generate random password (similar to bash script)"""
+    """Generate a password from the operating system CSPRNG."""
     chars = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
-    return "".join(random.choice(chars) for _ in range(length))
+    return "".join(secrets.choice(chars) for _ in range(length))
 
 
 def generate_root_password():
     """Generate secure root password of 20 characters (SQL/shell safe)"""
     # Only use characters safe for SQL literals and shell quoting
     chars = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
-    return "".join(random.choice(chars) for _ in range(20))
+    return "".join(secrets.choice(chars) for _ in range(20))
 
 
 def sanitize_password_for_sql(password):
@@ -1505,12 +1543,11 @@ def extract_archive(archive_path):
     elif archive_path.endswith(".zip"):
         try:
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
-                # Get file list for debugging
-                file_list = zip_ref.namelist()
+                safe = list(_safe_zip_members(zip_ref, "/home/xc_vm/"))
+                file_list = [member.filename for member in safe]
                 printc(f"Archive contains {len(file_list)} files", col.OKGREEN)
 
-                # Extract all files
-                zip_ref.extractall(path="/home/xc_vm/")
+                zip_ref.extractall(path="/home/xc_vm/", members=safe)
                 printc("Extraction successful", col.OKGREEN)
 
                 # Check if zip contains nested tar.gz
@@ -1617,9 +1654,9 @@ _NEEDS_OPENSSL3 = {"ubuntu_20"}
 
 # The package, the SHA-256 Ubuntu's signed index lists for it (jammy,
 # main/binary-amd64/Packages), and the library it puts in place.
-_OPENSSL3_DEB_URL = "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1_amd64.deb"
+_OPENSSL3_DEB_URL = "https://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1.30_amd64.deb"
 _OPENSSL3_DEB_SHA256 = (
-    "11a83260542e05aebbbafce9164d594287d2584be80972e08708528fe06f80d3"
+    "d1b4636e32ac6d3b95d583ac05ac548b1aa248414bae1c51b14f54be0f8fd7bc"
 )
 _OPENSSL3_LIB = "/usr/lib/x86_64-linux-gnu/libssl.so.3"
 
@@ -1863,12 +1900,12 @@ if __name__ == "__main__":
     print("For security, you should set a strong root password for MariaDB.")
     print("Leave empty to generate a random password.")
 
-    root_password = input(
+    root_password = getpass.getpass(
         "MariaDB root password (or press Enter to generate): "
     ).strip()
     if not root_password:
         root_password = generate_root_password()
-        printc(f"Generated root password: {root_password}", col.OKGREEN)
+        printc("Generated root password; it will be saved to the credentials file.", col.OKGREEN)
     else:
         # Reject characters that break SQL/shell quoting
         forbidden = set("'\"`$;")
@@ -1878,7 +1915,7 @@ if __name__ == "__main__":
                 col.WARNING,
             )
             root_password = generate_root_password()
-            printc(f"Generated root password: {root_password}", col.OKGREEN)
+            printc("Generated a replacement root password; it will be saved to the credentials file.", col.OKGREEN)
         elif len(root_password) < 12:
             printc(
                 f"Warning: Password is only {len(root_password)} chars. Minimum recommended: 12.",
@@ -1887,7 +1924,7 @@ if __name__ == "__main__":
             response = input("Continue with provided password? (Y/N): ").strip().upper()
             if response != "Y":
                 root_password = generate_root_password()
-                printc(f"Using generated root password: {root_password}", col.OKGREEN)
+                printc("Using a generated root password; it will be saved to the credentials file.", col.OKGREEN)
         else:
             printc("Using provided root password", col.OKGREEN)
 
@@ -1908,19 +1945,6 @@ if __name__ == "__main__":
 
     if dist_info["family"] == "debian":
         # Debian/Ubuntu
-        printc("Cleaning package locks", col.OKBLUE)
-        for rFile in [
-            "/var/lib/dpkg/lock-frontend",
-            "/var/cache/apt/archives/lock",
-            "/var/lib/dpkg/lock",
-            "/var/lib/apt/lists/lock",
-        ]:
-            if os.path.exists(rFile):
-                try:
-                    os.remove(rFile)
-                except Exception:
-                    pass
-
         printc("Updating system", col.OKBLUE)
         run_command("apt-get update -y")
 
@@ -1941,6 +1965,13 @@ if __name__ == "__main__":
         # Install packages
         printc("Installing system packages", col.OKBLUE)
         install_deb_packages(dist_info)
+
+        for required in ("/usr/bin/redis-server", "/usr/bin/guessit"):
+            if not os.path.isfile(required) or not os.access(required, os.X_OK):
+                printc(f"CRITICAL: required runtime is missing: {required}", col.FAIL)
+                sys.exit(1)
+        # XC_VM starts Redis with its own authenticated config.
+        run_command("systemctl disable --now redis-server 2>/dev/null || true")
 
         # Verify MariaDB was actually installed
         ret, _, _ = run_command(
@@ -2091,15 +2122,17 @@ if __name__ == "__main__":
     printc("Setting up databases and users", col.OKBLUE)
 
     # Create databases
-    run_command(
-        f'mariadb -u root -p"{root_password}" -e "CREATE DATABASE IF NOT EXISTS xc_vm; CREATE DATABASE IF NOT EXISTS xc_vm_migrate;"'
+    run_mariadb(
+        "CREATE DATABASE IF NOT EXISTS xc_vm; CREATE DATABASE IF NOT EXISTS xc_vm_migrate;",
+        root_password,
     )
 
     # Import database schema
     printc("Importing database schema", col.OKBLUE)
     db_schema_path = "/home/xc_vm/bin/install/database.sql"
     if os.path.exists(db_schema_path):
-        run_command(f'mariadb -u root -p"{root_password}" xc_vm < "{db_schema_path}"')
+        with io.open(db_schema_path, "r", encoding="utf-8") as schema_file:
+            run_mariadb(schema_file.read(), root_password, "xc_vm")
     else:
         printc(f"Database schema not found at {db_schema_path}", col.WARNING)
 
@@ -2127,8 +2160,7 @@ if __name__ == "__main__":
 
     all_commands = commands_localhost + commands_127
 
-    for cmd in all_commands:
-        run_command(f'mariadb -u root -p"{root_password}" -e "{cmd}"')
+    run_mariadb("\n".join(all_commands), root_password)
 
     # Write XC_VM configuration
     printc("Writing XC_VM configuration", col.OKBLUE)
@@ -2225,9 +2257,10 @@ if __name__ == "__main__":
     printc(f"Ports configured: HTTP - {http_port}, HTTPS - {https_port}", col.OKGREEN)
 
     # Update Main Server broadcast ports in database
-    run_command(
-        f'mariadb -u root -p"{root_password}" xc_vm -e '
-        f'"UPDATE servers SET http_broadcast_port={int(http_port)}, https_broadcast_port={int(https_port)} WHERE is_main=1;"'
+    run_mariadb(
+        f"UPDATE servers SET http_broadcast_port={int(http_port)}, https_broadcast_port={int(https_port)} WHERE is_main=1;",
+        root_password,
+        "xc_vm",
     )
     printc("Main Server broadcast ports updated in database", col.OKGREEN)
 
@@ -2321,11 +2354,14 @@ if __name__ == "__main__":
 
     if not admin_code:
         admin_code = generate_random_password(8)
-        printc(f"Generated access code: {admin_code}", col.OKGREEN)
+        printc("Generated an admin access code; it will be saved to the credentials file.", col.OKGREEN)
 
         # Insert into database
-        insert_cmd = f"mariadb -u root -p\"{root_password}\" -e \"USE xc_vm; INSERT INTO access_codes(code, type, enabled, groups) VALUES('{admin_code}', 0, 1, '[1]');\""
-        run_command(insert_cmd)
+        run_mariadb(
+            f"INSERT INTO access_codes(code, type, enabled, groups) VALUES('{admin_code}', 0, 1, '[1]');",
+            root_password,
+            "xc_vm",
+        )
 
         # Create nginx configuration
         template_path = os.path.join(rCodeDir, "template")
@@ -2351,7 +2387,7 @@ if __name__ == "__main__":
             code_conf_path = os.path.join(rCodeDir, f"{admin_code}.conf")
             with io.open(code_conf_path, "w", encoding="utf-8") as rFile:
                 rFile.write(template_content)
-            printc(f"Access code configuration created: {admin_code}.conf", col.OKGREEN)
+            printc("Access code configuration created.", col.OKGREEN)
         else:
             printc("Template file not found, creating basic configuration", col.WARNING)
             # Fallback configuration
@@ -2360,7 +2396,7 @@ if __name__ == "__main__":
             with io.open(code_conf_path, "w", encoding="utf-8") as rFile:
                 rFile.write(fallback_config)
     else:
-        printc(f"Using existing access code: {admin_code}", col.OKGREEN)
+        printc("Using the existing admin access code.", col.OKGREEN)
 
     ##################################################
     # FINAL CONFIGURATION                            #
@@ -2370,6 +2406,9 @@ if __name__ == "__main__":
 
     # Set permissions
     run_command("chown -R xc_vm:xc_vm /home/xc_vm")
+    run_command("chown -h root:xc_vm /home/xc_vm /home/xc_vm/root.php /home/xc_vm/console.php /home/xc_vm/bootstrap.php /home/xc_vm/service /home/xc_vm/update /home/xc_vm/bin /home/xc_vm/bin/php /home/xc_vm/bin/nginx /home/xc_vm/bin/nginx_rtmp /home/xc_vm/bin/yt-dlp")
+    run_command("chown -hR root:xc_vm /home/xc_vm/vendor /home/xc_vm/Cli /home/xc_vm/Core /home/xc_vm/Domain /home/xc_vm/Infrastructure /home/xc_vm/Ministra /home/xc_vm/Public /home/xc_vm/Streaming /home/xc_vm/bin/php/bin /home/xc_vm/bin/php/sbin /home/xc_vm/bin/php/lib /home/xc_vm/bin/install /home/xc_vm/bin/nginx/sbin /home/xc_vm/bin/nginx_rtmp/sbin")
+    run_command("chmod 0755 /home/xc_vm/bin/install")
 
     # Set executable permissions on key files
     run_command("chmod +x /home/xc_vm/service")
@@ -2442,14 +2481,14 @@ if __name__ == "__main__":
 
     # Run status command (root by design: root crontab, system limits, DB
     # migrations — the command refuses to run as any other user).
-    if os.path.exists("/home/xc_vm/console.php"):
-        run_command("/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status 1")
+    if os.path.exists("/home/xc_vm/root.php"):
+        run_command("/home/xc_vm/bin/php/bin/php /home/xc_vm/root.php status 1")
 
     # Set config permissions
     run_command("chown -R xc_vm:xc_vm /home/xc_vm/config/")
 
-    # Run startup command via console.php
-    startup_cmd = "/home/xc_vm/console.php"
+    # Run privileged startup commands through the module-free root entrypoint.
+    startup_cmd = "/home/xc_vm/root.php"
     if os.path.exists(startup_cmd):
         run_command(
             f"/home/xc_vm/bin/php/bin/php {startup_cmd} startup >/dev/null 2>&1"
@@ -2511,7 +2550,8 @@ if __name__ == "__main__":
     printc("INSTALLATION COMPLETED SUCCESSFULLY!", col.OKGREEN, 1)
 
     printc(f"Distribution: {dist_info['id']} {dist_info['version']}", col.OKGREEN)
-    printc(f"Continue Setup: http://{server_ip}:{http_port}/{admin_code}", col.OKBLUE)
+    printc(f"Panel address: http://{server_ip}:{http_port}/", col.OKBLUE)
+    printc("Use the Admin Access Code from the credentials file to continue setup.", col.OKBLUE)
     printc(f"Total RAM: {total_ram_mb}MB", col.OKGREEN)
 
     printc("Credentials have been saved to:", col.OKBLUE)

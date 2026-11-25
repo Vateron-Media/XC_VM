@@ -380,10 +380,10 @@ final class ClusterBus {
 			return true;
 		}
 		// A dedicated Redis can serve the control bus independently of the
-		// bundled cache server (KeyDB); keep the bundled binary as the default.
+		// shared cache server; both come from the maintained distro package.
 		$rBinary = MAIN_HOME . 'bin/cluster_bus/redis-server';
 		if (!is_executable($rBinary)) {
-			$rBinary = MAIN_HOME . 'bin/redis/redis-server';
+			$rBinary = '/usr/bin/redis-server';
 		}
 		if (!is_executable($rBinary)) {
 			return false;

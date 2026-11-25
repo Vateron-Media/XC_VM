@@ -2,6 +2,8 @@
 
 namespace XcVm\Core\Logging;
 
+use XcVm\Core\Cluster\Redactor;
+
 /**
  * A centralized logger class for handling PHP errors, exceptions, and fatal errors.
  * Logs all events to a file in base64-encoded JSON format and optionally displays them on screen.
@@ -150,6 +152,8 @@ final class Logger {
 		string $file = '',
 		int $line = 0
 	): void {
+		$message = Redactor::redact($message);
+		$trace = Redactor::redact($trace);
 		$data = [
 			'type'    => $type,
 			'log_message' => $message,

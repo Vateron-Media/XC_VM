@@ -21,9 +21,9 @@ use XcVm\Core\Module\ModuleManager;
  *                       (the shared DB was already migrated by MAIN).
  * - source = local    : the module is a custom one not on the store. Its
  *                       archive arrives as a cluster artefact: cluster:root
- *                       stages it in root's own stage and checks its size and
- *                       SHA-256 against MAIN's signed grant, and the payload
- *                       names that copy as `archive` (with the grant as
+ *                       checks it in root's stage, copies it into a closed
+ *                       xc_vm stage, and the payload names that handoff as
+ *                       `archive` (with the grant as
  *                       `artefact`); it is checked again here, refused and
  *                       audited as an artefact when it is not the grant's.
  *                       Without a grant nothing installs: MAIN's `/api`
@@ -88,7 +88,7 @@ class ModuleInstallCommand implements CommandInterface {
 					return 1;
 				}
 				echo "Installing custom module '{$rName}' v{$rVersion} from the archive MAIN granted...\n";
-				$rInstalledName = $rManager->deployFromArchiveFilesOnly($rStaged);
+				$rInstalledName = $rManager->deployFromArchiveFilesOnly($rStaged, $rName, $rVersion);
 			} else {
 				echo "module:install: no archive granted for '{$rName}' v{$rVersion} (a custom module reaches a load balancer only as a cluster artefact: COMMANDS, root_ready, agent feature 'artefact').\n";
 				return 1;
@@ -122,6 +122,9 @@ class ModuleInstallCommand implements CommandInterface {
 	 * this command runs as root from the signals cron.
 	 */
 	private function fixOwnership(string $rName): void {
+		if (posix_geteuid() !== 0) {
+			return;
+		}
 		if (!preg_match('/^[a-z0-9][a-z0-9\-]*$/', $rName)) {
 			return;
 		}

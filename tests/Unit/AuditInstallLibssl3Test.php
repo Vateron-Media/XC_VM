@@ -12,8 +12,8 @@ use XcVm\Cli\Commands\ServerInstallCommand;
  * is there only when it is.
  */
 final class AuditInstallLibssl3Test extends TestCase {
-	/** libssl3 3.0.2-0ubuntu1 amd64, as jammy's main/binary-amd64/Packages lists it. */
-	private const SHA256 = '11a83260542e05aebbbafce9164d594287d2584be80972e08708528fe06f80d3';
+	/** libssl3 3.0.2-0ubuntu1.30 amd64, as jammy's main/binary-amd64/Packages lists it. */
+	private const SHA256 = 'd1b4636e32ac6d3b95d583ac05ac548b1aa248414bae1c51b14f54be0f8fd7bc';
 
 	/** @var list<string> */
 	private array $rRan = [];
@@ -76,7 +76,7 @@ final class AuditInstallLibssl3Test extends TestCase {
 		$rSaid = $this->overSsh('20.04', self::SHA256);
 		$this->assertSame('mktemp -d /tmp/xcvm.XXXXXXXXXX', $this->rRan[0]);
 		$this->assertStringStartsWith('wget -O /tmp/xcvm.aB3dE6gH9k/libssl3.deb ', $this->rRan[1]);
-		$this->assertStringEndsWith('/libssl3_3.0.2-0ubuntu1_amd64.deb', $this->rRan[1]);
+		$this->assertStringEndsWith('/libssl3_3.0.2-0ubuntu1.30_amd64.deb', $this->rRan[1]);
 		$this->assertSame('sha256sum /tmp/xcvm.aB3dE6gH9k/libssl3.deb', $this->rRan[2], 'checked before dpkg sees it');
 		$this->assertCount(1, $this->dpkgRuns());
 		$this->assertSame($this->rRan[3], $this->dpkgRuns()[0]);

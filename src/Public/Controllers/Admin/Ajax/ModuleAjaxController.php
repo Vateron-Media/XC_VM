@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Enum\ModuleState;
@@ -67,6 +68,9 @@ class ModuleAjaxController extends BaseAjaxController {
 	/** action=module_upload — install an uploaded module archive. */
 	public function upload(): never {
 		$this->guard(true);
+		if (!ModuleManager::localUploadsEnabled()) {
+			$this->fail(['message' => 'Local module uploads are disabled by policy.']);
+		}
 		$rFile = $_FILES['module_zip'] ?? null;
 		if (!is_array($rFile) || (int) ($rFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string) $rFile['tmp_name'])) {
 			$this->fail(['message' => 'The archive was not uploaded.']);
@@ -164,11 +168,13 @@ class ModuleAjaxController extends BaseAjaxController {
 		$this->ok(['job' => $rJob]);
 	}
 
-	/** XHR only, the settings permission; a change only over POST. */
+	/** XHR only, full administrators only; a change only over POST. */
 	private function guard(bool $rChange = false): void {
 		$this->requireXhr();
-		// Installing or removing a module is system-level, as the settings page.
-		$this->gate('adv', 'settings');
+		if (!Authorization::isFullAdmin()) {
+			http_response_code(403);
+			$this->fail(['message' => 'Full administrator authority is required.']);
+		}
 		if ($rChange && strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 			$this->fail(['message' => 'POST required.']);
 		}

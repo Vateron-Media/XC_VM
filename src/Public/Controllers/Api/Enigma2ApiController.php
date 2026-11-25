@@ -8,6 +8,8 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamSorter;
@@ -83,7 +85,8 @@ class Enigma2ApiController {
 			generateError('NO_CREDENTIALS');
 		}
 
-		$this->userInfo = UserRepository::getUserInfo(null, $this->username, $this->password, true, false);
+		$rIP = NetworkUtils::getUserIP();
+		$this->userInfo = UserRepository::getUserInfo(null, $this->username, $this->password, true, false, $rIP);
 
 		if (!$this->userInfo) {
 			BruteforceGuard::checkBruteforce(null, null, $this->username, false, $this->password);
@@ -107,6 +110,11 @@ class Enigma2ApiController {
 
 		$db = DatabaseFactory::open();
 		BruteforceGuard::checkAuthFlood($this->userInfo);
+		$rCountry = GeoIP::getCountry($rIP);
+		$rCountryCode = is_array($rCountry) ? ($rCountry['country']['iso_code'] ?? null) : null;
+		if (($rError = BaseApiController::restriction($this->userInfo, trim($_SERVER['HTTP_USER_AGENT'] ?? ''), $rIP, $rCountryCode)) !== null) {
+			generateError($rError);
+		}
 		// Only the categories the line's bouquets reach, as in the player API.
 		$rOwn = fn(array $rCategory): bool => in_array($rCategory['id'], $this->userInfo['category_ids']);
 		$this->liveCategories = array_filter(CategoryService::getFromDatabase('live'), $rOwn);

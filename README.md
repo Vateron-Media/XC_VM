@@ -90,7 +90,7 @@ Migrating from Xtream Codes / XUI.one? Follow the step-by-step migration guide:
 | Nginx     | 1.24          | Web server & reverse proxy                    |
 | FFmpeg    | 8.0, 7.1, 4.0 | Media transcoding & processing                |
 | MariaDB   | 11.4          | SQL database engine                           |
-| KeyDB     | 6.3.4         | Cache & session storage (Redis)               |
+| Redis     | OS security package | Cache & session storage                  |
 | yt-dlp    | latest        | Resolves YouTube and other platform links     |
 | Deno      | latest        | JavaScript runtime yt-dlp needs for YouTube   |
 

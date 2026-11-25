@@ -5,6 +5,7 @@ namespace XcVm\Cli\CronJobs;
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Cluster\LogSink;
+use XcVm\Core\Cluster\Redactor;
 use XcVm\Core\Config\SettingsManager;
 
 /**
@@ -79,8 +80,8 @@ class ErrorsCronJob implements CommandInterface {
 			}
 
 			// Поддержка обоих форматов: legacy (log_*) и текущий (message/extra)
-			$rLogMessage = (string) ($row['log_message'] ?? ($row['message'] ?? ''));
-			$rLogExtra = (string) ($row['log_extra'] ?? ($row['extra'] ?? ''));
+			$rLogMessage = Redactor::redact((string) ($row['log_message'] ?? ($row['message'] ?? '')));
+			$rLogExtra = Redactor::redact((string) ($row['log_extra'] ?? ($row['extra'] ?? '')));
 			$rLogType = (string) ($row['type'] ?? 'unknown');
 			$rLogLine = (int) ($row['line'] ?? 0);
 			$rLogTime = (int) ($row['time'] ?? time());
@@ -166,7 +167,7 @@ class ErrorsCronJob implements CommandInterface {
 								$rError = trim((string) $rError);
 								if (!empty($rError) && !$this->inArray($rIgnoreErrors, $rError)) {
 									if (SettingsManager::get('stream_logs_save')) {
-										$rErrorRows[] = ['stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'date' => time(), 'error' => $rError];
+										$rErrorRows[] = ['stream_id' => $rStreamID, 'server_id' => SERVER_ID, 'date' => time(), 'error' => Redactor::redact($rError)];
 									}
 								}
 							}

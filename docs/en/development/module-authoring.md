@@ -325,7 +325,7 @@ class MyModuleModule extends BaseModule {
 | `registerTables(TableRegistry $registry)` | `TableProviderInterface` *(optional)* | serverSide DataTable builders for the module's table ids |
 | `registerPermissions(PermissionRegistry $registry)` | `PermissionProviderInterface` *(optional)* | Reseller sub-permission keys for the group editor |
 | `registerQuickTools(QuickToolsRegistry $registry)` | `QuickToolsProviderInterface` *(optional)* | One-shot Quick Tools actions (button + handler) |
-| `getCronEntries(): array` | `CronProviderInterface` *(optional)* | Crontab lines gathered by startup/status |
+| `getCronEntries(): array` | `CronProviderInterface` *(optional)* | Validated jobs installed in the `xc_vm` user's crontab |
 | `install(): void` | `ModuleInterface` | Run on module install (migrations, seed), and again when a store update or an uploaded archive replaces the installed copy |
 | `uninstall(): void` | `ModuleInterface` | Run on module remove (cleanup) |
 
@@ -449,6 +449,7 @@ class MyController {
 - [ ] Implement `registerNavbar()` for admin panel items (or leave empty)
 - [ ] (If crons) Create `MyCron.php` + `MyCronJob.php`, register in `registerCommands()`
 - [ ] (If crons) Override `getCronEntries()` in the module class (no core file changes)
+- [ ] (If crons) Use five numeric cron fields and only the registered command name plus literal arguments; shell syntax is rejected
 - [ ] (If schema) Ship `database.sql` (master), `database_drop.sql` (teardown), and `migrations/<semver>.sql` deltas
 - [ ] (If PHP-logic migrations) Implement `MigratableInterface::getMigrations()`; the callables and `install()` must run from the CLI and must not rely on the module's own `boot()` (see [Versioned migrations](module-extension-points.md#versioned-migrations-migratableinterface))
 - [ ] (If pages) Create controller using `renderUnifiedLayoutHeader/Footer`

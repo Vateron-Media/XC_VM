@@ -3,6 +3,7 @@
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\Contract\CronProviderInterface;
 use XcVm\Core\Module\BaseModule;
+use XcVm\Cli\Commands\ModuleCronSyncCommand;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -57,7 +58,7 @@ final class CronProviderTest extends TestCase {
         $this->assertCount(1, $entries);
         $this->assertStringContainsString('cron:beta', $entries[0]);
         $this->assertStringContainsString('* * * * *', $entries[0]);
-        $this->assertStringContainsString('# XC_VM', $entries[0]);
+        $this->assertStringContainsString('# XC_VM_MODULE', $entries[0]);
     }
 
     public function testCollectCronEntriesReturnsMultipleEntriesFromOneModule(): void {
@@ -117,8 +118,42 @@ final class CronProviderTest extends TestCase {
         $entries = $loader->collectCronEntries();
         $this->assertCount(1, $entries);
         $this->assertSame(
-            '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:eta # XC_VM',
+            '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:eta # XC_VM_MODULE',
             $entries[0]
+        );
+    }
+
+    public function testCronEntriesRejectMalformedSchedulesShellAndUnknownCommands(): void {
+        $root = $this->createRoot();
+        $this->createModuleWithCron($root, 'cron-unsafe', [
+            '99 * * * *' => 'cron:unsafe',
+            '* * * * *' => 'cron:unsafe;id',
+        ]);
+        $loader = (new ModuleLoader())->loadAll($root);
+        $this->assertSame([], $loader->collectCronEntries());
+
+        $other = $this->createRoot();
+        $this->createModuleWithCron($other, 'cron-unknown', ['* * * * *' => 'cron:unknown'], false);
+        $this->assertSame([], (new ModuleLoader())->loadAll($other)->collectCronEntries());
+    }
+
+	public function testCronEntriesRejectWildcardRangesPercentAndOtherModuleCommands(): void {
+		$root = $this->createRoot();
+		$this->createModuleWithCron($root, 'cron-owner', ['99 * * * *' => 'cron:owner']);
+		$this->createModuleWithCron($root, 'cron-borrower', ['* * * * *' => 'cron:owner'], false);
+		$this->createModuleWithCron($root, 'cron-percent', ['* * * * *' => 'cron:percent value%mail']);
+		$this->createModuleWithCron($root, 'cron-wildcard', ['*-5 * * * *' => 'cron:wildcard']);
+
+		$this->assertSame([], (new ModuleLoader())->loadAll($root)->collectCronEntries());
+	}
+
+    public function testModuleCronMergeKeepsOtherXcVmJobsAndReplacesOnlyModuleJobs(): void {
+        $this->assertSame(
+            ['0 * * * * core # XC_VM', '*/5 * * * * new # XC_VM_MODULE'],
+            ModuleCronSyncCommand::merge(
+                ['0 * * * * core # XC_VM', '* * * * * old # XC_VM_MODULE'],
+                ['*/5 * * * * new # XC_VM_MODULE']
+            )
         );
     }
 
@@ -160,7 +195,7 @@ final class CronProviderTest extends TestCase {
      *
      * @param array<string, string> $cronEntries
      */
-    private function createModuleWithCron(string $root, string $name, array $cronEntries): void {
+    private function createModuleWithCron(string $root, string $name, array $cronEntries, bool $register = true): void {
         $dir = $root . '/' . $name;
         mkdir($dir, 0775, true);
         $this->writeManifest($root, $name);
@@ -170,6 +205,14 @@ final class CronProviderTest extends TestCase {
         $ns     = $this->namespace($name);
 
         $entriesPhp = var_export($cronEntries, true);
+        $commands = [];
+        foreach ($cronEntries as $command) {
+            $commands[] = preg_split('/\s+/', trim($command))[0];
+        }
+        $commandsPhp = var_export(array_values(array_unique($commands)), true);
+        $registration = $register
+            ? "\tpublic function registerCommands(\\XcVm\\Cli\\CommandRegistry \$registry): void { foreach ({$commandsPhp} as \$name) { if (preg_match('/^[a-z0-9][a-z0-9:_-]*$/', \$name)) { \$registry->register(new class(\$name) implements \\XcVm\\Cli\\CommandInterface { public function __construct(private string \$name) {} public function getName(): string { return \$this->name; } public function getDescription(): string { return 'test'; } public function execute(array \$args): int { return 0; } }); } } }\n"
+            : '';
 
         $code = "<?php\n"
             . "namespace {$ns};\n"
@@ -178,6 +221,7 @@ final class CronProviderTest extends TestCase {
             . "class {$cls} extends BaseModule {\n"
             . "\tpublic function getName(): string    { return '{$name}'; }\n"
             . "\tpublic function getVersion(): string { return '1.0.0'; }\n"
+            . $registration
             . "\tpublic function getCronEntries(): array { return {$entriesPhp}; }\n"
             . "}\n";
 

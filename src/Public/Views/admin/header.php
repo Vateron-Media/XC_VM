@@ -279,10 +279,19 @@ $xmIsRtl       = \XcVm\Core\Localization\Translator::isRtl($xmCurrentLang);
                                                                 </li>
                                                             <?php else: ?>
                                                                 <li>
+                                                                    <?php if ($_pi->key === 'profile.logout'): ?>
+                                                                    <form method="post" action="<?= htmlspecialchars($_pi->url, ENT_QUOTES); ?>">
+                                                                        <button class="dropdown-item" type="submit">
+                                                                            <i class="icon-base ti tabler-chevron-right me-3 icon-md"></i>
+                                                                            <span class="align-middle"><?= _xc_nav_label($_pi, $language); ?></span>
+                                                                        </button>
+                                                                    </form>
+                                                                    <?php else: ?>
                                                                     <a class="dropdown-item" href="<?= htmlspecialchars($_pi->url, ENT_QUOTES); ?>">
                                                                         <i class="icon-base ti tabler-chevron-right me-3 icon-md"></i>
                                                                         <span class="align-middle"><?= _xc_nav_label($_pi, $language); ?></span>
                                                                     </a>
+                                                                    <?php endif; ?>
                                                                 </li>
                                                         <?php endif;
                                                         endforeach; ?>

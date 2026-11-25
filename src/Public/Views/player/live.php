@@ -28,7 +28,7 @@ if (!$rSearchBy): ?>
 					<div class="filter__items">
 						<div class="filter__item" id="filter__genre">
 							<span class="filter__item-label">CATEGORY:</span>
-							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								<input type="button" value="<?= !empty($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : $rCategories[0]['title'] ?>">
 								<span></span>
 							</div>
@@ -40,7 +40,7 @@ if (!$rSearchBy): ?>
 						</div>
 						<div class="filter__item" id="filter__filter">
 							<span class="filter__item-label">FILTER:</span>
-							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-archive" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-archive" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								<input type="button" value="<?= isset($rFilterBy) ? $rFilterArray[$rFilterBy] : 'All Channels' ?>">
 								<span></span>
 							</div>
@@ -52,7 +52,7 @@ if (!$rSearchBy): ?>
 						</div>
 						<div class="filter__item" id="filter__sort">
 							<span class="filter__item-label">SORT:</span>
-							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								<input type="button" value="<?= isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added' ?>">
 								<span></span>
 							</div>

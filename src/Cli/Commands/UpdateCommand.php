@@ -32,6 +32,9 @@ use XcVm\Domain\Server\ServerRepository;
  */
 
 class UpdateCommand implements CommandInterface {
+	/** Root-only archive handed to the privileged Python updater. */
+	public const ARCHIVE = '/var/lib/xc_vm/update/update.tar.gz';
+
 	public function getName(): string {
 		return 'update';
 	}
@@ -149,8 +152,8 @@ class UpdateCommand implements CommandInterface {
 
 				echo "Downloading update...\n";
 				UpdateLogger::info('Downloading update file...');
-				$rOutputDir = TMP_PATH . '.update.tar.gz';
-				$rDownloaded = $this->downloadFile($UpdateData['url'], $rOutputDir);
+				$rOutputDir = $this->downloadArchive($UpdateData['url']);
+				$rDownloaded = $rOutputDir !== null;
 
 				if (!$rDownloaded) {
 					echo "ERROR: Download failed.\n";
@@ -252,9 +255,9 @@ class UpdateCommand implements CommandInterface {
 
 				echo "Downloading {$rTarget}...\n";
 				UpdateLogger::info('Downloading rollback archive...');
-				$rOutputDir = TMP_PATH . '.update.tar.gz';
+				$rOutputDir = $this->downloadArchive($UpdateData['url']);
 
-				if (!$this->downloadFile($UpdateData['url'], $rOutputDir)) {
+				if ($rOutputDir === null) {
 					echo "ERROR: download failed.\n";
 					UpdateLogger::error('Rollback download failed from: ' . $UpdateData['url']);
 					return 1;
@@ -270,6 +273,13 @@ class UpdateCommand implements CommandInterface {
 
 				echo "Download OK, MD5 verified (" . filesize($rOutputDir) . " bytes).\n";
 				UpdateLogger::info('Rollback download OK, MD5 verified, size=' . filesize($rOutputDir) . ' bytes');
+				$rRollbackRedis = self::prepareRollbackRedis($rOutputDir);
+				if (!$rRollbackRedis['ok']) {
+					echo "ERROR: target Redis runtime could not be prepared; aborting rollback.\n";
+					UpdateLogger::error('Rollback aborted: target Redis runtime could not be prepared');
+					@unlink($rOutputDir);
+					return 1;
+				}
 
 				// Reverse schema changes a target up to 2.5.3 doesn't carry (e.g. a
 				// column a newer migration dropped), so the older code about to be
@@ -282,6 +292,9 @@ class UpdateCommand implements CommandInterface {
 						$rTargetMigrations = self::rollbackMigrations($rOutputDir);
 						$rMigrationResult = $rTargetMigrations === null ? null : MigrationRunner::rollback($db, $rTargetMigrations);
 					} catch (\Throwable $e) {
+						if ($rRollbackRedis['staged'] !== null) {
+							@unlink($rRollbackRedis['staged']);
+						}
 						echo "ERROR: schema reversal failed: " . $e->getMessage() . "\n";
 						UpdateLogger::error('Rollback aborted: schema reversal failed: ' . $e->getMessage());
 						@unlink($rOutputDir);
@@ -299,6 +312,13 @@ class UpdateCommand implements CommandInterface {
 						}
 						UpdateLogger::info('Rollback schema reversal: ' . count($rMigrationResult['reversed']) . ' reversed, ' . count($rMigrationResult['skipped']) . ' skipped');
 					}
+				}
+				if ($rRollbackRedis['staged'] !== null && !rename($rRollbackRedis['staged'], MAIN_HOME . 'bin/redis/redis-server')) {
+					@unlink($rRollbackRedis['staged']);
+					echo "ERROR: target Redis runtime could not be restored; aborting rollback.\n";
+					UpdateLogger::error('Rollback aborted: target Redis runtime could not be restored');
+					@unlink($rOutputDir);
+					return 1;
 				}
 
 				// Pre-flight the launcher before flipping status: a missing
@@ -326,6 +346,13 @@ class UpdateCommand implements CommandInterface {
 
 			case 'post-update':
 				UpdateLogger::info('Post-update started');
+				// The updater process is from the previous release; this new code is
+				// the first reliable place to migrate runtimes before service start.
+				if (!self::ensureRuntimePackages()) {
+					echo "ERROR: required runtime packages could not be installed.\n";
+					UpdateLogger::error('Post-update aborted: required runtime packages are missing');
+					return 1;
+				}
 
 				$rFailed = [];
 				if (ServerRepository::getAll()[SERVER_ID]['is_main']) {
@@ -342,10 +369,11 @@ class UpdateCommand implements CommandInterface {
 				// balancers it installs (no install_xcvm_core.sh). Take them from
 				// the archive this update came in.
 				// ponytail: drop once every MAIN runs an updater that copies bin/install.
-				$rArchive = TMP_PATH . '.update.tar.gz';
+				$rArchive = self::ARCHIVE;
 				if (ServerRepository::getAll()[SERVER_ID]['is_main'] && is_file($rArchive)) {
 					ProcessRunner::run(['tar', '-xzf', $rArchive, '-C', MAIN_HOME, './bin/install/install_xcvm_core.sh', './bin/install/update_binaries.sh', './bin/install/database.sql'], true);
-					ProcessRunner::run(['chown', '-R', 'xc_vm:xc_vm', MAIN_HOME . 'bin/install'], true);
+					ProcessRunner::run(['chown', '-R', 'root:xc_vm', MAIN_HOME . 'bin/install'], true);
+					ProcessRunner::run(['chmod', '0755', MAIN_HOME . 'bin/install'], true);
 				}
 				// MAIN's copies of the binaries it used to hand its nodes: every node
 				// takes them from GitHub itself now (ADR 0004, "Binaries from GitHub
@@ -404,16 +432,19 @@ class UpdateCommand implements CommandInterface {
 				}
 
 				ProcessRunner::run(TreeOwnership::chownTree(MAIN_HOME));
+				foreach (TreeOwnership::rootOwn(MAIN_HOME) as $rArgv) {
+					ProcessRunner::run($rArgv);
+				}
 				exec('sudo systemctl daemon-reload');
 				exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system");
-				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status');
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php status');
 
 				// Pull/refresh the xc_fanout daemon binary to match this panel
 				// version (ADR 0003, Phase G) — nothing else does it. Idempotent
 				// (downloads only on a version mismatch) + background + best-effort
 				// so an unreachable GitHub never blocks the update; the RootSignals
 				// hourly self-heal is the backstop. Runs on every node (LBs too).
-				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_binary >/dev/null 2>&1 &');
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php fanout_binary >/dev/null 2>&1 &');
 
 				// Pull/refresh the xcvm_core PHP extension to match the version
 				// published in the binaries repo — decoupled from the heavy runtime
@@ -423,17 +454,17 @@ class UpdateCommand implements CommandInterface {
 				// + best-effort; the RootSignals hourly self-heal is the backstop.
 				// Runs on every node (LBs too) — this is what ships config_set_redis
 				// to LB nodes so their Redis target can be pointed at the main server.
-				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php xcvm_core >/dev/null 2>&1 &');
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php xcvm_core >/dev/null 2>&1 &');
 
 				// The archive just put back its own yt-dlp, older than the one the daily
 				// RootSignals check had installed; refresh it now, not up to a day later.
-				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'ytdlp']);
+				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'root.php', 'ytdlp']);
 
 				// ipset for the blocklist's sets (RootSignalsCronJob::syncSets), on a server
 				// installed before the installers took it. Background + best-effort: apt held
 				// or unreachable leaves the blocks one rule each, and the next update tries again.
 				// An argument list, no shell; post-update already runs as root.
-				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'console.php', 'ipset']);
+				ProcessRunner::start([PHP_BIN, MAIN_HOME . 'root.php', 'ipset']);
 
 				// Ensure GeoLite2 databases are present/refreshed after an update.
 				// They are no longer shipped in the update archive, so fetch them
@@ -441,7 +472,7 @@ class UpdateCommand implements CommandInterface {
 				// slow/failed download never blocks or fails the update.
 				if (ServerRepository::getAll()[SERVER_ID]['is_main']) {
 					UpdateLogger::info('Refreshing GeoLite2 databases (background)');
-					exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:maxmind --force >/dev/null 2>&1 &');
+					exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php cron:maxmind --force >/dev/null 2>&1 &');
 				}
 
 				if ($rFailed === []) {
@@ -449,7 +480,7 @@ class UpdateCommand implements CommandInterface {
 				} else {
 					// status above ran them again and marked the schema; say what came of it.
 					$db->query('SELECT `status_uuid` FROM `settings`;');
-					UpdateLogger::error('Post-update completed, but a database migration failed on the first attempt: ' . ((string) $db->get_col() === StatusCommand::schemaMark() ? 'it applied when status ran it again' : 'it still fails, run "sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status" for the cause'));
+					UpdateLogger::error('Post-update completed, but a database migration failed on the first attempt: ' . ((string) $db->get_col() === StatusCommand::schemaMark() ? 'it applied when status ran it again' : 'it still fails, run "sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'root.php status" for the cause'));
 				}
 				break;
 		}
@@ -457,11 +488,68 @@ class UpdateCommand implements CommandInterface {
 		return 0;
 	}
 
-	/**
-	 * A release version (x.y.z, a patch build x.y.z-pN, or a nightly
-	 * x.y.z-dev.N when MAIN runs the dev channel) as an update names it, or
-	 * null for none or anything else.
-	 */
+	/** Install maintained system runtimes, then remove their obsolete bundled copies. */
+	public static function ensureRuntimePackages(string $rMainHome = MAIN_HOME, ?array $rExecutables = null): bool {
+		$rMainHome = rtrim($rMainHome, '/') . '/';
+		$rExecutables ??= ['redis-server' => '/usr/bin/redis-server', 'python3-guessit' => '/usr/bin/guessit'];
+		$rRequired = [];
+		if (is_file($rMainHome . 'bin/redis/redis.conf')) {
+			$rRequired['redis-server'] = $rExecutables['redis-server'];
+		}
+		if (is_dir($rMainHome . 'Public/Controllers/Admin')) {
+			$rRequired['python3-guessit'] = $rExecutables['python3-guessit'];
+		}
+		$rMissing = array_keys(array_filter($rRequired, static fn(string $rPath): bool => !is_file($rPath) || !is_executable($rPath)));
+		if ($rMissing !== []) {
+			$rApt = ['/usr/bin/env', 'DEBIAN_FRONTEND=noninteractive', 'apt-get', '-o', 'DPkg::Lock::Timeout=120'];
+			if (ProcessRunner::run(array_merge($rApt, ['update', '-q']), true) !== 0
+				|| ProcessRunner::run(array_merge($rApt, ['install', '-y', '-q'], $rMissing), true) !== 0
+			) {
+				return false;
+			}
+		}
+		foreach ($rRequired as $rPath) {
+			if (!is_file($rPath) || !is_executable($rPath)) {
+				return false;
+			}
+		}
+		if (isset($rRequired['redis-server'])) {
+			if (ProcessRunner::run(['systemctl', 'disable', '--now', 'redis-server'], true) !== 0) {
+				return false;
+			}
+			@unlink($rMainHome . 'bin/redis/redis-server');
+		}
+		if (isset($rRequired['python3-guessit'])) {
+			@unlink($rMainHome . 'bin/guess');
+		}
+		return true;
+	}
+
+	/** @return array{ok: bool, staged: ?string} Target Redis staged beside its preserved directory. */
+	public static function prepareRollbackRedis(string $rArchive, string $rMainHome = MAIN_HOME): array {
+		if (ProcessRunner::run(['tar', '-tzf', $rArchive], true) !== 0) {
+			return ['ok' => false, 'staged' => null];
+		}
+		$rMember = null;
+		foreach (['./bin/redis/redis-server', 'bin/redis/redis-server'] as $rCandidate) {
+			if (ProcessRunner::run(['tar', '-tzf', $rArchive, $rCandidate], true) === 0) {
+				$rMember = $rCandidate;
+				break;
+			}
+		}
+		if ($rMember === null) {
+			return ['ok' => true, 'staged' => null];
+		}
+		$rDir = rtrim($rMainHome, '/') . '/bin/redis';
+		if ((!is_dir($rDir) && !mkdir($rDir, 0750, true)) || ($rTmp = tempnam($rDir, '.rollback-redis-')) === false) {
+			return ['ok' => false, 'staged' => null];
+		}
+		if (ProcessRunner::runToFile(['tar', '-xOzf', $rArchive, $rMember], $rTmp) !== 0 || filesize($rTmp) === 0 || !chmod($rTmp, 0755)) {
+			@unlink($rTmp);
+			return ['ok' => false, 'staged' => null];
+		}
+		return ['ok' => true, 'staged' => $rTmp];
+	}
 
 	/**
 	 * The migration list a rollback reverses to, from the target release's archive.
@@ -507,6 +595,7 @@ class UpdateCommand implements CommandInterface {
 		UpdateLogger::info('Pre-update DB backup OK: ' . basename($rFile) . ' (' . filesize($rFile) . ' bytes)');
 	}
 
+	/** A release version this update flow accepts, or null for anything else. */
 	public static function pinned(mixed $rVersion): ?string {
 		$rVersion = is_string($rVersion) ? trim($rVersion) : '';
 		return GitHubReleases::isReleaseVersion($rVersion) || GitHubReleases::isDevVersion($rVersion) ? $rVersion : null;
@@ -562,6 +651,33 @@ class UpdateCommand implements CommandInterface {
 			}
 		}
 		return null;
+	}
+
+	/** Download then atomically publish an archive in root's private stage. */
+	private function downloadArchive(string $rUrl): ?string {
+		$rDir = dirname(self::ARCHIVE);
+		foreach ([dirname($rDir), $rDir] as $rOwned) {
+			if (!is_dir($rOwned) && !@mkdir($rOwned, 0700)) {
+				return null;
+			}
+			$rStat = @lstat($rOwned);
+			if ($rStat === false || ($rStat['mode'] & 0170000) !== 0040000 || $rStat['uid'] !== 0 || ($rStat['mode'] & 0022) !== 0) {
+				return null;
+			}
+			if ($rOwned === $rDir && !@chmod($rOwned, 0700)) {
+				return null;
+			}
+		}
+		$rTmp = @tempnam($rDir, '.archive-');
+		if ($rTmp === false) {
+			return null;
+		}
+		@chmod($rTmp, 0600);
+		if (!$this->downloadFile($rUrl, $rTmp) || !@chmod($rTmp, 0600) || !@rename($rTmp, self::ARCHIVE)) {
+			@unlink($rTmp);
+			return null;
+		}
+		return self::ARCHIVE;
 	}
 
 	private function downloadFile($url, $targetPath): bool {
