@@ -62,6 +62,24 @@ final class ModuleBackupTest extends TestCase {
 		$this->assertEmpty(array_filter($db->executed, static fn(string $query): bool => str_contains($query, ' OFFSET ')));
 	}
 
+	public function testCreateRejectsLineBreakingColumnBeforePublishingBackup(): void {
+		file_put_contents($this->module . '/database_drop.sql', 'DROP TABLE `demo_rows`;');
+		$backup = new ModuleBackup(new ModuleBackupDb([
+			'demo_rows' => [['id' => '1', "line\r\nbreak" => 'unsafe']],
+		]), $this->root . '/Modules');
+
+		$error = null;
+		try {
+			$backup->create($this->module, $this->metadata());
+		} catch (\RuntimeException $caught) {
+			$error = $caught;
+		}
+		$this->assertInstanceOf(\RuntimeException::class, $error, 'line-breaking column was published in the backup');
+		$this->assertStringContainsString('columns', $error->getMessage());
+		$this->assertSame([], $backup->list());
+		$this->assertSame([], glob($this->root . '/module_backups/*') ?: []);
+	}
+
 	public function testDatabaseUnbufferedQueryDoesNotBindCursorFlagAndFetchesOneRowAtATime(): void {
 		$db = (new ReflectionClass(Database::class))->newInstanceWithoutConstructor();
 		$db->dbh = $pdo = new ModuleBackupPdo([['id' => 1], ['id' => 2]]);

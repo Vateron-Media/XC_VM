@@ -248,7 +248,7 @@ final class ModuleBackup {
 			throw new \RuntimeException("Cannot read the columns of {$table}.");
 		}
 		$columns = array_column($this->db->get_raw_rows(), 'column_name');
-		if ($columns === [] || array_filter($columns, static fn(mixed $column): bool => !is_string($column))) {
+		if ($columns === [] || array_filter($columns, static fn(mixed $column): bool => !is_string($column) || str_contains($column, "\r") || str_contains($column, "\n"))) {
 			throw new \RuntimeException("Cannot read the columns of {$table}.");
 		}
 		$quotedColumns = implode(', ', array_map(fn(string $column): string => $this->quoted($column), $columns));
