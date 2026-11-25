@@ -19,6 +19,7 @@ use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\EpgAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\MiscAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ModuleAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\ModuleBackupAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\MultiAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\PackageAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ProviderAjaxController;
@@ -84,6 +85,7 @@ use XcVm\Public\Controllers\Admin\MagscanSettingsController;
 use XcVm\Public\Controllers\Admin\MagsController;
 use XcVm\Public\Controllers\Admin\MassDeleteController;
 use XcVm\Public\Controllers\Admin\ModulesController;
+use XcVm\Public\Controllers\Admin\ModuleBackupsController;
 use XcVm\Public\Controllers\Admin\MovieController;
 use XcVm\Public\Controllers\Admin\MovieListController;
 use XcVm\Public\Controllers\Admin\MovieMassController;
@@ -216,6 +218,7 @@ $router->get('server_install', [ServerInstallController::class, 'index']);
 
 $router->get('settings', [SettingsController::class, 'index']);
 $router->get('modules', [ModulesController::class, 'index']);
+$router->get('module_backups', [ModuleBackupsController::class, 'index']);
 $router->any('magscan_settings', [MagscanSettingsController::class, 'index']);
 $router->get('translations', [TranslationsController::class, 'index']);
 $router->get('report_issue', [ReportIssueController::class, 'index']);
@@ -452,6 +455,9 @@ $router->api('backup_verify_now', [BackupTargetAjaxController::class, 'verifyNow
 
 $router->api('clear_logs', [BackupAjaxController::class, 'clearLogs']);
 $router->api('backup', [BackupAjaxController::class, 'backup']);
+$router->api('module_backup_restore', [ModuleBackupAjaxController::class, 'restore']);
+$router->api('module_backup_delete', [ModuleBackupAjaxController::class, 'delete']);
+$router->api('module_backup_download', [ModuleBackupAjaxController::class, 'download']);
 $router->api('report', [BackupAjaxController::class, 'report']);
 $router->api('download_panel_logs', [BackupAjaxController::class, 'downloadPanelLogs']);
 

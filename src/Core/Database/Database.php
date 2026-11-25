@@ -248,7 +248,7 @@ class Database {
 	 * @param string $query    SQL with `?` placeholders.
 	 * @param mixed  $buffered First bind value, or boolean true to disable
 	 *                         buffered query mode (legacy positional overload;
-	 *                         all args from index 1 are collected as binds).
+	 *                         remaining args from index 2 are collected as binds).
 	 *                         NOTE: because `=== true` toggles unbuffered mode,
 	 *                         a literal boolean true cannot be bound as the first
 	 *                         parameter. This ambiguous overload is a candidate
@@ -264,7 +264,7 @@ class Database {
 		$numargs = func_num_args();
 		$arg_list = func_get_args();
 		$next_arg_list = [];
-		$i = 1;
+		$i = $buffered === true ? 2 : 1;
 
 		while ($i < $numargs) {
 			if (is_null($arg_list[$i]) || strtolower($arg_list[$i]) == 'null') {
@@ -435,6 +435,19 @@ class Database {
 	 */
 	public function get_raw_row(): ?array {
 		return $this->get_raw_rows()[0] ?? null;
+	}
+
+	/** Fetch one unmodified row without materializing or closing the current result. */
+	public function fetch_raw_row(): ?array {
+		if (!$this->dbh || !$this->result) {
+			return null;
+		}
+		$row = $this->result->fetch(\PDO::FETCH_ASSOC);
+		if ($row === false) {
+			$this->result = null;
+			return null;
+		}
+		return $row;
 	}
 
 	/**

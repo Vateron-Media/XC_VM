@@ -79,6 +79,42 @@ class ModuleMigrator {
 	}
 
 	/**
+	 * Tables owned by a module according to its teardown contract.
+	 *
+	 * Only DROP TABLE statements are accepted: a teardown file is the trust
+	 * boundary for module-scoped backups, so ambiguous SQL must fail closed.
+	 *
+	 * @return string[]
+	 */
+	public static function ownedTables(string $modulePath): array {
+		$file = $modulePath . '/database_drop.sql';
+		if (!is_file($file)) {
+			return [];
+		}
+		$sql = preg_replace('~/\*.*?\*/~s', '', (string) file_get_contents($file));
+		$sql = implode("\n", array_filter(
+			explode("\n", (string) $sql),
+			static fn(string $line): bool => !preg_match('/^\s*(?:--|#)/', $line)
+		));
+		$tables = [];
+		foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
+			if (!preg_match('/^DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?(.+)$/i', $statement, $match)) {
+				throw new \RuntimeException('database_drop.sql may contain only DROP TABLE statements.');
+			}
+			foreach (explode(',', $match[1]) as $identifier) {
+				$identifier = trim($identifier);
+				if (preg_match('/^`([A-Za-z0-9_]+)`$/', $identifier, $name)
+					|| preg_match('/^([A-Za-z0-9_]+)$/', $identifier, $name)) {
+					$tables[] = $name[1];
+					continue;
+				}
+				throw new \RuntimeException('database_drop.sql contains an unsupported table name.');
+			}
+		}
+		return array_values(array_unique($tables));
+	}
+
+	/**
 	 * Apply forward version deltas for versions in the (`$from`, `$to`] range.
 	 *
 	 * Used on update to bring an already-installed panel up to the current

@@ -25,11 +25,36 @@ class MigrationCallTracker {
 class FakeModuleDb {
     public string $failOn = '';
     public array $statements = [];
+    public array $tables = [];
+    private array $result = [];
 
-    public function query(string $sql): bool {
+    public function query(string $sql, mixed ...$args): bool {
         $this->statements[] = $sql;
-        return $this->failOn === '' || strpos($sql, $this->failOn) === false;
+        if ($this->failOn !== '' && strpos($sql, $this->failOn) !== false) {
+            return false;
+        }
+        if (str_contains($sql, '`information_schema`.`columns`')) {
+            $this->result = [['column_name' => 'id']];
+        } elseif (str_contains($sql, 'information_schema')) {
+            $table = (string) ($args[0] ?? '');
+            $this->result = isset($this->tables[$table]) ? [['table_name' => $table]] : [];
+        } elseif (preg_match('/^SHOW CREATE TABLE `([^`]+)`/', $sql, $match)) {
+            $this->result = [['Table' => $match[1], 'Create Table' => 'CREATE TABLE `' . $match[1] . '` (`id` int)']];
+        } elseif (preg_match('/^SELECT `id` FROM `([^`]+)`/', $sql, $match)) {
+            $this->result = $this->tables[$match[1]] ?? [];
+        } else {
+            $this->result = [];
+        }
+        return true;
     }
+
+    public function num_rows(): int { return count($this->result); }
+    public function get_row(): array|false { return $this->result[0] ?? false; }
+    public function get_rows(): array { return $this->result; }
+    public function get_raw_row(): ?array { return $this->result[0] ?? null; }
+    public function get_raw_rows(): array { return $this->result; }
+    public function fetch_raw_row(): ?array { return array_shift($this->result); }
+    public function escape(string $value): string { return "'" . addslashes($value) . "'"; }
 }
 
 final class ModuleManagerMigrationsTest extends TestCase {
@@ -437,10 +462,11 @@ final class ModuleManagerMigrationsTest extends TestCase {
 
     public function testUninstallMarksModuleFailedWhenTeardownThrows(): void {
         $this->createModule('teardown-mod', '1.0.0');
-        file_put_contents($this->modulesPath . '/teardown-mod/database_drop.sql', 'BOOM;');
+        file_put_contents($this->modulesPath . '/teardown-mod/database_drop.sql', 'DROP TABLE IF EXISTS `teardown_rows`;');
         $this->writeOverrides(['teardown-mod' => ['installed_version' => '1.0.0']]);
 
-        $this->db->failOn = 'BOOM';
+		$this->db->tables['teardown_rows'] = [];
+		$this->db->failOn = 'DROP TABLE';
 
         try {
             $this->manager()->uninstallModule('teardown-mod');
@@ -453,6 +479,31 @@ final class ModuleManagerMigrationsTest extends TestCase {
         $this->assertSame('failed', $overrides['teardown-mod']['state'] ?? null);
         // Still recorded as installed — its tables were not dropped.
         $this->assertSame('1.0.0', $overrides['teardown-mod']['installed_version'] ?? null);
+    }
+
+    public function testRequiredBackupFailureStopsBeforeTheModuleHook(): void {
+        $this->createModule('backup-block', '1.0.0');
+        $dir = $this->modulesPath . '/backup-block';
+        file_put_contents($dir . '/database_drop.sql', 'DROP TABLE IF EXISTS `backup_block_rows`;');
+        $class = $dir . '/BackupBlockModule.php';
+        file_put_contents($class, str_replace(
+            "\tpublic function getVersion(): string { return '1.0.0'; }",
+            "\tpublic function getVersion(): string { return '1.0.0'; }\n\tpublic function uninstall(): void { \\MigrationCallTracker::record('hook'); }",
+            (string) file_get_contents($class)
+        ));
+        $this->writeOverrides(['backup-block' => ['installed_version' => '1.0.0']]);
+        $this->db->failOn = 'information_schema';
+
+        try {
+            $this->manager()->uninstallModule('backup-block');
+            $this->fail('backup failure did not stop uninstall');
+        } catch (RuntimeException $error) {
+            $this->assertStringContainsString('Cannot back up', $error->getMessage());
+        }
+
+        $this->assertSame([], MigrationCallTracker::$calls, 'the module hook did not run');
+        $this->assertSame('1.0.0', $this->readOverrides()['backup-block']['installed_version'] ?? null);
+		$this->assertArrayNotHasKey('state', $this->readOverrides()['backup-block'], 'backup refusal leaves module state unchanged');
     }
 
     // ── one directory per module ──────────────────────────────────────────

@@ -97,6 +97,27 @@ final class AdminAudit {
 		}
 	}
 
+	/** Record a completed background/system action that has no HTTP response to observe. */
+	public static function record(string $rAction, bool $rResult, array $rDetail = [], ?object $rDb = null): void {
+		try {
+			$rDb ??= self::db();
+			$rUser = $GLOBALS['rAdminUserInfo'] ?? $GLOBALS['rUserInfo'] ?? [];
+			$rDb->query(
+				'INSERT INTO `admin_audit` (`date`, `user_id`, `username`, `ip`, `source`, `action`, `result`, `detail`) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+				time(),
+				isset($rUser['id']) ? (int) $rUser['id'] : null,
+				isset($rUser['username']) ? substr((string) $rUser['username'], 0, 50) : null,
+				PHP_SAPI === 'cli' ? null : substr((string) NetworkUtils::getUserIP(), 0, 64),
+				PHP_SAPI === 'cli' ? 'system' : 'panel',
+				substr($rAction, 0, 64),
+				$rResult ? 1 : 0,
+				$rDetail === [] ? null : json_encode($rDetail, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+			);
+		} catch (\Throwable) {
+			// Audit must not turn a completed safe operation into a failure.
+		}
+	}
+
 	/** Write the current entry (at shutdown). */
 	public static function finish(): void {
 		$rEntry = self::$rEntry;

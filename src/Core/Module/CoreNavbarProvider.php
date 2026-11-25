@@ -625,6 +625,10 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 			->parent('profile')->url('backups')
 			->label('backup_settings')->permissions(['database'])->order(30));
 
+		NavbarRegistry::add((new NavbarItem('profile.module_backups'))
+			->parent('profile')->url('module_backups')
+			->label('module_backups')->permissions(['database'])->order(35));
+
 		NavbarRegistry::add((new NavbarItem('profile.cache'))
 			->parent('profile')->url('cache')
 			->label('cache_redis')->permissions(['database'])->order(40));
