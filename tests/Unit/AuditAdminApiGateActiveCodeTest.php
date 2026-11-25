@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Reference\PermissionReference;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Public\Controllers\Api\ActiveCodeApiController;
@@ -55,10 +56,12 @@ final class AuditAdminApiGateActiveCodeTest extends TestCase {
 
 		$GLOBALS['db'] = $this->rDb;
 		DatabaseFactory::set($this->rDb);
+		SettingsManager::set(['api_legacy_keys' => '1']);
 	}
 
 	protected function tearDown(): void {
 		DatabaseFactory::reset();
+		SettingsManager::set([]);
 		AdminAPIWrapper::$db = null;
 		AdminAPIWrapper::$rKey = null;
 		unset($GLOBALS['db'], $GLOBALS['rUserInfo'], $GLOBALS['rAdminUserInfo'], $GLOBALS['rPermissions']);

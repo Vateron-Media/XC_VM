@@ -328,7 +328,10 @@ class BruteforceGuard {
 		} elseif ($mac !== null && filter_var($mac, FILTER_VALIDATE_MAC)) {
 			$term = strtoupper(str_replace('-', ':', $mac));
 		} else {
-			$term = $mac ?? rtrim(function_exists('mb_strtolower') ? mb_strtolower((string) $username, 'UTF-8') : strtolower((string) $username), ' ');
+			$term = $mac ?? (string) $username;
+			if ($mac === null && (!function_exists('mb_check_encoding') || mb_check_encoding($term, 'UTF-8'))) {
+				$term = rtrim(function_exists('mb_strtolower') ? mb_strtolower($term, 'UTF-8') : strtolower($term), ' ');
+			}
 		}
 		// The count is kept as JSON, which holds valid UTF-8 only: any other term is counted by its digest.
 		if (json_encode($term) === false) {

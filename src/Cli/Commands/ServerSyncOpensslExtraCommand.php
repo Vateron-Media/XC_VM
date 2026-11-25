@@ -76,7 +76,7 @@ class ServerSyncOpensslExtraCommand implements CommandInterface {
 	 *
 	 * @param array<int,array<string,mixed>> $rServers ServerRepository::getAll() rows.
 	 */
-	public static function sync(array $rServers, int $rMainID, bool $rAll, int $rTargetID, bool $rForce, string $rFile): int {
+	public static function sync(array $rServers, int $rMainID, bool $rAll, int $rTargetID, bool $rForce, string $rFile, ?callable $rSend = null): int {
 		if (empty($rServers[$rMainID]['is_main'])) {
 			echo "Run this on the MAIN server.\n";
 			return 1;
@@ -111,19 +111,25 @@ class ServerSyncOpensslExtraCommand implements CommandInterface {
 
 		$rCustomData = OpensslExtra::signal(OPENSSL_EXTRA);
 		$rQueued = 0;
+		$rFailed = 0;
+		$rSend ??= static fn(int $rServerID, string $rData): bool => NodeActions::send($rServerID, $rData, self::db());
 		foreach (self::targets($rServers, $rAll, $rTargetID, $rMainPrint, $rForce) as $rServerID => $rSkip) {
 			$rName = $rServers[$rServerID]['server_name'] ?? '';
 			if ($rSkip !== null) {
 				echo "#{$rServerID} {$rName}: skipped, {$rSkip}\n";
 				continue;
 			}
-			NodeActions::send(intval($rServerID), $rCustomData, self::db());
-			echo "#{$rServerID} {$rName}: queued\n";
-			$rQueued++;
+			if ($rSend((int) $rServerID, $rCustomData)) {
+				echo "#{$rServerID} {$rName}: queued\n";
+				$rQueued++;
+			} else {
+				echo "#{$rServerID} {$rName}: not queued (the node has no ready signed root-command channel)\n";
+				$rFailed++;
+			}
 		}
-		echo "{$rQueued} node(s) queued. Each applies it at its next cron:root_signals run (within a minute) and reports it at its next cron:servers run; check with server:diagnose <id>.\n";
+		echo "{$rQueued} node(s) queued. Each applies it at its next cluster:root run and reports it at its next cron:servers run; check with server:diagnose <id>.\n";
 
-		return 0;
+		return $rFailed === 0 ? 0 : 1;
 	}
 
 	/**

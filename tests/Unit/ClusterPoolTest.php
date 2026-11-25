@@ -379,7 +379,7 @@ final class ClusterPoolTest extends TestCase {
 	public function testTheCallSitesKeepTheApiStartingUntilThePoolsAnswer(): void {
 		$rSrc = MAIN_HOME;
 
-		$this->assertMatchesRegularExpression('#^boot\(\) \{[^}]*^  rm -f \$SCRIPT/tmp/cluster_ready$[^}]*console\.php startup$#m', (string) file_get_contents($rSrc . 'service'), 'boot() removes the marker before startup runs status');
+		$this->assertMatchesRegularExpression('#^boot\(\) \{[^}]*^  rm -f \$SCRIPT/tmp/cluster_ready$[^}]*root\.php startup$#m', (string) file_get_contents($rSrc . 'service'), 'boot() removes the marker before startup runs status');
 		$this->assertMatchesRegularExpression('#ACTIONS = \[\'start\' => \'boot\'.*?ProcessRunner::passThrough\(\[\'/bin/sh\', \$rScript, \$rAction\]\)#s', (string) file_get_contents($rSrc . 'Cli/Commands/ServiceCommand.php'), 'and the service command runs that same boot(), rather than a second copy of it');
 
 		$rIndex = (string) file_get_contents($rSrc . 'Public/cluster/index.php');

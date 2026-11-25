@@ -785,7 +785,11 @@ class ModuleManager {
 		$byName = [];
 		foreach ($jsonFiles as $jsonFile) {
 			$dir  = dirname($jsonFile);
-			$name = $this->manifestNameFromDir($dir);
+			try {
+				$name = $this->manifestNameFromDir($dir);
+			} catch (\RuntimeException) {
+				$name = basename($dir);
+			}
 			if (!isset($byName[$name]) || basename($dir) !== $name) {
 				$byName[$name] = $jsonFile;
 			}
@@ -2880,7 +2884,7 @@ class ModuleManager {
 		$raw = @file_get_contents($file);
 		$meta = json_decode((string) $raw, true);
 		if (!is_array($meta) || !is_string($meta['name'] ?? null) || trim($meta['name']) === '') {
-			throw new \RuntimeException('Module manifest must be a JSON object with an explicit name.');
+			throw new \RuntimeException('Module manifest module.json must be a JSON object with an explicit name.');
 		}
 		if (strlen((string) $raw) > self::MAX_MANIFEST_BYTES) {
 			throw new \RuntimeException('Module manifest is too large.');

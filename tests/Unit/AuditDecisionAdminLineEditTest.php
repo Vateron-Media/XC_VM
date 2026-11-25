@@ -75,7 +75,7 @@ final class AuditDecisionAdminLineEditTest extends TestCase {
 
 		$this->rBefore = ['rServers' => $GLOBALS['rServers'] ?? null, 'settings' => SettingsManager::getAll(), 'request' => RequestManager::getAll()];
 		$GLOBALS['rServers'] = [1 => ['is_main' => 1]];
-		SettingsManager::set(['enable_cache' => 0, 'redis_handler' => 0, 'cluster_kill_on_line_disable' => 1]);
+		SettingsManager::set(['enable_cache' => 0, 'redis_handler' => 0, 'cluster_kill_on_line_disable' => 1, 'api_legacy_keys' => '1']);
 
 		$GLOBALS['db'] = $this->rDb;
 		DatabaseFactory::set($this->rDb);

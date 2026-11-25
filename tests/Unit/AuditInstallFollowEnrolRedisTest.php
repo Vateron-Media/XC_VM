@@ -72,7 +72,7 @@ final class AuditInstallFollowEnrolRedisTest extends TestCase {
 				];
 			}
 			$rOutput = match (true) {
-				str_contains($rCmd, 'console.php fanout_binary agent') => "AGENT_OK\n",
+				str_contains($rCmd, 'root.php fanout_binary agent') => "AGENT_OK\n",
 				str_contains($rCmd, ' probe ') => "OK http://10.0.0.1:25461/cluster/v1/\n",
 				str_contains($rCmd, ' install ') => "OK\n",
 				str_contains($rCmd, 'run.sh') && str_contains($rCmd, 'pgrep') => "STARTED\n",

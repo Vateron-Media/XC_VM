@@ -138,13 +138,13 @@ PHP;
 		];
 	}
 
-	/** The sign-in form ends the sign-in it finds, so a GET of the sign-out must not lead there either. */
+	/** A GET is not a logout route and leaves the viewer signed in. */
 	#[DataProvider('players')]
 	public function testAGetOfTheSignOutLeavesTheViewerSignedIn(string $rPlayer, string $rHome, string $rSignIn): void {
 		$rEnd = $this->request($rPlayer, 'logout', 'GET');
 
 		$this->assertSame(7, $this->session()['phash'] ?? null, 'a GET signed the viewer out');
-		$this->assertSame([$rHome], $rEnd['headers'], 'a GET did not lead home');
+		$this->assertSame(['404'], $rEnd['headers']);
 	}
 
 	#[DataProvider('players')]

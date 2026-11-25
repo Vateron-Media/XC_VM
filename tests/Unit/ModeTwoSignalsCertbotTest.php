@@ -526,7 +526,10 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 		$this->assertSame(['serial' => '0A1B', 'path' => dirname($rCert)], array_intersect_key($rReported[0], ['serial' => 1, 'path' => 1]));
 		$this->assertSame(['certbot_ssl'], array_keys((array) $this->kept()));
 		$this->assertSame('0A1B', json_decode((string) $this->kept()['certbot_ssl'], true)['serial'], 'the node keeps what it reported');
-		$this->assertSame(['nginx_rtmp -s reload', 'nginx -s reload'], $this->commands(), 'reloaded here, without sudo');
+		$this->assertSame([
+			'sudo -u xc_vm ' . $this->rHome . 'bin/nginx_rtmp/sbin/nginx_rtmp -s reload',
+			'sudo -u xc_vm ' . $this->rHome . 'bin/nginx/sbin/nginx -s reload',
+		], $this->commands());
 		$rLines = array_map(static fn(array $rEvent): array => $rEvent['d']['rows'][0], $this->spooled('p1'));
 		$this->assertSame([['RELOAD', 'NGINX services reloaded on request.']], array_map(static fn(array $rRow): array => [$rRow['type'], $rRow['error']], $rLines));
 
@@ -576,7 +579,10 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 		$this->assertNoConnect();
 		$this->assertStringContainsString('Fixed ssl configuration file', $rResult['output']);
 		$this->assertStringStartsWith('ssl_certificate ' . $rCert . ";\n", (string) file_get_contents($this->rHome . 'bin/nginx/conf/ssl.conf'));
-		$this->assertSame(['nginx_rtmp -s reload', 'nginx -s reload'], $this->commands());
+		$this->assertSame([
+			'sudo -u xc_vm ' . $this->rHome . 'bin/nginx_rtmp/sbin/nginx_rtmp -s reload',
+			'sudo -u xc_vm ' . $this->rHome . 'bin/nginx/sbin/nginx -s reload',
+		], $this->commands());
 	}
 
 	/**
@@ -595,8 +601,8 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 		});
 		(new ReflectionMethod(CertbotCronJob::class, 'reloadNginx'))->invoke(new CertbotCronJob(), true, new stdClass());
 		$this->assertSame([
-			[[BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp', '-s', 'reload'], false],
-			[[BIN_PATH . 'nginx/sbin/nginx', '-s', 'reload'], false],
+			[['sudo', '-u', 'xc_vm', BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp', '-s', 'reload'], false],
+			[['sudo', '-u', 'xc_vm', BIN_PATH . 'nginx/sbin/nginx', '-s', 'reload'], false],
 		], $rRuns);
 		$this->assertSame([['RELOAD', 'NGINX services reloaded on request.']], array_map(static fn(array $rEvent): array => [$rEvent['d']['rows'][0]['type'], $rEvent['d']['rows'][0]['error']], $this->spooled('p1')));
 	}

@@ -45,7 +45,7 @@ namespace {
 	$db->exec("INSERT INTO `users` (`id`, `username`, `member_group_id`, `status`, `timezone`, `api_key`) VALUES (1, 'admin', 1, 1, '', '11111111111111111111111111111111')");
 	\XcVm\Infrastructure\Database\DatabaseFactory::set($db);
 	// A new load balancer installs in API mode: MAIN grants it no database access.
-	\XcVm\Core\Config\SettingsManager::set(['cluster_api_enabled' => 1, 'lb_new_node_mode' => 'api']);
+	\XcVm\Core\Config\SettingsManager::set(['cluster_api_enabled' => 1, 'lb_new_node_mode' => 'api', 'api_legacy_keys' => '1']);
 
 	\XcVm\Core\Http\RequestManager::set(['api_key' => '11111111111111111111111111111111', 'action' => $rIn['action']] + $rIn['data']);
 	ob_start();

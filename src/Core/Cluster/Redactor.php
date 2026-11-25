@@ -22,6 +22,9 @@ final class Redactor {
 		if ($rText === '') {
 			return $rText;
 		}
+		// URL credentials must go first: otherwise `user:pass@host` looks like
+		// an unquoted `user: value` and the rest of the URL is lost.
+		$rText = (string) preg_replace('#\b([a-z][a-z0-9+.\-]*://)[^/\s:@"\']+:[^/\s@"\']*@#i', '$1' . self::MASK . '@', $rText);
 		// Quoted values may contain spaces, commas and escaped quotes.
 		$rText = (string) preg_replace(
 			'/\b((?:[a-z0-9]+_)*(?:password|passwd|pwd|pass|secret(?:[_ -]?prefix)?|token|api[_-]?key|access[_-]?key|username|user))(["\']?\s*(?:=>|[:=])\s*)(["\'])((?:\\\\.|(?!\3).)*)\3/i',
@@ -41,8 +44,6 @@ final class Redactor {
 			'$1$2' . self::MASK,
 			$rText
 		);
-		// scheme://user:pass@host
-		$rText = (string) preg_replace('#\b([a-z][a-z0-9+.\-]*://)[^/\s:@"\']+:[^/\s@"\']*@#i', '$1' . self::MASK . '@', $rText);
 		// Xtream paths: /live/<user>/<pass>/… and friends.
 		$rText = (string) preg_replace('#/(live|movie|series|timeshift)/[^/\s?"\']+/[^/\s?"\']+/#i', '/$1/' . self::MASK . '/' . self::MASK . '/', $rText);
 		return $rText;

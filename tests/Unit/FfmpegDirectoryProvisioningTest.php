@@ -12,15 +12,15 @@ final class FfmpegDirectoryProvisioningTest extends TestCase {
 			return ['output' => '', 'error' => ''];
 		});
 		$rPrepare = 'sudo install -d -o xc_vm -g xc_vm -m 0755 /home/xc_vm/bin/ffmpeg_bin';
-		$this->assertSame($rPrepare, $rCommands[1]);
+		$this->assertSame($rPrepare, $rCommands[2]);
 		$this->assertStringEndsWith('console.php ffmpeg', end($rCommands));
 		$rCommands = [];
 		LbInstallFlow::runStartup(null, static function ($rConn, string $rCommand) use (&$rCommands): array {
 			$rCommands[] = $rCommand;
 			return ['output' => '', 'error' => ''];
 		}, false);
-		$this->assertSame($rPrepare, $rCommands[1]);
-		$this->assertCount(2, $rCommands, 'API-mode nodes prepare the folder without running database-backed commands');
+		$this->assertSame($rPrepare, $rCommands[2]);
+		$this->assertCount(3, $rCommands, 'API-mode nodes prepare ownership and the folder without running database-backed commands');
 	}
 
 	public function testFailedDirectoryPreparationFailsTheServiceBoot(): void {

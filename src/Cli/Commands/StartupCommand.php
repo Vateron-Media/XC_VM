@@ -174,7 +174,7 @@ class StartupCommand implements CommandInterface {
 		}
 		try {
 			$rOpts = ['config' => $rCnf, 'digest_alg' => 'sha256'];
-			$rKey = openssl_pkey_new($rOpts + ['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+			$rKey = @openssl_pkey_new($rOpts + ['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
 			$rCsr = $rKey ? openssl_csr_new(['commonName' => $rName], $rKey, $rOpts) : false;
 			$rCrt = $rCsr ? openssl_csr_sign($rCsr, null, $rKey, 3650, $rOpts, random_int(1, PHP_INT_MAX)) : false;
 			return $rCrt && openssl_x509_export($rCrt, $rCrtPem) && openssl_pkey_export($rKey, $rKeyPem, null, $rOpts) ? [$rCrtPem, $rKeyPem] : null;

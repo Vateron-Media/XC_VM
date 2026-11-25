@@ -96,7 +96,7 @@ final class LbProvisionClusterTest extends TestCase {
 				]) . "\n", 'error' => ''
 				];
 			}
-			if (str_contains($rCmd, 'console.php fanout_binary')) {
+			if (str_contains($rCmd, 'root.php fanout_binary')) {
 				return ['output' => $this->rAgentInstalls ? "xc_agent 1.5.0 installed.\nAGENT_OK\n" : "Failed to download xc_agent-linux-amd64\n", 'error' => ''];
 			}
 			if (str_contains($rCmd, 'echo FANOUT_OK')) {
@@ -132,7 +132,7 @@ final class LbProvisionClusterTest extends TestCase {
 		$rLog = (string) ob_get_clean();
 		$this->assertTrue($rOk, $rLog);
 		$this->assertArrayNotHasKey(LbInstallFlow::AGENT_BIN, $this->rSent, 'MAIN pushes no agent');
-		$rInstall = array_values(array_filter($this->rCommands, static fn($c) => str_contains($c, 'console.php fanout_binary agent')));
+		$rInstall = array_values(array_filter($this->rCommands, static fn($c) => str_contains($c, 'root.php fanout_binary agent')));
 		$this->assertCount(1, $rInstall, 'the node installs it from its release');
 		$this->assertStringNotContainsString(ReplicaBoot::OPTION, $rInstall[0], 'a legacy node boots through MAIN\'s database');
 		$rKeygenAt = array_key_first(array_filter($this->rCommands, static fn($c) => str_contains($c, ' keygen ')));
@@ -318,10 +318,10 @@ final class LbProvisionClusterTest extends TestCase {
 		$rOk = LbInstallFlow::provisionCluster(null, $rRun, $rSend, $this->servers(), self::SID, $this->rDb, $this->rCrypto);
 		$rLog = (string) ob_get_clean();
 		$this->assertTrue($rOk, $rLog);
-		$rFetch = array_values(array_filter($this->rCommands, static fn($c) => str_contains($c, 'console.php fanout_binary agent')));
-		$this->assertStringContainsString("console.php fanout_binary agent --replica '--channel=beta' '--canary=4' '--pin=1.5.0' 2>&1", $rFetch[0]);
+		$rFetch = array_values(array_filter($this->rCommands, static fn($c) => str_contains($c, 'root.php fanout_binary agent')));
+		$this->assertStringContainsString("root.php fanout_binary agent --replica '--channel=beta' '--canary=4' '--pin=1.5.0' 2>&1", $rFetch[0]);
 		// What the node's console makes of that line.
-		$rArgv = ['console.php', 'fanout_binary', 'agent', '--replica', '--channel=beta', '--canary=4', '--pin=1.5.0'];
+		$rArgv = ['root.php', 'fanout_binary', 'agent', '--replica', '--channel=beta', '--canary=4', '--pin=1.5.0'];
 		$this->assertSame(ReplicaBoot::ALWAYS, ReplicaBoot::forArgv($rArgv));
 		$this->assertSame(['update_channel_fanout' => 'beta', 'lb_binary_canary_server' => '4', 'lb_release_pin' => '1.5.0'], FanoutBinaryCommand::mainSettings(array_slice($rArgv, 2)));
 		$this->assertSame([], FanoutBinaryCommand::mainSettings(['agent', 'force', '--pin', '--other=1']), 'a bare option, or another, is no setting');
@@ -344,8 +344,8 @@ final class LbProvisionClusterTest extends TestCase {
 	public function testAServeOnlyNodeTakesTheFanoutDaemonWithTheAgent(): void {
 		[$rOk, $rLog] = $this->provisionServeOnly();
 		$this->assertTrue($rOk, $rLog);
-		$rFetch = array_values(array_filter($this->rCommands, static fn($c) => str_contains($c, 'console.php fanout_binary')));
-		$this->assertStringContainsString('console.php fanout_binary --replica', $rFetch[0], 'both binaries, not the agent alone');
+		$rFetch = array_values(array_filter($this->rCommands, static fn($c) => str_contains($c, 'root.php fanout_binary')));
+		$this->assertStringContainsString('root.php fanout_binary --replica', $rFetch[0], 'both binaries, not the agent alone');
 		$this->assertNotNull(NodeRegistry::byServer(self::SID));
 	}
 
@@ -435,7 +435,7 @@ final class LbProvisionClusterTest extends TestCase {
 		}
 		try {
 			$rRun = function ($rConn, string $rCmd) use ($rLocal, $rBin): array {
-				if (str_contains($rCmd, 'console.php fanout_binary agent')) {
+				if (str_contains($rCmd, 'root.php fanout_binary agent')) {
 					@mkdir(dirname($rLocal(LbInstallFlow::AGENT_BIN)), 0700, true);
 					return ['output' => copy($rBin, $rLocal(LbInstallFlow::AGENT_BIN)) && chmod($rLocal(LbInstallFlow::AGENT_BIN), 0700) ? "AGENT_OK\n" : '', 'error' => ''];
 				}

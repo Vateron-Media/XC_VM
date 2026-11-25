@@ -39,17 +39,9 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 				return $this->rRows;
 			}
 		};
-		\XcVm\Core\Cluster\NodeRpc::useTransport(static function () {
-			throw new \RuntimeException('Access codes must reload nginx through the root action queue, not the unprivileged API');
-		});
-		\XcVm\Core\Cluster\SignalDispatcher::useSink(new class implements \XcVm\Core\Cluster\SignalSink {
-			public function insert(array $rRows): bool {
-				file_put_contents(MAIN_HOME . 'reload.json', json_encode($rRows));
-				return true;
-			}
-			public function pending(int $rServerID, string $rCustomData): bool {
-				return false;
-			}
+		\XcVm\Core\Process\ProcessRunner::useRunner(static function (array $rArgv): int {
+			file_put_contents(MAIN_HOME . 'reload.json', json_encode($rArgv));
+			return 0;
 		});
 		\XcVm\Core\Auth\AuthRepository::updateCodes();
 		PHP;
@@ -71,13 +63,11 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 		}
 	}
 
-	public function testGeneratingCodesQueuesTheReloadForTheRootWorker(): void {
+	public function testGeneratingCodesReloadsTheXcVmOwnedNginx(): void {
 		$this->generate(self::template());
-		$rRows = json_decode((string) file_get_contents($this->rHome . 'reload.json'), true, 512, JSON_THROW_ON_ERROR);
-		$this->assertCount(1, $rRows);
-		$this->assertSame(1, $rRows[0]['server_id']);
-		$this->assertSame(['action' => 'reload_nginx'], json_decode($rRows[0]['custom_data'], true));
-		$this->assertArrayNotHasKey('pid', $rRows[0]);
+		$this->assertSame([
+			$this->rHome . 'bin/nginx/sbin/nginx', '-s', 'reload',
+		], json_decode((string) file_get_contents($this->rHome . 'reload.json'), true, 512, JSON_THROW_ON_ERROR));
 	}
 
 	public function testTheTemplateLimitsTheSignInAndTheResizerInThePanelsZone(): void {

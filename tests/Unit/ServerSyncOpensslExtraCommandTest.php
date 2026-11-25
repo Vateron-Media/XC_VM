@@ -55,7 +55,17 @@ final class ServerSyncOpensslExtraCommandTest extends TestCase {
 	private function sync(array $rServers, bool $rAll, int $rTargetID, bool $rForce): array {
 		ob_start();
 		try {
-			$rCode = ServerSyncOpensslExtraCommand::sync($rServers, 1, $rAll, $rTargetID, $rForce, $this->rFile);
+			$rCode = ServerSyncOpensslExtraCommand::sync(
+				$rServers,
+				1,
+				$rAll,
+				$rTargetID,
+				$rForce,
+				$this->rFile,
+				function (int $rServerID, string $rData): bool {
+					return $this->db->query('INSERT INTO signals (`server_id`, `time`, `custom_data`) VALUES (?, ?, ?)', $rServerID, time(), $rData);
+				}
+			);
 		} finally {
 			$rOutput = (string) ob_get_clean();
 		}
@@ -99,6 +109,18 @@ final class ServerSyncOpensslExtraCommandTest extends TestCase {
 		$this->assertSame(0, $rCode);
 		$this->assertStringContainsString('#1 Main: skipped, the main', $rOutput);
 		$this->assertSame([5], array_keys($this->queued()));
+	}
+
+	public function testARefusedSignedCommandIsReportedAsAFailure(): void {
+		ob_start();
+		try {
+			$rCode = ServerSyncOpensslExtraCommand::sync($this->cluster(), 1, false, 5, false, $this->rFile, static fn(): bool => false);
+		} finally {
+			$rOutput = (string) ob_get_clean();
+		}
+		$this->assertSame(1, $rCode);
+		$this->assertStringContainsString('not queued', $rOutput);
+		$this->assertSame([], $this->queued());
 	}
 
 	/** Without config/openssl_extra the main runs on the built-in default, as its LBs do. */
