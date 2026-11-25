@@ -295,4 +295,4 @@ jobs:
 
       - name: Run the agent's panel tests
         working-directory: .fanout
-        run: go test -count=1 ./internal/clusteragent/
+        run: go test -count=1 ./internal/agent/runtime/
