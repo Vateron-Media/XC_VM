@@ -8,11 +8,13 @@ site_dir: build/site
 edit_uri: edit/main/docs/
 
 # ru/ is a committed generated tree (translated from en/ locally before release)
-# consumed by the i18n plugin. adr/agents/xc_fanout.md are repo-internal English
-# notes, not part of the published site; requirements.txt is toolchain.
+# consumed by the i18n plugin. Internal audits, agent notes and implementation
+# plans are not part of the published site; requirements.txt is toolchain.
 exclude_docs: |
   adr/
   agents/
+  audits/
+  superpowers/
   xc_fanout.md
   requirements.txt
 
@@ -100,6 +102,7 @@ plugins:
             Update Mechanism: Механизм обновлений
             Reseller System: Система реселлеров
             Backup Strategy: Стратегия резервного копирования
+            Active Codes and Category Templates: Коды активации и шаблоны категорий
             Operations: Эксплуатация
             API Reference: Справочник API
             Interactive API (Swagger): Интерактивный API (Swagger)
@@ -174,6 +177,7 @@ nav:
           - Reseller Bouquets: en/administration/reseller-bouquets.md
           - User Proxy: en/administration/user-proxy.md
           - Backup Strategy: en/administration/backup-strategy.md
+          - Active Codes and Category Templates: en/guides/active-codes-and-category-templates.md
           - Operations: en/administration/operations.md
       - API Reference:
           - Interactive API (Swagger): en/api/swagger.md
