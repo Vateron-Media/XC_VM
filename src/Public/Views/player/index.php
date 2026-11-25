@@ -51,21 +51,21 @@ if (count($rPopularNow) > 0): ?>
 					<h1 class="home__title" style="margin-top:30px;">NEWLY <b>ADDED</b></h1>
 					<ul class="nav nav-tabs content__tabs" id="content__tabs" role="tablist">
 						<li class="nav-item">
-							<a class="nav-link active" data-toggle="tab" href="#movies" role="tab" aria-controls="movies" aria-selected="true">MOVIES</a>
+							<a class="nav-link active" data-bs-toggle="tab" href="#movies" role="tab" aria-controls="movies" aria-selected="true">MOVIES</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" data-toggle="tab" href="#series" role="tab" aria-controls="series" aria-selected="false">TV SERIES</a>
+							<a class="nav-link" data-bs-toggle="tab" href="#series" role="tab" aria-controls="series" aria-selected="false">TV SERIES</a>
 						</li>
 					</ul>
 					<div class="content__mobile-tabs" id="content__mobile-tabs">
-						<div class="content__mobile-tabs-btn dropdown-toggle" role="navigation" id="mobile-tabs" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<div class="content__mobile-tabs-btn dropdown-toggle" role="navigation" id="mobile-tabs" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 							<input type="button" value="Movies">
 							<span></span>
 						</div>
 						<div class="content__mobile-tabs-menu dropdown-menu" aria-labelledby="mobile-tabs">
 							<ul class="nav nav-tabs" role="tablist">
-								<li class="nav-item"><a class="nav-link active" id="movies-tab" data-toggle="tab" href="#movies" role="tab" aria-controls="movies" aria-selected="true">MOVIES</a></li>
-								<li class="nav-item"><a class="nav-link" id="series-tab" data-toggle="tab" href="#series" role="tab" aria-controls="series" aria-selected="false">TV SERIES</a></li>
+								<li class="nav-item"><a class="nav-link active" id="movies-tab" data-bs-toggle="tab" href="#movies" role="tab" aria-controls="movies" aria-selected="true">MOVIES</a></li>
+								<li class="nav-item"><a class="nav-link" id="series-tab" data-bs-toggle="tab" href="#series" role="tab" aria-controls="series" aria-selected="false">TV SERIES</a></li>
 							</ul>
 						</div>
 					</div>

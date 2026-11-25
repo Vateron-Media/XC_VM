@@ -64,7 +64,7 @@ class Authenticator {
 			$rCodes = (is_array($rResponse) && !empty($rResponse['error-codes']))
 				? implode(', ', (array) $rResponse['error-codes'])
 				: 'unknown';
-			self::logRecaptcha('verification rejected by Google (error-codes: ' . $rCodes . '); secret prefix=' . substr($rSecret, 0, 10));
+			self::logRecaptcha('verification rejected by Google (error-codes: ' . $rCodes . ')');
 			return false;
 		}
 

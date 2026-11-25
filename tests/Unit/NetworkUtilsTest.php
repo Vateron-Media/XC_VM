@@ -7,6 +7,11 @@ use PHPUnit\Framework\TestCase;
  * @covers XcVm\Core\Util\NetworkUtils
  */
 final class NetworkUtilsTest extends TestCase {
+	public function testCanonicalIpCollapsesEquivalentAddresses(): void {
+		$this->assertSame('2001:db8::1', NetworkUtils::canonicalIP('2001:0db8:0:0:0:0:0:1'));
+		$this->assertSame('192.0.2.1', NetworkUtils::canonicalIP('::ffff:192.0.2.1'));
+		$this->assertSame('not-an-ip', NetworkUtils::canonicalIP('not-an-ip'));
+	}
 
 	public function testExactMatchWhenSubnetOff() {
 		$this->assertTrue(NetworkUtils::ipMatches(false, '1.2.3.4', '1.2.3.4'));

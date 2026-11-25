@@ -140,6 +140,11 @@ class ActiveCodeApiController extends BaseApiController {
 		// Sub-action: Non-destructive status check
 		if ($action === 'check') {
 			$res = ActiveCodeService::checkCode($code);
+			if (($res['status'] ?? '') === 'INVALID_CODE') {
+				BruteforceGuard::checkBruteforce(null, null, $code);
+			} else {
+				$this->deny = false;
+			}
 			http_response_code(200);
 			// nosemgrep: php.lang.security.injection.echoed-request.echoed-request
 			echo json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

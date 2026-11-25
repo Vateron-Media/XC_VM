@@ -155,13 +155,14 @@ class BruteforceGuard {
 		if (!$ip) {
 			$ip = self::getUserIP();
 		}
+		$ip = NetworkUtils::canonicalIP($ip);
 
-		$allowedIPs = self::getAllowedIPs();
+		$allowedIPs = array_map([NetworkUtils::class, 'canonicalIP'], self::getAllowedIPs());
 		if (!filter_var($ip, FILTER_VALIDATE_IP) || in_array($ip, $allowedIPs)) {
 			return;
 		}
 
-		$floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'] ?? '')));
+		$floodExclude = array_map([NetworkUtils::class, 'canonicalIP'], array_filter(array_unique(explode(',', $settings['flood_ips_exclude'] ?? ''))));
 		if (in_array($ip, $floodExclude)) {
 			return;
 		}
@@ -309,19 +310,29 @@ class BruteforceGuard {
 		if (!$ip) {
 			$ip = self::getUserIP();
 		}
+		$ip = NetworkUtils::canonicalIP($ip);
 
-		$allowedIPs = self::getAllowedIPs();
+		$allowedIPs = array_map([NetworkUtils::class, 'canonicalIP'], self::getAllowedIPs());
 		if (!filter_var($ip, FILTER_VALIDATE_IP) || in_array($ip, $allowedIPs)) {
 			return;
 		}
 
-		$floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'] ?? '')));
+		$floodExclude = array_map([NetworkUtils::class, 'canonicalIP'], array_filter(array_unique(explode(',', $settings['flood_ips_exclude'] ?? ''))));
 		if (in_array($ip, $floodExclude)) {
 			return;
 		}
 
 		$floodType = (!is_null($mac) ? 'mac' : 'user');
-		$term = (!is_null($mac) ? ($macAttempt ?? $mac) : $username);
+		if ($macAttempt !== null) {
+			$term = $macAttempt;
+		} elseif ($mac !== null && filter_var($mac, FILTER_VALIDATE_MAC)) {
+			$term = strtoupper(str_replace('-', ':', $mac));
+		} else {
+			$term = $mac ?? (string) $username;
+			if ($mac === null && (!function_exists('mb_check_encoding') || mb_check_encoding($term, 'UTF-8'))) {
+				$term = rtrim(function_exists('mb_strtolower') ? mb_strtolower($term, 'UTF-8') : strtolower($term), ' ');
+			}
+		}
 		// The count is kept as JSON, which holds valid UTF-8 only: any other term is counted by its digest.
 		if (json_encode($term) === false) {
 			$term = hash('sha256', $term);
@@ -421,13 +432,14 @@ class BruteforceGuard {
 		if (!$ip) {
 			$ip = self::getUserIP();
 		}
+		$ip = NetworkUtils::canonicalIP($ip);
 
-		$allowedIPs = self::getAllowedIPs();
+		$allowedIPs = array_map([NetworkUtils::class, 'canonicalIP'], self::getAllowedIPs());
 		if (!filter_var($ip, FILTER_VALIDATE_IP) || in_array($ip, $allowedIPs)) {
 			return;
 		}
 
-		$floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'] ?? '')));
+		$floodExclude = array_map([NetworkUtils::class, 'canonicalIP'], array_filter(array_unique(explode(',', $settings['flood_ips_exclude'] ?? ''))));
 		if (in_array($ip, $floodExclude)) {
 			return;
 		}

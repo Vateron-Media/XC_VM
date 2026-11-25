@@ -74,7 +74,7 @@ final class CommandBus {
 	 * @param array<string, mixed>|null $rNode
 	 */
 	public static function acceptsRoot(?array $rNode): bool {
-		return self::accepts($rNode) && !empty($rNode['root_ready']);
+		return $rNode !== null && $rNode['state'] === 'active' && ((int) $rNode['flows'] & NodeRegistry::FLOW_COMMANDS) !== 0 && !empty($rNode['root_ready']);
 	}
 
 	/**

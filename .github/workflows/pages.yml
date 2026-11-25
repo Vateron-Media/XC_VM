@@ -1,4 +1,4 @@
-name: Deploy versioned docs to Pages
+name: Docs - Deploy versioned site
 
 # Publishes the MkDocs (Material) site to the `gh-pages` branch as a VERSIONED
 # snapshot with mike — one entry per release tag (e.g. 2.4.2), plus a `latest`

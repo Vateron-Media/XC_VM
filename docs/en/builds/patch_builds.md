@@ -17,7 +17,7 @@ Use it for a fix that should not wait for the next release. Nothing is prepared 
 ## Making one
 
 1. Merge the fix (to `main`, or to a branch cut from the release when `main` holds work that should wait).
-2. Run **Actions → Build Patch → Run workflow**, or:
+2. Run **Actions → Build - Patch release → Run workflow**, or:
 
     ```bash
     gh workflow run build-patch.yml -f ref=main

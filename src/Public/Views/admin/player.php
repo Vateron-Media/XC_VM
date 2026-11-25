@@ -78,7 +78,7 @@ if (RequestManager::has('id')) {
             <html>
 
             <head>
-                <script src="assets/js/vendor.min.js"></script>
+				<script src="assets/vendor/libs/jquery/jquery.js"></script>
                 <link rel="stylesheet" href="assets/vendor/libs/videojs/video-js.min.css">
                 <script src="assets/vendor/libs/videojs/video.min.js"></script>
                 <style>

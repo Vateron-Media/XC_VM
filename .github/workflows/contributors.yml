@@ -1,4 +1,4 @@
-name: Update contributors list
+name: Maintenance - Update contributors
 
 # Regenerates the avatar table between the `contributors:start/end` markers in
 # CONTRIBUTORS.md from the GitHub contributors API (bots and `claude` are

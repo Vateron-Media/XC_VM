@@ -489,9 +489,9 @@ class ServerRepository {
 	 * @param bool $rForce Bypass the cache.
 	 * @return array Allowed IPs.
 	 */
-	public static function getAllowedIPs(bool $rForce = false) {
+	public static function getAllowedIPs(bool $rForce = false, bool $rIncludeAdmin = true) {
 		global $rServers, $rSettings;
-		if (!$rForce) {
+		if (!$rForce && $rIncludeAdmin) {
 			$rCache = FileCache::getCache('allowed_ips', 60);
 			if ($rCache !== false) {
 				return $rCache;
@@ -518,10 +518,12 @@ class ServerRepository {
 				}
 			}
 		}
-		if (!empty($rSettings['allowed_ips_admin'])) {
+		if ($rIncludeAdmin && !empty($rSettings['allowed_ips_admin'])) {
 			$rIPs = array_merge($rIPs, explode(',', $rSettings['allowed_ips_admin']));
 		}
-		FileCache::setCache('allowed_ips', $rIPs);
+		if ($rIncludeAdmin) {
+			FileCache::setCache('allowed_ips', $rIPs);
+		}
 		return array_unique($rIPs);
 	}
 

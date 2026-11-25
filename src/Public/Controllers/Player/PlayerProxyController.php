@@ -31,7 +31,7 @@ class PlayerProxyController extends BasePlayerController {
 			!SettingsManager::get('secure_stream_tokens')
 		);
 
-		if (substr($rURL, 0, 4) === 'http') {
+		if (filter_var($rURL, FILTER_VALIDATE_URL) !== false && in_array(strtolower((string) parse_url($rURL, PHP_URL_SCHEME)), ['http', 'https'], true)) {
 			$rData = file_get_contents($rURL);
 
 			if ((string) $rData !== '') {

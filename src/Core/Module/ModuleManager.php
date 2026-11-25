@@ -33,6 +33,17 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class ModuleManager {
+	private const MAX_ARCHIVE_BYTES = 67108864;
+	private const MAX_EXTRACTED_BYTES = 268435456;
+	private const MAX_ARCHIVE_ENTRIES = 10000;
+	private const MAX_MANIFEST_BYTES = 65536;
+	private const MAX_ARCHIVE_LIST_BYTES = 8388608;
+
+	/** Local archives are unsigned and stay off unless the operator opts in outside the panel. */
+	public static function localUploadsEnabled(): bool {
+		return getenv('XCVM_ALLOW_LOCAL_MODULE_UPLOAD') === '1';
+	}
+
 	/**
 	 * The line module:migrate prints once the steps have run. Its exit status
 	 * alone does not say so: PHP also ends with 0 on exit('message').
@@ -774,7 +785,11 @@ class ModuleManager {
 		$byName = [];
 		foreach ($jsonFiles as $jsonFile) {
 			$dir  = dirname($jsonFile);
-			$name = $this->manifestNameFromDir($dir);
+			try {
+				$name = $this->manifestNameFromDir($dir);
+			} catch (\RuntimeException) {
+				$name = basename($dir);
+			}
 			if (!isset($byName[$name]) || basename($dir) !== $name) {
 				$byName[$name] = $jsonFile;
 			}
@@ -1571,7 +1586,7 @@ class ModuleManager {
 	 * @param string $zipFilePath Path to the .zip archive fetched from MAIN.
 	 * @return string Installed module name.
 	 */
-	public function deployFromArchiveFilesOnly(string $zipFilePath): string {
+	public function deployFromArchiveFilesOnly(string $zipFilePath, ?string $expectedName = null, ?string $expectedVersion = null): string {
 		if (!is_file($zipFilePath)) {
 			throw new \InvalidArgumentException('Module archive not found.');
 		}
@@ -1585,6 +1600,13 @@ class ModuleManager {
 			$this->extractArchive($zipFilePath, $tempBase);
 
 			$moduleDir  = $this->resolveExtractedModuleDir($tempBase);
+			$manifest   = $this->manifestFromDir($moduleDir);
+			if ($expectedName !== null && ($manifest['name'] ?? null) !== $expectedName) {
+				throw new \RuntimeException('Distributed module identity does not match the granted module.');
+			}
+			if ($expectedVersion !== null && (string) ($manifest['version'] ?? '') !== $expectedVersion) {
+				throw new \RuntimeException('Distributed module version does not match the granted version.');
+			}
 			$moduleName = $this->placeModuleFiles($moduleDir);
 			$targetDir  = $this->modulePathFor($moduleName);
 
@@ -2511,7 +2533,7 @@ class ModuleManager {
 	 * The type is detected by magic bytes (uploads arrive as an extension-less tmp
 	 * file), then routed:
 	 *   - tar.gz : PharData (bundled with PHP, no extension) → fallback to `tar` CLI
-	 *   - zip    : ZipArchive (validated) → fallback to the `unzip` CLI
+	 *   - zip    : ZipArchive
 	 *
 	 * $destination is always an isolated temp dir created by the caller, and the
 	 * CLI tools refuse to write outside it (they strip `../`/absolute members), so
@@ -2523,23 +2545,159 @@ class ModuleManager {
 		if (!is_dir($destination) && !@mkdir($destination, 0755, true) && !is_dir($destination)) {
 			throw new \RuntimeException('Unable to create extraction directory.');
 		}
+		$this->validateArchive($archivePath);
 
 		if ($this->looksLikeTar($archivePath)) {
 			$this->extractTarArchive($archivePath, $destination);
 			return;
 		}
 
-		// ZIP: prefer the validated PHP extension, else the `unzip` CLI.
+		// ZIP metadata was validated above through ZipArchive.
 		if (class_exists('ZipArchive')) {
 			$this->extractZipViaZipArchive($archivePath, $destination);
 			return;
 		}
-		if ($this->hasBinary('unzip')) {
-			// unzip exit 1 = success with warnings (e.g. skipped unsafe paths).
-			$this->runExtractor('unzip -oqq ' . escapeshellarg($archivePath) . ' -d ' . escapeshellarg($destination), 1);
+		throw new \RuntimeException('Cannot extract .zip securely: install the PHP zip extension or upload a .tar.gz.');
+	}
+
+	/** Reject oversized, ambiguous or unsafe archives before any member is extracted. */
+	private function validateArchive(string $archivePath): void {
+		$archiveBytes = @filesize($archivePath);
+		if (!is_int($archiveBytes) || $archiveBytes < 1 || $archiveBytes > self::MAX_ARCHIVE_BYTES) {
+			throw new \RuntimeException('Module archive is empty or exceeds 64 MiB.');
+		}
+
+		$kind = self::archiveKind($archivePath);
+		if ($kind === 'zip') {
+			$this->validateZipArchive($archivePath);
 			return;
 		}
-		throw new \RuntimeException('Cannot extract .zip: install the PHP zip extension or the `unzip` command (or upload a .tar.gz).');
+		if ($kind === 'tar') {
+			$this->validateTarArchive($archivePath);
+			return;
+		}
+		throw new \RuntimeException('Unsupported module archive format.');
+	}
+
+	/** Inspect ZIP metadata, including expanded sizes and Unix link types. */
+	private function validateZipArchive(string $archivePath): void {
+		if (!class_exists('ZipArchive')) {
+			throw new \RuntimeException('Secure ZIP validation requires the PHP zip extension.');
+		}
+		$zip = new \ZipArchive();
+		if ($zip->open($archivePath) !== true) {
+			throw new \RuntimeException('Unable to open zip archive.');
+		}
+
+		$entries = [];
+		$total = 0;
+		try {
+			for ($i = 0; $i < $zip->numFiles; $i++) {
+				$stat = $zip->statIndex($i);
+				if (!is_array($stat) || !is_string($stat['name'] ?? null)) {
+					throw new \RuntimeException('Unreadable ZIP entry.');
+				}
+				$name = $this->archiveEntryName($stat['name']);
+				$isDir = str_ends_with($name, '/');
+				$attributes = 0;
+				if ($zip->getExternalAttributesIndex($i, $opsys, $attributes)
+					&& $opsys === \ZipArchive::OPSYS_UNIX
+					&& (($attributes >> 16) & 0170000) === 0120000
+				) {
+					throw new \RuntimeException('Module archives may not contain symbolic links.');
+				}
+				$size = (int) ($stat['size'] ?? 0);
+				$total += $isDir ? 0 : $size;
+				$this->assertArchiveLimits(count($entries) + 1, $total, $name, $size);
+				$entries[] = $name;
+			}
+		} finally {
+			$zip->close();
+		}
+		$this->assertArchiveStructure($entries);
+	}
+
+	/** GNU tar lists raw names and member types without extracting them. */
+	private function validateTarArchive(string $archivePath): void {
+		if (!$this->hasBinary('tar')) {
+			throw new \RuntimeException('Secure TAR validation requires the `tar` command.');
+		}
+		$names = $this->archiveListing(['env', 'LC_ALL=C', 'tar', '-tf', $archivePath]);
+		$details = $this->archiveListing(['env', 'LC_ALL=C', 'tar', '-tvf', $archivePath]);
+		if (count($details) !== count($names)) {
+			throw new \RuntimeException('Unable to inspect tar archive metadata.');
+		}
+
+		$entries = [];
+		$total = 0;
+		foreach ($names as $i => $rawName) {
+			$type = $details[$i][0] ?? '';
+			if (!in_array($type, ['-', 'd'], true)) {
+				throw new \RuntimeException('Module archives may contain only regular files and directories.');
+			}
+			if ($type === 'd' && in_array(trim($rawName), ['.', './'], true)) {
+				continue;
+			}
+			$name = $this->archiveEntryName($rawName);
+			$parts = preg_split('/\s+/', trim($details[$i]), 6);
+			$size = isset($parts[2]) && ctype_digit($parts[2]) ? (int) $parts[2] : 0;
+			$total += $type === 'd' ? 0 : $size;
+			$this->assertArchiveLimits(count($entries) + 1, $total, $name, $size);
+			$entries[] = $name;
+		}
+		$this->assertArchiveStructure($entries);
+	}
+
+	/** @param non-empty-list<string> $argv @return list<string> */
+	private function archiveListing(array $argv): array {
+		[$code, $output] = ProcessRunner::capture($argv, self::MAX_ARCHIVE_LIST_BYTES + 1);
+		if ($code !== 0 || strlen($output) > self::MAX_ARCHIVE_LIST_BYTES) {
+			throw new \RuntimeException('Archive metadata is invalid or exceeds the allowed limits.');
+		}
+		$output = rtrim($output, "\r\n");
+		return $output === '' ? [] : (preg_split('/\R/', $output) ?: []);
+	}
+
+	/** Normalize a safe relative member name; traversal and platform paths fail closed. */
+	private function archiveEntryName(string $name): string {
+		$name = str_replace('\\', '/', $name);
+		while (str_starts_with($name, './')) {
+			$name = substr($name, 2);
+		}
+		$parts = explode('/', rtrim($name, '/'));
+		if ($name === '' || str_starts_with($name, '/') || str_contains($name, "\0") || preg_match('/^[A-Za-z]:/', $name)
+			|| in_array('', $parts, true) || in_array('.', $parts, true) || in_array('..', $parts, true)
+		) {
+			throw new \RuntimeException('Unsafe archive entry detected.');
+		}
+		return implode('/', $parts) . (str_ends_with($name, '/') ? '/' : '');
+	}
+
+	private function assertArchiveLimits(int $entries, int $total, string $name, int $size): void {
+		if ($entries > self::MAX_ARCHIVE_ENTRIES || $total > self::MAX_EXTRACTED_BYTES) {
+			throw new \RuntimeException('Module archive expands beyond the allowed limits.');
+		}
+		if (str_ends_with($name, 'module.json') && $size > self::MAX_MANIFEST_BYTES) {
+			throw new \RuntimeException('Module manifest is too large.');
+		}
+	}
+
+	/** Exactly one root manifest, with no files outside its optional wrapper directory. */
+	private function assertArchiveStructure(array $entries): void {
+		$manifests = array_values(array_filter($entries, static fn(string $name): bool => preg_match('#^(?:[^/]+/)?module\.json$#', $name) === 1));
+		if (count($manifests) !== 1) {
+			throw new \RuntimeException('Archive must contain exactly one module with module.json.');
+		}
+		$slash = strpos($manifests[0], '/');
+		if ($slash === false) {
+			return;
+		}
+		$root = substr($manifests[0], 0, $slash);
+		foreach ($entries as $name) {
+			if ($name !== $root . '/' && !str_starts_with($name, $root . '/')) {
+				throw new \RuntimeException('Module archive contains files outside its module directory.');
+			}
+		}
 	}
 
 	/**
@@ -2717,9 +2875,22 @@ class ModuleManager {
 	 * sanitizeModuleName() with "Invalid module name."
 	 */
 	private function manifestNameFromDir(string $moduleDir): string {
-		$meta = json_decode((string) @file_get_contents($moduleDir . '/module.json'), true);
-		$name = is_array($meta) ? trim((string) ($meta['name'] ?? '')) : '';
-		return $name !== '' ? $name : basename($moduleDir);
+		return (string) $this->manifestFromDir($moduleDir)['name'];
+	}
+
+	/** @return array<string, mixed> A valid manifest with an explicit canonical identity. */
+	private function manifestFromDir(string $moduleDir): array {
+		$file = $moduleDir . '/module.json';
+		$raw = @file_get_contents($file);
+		$meta = json_decode((string) $raw, true);
+		if (!is_array($meta) || !is_string($meta['name'] ?? null) || trim($meta['name']) === '') {
+			throw new \RuntimeException('Module manifest module.json must be a JSON object with an explicit name.');
+		}
+		if (strlen((string) $raw) > self::MAX_MANIFEST_BYTES) {
+			throw new \RuntimeException('Module manifest is too large.');
+		}
+		$meta['name'] = trim($meta['name']);
+		return $meta;
 	}
 
 	/**

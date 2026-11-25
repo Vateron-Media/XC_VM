@@ -8,6 +8,8 @@ use XcVm\Core\Config\Maintenance;
 use XcVm\Core\Logging\RefusalLog;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamSorter;
@@ -124,7 +126,7 @@ class PlayerApiController {
 			}
 		}
 
-		$rIP = $_SERVER['REMOTE_ADDR'];
+		$rIP = NetworkUtils::getUserIP();
 		$rUserAgent = trim($_SERVER['HTTP_USER_AGENT'] ?? '');
 		$this->offset = (empty($rRequest['params']['offset']) ? 0 : abs(intval($rRequest['params']['offset'])));
 		$this->limit = (empty($rRequest['params']['items_per_page']) ? 0 : abs(intval($rRequest['params']['items_per_page'])));
@@ -166,7 +168,7 @@ class PlayerApiController {
 			$rPassword = (string) ($rRequest['password'] ?? '');
 
 			if (!empty($rUsername) && !empty($rPassword)) {
-				$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, $rGetChannels, $rGetConnections);
+				$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, $rGetChannels, $rGetConnections, $rIP);
 			}
 
 			// Active Code transparent auto-activation fallback
@@ -184,7 +186,7 @@ class PlayerApiController {
 					if ($actRes['status'] === 'SUCCESS' && !empty($actRes['line'])) {
 						$lineUser = $actRes['line']['username'];
 						$linePass = $actRes['line']['password'];
-						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $lineUser, $linePass, $rGetChannels, $rGetConnections);
+						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $lineUser, $linePass, $rGetChannels, $rGetConnections, $rIP);
 						if ($rUserInfo && !empty($actRes['line']['exp_date'])) {
 							$rUserInfo['exp_date'] = $actRes['line']['exp_date'];
 						}
@@ -203,7 +205,7 @@ class PlayerApiController {
 					$this->sendAuthError('', 'No credentials provided.');
 				}
 
-				$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rToken, null, $rGetChannels, $rGetConnections);
+				$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rToken, null, $rGetChannels, $rGetConnections, $rIP);
 
 				if (!$rUserInfo && class_exists(ActiveCodeService::class)) {
 					$candidateCode = strtoupper(trim($rToken));
@@ -219,7 +221,7 @@ class PlayerApiController {
 						if ($actRes['status'] === 'SUCCESS' && !empty($actRes['line'])) {
 							$lineUser = $actRes['line']['username'];
 							$linePass = $actRes['line']['password'];
-							$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $lineUser, $linePass, $rGetChannels, $rGetConnections);
+							$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $lineUser, $linePass, $rGetChannels, $rGetConnections, $rIP);
 							if ($rUserInfo && !empty($actRes['line']['exp_date'])) {
 								$rUserInfo['exp_date'] = $actRes['line']['exp_date'];
 							}
@@ -247,6 +249,11 @@ class PlayerApiController {
 			}
 
 			BruteforceGuard::checkAuthFlood($rUserInfo);
+			$rCountry = GeoIP::getCountry($rIP);
+			$rCountryCode = is_array($rCountry) ? ($rCountry['country']['iso_code'] ?? null) : null;
+			if (BaseApiController::restriction($rUserInfo, $rUserAgent, $rIP, $rCountryCode) !== null) {
+				$this->sendAuthError('Disabled', 'Access denied by line restrictions.');
+			}
 			header('Content-Type: application/json; charset=utf-8');
 
 			// Token/credential-authenticated API (not cookie-based): never reflect

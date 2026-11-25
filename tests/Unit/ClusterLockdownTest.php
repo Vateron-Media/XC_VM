@@ -168,7 +168,7 @@ final class ClusterLockdownTest extends TestCase {
 			}
 		}
 		sort($rHits);
-		$this->assertSame(['Cli/Commands/ClusterLockdownCommand.php', 'Domain/Cluster/ClusterLockdown.php', 'Domain/Cluster/DbAllowlist.php', 'Domain/Cluster/LockdownRefused.php'], $rHits);
+		$this->assertSame(['Cli/Commands/ClusterLockdownCommand.php', 'Domain/Cluster/ClusterLockdown.php', 'Domain/Cluster/DbAllowlist.php', 'Domain/Cluster/LockdownRefused.php', 'root.php'], $rHits);
 		$this->assertStringContainsString('Cli/Commands/ClusterLockdownCommand.php', (string) file_get_contents(dirname(__DIR__, 2) . '/Makefile'));
 	}
 }

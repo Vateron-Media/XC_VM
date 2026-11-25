@@ -39,17 +39,9 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 				return $this->rRows;
 			}
 		};
-		\XcVm\Core\Cluster\NodeRpc::useTransport(static function () {
-			throw new \RuntimeException('Access codes must reload nginx through the root action queue, not the unprivileged API');
-		});
-		\XcVm\Core\Cluster\SignalDispatcher::useSink(new class implements \XcVm\Core\Cluster\SignalSink {
-			public function insert(array $rRows): bool {
-				file_put_contents(MAIN_HOME . 'reload.json', json_encode($rRows));
-				return true;
-			}
-			public function pending(int $rServerID, string $rCustomData): bool {
-				return false;
-			}
+		\XcVm\Core\Process\ProcessRunner::useRunner(static function (array $rArgv): int {
+			file_put_contents(MAIN_HOME . 'reload.json', json_encode($rArgv));
+			return 0;
 		});
 		\XcVm\Core\Auth\AuthRepository::updateCodes();
 		PHP;
@@ -71,13 +63,11 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 		}
 	}
 
-	public function testGeneratingCodesQueuesTheReloadForTheRootWorker(): void {
+	public function testGeneratingCodesReloadsTheXcVmOwnedNginx(): void {
 		$this->generate(self::template());
-		$rRows = json_decode((string) file_get_contents($this->rHome . 'reload.json'), true, 512, JSON_THROW_ON_ERROR);
-		$this->assertCount(1, $rRows);
-		$this->assertSame(1, $rRows[0]['server_id']);
-		$this->assertSame(['action' => 'reload_nginx'], json_decode($rRows[0]['custom_data'], true));
-		$this->assertArrayNotHasKey('pid', $rRows[0]);
+		$this->assertSame([
+			$this->rHome . 'bin/nginx/sbin/nginx', '-s', 'reload',
+		], json_decode((string) file_get_contents($this->rHome . 'reload.json'), true, 512, JSON_THROW_ON_ERROR));
 	}
 
 	public function testTheTemplateLimitsTheSignInAndTheResizerInThePanelsZone(): void {
@@ -95,6 +85,18 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 		$rNginx = (string) file_get_contents(MAIN_HOME . 'bin/nginx/conf/nginx.conf');
 		$this->assertMatchesRegularExpression('/^\s*limit_req_zone \$binary_remote_addr zone=panel:\d+m rate=\d+r\/s;\r?$/m', $rNginx);
 		$this->assertMatchesRegularExpression('/^\s*limit_req_zone \$binary_remote_addr zone=one:\d+m rate=\d+r\/s;\r?$/m', $rNginx);
+	}
+
+	public function testSharedAdminAssetsDoNotDependOnTheAdminAccessCode(): void {
+		$rNginx = (string) file_get_contents(MAIN_HOME . 'bin/nginx/conf/nginx.conf');
+		$this->assertStringContainsString('location ^~ /assets/admin/ {', $rNginx);
+		$this->assertStringContainsString('alias /home/xc_vm/Public/assets/admin/;', $rNginx);
+
+		foreach (['Public/Views/player/login.php', 'Public/Views/layouts/player/header.php', 'Public/Views/layouts/player/footer.php'] as $rFile) {
+			$rSource = (string) file_get_contents(MAIN_HOME . $rFile);
+			$this->assertStringNotContainsString('/admin/assets/', $rSource, $rFile);
+			$this->assertStringContainsString('/assets/admin/', $rSource, $rFile);
+		}
 	}
 
 	public function testEveryGeneratedCodeFileLimitsItsSignInAndResizerAtTheTypesBurst(): void {
@@ -142,6 +144,16 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 			$this->assertDoesNotMatchRegularExpression('/#[A-Z]+#/', $rConf, $rCode . ': a placeholder is left');
 			$this->assertSame(1, substr_count(self::location($rConf, '~ /(login|resize)$'), 'limit_req zone=panel burst=' . $rBurst . ' nodelay;'), $rCode);
 			$this->assertSame(2, substr_count($rConf, 'limit_req'), $rCode);
+		}
+	}
+
+	public function testAnInstalledTemplateWithTheOldLowercasePublicPathIsRepaired(): void {
+		$rInstalled = str_replace('/home/xc_vm/Public/', '/home/xc_vm/public/', self::template());
+		$this->assertStringContainsString('/home/xc_vm/public/', $rInstalled);
+
+		foreach ($this->generate($rInstalled) as $rCode => $rConf) {
+			$this->assertStringNotContainsString('/home/xc_vm/public/', $rConf, $rCode);
+			$this->assertStringContainsString('/home/xc_vm/Public/', $rConf, $rCode);
 		}
 	}
 

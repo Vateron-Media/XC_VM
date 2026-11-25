@@ -26,7 +26,7 @@ if ($rSearchBy): ?>
 					<div class="filter__items">
 						<div class="filter__item" id="filter__genre">
 							<span class="filter__item-label">GENRE:</span>
-							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-genre" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								<input type="button" value="<?= isset($rCategoryID) ? CategoryService::getFromDatabase()[$rCategoryID]['category_name'] : 'All Genres' ?>">
 								<span></span>
 							</div>
@@ -38,7 +38,7 @@ if ($rSearchBy): ?>
 						</div>
 						<div class="filter__item" id="filter__rate">
 							<span class="filter__item-label">RATING:</span>
-							<div class="filter__item-btn dropdown-toggle" role="button" id="filter-rate" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<div class="filter__item-btn dropdown-toggle" role="button" id="filter-rate" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								<div class="filter__range">
 									<div id="filter__rating-start"></div>
 									<div id="filter__rating-end"></div>
@@ -51,7 +51,7 @@ if ($rSearchBy): ?>
 						</div>
 						<div class="filter__item" id="filter__year">
 							<span class="filter__item-label">YEAR:</span>
-							<div class="filter__item-btn dropdown-toggle" role="button" id="filter-year" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<div class="filter__item-btn dropdown-toggle" role="button" id="filter-year" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								<div class="filter__range">
 									<div id="filter__years-start"></div>
 									<div id="filter__years-end"></div>
@@ -64,7 +64,7 @@ if ($rSearchBy): ?>
 						</div>
 						<div class="filter__item" id="filter__sort">
 							<span class="filter__item-label">SORT:</span>
-							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<div class="filter__item-btn dropdown-toggle" role="navigation" id="filter-quality" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								<input type="button" value="<?= isset($rSortBy) ? $rSortArray[$rSortBy] : 'Date Added' ?>">
 								<span></span>
 							</div>

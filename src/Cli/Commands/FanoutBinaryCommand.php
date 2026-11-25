@@ -340,7 +340,7 @@ class FanoutBinaryCommand implements CommandInterface {
 	public static function install(string $rTmp, string $rVersion): ?string {
 		$rDir = BIN_PATH . 'xc_fanout/';
 		@chmod($rTmp, 0755);
-		if (trim((string) shell_exec(escapeshellarg($rTmp) . ' -version 2>/dev/null')) === '') {
+		if (trim((string) shell_exec('sudo -u xc_vm -- ' . escapeshellarg($rTmp) . ' -version 2>/dev/null')) === '') {
 			@unlink($rTmp);
 			return 'the binary does not run on this host';
 		}
@@ -378,7 +378,7 @@ class FanoutBinaryCommand implements CommandInterface {
 		if (!is_file($rBinary) || !is_executable($rBinary)) {
 			return null;
 		}
-		$rOut = trim((string) shell_exec(escapeshellarg($rBinary) . ' -version 2>/dev/null'));
+		$rOut = trim((string) shell_exec('sudo -u xc_vm -- ' . escapeshellarg($rBinary) . ' -version 2>/dev/null'));
 		return $rOut !== '' ? ltrim($rOut, 'vV') : null;
 	}
 

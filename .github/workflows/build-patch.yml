@@ -1,4 +1,4 @@
-name: Build Patch
+name: Build - Patch release
 
 # A patch build is a release with the fixes made since: X.Y.Z-pN. It is built
 # from a branch and published on the channel of the release it patches, with no

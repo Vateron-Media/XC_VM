@@ -273,7 +273,7 @@ Each admin and reseller can make named tokens on their profile page (**Edit Prof
 
 An action outside the scope answers `{"status":"STATUS_NO_PERMISSIONS"}`; a table outside it answers as an invalid key. A token can also be limited to a list of IP addresses and given an expiry; the profile shows each token's first characters, scope, addresses, expiry and last use (to the minute, with the address). The token itself (`xct_` and 40 hexadecimal digits) is shown once, when it is made: the panel keeps a SHA-256 hash of it (`api_tokens`, migration `076_add_api_tokens.sql`). Revoking one stops it at once. Deleting an account deletes its tokens.
 
-The account's single key keeps working while **Settings → API → Accept Legacy API Keys** (`api_legacy_keys`) is on, the default. Turned off, no API takes a legacy key; tokens are unaffected.
+The account's single key works only while **Settings → API → Accept Legacy API Keys** (`api_legacy_keys`) is explicitly enabled. Fresh installs keep it off. Upgrades preserve the saved value: migrate integrations to named tokens, then turn it off; tokens are unaffected.
 
 #### Reseller helper
 

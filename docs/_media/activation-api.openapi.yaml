@@ -1031,7 +1031,7 @@ tags:
       Served by src/Public/Controllers/Api/ActiveCodeApiController.php (domain logic in
       src/Domain/Line/ActiveCodeService.php). Reachable as /active_code, /active_code.php, /api/active_code and
       /api/v1/active-code/auth (src/bin/nginx/conf/nginx.conf:141-145, 374-409).
-      NOTE: docs/ACTIVE_CODES_AND_CATEGORY_TEMPLATES_GUIDE.md:144-180 describes `POST /api?action=active_code`
+      NOTE: docs/en/guides/active-codes-and-category-templates.md:144-180 describes `POST /api?action=active_code`
       returning `{result, status:"active", username, password, exp_date, server_url, portal_url}` and a portal at
       `/activate`; neither matches the code. The shapes documented here are the ones the code emits.
   - name: Activation Portal

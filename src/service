@@ -56,18 +56,18 @@ boot() {
   # MAIN: the cluster API answers STARTING until `status` (run by startup)
   # finds its FPM pools answering and writes this marker again (ClusterPool).
   rm -f $SCRIPT/tmp/cluster_ready
-  if [ -f $SCRIPT/bin/redis/redis-server ]; then
+  if [ -x /usr/bin/redis-server ] && [ -f $SCRIPT/bin/redis/redis.conf ]; then
     # redis.conf holds the password, and dump.rdb every viewer and the
     # panel's cache: xc_vm's only. As xc_vm, not root, which would follow a
     # symlink put in its place.
     sudo -u xc_vm chmod 0700 $SCRIPT/bin/redis 2>/dev/null
-    sudo -u xc_vm $SCRIPT/bin/redis/redis-server $SCRIPT/bin/redis/redis.conf >/dev/null 2>/dev/null
+    sudo -u xc_vm /usr/bin/redis-server $SCRIPT/bin/redis/redis.conf >/dev/null 2>/dev/null
   fi
   # The cluster bus (MAIN only: LB builds strip bin/cluster_bus): the cluster
   # API's own Redis, on a unix socket.
   CLUSTER_REDIS=$SCRIPT/bin/cluster_bus/redis-server
   if [ ! -x "$CLUSTER_REDIS" ]; then
-    CLUSTER_REDIS=$SCRIPT/bin/redis/redis-server
+    CLUSTER_REDIS=/usr/bin/redis-server
   fi
   if [ -x "$CLUSTER_REDIS" ] && [ -f $SCRIPT/bin/cluster_bus/cluster.conf ]; then
     sudo chown -R xc_vm:xc_vm $SCRIPT/bin/cluster_bus 2>/dev/null
@@ -113,7 +113,7 @@ boot() {
   # delegates the cache builds to xc_vm itself. A PHP-free serve-only node has no
   # bin/php, so it skips every PHP startup/cron — the Go agent covers them.
   if php_available; then
-    sudo $SCRIPT/bin/php/bin/php $SCRIPT/console.php startup
+    sudo $SCRIPT/bin/php/bin/php $SCRIPT/root.php startup
     sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php signals >/dev/null 2>/dev/null &
     sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php watchdog >/dev/null 2>/dev/null &
     sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php queue >/dev/null 2>/dev/null &

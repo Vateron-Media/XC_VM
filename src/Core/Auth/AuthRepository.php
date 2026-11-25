@@ -2,7 +2,7 @@
 
 namespace XcVm\Core\Auth;
 
-use XcVm\Core\Cluster\NodeActions;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\User\UserCredits;
 use XcVm\Domain\User\UserRepository;
@@ -128,17 +128,17 @@ class AuthRepository {
 	}
 
 	/**
-	 * Regenerate per-code nginx config files and queue a privileged nginx reload.
+	 * Regenerate per-code nginx config files and reload nginx.
 	 *
 	 * Rebuilds `bin/nginx/conf/codes/*.conf` for every enabled access code,
-	 * manages the fallback `default.conf`, and queues the reload for the root worker.
+	 * manages the fallback `default.conf`, and reloads the xc_vm-owned nginx.
 	 *
 	 * @return void
 	 */
 	public static function updateCodes() {
 		$rMainHome = MAIN_HOME;
-		$rServerId = SERVER_ID;
 		$rTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template');
+		$rTemplate = str_replace('/home/xc_vm/public/', '/home/xc_vm/Public/', $rTemplate);
 		// An update keeps the installed bin/nginx/conf/codes, the template with
 		// it: one from before the sign-in and the resizer were limited gets
 		// their location here.
@@ -150,6 +150,7 @@ class AuthRepository {
 		// update's own nginx -t fallback) has only the zone the streams use.
 		$rZone = str_contains((string) @file_get_contents($rMainHome . 'bin/nginx/conf/nginx.conf'), 'zone=panel:') ? 'panel' : 'one';
 		$rMinistraTemplate = file_get_contents($rMainHome . 'bin/nginx/conf/codes/template_ministra');
+		$rMinistraTemplate = str_replace('/home/xc_vm/public/', '/home/xc_vm/Public/', $rMinistraTemplate);
 		shell_exec('rm -f ' . $rMainHome . 'bin/nginx/conf/codes/*.conf');
 
 		foreach (self::getAllCodes() as $rCode) {
@@ -194,9 +195,9 @@ class AuthRepository {
 			}
 		}
 
-		// PHP runs as xc_vm and cannot signal nginx's root-owned master. The
-		// root worker applies this through the existing privileged action path.
-		NodeActions::reloadNginx($rServerId);
+		// nginx runs as xc_vm, so the request that wrote these configs can reload
+		// it directly without restoring the removed unsigned root-signal path.
+		ProcessRunner::run([$rMainHome . 'bin/nginx/sbin/nginx', '-s', 'reload']);
 	}
 
 	/**

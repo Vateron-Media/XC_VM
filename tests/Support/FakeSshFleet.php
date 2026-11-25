@@ -76,7 +76,7 @@ final class FakeSshFleet extends SshSession {
 		if (str_contains($rCommand, 'echo READY')) {
 			return ['output' => ($rNode['ready'] ?? true) ? "READY\n" : '', 'error' => ''];
 		}
-		if (str_contains($rCommand, 'console.php fanout_binary agent')) {
+		if (str_contains($rCommand, 'root.php fanout_binary agent')) {
 			return ['output' => ($rNode['agent'] ?? true) ? "xc_agent 1.5.0 installed.\nAGENT_OK\n" : "Failed to download xc_agent-linux-amd64\n", 'error' => ''];
 		}
 		if (preg_match('/ keygen .* -uuid ([0-9a-f-]{36})$/', $rCommand, $rM)) {

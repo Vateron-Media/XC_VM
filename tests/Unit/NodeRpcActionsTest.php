@@ -80,26 +80,17 @@ final class NodeRpcActionsTest extends TestCase {
 		NodeRpc::request(1, ['action' => 'rm_rf']);
 	}
 
-	public function testRootActionsQueueTheSamePayloads(): void {
+	public function testRootActionsNeverFallBackToWritableSignalRows(): void {
 		$rSink = $this->captureSignals();
-		NodeActions::flushBlocklist(2);
-		NodeActions::setRamdisk(2, false);
-		NodeActions::setPorts(2, 1, [80, 81], true);
-		NodeActions::rollback(2, '2.3.1');
+		$this->assertFalse(NodeActions::flushBlocklist(2));
+		$this->assertFalse(NodeActions::setRamdisk(2, false));
+		$this->assertFalse(NodeActions::setPorts(2, 1, [80, 81], true));
+		$this->assertFalse(NodeActions::rollback(2, '2.3.1'));
 		class_exists(\XcVm\Core\Config\ConstantsInitializer::class); // defines XC_VM_VERSION
-		NodeActions::update(2);
-		NodeActions::certbot(2, ['a.example']);
-		NodeActions::send(2, '{"action":"install_module","name":"x"}');
-		$this->assertSame([
-			'{"action":"flush"}', // RootSignalsCronJob matches this exact string
-			'{"action":"disable_ramdisk"}',
-			'{"action":"set_port","type":1,"ports":[80,81],"reload":true}',
-			'{"action":"rollback","version":"2.3.1"}',
-			(string) json_encode(['action' => 'update', 'version' => XC_VM_VERSION]), // MAIN's release, installed exactly
-			'{"action":"certbot_generate","domain":["a.example"]}',
-			'{"action":"install_module","name":"x"}',
-		], array_column($rSink->rRows, 'custom_data'));
-		$this->assertSame([2], array_values(array_unique(array_column($rSink->rRows, 'server_id'))));
+		$this->assertFalse(NodeActions::update(2));
+		$this->assertFalse(NodeActions::certbot(2, ['a.example']));
+		$this->assertFalse(NodeActions::send(2, ['action' => 'install_module', 'source' => 'platform', 'name' => 'x', 'version' => '1.0.0']));
+		$this->assertSame([], $rSink->rRows);
 	}
 
 	/** An update names MAIN's release; only an x.y.z version is ever passed to the updater. */
@@ -120,13 +111,38 @@ final class NodeRpcActionsTest extends TestCase {
 		NodeActions::send(1, ['action' => 'format_disk']);
 	}
 
+	public function testInvalidRootActionPayloadIsRefusedBeforeRouting(): void {
+		foreach ([
+			['action' => 'reboot', 'extra' => true],
+			['action' => 'set_services', 'count' => '4', 'reload' => true],
+			['action' => 'set_port', 'type' => 1, 'ports' => [443, '8443'], 'reload' => true],
+			['action' => 'certbot_generate', 'domain' => ['ok.example', '-option']],
+			['action' => 'set_sysctl', 'data' => 'kernel.core_pattern=|/tmp/pwn'],
+		] as $rPayload) {
+			try {
+				NodeActions::send(1, $rPayload);
+				$this->fail('payload accepted: ' . json_encode($rPayload));
+			} catch (InvalidArgumentException $rE) {
+				$this->assertMatchesRegularExpression('/^(Invalid node root action payload|Unknown node root action):/', $rE->getMessage());
+			}
+		}
+	}
+
+	public function testServerSaveCastsTheRtmpPortForTheTypedRootAction(): void {
+		$rServer = (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerService.php');
+		$this->assertStringContainsString("self::changePort(\$rInsertID, 2, [(int) \$rArray['rtmp_port']]", $rServer);
+	}
+
+	public function testRootActionVersionsUseTheUpdaterContract(): void {
+		foreach (['2.7.4', '2.7.4-p1', '2.7.4-dev.3'] as $rVersion) {
+			$this->assertTrue(NodeActions::valid(['action' => 'rollback', 'version' => $rVersion]), $rVersion);
+		}
+		$this->assertFalse(NodeActions::valid(['action' => 'rollback', 'version' => 'v2.7.4']));
+	}
+
 	public function testEveryCataloguedRootActionHasAHandler(): void {
 		$rHandler = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
 		foreach (NodeActions::ROOT_ACTIONS as $rAction) {
-			if ($rAction === 'flush') {
-				// The legacy row is matched by its exact payload; a node.root flush runs as a case.
-				$this->assertStringContainsString('{\\"action\\":\\"flush\\"}', $rHandler);
-			}
 			if ($rAction === XcVm\Core\Config\OpensslExtra::SIGNAL_ACTION) {
 				$this->assertStringContainsString('case OpensslExtra::SIGNAL_ACTION:', $rHandler);
 				continue;

@@ -36,6 +36,24 @@ if (php_sapi_name() !== 'cli') {
 	exit;
 }
 
+// Compatibility for operators and older crontabs: root takes the isolated
+// entrypoint before this file loads the normal module-aware bootstrap.
+$rEffectiveUid = function_exists('posix_geteuid') ? posix_geteuid() : null;
+if ($rEffectiveUid === null && is_readable('/proc/self/status')) {
+	$rStatus = (string) file_get_contents('/proc/self/status');
+	if (preg_match('/^Uid:\s+\d+\s+(\d+)/m', $rStatus, $rUid)) {
+		$rEffectiveUid = (int) $rUid[1];
+	}
+}
+if ($rEffectiveUid === 0) {
+	require __DIR__ . '/root.php';
+	exit;
+}
+if ($rEffectiveUid === null) {
+	fwrite(STDERR, "Cannot determine effective user; refusing module-aware CLI boot.\n");
+	exit(1);
+}
+
 // ─── Bootstrap ───────────────────────────────────────────────────
 
 require_once __DIR__ . '/bootstrap.php';
@@ -83,16 +101,19 @@ foreach ($rCommandDirs as $rDir => $rNamespace) {
 // Модули регистрируют свои команды через ModuleInterface::registerCommands()
 // Без filesystem scanning — каждый модуль явно знает свои команды.
 
-$rModuleLoader = new ModuleLoader();
-$rModuleLoader->loadAll();
-$rModuleLoader->registerAllCommands($rRegistry);
+// Root commands must never execute module files: modules are writable by xc_vm.
+if (posix_geteuid() !== 0) {
+	$rModuleLoader = new ModuleLoader();
+	$rModuleLoader->loadAll();
+	$rModuleLoader->registerAllCommands($rRegistry);
 
-// Boot modules and register their #[ListensTo] subscribers before any command
-// runs: core commands dispatch events modules own the handling of (e.g.
-// vod_import_item's VodImportResultEvent → watch_logs). The web path boots
-// modules in index.php, so the CLI must do the same. No Router in CLI, so route
-// registration is skipped.
-$rModuleLoader->bootAll(XC_Bootstrap::getContainer());
+	// Boot modules and register their #[ListensTo] subscribers before any command
+	// runs: core commands dispatch events modules own the handling of (e.g.
+	// vod_import_item's VodImportResultEvent → watch_logs). The web path boots
+	// modules in index.php, so the CLI must do the same. No Router in CLI, so route
+	// registration is skipped.
+	$rModuleLoader->bootAll(XC_Bootstrap::getContainer());
+}
 
 // ─── Dispatch ────────────────────────────────────────────────────
 

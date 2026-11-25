@@ -14,7 +14,7 @@ use XcVm\Core\Process\ProcessRunner;
  * owner, group and mode, and says where xc_vm can write. It reads root's
  * crontab, the unit and `service`, and changes nothing.
  *
- * Usage: `console.php root:paths` (root)
+ * Usage: `root.php root:paths` (root)
  *
  * @package XC_VM_CLI_Commands
  */

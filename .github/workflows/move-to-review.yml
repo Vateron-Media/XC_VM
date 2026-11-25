@@ -1,4 +1,4 @@
-name: Move referenced issues to Review & Deploy
+name: Project - Move linked issues to Review & Deploy
 
 # When a commit lands on main referencing an issue (e.g. "Refs: #152" or a bare
 # "#152"), move that issue's card on the org Kanban board
@@ -19,6 +19,7 @@ permissions:
 jobs:
   move-to-review:
     name: Move referenced issues to Review & Deploy
+    if: contains(join(github.event.commits.*.message, ' '), '#')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v9

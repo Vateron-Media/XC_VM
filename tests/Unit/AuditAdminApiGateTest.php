@@ -3,6 +3,7 @@
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Module\AdminApiRegistry;
 use XcVm\Core\Reference\PermissionReference;
@@ -45,6 +46,7 @@ final class AuditAdminApiGateTest extends TestCase {
 
 		$GLOBALS['db'] = $this->rDb;
 		DatabaseFactory::set($this->rDb);
+		SettingsManager::set(['api_legacy_keys' => '1']);
 		// A handle another test gave the bouquets is not this test's database.
 		(new ReflectionProperty(BouquetService::class, 'db'))->setValue(null, null);
 		AdminApiRegistry::reset();
@@ -55,6 +57,7 @@ final class AuditAdminApiGateTest extends TestCase {
 		RequestManager::set($this->rRequest);
 		AdminApiRegistry::reset();
 		DatabaseFactory::reset();
+		SettingsManager::set([]);
 		AdminAPIWrapper::$db = null;
 		AdminAPIWrapper::$rKey = null;
 		unset($GLOBALS['db'], $GLOBALS['rUserInfo'], $GLOBALS['rAdminUserInfo'], $GLOBALS['rPermissions'], $GLOBALS['_ERRORS']);
@@ -270,6 +273,7 @@ final class AuditAdminApiGateTest extends TestCase {
 			. '$db->exec("INSERT INTO `users_groups` (`group_id`, `group_name`, `is_admin`, `is_reseller`, `allowed_pages`, `can_delete`, `subresellers`) VALUES (3, \'Support\', 1, 0, \'[\\"bouquets\\",\\"edit_bouquet\\"]\', 1, \'[]\')");'
 			. '$db->exec("INSERT INTO `users` (`id`, `username`, `member_group_id`, `status`, `timezone`, `api_key`) VALUES (2, \'support\', 3, 1, \'\', \'' . self::WITH_A_LIST . '\')");'
 			. '\XcVm\Infrastructure\Database\DatabaseFactory::set($db);'
+			. '\XcVm\Core\Config\SettingsManager::set(["api_legacy_keys" => "1"]);'
 			. '\XcVm\Core\Http\RequestManager::set(["api_key" => "' . self::WITH_A_LIST . '", "action" => "create_bouquet", "bouquet_name" => "Sports"]);'
 			. '(new \XcVm\Public\Controllers\Api\AdminApiController())->index();'
 			. '$db->query("SELECT COUNT(*) FROM `bouquets`;");'

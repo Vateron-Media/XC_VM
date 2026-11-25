@@ -437,14 +437,14 @@ class AdminHelpers {
 	}
 
 	/**
-	 * Run a release parser, bin/guess (guessit) or bin/python/release.py (any
+	 * Run the distro guessit command or bin/python/release.py (any
 	 * other type), on one argument: a release name, or a JSON object of them.
 	 * The argument is one argv element, never passed through a shell.
 	 *
 	 * @return mixed its decoded JSON answer; null when it printed none (it failed or cannot run)
 	 */
 	public static function runReleaseParser(string $rType, string $rArgument): mixed {
-		$rArgv = $rType === 'guessit' ? [MAIN_HOME . 'bin/guess', $rArgument] : ['/usr/bin/python3', MAIN_HOME . 'bin/python/release.py', $rArgument];
+		$rArgv = $rType === 'guessit' ? ['/usr/bin/guessit', '--json', $rArgument] : ['/usr/bin/python3', MAIN_HOME . 'bin/python/release.py', $rArgument];
 		return json_decode(ProcessRunner::capture($rArgv, 1 << 20)[1], true);
 	}
 }

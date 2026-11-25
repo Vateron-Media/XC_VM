@@ -150,7 +150,7 @@ class ServersCronJob implements CommandInterface {
 		if ($rServers[SERVER_ID]['is_main'] && SettingsManager::get('redis_handler')) {
 			if (!ProcessManager::isAnyProcessRunning(['redis-server *:', ':6379', 'bin/redis/redis.conf'])) {
 				echo 'Restarting Redis!' . "\n";
-				shell_exec(MAIN_HOME . 'bin/redis/redis-server ' . MAIN_HOME . '/bin/redis/redis.conf > /dev/null 2>/dev/null &');
+				ProcessRunner::run(['/usr/bin/redis-server', MAIN_HOME . 'bin/redis/redis.conf'], true);
 			}
 		}
 		if ($rServers[SERVER_ID]['is_main'] && class_exists(ClusterBus::class) && !ClusterBus::running()) {

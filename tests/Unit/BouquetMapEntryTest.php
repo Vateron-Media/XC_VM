@@ -88,12 +88,13 @@ final class BouquetMapEntryTest extends TestCase {
 	}
 
 	public function testWithoutAMarkerOrWithAMapNewerThanTheShardsTheWholeMapAnswers(): void {
-		$this->writeMap([5 => [1]], time() - 220);
+		$rNow = time();
+		$this->writeMap([5 => [1]], $rNow - 220);
 		$this->writeShard(0, [5 => [2]]);
 		$this->assertSame([1], BouquetService::getMapEntry(5), 'no marker');
 
-		$this->writeMap([5 => [3]], time() - 215);
-		$this->marker(time() - 216);
+		$this->writeMap([5 => [3]], $rNow - 215);
+		$this->marker($rNow - 216);
 		$this->assertSame([3], BouquetService::getMapEntry(5), 'the map is newer than the shards');
 	}
 

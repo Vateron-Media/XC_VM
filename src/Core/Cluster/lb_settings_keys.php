@@ -56,6 +56,7 @@ return [
 		'dashboard_alerts_count',
 		'debug_show_errors',
 		'default_timezone',
+		'diagnostics_panel_logs',
 		'disable_enigma2',
 		'disable_player_api',
 		'disable_playlist',

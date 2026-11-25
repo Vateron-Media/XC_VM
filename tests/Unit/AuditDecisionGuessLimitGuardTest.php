@@ -119,7 +119,7 @@ final class AuditDecisionGuessLimitGuardTest extends TestCase {
 
 	public function testAUsernameInAnotherLetterCaseSharesItsCountOfPasswords(): void {
 		$this->refused(array_merge(self::tries(['wrong1', 'wrong2']), self::tries(['wrong3'], 'Viewer')));
-		$this->assertSame(['viewer', 'Viewer'], array_keys($this->state()['attempts']), 'each is a username of its own in the count of usernames, as before');
+		$this->assertSame(['viewer'], array_keys($this->state()['attempts']), 'letter case cannot split the username limit');
 		$this->assertSame(['viewer'], array_keys($this->state()['passwords']));
 		$this->assertCount(3, $this->counted());
 		$this->assertFalse($this->isBlocked(), 'three different passwords');
@@ -246,7 +246,7 @@ final class AuditDecisionGuessLimitGuardTest extends TestCase {
 		// A token, an activation code: the same one again is the same guess, and no password is counted.
 		$this->refused(array_fill(0, 12, [self::IP, 'GUESS0', null]));
 		$this->assertSame(['attempts'], array_keys($this->state()));
-		$this->assertSame(['GUESS0'], array_keys($this->state()['attempts']));
+		$this->assertSame(['guess0'], array_keys($this->state()['attempts']));
 		// Neither is an empty one.
 		$this->refused(self::tries(['', ''], 'GUESS0'));
 		$this->assertSame([], $this->counted('GUESS0'));

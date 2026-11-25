@@ -31,6 +31,18 @@ final class SignalDispatcherParityTest extends TestCase {
 		SignalDispatcher::useSink(null);
 	}
 
+	public function testRootActionsHaveNoWritableSignalsTransport(): void {
+		$this->assertFalse(method_exists(SignalDispatcher::class, 'rootAction'));
+		$rCron = (string) file_get_contents(MAIN_HOME . 'Cli/CronJobs/RootSignalsCronJob.php');
+		$this->assertStringNotContainsString('custom_data` = \'{"action":"flush"}\'', $rCron);
+		$rDiscard = strpos($rCron, '$rRows = [];');
+		$rExecute = strpos($rCron, '$this->executeAction', $rDiscard === false ? 0 : $rDiscard);
+		$this->assertNotFalse($rDiscard);
+		$this->assertNotFalse($rExecute);
+		$this->assertLessThan($rExecute, $rDiscard, 'database rows are emptied before only replica-derived actions execute');
+		$this->assertStringContainsString("'count' => (int) \$rServers[SERVER_ID]['total_services']", $rCron, 'replica payload satisfies the typed executor');
+	}
+
 	public function testKillWritesPidRowsWithTheDatabaseClock(): void {
 		$rDb = $this->recorder();
 		SignalDispatcher::kill(3, 4242, false, $rDb);
@@ -41,33 +53,11 @@ final class SignalDispatcherParityTest extends TestCase {
 		], $rDb->rQueries);
 	}
 
-	public function testRootActionWritesJsonEncodedCustomData(): void {
-		$rDb = $this->recorder();
-		$rBefore = time();
-		SignalDispatcher::rootAction(5, ['action' => 'set_port', 'type' => 1, 'ports' => [80]], $rDb);
-		SignalDispatcher::rootAction(5, '{"action":"x"}', $rDb);
-		[$rSql, $rParams] = $rDb->rQueries[0];
-		$this->assertSame('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?,?,?);', $rSql);
-		$this->assertSame(5, $rParams[0]);
-		$this->assertGreaterThanOrEqual($rBefore, $rParams[1]);
-		$this->assertSame(json_encode(['action' => 'set_port', 'type' => 1, 'ports' => [80]]), $rParams[2]);
-		$this->assertSame('{"action":"x"}', $rDb->rQueries[1][1][2], 'pre-encoded JSON passes through');
-	}
-
 	public function testANonPositivePidIsNeverSignalled(): void {
 		$rDb = $this->recorder();
 		$this->assertFalse(SignalDispatcher::kill(3, 0, true, $rDb));
 		$this->assertFalse(SignalDispatcher::kill(3, -1, false, $rDb));
 		$this->assertSame([], $rDb->rQueries);
-	}
-
-	public function testUpdateBinariesNowMatchesStatusCommandsCleanup(): void {
-		// The panel wrote '{"action": "update_binaries"}' (with a space) while
-		// StatusCommand deletes json_encode(['action' => 'update_binaries']),
-		// so those rows were never cleaned up. Every action is json_encode()d now.
-		$rDb = $this->recorder();
-		SignalDispatcher::rootAction(2, ['action' => 'update_binaries'], $rDb);
-		$this->assertSame(json_encode(['action' => 'update_binaries']), $rDb->rQueries[0][1][2]);
 	}
 
 	public function testCacheSignalsAndTheirDedupe(): void {

@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Api;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\GeoIP;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Database\DatabaseFactory;
@@ -107,21 +108,29 @@ class XPluginApiController {
 		$rDNS = !empty($rRequest['dn']) ? htmlentities($rRequest['dn']) : '-';
 		$rCMAC = !empty($rRequest['cmac']) ? htmlentities(strtoupper($rRequest['cmac'])) : '';
 
-		$rDevice = UserRepository::getE2Info(['device_id' => null, 'mac' => strtoupper($rMAC)]);
+		$rDevice = UserRepository::getE2Info(['device_id' => null, 'mac' => strtoupper($rMAC)], false, false, $rIP);
 
 		if (!$rDevice) {
 			BruteforceGuard::checkBruteforce(null, strtoupper($rMAC));
 			generateError('INVALID_CREDENTIALS');
 		}
 
-		$this->deny = false;
-
-		if ($rDevice['enigma2']['lock_device'] == 1) {
-			if (!empty($rDevice['enigma2']['modem_mac']) && $rDevice['enigma2']['modem_mac'] !== $rModemMAC) {
-				BruteforceGuard::checkBruteforce(null, strtoupper($rMAC));
-				generateError('E2_DEVICE_LOCK_FAILED');
-			}
+		if (!self::identityMatches($rDevice['enigma2'], $rModemMAC)) {
+			BruteforceGuard::checkBruteforce(null, strtoupper($rMAC));
+			generateError('E2_DEVICE_LOCK_FAILED');
 		}
+		$rLine = $rDevice['user_info'] ?? [];
+		if (!$rLine || !$rLine['admin_enabled'] || !$rLine['enabled'] || (!is_null($rLine['exp_date']) && $rLine['exp_date'] <= time())) {
+			BruteforceGuard::checkBruteforce(null, strtoupper($rMAC));
+			generateError('INVALID_CREDENTIALS');
+		}
+		$rCountry = GeoIP::getCountry($rIP);
+		$rCountryCode = is_array($rCountry) ? ($rCountry['country']['iso_code'] ?? null) : null;
+		if (BaseApiController::restriction($rLine, $rUserAgent, $rIP, $rCountryCode) !== null) {
+			generateError('INVALID_CREDENTIALS');
+		}
+		BruteforceGuard::checkAuthFlood($rLine, $rIP);
+		$this->deny = false;
 
 		// The device's session token: 32 hex characters, as before, from the system's random source.
 		$rToken = strtoupper(bin2hex(random_bytes(16)));
@@ -137,6 +146,19 @@ class XPluginApiController {
 		echo json_encode($rDetails);
 
 		exit();
+	}
+
+	/** A locked receiver must present the modem MAC provisioned by its operator. */
+	private static function identityMatches(array $rDevice, string $rModemMAC): bool {
+		if (filter_var($rModemMAC, FILTER_VALIDATE_MAC) === false) {
+			return false;
+		}
+		if (empty($rDevice['lock_device'])) {
+			return true;
+		}
+		$rModemMAC = strtoupper(str_replace('-', ':', $rModemMAC));
+		$rStored = strtoupper(str_replace('-', ':', (string) ($rDevice['modem_mac'] ?? '')));
+		return $rStored !== '' && hash_equals($rStored, $rModemMAC);
 	}
 
 	private function checkCommands($rDeviceInfo, $rRequest) {

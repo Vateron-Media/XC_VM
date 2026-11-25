@@ -75,6 +75,7 @@ class Topbar {
 		$rMobile = (bool) ($ctx['rMobile'] ?? false);
 		$rImport = (bool) ($ctx['rImport'] ?? false);
 		$rMulti = (bool) ($ctx['rMulti'] ?? false);
+		$rFullAdmin = Authorization::isFullAdmin();
 
 		$rDropdown = [
 			'ondemand' => ['Manage Streams' => ['streams', 'streams'], 'Mass Delete' => ['mass_delete', 'mass_delete'], 'Mass Edit' => ['stream_mass', 'mass_edit_streams'], 'Stream Tools' => ['stream_tools', 'stream_tools'], 'Stream Error Logs' => ['stream_errors', 'stream_errors'], 'Export as CSV' => [null, null, 'id="btn-export-csv"'], 'Export as JSON' => [null, null, 'id="btn-export-json"']],
@@ -97,9 +98,9 @@ class Topbar {
 			'bouquet_order' => ['Manage Bouquets' => ['bouquets', 'bouquets'], 'Add Bouquet' => ['bouquet', 'add_bouquet']],
 			'archive' => ['View Stream' => ['stream_view?id=' . $rID, 'streams'], 'Edit Stream' => ['stream?id=' . $rID, 'edit_stream'], 'Create Recording' => ['record', 'add_movie'], 'Manage Streams' => ['streams', 'streams']],
 			'asns' => ['Quick Tools' => ['quick_tools', 'quick_tools']],
-			'backups' => ['General Settings' => ['settings', 'settings'], 'Cache Settings' => ['cache', 'database'], 'Modules' => ['modules', 'settings']],
-			'cache' => ['General Settings' => ['settings', 'settings'], 'Backup Settings' => ['backups', 'database'], 'Modules' => ['modules', 'settings']],
-			'settings' => ['Backup Settings' => ['backups', 'database'], 'Cache Settings' => ['cache', 'database'], 'Modules' => ['modules', 'settings']],
+			'backups' => ['General Settings' => ['settings', 'settings'], 'Cache Settings' => ['cache', 'database'], 'Modules' => $rFullAdmin ? ['modules', 'settings'] : []],
+			'cache' => ['General Settings' => ['settings', 'settings'], 'Backup Settings' => ['backups', 'database'], 'Modules' => $rFullAdmin ? ['modules', 'settings'] : []],
+			'settings' => ['Backup Settings' => ['backups', 'database'], 'Cache Settings' => ['cache', 'database'], 'Modules' => $rFullAdmin ? ['modules', 'settings'] : []],
 			'modules' => ['General Settings' => ['settings', 'settings'], 'Backup Settings' => ['backups', 'database'], 'Cache Settings' => ['cache', 'database']],
 			'channel_order' => ['Categories' => ['stream_categories', 'categories'], 'Bouquets' => ['bouquets', 'bouquets']],
 			'bouquets' => ['Add Bouquet' => ['bouquet', 'add_bouquet'], 'Order Bouquets' => ($rMobile ? [] : ['bouquet_order', 'edit_bouquet']), 'Channel Order' => ($rMobile ? [] : ['channel_order', 'channel_order']), 'Categories' => ['stream_categories', 'categories']],

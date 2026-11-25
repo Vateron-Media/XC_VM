@@ -8,7 +8,7 @@ namespace XcVm\Domain\Server;
  * How the SSH root credentials reach `server:install`. They used to travel on
  * the command line (visible in `ps` and /proc/<pid>/cmdline for the whole
  * install) and were kept in a plaintext `bin/install/<id>.json` for reinstalls.
- * Now the panel writes them to a 0600 `bin/install/<id>.cred`, passes only its
+ * Now the panel writes them to a 0600 `storage/install/<id>.cred`, passes only its
  * path (`--cred-file`), and the command reads and deletes it before it
  * connects. `<id>.json` keeps the non-secret parameters only.
  *
@@ -27,7 +27,7 @@ namespace XcVm\Domain\Server;
 
 final class InstallCredentials {
 	public static function dir(): string {
-		return BIN_PATH . 'install/';
+		return (defined('STORAGE_PATH') ? STORAGE_PATH : MAIN_HOME . 'storage/') . 'install/';
 	}
 
 	/** Write `<dir><id>.cred` (0600, never world- or group-readable) and return its path. */

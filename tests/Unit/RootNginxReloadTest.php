@@ -15,6 +15,9 @@ final class RootNginxReloadTest extends TestCase {
 	private array $rRan = [];
 
 	protected function setUp(): void {
+		if (!defined('SERVER_ID')) {
+			define('SERVER_ID', 1);
+		}
 		RootSignalsCronJob::useRunner(function (array $rArgv): array {
 			$this->rRan[] = $rArgv;
 			return [0, ''];
@@ -45,8 +48,8 @@ final class RootNginxReloadTest extends TestCase {
 
 		RootSignalsCronJob::reloadAsked();
 		$this->assertSame([
-			['sudo', BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp', '-s', 'reload'],
-			['sudo', BIN_PATH . 'nginx/sbin/nginx', '-s', 'reload'],
+			['sudo', '-u', 'xc_vm', BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp', '-s', 'reload'],
+			['sudo', '-u', 'xc_vm', BIN_PATH . 'nginx/sbin/nginx', '-s', 'reload'],
 		], $this->rRan);
 
 		RootSignalsCronJob::reloadAsked();

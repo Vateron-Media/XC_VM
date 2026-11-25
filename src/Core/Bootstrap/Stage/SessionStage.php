@@ -4,6 +4,7 @@ namespace XcVm\Core\Bootstrap\Stage;
 
 use XcVm\Core\Bootstrap\BootState;
 use XcVm\Core\Bootstrap\BootStageInterface;
+use XcVm\Core\Util\NetworkUtils;
 
 /**
  * Start the PHP session with secure cookie parameters. HTTP contexts only —
@@ -44,6 +45,7 @@ class SessionStage implements BootStageInterface {
 		}
 		$rParams = session_get_cookie_params();
 		$rParams['samesite'] = session_name() === self::PLAYER_COOKIE ? 'Lax' : 'Strict';
+		$rParams['secure'] = NetworkUtils::isHttps();
 		// The panel's scripts never read the session cookie, so an XSS must
 		// not be able to either.
 		$rParams['httponly'] = true;

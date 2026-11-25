@@ -1325,7 +1325,7 @@ class StreamProcess {
 				}
 			}
 		}
-		if (!isset($rSettings['fanout_source_insecure']) || !empty($rSettings['fanout_source_insecure'])) {
+		if (!empty($rSettings['fanout_source_insecure'])) {
 			$rCmd[] = '-insecure';
 		}
 		if (!empty($data['ingestSock'])) {

@@ -7,17 +7,12 @@ use XcVm\Core\Cluster\Crypto\Seal;
 /**
  * The node's root side of MAIN's credential rotations (plan, section 10,
  * step 3; ADR 0004, Phase 9): `node.root rotate_redis` and `rotate_db`, run
- * by cluster:root (or, on a node without root commands, by the root signals
- * cron from a `signals` row) through RootSignalsCronJob::executeAction().
+ * by cluster:root through RootSignalsCronJob::executeAction().
  *
  * A signed command carries the new secret SEALed to the node's box key
  * (purpose SEAL_PURPOSE, the node's uuid as context): the command row MAIN
  * keeps and the agent relays holds ciphertext only, and the node opens it
- * with the key its agent holds. A `signals` row — a legacy node that takes
- * no root command — carries no secret: that node reads MAIN's settings row
- * (`redis_password`), as it always has, which
- * it can only because it still holds MAIN's database. The DB password has no
- * such path, so `rotate_db` needs the sealed form.
+ * with the key its agent holds. There is no writable `signals` fallback.
  *
  * config.enc is written by xcvm_core (config_set_redis, config_set_db) as
  * root; it is handed back to the config directory's
@@ -60,7 +55,7 @@ final class RootCredentials {
 	}
 
 	/**
-	 * `rotate_redis {host, port, auth_sealed?}`: point config.enc's Redis at
+	 * `rotate_redis {host, port, auth_sealed}`: point config.enc's Redis at
 	 * $host:$port with the new password. Returns the line for the result.
 	 *
 	 * @param array<string, mixed> $rData
@@ -72,15 +67,10 @@ final class RootCredentials {
 		if (!is_int($rPort) || $rPort < 1 || $rPort > 65535) {
 			throw new \RuntimeException('rotate_redis: bad port');
 		}
-		if (isset($rData['auth_sealed'])) {
-			$rPass = self::open($rData['auth_sealed']);
-		} else {
-			// A signals row: this legacy node reads MAIN's settings, as it always has.
-			if ($rDb === null || !$rDb->query('SELECT `redis_password` FROM `settings` LIMIT 1;')) {
-				throw new \RuntimeException('rotate_redis: MAIN\'s settings cannot be read');
-			}
-			$rPass = (string) ($rDb->get_row()['redis_password'] ?? '');
+		if (!isset($rData['auth_sealed'])) {
+			throw new \RuntimeException('rotate_redis: only a signed root command carries the password');
 		}
+		$rPass = self::open($rData['auth_sealed']);
 		if ($rPass === '' || $rPass === '#PASSWORD#') {
 			throw new \RuntimeException('rotate_redis: no password');
 		}

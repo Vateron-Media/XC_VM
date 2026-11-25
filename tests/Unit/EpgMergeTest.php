@@ -117,7 +117,7 @@ final class EpgMergeTest extends TestCase {
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState(false)]
 	public function testAliasDependenciesMaterializeAndSurviveSourceOutage(): void {
-		define('TMP_PATH', sys_get_temp_dir() . '/xcvm-epg-' . getmypid() . '/');
+		define('TMP_PATH', sys_get_temp_dir() . '/xcvm-epg-' . getmypid() . '-' . bin2hex(random_bytes(4)) . '/');
 		mkdir(TMP_PATH);
 		$db = new TestDb();
 		\XcVm\Infrastructure\Database\DatabaseFactory::set($db);

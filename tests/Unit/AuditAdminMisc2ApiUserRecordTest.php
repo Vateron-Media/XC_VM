@@ -3,6 +3,7 @@
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Config\ConstantsInitializer;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Module\AdminApiRegistry;
 use XcVm\Infrastructure\Database\DatabaseFactory;
@@ -52,6 +53,7 @@ final class AuditAdminMisc2ApiUserRecordTest extends TestCase {
 
 		$GLOBALS['db'] = $this->rDb;
 		DatabaseFactory::set($this->rDb);
+		SettingsManager::set(['api_legacy_keys' => '1']);
 		AdminApiRegistry::reset();
 		$this->rRequest = RequestManager::getAll();
 	}
@@ -60,6 +62,7 @@ final class AuditAdminMisc2ApiUserRecordTest extends TestCase {
 		RequestManager::set($this->rRequest);
 		AdminApiRegistry::reset();
 		DatabaseFactory::reset();
+		SettingsManager::set([]);
 		AdminAPIWrapper::$db = null;
 		AdminAPIWrapper::$rKey = null;
 		unset($GLOBALS['db'], $GLOBALS['rUserInfo'], $GLOBALS['rAdminUserInfo'], $GLOBALS['rPermissions'], $GLOBALS['_ERRORS']);
