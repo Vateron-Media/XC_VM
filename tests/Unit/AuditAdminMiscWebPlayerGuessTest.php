@@ -2,7 +2,6 @@
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use XcVm\Public\Controllers\Player\PlayerLoginController;
 use XcVm\Public\Controllers\PlayerV2\PlayerLoginController as PlayerV2LoginController;
 
 /**
@@ -63,15 +62,8 @@ $GLOBALS['db'] = new AuditAdminMiscNoLineDb();
 \XcVm\Core\Cluster\NodeFlows::usePath($rIn['dir'] . 'flows.json'); // none: this server is no cluster node
 
 $rController = new $rIn['controller']();
-if ($rIn['controller'] === \XcVm\Public\Controllers\Player\PlayerLoginController::class) {
-	// The first player reads the form itself.
-	\XcVm\Core\Http\RequestManager::set(['username' => 'guess1', 'password' => 'x']);
-	$rSignIn = new ReflectionMethod($rController, 'processLogin');
-	$rArguments = [];
-} else {
-	$rSignIn = new ReflectionMethod($rController, 'processCredentialLogin');
-	$rArguments = ['guess1', 'x', [0 => 'Invalid username or password.']];
-}
+$rSignIn = new ReflectionMethod($rController, 'processCredentialLogin');
+$rArguments = ['guess1', 'x', [0 => 'Invalid username or password.']];
 $rSignIn->setAccessible(true);
 $rAnswer = $rSignIn->invoke($rController, ...$rArguments);
 echo json_encode(is_array($rAnswer) ? $rAnswer['status'] : $rAnswer);
@@ -115,7 +107,7 @@ PHP;
 
 	/** @return array<string, array{0: class-string}> */
 	public static function players(): array {
-		return ['the first player' => [PlayerLoginController::class], 'the web player' => [PlayerV2LoginController::class]];
+		return ['the web player' => [PlayerV2LoginController::class]];
 	}
 
 	#[DataProvider('players')]

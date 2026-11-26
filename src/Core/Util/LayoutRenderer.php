@@ -32,7 +32,7 @@ class LayoutRenderer {
 	/**
 	 * Render the header/sidebar/topbar chrome for a scope.
 	 *
-	 * @param string               $scope 'admin' | 'reseller' | 'player' | 'player_v2'
+	 * @param string               $scope 'admin' | 'reseller' | 'player_v2'
 	 * @param array<string, mixed> $vars  Page-scoped variables (optional)
 	 */
 	public static function renderHeader(string $scope = 'admin', array $vars = []): void {
@@ -73,11 +73,6 @@ class LayoutRenderer {
 		// Translator FQCN for the header views' $language::get(...) calls.
 		$language = Translator::class;
 
-		if ($scope === 'player') {
-			require MAIN_HOME . 'Public/Views/layouts/player/header.php';
-			return;
-		}
-
 		if ($scope === 'player_v2') {
 			require MAIN_HOME . 'Public/Views/layouts/player_v2/header.php';
 			return;
@@ -105,7 +100,7 @@ class LayoutRenderer {
 	/**
 	 * Render the footer chrome for a scope.
 	 *
-	 * @param string               $scope 'admin' | 'reseller' | 'player' | 'player_v2'
+	 * @param string               $scope 'admin' | 'reseller' | 'player_v2'
 	 * @param array<string, mixed> $vars  Page-scoped variables (optional)
 	 */
 	public static function renderFooter(string $scope = 'admin', array $vars = []): void {
@@ -139,11 +134,6 @@ class LayoutRenderer {
 
 		// Translator FQCN for the footer views' $language::get(...) calls.
 		$language = Translator::class;
-
-		if ($scope === 'player') {
-			require MAIN_HOME . 'Public/Views/layouts/player/footer.php';
-			return;
-		}
 
 		if ($scope === 'player_v2') {
 			require MAIN_HOME . 'Public/Views/layouts/player_v2/footer.php';

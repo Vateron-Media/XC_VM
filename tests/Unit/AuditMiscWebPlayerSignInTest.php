@@ -2,7 +2,6 @@
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use XcVm\Public\Controllers\Player\PlayerLoginController;
 use XcVm\Public\Controllers\PlayerV2\PlayerLoginController as PlayerV2LoginController;
 use XcVm\Tests\Support\InstallSchema;
 
@@ -54,15 +53,8 @@ $rCached = false;
 $rController = new $rIn['controller']();
 $rAnswers = [];
 foreach ($rIn['tries'] as [$rUsername, $rPassword]) {
-	if ($rIn['controller'] === \XcVm\Public\Controllers\Player\PlayerLoginController::class) {
-		// The first player reads the form itself.
-		\XcVm\Core\Http\RequestManager::set(['username' => $rUsername, 'password' => $rPassword]);
-		$rSignIn = new ReflectionMethod($rController, 'processLogin');
-		$rArguments = [];
-	} else {
-		$rSignIn = new ReflectionMethod($rController, 'processCredentialLogin');
-		$rArguments = [$rUsername, $rPassword, [0 => 'Invalid username or password.']];
-	}
+	$rSignIn = new ReflectionMethod($rController, 'processCredentialLogin');
+	$rArguments = [$rUsername, $rPassword, [0 => 'Invalid username or password.']];
 	$rSignIn->setAccessible(true);
 	$rAnswer = $rSignIn->invoke($rController, ...$rArguments);
 	$rAnswers[] = is_array($rAnswer) ? $rAnswer['status'] : $rAnswer;
@@ -123,7 +115,7 @@ PHP;
 
 	/** @return array<string, array{0: class-string}> */
 	public static function players(): array {
-		return ['the first player' => [PlayerLoginController::class], 'the web player' => [PlayerV2LoginController::class]];
+		return ['the web player' => [PlayerV2LoginController::class]];
 	}
 
 	#[DataProvider('players')]

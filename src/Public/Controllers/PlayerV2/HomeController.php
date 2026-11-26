@@ -273,7 +273,7 @@ class HomeController extends BasePlayerV2Controller {
 		$totalSeries = count($rUserInfo['series_ids'] ?? []);
 		$totalRadio  = count($rUserInfo['radio_ids'] ?? []);
 
-		$GLOBALS['_TITLE'] = 'Web Player V2 - Home';
+		$GLOBALS['_TITLE'] = 'Web Player - Home';
 		$GLOBALS['_PAGE']  = 'index';
 
 		$this->render('index', [

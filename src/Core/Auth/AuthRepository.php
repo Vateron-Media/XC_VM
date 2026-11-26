@@ -67,12 +67,14 @@ class AuthRepository {
 	}
 
 	/**
-	 * Get the active code string for Web Player (type 6), if configured and enabled.
+	 * Get an active Web Player code, preferring canonical type 6 over compatibility type 8.
 	 */
 	public static function getWebPlayerCode(): ?string {
-		foreach (self::getAllCodes(6) as $code) {
-			if (!empty($code['enabled'])) {
-				return (string) $code['code'];
+		foreach ([6, 8] as $type) {
+			foreach (self::getAllCodes($type) as $code) {
+				if (!empty($code['enabled'])) {
+					return (string) $code['code'];
+				}
 			}
 		}
 		return null;
@@ -117,8 +119,8 @@ class AuthRepository {
 		// NOTE: 'includes/api/admin' and 'includes/api/reseller' are legacy nginx route
 		// identifiers baked into generated access-code configs — NOT filesystem paths.
 		// Do not rename without regenerating all deployed nginx configs.
-		$rTypeMap = [0 => 'admin', 1 => 'reseller', 2 => 'ministra', 3 => 'includes/api/admin', 4 => 'includes/api/reseller', 5 => 'ministra/new', 6 => 'player', 7 => 'portal', 8 => 'player_v2'];
-		$rAliasMap = [0 => 'Public/Views/admin', 1 => 'reseller', 2 => 'Ministra', 3 => 'includes/api/admin', 4 => 'includes/api/reseller', 5 => 'Ministra', 6 => 'Public/assets/player', 7 => 'Public/Views/portal', 8 => 'Public/Views/player_v2'];
+		$rTypeMap = [0 => 'admin', 1 => 'reseller', 2 => 'ministra', 3 => 'includes/api/admin', 4 => 'includes/api/reseller', 5 => 'ministra/new', 6 => 'player_v2', 7 => 'portal', 8 => 'player_v2'];
+		$rAliasMap = [0 => 'Public/Views/admin', 1 => 'reseller', 2 => 'Ministra', 3 => 'includes/api/admin', 4 => 'includes/api/reseller', 5 => 'Ministra', 6 => 'Public/Views/player_v2', 7 => 'Public/Views/portal', 8 => 'Public/Views/player_v2'];
 		// The burst counts every request the code hands to PHP. A panel's list
 		// page asks at once for itself, its table data and a thumbnail per row
 		// in view, the reseller's as the admin's.

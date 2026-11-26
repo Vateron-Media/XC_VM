@@ -2,7 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Public\Controllers\Player\ListingsController;
+use XcVm\Public\Controllers\PlayerV2\ListingsController;
 
 /**
  * The web player's `listings` endpoint answers with JSON and nothing else: it
@@ -44,7 +44,7 @@ final class AuditPlayerListingsTest extends TestCase {
 	}
 
 	public function testTheResponseIsDeclaredAsJsonBeforeAnyOutput(): void {
-		$rSource = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/Player/ListingsController.php');
+		$rSource = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/PlayerV2/ListingsController.php');
 		$rBody = substr($rSource, (int) strpos($rSource, 'public function index()'));
 
 		$rType = strpos($rBody, "header('Content-Type: application/json; charset=utf-8');");

@@ -145,8 +145,6 @@ namespace {
 		echo json_encode($rOut);
 	});
 
-	$rSecond = $rIn['scope'] === 'player_v2';
-
 	switch ($rIn['step']) {
 		case 'stage':
 			bootStage();
@@ -178,12 +176,7 @@ namespace {
 		case 'sign-in':
 			bootStage();
 			\XcVm\Core\Auth\SessionManager::clearContext('player');
-			if ($rSecond) {
-				signIn(new \XcVm\Public\Controllers\PlayerV2\PlayerLoginController(), 'processCredentialLogin', 'viewer', 'secret', [0 => 'Invalid username or password.']);
-			} else {
-				\XcVm\Core\Http\RequestManager::set(['username' => 'viewer', 'password' => 'secret']);
-				signIn(new \XcVm\Public\Controllers\Player\PlayerLoginController(), 'processLogin');
-			}
+			signIn(new \XcVm\Public\Controllers\PlayerV2\PlayerLoginController(), 'processCredentialLogin', 'viewer', 'secret', [0 => 'Invalid username or password.']);
 			break;
 
 		case 'external sign-in':
@@ -193,13 +186,9 @@ namespace {
 			break;
 
 		case 'sign-out':
-			// The players sign out with a POST (a GET leads home).
+			// The player signs out with a POST (a GET leads home).
 			$_SERVER['REQUEST_METHOD'] = 'POST';
-			if ($rSecond) {
-				(new \XcVm\Public\Controllers\PlayerV2\PlayerLogoutController())->index();
-			} else {
-				(new \XcVm\Public\Controllers\Player\PlayerLogoutController())->index();
-			}
+			(new \XcVm\Public\Controllers\PlayerV2\PlayerLogoutController())->index();
 			break;
 
 		case 'external account after the session ended':
@@ -273,7 +262,7 @@ PHP;
 
 	/** @return array<string, array{string}> */
 	public static function players(): array {
-		return ['the first player' => ['player'], 'the second player' => ['player_v2']];
+		return ['the web player' => ['player_v2']];
 	}
 
 	#[DataProvider('players')]
@@ -326,7 +315,7 @@ PHP;
 	/** @return array<string, array{string, string, string, bool}> */
 	public static function signIns(): array {
 		$rCases = [];
-		foreach ([['admin', 'player', 'sign-in'], ['reseller', 'player_v2', 'sign-in'], ['admin', 'player_v2', 'external sign-in']] as [$rPanel, $rPlayer, $rSignIn]) {
+		foreach ([['admin', 'player_v2', 'sign-in'], ['reseller', 'player_v2', 'sign-in'], ['admin', 'player_v2', 'external sign-in']] as [$rPanel, $rPlayer, $rSignIn]) {
 			foreach ([true, false] as $rPanelFirst) {
 				$rCases[$rPanel . ', ' . $rPlayer . ' ' . $rSignIn . ($rPanelFirst ? ', the panel first' : ', the player first')] = [$rPanel, $rPlayer, $rSignIn, $rPanelFirst];
 			}
@@ -411,10 +400,6 @@ PHP;
 		$this->assertSame(7, $this->stored($rPlayerId)['phash'] ?? null, 'the player refused the sign-in');
 
 		$this->request($rPlayer, 'sign-out');
-		if ($rPlayer === 'player') {
-			// The first player's sign-out sends the browser on to the sign-in form.
-			$this->request($rPlayer, 'sign-in form');
-		}
 
 		$this->assertArrayNotHasKey('phash', $this->stored($rPlayerId) ?? [], 'the viewer is still signed in');
 		$this->assertArrayNotHasKey('phash', $this->request($rPlayer, 'page')['session'], 'the viewer is still signed in');
@@ -461,7 +446,7 @@ PHP;
 
 	/** Which cookie a session has is decided once, in the session stage: no page of a player starts one itself. */
 	public function testNoPlayerControllerStartsASessionOfItsOwn(): void {
-		foreach (['Player/PlayerLoginController', 'Player/PlayerLogoutController', 'PlayerV2/PlayerLoginController', 'PlayerV2/PlayerLogoutController'] as $rController) {
+		foreach (['PlayerV2/PlayerLoginController', 'PlayerV2/PlayerLogoutController'] as $rController) {
 			$rSource = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/' . $rController . '.php');
 
 			$this->assertSame(0, substr_count($rSource, 'session_start('), $rController . ' starts a session of its own');

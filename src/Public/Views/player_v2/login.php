@@ -22,7 +22,7 @@ $assetsPath = $baseUrl . 'assets/';
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
-    <title>Sign In - <?= htmlspecialchars($serverName) ?> Web Player Next-Gen</title>
+    <title>Sign In - <?= htmlspecialchars($serverName) ?> Web Player</title>
 
     <!-- Immediate Theme Application -->
     <script>
@@ -87,7 +87,7 @@ $assetsPath = $baseUrl . 'assets/';
               </div>
               <div>
                 <span class="fs-4 fw-bold text-heading"><?= htmlspecialchars($serverName) ?></span>
-                <span class="badge bg-label-primary rounded-pill ms-2">Web Player Next-Gen</span>
+                <span class="badge bg-label-primary rounded-pill ms-2">Web Player</span>
               </div>
             </a>
             <div class="d-flex align-items-center gap-2">
@@ -242,7 +242,7 @@ $assetsPath = $baseUrl . 'assets/';
                 <i class="icon-base bx bx-tv fs-1 text-primary"></i>
               </div>
               <h4 class="fw-bold mb-0 text-heading"><?= htmlspecialchars($serverName) ?></h4>
-              <small class="text-body-secondary">Web Player Next-Gen</small>
+              <small class="text-body-secondary">Web Player</small>
             </div>
 
             <!-- Header Title -->

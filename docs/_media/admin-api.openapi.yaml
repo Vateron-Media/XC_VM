@@ -776,7 +776,7 @@ components:
           description: Path segment. Length >= 8 (>= 3 for types 6-8; any for type 2 but not empty) else STATUS_CODE_LENGTH (3). Reserved words (admin, stream, api, live, movie, series, player_api, playlist, xmltv, hls, ...) = STATUS_RESERVED_CODE (46). Duplicate = STATUS_EXISTS_CODE (20).
         type:
           type: integer
-          description: 0 admin UI, 1 reseller UI, 2 ministra, 3 **admin API**, 4 **reseller API**, 5 ministra (new), 6 player, 7 portal, 8 player_v2. Not range-checked.
+          description: 0 admin UI, 1 reseller UI, 2 ministra, 3 **admin API**, 4 **reseller API**, 5 ministra (new), 6 **Web Player**, 7 portal, 8 Web Player compatibility alias. Types 6 and 8 both open the current player. Not range-checked.
           enum:
             - 0
             - 1

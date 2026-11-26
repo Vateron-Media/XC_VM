@@ -63,7 +63,7 @@ directory.
 | Project convention: no `declare(strict_types=1)` | — |
 
 Because the namespace carries the location, duplicate short names in different
-namespaces no longer collide — `XcVm\Public\Controllers\Player\HomeController` and
+namespaces do not collide — `XcVm\Public\Controllers\Admin\HomeController` and
 `XcVm\Public\Controllers\PlayerV2\HomeController` are distinct.
 
 ## Procedural and third-party files

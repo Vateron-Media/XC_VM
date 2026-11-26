@@ -132,13 +132,13 @@ The secrets are in `users_2fa` (`user_id`, `secret`, `recovery`, `last_step`, `c
 
 ## Player Authentication
 
-File: `src/Public/Controllers/Player/PlayerLoginController.php`
+File: `src/Public/Controllers/PlayerV2/PlayerLoginController.php`
 
 The player login flow is fundamentally different from admin/reseller. It authenticates end-user "lines" (IPTV subscriptions) rather than panel operators.
 
 ### Login Process
 
-`PlayerLoginController::processLogin()` performs these checks in order:
+`PlayerLoginController::processCredentialLogin()` performs these checks in order:
 
 1. **Credential lookup** -- `UserRepository::getUserInfo()` (different from `getAuthUserByCredentials` used by admin/reseller).
 2. **Line type rejection** -- E2, MAG, and Stalker lines are rejected with specific error codes.
@@ -157,7 +157,9 @@ Every failure triggers `BruteforceGuard::checkFlood()` before returning an error
 
 On success the session moves onto a fresh id (`session_regenerate_id(true)`) before the session keys are written, as at admin and reseller login, so the browser gets a new session cookie at sign-in.
 
-The second web player (`src/Public/Controllers/PlayerV2/PlayerLoginController.php`) also signs in with an account on another Xtream server (the server form, or a playlist address). When that server refuses, the request ends there, for a plain form post as for the page's script: the login page shows that server's answer, the address is counted once by `checkFlood()`, and the username and password are not tried as a line of this panel.
+The web player can also sign in with an account on another Xtream server (the server form, or a playlist address). When that server refuses, the request ends there, for a plain form post as for the page's script: the login page shows that server's answer, the address is counted once by `checkFlood()`, and the username and password are not tried as a line of this panel.
+
+The retired player stored no favorites, progress, or saved accounts in browser local/session storage, so there is no meaningful browser data to migrate. Its `PLAYERSESSID` cookie is shared with the current player, preserving an existing subscriber session where it remains valid. The current player's `xc_player_v2_*` browser data is unchanged.
 
 ### Player Error Codes
 
@@ -359,7 +361,7 @@ The session cookie parameters are set in one place, `SessionStage::startSession(
 It chooses the cookie from the request's scope (`XC_SCOPE`, set by nginx):
 
 - The admin and reseller panels, the APIs and every other scope keep PHP's `PHPSESSID`, `SameSite=Strict`.
-- The two web players (`player`, `player_v2`) use their own cookie, `PLAYERSESSID` (`SessionStage::PLAYER_COOKIE`), `SameSite=Lax`.
+- The web player's canonical `player_v2` scope and the legacy `player` scope alias use their own cookie, `PLAYERSESSID` (`SessionStage::PLAYER_COOKIE`), `SameSite=Lax`.
 
 Both are `HttpOnly`, and PHP runs in strict mode, refusing session ids it never issued:
 
@@ -381,7 +383,7 @@ No panel script reads the session cookie, so `HttpOnly` costs nothing and keeps 
 
 A panel sign-in and a player sign-in in one browser are two sessions: a player request neither reads nor writes the panel's session, and the reverse. Signing out of the player ends the player's session only. A session from before the player had its own cookie is not carried over: viewers sign in to the player once after the update.
 
-The players' actions that change something run only on a `POST`, which a browser does not send with the player's cookie from another site: `logout` (both players; a `GET` leads to the home page), `refresh` (second player; `GET` is not routed) and the bouquet order of `profile` (first player; a `GET` only shows the page). The players' own links and scripts send `POST`.
+The player's actions that change something run only on a `POST`, which a browser does not send with the player's cookie from another site: `logout`, `refresh` and the bouquet order of `profile`. A `GET` is not routed for these state changes; the player's own links and scripts send `POST`.
 
 ### Verify Hash
 
@@ -472,7 +474,7 @@ A page's rule is looked up under its underscore name, whichever way the URL spel
 | `src/Core/Auth/BruteforceGuard.php` | Rate-limiting and brute-force protection |
 | `src/Core/Auth/Authorization.php` | Object-level authorization checks |
 | `src/Core/Auth/PageAuthorization.php` | Page-level access control |
-| `src/Public/Controllers/Player/PlayerLoginController.php` | Player login flow with security checks |
+| `src/Public/Controllers/PlayerV2/PlayerLoginController.php` | Player login flow with security checks |
 | `src/Infrastructure/Bootstrap/AdminScopeBootstrap.php` | Admin bootstrap: session lifecycle, `$rUserInfo`/`$rPermissions`, integrity guard |
 | `src/Public/Controllers/Admin/SessionController.php` | AJAX admin session poll (`session` route) |
 | `src/Infrastructure/Bootstrap/ResellerScopeBootstrap.php` | Reseller session validation on every page load |

@@ -1,15 +1,15 @@
 <?php
 
-use XcVm\Public\Controllers\Player\ListingsController;
-use XcVm\Public\Controllers\Player\PlayerProxyController;
-use XcVm\Public\Controllers\Player\PlayerResizeController;
 use XcVm\Public\Controllers\PlayerV2\FavoritesController;
 use XcVm\Public\Controllers\PlayerV2\HomeController;
+use XcVm\Public\Controllers\PlayerV2\ListingsController;
 use XcVm\Public\Controllers\PlayerV2\LiveController;
 use XcVm\Public\Controllers\PlayerV2\MoviesController;
 use XcVm\Public\Controllers\PlayerV2\PlayerLoginController;
 use XcVm\Public\Controllers\PlayerV2\PlayerLogoutController;
 use XcVm\Public\Controllers\PlayerV2\PlayerMovieController;
+use XcVm\Public\Controllers\PlayerV2\PlayerProxyController;
+use XcVm\Public\Controllers\PlayerV2\PlayerResizeController;
 use XcVm\Public\Controllers\PlayerV2\PlayerWatchController;
 use XcVm\Public\Controllers\PlayerV2\ProfileController;
 use XcVm\Public\Controllers\PlayerV2\RadioController;

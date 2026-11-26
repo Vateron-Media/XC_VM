@@ -2,6 +2,7 @@
 
 namespace XcVm\Public\Controllers\Reseller\Ajax;
 
+use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Localization\Translator;
@@ -80,11 +81,7 @@ class ActiveCodeAjaxController extends BaseResellerAjaxController {
 			$portalCode = $db->get_row()['code'];
 		}
 
-		$playerCode = null;
-		$db->query("SELECT `code` FROM `access_codes` WHERE `type` = 6 AND `enabled` = 1 LIMIT 1;");
-		if ($db->num_rows() > 0) {
-			$playerCode = $db->get_row()['code'];
-		}
+		$playerCode = AuthRepository::getWebPlayerCode();
 
 		$subscriberPortalUrl = $portalCode ? "{$portalUrl}/{$portalCode}/" : "{$portalUrl}/portal";
 		$directActivateUrl   = "{$subscriberPortalUrl}?code=" . urlencode((string) $code['activation_code']);

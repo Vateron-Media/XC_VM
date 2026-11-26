@@ -62,8 +62,8 @@ use XcVm\Domain\Billing\InvoiceService;
 |Классы и каталоги PascalCase|`StreamService`, `DatabaseHandler`, `Core/Auth/`|
 |Соглашение о проекте: нет `declare(strict_types=1)`|—|
 
-Поскольку пространство имен содержит местоположение, дублируйте короткие имена в разных
-пространства имен больше не конфликтуют — `XcVm\Public\Controllers\Player\HomeController` и
+Поскольку пространство имен содержит местоположение, одинаковые короткие имена в разных
+пространствах имен не конфликтуют — `XcVm\Public\Controllers\Admin\HomeController` и
 `XcVm\Public\Controllers\PlayerV2\HomeController` различны.
 
 ## <a id="procedural-and-third-party-files"></a>Процедурные файлы и файлы третьих лиц

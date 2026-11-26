@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
  * (`<username>/<password>/<id>.<ext>`, the form player_api apps, playlists,
  * MAG and Enigma2 ask for) with a redirect to the station's first source and
  * ends there, before a token is made, so no connection is recorded. Every
- * client keeps that answer; the second web player's play answer leads to the
+ * client keeps that answer; the web player's play answer leads to the
  * same request (AuditDecisionRadioPlayAddressTest).
  *
  * auth.php is procedural, so the live case's lines are read from the script

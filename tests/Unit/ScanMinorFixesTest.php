@@ -51,7 +51,7 @@ final class ScanMinorFixesTest extends TestCase {
 	}
 
 	public function testTheGuideReadsTheChannelsArchiveWindow(): void {
-		$rSource = self::source('Public/Controllers/Player/ListingsController.php');
+		$rSource = self::source('Public/Controllers/PlayerV2/ListingsController.php');
 		$this->assertStringNotContainsString("\$rEPGItem['tv_archive_duration']", $rSource);
 	}
 

@@ -90,8 +90,7 @@ Streaming/  tmp/        vendor/
 | `bin/redis/` |Двоичный файл Redis (LB не запускает свой собственный Redis)|
 | `bin/nginx/conf/codes/` |Страницы с кодами ошибок (пользовательский интерфейс администратора)|
 | `Public/Controllers/Admin/` |Контроллеры панели администратора|
-| `Public/Controllers/Player/` |Контроллеры панели проигрывателя|
-| `Public/Controllers/PlayerV2/` |Контроллеры Web player v2 (область действия плеера, не маршрутизируемые на LB)|
+| `Public/Controllers/PlayerV2/` |Контроллеры веб-плеера (область плеера, не маршрутизируется на LB)|
 | `Public/Controllers/Reseller/` |Контроллеры панели реселлера|
 | `Public/Views/` |Шаблоны панелей|
 | `Public/assets/` |Панель статических активов|

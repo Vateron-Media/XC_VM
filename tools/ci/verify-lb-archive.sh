@@ -99,7 +99,6 @@ SENSITIVE=(
 	# Admin / reseller / player UI + the privileged domains (dir-level removes).
 	"Public/Controllers/Admin"
 	"Public/Controllers/Reseller"
-	"Public/Controllers/Player"
 	"Public/Controllers/PlayerV2"
 	"Domain/User"
 	"Domain/Device"

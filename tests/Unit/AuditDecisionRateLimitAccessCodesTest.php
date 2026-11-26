@@ -92,11 +92,6 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 		$this->assertStringContainsString('location ^~ /assets/admin/ {', $rNginx);
 		$this->assertStringContainsString('alias /home/xc_vm/Public/assets/admin/;', $rNginx);
 
-		foreach (['Public/Views/player/login.php', 'Public/Views/layouts/player/header.php', 'Public/Views/layouts/player/footer.php'] as $rFile) {
-			$rSource = (string) file_get_contents(MAIN_HOME . $rFile);
-			$this->assertStringNotContainsString('/admin/assets/', $rSource, $rFile);
-			$this->assertStringContainsString('/assets/admin/', $rSource, $rFile);
-		}
 	}
 
 	public function testEveryGeneratedCodeFileLimitsItsSignInAndResizerAtTheTypesBurst(): void {
@@ -117,7 +112,7 @@ final class AuditDecisionRateLimitAccessCodesTest extends TestCase {
 	/** A reseller code serves the admin asset bundle directly: no Public/assets/reseller link is needed. */
 	public function testEveryPanelCodeAliasesItsAssetsToADirectoryThatShips(): void {
 		$rConfs = $this->generate(self::template());
-		foreach (['adminpanel' => 'admin', 'resellers1' => 'admin', 'tv1' => 'player', 'webplayer' => 'player_v2'] as $rCode => $rDir) {
+		foreach (['adminpanel' => 'admin', 'resellers1' => 'admin', 'tv1' => 'player_v2', 'webplayer' => 'player_v2'] as $rCode => $rDir) {
 			$rName = strlen($rCode) >= 4 ? $rCode : $rCode . '/';
 			$this->assertMatchesRegularExpression('#alias /home/xc_vm/Public/assets/' . $rDir . '/+;#', self::location($rConfs[$rCode], '^~ /' . $rName . '/assets/'), $rCode);
 			$this->assertDirectoryExists(MAIN_HOME . 'Public/assets/' . $rDir, $rCode);

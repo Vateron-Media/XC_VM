@@ -14,7 +14,7 @@ final class AuditPlayerSessionTest extends TestCase {
 	private const KNOWN = 'issuedbythisserver00000000';
 	private const UNKNOWN = 'neverissuedbythisserver000';
 
-	/** Signs the line `viewer` in at the v1 login, from a session that already carries a panel login. */
+	/** Signs the line `viewer` in, from a session that already carries a panel login. */
 	private const LOGIN = <<<'PHP'
 		final class AuditPlayerLineDb extends \XcVm\Core\Database\DatabaseHandler {
 			private array $rows = [];
@@ -61,9 +61,9 @@ final class AuditPlayerSessionTest extends TestCase {
 		session_start();
 		$_SESSION['hash'] = 4;
 
-		$rLogin = new ReflectionMethod(\XcVm\Public\Controllers\Player\PlayerLoginController::class, 'processLogin');
+		$rLogin = new ReflectionMethod(\XcVm\Public\Controllers\PlayerV2\PlayerLoginController::class, 'processCredentialLogin');
 		$rLogin->setAccessible(true);
-		$rLogin->invoke(new \XcVm\Public\Controllers\Player\PlayerLoginController());
+		$rLogin->invoke(new \XcVm\Public\Controllers\PlayerV2\PlayerLoginController(), 'viewer', $rPassword, [0 => 'Invalid username or password.']);
 		PHP;
 
 	/** Opens a player page with the player's session cookie $rId. */

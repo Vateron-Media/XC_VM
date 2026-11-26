@@ -1,6 +1,6 @@
 <?php
 
-namespace XcVm\Public\Controllers\Player;
+namespace XcVm\Public\Controllers\Portal;
 
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Http\RequestManager;
@@ -12,7 +12,7 @@ use XcVm\Domain\Line\ActiveCodeService;
  * Provides a responsive activation interface for clients to redeem
  * their Active Codes, view credentials, and download playlists.
  *
- * @package XC_VM_Public_Controllers_Player
+ * @package XC_VM_Public_Controllers_Portal
  */
 class PortalController {
 	public function index() {

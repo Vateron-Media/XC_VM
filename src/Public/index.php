@@ -17,7 +17,7 @@ use XcVm\Public\Controllers\Api\PlayerApiController;
 use XcVm\Public\Controllers\Api\PlaylistApiController;
 use XcVm\Public\Controllers\Api\ResellerRestApiController;
 use XcVm\Public\Controllers\Api\XPluginApiController;
-use XcVm\Public\Controllers\Player\PortalController;
+use XcVm\Public\Controllers\Portal\PortalController;
 
 /**
  * Front Controller — единая точка входа для admin/reseller/player.
@@ -77,7 +77,7 @@ if (!empty($_SERVER['XC_SCOPE'])) {
 		'ministra/new'         => 'ministra',
 		'includes/api/admin'   => 'admin',
 		'includes/api/reseller' => 'reseller',
-		'player'               => 'player',
+		'player'               => 'player_v2',
 		'portal'               => 'portal',
 		'player_v2'            => 'player_v2',
 	];
@@ -149,7 +149,7 @@ if ($pageName === 'index' && $accessCode && in_array($scope, ['admin', 'reseller
 }
 
 // 4b. Player / Portal: /CODE (без завершающего слэша) → /CODE/
-if ($accessCode && in_array($scope, ['player', 'player_v2', 'portal'], true)
+if ($accessCode && in_array($scope, ['player_v2', 'portal'], true)
 	&& ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
 	&& rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '', '/') === '/' . $accessCode
 	&& substr(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '', -1) !== '/'
@@ -236,7 +236,7 @@ if ($scope === 'portal') {
 $adminDir = ($scope === 'admin') ? MAIN_HOME . 'Public/Views/admin/' : MAIN_HOME . $scope . '/';
 @chdir(is_dir($adminDir) ? $adminDir : MAIN_HOME);
 
-if (in_array($scope, ['player', 'player_v2'], true)) {
+if ($scope === 'player_v2') {
 	// 'resize' must NOT be here: it has to run through the scope bootstrap so the
 	// image-resize endpoint stays behind an authenticated player session rather
 	// than becoming a public fetch endpoint.

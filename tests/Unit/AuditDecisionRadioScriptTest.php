@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * The second web player's radio script plays a station from the controller's
+ * The web player's radio script plays a station from the controller's
  * play answer, which sends the browser to the panel's own play address: as
  * HLS when the panel runs the station, as plain audio when the panel passes it
  * on to its source.

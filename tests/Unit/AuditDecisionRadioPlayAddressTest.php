@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * The second web player plays a radio station through the panel's own play
+ * The web player plays a radio station through the panel's own play
  * address, as it plays a live channel: that is where the panel authorises the
  * line and counts its connection. The station list and the page name the
  * controller's play answer, the play answer names that address, and none of

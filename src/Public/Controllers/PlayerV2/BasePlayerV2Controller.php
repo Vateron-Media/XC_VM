@@ -3,7 +3,7 @@
 namespace XcVm\Public\Controllers\PlayerV2;
 
 use XcVm\Core\Util\LayoutRenderer;
-use XcVm\Public\Controllers\Player\BasePlayerController;
+use XcVm\Public\Controllers\Admin\BaseAdminController;
 
 /**
  * BasePlayerV2Controller — Base controller for Web Player V2 pages.
@@ -12,9 +12,13 @@ use XcVm\Public\Controllers\Player\BasePlayerController;
  *
  * @package XC_VM_Public_Controllers_PlayerV2
  */
-class BasePlayerV2Controller extends BasePlayerController {
+class BasePlayerV2Controller extends BaseAdminController {
 	/** @var string Scope: 'player_v2' */
 	protected $scope = 'player_v2';
+
+	protected function requirePermission() {
+		// Player authorization is handled by PlayerScopeBootstrap.
+	}
 
 	/**
 	 * Render: header -> view -> footer.

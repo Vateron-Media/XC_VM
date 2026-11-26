@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * The first web player works from the line as the panel stores it: a line
+ * The web player works from the line as the panel stores it: a line
  * whose bouquets hold no channel gets an empty guide, and its bouquets are
  * listed in the order saved for it.
  */
@@ -14,7 +14,7 @@ final class AuditPlayers2FirstPlayerTest extends TestCase {
 			. '$rUserInfo = ["id" => 7, "username" => "viewer", "password" => "secret", "bouquet" => [3], "channel_ids" => []];'
 			. '$rBouquets = [3 => ["streams" => []]];'
 			. '\XcVm\Core\Http\RequestManager::set(' . var_export($rRequest, true) . ');'
-			. '(new \XcVm\Public\Controllers\Player\ListingsController())->index();';
+			. '(new \XcVm\Public\Controllers\PlayerV2\ListingsController())->index();';
 
 		$rProc = proc_open([PHP_BINARY, '-d', 'display_errors=1', '-r', $rCode], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);
 		$rOut = (string) stream_get_contents($rPipes[1]);
@@ -44,7 +44,9 @@ final class AuditPlayers2FirstPlayerTest extends TestCase {
 		$this->assertStringContainsString('$rUserInfo = UserRepository::getUserInfo(', $rSource);
 		$this->assertDoesNotMatchRegularExpression('/\b[a-z]*sort\s*\(\s*\$rUserInfo\[[\'"]bouquet[\'"]\]/', $rSource, 'the bouquets are put in another order than the stored one');
 
-		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/player/profile.php');
-		$this->assertMatchesRegularExpression('/foreach\s*\(\s*\$rUserInfo\[[\'"]bouquet[\'"]\]/', $rView, 'the profile page no longer lists the bouquets it was given');
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/player_v2/profile.php');
+		$rController = (string) file_get_contents(MAIN_HOME . 'Public/Controllers/PlayerV2/ProfileController.php');
+		$this->assertStringContainsString('$userBouquetIds = is_array($lineData[\'bouquet\'])', $rController, 'the profile no longer reads the line bouquets');
+		$this->assertMatchesRegularExpression('/foreach\s*\(\s*\$userBouquets\s+as/', $rView, 'the profile page no longer lists the bouquets it was given');
 	}
 }

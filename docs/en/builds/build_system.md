@@ -90,8 +90,7 @@ After copying, admin-specific content is **removed** from the LB build:
 | `bin/redis/` | Redis binary (LB doesn't run its own Redis) |
 | `bin/nginx/conf/codes/` | Error code pages (admin UI) |
 | `Public/Controllers/Admin/` | Admin panel controllers |
-| `Public/Controllers/Player/` | Player panel controllers |
-| `Public/Controllers/PlayerV2/` | Web player v2 controllers (player scope, not routed on LB) |
+| `Public/Controllers/PlayerV2/` | Web player controllers (player scope, not routed on LB) |
 | `Public/Controllers/Reseller/` | Reseller panel controllers |
 | `Public/Views/` | Panel templates |
 | `Public/assets/` | Panel static assets |

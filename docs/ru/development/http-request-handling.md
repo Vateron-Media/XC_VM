@@ -424,4 +424,4 @@ $collisions = $router->drainRouteCollisions();
 | `src/Public/index.php` |Внешний контроллер для администратора/реселлера/игрока/API|
 | `src/Public/routes/admin.php` |Определения маршрутов на странице администратора|
 | `src/Public/routes/reseller.php` |Определения маршрута на странице реселлера|
-| `src/Public/routes/player.php` |Определения маршрута на странице игрока|
+| `src/Public/routes/player_v2.php` |Маршруты веб-плеера для кодов типов 6 и 8|
