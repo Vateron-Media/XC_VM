@@ -51,7 +51,7 @@ $assetsPath = $baseUrl . 'assets/';
     <!-- Core CSS (Pure Sneat Full Version) -->
     <link rel="stylesheet" href="<?= $assetsPath ?>vendor/libs/pickr/pickr-themes.css" />
     <link rel="stylesheet" href="<?= $assetsPath ?>vendor/css/core.css" />
-    <link rel="stylesheet" href="<?= $assetsPath ?>css/demo.css" />
+    <link rel="stylesheet" href="<?= $assetsPath ?>css/demo.css?v=2" />
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="<?= $assetsPath ?>vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
@@ -64,141 +64,27 @@ $assetsPath = $baseUrl . 'assets/';
     <script src="<?= $assetsPath ?>vendor/libs/pickr/pickr.js"></script>
     <script src="<?= $assetsPath ?>vendor/js/template-customizer.js"></script>
     <script src="<?= $assetsPath ?>js/config.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@tsparticles/engine@4/tsparticles.engine.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@tsparticles/slim@4/tsparticles.slim.bundle.min.js"></script>
+    <script defer src="/assets/admin/xcvm/login-particles.js?v=6"></script>
   </head>
 
   <body>
-    <!-- Split Screen Main Wrapper -->
+    <div id="tsparticles" class="login-particles" aria-hidden="true"></div>
+    <!-- Login Main Wrapper -->
     <div class="container-fluid p-0">
       <div class="row g-0 login-split-wrapper">
-
-        <!-- ═════════════════════════════════════════════════════════════════
-             LEFT COLUMN: HERO SHOWCASE WITH ICONS & AMBIENT EFFECTS
-        ══════════════════════════════════════════════════════════════════ -->
-        <div class="col-lg-7 d-none d-lg-flex login-hero-col">
-          <!-- Ambient Glowing Orbs -->
-          <div class="login-hero-orb login-hero-orb-1"></div>
-          <div class="login-hero-orb login-hero-orb-2"></div>
-
-          <!-- Hero Top: Branding -->
-          <div class="d-flex align-items-center justify-content-between position-relative z-1 mb-5">
-            <a href="<?= $baseUrl ?>login" class="d-flex align-items-center gap-3 text-decoration-none">
-              <div class="avatar avatar-md bg-label-primary rounded-3 d-flex align-items-center justify-content-center shadow-sm">
-                <i class="icon-base bx bx-tv fs-2 text-primary"></i>
-              </div>
-              <div>
-                <span class="fs-4 fw-bold text-heading"><?= htmlspecialchars($serverName) ?></span>
-                <span class="badge bg-label-primary rounded-pill ms-2">Web Player</span>
-              </div>
-            </a>
-            <div class="d-flex align-items-center gap-2">
-              <span class="badge bg-label-success rounded-pill px-3 py-2 d-flex align-items-center">
-                <i class="icon-base bx bx-broadcast me-1 text-success"></i> 4K Ultra-HD Ready
-              </span>
-            </div>
-          </div>
-
-          <!-- Hero Middle: Value Proposition & Feature Cards -->
-          <div class="my-auto position-relative z-1 py-4">
-            <div class="mb-4">
-              <span class="badge bg-label-primary rounded-pill px-3 py-2 mb-3">
-                <i class="icon-base bx bx-sparkles me-1"></i> The Future of Digital Entertainment
-              </span>
-              <h1 class="display-5 fw-bold text-heading mb-3">
-                Stream Smarter, Faster & In Pure 4K Clarity.
-              </h1>
-              <p class="fs-5 text-body-secondary max-w-600 mb-0">
-                Experience ultra-low latency Live TV, an extensive cinema VOD catalog, full TV series seasons, and worldwide studio radio broadcasts with instant multi-account switching.
-              </p>
-            </div>
-
-            <!-- Feature Showcase Grid -->
-            <div class="row g-4 mt-2">
-              <div class="col-sm-6">
-                <div class="login-feature-card h-100">
-                  <div class="d-flex align-items-center gap-3 mb-2">
-                    <div class="avatar avatar-sm bg-label-primary rounded d-flex align-items-center justify-content-center">
-                      <i class="icon-base bx bx-broadcast text-primary"></i>
-                    </div>
-                    <h6 class="mb-0 fw-bold text-heading">Ultra-Low Latency Live TV</h6>
-                  </div>
-                  <p class="text-body-secondary small mb-0">
-                    High-frame rate broadcasts, adaptive bitrate streaming, and synchronized electronic program guide (EPG).
-                  </p>
-                </div>
-              </div>
-
-              <div class="col-sm-6">
-                <div class="login-feature-card h-100">
-                  <div class="d-flex align-items-center gap-3 mb-2">
-                    <div class="avatar avatar-sm bg-label-success rounded d-flex align-items-center justify-content-center">
-                      <i class="icon-base bx bx-film text-success"></i>
-                    </div>
-                    <h6 class="mb-0 fw-bold text-heading">Cinema VOD & TV Series</h6>
-                  </div>
-                  <p class="text-body-secondary small mb-0">
-                    Full catalog with IMDb metadata, multi-language audio tracks, subtitles, and smart continue watching.
-                  </p>
-                </div>
-              </div>
-
-              <div class="col-sm-6">
-                <div class="login-feature-card h-100">
-                  <div class="d-flex align-items-center gap-3 mb-2">
-                    <div class="avatar avatar-sm bg-label-warning rounded d-flex align-items-center justify-content-center">
-                      <i class="icon-base bx bx-radio text-warning"></i>
-                    </div>
-                    <h6 class="mb-0 fw-bold text-heading">Worldwide Radio Studio</h6>
-                  </div>
-                  <p class="text-body-secondary small mb-0">
-                    Direct high-fidelity FM radio streaming with live waveform audio visualization and genre filtering.
-                  </p>
-                </div>
-              </div>
-
-              <div class="col-sm-6">
-                <div class="login-feature-card h-100">
-                  <div class="d-flex align-items-center gap-3 mb-2">
-                    <div class="avatar avatar-sm bg-label-info rounded d-flex align-items-center justify-content-center">
-                      <i class="icon-base bx bx-sync text-info"></i>
-                    </div>
-                    <h6 class="mb-0 fw-bold text-heading">1-Click Account Switcher</h6>
-                  </div>
-                  <p class="text-body-secondary small mb-0">
-                    Save multiple accounts and activation codes locally on your device for seamless, instant switching.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Hero Bottom: Trust Badges -->
-          <div class="d-flex align-items-center gap-3 flex-wrap position-relative z-1 pt-4">
-            <div class="login-stat-pill">
-              <i class="icon-base bx bx-check-shield text-success"></i> 99.9% Uptime Engine
-            </div>
-            <div class="login-stat-pill">
-              <i class="icon-base bx bx-zap text-warning"></i> Instant Code Activation
-            </div>
-            <div class="login-stat-pill">
-              <i class="icon-base bx bx-devices text-info"></i> Multi-Device Sync
-            </div>
-            <div class="login-stat-pill">
-              <i class="icon-base bx bx-lock-alt text-primary"></i> SSL Hardware Encrypted
-            </div>
-          </div>
-        </div>
-
-        <!-- ═════════════════════════════════════════════════════════════════
-             RIGHT COLUMN: INTERACTIVE AUTH PANEL WITH 3 DISTINCTIVE TABS
-        ══════════════════════════════════════════════════════════════════ -->
-        <div class="col-lg-5 col-12 login-auth-col">
+        <div class="col-12 login-auth-col">
           <div class="login-auth-card">
 
-            <!-- Top Utility Bar: Server Status & Theme Switcher -->
+            <!-- Brand & Theme Switcher -->
             <div class="d-flex align-items-center justify-content-between mb-4">
-              <span class="badge bg-label-success rounded-pill px-3 py-2 d-flex align-items-center">
-                <span class="badge-dot bg-success me-2"></span> Streaming Gateway Online
-              </span>
+              <a href="<?= $baseUrl ?>login" class="d-flex align-items-center gap-3 text-decoration-none">
+                <img class="login-brand-logo" src="/assets/admin/img/logo-topbar.png" alt="<?= htmlspecialchars($serverName) ?>" />
+                <div class="d-flex flex-column">
+                  <small class="text-body-secondary">Web Player</small>
+                </div>
+              </a>
 
               <!-- Theme Switcher Dropdown -->
               <div class="dropdown">
@@ -236,18 +122,9 @@ $assetsPath = $baseUrl . 'assets/';
               </div>
             </div>
 
-            <!-- Mobile Brand Logo -->
-            <div class="d-lg-none text-center mb-4">
-              <div class="avatar avatar-lg bg-label-primary rounded-3 mx-auto mb-2 d-flex align-items-center justify-content-center">
-                <i class="icon-base bx bx-tv fs-1 text-primary"></i>
-              </div>
-              <h4 class="fw-bold mb-0 text-heading"><?= htmlspecialchars($serverName) ?></h4>
-              <small class="text-body-secondary">Web Player</small>
-            </div>
-
             <!-- Header Title -->
             <div class="mb-4">
-              <h3 class="fw-bold mb-1 text-heading">Welcome Back 👋</h3>
+              <h3 class="fw-bold mb-1 text-heading">Welcome Back <i class="icon-base bx bx-happy text-warning" aria-hidden="true"></i></h3>
               <p class="text-body-secondary mb-0">Select your preferred login method to continue</p>
             </div>
 
@@ -379,8 +256,8 @@ $assetsPath = $baseUrl . 'assets/';
                   </div>
 
                   <div class="mb-3">
-                    <button class="btn btn-primary d-grid w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-account">
-                      <i class="icon-base bx bx-log-in me-1"></i> Sign In to Account
+                    <button class="btn btn-primary d-flex align-items-center justify-content-center gap-2 w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-account">
+                      <i class="icon-base bx bx-log-in"></i> Sign In to Account
                     </button>
                   </div>
                 </form>
@@ -431,8 +308,8 @@ $assetsPath = $baseUrl . 'assets/';
                   </div>
 
                   <div class="mb-3">
-                    <button class="btn btn-primary d-grid w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-code">
-                      <i class="icon-base bx bx-zap me-1"></i> Activate & Launch Stream
+                    <button class="btn btn-primary d-flex align-items-center justify-content-center gap-2 w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-code">
+                      <i class="icon-base bx bx-bolt-circle"></i> Activate & Launch Stream
                     </button>
                   </div>
                 </form>
@@ -502,8 +379,8 @@ $assetsPath = $baseUrl . 'assets/';
                   </div>
 
                   <div class="mb-3">
-                    <button class="btn btn-primary d-grid w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-xtream">
-                      <i class="icon-base bx bx-link-external me-1"></i> Connect & Launch Player
+                    <button class="btn btn-primary d-flex align-items-center justify-content-center gap-2 w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-xtream">
+                      <i class="icon-base bx bx-link-external"></i> Connect & Launch Player
                     </button>
                   </div>
                 </form>
@@ -567,8 +444,8 @@ $assetsPath = $baseUrl . 'assets/';
                   </div>
 
                   <div class="mb-3">
-                    <button class="btn btn-primary d-grid w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-playlist">
-                      <i class="icon-base bx bx-log-in-circle me-1"></i> Parse & Launch Player
+                    <button class="btn btn-primary d-flex align-items-center justify-content-center gap-2 w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-playlist">
+                      <i class="icon-base bx bx-log-in-circle"></i> Parse & Launch Player
                     </button>
                   </div>
                 </form>
@@ -591,13 +468,6 @@ $assetsPath = $baseUrl . 'assets/';
 
             </div>
             <!-- /Tab Content -->
-
-            <!-- Trust Badge Footer -->
-            <div class="text-center pt-4 border-top mt-4">
-              <span class="badge bg-label-secondary rounded-pill px-3 py-1 small">
-                <i class="icon-base bx bx-shield-check me-1 text-success"></i> End-to-End Encrypted Session &bull; Fast CDN
-              </span>
-            </div>
 
           </div>
         </div>

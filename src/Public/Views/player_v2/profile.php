@@ -942,7 +942,7 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
               <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-primary" id="btn-modal-submit-code">
-                  <i class="icon-base bx bx-zap me-1"></i> Activate & Switch Now
+                  <i class="icon-base bx bx-bolt-circle me-1"></i> Activate & Switch Now
                 </button>
               </div>
             </form>
