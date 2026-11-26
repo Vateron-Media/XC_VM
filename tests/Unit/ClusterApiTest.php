@@ -796,6 +796,15 @@ final class ClusterApiTest extends TestCase {
 		$this->assertStringContainsString("NodeRegistry::serverDeleted(\$rID);", (string) file_get_contents(MAIN_HOME . 'Domain/Server/ServerRepository.php'), 'deleteById revokes it');
 	}
 
+	public function testADeletedServersTombstoneIsNotListedAsAClusterNode(): void {
+		$this->active();
+		$this->rDb->query('DELETE FROM `servers` WHERE `id` = ?', self::SID);
+		$this->assertTrue(NodeRegistry::serverDeleted(self::SID, $this->rCrypto));
+		$this->assertSame('revoked', NodeRegistry::byServer(self::SID)['state'], 'the security tombstone stays');
+
+		$this->assertSame([], ClusterAdmin::nodes([], 30));
+	}
+
 	public function testRevokedNodeIsRefusedEvenWithItsRowRestored(): void {
 		$rKeys = $this->active();
 		$this->rDb->query('SELECT * FROM `cluster_node_epochs` WHERE `server_id` = 5');

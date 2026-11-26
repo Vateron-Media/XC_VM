@@ -185,6 +185,10 @@ final class ClusterAdmin {
 		$rRows = self::db()->get_rows();
 		$rOut = [];
 		foreach ($rRows as $rRow) {
+			$rServerID = (int) $rRow['server_id'];
+			if ($rRow['state'] === 'revoked' && !isset($rServers[$rServerID])) {
+				continue;
+			}
 			// The keys and MACs are no business of the page (nor of JSON).
 			unset($rRow['node_sign_pub'], $rRow['node_box_pub'], $rRow['attest'], $rRow['row_mac']);
 			$rRow['db_revoked_at'] = isset($rRow['db_revoked_at']) ? (int) $rRow['db_revoked_at'] : null;
@@ -195,14 +199,14 @@ final class ClusterAdmin {
 			} catch (\Throwable) {
 				$rRow['core_pinned'] = false;
 			}
-			$rLastSeen = HeartbeatService::freshest($rRow['last_seen_at'], $rHeard[(int) $rRow['server_id']] ?? null);
+			$rLastSeen = HeartbeatService::freshest($rRow['last_seen_at'], $rHeard[$rServerID] ?? null);
 			$rRow['last_seen_at'] = $rLastSeen;
-			$rRow['server_name'] = (string) ($rServers[(int) $rRow['server_id']]['server_name'] ?? ('#' . $rRow['server_id']));
+			$rRow['server_name'] = (string) ($rServers[$rServerID]['server_name'] ?? ('#' . $rServerID));
 			$rRow['health'] = $rRow['state'] === 'active' ? NodeHealth::state($rLastSeen, $rReady, $rNow, $rOfflineAfterSec) : (string) $rRow['state'];
-			$rRow['settings_misses'] = $rReports[(int) $rRow['server_id']]['settings_misses'] ?? null;
-			$rRow['connects'] = NodeAudit::connectsOf($rReports[(int) $rRow['server_id']] ?? null);
-			$rRow['streams_local'] = NodeAudit::streamsLocal($rReports[(int) $rRow['server_id']] ?? null);
-			$rRow['gateway'] = NodeAudit::gatewayOf($rReports[(int) $rRow['server_id']] ?? null);
+			$rRow['settings_misses'] = $rReports[$rServerID]['settings_misses'] ?? null;
+			$rRow['connects'] = NodeAudit::connectsOf($rReports[$rServerID] ?? null);
+			$rRow['streams_local'] = NodeAudit::streamsLocal($rReports[$rServerID] ?? null);
+			$rRow['gateway'] = NodeAudit::gatewayOf($rReports[$rServerID] ?? null);
 			$rRow['relay'] = self::relayAdvertised($rRow);
 			$rOut[] = $rRow;
 		}
