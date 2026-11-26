@@ -198,6 +198,7 @@ class UserService {
 			} else {
 				$rArray['allowed_bouquets'] = null;
 			}
+			$rArray['can_set_forced_country'] = isset($rData['can_set_forced_country']) ? 1 : 0;
 
 			// The group is stored as the number it is checked as.
 			$rArray['member_group_id'] = intval($rArray['member_group_id']);

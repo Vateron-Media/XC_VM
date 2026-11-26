@@ -13,7 +13,7 @@ final class ResellerPackageBouquetsTest extends TestCase {
 			$this->db->exec(InstallSchema::table($table));
 		}
 		$this->db->exec("INSERT INTO users (id, owner_id, username, allowed_bouquets, override_packages) VALUES (5, 0, 'actor', '[2,3]', '{}'), (6, 5, 'child', '[3]', '{}')");
-		$this->db->exec("INSERT INTO users_packages (id, bouquets, official_credits, official_duration, official_duration_in, trial_credits, trial_duration, trial_duration_in, check_compatible) VALUES (1, '[1,2,3]', 1, 1, 'months', 0, 1, 'days', 0)");
+		$this->db->exec("INSERT INTO users_packages (id, bouquets, official_credits, official_duration, official_duration_in, trial_credits, trial_duration, trial_duration_in, check_compatible, forced_country) VALUES (1, '[1,2,3]', 1, 1, 'months', 0, 1, 'days', 0, 'DE')");
 		$this->db->exec("INSERT INTO bouquets (id, bouquet_name, bouquet_channels, bouquet_radios, bouquet_movies, bouquet_series) VALUES (1, 'Extra', '[]', '[]', '[]', '[]'), (2, 'Basic', '[]', '[]', '[]', '[]'), (3, 'Sports', '[]', '[]', '[]', '[]')");
 	}
 
@@ -49,6 +49,7 @@ PHP;
 		$answer = json_decode($output, true);
 		$this->assertIsArray($answer, $output);
 		$this->assertTrue($answer['result']);
+		$this->assertSame('DE', $answer['data']['forced_country']);
 		$this->assertSame($expected, json_decode($answer['data']['bouquets'], true));
 		$this->assertSame($expected, array_map('intval', array_column($answer['bouquets'], 'id')));
 	}

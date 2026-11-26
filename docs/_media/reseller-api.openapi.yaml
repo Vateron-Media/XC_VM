@@ -396,6 +396,10 @@ components:
           type: boolean
         category_template_id:
           type: integer
+        forced_country:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          description: Optional concrete country when the reseller has can_set_forced_country and the package has no forced country. Blank inherits; ALL and unknown codes are rejected.
         streaming_username:
           type: string
           description: Only when num_codes=1 (alias `username`); min 3 chars, [A-Za-z0-9._-]. Default `ac_` + 9 hex.
@@ -471,6 +475,10 @@ components:
           type: string
         category_template_id:
           type: integer
+        forced_country:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          description: Optional concrete country when delegated by an administrator and the package has no forced country. Blank inherits; ALL and unknown codes are rejected.
         username:
           type: string
           description: Only honoured with allow_change_username (else random); min length per group; no `/` (STATUS_INVALID_USERNAME 40); duplicate STATUS_EXISTS_USERNAME (22).
@@ -532,6 +540,10 @@ components:
           type: string
         category_template_id:
           type: integer
+        forced_country:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          description: Optional concrete country when delegated by an administrator and the package has no forced country. Blank inherits; ALL and unknown codes are rejected.
         mac:
           type: string
           description: '**Required.** Empty = STATUS_INVALID_INPUT (34); invalid = STATUS_INVALID_MAC (19); used by another device = STATUS_EXISTS_MAC (23).'
@@ -595,6 +607,10 @@ components:
           type: string
         category_template_id:
           type: integer
+        forced_country:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          description: Optional concrete country when delegated by an administrator and the package has no forced country. Blank inherits; ALL and unknown codes are rejected.
         mac:
           type: string
           description: '**Required.** Empty = STATUS_INVALID_INPUT (34); invalid = STATUS_INVALID_MAC (19); used by another device = STATUS_EXISTS_MAC (23).'

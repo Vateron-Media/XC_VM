@@ -247,6 +247,32 @@ final class AuditActiveCodeEntitlementTest extends TestCase {
 		}
 	}
 
+	public function testADelegatedCountryIsCopiedToTheCodeAndRedeemedLine(): void {
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 1 WHERE `id` = ' . self::RESELLER);
+		$this->rReseller = UserRepository::getRegisteredUserById(self::RESELLER) + ['reports' => [self::RESELLER]];
+
+		$rCode = $this->generate(['package_id' => 2, 'forced_country' => 'US']);
+		$this->assertSame('US', $rCode['forced_country']);
+		$this->assertSame('US', $this->line($rCode)['forced_country']);
+		$this->assertSame('SUCCESS', ActiveCodeService::activateCode($rCode['activation_code'], ['ip' => '192.0.2.9'])['status']);
+		$this->assertSame('US', $this->line($rCode)['forced_country']);
+
+		$this->rDb->query("SELECT `owner`, `log_id`, `deleted_info` FROM `users_logs` WHERE `type` = 'active_code' AND `action` = 'forced_country'");
+		$rAudit = $this->rDb->get_row();
+		$this->assertSame(self::RESELLER, (int) $rAudit['owner']);
+		$this->assertSame((int) $rCode['id'], (int) $rAudit['log_id']);
+		$this->assertSame(['old' => null, 'new' => 'US'], json_decode($rAudit['deleted_info'], true));
+	}
+
+	public function testAResellerCannotForgeAnActiveCodeCountry(): void {
+		foreach ([['can_set_forced_country' => 0, 'forced_country' => 'US'], ['can_set_forced_country' => 1, 'forced_country' => 'ALL']] as $rCase) {
+			$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = ' . (int) $rCase['can_set_forced_country'] . ' WHERE `id` = ' . self::RESELLER);
+			$rReseller = UserRepository::getRegisteredUserById(self::RESELLER);
+			$rResult = ActiveCodeService::generateCodes(['package_id' => 2, 'num_codes' => 1, 'forced_country' => $rCase['forced_country']], $rReseller, false);
+			$this->assertSame('ERROR', $rResult['status']);
+		}
+	}
+
 	public function testAnAdministratorStillChoosesBouquetsAndCountry(): void {
 		$rCode = $this->generate(['bouquets_selected' => ['3', '9'], 'forced_country' => 'US'], $this->rAdmin);
 		$this->assertSame('[3,9]', $this->line($rCode)['bouquet']);
@@ -299,9 +325,10 @@ final class AuditActiveCodeEntitlementTest extends TestCase {
 		$this->assertSame(1, substr_count($rView, 'name="bouquets_selected[]"'));
 	}
 
-	/** The country lock comes with the package: the reseller's form asks for none. */
-	public function testTheResellersFormAsksForNoCountry(): void {
-		$this->assertStringNotContainsString('name="forced_country"', (string) file_get_contents(MAIN_HOME . 'Public/Views/reseller/active_code.php'));
+	/** The selector is rendered only behind the per-reseller delegation gate. */
+	public function testTheResellersFormGatesTheCountrySelector(): void {
+		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/reseller/partials/forced_country.php');
+		$this->assertLessThan(strpos($rView, 'name="forced_country"'), strpos($rView, "!empty(\$rUserInfo['can_set_forced_country'])"));
 	}
 
 	/** Adding days to a code or moving it to another package is not offered where it is refused. */

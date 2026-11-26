@@ -336,6 +336,17 @@ final class AuditLineUserAdminGroupTest extends TestCase {
 		$this->assertNull($this->rDb->get_col());
 	}
 
+	public function testAdministratorCanDelegateAndRevokeForcedCountrySelection(): void {
+		$this->assertSame(0, (int) $this->user(self::RESELLER)['can_set_forced_country']);
+		$rResult = UserService::process($this->userForm(self::RESELLER, ['can_set_forced_country' => '1']));
+		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+		$this->assertSame(1, (int) $this->user(self::RESELLER)['can_set_forced_country']);
+
+		$rResult = UserService::process($this->userForm(self::RESELLER, []));
+		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+		$this->assertSame(0, (int) $this->user(self::RESELLER)['can_set_forced_country']);
+	}
+
 	public function testAStaleResellerFormCannotRestoreAnOldBouquetAllowance(): void {
 		$revision = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::allowanceRevision($this->user(self::RESELLER));
 		$this->rDb->query('UPDATE `users` SET `allowed_bouquets` = ? WHERE `id` = ?', '[8,9]', self::RESELLER);
