@@ -122,6 +122,7 @@ $rPackageOutputs = ($rIsEdit && !empty($rPackage['output_formats'])) ? (json_dec
                             'is_isplock'       => ['label' => $language::get('lock_to_isp'),         'default' => false],
                             'is_restreamer'    => ['label' => $language::get('restreamer'),          'default' => false],
                             'check_compatible' => ['label' => $language::get('verify_compatibility'), 'default' => true],
+                            'preserve_bouquets_on_renewal' => ['label' => $language::get('preserve_bouquets_on_renewal'), 'default' => false],
                         ];
                         foreach ($rSwitches as $rKey => $rInfo):
                             $rChecked = $rIsEdit ? ($rPackage[$rKey] == 1) : $rInfo['default'];

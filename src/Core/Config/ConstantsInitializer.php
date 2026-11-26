@@ -250,6 +250,7 @@ class ConstantsInitializer {
 			'STATUS_2FA_REQUIRED'        => 50,
 			'STATUS_2FA_INVALID'         => 51,
 			'STATUS_2FA_LOCKED'          => 52,
+			'STATUS_NO_BOUQUETS'         => 53,
 		];
 	}
 
