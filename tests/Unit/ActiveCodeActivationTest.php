@@ -15,6 +15,7 @@ class ActivationScriptedDb extends DatabaseHandler {
 	public array $codes = [];
 	public array $lines = [];
 	public array $packages = [];
+	public array $accessCodes = [];
 	/** Returned by the next code lookup instead of the table row: a read taken before another request's write. */
 	public ?array $staleCode = null;
 
@@ -41,6 +42,10 @@ class ActivationScriptedDb extends DatabaseHandler {
 			$this->rows = isset($this->lines[$rBinds[0]]) ? [$this->lines[$rBinds[0]]] : [];
 		} elseif (str_contains($query, 'FROM `users_packages` WHERE `id` = ?')) {
 			$this->rows = isset($this->packages[$rBinds[0]]) ? [$this->packages[$rBinds[0]]] : [];
+		} elseif (str_contains($query, 'FROM `access_codes`')) {
+			$this->rows = array_values(array_filter($this->accessCodes, fn($r) => $r['enabled'] == 1 && in_array($r['type'], [6, 8], true)));
+			usort($this->rows, fn($a, $b) => [$a['type'] === 6 ? 0 : 1, $a['id']] <=> [$b['type'] === 6 ? 0 : 1, $b['id']]);
+			$this->rows = array_slice($this->rows, 0, 1);
 		} elseif (preg_match('/^UPDATE `activation_codes` SET ((?:`(?:mac|device_id)` = \?(?:, )?)+) WHERE `id` = \?;$/', trim($query), $rBinding)) {
 			// A later sign-in's binding of the device it came from.
 			preg_match_all('/`(mac|device_id)`/', $rBinding[1], $rColumns);
@@ -147,6 +152,18 @@ class ActiveCodeActivationTest extends TestCase {
 		$this->db->codes[1] = $this->code([]);
 
 		$this->assertSame('SUCCESS', ActiveCodeService::activateCode('ABCD234567', [])['status']);
+	}
+
+	public function testActivationReturnsTheCurrentWebPlayerUrl(): void {
+		$this->db->codes[1] = $this->code([]);
+		$this->db->accessCodes = [
+			['id' => 1, 'code' => 'legacy', 'type' => 8, 'enabled' => 1],
+			['id' => 2, 'code' => 'current', 'type' => 6, 'enabled' => 1],
+		];
+
+		$rRes = ActiveCodeService::activateCode('ABCD234567', []);
+
+		$this->assertSame('http://panel.test:80/current/', $rRes['web_player_url']);
 	}
 
 	public function testFirstActivationBindsTheDeviceAndStartsTheCountdown(): void {

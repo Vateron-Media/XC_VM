@@ -275,18 +275,22 @@ final class ModuleBackup {
 		}
 		$sql = $this->directory . '/' . $id . '.sql';
 		$meta = $this->directory . '/' . $id . '.json';
-		if (is_link($sql) || is_link($meta) || !is_file($sql) || !is_file($meta)
+		if (
+			is_link($sql) || is_link($meta) || !is_file($sql) || !is_file($meta)
 			|| dirname((string) realpath($sql)) !== (string) realpath($this->directory)
-			|| dirname((string) realpath($meta)) !== (string) realpath($this->directory)) {
+			|| dirname((string) realpath($meta)) !== (string) realpath($this->directory)
+		) {
 			throw new \RuntimeException('Invalid module backup files.');
 		}
 		$entry = json_decode((string) file_get_contents($meta), true);
 		$strings = ['kind', 'module_name', 'module_title', 'hash_id', 'version', 'checksum'];
-		if (!is_array($entry) || ($entry['id'] ?? null) !== $id || !is_array($entry['tables'] ?? null) || $entry['tables'] === []
+		if (
+			!is_array($entry) || ($entry['id'] ?? null) !== $id || !is_array($entry['tables'] ?? null) || $entry['tables'] === []
 			|| array_filter($strings, static fn(string $key): bool => !is_string($entry[$key] ?? null))
 			|| !is_int($entry['created_at'] ?? null) || !is_int($entry['size'] ?? null)
 			|| !preg_match('/^[a-f0-9]{64}$/D', (string) ($entry['checksum'] ?? ''))
-			|| array_filter($entry['tables'], static fn(mixed $table): bool => !is_string($table) || !preg_match('/^[A-Za-z0-9_]+$/D', $table))) {
+			|| array_filter($entry['tables'], static fn(mixed $table): bool => !is_string($table) || !preg_match('/^[A-Za-z0-9_]+$/D', $table))
+		) {
 			throw new \RuntimeException('Invalid module backup metadata.');
 		}
 		$entry['_path'] = $sql;
@@ -311,8 +315,10 @@ final class ModuleBackup {
 				if ($line === '' || str_starts_with($line, '--')) {
 					continue;
 				}
-				if (!preg_match('/^(?:DROP TABLE IF EXISTS|CREATE TABLE(?: IF NOT EXISTS)?|INSERT INTO) `([A-Za-z0-9_]+)`/i', $line, $match)
-					|| !isset($allowed[$match[1]]) || !str_ends_with($line, ';')) {
+				if (
+					!preg_match('/^(?:DROP TABLE IF EXISTS|CREATE TABLE(?: IF NOT EXISTS)?|INSERT INTO) `([A-Za-z0-9_]+)`/i', $line, $match)
+					|| !isset($allowed[$match[1]]) || !str_ends_with($line, ';')
+				) {
 					throw new \RuntimeException('Module backup contains an unexpected statement.');
 				}
 				$seen[$match[1]][strtoupper(strtok($line, ' '))] = true;
@@ -370,8 +376,10 @@ final class ModuleBackup {
 	}
 
 	private function ensureDirectory(): void {
-		if (is_link($this->directory)
-			|| (!is_dir($this->directory) && !@mkdir($this->directory, 0700, true) && !is_dir($this->directory))) {
+		if (
+			is_link($this->directory)
+			|| (!is_dir($this->directory) && !@mkdir($this->directory, 0700, true) && !is_dir($this->directory))
+		) {
 			throw new \RuntimeException('Cannot create the module backup directory.');
 		}
 		if (!$this->restrict($this->directory, 0700)) {

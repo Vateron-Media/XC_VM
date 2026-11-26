@@ -2871,26 +2871,6 @@ use XcVm\Domain\Cluster\ReleaseCanary;
 							</div>
 
 							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="player_blur">
-									<?= $language::get('background_blur_px') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('blur_the_background_images_by_x_pixels') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<input type="text" class="form-control text-center" id="player_blur" name="player_blur" value="<?= intval($rSettings["player_blur"]) ?>">
-								</div>
-
-								<label class="col-md-4 col-form-label" for="player_opacity">
-									<?= $language::get('background_opacity') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('adjust_the_background_image_opacity_default_is_10') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<input type="text" class="form-control text-center" id="player_opacity" name="player_opacity" value="<?= intval($rSettings["player_opacity"]) ?>">
-								</div>
-							</div>
-
-							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="extract_subtitles">
 									<?= $language::get('extract_subtitles') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('automatically_extract_subtitles_from_movies_tooltip') ?>"></i>
@@ -3326,7 +3306,7 @@ LayoutRenderer::renderFooter('admin');
 		}
 
 		// numeric-only inputs
-		['log_clear', 'on_demand_instant_off_grace', 'vod_bitrate_plus', 'vod_limit_perc', 'user_auto_kick_hours', 'flood_limit', 'flood_seconds', 'auth_flood_seconds', 'auth_flood_limit', 'auth_flood_sleep', 'bruteforce_mac_attempts', 'bruteforce_username_attempts', 'bruteforce_frequency', 'login_flood', 'client_prebuffer', 'restreamer_prebuffer', 'fanout_hls_window', 'fanout_grace_sec', 'fanout_write_timeout_sec', 'fanout_chunk_bytes', 'fanout_max_gop_bytes', 'fanout_default_prebuffer_sec', 'fanout_idle_buffer_grace_sec', 'read_buffer_size', 'stream_max_analyze', 'probesize', 'stream_start_delay', 'online_capacity_interval', 'on_demand_wait_time', 'seg_time', 'stream_fail_sleep', 'probe_extra_wait', 'seg_list_size', 'cpu_limit', 'mem_limit', 'playback_limit', 'connection_loop_per', 'connection_loop_count', 'max_simultaneous_downloads', 'cache_playlists', 'seg_delete_threshold', 'fails_per_time', 'create_expiration', 'max_encode_movies', 'max_encode_cc', 'queue_loop', 'player_blur', 'player_opacity', 'disallow_2nd_ip_max', 'probesize_ondemand', 'segment_wait_time', 'on_demand_scan_time', 'on_demand_max_probe', 'on_demand_scan_keep', 'stop_failures', 'mysql_sleep_kill'].forEach(function(id) {
+		['log_clear', 'on_demand_instant_off_grace', 'vod_bitrate_plus', 'vod_limit_perc', 'user_auto_kick_hours', 'flood_limit', 'flood_seconds', 'auth_flood_seconds', 'auth_flood_limit', 'auth_flood_sleep', 'bruteforce_mac_attempts', 'bruteforce_username_attempts', 'bruteforce_frequency', 'login_flood', 'client_prebuffer', 'restreamer_prebuffer', 'fanout_hls_window', 'fanout_grace_sec', 'fanout_write_timeout_sec', 'fanout_chunk_bytes', 'fanout_max_gop_bytes', 'fanout_default_prebuffer_sec', 'fanout_idle_buffer_grace_sec', 'read_buffer_size', 'stream_max_analyze', 'probesize', 'stream_start_delay', 'online_capacity_interval', 'on_demand_wait_time', 'seg_time', 'stream_fail_sleep', 'probe_extra_wait', 'seg_list_size', 'cpu_limit', 'mem_limit', 'playback_limit', 'connection_loop_per', 'connection_loop_count', 'max_simultaneous_downloads', 'cache_playlists', 'seg_delete_threshold', 'fails_per_time', 'create_expiration', 'max_encode_movies', 'max_encode_cc', 'queue_loop', 'disallow_2nd_ip_max', 'probesize_ondemand', 'segment_wait_time', 'on_demand_scan_time', 'on_demand_max_probe', 'on_demand_scan_keep', 'stop_failures', 'mysql_sleep_kill'].forEach(function(id) {
 			var el = document.getElementById(id);
 			if (el) {
 				el.addEventListener('input', function() {

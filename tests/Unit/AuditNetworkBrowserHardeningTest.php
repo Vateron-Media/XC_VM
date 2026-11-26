@@ -30,7 +30,7 @@ final class AuditNetworkBrowserHardeningTest extends TestCase {
 	}
 
 	public function testLogoutRoutesArePostOnly(): void {
-		foreach (['admin.php', 'reseller.php', 'player.php', 'player_v2.php'] as $rRoute) {
+		foreach (['admin.php', 'reseller.php', 'player_v2.php'] as $rRoute) {
 			$rSource = (string) file_get_contents(MAIN_HOME . 'Public/routes/' . $rRoute);
 			$this->assertStringContainsString("->post('logout'", $rSource, $rRoute);
 			$this->assertStringNotContainsString("->get('logout'", $rSource, $rRoute);

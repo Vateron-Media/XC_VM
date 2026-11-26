@@ -103,8 +103,10 @@ class ModuleMigrator {
 			}
 			foreach (explode(',', $match[1]) as $identifier) {
 				$identifier = trim($identifier);
-				if (preg_match('/^`([A-Za-z0-9_]+)`$/', $identifier, $name)
-					|| preg_match('/^([A-Za-z0-9_]+)$/', $identifier, $name)) {
+				if (
+					preg_match('/^`([A-Za-z0-9_]+)`$/', $identifier, $name)
+					|| preg_match('/^([A-Za-z0-9_]+)$/', $identifier, $name)
+				) {
 					$tables[] = $name[1];
 					continue;
 				}
