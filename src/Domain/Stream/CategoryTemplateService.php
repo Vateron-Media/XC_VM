@@ -2,7 +2,9 @@
 
 namespace XcVm\Domain\Stream;
 
+use XcVm\Core\Audit\AdminAudit;
 use XcVm\Domain\Line\LineService;
+use XcVm\Domain\User\UserRepository;
 
 /**
  * CategoryTemplateService — Category Templates Business Logic.
@@ -293,78 +295,94 @@ class CategoryTemplateService {
 		}
 
 		$now = date('Y-m-d H:i:s');
+		if (!$db->beginTransaction()) {
+			return ['success' => false, 'message' => 'Failed to start template creation.'];
+		}
 
-		$db->query(
-			"INSERT INTO `category_templates` (
+		try {
+			if (!$db->query(
+				"INSERT INTO `category_templates` (
                 `owner_id`, `name`, `is_system`, `is_shared`,
                 `live_count`, `vod_count`, `series_count`, `created_at`, `updated_at`
             ) VALUES (?, ?, ?, ?, 0, 0, 0, ?, ?)",
-			$ownerId,
-			$name,
-			$isSystem ? 1 : 0,
-			$isShared ? 1 : 0,
-			$now,
-			$now
-		);
-
-		$templateId = (int) $db->last_insert_id();
-		if ($templateId <= 0) {
-			return ['success' => false, 'message' => 'Failed to create template in database.'];
-		}
-
-		// Copy default categories from streams_categories
-		$db->query("SELECT id, category_type, category_name, cat_order FROM `streams_categories` ORDER BY cat_order ASC, id ASC");
-		$allCats = $db->get_rows() ?: [];
-
-		$liveCount = 0;
-		$vodCount = 0;
-		$seriesCount = 0;
-		$radioCount = 0;
-		$orderCounters = ['live' => 0, 'movie' => 0, 'series' => 0, 'radio' => 0];
-
-		foreach ($allCats as $cat) {
-			$type = $cat['category_type'];
-			if ($type === 'radio') {
-				$section = 'radio';
-				$radioCount++;
-			} elseif ($type === 'movie') {
-				$section = 'movie';
-				$vodCount++;
-			} elseif ($type === 'series') {
-				$section = 'series';
-				$seriesCount++;
-			} else {
-				$section = 'live';
-				$liveCount++;
+				$ownerId,
+				$name,
+				$isSystem ? 1 : 0,
+				$isShared ? 1 : 0,
+				$now,
+				$now
+			)) {
+				throw new \RuntimeException('Failed to create template in database.');
 			}
 
-			$orderCounters[$section]++;
+			$templateId = (int) $db->last_insert_id();
+			if ($templateId <= 0) {
+				throw new \RuntimeException('Failed to create template in database.');
+			}
 
-			$db->query(
-				"INSERT INTO `category_template_items` (
+			// Copy default categories from streams_categories
+			if (!$db->query("SELECT id, category_type, category_name, cat_order FROM `streams_categories` ORDER BY cat_order ASC, id ASC")) {
+				throw new \RuntimeException('Failed to read default categories.');
+			}
+			$allCats = $db->get_rows() ?: [];
+
+			$liveCount = 0;
+			$vodCount = 0;
+			$seriesCount = 0;
+			$radioCount = 0;
+			$orderCounters = ['live' => 0, 'movie' => 0, 'series' => 0, 'radio' => 0];
+
+			foreach ($allCats as $cat) {
+				$type = $cat['category_type'];
+				if ($type === 'radio') {
+					$section = 'radio';
+					$radioCount++;
+				} elseif ($type === 'movie') {
+					$section = 'movie';
+					$vodCount++;
+				} elseif ($type === 'series') {
+					$section = 'series';
+					$seriesCount++;
+				} else {
+					$section = 'live';
+					$liveCount++;
+				}
+
+				$orderCounters[$section]++;
+
+				if (!$db->query(
+					"INSERT INTO `category_template_items` (
                     `template_id`, `category_id`, `category_type`, `sort_order`, `is_visible`, `custom_name`
                 ) VALUES (?, ?, ?, ?, 1, NULL)",
-				$templateId,
-				(int) $cat['id'],
-				$section,
-				$orderCounters[$section]
-			);
+					$templateId,
+					(int) $cat['id'],
+					$section,
+					$orderCounters[$section]
+				)) {
+					throw new \RuntimeException('Failed to create template categories.');
+				}
+			}
+
+			if (!$db->query(
+				"UPDATE `category_templates` SET `live_count` = ?, `vod_count` = ?, `series_count` = ?, `radio_count` = ? WHERE `id` = ?",
+				$liveCount,
+				$vodCount,
+				$seriesCount,
+				$radioCount,
+				$templateId
+			) || !$db->commit()) {
+				throw new \RuntimeException('Failed to finish template creation.');
+			}
+
+			return [
+				'success' => true,
+				'id'      => $templateId,
+				'message' => 'Template created successfully.'
+			];
+		} catch (\Throwable $e) {
+			$db->rollback();
+			return ['success' => false, 'message' => $e->getMessage()];
 		}
-
-		$db->query(
-			"UPDATE `category_templates` SET `live_count` = ?, `vod_count` = ?, `series_count` = ?, `radio_count` = ? WHERE `id` = ?",
-			$liveCount,
-			$vodCount,
-			$seriesCount,
-			$radioCount,
-			$templateId
-		);
-
-		return [
-			'success' => true,
-			'id'      => $templateId,
-			'message' => 'Template created successfully.'
-		];
 	}
 
 	/**
@@ -404,10 +422,14 @@ class CategoryTemplateService {
 		$isShared = isset($data['is_shared']) ? ((int) $data['is_shared'] ? 1 : 0) : (int) $template['is_shared'];
 		$isSystem = ($isAdmin && isset($data['is_system'])) ? ((int) $data['is_system'] ? 1 : 0) : (int) $template['is_system'];
 
-		$db->beginTransaction();
+		if (!$db->beginTransaction()) {
+			return ['success' => false, 'message' => 'Failed to start template save.'];
+		}
 		try {
 			// Fetch category type map
-			$db->query("SELECT id, category_type FROM `streams_categories`");
+			if (!$db->query("SELECT id, category_type FROM `streams_categories`")) {
+				throw new \RuntimeException('Failed to read categories.');
+			}
 			$catMap = [];
 			foreach ($db->get_rows() ?: [] as $row) {
 				$type = $row['category_type'];
@@ -423,7 +445,9 @@ class CategoryTemplateService {
 			}
 
 			// Remove old items
-			$db->query("DELETE FROM `category_template_items` WHERE `template_id` = ?", $templateId);
+			if (!$db->query("DELETE FROM `category_template_items` WHERE `template_id` = ?", $templateId)) {
+				throw new \RuntimeException('Failed to replace template categories.');
+			}
 
 			$categories = $data['categories'] ?? [];
 			$liveCount = 0;
@@ -453,7 +477,7 @@ class CategoryTemplateService {
 					$isVisible = isset($cat['is_visible']) && ((int) $cat['is_visible'] === 1 || $cat['is_visible'] === true) ? 1 : 0;
 					$customName = !empty($cat['custom_name']) ? trim($cat['custom_name']) : null;
 
-					$db->query(
+					if (!$db->query(
 						"INSERT INTO `category_template_items` (
                             `template_id`, `category_id`, `category_type`, `sort_order`, `is_visible`, `custom_name`
                         ) VALUES (?, ?, ?, ?, ?, ?)",
@@ -463,12 +487,14 @@ class CategoryTemplateService {
 						$sortOrder,
 						$isVisible,
 						$customName
-					);
+					)) {
+						throw new \RuntimeException('Failed to save template categories.');
+					}
 				}
 			}
 
 			// Update template header and counts
-			$db->query(
+			if (!$db->query(
 				"UPDATE `category_templates` SET
                     `name` = ?,
                     `is_shared` = ?,
@@ -488,9 +514,13 @@ class CategoryTemplateService {
 				$radioCount,
 				date('Y-m-d H:i:s'),
 				$templateId
-			);
+			)) {
+				throw new \RuntimeException('Failed to save template.');
+			}
 
-			$db->commit();
+			if (!$db->commit()) {
+				throw new \RuntimeException('Failed to commit template save.');
+			}
 
 			// Automatically sync updated layout to all lines using this template and dispatch signal updates
 			$syncedLines = self::syncTemplateToLines($templateId);
@@ -574,9 +604,11 @@ class CategoryTemplateService {
 		$now = date('Y-m-d H:i:s');
 		$newName = $source['name'] . ' (Copy)';
 
-		$db->beginTransaction();
+		if (!$db->beginTransaction()) {
+			return ['success' => false, 'message' => 'Failed to start template clone.'];
+		}
 		try {
-			$db->query(
+			if (!$db->query(
 				"INSERT INTO `category_templates` (
                     `owner_id`, `name`, `is_system`, `is_shared`,
                     `live_count`, `vod_count`, `series_count`, `radio_count`, `created_at`, `updated_at`
@@ -589,16 +621,23 @@ class CategoryTemplateService {
 				(int) ($source['radio_count'] ?? 0),
 				$now,
 				$now
-			);
+			)) {
+				throw new \RuntimeException('Failed to create template clone.');
+			}
 
 			$newId = (int) $db->last_insert_id();
+			if ($newId <= 0) {
+				throw new \RuntimeException('Failed to create template clone.');
+			}
 
 			// Copy items
-			$db->query("SELECT * FROM `category_template_items` WHERE `template_id` = ?", $templateId);
+			if (!$db->query("SELECT * FROM `category_template_items` WHERE `template_id` = ?", $templateId)) {
+				throw new \RuntimeException('Failed to read template categories.');
+			}
 			$items = $db->get_rows() ?: [];
 
 			foreach ($items as $it) {
-				$db->query(
+				if (!$db->query(
 					"INSERT INTO `category_template_items` (
                         `template_id`, `category_id`, `category_type`, `sort_order`, `is_visible`, `custom_name`
                     ) VALUES (?, ?, ?, ?, ?, ?)",
@@ -608,10 +647,14 @@ class CategoryTemplateService {
 					(int) $it['sort_order'],
 					(int) $it['is_visible'],
 					$it['custom_name']
-				);
+				)) {
+					throw new \RuntimeException('Failed to copy template categories.');
+				}
 			}
 
-			$db->commit();
+			if (!$db->commit()) {
+				throw new \RuntimeException('Failed to commit template clone.');
+			}
 			return [
 				'success' => true,
 				'id'      => $newId,
@@ -621,6 +664,173 @@ class CategoryTemplateService {
 			$db->rollback();
 			return ['success' => false, 'message' => 'Failed to clone template: ' . $e->getMessage()];
 		}
+	}
+
+	/**
+	 * Return the layout state shown on a customer profile.
+	 *
+	 * @return array{type: string, name: string, template_id: int}
+	 */
+	public static function getLineTemplateStatus(array $line): array {
+		$customData = self::parseCustomData($line['custom_data'] ?? null);
+		$templateId = (int) ($customData['template_id'] ?? 0);
+		if ($templateId <= 0) {
+			return empty($customData)
+				? ['type' => 'default', 'name' => '', 'template_id' => 0]
+				: ['type' => 'customer', 'name' => '', 'template_id' => 0];
+		}
+
+		$template = self::getTemplateById($templateId);
+		if (!$template) {
+			return ['type' => 'customer', 'name' => '', 'template_id' => 0];
+		}
+
+		$isPrivateCustomerTemplate = (int) $template['owner_id'] === (int) ($line['member_id'] ?? 0)
+			&& empty($template['is_system'])
+			&& empty($template['is_shared'])
+			&& (int) $template['subscriber_count'] <= 1;
+
+		return [
+			'type' => $isPrivateCustomerTemplate ? 'customer' : 'reusable',
+			'name' => (string) $template['name'],
+			'template_id' => $templateId,
+		];
+	}
+
+	/**
+	 * Make the selected customer's effective layout safe to edit in isolation.
+	 * Existing private single-customer templates are reused; every other source
+	 * is copied to a private template before the line is changed.
+	 *
+	 * @return array{success: bool, id?: int, message: string}
+	 */
+	public static function prepareCustomerTemplate(int $lineId, array $user): array {
+		$db = self::db();
+		$db->query('SELECT `id`, `member_id`, `username`, `custom_data`, `is_mag`, `is_e2` FROM `lines` WHERE `id` = ? LIMIT 1', $lineId);
+		$line = $db->get_raw_row();
+		if (!$line) {
+			return ['success' => false, 'message' => 'Customer not found.'];
+		}
+
+		$userId = (int) ($user['id'] ?? 0);
+		$templateOwnerId = (int) $line['member_id'];
+		$subUsers = $userId > 0 ? UserRepository::getSubUsers($userId) : [];
+		$allowedOwners = array_map('intval', array_merge([$userId], array_keys($subUsers)));
+		if ($userId <= 0 || !in_array((int) $line['member_id'], $allowedOwners, true)) {
+			return ['success' => false, 'message' => 'You do not have permission to edit this customer.'];
+		}
+
+		$previousCustomData = $line['custom_data'];
+		$parsed = self::parseCustomData($previousCustomData);
+		$previousTemplateId = (int) ($parsed['template_id'] ?? 0);
+		$source = $previousTemplateId > 0 ? self::getTemplateById($previousTemplateId) : null;
+		if ($source && !self::canAccessTemplate($source, $user, false)) {
+			return ['success' => false, 'message' => 'You do not have permission to use the current template.'];
+		}
+
+		if ($source
+			&& (int) $source['owner_id'] === $templateOwnerId
+			&& empty($source['is_system'])
+			&& empty($source['is_shared'])
+			&& (int) $source['subscriber_count'] === 1
+		) {
+			return ['success' => true, 'id' => $previousTemplateId, 'message' => 'Customer template is ready to edit.'];
+		}
+
+		if ($source) {
+			$created = self::cloneTemplate($previousTemplateId, $user, false);
+			if (!empty($created['success']) && !$db->query('UPDATE `category_templates` SET `owner_id` = ? WHERE `id` = ?', $templateOwnerId, (int) $created['id'])) {
+				$db->query('DELETE FROM `category_templates` WHERE `id` = ?', (int) $created['id']);
+				return ['success' => false, 'message' => 'Failed to assign the customer template owner.'];
+			}
+		} else {
+			$created = self::createTemplate($templateOwnerId, 'Customer: ' . (string) $line['username']);
+			if (!empty($created['success']) && !empty($parsed) && !self::applyStoredLayoutToTemplate((int) $created['id'], $parsed)) {
+				$db->query('DELETE FROM `category_templates` WHERE `id` = ?', (int) $created['id']);
+				return ['success' => false, 'message' => 'Failed to copy the customer layout.'];
+			}
+		}
+		if (empty($created['success']) || empty($created['id'])) {
+			return ['success' => false, 'message' => $created['message'] ?? 'Failed to create customer template.'];
+		}
+
+		$newTemplateId = (int) $created['id'];
+		$newCustomData = json_encode(self::buildCustomData($newTemplateId), JSON_UNESCAPED_UNICODE);
+		if (!$db->beginTransaction()) {
+			$db->query('DELETE FROM `category_templates` WHERE `id` = ?', $newTemplateId);
+			return ['success' => false, 'message' => 'Failed to start customer template assignment.'];
+		}
+		if ($previousCustomData === null) {
+			$updated = $db->query('UPDATE `lines` SET `custom_data` = ? WHERE `id` = ? AND `custom_data` IS NULL', $newCustomData, $lineId);
+		} else {
+			$updated = $db->query('UPDATE `lines` SET `custom_data` = ? WHERE `id` = ? AND `custom_data` = ?', $newCustomData, $lineId, $previousCustomData);
+		}
+		if (!$updated || $db->num_rows() !== 1 || !$db->commit()) {
+			$db->rollback();
+			$db->query('DELETE FROM `category_templates` WHERE `id` = ?', $newTemplateId);
+			return ['success' => false, 'message' => 'The customer changed while the template was being prepared. Try again.'];
+		}
+
+		LineService::updateLineSignal($lineId);
+		AdminAudit::record('customer_category_order', true, [
+			'line_id' => $lineId,
+			'customer_type' => !empty($line['is_mag']) ? 'mag' : (!empty($line['is_e2']) ? 'enigma' : 'line'),
+			'previous_template_id' => $previousTemplateId,
+			'new_template_id' => $newTemplateId,
+		], $db);
+
+		return ['success' => true, 'id' => $newTemplateId, 'message' => 'Customer template is ready to edit.'];
+	}
+
+	/** Apply an already-authorized line's stored XC layout to a new private template. */
+	private static function applyStoredLayoutToTemplate(int $templateId, array $customData): bool {
+		$db = self::db();
+		if (!$db->beginTransaction()) {
+			return false;
+		}
+		try {
+			$sectionKeys = ['live' => 'live_cat', 'movie' => 'vod_cat', 'series' => 'series_cat', 'radio' => 'radio_cat'];
+			foreach ($sectionKeys as $type => $key) {
+				if ($type === 'radio' && (empty($customData['radio_cat']) || !is_array($customData['radio_cat']))) {
+					$key = 'live_cat';
+				}
+				$section = is_array($customData[$key] ?? null) ? $customData[$key] : [];
+				$order = self::customDataIds($section['order'] ?? []);
+				$hidden = self::customDataIds($section['hide_ids'] ?? []);
+				$renamed = is_array($section['renamed'] ?? null) ? $section['renamed'] : [];
+				if (!$db->query('SELECT `category_id` FROM `category_template_items` WHERE `template_id` = ? AND `category_type` = ? ORDER BY `sort_order`, `id`', $templateId, $type)) {
+					throw new \RuntimeException();
+				}
+				$categoryIds = array_map('intval', array_column($db->get_rows() ?: [], 'category_id'));
+				$order = array_values(array_unique(array_merge($order, $categoryIds)));
+				foreach ($order as $index => $categoryId) {
+					if (!$db->query(
+						'UPDATE `category_template_items` SET `sort_order` = ?, `is_visible` = ?, `custom_name` = ? WHERE `template_id` = ? AND `category_id` = ? AND `category_type` = ?',
+						$index + 1,
+						in_array($categoryId, $hidden, true) ? 0 : 1,
+						isset($renamed[(string) $categoryId]) && trim((string) $renamed[(string) $categoryId]) !== '' ? trim((string) $renamed[(string) $categoryId]) : null,
+						$templateId,
+						$categoryId,
+						$type
+					)) {
+						throw new \RuntimeException();
+					}
+				}
+			}
+			if (!$db->commit()) {
+				throw new \RuntimeException();
+			}
+			return true;
+		} catch (\Throwable) {
+			$db->rollback();
+			return false;
+		}
+	}
+
+	/** @return list<int> */
+	private static function customDataIds(mixed $value): array {
+		$values = is_array($value) ? $value : explode(',', (string) $value);
+		return array_values(array_map('intval', array_filter($values, static fn($id): bool => is_numeric($id) && (int) $id > 0)));
 	}
 
 	/**

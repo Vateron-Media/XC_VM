@@ -44,7 +44,7 @@ final class AuditLineUserCategoryTemplateTest extends TestCase {
 		$this->rDb->exec(InstallSchema::migration('021_add_category_templates'));
 		$this->rDb->exec(InstallSchema::migration('024_add_custom_data_to_lines'));
 		$this->rDb->exec("INSERT INTO `users_groups` (`group_id`, `group_name`, `is_reseller`) VALUES (2, 'Resellers', 1)");
-		$this->rDb->exec("INSERT INTO `users_packages` (`id`, `package_name`, `is_official`, `official_credits`, `official_duration`, `official_duration_in`, `groups`, `bouquets`, `output_formats`, `is_line`, `is_mag`, `check_compatible`) VALUES (1, 'Month', 1, 10, 1, 'months', '[2]', '[]', '[1]', 1, 1, 0)");
+		$this->rDb->exec("INSERT INTO `users_packages` (`id`, `package_name`, `is_official`, `official_credits`, `official_duration`, `official_duration_in`, `groups`, `bouquets`, `output_formats`, `is_line`, `is_mag`, `is_e2`, `check_compatible`) VALUES (1, 'Month', 1, 10, 1, 'months', '[2]', '[]', '[1]', 1, 1, 1, 0)");
 		$this->rDb->exec("INSERT INTO `users` (`id`, `username`, `member_group_id`, `credits`, `owner_id`, `override_packages`) VALUES (1, 'admin', 1, 0, 0, '[]'), (5, 'reseller', 2, 100, 0, '[]'), (7, 'another', 2, 100, 0, '[]')");
 		$this->rDb->exec("INSERT INTO `category_templates` (`id`, `owner_id`, `name`, `is_system`, `is_shared`, `created_at`, `updated_at`) VALUES (1, 5, 'Mine', 0, 0, NOW(), NOW()), (2, 7, 'Theirs', 0, 0, NOW(), NOW()), (3, 1, 'System', 1, 0, NOW(), NOW())");
 		$this->rDb->exec("INSERT INTO `category_template_items` (`template_id`, `category_id`, `category_type`, `sort_order`) VALUES (1, 11, 'live', 1), (1, 12, 'live', 2), (2, 21, 'live', 1), (3, 31, 'live', 1)");
@@ -61,7 +61,7 @@ final class AuditLineUserCategoryTemplateTest extends TestCase {
 		ResellerAPI::$rSettings = ['mag_default_type' => 0];
 		ResellerAPI::$rUserInfo = UserRepository::getRegisteredUserById(self::RESELLER);
 		ResellerAPI::$rPermissions = [
-			'create_line' => true, 'create_mag' => true, 'all_reports' => [],
+			'create_line' => true, 'create_mag' => true, 'create_enigma' => true, 'all_reports' => [],
 			'allow_change_username' => 1, 'allow_change_password' => 1, 'minimum_username_length' => 4, 'minimum_password_length' => 4,
 			'allow_change_bouquets' => 0, 'allow_restrictions' => 0,
 		];
@@ -123,6 +123,26 @@ final class AuditLineUserCategoryTemplateTest extends TestCase {
 		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
 		$this->rDb->query('SELECT `user_id` FROM `mag_devices`');
 		$this->assertSame(self::OWN_TEMPLATE, $this->layout((int) $this->rDb->get_row()['user_id'])['template_id'] ?? null);
+	}
+
+	public function testANewEnigmaDeviceTakesTheTemplateTheResellerPicked(): void {
+		$rResult = ResellerAPI::processEnigma([
+			'category_template_id' => (string) self::OWN_TEMPLATE,
+			'custom_data' => '{"template_id":2}',
+			'package' => 1,
+			'mac' => '00:1A:79:00:00:02',
+			'modem_mac' => '',
+			'local_ip' => '',
+			'enigma_version' => '',
+			'cpu' => '',
+			'lversion' => '',
+			'token' => '',
+			'reseller_notes' => '',
+		]);
+
+		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+		$this->rDb->query('SELECT `user_id` FROM `enigma2_devices`');
+		$this->assertSame(self::OWN_TEMPLATE, $this->layout((int) $this->rDb->get_row()['user_id'])['template_id'] ?? null, 'the authorized template wins; raw custom_data is ignored');
 	}
 
 	public function testATemplateTheResellerMayNotUseIsNotApplied(): void {

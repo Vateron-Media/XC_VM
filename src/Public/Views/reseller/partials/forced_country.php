@@ -1,11 +1,15 @@
 <?php if (!empty($rUserInfo['can_set_forced_country'])):
     $rCurrentCountry = strtoupper(trim((string) ($rForcedCountryLine ?? '')));
     $rPackageCountry = strtoupper(trim((string) ($rForcedCountryPackage ?? '')));
+    $rInheritOption = $language::get('forced_country_inherit_option');
+    $rOptionalHelp = $language::get('forced_country_optional_help');
+    $rPackageHelp = $language::get('forced_country_package_help');
+    $rScriptJsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 ?>
 <div class="mb-6">
-    <label class="form-label" for="forced_country"><?= $language::get('forced_country'); ?></label>
+    <label class="form-label" for="forced_country"><?= htmlspecialchars($language::get('forced_country'), ENT_QUOTES); ?></label>
     <select name="forced_country" id="forced_country" class="form-select" <?= $rPackageCountry !== '' ? 'disabled' : ''; ?>>
-        <option value="">Inherit package/global policy</option>
+        <option value=""><?= htmlspecialchars($rInheritOption, ENT_QUOTES); ?></option>
         <?php if ($rPackageCountry !== '' && !array_key_exists($rPackageCountry, \XcVm\Core\Reference\GeoReference::countryCodes())): ?>
             <option value="<?= htmlspecialchars($rPackageCountry, ENT_QUOTES); ?>" data-package-only selected><?= htmlspecialchars($rPackageCountry, ENT_QUOTES); ?></option>
         <?php endif; ?>
@@ -13,9 +17,11 @@
             <option value="<?= htmlspecialchars($rCode, ENT_QUOTES); ?>" <?= (($rPackageCountry ?: $rCurrentCountry) === $rCode) ? 'selected' : ''; ?>><?= htmlspecialchars($rName, ENT_QUOTES); ?></option>
         <?php endforeach; ?>
     </select>
-    <div class="form-text" id="forced_country_help"><?= $rPackageCountry !== '' ? 'Inherited from the package and cannot be changed.' : 'Optional. Blank inherits the package/global policy.'; ?></div>
+    <div class="form-text" id="forced_country_help"><?= htmlspecialchars($rPackageCountry !== '' ? $rPackageHelp : $rOptionalHelp, ENT_QUOTES); ?></div>
 </div>
 <script>
+var resellerForcedCountryPackageHelp = <?= json_encode($rPackageHelp, $rScriptJsonFlags); ?>;
+var resellerForcedCountryOptionalHelp = <?= json_encode($rOptionalHelp, $rScriptJsonFlags); ?>;
 window.updateResellerForcedCountry = function(packageCountry, currentCountry) {
     var field = document.getElementById('forced_country');
     if (!field) { return; }
@@ -30,8 +36,8 @@ window.updateResellerForcedCountry = function(packageCountry, currentCountry) {
     field.disabled = packageCountry !== '';
     field.value = packageCountry || String(currentCountry || '').toUpperCase();
     document.getElementById('forced_country_help').textContent = packageCountry
-        ? 'Inherited from the package and cannot be changed.'
-        : 'Optional. Blank inherits the package/global policy.';
+        ? resellerForcedCountryPackageHelp
+        : resellerForcedCountryOptionalHelp;
 };
 </script>
 <?php endif; ?>

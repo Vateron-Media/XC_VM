@@ -52,7 +52,7 @@ class ResellerAPI {
 	 * @return array Action result.
 	 */
 	public static function processData(string $rType, array $rData) {
-		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'telegram', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'forced_country', 'category_template_id'], 'mag' => ['ua_policy_present', 'lock_user_agent', 'allowed_user_agents', 'edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'forced_country', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'forced_country'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
+		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'telegram', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'forced_country', 'category_template_id'], 'mag' => ['ua_policy_present', 'lock_user_agent', 'allowed_user_agents', 'edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'forced_country', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'forced_country', 'category_template_id'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
 
 		foreach ($rData as $rKey => $rValue) {
 			if (!in_array($rKey, $rArray[$rType])) {
@@ -339,7 +339,6 @@ class ResellerAPI {
 							$rUserArray['max_connections'] = $rPackage['max_connections'];
 							$rUserArray['is_restreamer'] = $rPackage['is_restreamer'];
 							$rUserArray['force_server_id'] = $rPackage['force_server_id'];
-							$rUserArray['forced_country'] = $rPackage['forced_country'];
 							$rUserArray['is_isplock'] = $rPackage['is_isplock'];
 							$rOutputs = [];
 							$rAccessOutput = json_decode($rPackage['output_formats'], true) ?: [];
@@ -383,7 +382,9 @@ class ResellerAPI {
 				}
 			}
 
-			if (!empty($rData['package']) || array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])
+				|| (!empty($rOriginalLine['id']) && !empty($rData['package']) && (int) ($rOriginalLine['package_id'] ?? 0) !== (int) ($rPackage['id'] ?? 0))
+			) {
 				try {
 					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {
@@ -489,7 +490,7 @@ class ResellerAPI {
 						$rPrepare = QueryHelper::prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `mag_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = $db->last_insert_id();
+							$rInsertID = isset($rData['edit']) ? (int) $rData['edit'] : $db->last_insert_id();
 
 							if ($rOwn) {
 								$db->commit();
@@ -671,7 +672,6 @@ class ResellerAPI {
 							$rUserArray['max_connections'] = $rPackage['max_connections'];
 							$rUserArray['is_restreamer'] = $rPackage['is_restreamer'];
 							$rUserArray['force_server_id'] = $rPackage['force_server_id'];
-							$rUserArray['forced_country'] = $rPackage['forced_country'];
 							$rUserArray['is_isplock'] = $rPackage['is_isplock'];
 							$rOutputs = [];
 							$rAccessOutput = json_decode($rPackage['output_formats'], true) ?: [];
@@ -715,7 +715,9 @@ class ResellerAPI {
 				}
 			}
 
-			if (!empty($rData['package']) || array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])
+				|| (!empty($rOriginalLine['id']) && !empty($rData['package']) && (int) ($rOriginalLine['package_id'] ?? 0) !== (int) ($rPackage['id'] ?? 0))
+			) {
 				try {
 					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {
@@ -784,6 +786,7 @@ class ResellerAPI {
 					if ($rUserArray === null) {
 						return ['status' => STATUS_NO_BOUQUETS, 'error' => \XcVm\Core\Localization\Translator::get('renewal_no_bouquets'), 'data' => $rData];
 					}
+					$rUserArray = \XcVm\Domain\Stream\CategoryTemplateService::applyCustomData($rData, $rUserArray);
 
 					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
 						return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
@@ -806,7 +809,7 @@ class ResellerAPI {
 						$rPrepare = QueryHelper::prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = $db->last_insert_id();
+							$rInsertID = isset($rData['edit']) ? (int) $rData['edit'] : $db->last_insert_id();
 
 							if ($rOwn) {
 								$db->commit();
@@ -1189,7 +1192,6 @@ class ResellerAPI {
 							$rArray['max_connections'] = $rPackage['max_connections'];
 							$rArray['is_restreamer'] = $rPackage['is_restreamer'];
 							$rArray['force_server_id'] = $rPackage['force_server_id'];
-							$rArray['forced_country'] = $rPackage['forced_country'];
 							$rArray['is_isplock'] = $rPackage['is_isplock'];
 							$rArray['package_id'] = $rPackage['id'];
 						} else {
@@ -1225,7 +1227,9 @@ class ResellerAPI {
 				}
 			}
 
-			if (!empty($rData['package']) || array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])
+				|| (!empty($rOriginalLine['id']) && !empty($rData['package']) && (int) ($rOriginalLine['package_id'] ?? 0) !== (int) ($rPackage['id'] ?? 0))
+			) {
 				try {
 					$rArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {

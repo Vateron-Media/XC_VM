@@ -331,6 +331,24 @@ final class AuditActiveCodeEntitlementTest extends TestCase {
 		$this->assertLessThan(strpos($rView, 'name="forced_country"'), strpos($rView, "!empty(\$rUserInfo['can_set_forced_country'])"));
 	}
 
+	public function testCountrySelectorEscapesTranslationsInsideScript(): void {
+		$language = get_class(new class {
+			public static function get(string $rKey): string {
+				return '</script><script>alert("x")</script>';
+			}
+		});
+		$rUserInfo = ['can_set_forced_country' => 1];
+		$rForcedCountryLine = '';
+		$rForcedCountryPackage = '';
+
+		ob_start();
+		require MAIN_HOME . 'Public/Views/reseller/partials/forced_country.php';
+		$rHtml = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString('<script>alert("x")', $rHtml);
+		$this->assertStringContainsString('\u003C\/script\u003E', $rHtml);
+	}
+
 	/** Adding days to a code or moving it to another package is not offered where it is refused. */
 	public function testTheResellersListOffersNeitherExtensionNorAnotherPackage(): void {
 		$rView = (string) file_get_contents(MAIN_HOME . 'Public/Views/reseller/active_codes.php');

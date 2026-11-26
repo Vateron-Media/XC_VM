@@ -195,6 +195,37 @@ final class AuditResellerCoreLineStoreTest extends TestCase {
 	}
 
 	#[DataProvider('kinds')]
+	public function testRenewalWithoutCountryKeepsDelegatedLockAfterRevocation(string $rKind): void {
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 1 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['package' => 1, 'forced_country' => 'US']));
+
+		[$rTable, $rKey] = ['line' => ['lines', 'id'], 'mag' => ['mag_devices', 'mag_id'], 'enigma' => ['enigma2_devices', 'device_id']][$rKind];
+		$this->rDb->query('SELECT `' . $rKey . '` FROM `' . $rTable . '`');
+		$rID = (int) $this->rDb->get_col();
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 0 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => $rID, 'package' => 1]));
+		$this->assertSame('US', $this->country());
+	}
+
+	#[DataProvider('kinds')]
+	public function testChangingToPackageWithoutCountryClearsTheOldPackageLock(string $rKind): void {
+		$this->rDb->exec("UPDATE `users_packages` SET `forced_country` = 'A1' WHERE `id` = 1");
+		$this->rDb->exec("INSERT INTO `users_packages` (`id`, `package_name`, `is_official`, `official_credits`, `official_duration`, `official_duration_in`, `groups`, `bouquets`, `output_formats`, `is_line`, `is_mag`, `is_e2`, `check_compatible`) VALUES (2, 'Open', 1, 10, 1, 'months', '[2]', '[]', '[1]', 1, 1, 1, 0)");
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['package' => 1]));
+		$this->assertSame('A1', $this->country());
+
+		[$rTable, $rKey] = ['line' => ['lines', 'id'], 'mag' => ['mag_devices', 'mag_id'], 'enigma' => ['enigma2_devices', 'device_id']][$rKind];
+		$this->rDb->query('SELECT `' . $rKey . '` FROM `' . $rTable . '`');
+		$rID = (int) $this->rDb->get_col();
+
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => $rID, 'package' => 2]));
+		$this->assertNull($this->country());
+	}
+
+	#[DataProvider('kinds')]
 	public function testOrdinaryEditAppliesCountryAddedToTheExistingPackage(string $rKind): void {
 		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 1 WHERE `id` = ' . self::RESELLER);
 		$this->startRequest();

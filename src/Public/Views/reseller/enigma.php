@@ -216,6 +216,32 @@ $rStatusMessages = [
                             <label class="form-label" for="reseller_notes">Reseller Notes</label>
                             <textarea id="reseller_notes" name="reseller_notes" class="form-control" rows="3"><?= isset($rDevice) ? htmlspecialchars((string) $rLine['reseller_notes'], ENT_QUOTES) : ''; ?></textarea>
                         </div>
+
+                        <div class="mb-4 mt-4 p-3 bg-light-subtle rounded-3 border">
+                            <label class="form-label fw-semibold" for="category_template_id">
+                                <i class="icon-base ti tabler-layout-grid me-1 text-primary"></i> <?= $language::get('category_template'); ?>
+                            </label>
+                            <select name="category_template_id" id="category_template_id" class="form-select select2">
+                                <option value=""><?= (isset($rLine) && !empty($rLine['custom_data'])) ? '-- ' . $language::get('keep_current_custom_layout') . ' --' : '-- ' . $language::get('none_default') . ' --'; ?></option>
+                                <option value="0"><?= $language::get('reset_to_default_no_template'); ?></option>
+                                <?php foreach ($categoryTemplates ?? [] as $tpl): ?>
+                                    <option value="<?= (int) $tpl['id']; ?>">
+                                        <?= htmlspecialchars($tpl['name'] ?? $tpl['template_name'] ?? ''); ?><?= !empty($tpl['is_system']) ? ' (' . $language::get('system') . ')' : ''; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text small"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
+                            <?php if (isset($rLine)): ?>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                                    <span class="badge bg-label-info">
+                                        <i class="icon-base ti tabler-info-circle me-1"></i><?= htmlspecialchars($language::get('category_order_' . ($categoryTemplateStatus['type'] ?? 'default')) . (!empty($categoryTemplateStatus['name']) ? ': ' . $categoryTemplateStatus['name'] : ''), ENT_QUOTES); ?>
+                                    </span>
+                                    <button type="button" class="btn btn-sm btn-primary" id="custom-category-order" data-line-id="<?= (int) $rLine['id']; ?>">
+                                        <i class="icon-base ti tabler-arrows-sort me-1"></i><?= $language::get('custom_category_order'); ?>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
                     <?php if ($rIsEdit): ?>
@@ -357,6 +383,19 @@ LayoutRenderer::renderFooter('reseller');
         var toast = window.xcToast || function(m) { alert(m); };
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var statusMessages = <?= json_encode($rStatusMessages); ?>;
+
+        var customOrder = document.getElementById('custom-category-order');
+        if (customOrder) {
+            customOrder.addEventListener('click', function() {
+                customOrder.disabled = true;
+                fetch('./api?action=category_template_customer&line_id=' + encodeURIComponent(customOrder.getAttribute('data-line-id')), {
+                    method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(function(r) { return r.json(); }).then(function(data) {
+                    if (!data.result || !data.url) { throw new Error(data.message || errText); }
+                    window.location.href = data.url;
+                }).catch(function(error) { customOrder.disabled = false; toast(error.message || errText, 'error'); });
+            });
+        }
 
         var ownerCredits = <?= (float) $rUserInfo['credits']; ?>;
         var allowChangeBouquets = <?= $rAllowChange ? 'true' : 'false'; ?>;
@@ -520,7 +559,7 @@ LayoutRenderer::renderFooter('reseller');
             });
         }
 
-        if ($ && $.fn.select2) { $('#member_id, #package').select2({ width: '100%' }); }
+        if ($ && $.fn.select2) { $('#member_id, #package, #category_template_id').select2({ width: '100%' }); }
         if (pkgSelect) {
             if ($ && $.fn.select2) { $(pkgSelect).on('change', getPackage); } else { pkgSelect.addEventListener('change', getPackage); }
         }

@@ -44,6 +44,9 @@ class ResellerMagController extends BaseResellerController {
 			$GLOBALS['rUserInfo'] ?? [],
 			false
 		);
+		$categoryTemplateStatus = $rLine
+			? \XcVm\Domain\Stream\CategoryTemplateService::getLineTemplateStatus($rLine)
+			: null;
 
 		$this->setTitle('MAG Device');
 		$this->render('mag', [
@@ -52,6 +55,7 @@ class ResellerMagController extends BaseResellerController {
 			'rOrigPackage'      => $rOrigPackage,
 			'rPackages'         => $rPackages,
 			'categoryTemplates' => $categoryTemplates,
+			'categoryTemplateStatus' => $categoryTemplateStatus,
 		]);
 	}
 }
