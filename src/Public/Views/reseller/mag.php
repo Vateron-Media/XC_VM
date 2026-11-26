@@ -236,9 +236,14 @@ $rStatusMessages = [
                                 <?php endforeach; ?>
                             </select>
                             <div class="form-text small"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
-                            <?php if (isset($rLine) && !empty($rLine['custom_data'])): ?>
-                                <div class="badge bg-label-info mt-2">
-                                    <i class="icon-base ti tabler-check me-1"></i> <?= $language::get('custom_categories_applied_to_device'); ?>
+                            <?php if (isset($rLine)): ?>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                                    <span class="badge bg-label-info">
+                                        <i class="icon-base ti tabler-info-circle me-1"></i><?= htmlspecialchars((string) ($categoryTemplateStatus['name'] ?? 'Global / default order'), ENT_QUOTES); ?>
+                                    </span>
+                                    <button type="button" class="btn btn-sm btn-primary" id="custom-category-order" data-line-id="<?= (int) $rLine['id']; ?>">
+                                        <i class="icon-base ti tabler-arrows-sort me-1"></i>Custom Category Order
+                                    </button>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -414,6 +419,19 @@ LayoutRenderer::renderFooter('reseller');
         var toast = window.xcToast || function(m) { alert(m); };
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var statusMessages = <?= json_encode($rStatusMessages); ?>;
+
+        var customOrder = document.getElementById('custom-category-order');
+        if (customOrder) {
+            customOrder.addEventListener('click', function() {
+                customOrder.disabled = true;
+                fetch('./api?action=category_template_customer&line_id=' + encodeURIComponent(customOrder.getAttribute('data-line-id')), {
+                    method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(function(r) { return r.json(); }).then(function(data) {
+                    if (!data.result || !data.url) { throw new Error(data.message || errText); }
+                    window.location.href = data.url;
+                }).catch(function(error) { customOrder.disabled = false; toast(error.message || errText, 'error'); });
+            });
+        }
 
         var ownerCredits = <?= (float) $rUserInfo['credits']; ?>;
         var allowChangeBouquets = <?= $rAllowChange ? 'true' : 'false'; ?>;

@@ -44,12 +44,16 @@ class ResellerLineController extends BaseResellerController {
 			$rUserInfo,
 			false
 		);
+		$categoryTemplateStatus = $rLine
+			? \XcVm\Domain\Stream\CategoryTemplateService::getLineTemplateStatus($rLine, $rUserInfo)
+			: null;
 
 		$this->render('line', [
 			'rLine'             => $rLine,
 			'rOrigPackage'      => $rOrigPackage,
 			'rPackages'         => $rPackages,
 			'categoryTemplates' => $categoryTemplates,
+			'categoryTemplateStatus' => $categoryTemplateStatus,
 		]);
 	}
 }

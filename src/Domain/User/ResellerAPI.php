@@ -51,7 +51,7 @@ class ResellerAPI {
 	 * @return array Action result.
 	 */
 	public static function processData(string $rType, array $rData) {
-		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'telegram', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'category_template_id'], 'mag' => ['ua_policy_present', 'lock_user_agent', 'allowed_user_agents', 'edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
+		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'telegram', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'category_template_id'], 'mag' => ['ua_policy_present', 'lock_user_agent', 'allowed_user_agents', 'edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
 
 		foreach ($rData as $rKey => $rValue) {
 			if (!in_array($rKey, $rArray[$rType])) {
@@ -742,6 +742,7 @@ class ResellerAPI {
 					// The price leaves the balance as it is stored now, before anything
 					// is sold: a balance that no longer covers it sells nothing.
 					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
+					$rUserArray = \XcVm\Domain\Stream\CategoryTemplateService::applyCustomData($rData, $rUserArray);
 
 					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
 						return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];

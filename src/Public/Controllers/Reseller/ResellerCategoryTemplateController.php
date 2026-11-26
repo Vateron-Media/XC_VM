@@ -2,8 +2,11 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Stream\CategoryTemplateService;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
  * ResellerCategoryTemplateController — Category Template Editor for Resellers.
@@ -43,6 +46,34 @@ class ResellerCategoryTemplateController extends BaseResellerController {
 		$isSubReseller = in_array((int) $template['owner_id'], $subResellerIds, true);
 
 		$canEdit = ($isOwner || $isSubReseller) && !$isSystem;
+		$customerLineId = (int) RequestManager::get('customer_line_id', 0);
+		$returnUrl = 'category_templates';
+		if ($customerLineId > 0) {
+			$line = UserRepository::getLineById($customerLineId);
+			$customData = CategoryTemplateService::parseCustomData($line['custom_data'] ?? null);
+			if (!$line
+				|| !Authorization::check('line', $customerLineId)
+				|| (int) ($customData['template_id'] ?? 0) !== $id
+				|| !$isOwner
+				|| $isSystem
+				|| !empty($template['is_shared'])
+				|| (int) $template['subscriber_count'] !== 1
+			) {
+				header('Location: category_templates');
+				exit;
+			}
+
+			if (!empty($line['is_mag']) || !empty($line['is_e2'])) {
+				$db = DatabaseFactory::get();
+				$table = !empty($line['is_mag']) ? 'mag_devices' : 'enigma2_devices';
+				$idColumn = !empty($line['is_mag']) ? 'mag_id' : 'device_id';
+				$db->query("SELECT `{$idColumn}` FROM `{$table}` WHERE `user_id` = ? LIMIT 1", $customerLineId);
+				$deviceId = (int) ($db->get_col() ?: 0);
+				$returnUrl = $deviceId > 0 ? (!empty($line['is_mag']) ? 'mag?id=' : 'enigma?id=') . $deviceId : (!empty($line['is_mag']) ? 'mags' : 'enigmas');
+			} else {
+				$returnUrl = 'line?id=' . $customerLineId;
+			}
+		}
 
 		$this->setTitle('Category Template: ' . $template['name']);
 
@@ -54,8 +85,10 @@ class ResellerCategoryTemplateController extends BaseResellerController {
 			'isAdmin'       => false,
 			'isOwner'       => $isOwner,
 			'isSubReseller' => $isSubReseller,
-			'canEdit'       => $canEdit,
-			'currentUser'   => $user
+			'canEdit'        => $canEdit,
+			'currentUser'    => $user,
+			'customerLineId' => $customerLineId,
+			'returnUrl'      => $returnUrl,
 		]);
 	}
 }

@@ -19,6 +19,8 @@ $tmplId = (int)($rTemplate['id'] ?? 0);
 $tmplName = $rTemplate['name'] ?? '';
 $isSystem = (int)($rTemplate['is_system'] ?? 0) === 1;
 $isShared = (int)($rTemplate['is_shared'] ?? 0) === 1;
+$customerLineId = (int) ($customerLineId ?? 0);
+$returnUrl = (string) ($returnUrl ?? 'category_templates');
 ?>
 
 <div class="container-xxl flex-grow-1 container-p-y">
@@ -28,7 +30,7 @@ $isShared = (int)($rTemplate['is_shared'] ?? 0) === 1;
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <!-- Left: Back & Template Name -->
                 <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 650px;">
-                    <a href="category_templates" class="btn btn-label-secondary btn-icon flex-shrink-0" title="<?= $language::get('back_to_templates'); ?>">
+                    <a href="<?= htmlspecialchars($returnUrl, ENT_QUOTES); ?>" class="btn btn-label-secondary btn-icon flex-shrink-0" title="<?= $language::get('back_to_templates'); ?>">
                         <i class="icon-base ti tabler-arrow-left"></i>
                     </a>
                     <div class="flex-grow-1">
@@ -47,10 +49,14 @@ $isShared = (int)($rTemplate['is_shared'] ?? 0) === 1;
                     </span>
 
                     <?php if ($rCanEdit): ?>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="templateIsShared" <?= $isShared ? 'checked' : ''; ?>>
-                            <label class="form-check-label small fw-semibold" for="templateIsShared"><?= $language::get('share_with_subresellers'); ?></label>
-                        </div>
+                        <?php if ($customerLineId > 0): ?>
+                            <span class="badge bg-label-info">Private customer template</span>
+                        <?php else: ?>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="templateIsShared" <?= $isShared ? 'checked' : ''; ?>>
+                                <label class="form-check-label small fw-semibold" for="templateIsShared"><?= $language::get('share_with_subresellers'); ?></label>
+                            </div>
+                        <?php endif; ?>
 
                         <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" id="btnSaveTemplate">
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
@@ -258,6 +264,7 @@ LayoutRenderer::renderFooter('reseller');
 
     var templateId = <?= $tmplId; ?>;
     var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>;
+    var customerLineId = <?= $customerLineId; ?>;
 
     // Call sites pass (type, message); the footer's xcToast takes (message, type),
     // so handing it over directly showed the word "success" as the message.
@@ -564,6 +571,7 @@ LayoutRenderer::renderFooter('reseller');
                 is_shared: isShared,
                 categories: allCategories
             };
+            if (customerLineId > 0) { payload.customer_line_id = customerLineId; }
 
             var spinner = btnSave.querySelector('.spinner-border');
             var icon = btnSave.querySelector('.icon-base');
