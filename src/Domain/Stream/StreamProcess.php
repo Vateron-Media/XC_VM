@@ -1331,13 +1331,8 @@ class StreamProcess {
 		if (!empty($data['ingestSock'])) {
 			$rCmd[] = '-ingest ' . escapeshellarg('unix:' . $data['ingestSock']);
 		}
-		// The remuxer's default -idle_timeout is 8s. A quiet HTTP MPEG-TS socket
-		// is closed locally and the process exits ("source idle for 8s"), so the
-		// supervisor starts a new remuxer after stream_fail_sleep. ffmpeg sets no
-		// read timeout, so the same pause stays inside one process. Wait as long
-		// as the supervisor already waits before calling a producer dead
-		// (seg_time×6), and never shorter than the remuxer's own 8s default.
-		$rCmd[] = '-idle_timeout ' . max(8, $rSegTime * 6);
+		// quietSourceSeconds(): the same wait supervisorHealth() records as stall_sec.
+		$rCmd[] = '-idle_timeout ' . self::quietSourceSeconds($rSegTime);
 		$rCmd[] = '-hls_time ' . $rSegTime;
 		$rCmd[] = '-hls_init_time ' . min(2, $rSegTime); // buildLive's fast first segment
 		$rCmd[] = '-hls_list_size ' . intval($rSeg['seg_list_size']);
@@ -1735,6 +1730,19 @@ class StreamProcess {
 	}
 
 	/**
+	 * Seconds a quiet live source is given before either side gives up.
+	 * The remuxer closes a silent HTTP MPEG-TS socket after its own 8s default
+	 * ("source idle for 8s") and the process exits. The supervisor treats a
+	 * playlist as dead after seg_time×6. Both sides use the longer of those, so
+	 * a 1s segment (whose stall would be 6s) does not restart the remuxer while
+	 * it is still waiting out that default. ffmpeg sets no read timeout, so the
+	 * same pause stays inside one process.
+	 */
+	private static function quietSourceSeconds(int $rSegTime): int {
+		return max(8, $rSegTime * 6);
+	}
+
+	/**
 	 * The supervisor health policy for a stream, from the checks the PHP monitor
 	 * made. PURE. Each check is off when its panel setting is.
 	 *
@@ -1743,7 +1751,7 @@ class StreamProcess {
 	private static function supervisorHealth(array $rStreamInfo, array $rSettings): array {
 		$rSegTime = max(1, intval($rSettings['seg_time'] ?? 10));
 		$rHealth = [
-			'stall_sec'      => $rSegTime * 6, // the monitor's "playlist unchanged for seg_time × 6"
+			'stall_sec'      => self::quietSourceSeconds($rSegTime),
 			'audio_loss_sec' => !empty($rSettings['audio_restart_loss']) ? 30 : 0,
 			'fps_threshold'  => 0,
 			'fps_grace_sec'  => max(0, intval($rSettings['fps_delay'] ?? 0)),

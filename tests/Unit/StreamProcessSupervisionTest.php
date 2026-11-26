@@ -61,6 +61,15 @@ final class StreamProcessSupervisionTest extends TestCase {
 		$this->assertStringEndsWith("'" . STREAMS_PATH . "42_.m3u8'", $c, 'the playlist is the one positional argument, last');
 	}
 
+	/** seg_time 1 makes the old 8s floor longer than the supervisor's 6s stall. */
+	public function testQuietSourceWaitMatchesSupervisorStall(): void {
+		$c = $this->native(['segmentSettings' => ['seg_time' => 1, 'seg_list_size' => 8, 'seg_delete_threshold' => 4]]);
+		$this->assertSame(1, preg_match('/-idle_timeout (\d+) /', $c, $m));
+		$h = self::call('supervisorHealth', [], ['seg_time' => 1]);
+		$this->assertSame((int) $m[1], $h['stall_sec'], 'the remuxer and the supervisor wait the same length of time');
+		$this->assertSame(8, (int) $m[1], 'the wait stays at least the remuxer default of 8s');
+	}
+
 	/** The daemon launches it: no redirect, background or pid tail may ride along. */
 	public function testNativeCommandHasNoLaunchTail(): void {
 		$c = $this->native();
