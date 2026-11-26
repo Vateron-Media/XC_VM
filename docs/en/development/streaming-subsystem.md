@@ -244,7 +244,7 @@ A catch-up link (`/timeshift/…`, or a live link with `?utc=`) is checked by `a
 
 nginx-rtmp calls `rtmp.php` on `on_play`, `on_publish` and `on_play_done`. What nginx-rtmp itself says — `addr`, `clientid`, `call` and `name` — is read from the callback's query string by `StreamAuth::notifyArguments()`. A callback that gives one of the four two different values is answered 404. The stream's own arguments (`username`, `password`, `token`) come from the parsed request, as on the other endpoints, so an RTMP URL must not carry arguments named `addr`, `clientid`, `call` or `name`.
 
-### Radio in the second web player
+### Radio in the web player
 
 `GET /<code>/radio?stream=<id>` answers `302` to `<domain>/<username>/<password>/<id>.m3u8` (`DomainResolver`, the same form as the live channels) for a station in the signed-in line's `radio_ids`, and `404` otherwise; it never names `stream_source`. The station entries of `radio?ajax=1` and of the page's `initialStations` are `id, name, logo, category_id, direct, url`, where `url` is that play answer, so the page and the script's `localStorage` copy hold neither a source nor the line's credentials. `player-radio.js` plays `url` with hls.js unless the entry says `direct`, then with the audio element. On a fatal hls.js network error it asks the play answer again (2 s apart, at most 3 in a row, counted anew once a fragment is buffered) while the station shows as playing; otherwise it shows the station as paused.
 

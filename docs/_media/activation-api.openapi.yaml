@@ -1036,7 +1036,7 @@ tags:
       `/activate`; neither matches the code. The shapes documented here are the ones the code emits.
   - name: Activation Portal
     description: |
-      Public subscriber self-activation web page at /portal (src/Public/Controllers/Player/PortalController.php,
+      Public subscriber self-activation web page at /portal (src/Public/Controllers/Portal/PortalController.php,
       view src/Public/Views/portal/index.php). Answers HTML, or JSON to AJAX requests.
       Not to be confused with /portal.php, the Ministra/Stalker legacy redirect (nginx.conf:520-526).
 paths:
@@ -2042,7 +2042,7 @@ paths:
         - Activation Portal
       summary: Activation portal page (optionally activating `?code=`)
       description: |
-        src/Public/Controllers/Player/PortalController.php:17-88, routed by nginx `location ^~ /portal`
+        src/Public/Controllers/Portal/PortalController.php, routed by nginx `location ^~ /portal`
         (src/bin/nginx/conf/nginx.conf:423-444, XC_SCOPE=portal, limit_req burst=15) through
         `WebApiBootstrap::init('portal')` (src/Public/index.php:221-226). Any `/portal/...` subpath behaves the
         same, except `/portal/assets/` which serves static files. No authentication.
@@ -2114,7 +2114,7 @@ paths:
         - Activation Portal
       summary: Activate a code from the portal form (AJAX JSON or HTML)
       description: |
-        src/Public/Controllers/Player/PortalController.php:58-84. The bundled page sends
+        src/Public/Controllers/Portal/PortalController.php. The bundled page sends
         `application/x-www-form-urlencoded` `action=activate&code=...&mac=...` with
         `X-Requested-With: XMLHttpRequest` to the current path. Parameters may be in the query or the body
         (POST overrides GET). Activation as `ActiveCodeService::activateCode`

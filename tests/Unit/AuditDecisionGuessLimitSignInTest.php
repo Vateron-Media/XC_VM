@@ -6,7 +6,6 @@ use XcVm\Public\Controllers\Api\Enigma2ApiController;
 use XcVm\Public\Controllers\Api\EpgApiController;
 use XcVm\Public\Controllers\Api\PlayerApiController;
 use XcVm\Public\Controllers\Api\PlaylistApiController;
-use XcVm\Public\Controllers\Player\PlayerLoginController;
 use XcVm\Public\Controllers\PlayerV2\PlayerLoginController as PlayerV2LoginController;
 use XcVm\Tests\Support\InstallSchema;
 
@@ -97,15 +96,8 @@ $rCached = false;
 \XcVm\Infrastructure\Database\DatabaseFactory::connect();
 
 $rController = new $rIn['controller']();
-if ($rIn['controller'] === \XcVm\Public\Controllers\Player\PlayerLoginController::class) {
-	// The first player reads the form itself.
-	\XcVm\Core\Http\RequestManager::set($rIn['request']);
-	$rSignIn = new ReflectionMethod($rController, 'processLogin');
-	$rArguments = [];
-} else {
-	$rSignIn = new ReflectionMethod($rController, 'processCredentialLogin');
-	$rArguments = [$rIn['request']['username'], $rIn['request']['password'], [0 => 'Invalid username or password.']];
-}
+$rSignIn = new ReflectionMethod($rController, 'processCredentialLogin');
+$rArguments = [$rIn['request']['username'], $rIn['request']['password'], [0 => 'Invalid username or password.']];
 $rSignIn->setAccessible(true);
 $rAnswer = $rSignIn->invoke($rController, ...$rArguments);
 echo json_encode(is_array($rAnswer) ? $rAnswer['status'] : $rAnswer);
@@ -144,7 +136,7 @@ PHP;
 	 * @param array<string, mixed> $rRequest
 	 */
 	private function signIn(string $rController, string $rUri, array $rRequest): string {
-		$rChild = (in_array($rController, [PlayerLoginController::class, PlayerV2LoginController::class], true) ? 'player' : 'api');
+		$rChild = ($rController === PlayerV2LoginController::class ? 'player' : 'api');
 		$rIn = ['schema' => $this->rDb->schema(), 'dir' => $this->rDir, 'ip' => self::IP, 'uri' => $rUri, 'settings' => self::SETTINGS, 'request' => $rRequest, 'controller' => $rController];
 		$rProc = proc_open([...xcvm_test_child_php(), '-d', 'display_errors=stderr', $this->rDir . $rChild . '.php', (string) json_encode($rIn)], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $rPipes);
 		$this->assertIsResource($rProc);
@@ -174,7 +166,6 @@ PHP;
 			'playlist' => [PlaylistApiController::class, '/playlist'],
 			'EPG' => [EpgApiController::class, '/epg'],
 			'Enigma2' => [Enigma2ApiController::class, '/enigma2.php'],
-			'the first player' => [PlayerLoginController::class, '/player/login'],
 			'the web player' => [PlayerV2LoginController::class, '/player/login'],
 		];
 	}

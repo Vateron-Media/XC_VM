@@ -424,4 +424,4 @@ All HTTP contexts (not CLI) also run flood protection and host verification befo
 | `src/Public/index.php` | Front controller for admin/reseller/player/API |
 | `src/Public/routes/admin.php` | Admin page route definitions |
 | `src/Public/routes/reseller.php` | Reseller page route definitions |
-| `src/Public/routes/player.php` | Player page route definitions |
+| `src/Public/routes/player_v2.php` | Web player route definitions (both access-code types 6 and 8) |

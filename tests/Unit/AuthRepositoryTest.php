@@ -17,9 +17,9 @@ final class AuthRepositoryTest extends TestCase {
 		$this->serverBackup = $_SERVER;
 		$this->db = new TestDb();
 		$this->db->exec(
-			'CREATE TABLE access_codes (id INTEGER PRIMARY KEY AUTO_INCREMENT, type INTEGER, code TEXT);
+			'CREATE TABLE access_codes (id INTEGER PRIMARY KEY AUTO_INCREMENT, type INTEGER, code TEXT, enabled INTEGER DEFAULT 1);
 			 CREATE TABLE hmac_keys (id INTEGER PRIMARY KEY AUTO_INCREMENT, `key` TEXT);
-			 INSERT INTO access_codes (id, type, code) VALUES (1, 0, "alpha"), (2, 1, "beta"), (3, 0, "gamma");
+			 INSERT INTO access_codes (id, type, code) VALUES (1, 0, "alpha"), (2, 1, "beta"), (3, 0, "gamma"), (4, 8, "v2old"), (5, 6, "player");
 			 INSERT INTO hmac_keys (id, `key`) VALUES (7, "k7"), (8, "k8");'
 		);
 		$GLOBALS['db'] = $this->db;
@@ -32,13 +32,19 @@ final class AuthRepositoryTest extends TestCase {
 
 	public function testGetAllCodesKeyedById(): void {
 		$codes = AuthRepository::getAllCodes();
-		$this->assertSame([1, 2, 3], array_keys($codes));
+		$this->assertSame([1, 2, 3, 4, 5], array_keys($codes));
 		$this->assertSame('beta', $codes[2]['code']);
 	}
 
 	public function testGetAllCodesFilteredByType(): void {
 		$codes = AuthRepository::getAllCodes(0);
 		$this->assertSame([1, 3], array_keys($codes), 'only type 0');
+	}
+
+	public function testWebPlayerCodePrefersTypeSixAndFallsBackToTypeEight(): void {
+		$this->assertSame('player', AuthRepository::getWebPlayerCode());
+		$this->db->query('UPDATE `access_codes` SET `enabled` = 0 WHERE `type` = 6');
+		$this->assertSame('v2old', AuthRepository::getWebPlayerCode());
 	}
 
 	public function testGetCodeByIdReturnsRowOrNull(): void {

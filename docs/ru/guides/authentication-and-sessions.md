@@ -132,13 +132,13 @@ Authenticator::checkPassword(string $password, string $storedHash): bool
 
 ## <a id="player-authentication"></a>Аутентификация игрока
 
-Файл: `src/Public/Controllers/Player/PlayerLoginController.php`
+Файл: `src/Public/Controllers/PlayerV2/PlayerLoginController.php`
 
 Процедура входа игрока в систему принципиально отличается от процедуры администратора/реселлера. Она аутентифицирует "линии" конечного пользователя (подписки на IPTV), а не операторов панели.
 
 ### <a id="login-process"></a>Процесс входа в систему
 
-`PlayerLoginController::processLogin()` выполняет эти проверки в порядке:
+`PlayerLoginController::processCredentialLogin()` выполняет эти проверки в порядке:
 
 1. **Поиск учетных данных** -- `UserRepository::getUserInfo()` (отличается от `getAuthUserByCredentials`, используемого администратором/реселлером).
 2. **Отклонение типа линии** -- Линии E2, MAG и Stalker отклоняются с определенными кодами ошибок.
@@ -157,7 +157,9 @@ Authenticator::checkPassword(string $password, string $storedHash): bool
 
 В случае успеха сеанс переходит на новый идентификатор (`session_regenerate_id(true)`) до того, как будут записаны ключи сеанса, как при входе администратора и реселлера, поэтому браузер получает новый файл cookie сеанса при входе в систему.
 
-Второй веб-плеер (`src/Public/Controllers/PlayerV2/PlayerLoginController.php`) также выполняет вход с учетной записью на другом сервере Xtream (форма сервера или адрес плейлиста). Когда этот сервер отказывает, запрос завершается на этом, для записи в простой форме, как для скрипта страницы: на странице входа в систему отображается ответ этого сервера, адрес один раз засчитывается как `checkFlood()`, а имя пользователя и пароль не используются в качестве строки этой панели.
+Веб-плеер также поддерживает вход с учетной записью другого сервера Xtream (форма сервера или адрес плейлиста). При отказе внешнего сервера запрос завершается, адрес учитывается один раз через `checkFlood()`, а эти данные не проверяются как линия текущей панели.
+
+Удалённый плеер не хранил избранное, прогресс или аккаунты в local/session storage браузера, поэтому переносить значимые данные не требуется. Cookie `PLAYERSESSID` общий с текущим плеером и сохраняет ещё действующую сессию. Данные `xc_player_v2_*` не меняются.
 
 ### <a id="player-error-codes"></a>Коды ошибок проигрывателя
 
@@ -359,7 +361,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 Он выбирает файл cookie из области действия запроса (`XC_SCOPE`, заданной nginx).:
 
 - Панели администратора и реселлера, API и все остальные области содержат значения PHP `PHPSESSID`, `SameSite=Strict`.
-- Два веб-плеера (`player`, `player_v2`) используют свои собственные файлы cookie, `PLAYERSESSID` (`SessionStage::PLAYER_COOKIE`), `SameSite=Lax`.
+- Каноническая область веб-плеера `player_v2` и совместимый alias `player` используют cookie `PLAYERSESSID` (`SessionStage::PLAYER_COOKIE`), `SameSite=Lax`.
 
 Оба имеют значение `HttpOnly`, и PHP работает в строгом режиме, отказываясь от идентификаторов сеанса, которые он никогда не выдавал:
 
@@ -381,7 +383,7 @@ session_start();
 
 Вход в панель и вход игрока в одном браузере - это два сеанса: запрос игрока не считывает и не записывает сеанс панели, и наоборот. Выход из плеера завершает только сеанс игрока. Сеанс, проведенный до того, как у проигрывателя был свой собственный файл cookie, не переносится: зрители регистрируются в проигрывателе один раз после обновления.
 
-The players' actions that change something run only on a `POST`, which a browser does not send with the player's cookie from another site: `logout` (both players; a `GET` leads to the home page), `refresh` (second player; `GET` is not routed) and the bouquet order of `profile` (first player; a `GET` only shows the page). The players' own links and scripts send `POST`.
+Изменяющие состояние действия плеера выполняются только через `POST`: `logout`, `refresh` и порядок букетов в `profile`. Для них `GET` не маршрутизируется; ссылки и скрипты плеера отправляют `POST`.
 
 ### <a id="verify-hash"></a>Проверка хэша
 
@@ -472,7 +474,7 @@ VALUES($type, $codeId, $userId, $status, $ip, $timestamp);
 | `src/Core/Auth/BruteforceGuard.php` |Ограничение скорости и защита от перебора|
 | `src/Core/Auth/Authorization.php` |Проверки авторизации на уровне объекта|
 | `src/Core/Auth/PageAuthorization.php` |Управление доступом на уровне страницы|
-| `src/Public/Controllers/Player/PlayerLoginController.php` |Процесс входа игрока в систему с проверкой безопасности|
+| `src/Public/Controllers/PlayerV2/PlayerLoginController.php` |Процесс входа игрока в систему с проверкой безопасности|
 | `src/Infrastructure/Bootstrap/AdminScopeBootstrap.php` |Загрузка администратора: жизненный цикл сеанса, `$rUserInfo`/`$rPermissions`, защита целостности|
 | `src/Public/Controllers/Admin/SessionController.php` |Опрос сессии администратора AJAX (маршрут `session`)|
 | `src/Infrastructure/Bootstrap/ResellerScopeBootstrap.php` |Проверка сеанса реселлера при каждой загрузке страницы|

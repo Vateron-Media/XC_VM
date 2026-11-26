@@ -30,6 +30,12 @@ final class AccessCodeLocationTest extends TestCase {
 		}
 	}
 
+	public function testBothWebPlayerTypesUseTheCurrentPlayer(): void {
+		foreach ([6, 8] as $rCodeType) {
+			$this->assertSame(['player_v2', 'Public/Views/player_v2', 500], AuthRepository::codeLocation($rCodeType));
+		}
+	}
+
 	public function testAnUnknownTypeIsAnAdminCode(): void {
 		$this->assertSame(['admin', 'Public/Views/admin', 500], AuthRepository::codeLocation(99));
 		$this->assertSame(AuthRepository::codeLocation(0), AuthRepository::codeLocation(99));

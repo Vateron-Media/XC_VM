@@ -15,7 +15,7 @@ use XcVm\Domain\User\GroupService;
 $rIsEdit = isset($rCode);
 $rCodeGroups = ($rIsEdit && !empty($rCode['groups'])) ? (json_decode((string) $rCode['groups'], true) ?: []) : [];
 $rWhitelist = ($rIsEdit && !empty($rCode['whitelist'])) ? (json_decode((string) $rCode['whitelist'], true) ?: []) : [];
-$rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'Web Player', 7 => 'Active Code Portal', 8 => 'Web Player V2'];
+$rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'Web Player', 7 => 'Active Code Portal'];
 ?>
 
 <div class="d-flex align-items-center mb-4">
@@ -59,7 +59,7 @@ $rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'W
                             <label class="form-label" for="type">Access Type</label>
                             <select id="type" name="type" class="form-select">
                                 <?php foreach ($rTypes as $rTid => $rTname): ?>
-                                    <option value="<?= (int) $rTid; ?>" <?= ($rIsEdit && (int) $rCode['type'] === (int) $rTid) ? 'selected' : ''; ?>><?= htmlspecialchars($rTname, ENT_QUOTES); ?></option>
+                                    <option value="<?= (int) $rTid; ?>" <?= ($rIsEdit && ((int) $rCode['type'] === (int) $rTid || ((int) $rCode['type'] === 8 && (int) $rTid === 6))) ? 'selected' : ''; ?>><?= htmlspecialchars($rTname, ENT_QUOTES); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -155,7 +155,7 @@ LayoutRenderer::renderFooter('admin');
             }
         <?php endif; ?>
 
-        // Dynamic preview for Web Player (6), Active Code Portal (7) and Web Player V2 (8)
+        // Dynamic preview for Web Player (6) and Active Code Portal (7)
         var typeSelect = document.getElementById('type');
         var codeInput = document.getElementById('code');
         var previewBox = document.getElementById('portal-preview-box');
@@ -182,9 +182,9 @@ LayoutRenderer::renderFooter('admin');
                     tabGroupsBtn.classList.add('disabled', 'opacity-50');
                     tabGroupsBtn.title = 'Groups do not apply to subscriber portals';
                 }
-            } else if (typeVal === 6 || typeVal === 8) {
+            } else if (typeVal === 6) {
                 previewBox.classList.remove('d-none');
-                previewTitle.textContent = typeVal === 8 ? 'Web Player V2 Direct Access' : 'Web Player Direct Access';
+                previewTitle.textContent = 'Web Player Direct Access';
                 previewDesc.textContent = 'Subscribers open this URL to stream channels and VOD directly in their web browser.';
                 previewIcon.className = 'icon-base ti tabler-device-tv fs-5';
                 previewUrl.textContent = fullUrl;

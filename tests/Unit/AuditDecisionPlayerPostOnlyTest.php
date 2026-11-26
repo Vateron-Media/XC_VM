@@ -4,9 +4,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The web players' actions that change something run only on a POST: signing
- * out (both players), refreshing the line's caches (the second player) and
- * reordering the line's bouquets from the profile (the first player). The
+ * The web player's actions that change something run only on a POST: signing
+ * out, refreshing the line's caches and reordering the line's bouquets. The
  * player's cookie is SameSite=Lax, so the browser sends it on a link from
  * another site, which is a GET: a GET of these changes nothing. A GET of the
  * profile still shows the page, and a GET of the sign-out leads home.
@@ -19,13 +18,6 @@ final class AuditDecisionPlayerPostOnlyTest extends TestCase {
 
 	private const CHILD = <<<'PHP'
 <?php
-
-namespace XcVm\Public\Controllers\Player {
-	/** The answer's headers, kept for the test: the command line sends none. */
-	function header(string $rHeader, bool $rReplace = true, int $rCode = 0): void {
-		$GLOBALS['rSent'][] = $rHeader;
-	}
-}
 
 namespace XcVm\Public\Controllers\PlayerV2 {
 	function header(string $rHeader, bool $rReplace = true, int $rCode = 0): void {
@@ -133,8 +125,7 @@ PHP;
 	/** @return array<string, array{string, string, string}> player, the home it leads to, the sign-in form it leads to */
 	public static function players(): array {
 		return [
-			'the first player' => ['player', 'Location: index', 'Location: login'],
-			'the second player' => ['player_v2', 'Location: /code/index', 'Location: /code/login?logged_out=1'],
+			'the web player' => ['player_v2', 'Location: /code/index', 'Location: /code/login?logged_out=1'],
 		];
 	}
 
@@ -152,9 +143,7 @@ PHP;
 		$rEnd = $this->request($rPlayer, 'logout', 'POST');
 
 		$this->assertSame([$rSignIn], $rEnd['headers']);
-		if ($rPlayer === 'player_v2') {
-			$this->assertArrayNotHasKey('phash', $this->session() ?? [], 'the viewer is still signed in');
-		}
+		$this->assertArrayNotHasKey('phash', $this->session() ?? [], 'the viewer is still signed in');
 	}
 
 	public function testAGetOfRefreshDropsNoCache(): void {
@@ -172,21 +161,17 @@ PHP;
 	}
 
 	public function testAGetOfTheProfileReordersNothing(): void {
-		$this->assertSame('[5,7,9]', $this->request('player', 'profile', 'GET')['bouquet'], 'a GET reordered the line\'s bouquets');
+		$this->assertSame('[5,7,9]', $this->request('player_v2', 'profile', 'GET')['bouquet'], 'a GET reordered the line\'s bouquets');
 	}
 
 	public function testAPostOfTheProfileReordersTheBouquets(): void {
-		$this->assertSame('[9,5,7]', $this->request('player', 'profile', 'POST')['bouquet']);
+		$this->assertSame('[9,5,7]', $this->request('player_v2', 'profile', 'POST')['bouquet']);
 	}
 
-	/** The players' own pages send these actions as a POST. */
-	public function testThePlayersPagesSendTheseActionsAsAPost(): void {
-		$rFooter = (string) file_get_contents(MAIN_HOME . 'Public/Views/layouts/player/footer.php');
-		$this->assertSame(1, preg_match('/function doLogout\(\) \{[^}]*<form method="POST" action="logout"><\/form>[^}]*\.submit\(\)/', $rFooter), 'the first player signs out with a GET');
-		$this->assertStringContainsString('<form action="profile" class="profile__form" id="bouquet__form" method="POST">', (string) file_get_contents(MAIN_HOME . 'Public/Views/player/profile.php'));
-
+	/** The player's own pages send these actions as a POST. */
+	public function testThePlayerPagesSendTheseActionsAsAPost(): void {
 		$rHeader = (string) file_get_contents(MAIN_HOME . 'Public/Views/layouts/player_v2/header.php');
-		$this->assertTrue(str_contains($rHeader, '<form id="player-logout-form" method="post" action="<?= $baseUrl ?>logout" class="d-none"></form>'), 'the second player has no sign-out form');
+		$this->assertTrue(str_contains($rHeader, '<form id="player-logout-form" method="post" action="<?= $baseUrl ?>logout" class="d-none"></form>'), 'the player has no sign-out form');
 		foreach (['Public/Views/layouts/player_v2/header.php', 'Public/Views/player_v2/profile.php'] as $rView) {
 			preg_match_all('/<a [^\n]*\?>logout"[^\n]*/', (string) file_get_contents(MAIN_HOME . $rView), $rLinks);
 			$this->assertNotEmpty($rLinks[0], $rView);

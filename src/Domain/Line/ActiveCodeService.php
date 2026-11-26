@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Line;
 
+use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\User\GroupService;
@@ -580,12 +581,8 @@ class ActiveCodeService {
 		$m3uHls = "{$portalHost}/get.php?username={$line['username']}&password={$line['password']}&type=m3u_plus&output=hls";
 		$m3uTs  = "{$portalHost}/get.php?username={$line['username']}&password={$line['password']}&type=m3u_plus&output=ts";
 
-		$webPlayerUrl = null;
-		$db->query("SELECT `code` FROM `access_codes` WHERE `type` = 6 AND `enabled` = 1 LIMIT 1;");
-		if ($db->num_rows() > 0) {
-			$wpRow = $db->get_row();
-			$webPlayerUrl = "{$portalHost}/{$wpRow['code']}/";
-		}
+		$playerCode = AuthRepository::getWebPlayerCode();
+		$webPlayerUrl = $playerCode ? "{$portalHost}/{$playerCode}/" : null;
 
 		return [
 			'status' => 'SUCCESS',

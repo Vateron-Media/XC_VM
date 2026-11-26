@@ -23,6 +23,6 @@ final class ListingsNamespaceTest extends TestCase {
 			$this->assertLessThan($rLoads, $rMade, end($rPages) . ' makes the namespace after the engine loaded');
 		}
 		sort($rPages);
-		$this->assertSame(['admin/epg_view.php', 'layouts/player/footer.php', 'reseller/epg_view.php'], $rPages);
+		$this->assertSame(['admin/epg_view.php', 'reseller/epg_view.php'], $rPages);
 	}
 }

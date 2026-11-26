@@ -120,7 +120,7 @@ final class AuditExternalFetchResizeTest extends TestCase {
 	/** What the web player's resize route answers to a poster request in a session of $rUserInfo. */
 	private function playerRoute(?array $rUserInfo): string {
 		return $this->child(['url' => 'poster.png', 'w' => '267', 'h' => '400'], 100, 150, '$GLOBALS["rUserInfo"] = ' . var_export($rUserInfo, true) . ';'
-			. '(new \XcVm\Public\Controllers\Player\PlayerResizeController())->index();');
+			. '(new \XcVm\Public\Controllers\PlayerV2\PlayerResizeController())->index();');
 	}
 
 	private function child(array $rQuery, int $rWidth, int $rHeight, string $rCall, ?string $rBody = null): string {

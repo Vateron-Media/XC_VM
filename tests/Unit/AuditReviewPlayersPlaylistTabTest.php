@@ -4,7 +4,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * The profile page of the web player offers the playlist generator only where
- * the panel allows playlist downloads from the player, as the first player does.
+ * the panel allows playlist downloads from the player.
  *
  * The view runs in a child PHP with the data the controller hands it for a line
  * of this panel; bouquet ordering is allowed throughout.

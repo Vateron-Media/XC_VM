@@ -1,6 +1,6 @@
 <?php
 
-namespace XcVm\Public\Controllers\Player;
+namespace XcVm\Public\Controllers\PlayerV2;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\Encryption;
@@ -12,14 +12,14 @@ use XcVm\Core\Util\Encryption;
  * Decrypts subtitle URL and returns content as octet-stream.
  * Requires authenticated player session (bootstrap handles this).
  *
- * @package XC_VM_Public_Controllers_Player
+ * @package XC_VM_Public_Controllers_PlayerV2
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class PlayerProxyController extends BasePlayerController {
+class PlayerProxyController extends BasePlayerV2Controller {
 	public function index() {
 		ini_set('default_socket_timeout', 10);
 

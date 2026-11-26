@@ -11,7 +11,6 @@ use PHPUnit\Framework\TestCase;
  * in a child PHP against its own empty database.
  */
 final class AuditPlayerBouquetOrderTest extends TestCase {
-	private const V1 = '(new \XcVm\Public\Controllers\Player\PlayerProfileController())->index();';
 	private const V2 = '(new \XcVm\Public\Controllers\PlayerV2\ProfileController())->saveBouquets();';
 
 	private string $rDir;
@@ -101,31 +100,6 @@ final class AuditPlayerBouquetOrderTest extends TestCase {
 
 		$this->assertSame('error', $rAnswer['status']);
 		$this->assertSame('[3,1,2]', $rStored[7]);
-	}
-
-	/** The first web player saves the order from its profile page, under the same rule. */
-	public function testTheFirstPlayerKeepsTheLinesBouquetsToo(): void {
-		$rLine = ['id' => 7, 'username' => 'viewer', 'password' => 'secret', 'bouquet' => [5, 7, 9]];
-
-		[, $rStored] = $this->request(self::V1, '[true,9]', $rLine, 1, '[5,7,9]');
-		$this->assertSame('[9,5,7]', $rStored[7], 'an entry that is not a bouquet id changed what the line has');
-
-		[, $rStored] = $this->request(self::V1, '[9]', $rLine, 1, '[5,7,9]');
-		$this->assertSame('[9,5,7]', $rStored[7], 'a bouquet left out of the order was dropped');
-
-		[, $rStored] = $this->request(self::V1, '[9,5,7]', $rLine, 0, '[5,7,9]');
-		$this->assertSame('[5,7,9]', $rStored[7], 'the order was saved although the panel does not allow ordering');
-
-		[, $rStored] = $this->request(self::V1, '[5]', ['id' => 999999, 'is_external_xc' => true, 'bouquet' => []], 1, '[5,7,9]');
-		$this->assertSame('[1]', $rStored[999999], 'a session on an external server wrote to a line of this panel');
-	}
-
-	/** The first player orders the bouquets stored for the line, not the copy of the line its page was drawn from. */
-	public function testTheFirstPlayerOrdersTheStoredBouquets(): void {
-		$rLine = ['id' => 7, 'username' => 'viewer', 'password' => 'secret', 'bouquet' => [5, 7, 9]];
-
-		[, $rStored] = $this->request(self::V1, '[7]', $rLine, 1, '[5,7]');
-		$this->assertSame('[7,5]', $rStored[7], 'a bouquet the line no longer has was saved with the order');
 	}
 
 	/** The page offers the ordering tab under the same setting the save checks. */

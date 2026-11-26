@@ -1,6 +1,6 @@
 <?php
 
-namespace XcVm\Public\Controllers\Player;
+namespace XcVm\Public\Controllers\PlayerV2;
 
 use XcVm\Core\Util\ImageResizeService;
 
@@ -11,14 +11,14 @@ use XcVm\Core\Util\ImageResizeService;
  * Resizes remote/local images and caches the result as PNG.
  * Requires authenticated player session (bootstrap handles this).
  *
- * @package XC_VM_Public_Controllers_Player
+ * @package XC_VM_Public_Controllers_PlayerV2
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class PlayerResizeController extends BasePlayerController {
+class PlayerResizeController extends BasePlayerV2Controller {
 	public function index() {
 		if (session_status() === PHP_SESSION_ACTIVE) {
 			session_write_close();
@@ -40,7 +40,7 @@ class PlayerResizeController extends BasePlayerController {
 			@mkdir($cacheDir, 0775, true);
 		}
 
-		$placeholder = (defined('MAIN_HOME') ? MAIN_HOME : '/home/xc_vm/') . 'Public/assets/player/images/placeholder.png';
+		$placeholder = (defined('MAIN_HOME') ? MAIN_HOME : '/home/xc_vm/') . 'Public/assets/player_v2/img/placeholder-poster.png';
 
 		ImageResizeService::serve([
 			'cacheDir'    => $cacheDir,

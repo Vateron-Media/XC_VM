@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * The second web player signs a visitor in with a line of this panel or with
+ * The web player signs a visitor in with a line of this panel or with
  * an account on another Xtream server. A sign-in the other server refused
  * ends the request, for the page's form as for its script: the page is shown
  * again with that server's answer, and the name and password, which are that

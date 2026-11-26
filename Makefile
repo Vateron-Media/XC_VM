@@ -46,7 +46,6 @@ LB_DIRS_TO_REMOVE := \
 	Domain/Backup \
 	Public/cluster \
 	Public/Controllers/Admin \
-	Public/Controllers/Player \
 	Public/Controllers/PlayerV2 \
 	Public/Controllers/Reseller \
 	Public/Views \
