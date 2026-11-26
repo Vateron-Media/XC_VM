@@ -33,8 +33,11 @@ $rClassicLogin = UiReference::loginDesign($rSettings['login_design'] ?? null) ==
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
         <link rel="stylesheet" href="assets/vendor/css/bootstrap.css">
         <link rel="stylesheet" href="assets/vendor/css/custom.css">
-        <link rel="stylesheet" href="assets/xcvm/login-classic.css?v=1">
+        <link rel="stylesheet" href="assets/xcvm/login-classic.css?v=3">
         <script src="assets/xcvm/login-theme.js?v=3"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/@tsparticles/engine@4/tsparticles.engine.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/@tsparticles/slim@4/tsparticles.slim.bundle.min.js"></script>
+        <script defer src="assets/xcvm/login-particles.js?v=6"></script>
     <?php else: ?>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
         <link rel="stylesheet" href="assets/xcvm/login.css?v=scifi-1">
@@ -46,6 +49,7 @@ $rClassicLogin = UiReference::loginDesign($rSettings['login_design'] ?? null) ==
 </head>
 
 <body>
+    <?php if ($rClassicLogin): ?><div id="tsparticles" class="login-particles" aria-hidden="true"></div><?php endif; ?>
     <?php if (!$rClassicLogin): ?>
     <div class="background"></div>
     <div class="grid"></div>
@@ -57,7 +61,11 @@ $rClassicLogin = UiReference::loginDesign($rSettings['login_design'] ?? null) ==
                 <?php if (!$rClassicLogin): ?><span class="panel-frame" aria-hidden="true"></span><?php endif; ?>
 
                 <div class="panel-logo">
-                    <h1 class="panel-logo-main"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?></h1>
+                    <?php if ($rClassicLogin): ?>
+                        <img class="panel-logo-image" src="assets/img/logo-topbar.png" alt="<?= htmlspecialchars($rBrand, ENT_QUOTES) ?>">
+                    <?php else: ?>
+                        <h1 class="panel-logo-main"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?></h1>
+                    <?php endif; ?>
                     <div class="panel-title"><?= $language::get('reseller_access') ?></div>
                 </div>
 
