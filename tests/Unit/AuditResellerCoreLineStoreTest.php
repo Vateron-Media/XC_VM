@@ -194,6 +194,23 @@ final class AuditResellerCoreLineStoreTest extends TestCase {
 		$this->assertSame('US', $this->country());
 	}
 
+	#[DataProvider('kinds')]
+	public function testOrdinaryEditAppliesCountryAddedToTheExistingPackage(string $rKind): void {
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 1 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['package' => 1, 'forced_country' => 'US']));
+
+		[$rTable, $rKey] = ['line' => ['lines', 'id'], 'mag' => ['mag_devices', 'mag_id'], 'enigma' => ['enigma2_devices', 'device_id']][$rKind];
+		$this->rDb->query('SELECT `' . $rKey . '` FROM `' . $rTable . '`');
+		$rID = (int) $this->rDb->get_col();
+		$this->rDb->exec("UPDATE `users_packages` SET `forced_country` = 'A1' WHERE `id` = 1");
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 0 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => $rID, 'reseller_notes' => 'package tightened']));
+		$this->assertSame('A1', $this->country());
+	}
+
 	// ── a save beside an extension ──────────────────────────────────
 
 	/**
