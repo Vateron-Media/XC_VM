@@ -339,7 +339,6 @@ class ResellerAPI {
 							$rUserArray['max_connections'] = $rPackage['max_connections'];
 							$rUserArray['is_restreamer'] = $rPackage['is_restreamer'];
 							$rUserArray['force_server_id'] = $rPackage['force_server_id'];
-							$rUserArray['forced_country'] = $rPackage['forced_country'];
 							$rUserArray['is_isplock'] = $rPackage['is_isplock'];
 							$rOutputs = [];
 							$rAccessOutput = json_decode($rPackage['output_formats'], true) ?: [];
@@ -383,7 +382,7 @@ class ResellerAPI {
 				}
 			}
 
-			if (!empty($rData['package']) || array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
 				try {
 					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {
@@ -489,7 +488,7 @@ class ResellerAPI {
 						$rPrepare = QueryHelper::prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `mag_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = $db->last_insert_id();
+							$rInsertID = isset($rData['edit']) ? (int) $rData['edit'] : $db->last_insert_id();
 
 							if ($rOwn) {
 								$db->commit();
@@ -671,7 +670,6 @@ class ResellerAPI {
 							$rUserArray['max_connections'] = $rPackage['max_connections'];
 							$rUserArray['is_restreamer'] = $rPackage['is_restreamer'];
 							$rUserArray['force_server_id'] = $rPackage['force_server_id'];
-							$rUserArray['forced_country'] = $rPackage['forced_country'];
 							$rUserArray['is_isplock'] = $rPackage['is_isplock'];
 							$rOutputs = [];
 							$rAccessOutput = json_decode($rPackage['output_formats'], true) ?: [];
@@ -715,7 +713,7 @@ class ResellerAPI {
 				}
 			}
 
-			if (!empty($rData['package']) || array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
 				try {
 					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {
@@ -807,7 +805,7 @@ class ResellerAPI {
 						$rPrepare = QueryHelper::prepareArray($rArray);
 						$rQuery = 'REPLACE INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 						if ($db->query($rQuery, ...$rPrepare['data'])) {
-							$rInsertID = $db->last_insert_id();
+							$rInsertID = isset($rData['edit']) ? (int) $rData['edit'] : $db->last_insert_id();
 
 							if ($rOwn) {
 								$db->commit();
@@ -1190,7 +1188,6 @@ class ResellerAPI {
 							$rArray['max_connections'] = $rPackage['max_connections'];
 							$rArray['is_restreamer'] = $rPackage['is_restreamer'];
 							$rArray['force_server_id'] = $rPackage['force_server_id'];
-							$rArray['forced_country'] = $rPackage['forced_country'];
 							$rArray['is_isplock'] = $rPackage['is_isplock'];
 							$rArray['package_id'] = $rPackage['id'];
 						} else {
@@ -1226,7 +1223,7 @@ class ResellerAPI {
 				}
 			}
 
-			if (!empty($rData['package']) || array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
 				try {
 					$rArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {

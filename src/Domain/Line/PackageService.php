@@ -50,13 +50,14 @@ class PackageService {
 			return ['status' => STATUS_INVALID_NAME, 'data' => $rData];
 		}
 
-		foreach (['is_trial', 'is_official', 'is_mag', 'is_e2', 'is_line', 'lock_device', 'is_restreamer', 'is_isplock', 'check_compatible', 'preserve_bouquets_on_renewal'] as $rSelection) {
+		foreach (['is_trial', 'is_official', 'is_mag', 'is_e2', 'is_line', 'lock_device', 'is_restreamer', 'is_isplock', 'check_compatible'] as $rSelection) {
 			if (isset($rData[$rSelection])) {
 				$rArray[$rSelection] = 1;
 			} else {
 				$rArray[$rSelection] = 0;
 			}
 		}
+		$rArray['preserve_bouquets_on_renewal'] = filter_var($rData['preserve_bouquets_on_renewal'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
 
 		$rArray['groups'] = '[' . implode(',', array_map('intval', json_decode($rData['groups_selected'], true))) . ']';
 		$rArray['bouquets'] = AdminHelpers::sortArrayByArray(array_values(json_decode($rData['bouquets_selected'], true)), array_keys(BouquetService::getOrder()));

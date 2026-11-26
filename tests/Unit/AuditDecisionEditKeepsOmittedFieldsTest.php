@@ -201,6 +201,18 @@ final class AuditDecisionEditKeepsOmittedFieldsTest extends TestCase {
 		$this->assertEquals(['package_name' => 'Renamed'] + $rStored, $this->row('users_packages', 'id', 3));
 	}
 
+	public function testAPackageCreateHonoursAnExplicitlyDisabledPreserveFlag(): void {
+		$GLOBALS['rUserInfo'] = ['id' => 1, 'member_group_id' => 1];
+		$GLOBALS['rPermissions'] = ['is_admin' => 1, 'advanced' => []];
+
+		$rResult = \XcVm\Domain\Line\PackageService::process([
+			'package_name' => 'Fresh', 'groups_selected' => '[]', 'bouquets_selected' => '[]', 'preserve_bouquets_on_renewal' => '0',
+		]);
+
+		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+		$this->assertSame(0, (int) $this->row('users_packages', 'id', (int) $rResult['data']['insert_id'])['preserve_bouquets_on_renewal']);
+	}
+
 	public function testAProviderEditKeepsItsAddressAndSwitches(): void {
 		$this->rDb->exec("INSERT INTO `providers` (`id`, `name`, `ip`, `port`, `username`, `password`, `enabled`, `ssl`, `hls`, `legacy`) VALUES (2, 'Upstream', 'provider.example', 8080, 'name', 'secret', 1, 1, 1, 1)");
 		$rStored = $this->row('providers', 'id', 2);
