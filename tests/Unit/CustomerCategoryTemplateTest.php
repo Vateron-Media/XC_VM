@@ -120,6 +120,20 @@ final class CustomerCategoryTemplateTest extends TestCase {
 		$this->assertSame((int) $result['id'], $layout['template_id']);
 	}
 
+	public function testStoredLegacyRadioLayoutIsPreservedWhenRadioSectionIsEmpty(): void {
+		$this->addLine(22, 5, null, [
+			'live_cat' => ['order' => '11,30,10', 'hide_ids' => '30', 'renamed' => ['30' => 'My Radio']],
+			'radio_cat' => [],
+		]);
+
+		CategoryTemplateService::prepareCustomerTemplate(22, ['id' => 5]);
+		$layout = $this->layout(22);
+
+		$this->assertSame('30', $layout['radio_cat']['order']);
+		$this->assertSame('30', $layout['radio_cat']['hide_ids']);
+		$this->assertSame('My Radio', $layout['radio_cat']['renamed']['30']);
+	}
+
 	public function testParentCreatesAChildOwnedTemplateBothCanEdit(): void {
 		$shared = $this->template(1, 'Shared', 1, 1);
 		$this->addLine(21, 6, $shared);

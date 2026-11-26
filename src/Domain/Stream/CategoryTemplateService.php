@@ -791,7 +791,7 @@ class CategoryTemplateService {
 		try {
 			$sectionKeys = ['live' => 'live_cat', 'movie' => 'vod_cat', 'series' => 'series_cat', 'radio' => 'radio_cat'];
 			foreach ($sectionKeys as $type => $key) {
-				if ($type === 'radio' && !array_key_exists('radio_cat', $customData)) {
+				if ($type === 'radio' && (empty($customData['radio_cat']) || !is_array($customData['radio_cat']))) {
 					$key = 'live_cat';
 				}
 				$section = is_array($customData[$key] ?? null) ? $customData[$key] : [];
