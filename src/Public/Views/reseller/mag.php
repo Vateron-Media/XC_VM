@@ -11,7 +11,7 @@
  * ResellerAPI::processData('mag') keeps ONLY: edit, trial, bouquets_selected,
  * pair_id, mac, member_id, package, parent_password, sn, stb_type, image_version,
  * hw_version, device_id, device_id2, ver, reseller_notes, allowed_ips, is_isplock,
- * isp_clear — this form emits exactly those. Package selection calls
+ * isp_clear, forced_country — this form emits exactly those. Package selection calls
  * ./api?action=get_package[_trial] and fills the review table with the package's
  * bouquets as bouquets_selected[] checkboxes (only when allow_change_bouquets),
  * mirroring the legacy footer.php reseller "mag" script.
@@ -74,6 +74,7 @@ $rStatusMessages = [
     STATUS_NO_TRIALS            => 'You cannot generate trials at this time.',
     STATUS_INSUFFICIENT_CREDITS => 'You do not have enough credits to make this purchase.',
     STATUS_INVALID_PACKAGE      => 'Please select a valid package.',
+    STATUS_NO_BOUQUETS          => $language::get('renewal_no_bouquets'),
     STATUS_INVALID_MAC          => 'Please enter a valid MAC address.',
     STATUS_EXISTS_MAC           => 'The MAC address you entered is already in use.',
 ];
@@ -183,6 +184,8 @@ $rStatusMessages = [
                                 <?php endforeach; ?>
                             </select>
                         </div>
+
+                        <?php $rForcedCountryLine = $rLine['forced_country'] ?? ''; $rForcedCountryPackage = $rOrigPackage['forced_country'] ?? ''; require __DIR__ . '/partials/forced_country.php'; ?>
 
                         <div id="package_info" class="row mb-6" style="display:none;">
                             <div class="col-md-6">
@@ -513,6 +516,7 @@ LayoutRenderer::renderFooter('reseller');
                             show('package_warning', !data.data.compatible);
                             var isp = document.getElementById('is_isplock');
                             if (isp) { isp.checked = (data.data.is_isplock == 1); }
+                            if (window.updateResellerForcedCountry) { window.updateResellerForcedCountry(data.data.forced_country, ''); }
                             setVal('package_cost', data.data.cost_credits);
                             setVal('package_duration', data.data.duration);
                             show('package_info', true);
@@ -522,6 +526,7 @@ LayoutRenderer::renderFooter('reseller');
                     .catch(function() { /* leave table cleared */ });
             } else {
                 <?php if (isset($rLine)): ?>
+                if (window.updateResellerForcedCountry) { window.updateResellerForcedCountry(<?= json_encode($rOrigPackage['forced_country'] ?? ''); ?>, <?= json_encode($rLine['forced_country'] ?? ''); ?>); }
                 setText('cost_credits', '0');
                 setText('remaining_credits', nf.format(ownerCredits));
                 setVal('exp_date', lineExpDate);

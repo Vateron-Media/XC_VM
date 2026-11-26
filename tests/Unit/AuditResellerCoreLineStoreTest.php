@@ -127,6 +127,12 @@ final class AuditResellerCoreLineStoreTest extends TestCase {
 		return (float) $this->rDb->get_col();
 	}
 
+	private function country(): ?string {
+		$this->rDb->query('SELECT `forced_country` FROM `lines`');
+		$rCountry = $this->rDb->get_col();
+		return $rCountry === null || $rCountry === '' ? null : (string) $rCountry;
+	}
+
 	/** @return array<string, array{0: string}> what a reseller sells */
 	public static function kinds(): array {
 		return ['a line' => ['line'], 'a MAG device' => ['mag'], 'an Enigma2 device' => ['enigma']];
@@ -135,6 +141,74 @@ final class AuditResellerCoreLineStoreTest extends TestCase {
 	/** @return array<string, array{0: string}> what is kept in a line and a device row */
 	public static function devices(): array {
 		return ['a MAG device' => ['mag'], 'an Enigma2 device' => ['enigma']];
+	}
+
+	#[DataProvider('kinds')]
+	public function testDelegatedCountryIsStoredByEveryResellerPath(string $rKind): void {
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 1 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['package' => 1, 'forced_country' => 'US']));
+		$this->assertSame('US', $this->country());
+
+		$this->rDb->query("SELECT `owner`, `type`, `log_id`, `deleted_info` FROM `users_logs` WHERE `action` = 'forced_country'");
+		$rAudit = $this->rDb->get_row();
+		$this->assertSame(self::RESELLER, (int) $rAudit['owner']);
+		$this->assertSame($rKind, $rAudit['type']);
+		$this->assertGreaterThan(0, (int) $rAudit['log_id']);
+		$this->assertSame(['old' => null, 'new' => 'US'], json_decode($rAudit['deleted_info'], true));
+	}
+
+	public function testPackageCountryWinsAndRevocationBlocksTheNextEdit(): void {
+		$this->rDb->exec("UPDATE `users_packages` SET `forced_country` = 'A1' WHERE `id` = 1");
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 1 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+
+		$this->assertSame(STATUS_SUCCESS, $this->save('line', ['package' => 1, 'forced_country' => 'US']));
+		$this->assertSame('A1', $this->country());
+		$this->rDb->query('SELECT `id` FROM `lines`');
+		$rLineID = (int) $this->rDb->get_col();
+		$this->rDb->exec('UPDATE `users_packages` SET `forced_country` = NULL WHERE `id` = 1');
+		$this->assertSame(STATUS_SUCCESS, $this->save('line', ['edit' => $rLineID, 'forced_country' => 'US']));
+		$this->assertSame('US', $this->country());
+
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 0 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+		$this->assertSame(STATUS_INVALID_INPUT, $this->save('line', ['edit' => $rLineID, 'forced_country' => 'CA']));
+		$this->assertSame('US', $this->country());
+	}
+
+	#[DataProvider('kinds')]
+	public function testEditWithoutCountryKeepsDelegatedLockAfterRevocation(string $rKind): void {
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 1 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['package' => 1, 'forced_country' => 'US']));
+
+		[$rTable, $rKey] = ['line' => ['lines', 'id'], 'mag' => ['mag_devices', 'mag_id'], 'enigma' => ['enigma2_devices', 'device_id']][$rKind];
+		$this->rDb->query('SELECT `' . $rKey . '` FROM `' . $rTable . '`');
+		$rID = (int) $this->rDb->get_col();
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 0 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => $rID, 'reseller_notes' => 'kept']));
+		$this->assertSame('US', $this->country());
+	}
+
+	#[DataProvider('kinds')]
+	public function testOrdinaryEditAppliesCountryAddedToTheExistingPackage(string $rKind): void {
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 1 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['package' => 1, 'forced_country' => 'US']));
+
+		[$rTable, $rKey] = ['line' => ['lines', 'id'], 'mag' => ['mag_devices', 'mag_id'], 'enigma' => ['enigma2_devices', 'device_id']][$rKind];
+		$this->rDb->query('SELECT `' . $rKey . '` FROM `' . $rTable . '`');
+		$rID = (int) $this->rDb->get_col();
+		$this->rDb->exec("UPDATE `users_packages` SET `forced_country` = 'A1' WHERE `id` = 1");
+		$this->rDb->exec('UPDATE `users` SET `can_set_forced_country` = 0 WHERE `id` = ' . self::RESELLER);
+		$this->startRequest();
+
+		$this->assertSame(STATUS_SUCCESS, $this->save($rKind, ['edit' => $rID, 'reseller_notes' => 'package tightened']));
+		$this->assertSame('A1', $this->country());
 	}
 
 	// ── a save beside an extension ──────────────────────────────────

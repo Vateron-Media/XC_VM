@@ -15,6 +15,7 @@ use XcVm\Domain\Device\DeviceUserAgentPolicy;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Line\ActiveCodeService;
+use XcVm\Domain\Line\ForcedCountryPolicy;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
@@ -51,7 +52,7 @@ class ResellerAPI {
 	 * @return array Action result.
 	 */
 	public static function processData(string $rType, array $rData) {
-		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'telegram', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'category_template_id'], 'mag' => ['ua_policy_present', 'lock_user_agent', 'allowed_user_agents', 'edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'category_template_id'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
+		$rArray = ['line' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'username', 'password', 'member_id', 'package', 'contact', 'telegram', 'reseller_notes', 'allowed_ips', 'allowed_ua', 'bypass_ua', 'is_isplock', 'isp_clear', 'forced_country', 'category_template_id'], 'mag' => ['ua_policy_present', 'lock_user_agent', 'allowed_user_agents', 'edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'forced_country', 'category_template_id'], 'enigma' => ['edit', 'trial', 'bouquets_selected', 'bouquets_present', 'bouquet_order', 'pair_id', 'mac', 'member_id', 'package', 'modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token', 'telegram', 'reseller_notes', 'allowed_ips', 'is_isplock', 'isp_clear', 'forced_country', 'category_template_id'], 'user' => ['edit', 'username', 'password', 'owner_id', 'email', 'reseller_dns', 'notes', 'member_group_id'], 'ticket' => ['edit', 'message', 'title', 'respond'], 'profile' => ['email', 'password', 'api_key', 'reseller_dns', 'theme', 'hue', 'timezone', 'lang']];
 
 		foreach ($rData as $rKey => $rValue) {
 			if (!in_array($rKey, $rArray[$rType])) {
@@ -382,6 +383,14 @@ class ResellerAPI {
 				}
 			}
 
+			if (!empty($rData['package']) || array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+				try {
+					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
+				} catch (\InvalidArgumentException) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
+			}
+
 			foreach (['parent_password', 'sn', 'stb_type', 'image_version', 'hw_version', 'device_id', 'device_id2', 'ver'] as $rKey) {
 				$rArray[$rKey] = $rData[$rKey];
 			}
@@ -452,7 +461,10 @@ class ResellerAPI {
 
 					// The price leaves the balance as it is stored now, before anything
 					// is sold: a balance that no longer covers it sells nothing.
-					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
+					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine, !empty($rData['package']) ? ($rPackage ?? []) : []);
+					if ($rUserArray === null) {
+						return ['status' => STATUS_NO_BOUQUETS, 'error' => \XcVm\Core\Localization\Translator::get('renewal_no_bouquets'), 'data' => $rData];
+					}
 
 					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
 						return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
@@ -485,6 +497,7 @@ class ResellerAPI {
 
 							MagService::syncLineDevices($rArray['user_id']);
 							SignalDispatcher::cache(intval(SERVER_ID), ['type' => 'update_line', 'id' => $rArray['user_id']], false, false, $db);
+							self::logForcedCountryChange('mag', $rInsertID, $rOriginalLine, $rUserArray);
 
 							if (isset($rPackage)) {
 								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
@@ -525,6 +538,24 @@ class ResellerAPI {
 			return ['status' => STATUS_INVALID_MAC, 'data' => $rData];
 		}
 		return false;
+	}
+
+	private static function logForcedCountryChange(string $rType, int $rResourceID, array $rBefore, array $rAfter): void {
+		$rOld = isset($rBefore['id']) ? (trim((string) ($rBefore['forced_country'] ?? '')) ?: null) : null;
+		$rNew = trim((string) ($rAfter['forced_country'] ?? '')) ?: null;
+		if ($rOld === $rNew) {
+			return;
+		}
+
+		self::db()->query(
+			"INSERT INTO `users_logs` (`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES (?, ?, 'forced_country', ?, null, 0, ?, ?, ?);",
+			self::$rUserInfo['id'],
+			$rType,
+			$rResourceID,
+			self::amount(UserCredits::balance((int) self::$rUserInfo['id'])),
+			time(),
+			json_encode(['old' => $rOld, 'new' => $rNew])
+		);
 	}
 
 	/**
@@ -684,6 +715,14 @@ class ResellerAPI {
 				}
 			}
 
+			if (!empty($rData['package']) || array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+				try {
+					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
+				} catch (\InvalidArgumentException) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
+			}
+
 			foreach (['modem_mac', 'local_ip', 'enigma_version', 'cpu', 'lversion', 'token'] as $rKey) {
 				$rArray[$rKey] = $rData[$rKey];
 			}
@@ -741,7 +780,10 @@ class ResellerAPI {
 
 					// The price leaves the balance as it is stored now, before anything
 					// is sold: a balance that no longer covers it sells nothing.
-					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
+					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine, !empty($rData['package']) ? ($rPackage ?? []) : []);
+					if ($rUserArray === null) {
+						return ['status' => STATUS_NO_BOUQUETS, 'error' => \XcVm\Core\Localization\Translator::get('renewal_no_bouquets'), 'data' => $rData];
+					}
 					$rUserArray = \XcVm\Domain\Stream\CategoryTemplateService::applyCustomData($rData, $rUserArray);
 
 					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
@@ -773,6 +815,7 @@ class ResellerAPI {
 
 							MagService::syncLineDevices($rArray['user_id']);
 							SignalDispatcher::cache(intval(SERVER_ID), ['type' => 'update_line', 'id' => $rArray['user_id']], false, false, $db);
+							self::logForcedCountryChange('enigma', $rInsertID, $rOriginalLine, $rUserArray);
 
 							if (isset($rPackage)) {
 								$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));
@@ -1183,6 +1226,14 @@ class ResellerAPI {
 				}
 			}
 
+			if (!empty($rData['package']) || array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+				try {
+					$rArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
+				} catch (\InvalidArgumentException) {
+					return ['status' => STATUS_INVALID_INPUT, 'data' => $rData];
+				}
+			}
+
 			$rArray['contact'] = $rData['contact'];
 			$rArray['reseller_notes'] = $rData['reseller_notes'];
 			// The subscriber's Telegram username for the expiry reminders, kept when not sent.
@@ -1328,7 +1379,10 @@ class ResellerAPI {
 				// nothing is charged. The price leaves the balance as it is stored
 				// now, before anything is sold: a balance that no longer covers it
 				// sells nothing.
-				$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
+				$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine, !empty($rData['package']) ? ($rPackage ?? []) : []);
+				if ($rArray === null) {
+					return ['status' => STATUS_NO_BOUQUETS, 'error' => \XcVm\Core\Localization\Translator::get('renewal_no_bouquets'), 'data' => $rData];
+				}
 
 				if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost ?? 0)) {
 					return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
@@ -1336,6 +1390,7 @@ class ResellerAPI {
 
 				if (($rInsertID = self::storeLineWithRefresh($rArray, $rExpDate, $rOriginalLine)) !== null) {
 					MagService::syncLineDevices($rInsertID);
+					self::logForcedCountryChange('line', $rInsertID, $rOriginalLine, $rArray);
 
 					if (isset($rPackage)) {
 						$rNewCredits = self::amount(UserCredits::balance(self::$rUserInfo['id']));

@@ -163,9 +163,17 @@ class ActiveCodeService {
 		}
 		// The package's country lock is part of what a reseller sells; an
 		// administrator sets another or lifts it.
-		$forcedCountry = ($isAdmin && array_key_exists('forced_country', $data))
-			? (trim((string) $data['forced_country']) ?: null)
-			: (trim((string) ($package['forced_country'] ?? '')) ?: null);
+		if ($isAdmin) {
+			$forcedCountry = array_key_exists('forced_country', $data)
+				? (trim((string) $data['forced_country']) ?: null)
+				: (trim((string) ($package['forced_country'] ?? '')) ?: null);
+		} else {
+			try {
+				$forcedCountry = ForcedCountryPolicy::resolve($package, $user, $data);
+			} catch (\InvalidArgumentException $rError) {
+				return ['status' => 'ERROR', 'message' => $rError->getMessage()];
+			}
+		}
 		// The reseller form has no connection count; the package decides it.
 		$maxConnections = $isAdmin
 			? intval($data['max_connections'] ?? ($package['max_connections'] ?: 1))
@@ -336,6 +344,17 @@ class ActiveCodeService {
 				if (!$acInsertResult || $acId <= 0) {
 					$lastErr = (isset($db->lastError) && $db->lastError) ? $db->lastError : 'Database error';
 					throw new \RuntimeException("Failed to register activation code {$code}: {$lastErr}");
+				}
+				if (!$isAdmin && $forcedCountry !== null) {
+					$db->query(
+						"INSERT INTO `users_logs` (`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES (?, 'active_code', 'forced_country', ?, ?, 0, ?, ?, ?);",
+						$user['id'],
+						$acId,
+						$packageId,
+						UserCredits::balance((int) $user['id']),
+						time(),
+						json_encode(['old' => null, 'new' => $forcedCountry])
+					);
 				}
 
 				$generatedCodes[] = [

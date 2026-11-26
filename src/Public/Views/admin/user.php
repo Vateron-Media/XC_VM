@@ -131,6 +131,13 @@ $rReserved  = GroupService::reservedGroups();
                         <div class="form-text">Packages still define the default bouquets for Create Line and Generate Trial. This limit applies to new customers and the next save of existing customers. An empty restricted selection allows no bouquets.</div>
                     </div>
 
+                    <div class="form-check form-switch mb-6">
+                        <input type="hidden" name="can_set_forced_country" value="0">
+                        <input class="form-check-input" type="checkbox" id="can_set_forced_country" name="can_set_forced_country" value="1" <?= ($rIsEdit && !empty($rUser['can_set_forced_country'])) ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="can_set_forced_country">Can set forced country</label>
+                        <div class="form-text">Allows this reseller to choose a country only when the selected package does not enforce one.</div>
+                    </div>
+
                     <div>
                         <label class="form-label" for="notes"><?= $language::get('notes'); ?></label>
                         <textarea id="notes" name="notes" class="form-control" rows="3"><?= $rIsEdit ? htmlspecialchars((string) $rUser['notes'], ENT_QUOTES) : ''; ?></textarea>

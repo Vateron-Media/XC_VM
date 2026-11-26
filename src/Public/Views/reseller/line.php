@@ -10,7 +10,7 @@
  * Posts to post.php?action=line (ResellerPostController -> ResellerAPI::processLine).
  * ResellerAPI::processData('line') keeps ONLY: edit, trial, bouquets_selected,
  * pair_id, username, password, member_id, package, contact, reseller_notes,
- * allowed_ips, allowed_ua, bypass_ua, is_isplock, isp_clear — this form emits
+ * allowed_ips, allowed_ua, bypass_ua, is_isplock, isp_clear, forced_country — this form emits
  * exactly those. The reseller flow is package-driven: selecting a package calls
  * ./api?action=get_package[_trial] and fills the review table with the package's
  * bouquets as bouquets_selected[] checkboxes (only when allow_change_bouquets),
@@ -84,6 +84,7 @@ $rStatusMessages = [
     STATUS_NO_TRIALS            => 'You cannot generate trials at this time.',
     STATUS_INSUFFICIENT_CREDITS => 'You do not have enough credits to make this purchase.',
     STATUS_INVALID_PACKAGE      => 'Please select a valid package.',
+    STATUS_NO_BOUQUETS          => $language::get('renewal_no_bouquets'),
     // One answer for two rules: the group's minimum length, and the character neither can hold.
     STATUS_INVALID_USERNAME     => $language::get('line_username_rule', ['{num}' => (string) intval($rPermissions['minimum_username_length'])]),
     STATUS_INVALID_PASSWORD     => $language::get('line_password_rule', ['{num}' => (string) intval($rPermissions['minimum_password_length'])]),
@@ -217,6 +218,8 @@ $rStatusMessages = [
                                 <?php endforeach; ?>
                             </select>
                         </div>
+
+                        <?php $rForcedCountryLine = $rLine['forced_country'] ?? ''; $rForcedCountryPackage = $rOrigPackage['forced_country'] ?? ''; require __DIR__ . '/partials/forced_country.php'; ?>
 
                         <div id="package_info" class="row mb-6" style="display:none;">
                             <div class="col-md-6">
@@ -527,6 +530,7 @@ LayoutRenderer::renderFooter('reseller');
                             document.getElementById('package_warning').style.display = data.data.compatible ? 'none' : '';
                             var isp = document.getElementById('is_isplock');
                             if (isp) { isp.checked = (data.data.is_isplock == 1); }
+                            if (window.updateResellerForcedCountry) { window.updateResellerForcedCountry(data.data.forced_country, ''); }
                             document.getElementById('package_cost').value = data.data.cost_credits;
                             document.getElementById('package_duration').value = data.data.duration;
                             document.getElementById('package_info').style.display = '';
@@ -536,6 +540,7 @@ LayoutRenderer::renderFooter('reseller');
                     .catch(function() { /* leave table cleared */ });
             } else {
                 <?php if ($rIsEdit): ?>
+                if (window.updateResellerForcedCountry) { window.updateResellerForcedCountry(<?= json_encode($rOrigPackage['forced_country'] ?? ''); ?>, <?= json_encode($rLine['forced_country'] ?? ''); ?>); }
                 document.getElementById('max_connections').value = lineMaxConnections;
                 document.getElementById('cost_credits').textContent = '0';
                 document.getElementById('remaining_credits').textContent = nf.format(ownerCredits);

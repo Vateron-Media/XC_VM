@@ -47,8 +47,26 @@ final class ResellerBouquetPolicy {
 		return array_values(array_unique(array_merge(self::filter(self::ids($order), $bouquets), $bouquets)));
 	}
 
-	/** Preserve package defaults unless the customer form explicitly sends a selection. */
-	public static function apply(array $line, array $data, array $actor, array $permissions, object $db, array $previous = []): array {
+	/** Preserve a safe saved renewal selection, otherwise apply package defaults and an explicit form selection. */
+	public static function apply(array $line, array $data, array $actor, array $permissions, object $db, array $previous = [], array $package = []): ?array {
+		if (!empty($package['preserve_bouquets_on_renewal']) && !empty($previous['id'])) {
+			$bouquets = self::filter(self::ids($previous['bouquet'] ?? []), self::ids($package['bouquets'] ?? []));
+			if ($bouquets !== []) {
+				$placeholders = implode(',', array_fill(0, count($bouquets), '?'));
+				if ($db->query("SELECT `id` FROM `bouquets` WHERE `id` IN ({$placeholders});", ...$bouquets) === false) {
+					throw new \RuntimeException('Cannot validate renewal bouquets.');
+				}
+				$bouquets = self::filter($bouquets, array_column($db->get_rows(), 'id'));
+			}
+			$bouquets = self::filter($bouquets, self::forOwner($db, (int) ($line['member_id'] ?? 0)));
+			$bouquets = self::filter($bouquets, self::allowed($actor));
+			if ($bouquets === []) {
+				return null;
+			}
+			$line['bouquet'] = json_encode($bouquets, JSON_THROW_ON_ERROR);
+			$line['bouquet_order_custom'] = 1;
+			return $line;
+		}
 		$line = self::preserveOrder($line, $previous);
 		$bouquets = self::filter(self::ids($line['bouquet'] ?? []), self::forOwner($db, (int) ($line['member_id'] ?? 0)));
 		$bouquets = self::filter($bouquets, self::allowed($actor));

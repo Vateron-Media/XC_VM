@@ -1115,7 +1115,7 @@ class AdminAPIWrapper {
 		$rData['edit'] = $rID;
 		$rStored = self::storedRow('SELECT * FROM `users_packages` WHERE `id` = ?;', $rID);
 		$rKept = ['package_name' => $rStored['package_name'], 'groups_selected' => json_encode(self::storedList($rStored['groups'])), 'bouquets_selected' => json_encode(self::storedList($rStored['bouquets']))];
-		$rSwitches = array_intersect_key($rStored, array_flip(['is_trial', 'is_official', 'is_mag', 'is_e2', 'is_line', 'lock_device', 'is_restreamer', 'is_isplock', 'check_compatible']));
+		$rSwitches = array_intersect_key($rStored, array_flip(['is_trial', 'is_official', 'is_mag', 'is_e2', 'is_line', 'lock_device', 'is_restreamer', 'is_isplock', 'check_compatible', 'preserve_bouquets_on_renewal']));
 		$rData = self::keepFields($rData, $rKept, $rSwitches, ['groups_selected' => '[]', 'bouquets_selected' => '[]']);
 		$rReturn = parseerror(PackageService::process($rData));
 		if (isset($rReturn['data']['insert_id'])) {
