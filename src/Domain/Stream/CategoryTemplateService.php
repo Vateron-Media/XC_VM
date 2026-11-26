@@ -311,7 +311,8 @@ class CategoryTemplateService {
 				$isShared ? 1 : 0,
 				$now,
 				$now
-			)) {
+			)
+			) {
 				throw new \RuntimeException('Failed to create template in database.');
 			}
 
@@ -358,7 +359,8 @@ class CategoryTemplateService {
 					(int) $cat['id'],
 					$section,
 					$orderCounters[$section]
-				)) {
+				)
+				) {
 					throw new \RuntimeException('Failed to create template categories.');
 				}
 			}
@@ -370,7 +372,9 @@ class CategoryTemplateService {
 				$seriesCount,
 				$radioCount,
 				$templateId
-			) || !$db->commit()) {
+			)
+				|| !$db->commit()
+			) {
 				throw new \RuntimeException('Failed to finish template creation.');
 			}
 
@@ -487,7 +491,8 @@ class CategoryTemplateService {
 						$sortOrder,
 						$isVisible,
 						$customName
-					)) {
+					)
+					) {
 						throw new \RuntimeException('Failed to save template categories.');
 					}
 				}
@@ -514,7 +519,8 @@ class CategoryTemplateService {
 				$radioCount,
 				date('Y-m-d H:i:s'),
 				$templateId
-			)) {
+			)
+			) {
 				throw new \RuntimeException('Failed to save template.');
 			}
 
@@ -621,7 +627,8 @@ class CategoryTemplateService {
 				(int) ($source['radio_count'] ?? 0),
 				$now,
 				$now
-			)) {
+			)
+			) {
 				throw new \RuntimeException('Failed to create template clone.');
 			}
 
@@ -647,7 +654,8 @@ class CategoryTemplateService {
 					(int) $it['sort_order'],
 					(int) $it['is_visible'],
 					$it['custom_name']
-				)) {
+				)
+				) {
 					throw new \RuntimeException('Failed to copy template categories.');
 				}
 			}
@@ -812,7 +820,8 @@ class CategoryTemplateService {
 						$templateId,
 						$categoryId,
 						$type
-					)) {
+					)
+					) {
 						throw new \RuntimeException();
 					}
 				}
