@@ -252,7 +252,7 @@ class LineAjaxController extends BaseResellerAjaxController {
 		$db = self::db();
 		$rReturn = [];
 		$rOverride = json_decode($rUserInfo['override_packages'], true);
-		$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `check_compatible`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
+		$db->query('SELECT `id`, `bouquets`, `official_credits` AS `cost_credits`, `official_duration`, `official_duration_in`, `max_connections`, `check_compatible`, `is_isplock`, `forced_country` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 
 		if ($db->num_rows() == 1) {
 			$rData = UserCredits::amounts($db->get_row());
@@ -315,7 +315,7 @@ class LineAjaxController extends BaseResellerAjaxController {
 		[$rUserInfo] = $this->begin();
 		$db = self::db();
 		$rReturn = [];
-		$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `is_isplock` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
+		$db->query('SELECT `bouquets`, `trial_credits` AS `cost_credits`, `trial_duration`, `trial_duration_in`, `max_connections`, `is_isplock`, `forced_country` FROM `users_packages` WHERE `id` = ?;', RequestManager::get('package_id'));
 		if ($db->num_rows() == 1) {
 			$rData = UserCredits::amounts($db->get_row());
 			$rData['exp_date'] = date('Y-m-d H:i', strtotime('+' . intval($rData['trial_duration']) . ' ' . $rData['trial_duration_in']));

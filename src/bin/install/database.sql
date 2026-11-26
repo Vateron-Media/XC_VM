@@ -2236,6 +2236,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `owner_id` int(11) DEFAULT '0',
   `override_packages` text COLLATE utf8_unicode_ci,
   `allowed_bouquets` text COLLATE utf8_unicode_ci DEFAULT NULL,
+  `can_set_forced_country` tinyint(1) NOT NULL DEFAULT '0',
   `hue` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL,
   `theme` int(1) DEFAULT '0',
   `ui_prefs` text COLLATE utf8_unicode_ci DEFAULT NULL,

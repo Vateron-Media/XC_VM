@@ -194,6 +194,8 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                         </select>
                     </div>
 
+                    <?php $rForcedCountryLine = ''; $rForcedCountryPackage = ''; require __DIR__ . '/partials/forced_country.php'; ?>
+
                     <!-- Category Template Customization -->
                     <?php if (!empty($categoryTemplates)): ?>
                         <div class="mb-4">
@@ -674,6 +676,7 @@ LayoutRenderer::renderFooter('reseller');
             // Auto-check bouquets matching selected package
             jQuery('#package_id').on('change', function() {
                 const pkgId = this.value;
+                if (window.updateResellerForcedCountry) { window.updateResellerForcedCountry(packagePrices[pkgId] ? packagePrices[pkgId].forced_country : '', ''); }
                 if (packagePrices[pkgId] && packagePrices[pkgId].bouquets) {
                     const allowed = new Set(packagePrices[pkgId].bouquets.map(Number));
                     jQuery('.bq-checkbox').each(function() {
