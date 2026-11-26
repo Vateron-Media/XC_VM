@@ -104,7 +104,7 @@ class CategoryTemplateAjaxController extends BaseAjaxController {
 				|| !Authorization::check('line', $customerLineId)
 				|| (int) ($customData['template_id'] ?? 0) !== $id
 				|| !$template
-				|| (int) $template['owner_id'] !== (int) $user['id']
+				|| (int) $template['owner_id'] !== (int) $customerLine['member_id']
 				|| !empty($template['is_system'])
 				|| !empty($template['is_shared'])
 				|| (int) $template['subscriber_count'] !== 1

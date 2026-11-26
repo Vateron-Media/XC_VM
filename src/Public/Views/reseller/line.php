@@ -278,10 +278,10 @@ $rStatusMessages = [
                             <?php if ($rIsEdit): ?>
                                 <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
                                     <span class="badge bg-label-info">
-                                        <i class="icon-base ti tabler-info-circle me-1"></i><?= htmlspecialchars((string) ($categoryTemplateStatus['name'] ?? 'Global / default order'), ENT_QUOTES); ?>
+                                        <i class="icon-base ti tabler-info-circle me-1"></i><?= htmlspecialchars($language::get('category_order_' . ($categoryTemplateStatus['type'] ?? 'default')) . (!empty($categoryTemplateStatus['name']) ? ': ' . $categoryTemplateStatus['name'] : ''), ENT_QUOTES); ?>
                                     </span>
                                     <button type="button" class="btn btn-sm btn-primary" id="custom-category-order" data-line-id="<?= (int) $rLine['id']; ?>">
-                                        <i class="icon-base ti tabler-arrows-sort me-1"></i>Custom Category Order
+                                        <i class="icon-base ti tabler-arrows-sort me-1"></i><?= $language::get('custom_category_order'); ?>
                                     </button>
                                 </div>
                             <?php endif; ?>

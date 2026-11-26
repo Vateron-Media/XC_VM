@@ -671,28 +671,28 @@ class CategoryTemplateService {
 	 *
 	 * @return array{type: string, name: string, template_id: int}
 	 */
-	public static function getLineTemplateStatus(array $line, array $user): array {
+	public static function getLineTemplateStatus(array $line): array {
 		$customData = self::parseCustomData($line['custom_data'] ?? null);
 		$templateId = (int) ($customData['template_id'] ?? 0);
 		if ($templateId <= 0) {
 			return empty($customData)
-				? ['type' => 'default', 'name' => 'Global / default order', 'template_id' => 0]
-				: ['type' => 'customer', 'name' => 'Customer-specific layout', 'template_id' => 0];
+				? ['type' => 'default', 'name' => '', 'template_id' => 0]
+				: ['type' => 'customer', 'name' => '', 'template_id' => 0];
 		}
 
 		$template = self::getTemplateById($templateId);
 		if (!$template) {
-			return ['type' => 'customer', 'name' => 'Customer-specific layout', 'template_id' => 0];
+			return ['type' => 'customer', 'name' => '', 'template_id' => 0];
 		}
 
-		$isPrivateCustomerTemplate = (int) $template['owner_id'] === (int) ($user['id'] ?? 0)
+		$isPrivateCustomerTemplate = (int) $template['owner_id'] === (int) ($line['member_id'] ?? 0)
 			&& empty($template['is_system'])
 			&& empty($template['is_shared'])
 			&& (int) $template['subscriber_count'] <= 1;
 
 		return [
 			'type' => $isPrivateCustomerTemplate ? 'customer' : 'reusable',
-			'name' => ($isPrivateCustomerTemplate ? 'Customer-specific: ' : 'Reusable template: ') . $template['name'],
+			'name' => (string) $template['name'],
 			'template_id' => $templateId,
 		];
 	}
@@ -713,6 +713,7 @@ class CategoryTemplateService {
 		}
 
 		$userId = (int) ($user['id'] ?? 0);
+		$templateOwnerId = (int) $line['member_id'];
 		$subUsers = $userId > 0 ? UserRepository::getSubUsers($userId) : [];
 		$allowedOwners = array_map('intval', array_merge([$userId], array_keys($subUsers)));
 		if ($userId <= 0 || !in_array((int) $line['member_id'], $allowedOwners, true)) {
@@ -728,7 +729,7 @@ class CategoryTemplateService {
 		}
 
 		if ($source
-			&& (int) $source['owner_id'] === $userId
+			&& (int) $source['owner_id'] === $templateOwnerId
 			&& empty($source['is_system'])
 			&& empty($source['is_shared'])
 			&& (int) $source['subscriber_count'] === 1
@@ -738,8 +739,12 @@ class CategoryTemplateService {
 
 		if ($source) {
 			$created = self::cloneTemplate($previousTemplateId, $user, false);
+			if (!empty($created['success']) && !$db->query('UPDATE `category_templates` SET `owner_id` = ? WHERE `id` = ?', $templateOwnerId, (int) $created['id'])) {
+				$db->query('DELETE FROM `category_templates` WHERE `id` = ?', (int) $created['id']);
+				return ['success' => false, 'message' => 'Failed to assign the customer template owner.'];
+			}
 		} else {
-			$created = self::createTemplate($userId, 'Customer: ' . (string) $line['username']);
+			$created = self::createTemplate($templateOwnerId, 'Customer: ' . (string) $line['username']);
 			if (!empty($created['success']) && !empty($parsed) && !self::applyStoredLayoutToTemplate((int) $created['id'], $parsed)) {
 				$db->query('DELETE FROM `category_templates` WHERE `id` = ?', (int) $created['id']);
 				return ['success' => false, 'message' => 'Failed to copy the customer layout.'];
@@ -786,6 +791,9 @@ class CategoryTemplateService {
 		try {
 			$sectionKeys = ['live' => 'live_cat', 'movie' => 'vod_cat', 'series' => 'series_cat', 'radio' => 'radio_cat'];
 			foreach ($sectionKeys as $type => $key) {
+				if ($type === 'radio' && !array_key_exists('radio_cat', $customData)) {
+					$key = 'live_cat';
+				}
 				$section = is_array($customData[$key] ?? null) ? $customData[$key] : [];
 				$order = self::customDataIds($section['order'] ?? []);
 				$hidden = self::customDataIds($section['hide_ids'] ?? []);
@@ -797,12 +805,13 @@ class CategoryTemplateService {
 				$order = array_values(array_unique(array_merge($order, $categoryIds)));
 				foreach ($order as $index => $categoryId) {
 					if (!$db->query(
-						'UPDATE `category_template_items` SET `sort_order` = ?, `is_visible` = ?, `custom_name` = ? WHERE `template_id` = ? AND `category_id` = ?',
+						'UPDATE `category_template_items` SET `sort_order` = ?, `is_visible` = ?, `custom_name` = ? WHERE `template_id` = ? AND `category_id` = ? AND `category_type` = ?',
 						$index + 1,
 						in_array($categoryId, $hidden, true) ? 0 : 1,
 						isset($renamed[(string) $categoryId]) && trim((string) $renamed[(string) $categoryId]) !== '' ? trim((string) $renamed[(string) $categoryId]) : null,
 						$templateId,
-						$categoryId
+						$categoryId,
+						$type
 					)) {
 						throw new \RuntimeException();
 					}

@@ -54,7 +54,8 @@ class ResellerCategoryTemplateController extends BaseResellerController {
 			if (!$line
 				|| !Authorization::check('line', $customerLineId)
 				|| (int) ($customData['template_id'] ?? 0) !== $id
-				|| !$isOwner
+				|| !$canEdit
+				|| (int) $template['owner_id'] !== (int) $line['member_id']
 				|| $isSystem
 				|| !empty($template['is_shared'])
 				|| (int) $template['subscriber_count'] !== 1

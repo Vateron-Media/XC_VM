@@ -50,7 +50,7 @@ $returnUrl = (string) ($returnUrl ?? 'category_templates');
 
                     <?php if ($rCanEdit): ?>
                         <?php if ($customerLineId > 0): ?>
-                            <span class="badge bg-label-info">Private customer template</span>
+                            <span class="badge bg-label-info"><?= $language::get('private_customer_template'); ?></span>
                         <?php else: ?>
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" id="templateIsShared" <?= $isShared ? 'checked' : ''; ?>>

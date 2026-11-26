@@ -16,15 +16,14 @@ final class CustomerCategoryTemplateTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->db = new TestDb();
-		$this->db->exec(
-			'CREATE TABLE `users` (`id` INTEGER PRIMARY KEY, `username` TEXT, `owner_id` INTEGER, `member_group_id` INTEGER);
-			 CREATE TABLE `lines` (`id` INTEGER PRIMARY KEY, `member_id` INTEGER, `username` TEXT, `custom_data` TEXT, `is_mag` INTEGER DEFAULT 0, `is_e2` INTEGER DEFAULT 0);
-			 CREATE TABLE `streams_categories` (`id` INTEGER PRIMARY KEY, `category_type` TEXT, `category_name` TEXT, `cat_order` INTEGER, `is_adult` INTEGER DEFAULT 0);
-			 INSERT INTO `users` VALUES (1,"admin",0,1),(5,"reseller",0,2),(6,"child",5,2),(7,"other",0,2);
-			 INSERT INTO `streams_categories` (`id`,`category_type`,`category_name`,`cat_order`) VALUES (10,"live","News",1),(11,"live","Sports",2),(20,"movie","Movies",1);'
-		);
+		foreach (['users', 'lines', 'streams_categories'] as $table) {
+			$this->db->exec(InstallSchema::table($table));
+		}
 		$this->db->exec(InstallSchema::migration('021_add_category_templates'));
+		$this->db->exec(InstallSchema::migration('024_add_custom_data_to_lines'));
 		$this->db->exec(InstallSchema::migration('077_add_admin_audit'));
+		$this->db->exec('INSERT INTO `users` (`id`,`username`,`owner_id`,`member_group_id`) VALUES (1,"admin",0,1),(5,"reseller",0,2),(6,"child",5,2),(7,"other",0,2)');
+		$this->db->exec('INSERT INTO `streams_categories` (`id`,`category_type`,`category_name`,`cat_order`) VALUES (10,"live","News",1),(11,"live","Sports",2),(20,"movie","Movies",1),(30,"radio","Radio",1)');
 		DatabaseFactory::set($this->db);
 		$this->lineDb = (new ReflectionProperty(LineService::class, 'db'))->getValue();
 		(new ReflectionProperty(LineService::class, 'db'))->setValue(null, $this->db);
@@ -107,7 +106,7 @@ final class CustomerCategoryTemplateTest extends TestCase {
 	}
 
 	public function testStoredLayoutIsPreservedWhenItHasNoTemplate(): void {
-		$this->addLine(15, 5, null, ['live_cat' => ['order' => '11,10', 'hide_ids' => '10', 'renamed' => ['11' => 'My Sports']]]);
+		$this->addLine(15, 5, null, ['live_cat' => ['order' => '11,30,10', 'hide_ids' => '10,30', 'renamed' => ['11' => 'My Sports', '30' => 'My Radio']]]);
 
 		$result = CategoryTemplateService::prepareCustomerTemplate(15, ['id' => 5]);
 		$layout = $this->layout(15);
@@ -115,7 +114,28 @@ final class CustomerCategoryTemplateTest extends TestCase {
 		$this->assertSame('11,10', $layout['live_cat']['order']);
 		$this->assertSame('10', $layout['live_cat']['hide_ids']);
 		$this->assertSame('My Sports', $layout['live_cat']['renamed']['11']);
+		$this->assertSame('30', $layout['radio_cat']['order']);
+		$this->assertSame('30', $layout['radio_cat']['hide_ids']);
+		$this->assertSame('My Radio', $layout['radio_cat']['renamed']['30']);
 		$this->assertSame((int) $result['id'], $layout['template_id']);
+	}
+
+	public function testParentCreatesAChildOwnedTemplateBothCanEdit(): void {
+		$shared = $this->template(1, 'Shared', 1, 1);
+		$this->addLine(21, 6, $shared);
+
+		$result = CategoryTemplateService::prepareCustomerTemplate(21, ['id' => 5]);
+		$template = CategoryTemplateService::getTemplateById((int) $result['id']);
+
+		$this->assertTrue($result['success']);
+		$this->assertSame(6, (int) $template['owner_id']);
+		$this->assertSame((int) $result['id'], (int) CategoryTemplateService::prepareCustomerTemplate(21, ['id' => 6])['id']);
+		$this->db->query('SELECT * FROM `lines` WHERE `id` = 21');
+		$this->assertSame('customer', CategoryTemplateService::getLineTemplateStatus($this->db->get_raw_row())['type']);
+		$this->assertTrue(CategoryTemplateService::saveTemplate((int) $result['id'], [
+			'name' => 'Child Layout',
+			'categories' => [['category_id' => 10, 'category_type' => 'live', 'sort_order' => 1, 'is_visible' => 1]],
+		], ['id' => 5], false)['success']);
 	}
 
 	public function testAnotherResellersCustomerAndPrivateTemplateAreRejected(): void {

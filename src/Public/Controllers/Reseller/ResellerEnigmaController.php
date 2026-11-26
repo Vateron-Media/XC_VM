@@ -44,7 +44,7 @@ class ResellerEnigmaController extends BaseResellerController {
 		$rPackages = PackageService::getAll($rUserInfo['member_group_id'], 'e2') ?: [];
 		$categoryTemplates = \XcVm\Domain\Stream\CategoryTemplateService::getTemplatesForUser($rUserInfo, false);
 		$categoryTemplateStatus = $rLine
-			? \XcVm\Domain\Stream\CategoryTemplateService::getLineTemplateStatus($rLine, $rUserInfo)
+			? \XcVm\Domain\Stream\CategoryTemplateService::getLineTemplateStatus($rLine)
 			: null;
 
 		$this->render('enigma', [
