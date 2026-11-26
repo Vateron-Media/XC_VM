@@ -145,6 +145,15 @@ final class AuditResellerCoreBouquetChoiceTest extends TestCase {
 	}
 
 	#[DataProvider('kinds')]
+	public function testRenewalDropsUnknownBouquetIdsEvenWhenStoredOnTheLineAndPackage(string $rKind, string $rTable, string $rKey): void {
+		$this->assertSame([2], $this->save($rKind, [2]));
+		$this->rDb->query('UPDATE `lines` SET `bouquet` = ?', '[999,2]');
+		$this->rDb->query('UPDATE `users_packages` SET `preserve_bouquets_on_renewal` = 1, `bouquets` = ? WHERE `id` = 1', '[999,2]');
+
+		$this->assertSame([2], $this->save($rKind, [999], ['edit' => $this->id($rTable, $rKey), 'package' => 1]));
+	}
+
+	#[DataProvider('kinds')]
 	public function testEmptyPreservedSelectionRejectsRenewalBeforeAnyChange(string $rKind, string $rTable, string $rKey): void {
 		$this->assertSame([3], $this->save($rKind, [3]));
 		$id = $this->id($rTable, $rKey);

@@ -84,6 +84,22 @@ final class ConstantsInitializerTest extends TestCase {
 		$this->assertSame(range(0, 53), array_values($statuses));
 	}
 
+	public function testPhpstanStubGeneratorIncludesEveryInitializerConstant(): void {
+		ob_start();
+		require dirname(MAIN_HOME) . '/tools/phpstan/gen-constants-stub.php';
+		$stub = (string) ob_get_clean();
+
+		$constants = array_merge(
+			ConstantsInitializer::paths('/tmp/xcvm/'),
+			ConstantsInitializer::appConfig(),
+			ConstantsInitializer::binaries('/tmp/xcvm/bin/'),
+			ConstantsInitializer::statuses()
+		);
+		foreach ($constants as $name => $_value) {
+			$this->assertStringContainsString("defined('{$name}')", $stub, $name);
+		}
+	}
+
 	/**
 	 * Isolated so the define()s do not leak into the shared test process and
 	 * pre-empt constants other tests define themselves (e.g. STREAMS_PATH).

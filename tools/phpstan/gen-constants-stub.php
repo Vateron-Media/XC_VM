@@ -72,13 +72,30 @@ foreach ($dir as $f) {
     }
 }
 
+// ConstantsInitializer defines these maps indirectly through defineAll(), so
+// the scanner cannot discover their names from literal define() calls.
+require_once $root . '/Core/Config/ConstantsInitializer.php';
+foreach ([
+    \XcVm\Core\Config\ConstantsInitializer::paths('/tmp/xcvm/'),
+    \XcVm\Core\Config\ConstantsInitializer::appConfig(),
+    \XcVm\Core\Config\ConstantsInitializer::binaries('/tmp/xcvm/bin/'),
+    \XcVm\Core\Config\ConstantsInitializer::statuses(),
+] as $constants) {
+    foreach ($constants as $name => $value) {
+        $consts[$name] = get_debug_type($value);
+    }
+}
+
 // Explicit type overrides for constants whose value the heuristic cannot
 // classify (defined from variables or function calls). Keeps the stub accurate
 // and prevents false null/mixed positives at call sites.
 $overrides = [
+    'FFMPEG'     => 'string',
+    'FFPROBE'    => 'string',
     'HOST'       => 'string', // trim(explode(':', HTTP_HOST)[0])
     'PAGE_NAME'  => 'string',
     'PHP_ERRORS' => 'bool',   // dev-mode flag
+    'SERVER_ID'  => 'int',
 ];
 foreach ($overrides as $name => $type) {
     if (isset($consts[$name])) {
