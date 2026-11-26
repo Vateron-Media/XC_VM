@@ -382,7 +382,9 @@ class ResellerAPI {
 				}
 			}
 
-			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])
+				|| (!empty($rOriginalLine['id']) && !empty($rData['package']) && (int) ($rOriginalLine['package_id'] ?? 0) !== (int) ($rPackage['id'] ?? 0))
+			) {
 				try {
 					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {
@@ -713,7 +715,9 @@ class ResellerAPI {
 				}
 			}
 
-			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])
+				|| (!empty($rOriginalLine['id']) && !empty($rData['package']) && (int) ($rOriginalLine['package_id'] ?? 0) !== (int) ($rPackage['id'] ?? 0))
+			) {
 				try {
 					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {
@@ -1223,7 +1227,9 @@ class ResellerAPI {
 				}
 			}
 
-			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])) {
+			if (array_key_exists('forced_country', $rData) || !empty($rPackage['forced_country'])
+				|| (!empty($rOriginalLine['id']) && !empty($rData['package']) && (int) ($rOriginalLine['package_id'] ?? 0) !== (int) ($rPackage['id'] ?? 0))
+			) {
 				try {
 					$rArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {

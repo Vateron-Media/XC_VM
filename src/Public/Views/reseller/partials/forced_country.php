@@ -4,9 +4,10 @@
     $rInheritOption = $language::get('forced_country_inherit_option');
     $rOptionalHelp = $language::get('forced_country_optional_help');
     $rPackageHelp = $language::get('forced_country_package_help');
+    $rScriptJsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 ?>
 <div class="mb-6">
-    <label class="form-label" for="forced_country"><?= $language::get('forced_country'); ?></label>
+    <label class="form-label" for="forced_country"><?= htmlspecialchars($language::get('forced_country'), ENT_QUOTES); ?></label>
     <select name="forced_country" id="forced_country" class="form-select" <?= $rPackageCountry !== '' ? 'disabled' : ''; ?>>
         <option value=""><?= htmlspecialchars($rInheritOption, ENT_QUOTES); ?></option>
         <?php if ($rPackageCountry !== '' && !array_key_exists($rPackageCountry, \XcVm\Core\Reference\GeoReference::countryCodes())): ?>
@@ -19,8 +20,8 @@
     <div class="form-text" id="forced_country_help"><?= htmlspecialchars($rPackageCountry !== '' ? $rPackageHelp : $rOptionalHelp, ENT_QUOTES); ?></div>
 </div>
 <script>
-var resellerForcedCountryPackageHelp = <?= json_encode($rPackageHelp, JSON_UNESCAPED_UNICODE); ?>;
-var resellerForcedCountryOptionalHelp = <?= json_encode($rOptionalHelp, JSON_UNESCAPED_UNICODE); ?>;
+var resellerForcedCountryPackageHelp = <?= json_encode($rPackageHelp, $rScriptJsonFlags); ?>;
+var resellerForcedCountryOptionalHelp = <?= json_encode($rOptionalHelp, $rScriptJsonFlags); ?>;
 window.updateResellerForcedCountry = function(packageCountry, currentCountry) {
     var field = document.getElementById('forced_country');
     if (!field) { return; }
