@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (window.templateCustomizer.settings.semiDark) {
-      document.querySelector('#layout-menu').setAttribute('data-bs-theme', 'dark');
+      document.querySelector('#layout-menu')?.setAttribute('data-bs-theme', 'dark');
     }
   }
 
