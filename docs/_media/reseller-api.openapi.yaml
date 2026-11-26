@@ -214,6 +214,7 @@ components:
         - STATUS_2FA_REQUIRED
         - STATUS_2FA_INVALID
         - STATUS_2FA_LOCKED
+        - STATUS_NO_BOUQUETS
         - STATUS_NO_PERMISSIONS
     Reseller_Envelope:
       type: object
@@ -1281,6 +1282,12 @@ components:
             - string
             - integer
             - 'null'
+        preserve_bouquets_on_renewal:
+          description: Preserve the customer's saved bouquet order on renewal after package and reseller allowance filtering.
+          type:
+            - string
+            - integer
+            - 'null'
 tags:
   - name: Reseller API
     description: |-
@@ -1288,7 +1295,7 @@ tags:
 
       **Authentication.** `api_key` is either a named API token (`xct_` + 40 hex, created per user in the panel; stored as a SHA-256 hash in `api_tokens` with scope full/read/lines, optional allow_sql, IP allow-list and expiry; last_used is updated) or, while setting `api_legacy_keys` is not '0', the user's legacy `users.api_key` (32 hex). The key's user must have status=1 and belong to a group with is_reseller=1 (src/Core/Auth/ApiTokens.php:47-93). Token scopes: `full` = everything the group may do; `read` = every get_* action plus user_info, packages, the log tables, check_active_code and export_active_code_batch; `lines` = user_info, packages, get_packages, get_package, get_bouquets, get_bouquet, any *active_code* action, and any action named `<verb>_line(s)|mag(s)|enigma(s)`. A scope refusal is `{"status":"STATUS_NO_PERMISSIONS"}`. Legacy keys are not scope-limited. The access code's own whitelist (if set) is enforced by nginx (allow/deny), before PHP (src/Core/Auth/AuthRepository.php:157-166).
 
-      **Envelope.** Every reply is JSON with HTTP 200 (exceptions: a PHP TypeError gives HTTP 500 with an empty body; noted per operation; and maintenance mode, which answers HTTP 503 `{"status":"STATUS_FAILURE","error":"<maintenance message>"}` before the key is checked). `status` is a constant name; services return numeric codes that parseError() maps to names: 0 STATUS_FAILURE, 1 STATUS_SUCCESS, 2 STATUS_SUCCESS_MULTI, 3 STATUS_CODE_LENGTH, 4 STATUS_NO_SOURCES, 5 STATUS_DISABLED, 6 STATUS_NOT_ADMIN, 7 STATUS_INVALID_EMAIL, 8 STATUS_INVALID_PASSWORD, 9 STATUS_INVALID_IP, 10 STATUS_INVALID_PLAYLIST, 11 STATUS_INVALID_NAME, 12 STATUS_INVALID_CAPTCHA, 13 STATUS_INVALID_CODE, 14 STATUS_INVALID_DATE, 15 STATUS_INVALID_FILE, 16 STATUS_INVALID_GROUP, 17 STATUS_INVALID_DATA, 18 STATUS_INVALID_DIR, 19 STATUS_INVALID_MAC, 20 STATUS_EXISTS_CODE, 21 STATUS_EXISTS_NAME, 22 STATUS_EXISTS_USERNAME, 23 STATUS_EXISTS_MAC, 24 STATUS_EXISTS_SOURCE, 25 STATUS_EXISTS_IP, 26 STATUS_EXISTS_DIR, 27 STATUS_SUCCESS_REPLACE, 28 STATUS_FLUSH, 29 STATUS_TOO_MANY_RESULTS, 30 STATUS_SPACE_ISSUE, 31 STATUS_INVALID_USER, 32 STATUS_CERTBOT, 33 STATUS_CERTBOT_INVALID, 34 STATUS_INVALID_INPUT, 35 STATUS_NOT_RESELLER, 36 STATUS_NO_TRIALS, 37 STATUS_INSUFFICIENT_CREDITS, 38 STATUS_INVALID_PACKAGE, 39 STATUS_INVALID_TYPE, 40 STATUS_INVALID_USERNAME, 41 STATUS_INVALID_SUBRESELLER, 42 STATUS_NO_DESCRIPTION, 43 STATUS_NO_KEY, 44 STATUS_EXISTS_HMAC, 45 STATUS_CERTBOT_RUNNING, 46 STATUS_RESERVED_CODE, 47 STATUS_NO_TITLE, 48 STATUS_NO_SOURCE, 49 STATUS_PORT_IN_USE, 50 STATUS_2FA_REQUIRED, 51 STATUS_2FA_INVALID, 52 STATUS_2FA_LOCKED. A service returning nothing (false/empty) becomes STATUS_NO_PERMISSIONS. Missing/rejected key: `{"status":"STATUS_FAILURE","error":"Invalid API key."}`; unknown action: `{"status":"STATUS_FAILURE","error":"Invalid action."}`.
+      **Envelope.** Every reply is JSON with HTTP 200 (exceptions: a PHP TypeError gives HTTP 500 with an empty body; noted per operation; and maintenance mode, which answers HTTP 503 `{"status":"STATUS_FAILURE","error":"<maintenance message>"}` before the key is checked). `status` is a constant name; services return numeric codes that parseError() maps to names: 0 STATUS_FAILURE, 1 STATUS_SUCCESS, 2 STATUS_SUCCESS_MULTI, 3 STATUS_CODE_LENGTH, 4 STATUS_NO_SOURCES, 5 STATUS_DISABLED, 6 STATUS_NOT_ADMIN, 7 STATUS_INVALID_EMAIL, 8 STATUS_INVALID_PASSWORD, 9 STATUS_INVALID_IP, 10 STATUS_INVALID_PLAYLIST, 11 STATUS_INVALID_NAME, 12 STATUS_INVALID_CAPTCHA, 13 STATUS_INVALID_CODE, 14 STATUS_INVALID_DATE, 15 STATUS_INVALID_FILE, 16 STATUS_INVALID_GROUP, 17 STATUS_INVALID_DATA, 18 STATUS_INVALID_DIR, 19 STATUS_INVALID_MAC, 20 STATUS_EXISTS_CODE, 21 STATUS_EXISTS_NAME, 22 STATUS_EXISTS_USERNAME, 23 STATUS_EXISTS_MAC, 24 STATUS_EXISTS_SOURCE, 25 STATUS_EXISTS_IP, 26 STATUS_EXISTS_DIR, 27 STATUS_SUCCESS_REPLACE, 28 STATUS_FLUSH, 29 STATUS_TOO_MANY_RESULTS, 30 STATUS_SPACE_ISSUE, 31 STATUS_INVALID_USER, 32 STATUS_CERTBOT, 33 STATUS_CERTBOT_INVALID, 34 STATUS_INVALID_INPUT, 35 STATUS_NOT_RESELLER, 36 STATUS_NO_TRIALS, 37 STATUS_INSUFFICIENT_CREDITS, 38 STATUS_INVALID_PACKAGE, 39 STATUS_INVALID_TYPE, 40 STATUS_INVALID_USERNAME, 41 STATUS_INVALID_SUBRESELLER, 42 STATUS_NO_DESCRIPTION, 43 STATUS_NO_KEY, 44 STATUS_EXISTS_HMAC, 45 STATUS_CERTBOT_RUNNING, 46 STATUS_RESERVED_CODE, 47 STATUS_NO_TITLE, 48 STATUS_NO_SOURCE, 49 STATUS_PORT_IN_USE, 50 STATUS_2FA_REQUIRED, 51 STATUS_2FA_INVALID, 52 STATUS_2FA_LOCKED, 53 STATUS_NO_BOUQUETS. A service returning nothing (false/empty) becomes STATUS_NO_PERMISSIONS. Missing/rejected key: `{"status":"STATUS_FAILURE","error":"Invalid API key."}`; unknown action: `{"status":"STATUS_FAILURE","error":"Invalid action."}`.
 
       **Paging and columns.** `start` (intval, default 0) and `limit` (intval, 0/absent = 50) apply to table and active-code lists. `show_columns` / `hide_columns` (comma-separated) filter the keys of `data` (single records) or of every row (lists). Table actions accept DataTables parameters (`search[value]`, `order[0][column]`, `order[0][dir]`) and answer `{status, data, recordsTotal, recordsFiltered}` without `draw`.
 

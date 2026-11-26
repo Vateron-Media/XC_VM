@@ -74,6 +74,7 @@ $rStatusMessages = [
     STATUS_NO_TRIALS            => 'You cannot generate trials at this time.',
     STATUS_INSUFFICIENT_CREDITS => 'You do not have enough credits to make this purchase.',
     STATUS_INVALID_PACKAGE      => 'Please select a valid package.',
+    STATUS_NO_BOUQUETS          => $language::get('renewal_no_bouquets'),
     STATUS_INVALID_MAC          => 'Please enter a valid MAC address.',
     STATUS_EXISTS_MAC           => 'The MAC address you entered is already in use.',
 ];

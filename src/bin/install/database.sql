@@ -2425,6 +2425,7 @@ CREATE TABLE IF NOT EXISTS `users_packages` (
   `forced_country` varchar(2) COLLATE utf8_unicode_ci DEFAULT NULL,
   `lock_device` tinyint(4) DEFAULT '1',
   `check_compatible` tinyint(4) DEFAULT '1',
+  `preserve_bouquets_on_renewal` tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `is_trial` (`is_trial`),
   KEY `is_official` (`is_official`),

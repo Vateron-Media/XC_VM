@@ -192,8 +192,8 @@ final class AuditDecisionEditKeepsOmittedFieldsTest extends TestCase {
 	}
 
 	public function testAPackageEditKeepsItsSwitchesGroupsAndBouquets(): void {
-		$this->rDb->exec("INSERT INTO `users_packages` (`id`, `package_name`, `is_trial`, `is_official`, `groups`, `bouquets`, `is_line`, `is_mag`, `is_e2`, `is_restreamer`, `is_isplock`, `output_formats`, `lock_device`, `check_compatible`)"
-			. " VALUES (3, 'Pack', 1, 1, '[1,5]', '[2,3]', 1, 1, 1, 1, 1, '[1,2]', 1, 1)");
+		$this->rDb->exec("INSERT INTO `users_packages` (`id`, `package_name`, `is_trial`, `is_official`, `groups`, `bouquets`, `is_line`, `is_mag`, `is_e2`, `is_restreamer`, `is_isplock`, `output_formats`, `lock_device`, `check_compatible`, `preserve_bouquets_on_renewal`)"
+			. " VALUES (3, 'Pack', 1, 1, '[1,5]', '[2,3]', 1, 1, 1, 1, 1, '[1,2]', 1, 1, 1)");
 		$rStored = $this->row('users_packages', 'id', 3);
 
 		$this->assertSame('STATUS_SUCCESS', $this->edit('edit_package', 3, ['package_name' => 'Renamed']));

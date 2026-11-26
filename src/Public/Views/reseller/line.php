@@ -84,6 +84,7 @@ $rStatusMessages = [
     STATUS_NO_TRIALS            => 'You cannot generate trials at this time.',
     STATUS_INSUFFICIENT_CREDITS => 'You do not have enough credits to make this purchase.',
     STATUS_INVALID_PACKAGE      => 'Please select a valid package.',
+    STATUS_NO_BOUQUETS          => $language::get('renewal_no_bouquets'),
     // One answer for two rules: the group's minimum length, and the character neither can hold.
     STATUS_INVALID_USERNAME     => $language::get('line_username_rule', ['{num}' => (string) intval($rPermissions['minimum_username_length'])]),
     STATUS_INVALID_PASSWORD     => $language::get('line_password_rule', ['{num}' => (string) intval($rPermissions['minimum_password_length'])]),

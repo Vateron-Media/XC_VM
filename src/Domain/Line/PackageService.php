@@ -50,7 +50,7 @@ class PackageService {
 			return ['status' => STATUS_INVALID_NAME, 'data' => $rData];
 		}
 
-		foreach (['is_trial', 'is_official', 'is_mag', 'is_e2', 'is_line', 'lock_device', 'is_restreamer', 'is_isplock', 'check_compatible'] as $rSelection) {
+		foreach (['is_trial', 'is_official', 'is_mag', 'is_e2', 'is_line', 'lock_device', 'is_restreamer', 'is_isplock', 'check_compatible', 'preserve_bouquets_on_renewal'] as $rSelection) {
 			if (isset($rData[$rSelection])) {
 				$rArray[$rSelection] = 1;
 			} else {

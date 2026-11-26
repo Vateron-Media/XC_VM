@@ -74,13 +74,14 @@ final class ConstantsInitializerTest extends TestCase {
 	public function testStatusesAreSequentialFromZero(): void {
 		$statuses = ConstantsInitializer::statuses();
 
-		$this->assertCount(53, $statuses);
+		$this->assertCount(54, $statuses);
 		$this->assertSame(0, $statuses['STATUS_FAILURE']);
 		$this->assertSame(1, $statuses['STATUS_SUCCESS']);
 		$this->assertSame(48, $statuses['STATUS_NO_SOURCE']);
 		$this->assertSame(49, $statuses['STATUS_PORT_IN_USE']);
 		$this->assertSame(52, $statuses['STATUS_2FA_LOCKED']);
-		$this->assertSame(range(0, 52), array_values($statuses));
+		$this->assertSame(53, $statuses['STATUS_NO_BOUQUETS']);
+		$this->assertSame(range(0, 53), array_values($statuses));
 	}
 
 	/**

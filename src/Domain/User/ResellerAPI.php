@@ -452,7 +452,10 @@ class ResellerAPI {
 
 					// The price leaves the balance as it is stored now, before anything
 					// is sold: a balance that no longer covers it sells nothing.
-					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
+					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine, !empty($rData['package']) ? ($rPackage ?? []) : []);
+					if ($rUserArray === null) {
+						return ['status' => STATUS_NO_BOUQUETS, 'error' => \XcVm\Core\Localization\Translator::get('renewal_no_bouquets'), 'data' => $rData];
+					}
 
 					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
 						return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
@@ -741,7 +744,10 @@ class ResellerAPI {
 
 					// The price leaves the balance as it is stored now, before anything
 					// is sold: a balance that no longer covers it sells nothing.
-					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
+					$rUserArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rUserArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine, !empty($rData['package']) ? ($rPackage ?? []) : []);
+					if ($rUserArray === null) {
+						return ['status' => STATUS_NO_BOUQUETS, 'error' => \XcVm\Core\Localization\Translator::get('renewal_no_bouquets'), 'data' => $rData];
+					}
 
 					if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost)) {
 						return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];
@@ -1327,7 +1333,10 @@ class ResellerAPI {
 				// nothing is charged. The price leaves the balance as it is stored
 				// now, before anything is sold: a balance that no longer covers it
 				// sells nothing.
-				$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine);
+				$rArray = \XcVm\Domain\Bouquet\ResellerBouquetPolicy::apply($rArray, $rData, self::$rUserInfo, self::$rPermissions, $db, $rOriginalLine, !empty($rData['package']) ? ($rPackage ?? []) : []);
+				if ($rArray === null) {
+					return ['status' => STATUS_NO_BOUQUETS, 'error' => \XcVm\Core\Localization\Translator::get('renewal_no_bouquets'), 'data' => $rData];
+				}
 
 				if (isset($rPackage) && !UserCredits::debit(self::$rUserInfo['id'], $rCost ?? 0)) {
 					return ['status' => STATUS_INSUFFICIENT_CREDITS, 'data' => $rData];

@@ -119,6 +119,68 @@ final class AuditResellerCoreBouquetChoiceTest extends TestCase {
 		$this->assertSame(self::PACKAGE, $this->save($rKind, '', ['edit' => $this->id($rTable, $rKey)]));
 	}
 
+	#[DataProvider('kinds')]
+	public function testRenewalCanPreserveTheSavedSubsetAndOrder(string $rKind, string $rTable, string $rKey): void {
+		$this->assertSame([2, 3], $this->save($rKind, [2, 3], ['package' => 1, 'bouquets_present' => 1, 'bouquet_order' => [2, 3]]));
+		$this->rDb->query('UPDATE `users_packages` SET `preserve_bouquets_on_renewal` = 1, `bouquets` = ? WHERE `id` = 1', '[1,2,3]');
+
+		$this->assertSame([2, 3], $this->save($rKind, [1, 3], ['edit' => $this->id($rTable, $rKey), 'package' => 1, 'bouquets_present' => 1, 'bouquet_order' => [1, 3]]));
+	}
+
+	#[DataProvider('kinds')]
+	public function testRenewalDropsBouquetsRemovedFromThePackage(string $rKind, string $rTable, string $rKey): void {
+		$this->assertSame([2, 3], $this->save($rKind, [2, 3], ['package' => 1, 'bouquets_present' => 1, 'bouquet_order' => [2, 3]]));
+		$this->rDb->query('UPDATE `users_packages` SET `preserve_bouquets_on_renewal` = 1, `bouquets` = ? WHERE `id` = 1', '[1,2]');
+
+		$this->assertSame([2], $this->save($rKind, [1], ['edit' => $this->id($rTable, $rKey), 'package' => 1]));
+	}
+
+	#[DataProvider('kinds')]
+	public function testRenewalDropsBouquetsRemovedFromTheOwnerAllowance(string $rKind, string $rTable, string $rKey): void {
+		$this->assertSame([2, 3], $this->save($rKind, [2, 3], ['package' => 1, 'bouquets_present' => 1, 'bouquet_order' => [2, 3]]));
+		$this->rDb->query('UPDATE `users_packages` SET `preserve_bouquets_on_renewal` = 1 WHERE `id` = 1');
+		$this->rDb->query('UPDATE `users` SET `allowed_bouquets` = ? WHERE `id` = 5', '[2]');
+
+		$this->assertSame([2], $this->save($rKind, [3], ['edit' => $this->id($rTable, $rKey), 'package' => 1]));
+	}
+
+	#[DataProvider('kinds')]
+	public function testEmptyPreservedSelectionRejectsRenewalBeforeAnyChange(string $rKind, string $rTable, string $rKey): void {
+		$this->assertSame([3], $this->save($rKind, [3]));
+		$id = $this->id($rTable, $rKey);
+		$this->rDb->query('SELECT `credits` FROM `users` WHERE `id` = 5');
+		$credits = $this->rDb->get_col();
+		$this->rDb->query('SELECT `exp_date` FROM `lines`');
+		$expiry = $this->rDb->get_col();
+		$this->rDb->query('SELECT COUNT(*) FROM `users_logs`');
+		$logs = $this->rDb->get_col();
+		$this->rDb->query('UPDATE `users_packages` SET `preserve_bouquets_on_renewal` = 1, `bouquets` = ? WHERE `id` = 1', '[2]');
+
+		$form = ['edit' => $id, 'package' => 1, 'bouquets_selected' => [2], 'reseller_notes' => ''];
+		$result = match ($rKind) {
+			'line' => ResellerAPI::processLine($form + ['username' => 'viewer', 'password' => 'secret', 'contact' => '']),
+			'mag' => ResellerAPI::processMAG($form + ['mac' => '00:1A:79:00:00:01', 'parent_password' => '0000', 'sn' => '', 'stb_type' => '', 'image_version' => '', 'hw_version' => '', 'device_id' => '', 'device_id2' => '', 'ver' => '']),
+			'enigma' => ResellerAPI::processEnigma($form + ['mac' => '00:1A:79:00:00:01', 'modem_mac' => '', 'local_ip' => '', 'enigma_version' => '', 'cpu' => '', 'lversion' => '', 'token' => '']),
+		};
+
+		$this->assertSame(STATUS_NO_BOUQUETS, $result['status'] ?? null, $rKind);
+		$this->assertNotEmpty($result['error'] ?? null, $rKind);
+		$this->rDb->query('SELECT `credits` FROM `users` WHERE `id` = 5');
+		$this->assertSame($credits, $this->rDb->get_col(), $rKind . ' credits');
+		$this->rDb->query('SELECT `exp_date` FROM `lines`');
+		$this->assertSame($expiry, $this->rDb->get_col(), $rKind . ' expiry');
+		$this->rDb->query('SELECT `bouquet` FROM `lines`');
+		$this->assertSame([3], json_decode((string) $this->rDb->get_col(), true), $rKind . ' bouquets');
+		$this->rDb->query('SELECT COUNT(*) FROM `users_logs`');
+		$this->assertSame($logs, $this->rDb->get_col(), $rKind . ' audit');
+	}
+
+	#[DataProvider('kinds')]
+	public function testPreserveFlagDoesNotChangeNewCustomerDefaults(string $rKind): void {
+		$this->rDb->query('UPDATE `users_packages` SET `preserve_bouquets_on_renewal` = 1 WHERE `id` = 1');
+		$this->assertSame(self::PACKAGE, $this->save($rKind, ''));
+	}
+
 	/** @return array<string, array{0: mixed}> */
 	public static function choicesThatNameNoBouquet(): array {
 		return [
