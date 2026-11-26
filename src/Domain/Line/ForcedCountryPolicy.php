@@ -32,6 +32,6 @@ final class ForcedCountryPolicy {
 
 	private static function country(mixed $rCountry): ?string {
 		$rCountry = strtoupper(trim((string) $rCountry));
-		return array_key_exists($rCountry, GeoReference::countryCodes()) ? $rCountry : null;
+		return $rCountry !== '' && in_array($rCountry, array_column(GeoReference::countries(), 'id'), true) ? $rCountry : null;
 	}
 }

@@ -383,7 +383,7 @@ class ResellerAPI {
 				}
 			}
 
-			if (isset($rPackage) || array_key_exists('forced_country', $rData)) {
+			if (!empty($rData['package']) || array_key_exists('forced_country', $rData)) {
 				try {
 					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {
@@ -712,7 +712,7 @@ class ResellerAPI {
 				}
 			}
 
-			if (isset($rPackage) || array_key_exists('forced_country', $rData)) {
+			if (!empty($rData['package']) || array_key_exists('forced_country', $rData)) {
 				try {
 					$rUserArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {
@@ -1219,7 +1219,7 @@ class ResellerAPI {
 				}
 			}
 
-			if (isset($rPackage) || array_key_exists('forced_country', $rData)) {
+			if (!empty($rData['package']) || array_key_exists('forced_country', $rData)) {
 				try {
 					$rArray['forced_country'] = ForcedCountryPolicy::resolve($rPackage ?? [], self::$rUserInfo, $rData);
 				} catch (\InvalidArgumentException) {

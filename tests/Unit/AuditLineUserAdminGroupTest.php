@@ -342,7 +342,11 @@ final class AuditLineUserAdminGroupTest extends TestCase {
 		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
 		$this->assertSame(1, (int) $this->user(self::RESELLER)['can_set_forced_country']);
 
-		$rResult = UserService::process($this->userForm(self::RESELLER, []));
+		$rResult = UserService::process($this->userForm(self::RESELLER, ['notes' => 'partial edit']));
+		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
+		$this->assertSame(1, (int) $this->user(self::RESELLER)['can_set_forced_country']);
+
+		$rResult = UserService::process($this->userForm(self::RESELLER, ['can_set_forced_country' => '0']));
 		$this->assertSame(STATUS_SUCCESS, $rResult['status']);
 		$this->assertSame(0, (int) $this->user(self::RESELLER)['can_set_forced_country']);
 	}

@@ -198,7 +198,13 @@ class UserService {
 			} else {
 				$rArray['allowed_bouquets'] = null;
 			}
-			$rArray['can_set_forced_country'] = isset($rData['can_set_forced_country']) ? 1 : 0;
+			if (array_key_exists('can_set_forced_country', $rData)) {
+				$rArray['can_set_forced_country'] = in_array($rData['can_set_forced_country'], ['1', 1, true, 'on'], true) ? 1 : 0;
+			} elseif (isset($rUser)) {
+				unset($rArray['can_set_forced_country']);
+			} else {
+				$rArray['can_set_forced_country'] = 0;
+			}
 
 			// The group is stored as the number it is checked as.
 			$rArray['member_group_id'] = intval($rArray['member_group_id']);

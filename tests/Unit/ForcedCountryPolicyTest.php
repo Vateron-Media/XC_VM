@@ -9,6 +9,15 @@ final class ForcedCountryPolicyTest extends TestCase {
 		$this->assertSame('DE', ForcedCountryPolicy::resolve(['forced_country' => 'DE'], [], ['forced_country' => 'US']));
 	}
 
+	#[DataProvider('packageBuckets')]
+	public function testPackageGeoIpBucketIsAuthoritative(string $rCountry): void {
+		$this->assertSame($rCountry, ForcedCountryPolicy::resolve(['forced_country' => $rCountry], [], ['forced_country' => 'US']));
+	}
+
+	public static function packageBuckets(): array {
+		return [['A1'], ['A2'], ['O1']];
+	}
+
 	public function testDelegatedConcreteCountryAndBlankAreAccepted(): void {
 		$rReseller = ['can_set_forced_country' => 1];
 		$this->assertSame('US', ForcedCountryPolicy::resolve([], $rReseller, ['forced_country' => 'us']));
