@@ -51,6 +51,7 @@ final class StreamProcessSupervisionTest extends TestCase {
 		$this->assertStringStartsWith('/home/xc_vm/bin/xc_fanout/xc_fanout remux ', $c);
 		$this->assertStringContainsString("-i 'http://src.example/live/u/p/9.ts'", $c);
 		$this->assertStringContainsString("-ingest 'unix:/run/fanout/ingest/42.sock'", $c);
+		$this->assertStringContainsString('-idle_timeout 36 ', $c);
 		$this->assertStringContainsString('-hls_time 6 ', $c);
 		$this->assertStringContainsString('-hls_init_time 2 ', $c, "buildLive's fast first segment");
 		$this->assertStringContainsString('-hls_list_size 8 ', $c);
@@ -58,6 +59,15 @@ final class StreamProcessSupervisionTest extends TestCase {
 		$this->assertStringContainsString("-progress '" . STREAMS_PATH . "42_.progress'", $c);
 		$this->assertStringContainsString("-hls_segment_filename '" . STREAMS_PATH . "42_%d.ts'", $c);
 		$this->assertStringEndsWith("'" . STREAMS_PATH . "42_.m3u8'", $c, 'the playlist is the one positional argument, last');
+	}
+
+	/** seg_time 1 makes the old 8s floor longer than the supervisor's 6s stall. */
+	public function testQuietSourceWaitMatchesSupervisorStall(): void {
+		$c = $this->native(['segmentSettings' => ['seg_time' => 1, 'seg_list_size' => 8, 'seg_delete_threshold' => 4]]);
+		$this->assertSame(1, preg_match('/-idle_timeout (\d+) /', $c, $m));
+		$h = self::call('supervisorHealth', [], ['seg_time' => 1]);
+		$this->assertSame((int) $m[1], $h['stall_sec'], 'the remuxer and the supervisor wait the same length of time');
+		$this->assertSame(8, (int) $m[1], 'the wait stays at least the remuxer default of 8s');
 	}
 
 	/** The daemon launches it: no redirect, background or pid tail may ride along. */
