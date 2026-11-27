@@ -30,6 +30,7 @@ use XcVm\Public\Controllers\Admin\Ajax\StreamAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamToolsAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\TranslationAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\UserAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\VodImportAjaxController;
 use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Public\Controllers\Admin\AlertController;
 use XcVm\Public\Controllers\Admin\ArchiveController;
@@ -148,6 +149,7 @@ use XcVm\Public\Controllers\Admin\UseragentController;
 use XcVm\Public\Controllers\Admin\UseragentsController;
 use XcVm\Public\Controllers\Admin\UserController;
 use XcVm\Public\Controllers\Admin\UserLogsController;
+use XcVm\Public\Controllers\Admin\VodImportLogsController;
 use XcVm\Public\Controllers\Admin\UserMassController;
 use XcVm\Public\Controllers\Admin\UsersController;
 
@@ -244,6 +246,7 @@ $router->get('episodes', [EpisodeListController::class, 'index']);
 $router->get('episode', [EpisodeController::class, 'index']);
 $router->get('episodes_mass', [EpisodeMassController::class, 'index']);
 $router->get('ondemand', [OndemandController::class, 'index']);
+$router->get('vod_import_logs', [VodImportLogsController::class, 'index']);
 
 // ─── Streams ───────────────────────────────────────
 
@@ -344,6 +347,7 @@ $router->any('api', [AjaxController::class, 'index']);
 
 $router->api('tmdb_search', [TmdbController::class, 'search']);
 $router->api('tmdb', [TmdbController::class, 'details']);
+$router->api('vod_import_retry', [VodImportAjaxController::class, 'retry']);
 
 // ─── Cache & Handlers ──────────────────────────────
 $router->api('regenerate_cache', [CacheAjaxController::class, 'regenerate']);

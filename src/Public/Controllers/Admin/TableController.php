@@ -9,6 +9,7 @@ use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Enum\ClientFilter;
+use XcVm\Core\Events\Vod\VodImportResultEvent;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Module\TableRegistry;
 use XcVm\Core\Reference\StatusBadge;
@@ -152,6 +153,9 @@ class TableController extends BaseAdminController {
 				return;
 			case "stream_errors":
 				$this->handleStreamErrors($rReturn, $rStart, $rLimit, $rIsAPI);
+				return;
+			case "vod_import_logs":
+				$this->handleVodImportLogs($rReturn, $rStart, $rLimit, $rIsAPI);
 				return;
 			case "stream_unique":
 				$this->handleStreamUnique($rReturn, $rStart, $rLimit, $rIsAPI);
@@ -3208,6 +3212,75 @@ class TableController extends BaseAdminController {
 				];
 				$rReturn["data"][] = $rIsAPI
 					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
+			}
+		}
+		echo json_encode($rReturn);
+		exit;
+	}
+
+	private function handleVodImportLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
+		global $db;
+		if (!Authorization::check('adv', 'import_movies') && !Authorization::check('adv', 'import_episodes')) {
+			exit;
+		}
+
+		$rOrderBy = $this->dtOrderBy([false, '`vod_import_logs`.`type`', '`servers`.`server_name`', '`vod_import_logs`.`filename`', '`vod_import_logs`.`status`', '`vod_import_logs`.`dateadded`', false]);
+		$rWhere = $rWhereV = [];
+		$rSearch = $this->dtSearch();
+		if ($rSearch !== '') {
+			foreach (range(1, 5) as $rInt) {
+				$rWhereV[] = '%' . $rSearch . '%';
+			}
+			$rWhere[] = '(`vod_import_logs`.`filename` LIKE ? OR `vod_import_logs`.`title` LIKE ? OR `servers`.`server_name` LIKE ? OR `vod_import_logs`.`id` LIKE ? OR `vod_import_logs`.`dateadded` LIKE ?)';
+		}
+		$rServer = (int) (RequestManager::get('server') ?? 0);
+		if ($rServer > 0) {
+			$rWhere[] = '`vod_import_logs`.`server_id` = ?';
+			$rWhereV[] = $rServer;
+		}
+		$rType = (int) (RequestManager::get('type') ?? 0);
+		if (in_array($rType, [1, 2], true)) {
+			$rWhere[] = '`vod_import_logs`.`type` = ?';
+			$rWhereV[] = $rType;
+		}
+		$rStatusValue = RequestManager::get('status');
+		$rStatus = (int) ($rStatusValue ?? -1);
+		if ($rStatusValue !== null && $rStatusValue !== '' && 0 <= $rStatus && $rStatus <= 7) {
+			$rWhere[] = '`vod_import_logs`.`status` = ?';
+			$rWhereV[] = $rStatus;
+		}
+		$rWhereString = $rWhere !== [] ? 'WHERE ' . implode(' AND ', $rWhere) : '';
+
+		$db->query('SELECT COUNT(*) AS `count` FROM `vod_import_logs` LEFT JOIN `servers` ON `servers`.`id` = `vod_import_logs`.`server_id` ' . $rWhereString . ';', ...$rWhereV);
+		$rReturn['recordsTotal'] = $db->num_rows() === 1 ? (int) $db->get_row()['count'] : 0;
+		$rReturn['recordsFiltered'] = $rIsAPI ? min($rReturn['recordsTotal'], $rLimit) : $rReturn['recordsTotal'];
+
+		if ($rReturn['recordsTotal'] > 0) {
+			$rCanServers = Authorization::check('adv', 'servers');
+			$db->query('SELECT `vod_import_logs`.`id`, `vod_import_logs`.`type`, `vod_import_logs`.`server_id`, `servers`.`server_name`, `vod_import_logs`.`filename`, `vod_import_logs`.`title`, `vod_import_logs`.`status`, `vod_import_logs`.`stream_id`, (`vod_import_logs`.`payload` IS NOT NULL AND `vod_import_logs`.`payload` <> \'\') AS `has_payload`, UNIX_TIMESTAMP(`vod_import_logs`.`dateadded`) AS `date` FROM `vod_import_logs` LEFT JOIN `servers` ON `servers`.`id` = `vod_import_logs`.`server_id` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';', ...$rWhereV);
+			foreach ($db->get_rows() as $rRow) {
+				$rCanView = (int) $rRow['type'] === 1
+					? Authorization::check('adv', 'movies')
+					: Authorization::check('adv', 'episodes');
+				$rItem = [
+					'id' => (int) $rRow['id'],
+					'type' => (int) $rRow['type'],
+					'server_id' => (int) $rRow['server_id'],
+					'server_name' => $rRow['server_name'],
+					'server_url' => $rCanServers && $rRow['server_name'] !== null ? 'server_view?id=' . (int) $rRow['server_id'] : null,
+					'filename' => $rRow['filename'],
+					'title' => $rRow['title'],
+					'status' => (int) $rRow['status'],
+					'stream_id' => (int) $rRow['stream_id'],
+					'stream_url' => $rCanView && (int) $rRow['stream_id'] > 0 ? 'stream_view?id=' . (int) $rRow['stream_id'] : null,
+					'retryable' => (int) $rRow['status'] === VodImportResultEvent::STATUS_NO_MATCH
+						&& !empty($rRow['has_payload'])
+						&& ((int) $rRow['type'] === 1 ? Authorization::check('adv', 'import_movies') : Authorization::check('adv', 'import_episodes')),
+					'date' => (int) $rRow['date'],
+				];
+				$rReturn['data'][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get('show_columns') ?? '', RequestManager::get('hide_columns') ?? '')
 					: $rItem;
 			}
 		}

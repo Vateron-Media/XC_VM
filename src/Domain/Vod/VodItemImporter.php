@@ -493,7 +493,9 @@ class VodItemImporter {
 	 * @param int $rStreamID
 	 */
 	private static function reportResult($rThreadData, $rThreadType, $rFile, $rStatus, $rStreamID = 0) {
-		EventDispatcher::dispatch(new VodImportResultEvent((int) $rThreadType, (int) SERVER_ID, (string) $rFile, (int) $rStatus, (int) $rStreamID, (string) ($rThreadData['title'] ?? '')));
+		$rEvent = new VodImportResultEvent((int) $rThreadType, (int) SERVER_ID, (string) $rFile, (int) $rStatus, (int) $rStreamID, (string) ($rThreadData['title'] ?? ''));
+		VodImportLog::record($rEvent, $rThreadData);
+		EventDispatcher::dispatch($rEvent);
 	}
 
 	/**

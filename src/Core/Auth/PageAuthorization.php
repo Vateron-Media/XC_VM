@@ -385,6 +385,9 @@ class PageAuthorization {
 			case 'stream_errors':
 				return Authorization::check('adv', 'stream_errors');
 
+			case 'vod_import_logs':
+				return Authorization::check('adv', 'import_movies') || Authorization::check('adv', 'import_episodes');
+
 			case 'created_channel_mass':
 			case 'stream_mass':
 				return Authorization::check('adv', 'mass_edit_streams');

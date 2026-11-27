@@ -401,7 +401,7 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 		NavbarRegistry::add((new NavbarItem('logs'))
 			->url('#')->label('logs')
 			->icon('fas fa-clipboard-list')
-			->permissions(['movies', 'streams', 'connection_logs', 'client_request_log', 'login_logs', 'admin_audit', 'panel_logs', 'credits_log', 'live_connections', 'manage_events', 'reg_userlog', 'stream_errors', 'restream_logs', 'episodes', 'series'])
+			->permissions(['movies', 'streams', 'connection_logs', 'client_request_log', 'login_logs', 'admin_audit', 'panel_logs', 'credits_log', 'live_connections', 'manage_events', 'reg_userlog', 'stream_errors', 'restream_logs', 'episodes', 'series', 'import_movies', 'import_episodes'])
 			->order(500));
 
 		// Connections
@@ -424,7 +424,7 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 		// Streams
 		NavbarRegistry::add((new NavbarItem('logs.streams'))
 			->parent('logs')->url('#')
-			->label('logs_group_streams')->permissions(['stream_errors', 'streams', 'restream_logs'])->order(20));
+			->label('logs_group_streams')->permissions(['stream_errors', 'streams', 'restream_logs', 'import_movies', 'import_episodes'])->order(20));
 		NavbarRegistry::add((new NavbarItem('logs.streams.errors'))
 			->parent('logs.streams')->url('stream_errors')
 			->label('stream_errors')->permissions(['stream_errors'])->order(10));
@@ -437,6 +437,9 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 		NavbarRegistry::add((new NavbarItem('logs.streams.restream'))
 			->parent('logs.streams')->url('restream_logs')
 			->label('', 'Restream Detection')->permissions(['restream_logs'])->order(40));
+		NavbarRegistry::add((new NavbarItem('logs.streams.vod_import'))
+			->parent('logs.streams')->url('vod_import_logs')
+			->label('vod_import_logs')->permissions(['import_movies', 'import_episodes'])->order(50));
 
 		// System
 		NavbarRegistry::add((new NavbarItem('logs.system'))

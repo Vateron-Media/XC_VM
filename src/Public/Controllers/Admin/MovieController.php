@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Domain\Stream\StreamRepository;
@@ -37,9 +38,16 @@ class MovieController extends BaseAdminController {
 		}
 
 		$rServerTree = [
-			['id' => 'source', 'parent' => '#', 'text' => "<span class='badge bg-success'>Active</span>", 'icon' => 'icon-base ti tabler-player-play', 'state' => ['opened' => true]],
-			['id' => 'offline', 'parent' => '#', 'text' => "<span class='badge bg-secondary'>Offline</span>", 'icon' => 'icon-base ti tabler-player-stop', 'state' => ['opened' => true]],
+			['id' => 'source', 'parent' => '#', 'text' => "<span class='badge bg-primary'>" . htmlspecialchars(Translator::get('selected'), ENT_QUOTES) . '</span>', 'icon' => 'icon-base ti tabler-circle-check', 'state' => ['opened' => true]],
+			['id' => 'offline', 'parent' => '#', 'text' => "<span class='badge bg-secondary'>" . htmlspecialchars(Translator::get('available'), ENT_QUOTES) . '</span>', 'icon' => 'icon-base ti tabler-list', 'state' => ['opened' => true]],
 		];
+		$rServerNode = static function (array $rServer, string $rParent): array {
+			$rOnline = !empty($rServer['server_online']);
+			$rStatus = htmlspecialchars(Translator::get($rOnline ? 'online' : 'offline'), ENT_QUOTES);
+			$rName = htmlspecialchars((string) ($rServer['server_name'] ?? ''), ENT_QUOTES);
+
+			return ['id' => $rServer['id'], 'parent' => $rParent, 'text' => $rName . " <span class='badge bg-label-" . ($rOnline ? 'success' : 'danger') . "'>" . $rStatus . '</span>', 'icon' => 'icon-base ti ' . ($rOnline ? 'tabler-server' : 'tabler-server-off'), 'state' => ['opened' => true]];
+		};
 		$activeStreamingServers = [];
 		$rMovie = null;
 		$rStreamSys = [];
@@ -80,11 +88,11 @@ class MovieController extends BaseAdminController {
 				} else {
 					$rParent = 'offline';
 				}
-				$rServerTree[] = ['id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'icon-base ti tabler-server', 'state' => ['opened' => true]];
+				$rServerTree[] = $rServerNode($rServer, $rParent);
 			}
 		} else {
 			foreach ($rServers as $rServer) {
-				$rServerTree[] = ['id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'icon-base ti tabler-server', 'state' => ['opened' => true]];
+				$rServerTree[] = $rServerNode($rServer, 'offline');
 			}
 		}
 

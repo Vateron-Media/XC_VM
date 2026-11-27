@@ -6,8 +6,8 @@ namespace XcVm\Core\Events\Vod;
  * Fired once per file processed by VodItemImporter (`console.php vod_import_item`),
  * with the outcome of that file.
  *
- * Lets modules (e.g. watch) keep their own per-file log without core VOD code
- * knowing those module tables exist.
+ * The core importer stores the result before dispatching this event. Modules
+ * may react to it without owning the panel's import log.
  *
  * @package XC_VM_Core_Events
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -16,6 +16,7 @@ namespace XcVm\Core\Events\Vod;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 final class VodImportResultEvent {
+	public const STATUS_QUEUED = 0;
 	public const STATUS_IMPORTED = 1;
 	public const STATUS_INSERT_FAILED = 2;
 	public const STATUS_NO_CATEGORY = 3;

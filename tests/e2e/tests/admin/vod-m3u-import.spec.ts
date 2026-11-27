@@ -22,6 +22,7 @@ async function setup(page: import('@playwright/test').Page, view = 'movie') {
     <input type="checkbox" id="direct_source" name="direct_source" checked>
     <input type="checkbox" id="direct_proxy" name="direct_proxy" checked>
     ${controls}<button type="submit" id="save">Save</button></form>` }));
+  await page.route('http://vod.test/vod_import_logs', route => route.fulfill({ contentType: 'text/html', body: '<h1>VOD Import Logs</h1>' }));
   await page.goto('http://vod.test/');
   await page.evaluate(() => {
     (window as any).xcToast = (message: string) => { document.body.dataset.toast = message; };
@@ -79,17 +80,15 @@ test('changing playlist resets selection and folder import clears playlist/downl
 });
 
 for (const view of ['movie', 'serie']) {
-  test(`${view}: queued response keeps the form open and explicitly reports queue acceptance`, async ({ page }) => {
+  test(`${view}: queued response redirects to the VOD import log`, async ({ page }) => {
     await setup(page, view);
     const source = fs.readFileSync(path.join(root, `src/Public/Views/admin/${view}.php`), 'utf8');
     const body = source.match(/\.then\(function\(txt\) \{([\s\S]*?)\n\s*\}\)\n\s*\.catch/)![1];
     await page.evaluate(body => {
       const button = document.getElementById('save') as HTMLButtonElement;
       button.disabled = true;
-      new Function('txt', 'btn', 'isImport', 'lang', 'errText', body)(JSON.stringify({result: true, queued: true, message: 'Import queued, not completed.'}), button, true, {errText: 'error'}, 'error');
+      new Function('txt', 'btn', 'isImport', 'lang', 'errText', body)(JSON.stringify({result: true, queued: true, location: 'vod_import_logs'}), button, true, {errText: 'error'}, 'error');
     }, body);
-    await expect(page.locator('body')).toHaveAttribute('data-toast', 'Import queued, not completed.');
-    await expect(page.locator('#save')).toBeEnabled();
-    expect(page.url()).toBe('http://vod.test/');
+    await expect(page).toHaveURL('http://vod.test/vod_import_logs');
   });
 }

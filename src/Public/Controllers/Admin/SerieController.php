@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Domain\Stream\StreamConfigRepository;
 
 /**
@@ -41,12 +42,15 @@ class SerieController extends BaseAdminController {
 		$rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
 		$rServerTree = [
-			['id' => 'source', 'parent' => '#', 'text' => "<span class='badge bg-success'>Active</span>", 'icon' => 'icon-base ti tabler-player-play', 'state' => ['opened' => true]],
-			['id' => 'offline', 'parent' => '#', 'text' => "<span class='badge bg-secondary'>Offline</span>", 'icon' => 'icon-base ti tabler-player-stop', 'state' => ['opened' => true]],
+			['id' => 'source', 'parent' => '#', 'text' => "<span class='badge bg-primary'>" . htmlspecialchars(Translator::get('selected'), ENT_QUOTES) . '</span>', 'icon' => 'icon-base ti tabler-circle-check', 'state' => ['opened' => true]],
+			['id' => 'offline', 'parent' => '#', 'text' => "<span class='badge bg-secondary'>" . htmlspecialchars(Translator::get('available'), ENT_QUOTES) . '</span>', 'icon' => 'icon-base ti tabler-list', 'state' => ['opened' => true]],
 		];
 
 		foreach ($rServers as $rServer) {
-			$rServerTree[] = ['id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'icon-base ti tabler-server', 'state' => ['opened' => true]];
+			$rOnline = !empty($rServer['server_online']);
+			$rStatus = htmlspecialchars(Translator::get($rOnline ? 'online' : 'offline'), ENT_QUOTES);
+			$rName = htmlspecialchars((string) ($rServer['server_name'] ?? ''), ENT_QUOTES);
+			$rServerTree[] = ['id' => $rServer['id'], 'parent' => 'offline', 'text' => $rName . " <span class='badge bg-label-" . ($rOnline ? 'success' : 'danger') . "'>" . $rStatus . '</span>', 'icon' => 'icon-base ti ' . ($rOnline ? 'tabler-server' : 'tabler-server-off'), 'state' => ['opened' => true]];
 		}
 
 		// The import flow's server tree is driven by jstree.

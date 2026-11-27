@@ -5,6 +5,7 @@ use PHPUnit\Framework\TestCase;
 use XcVm\Core\Config\ConstantsInitializer;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Public\Controllers\Admin;
 use XcVm\Tests\Support\InstallSchema;
@@ -169,6 +170,31 @@ final class AuditDecisionStoredEditPagesTest extends TestCase {
 			foreach (array_unique(self::VIEWS) as $rVar) {
 				$this->assertDoesNotMatchRegularExpression('/\$' . $rVar . '\b/', $rSource, $rLayout . ' uses $' . $rVar);
 			}
+		}
+	}
+
+	public function testVodImportServerTreeSeparatesSelectionFromActualHealth(): void {
+		$GLOBALS['rServers'] = [
+			1 => ['id' => 1, 'server_name' => 'MAIN', 'server_online' => true],
+			2 => ['id' => 2, 'server_name' => '<b>Backup</b>', 'server_online' => false],
+		];
+		RequestManager::set(['import' => '']);
+
+		foreach ([
+			'movie' => new class extends Admin\MovieController { use StoredEditPageShown; },
+			'series' => new class extends Admin\SerieController { use StoredEditPageShown; },
+		] as $rPage) {
+			$rPage->index();
+			$rTree = array_column($rPage->rShown['rServerTree'], null, 'id');
+
+			$this->assertStringContainsString(Translator::get('selected'), $rTree['source']['text']);
+			$this->assertStringContainsString(Translator::get('available'), $rTree['offline']['text']);
+			$this->assertSame('offline', $rTree[1]['parent'], 'a healthy but unselected server stays available');
+			$this->assertStringContainsString(Translator::get('online'), $rTree[1]['text']);
+			$this->assertSame('icon-base ti tabler-server', $rTree[1]['icon']);
+			$this->assertStringContainsString(Translator::get('offline'), $rTree[2]['text']);
+			$this->assertStringContainsString('&lt;b&gt;Backup&lt;/b&gt;', $rTree[2]['text']);
+			$this->assertSame('icon-base ti tabler-server-off', $rTree[2]['icon']);
 		}
 	}
 }
