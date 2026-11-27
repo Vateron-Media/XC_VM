@@ -211,24 +211,24 @@ $isShared = (int)($rTemplate['is_shared'] ?? 0) === 1;
                                         </div>
 
                                         <?php if ($rCanEdit): ?>
-                                            <!-- Quick Move Buttons -->
-                                            <div class="btn-group btn-group-sm flex-shrink-0">
-                                                <button type="button" class="btn btn-icon btn-label-secondary js-btn-move-top" title="<?= $language::get('move_up'); ?>">
-                                                    <i class="icon-base ti tabler-arrow-bar-to-up fs-7"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-icon btn-label-secondary js-btn-move-up" title="<?= $language::get('move_up'); ?>">
-                                                    <i class="icon-base ti tabler-chevron-up fs-7"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-icon btn-label-secondary js-btn-move-down" title="<?= $language::get('move_down'); ?>">
-                                                    <i class="icon-base ti tabler-chevron-down fs-7"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-icon btn-label-secondary js-btn-move-bottom" title="<?= $language::get('move_down'); ?>">
-                                                    <i class="icon-base ti tabler-arrow-bar-to-down fs-7"></i>
-                                                </button>
-                                            </div>
+                                            <div class="category-row-actions d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                                                <!-- Quick Move Buttons -->
+                                                <div class="btn-group btn-group-sm flex-shrink-0">
+                                                    <button type="button" class="btn btn-icon btn-label-secondary js-btn-move-top" title="<?= $language::get('move_up'); ?>">
+                                                        <i class="icon-base ti tabler-arrow-bar-to-up fs-7"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-icon btn-label-secondary js-btn-move-up" title="<?= $language::get('move_up'); ?>">
+                                                        <i class="icon-base ti tabler-chevron-up fs-7"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-icon btn-label-secondary js-btn-move-down" title="<?= $language::get('move_down'); ?>">
+                                                        <i class="icon-base ti tabler-chevron-down fs-7"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-icon btn-label-secondary js-btn-move-bottom" title="<?= $language::get('move_down'); ?>">
+                                                        <i class="icon-base ti tabler-arrow-bar-to-down fs-7"></i>
+                                                    </button>
+                                                </div>
 
-                                            <!-- Visibility Toggle Button -->
-                                            <div class="flex-shrink-0">
+                                                <!-- Visibility Toggle Button -->
                                                 <button type="button"
                                                         class="btn btn-sm <?= $isVisible ? 'btn-label-success' : 'btn-label-danger'; ?> js-btn-toggle-vis d-flex align-items-center gap-1"
                                                         title="<?= $isVisible ? $language::get('hide_category') : $language::get('show_category'); ?>"

@@ -989,11 +989,40 @@ table.dataTable.dtr-column > thead > tr > th.dtr-control::before {
 	min-height: 80px;
 }
 
+#editorTabs {
+	flex-wrap: wrap;
+}
+
+#editorTabs .nav-item {
+	min-width: 0;
+}
+
+@media (max-width: 767.98px) {
+	#editorTabs .nav-item {
+		flex: 0 0 50%;
+		max-width: 50%;
+	}
+}
+
+@media (max-width: 479.98px) {
+	#editorTabs .nav-item {
+		flex-basis: 100%;
+		max-width: 100%;
+	}
+}
+
 .category-item-row {
 	transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.15s ease, opacity 0.2s ease;
 	user-select: none;
 	background: rgba(var(--bs-card-bg-rgb), 0.75);
 	border: 1px solid var(--bs-border-color);
+	flex-wrap: wrap;
+}
+
+.category-item-row .category-orig-name,
+.category-item-row .category-custom-input {
+	flex: 1 1 140px;
+	min-width: 0 !important;
 }
 
 .category-item-row:hover {
