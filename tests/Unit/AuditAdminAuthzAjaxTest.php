@@ -82,6 +82,12 @@ final class AuditAdminAuthzAjaxTest extends TestCase {
 		$GLOBALS['rPermissions'] = ['is_admin' => 1, 'advanced' => array_values($rAdvanced)];
 	}
 
+	/** Sign in through the reseller scope, which has no admin-only advanced permissions. */
+	private function signInReseller(): void {
+		$GLOBALS['rUserInfo'] = ['id' => 9, 'member_group_id' => 2];
+		$GLOBALS['rPermissions'] = ['is_admin' => 0, 'is_reseller' => 1, 'advanced' => [], 'all_reports' => []];
+	}
+
 	/**
 	 * Whether the action ran for the signed-in administrator. False when it
 	 * answered {"result":false} and sent the database nothing.
@@ -181,6 +187,20 @@ final class AuditAdminAuthzAjaxTest extends TestCase {
 
 		$this->assertSame(['result' => false, 'message' => 'No permission'], $rAnswer(['streams']));
 		$this->assertNotSame(['result' => false, 'message' => 'No permission'], $rAnswer(['categories']));
+	}
+
+	public function testCustomerTemplateActionReachesTheOwnedLineCheckForAReseller(): void {
+		$this->signInReseller();
+		RequestManager::set(['line_id' => 5]);
+		$this->rStatement = null;
+		try {
+			(new AuditAdminAuthzTemplates())->customer();
+		} catch (AuditAdminAuthzStop) {
+			// The query-log database stops the action at its first ownership query.
+		} catch (AuditAdminAuthzAnswer $rThrown) {
+			$this->fail('The reseller was refused before its line was checked: ' . json_encode($rThrown->rData));
+		}
+		$this->assertStringContainsString('FROM `lines`', (string) $this->rStatement);
 	}
 
 	public function testAdminControllersNameOnlyPermissionsAGroupCanHold(): void {

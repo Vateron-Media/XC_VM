@@ -36,13 +36,17 @@ class CategoryTemplateAjaxController extends BaseAjaxController {
 		if (!$user) {
 			$this->fail(['message' => 'Unauthenticated']);
 		}
-		// The page's own permission: its actions (create, save, delete, apply
-		// to every stream) ran for any signed-in group.
-		if (!PageAuthorization::checkPermissions('category_templates')) {
+
+		$isAdmin = !empty($GLOBALS['rPermissions']['is_admin'])
+			|| (int) ($user['is_admin'] ?? 0) === 1
+			|| (int) ($user['member_group_id'] ?? 0) === 1;
+		$hasPermission = $isAdmin
+			? PageAuthorization::checkPermissions('category_templates')
+			: PageAuthorization::checkResellerPermissions('category_templates');
+		if (!$hasPermission) {
 			$this->fail(['message' => 'No permission']);
 		}
 
-		$isAdmin = (int) ($user['is_admin'] ?? 0) === 1 || (int) ($user['member_group_id'] ?? 0) === 1;
 		return ['user' => $user, 'isAdmin' => $isAdmin];
 	}
 
