@@ -64,9 +64,9 @@ $assetsPath = $baseUrl . 'assets/';
     <script src="<?= $assetsPath ?>vendor/libs/pickr/pickr.js"></script>
     <script src="<?= $assetsPath ?>vendor/js/template-customizer.js"></script>
     <script src="<?= $assetsPath ?>js/config.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@tsparticles/engine@4/tsparticles.engine.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@tsparticles/slim@4/tsparticles.slim.bundle.min.js"></script>
-    <script defer src="/assets/admin/xcvm/login-particles.js?v=6"></script>
+    <script defer src="<?= $assetsPath ?>vendor/libs/tsparticles/tsparticles.engine.min.js"></script>
+    <script defer src="<?= $assetsPath ?>vendor/libs/tsparticles/tsparticles.slim.bundle.min.js"></script>
+    <script defer src="<?= $assetsPath ?>js/login-particles.js?v=6"></script>
   </head>
 
   <body>

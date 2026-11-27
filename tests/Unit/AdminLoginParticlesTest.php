@@ -8,6 +8,7 @@ final class AdminLoginParticlesTest extends TestCase {
 		$reseller = (string) file_get_contents(MAIN_HOME . 'Public/Views/reseller/login.php');
 		$player = (string) file_get_contents(MAIN_HOME . 'Public/Views/player_v2/login.php');
 		$script = (string) file_get_contents(MAIN_HOME . 'Public/assets/admin/xcvm/login-particles.js');
+		$playerScript = (string) file_get_contents(MAIN_HOME . 'Public/assets/player_v2/js/login-particles.js');
 		$styles = (string) file_get_contents(MAIN_HOME . 'Public/assets/admin/xcvm/login-classic.css');
 		$playerStyles = (string) file_get_contents(MAIN_HOME . 'Public/assets/player_v2/css/demo.css');
 
@@ -17,7 +18,12 @@ final class AdminLoginParticlesTest extends TestCase {
 			$this->assertStringContainsString('class="panel-logo-image" src="assets/img/logo-topbar.png"', $login);
 		}
 		$this->assertStringContainsString('id="tsparticles" class="login-particles" aria-hidden="true"', $player);
-		$this->assertStringContainsString('@tsparticles/slim@4/tsparticles.slim.bundle.min.js', $player);
+		$this->assertStringContainsString('<?= $assetsPath ?>vendor/libs/tsparticles/tsparticles.engine.min.js', $player);
+		$this->assertStringContainsString('<?= $assetsPath ?>vendor/libs/tsparticles/tsparticles.slim.bundle.min.js', $player);
+		$this->assertStringContainsString('<?= $assetsPath ?>js/login-particles.js?v=6', $player);
+		$this->assertFileIsReadable(MAIN_HOME . 'Public/assets/player_v2/vendor/libs/tsparticles/tsparticles.engine.min.js');
+		$this->assertFileIsReadable(MAIN_HOME . 'Public/assets/player_v2/vendor/libs/tsparticles/tsparticles.slim.bundle.min.js');
+		$this->assertSame($script, $playerScript);
 		$this->assertStringContainsString('class="login-brand-logo" src="/assets/admin/img/logo-topbar.png"', $player);
 		$this->assertStringContainsString('d-flex align-items-center justify-content-center gap-2', $player);
 		$this->assertStringNotContainsString('btn btn-primary d-grid', $player);

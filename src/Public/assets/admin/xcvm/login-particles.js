@@ -1,4 +1,4 @@
-/* Subtle tsParticles background for the classic admin login. */
+/* Subtle tsParticles background for the branded login. */
 (function () {
 	"use strict";
 
